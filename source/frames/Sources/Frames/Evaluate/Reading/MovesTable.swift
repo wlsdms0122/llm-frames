@@ -10,12 +10,22 @@
 // nested list in a picture's or a track matte's `source` is held to the same marks item by item.
 struct MovesTable: Sendable {
     // MARK: - Property
-    // A filter moves in its entries' `mix` and its ops' parameters, never in an op's name or a `grain` op's `seed`.
+    // A filter moves in its entries' `mix` and its ops' numeric parameters, the members a preset's `param` may stand
+    // for. An op's name, a `lut` op's `file`, `sha256` and `space`, and a `grain` op's `seed` are equal in every sample.
     private static let filter = MovesMark.elements(.members(
-        ["ops": .elements(.members(["op": .fixed, "seed": .fixed], other: .moves)), "mix": .moves],
+        [
+            "ops": .elements(.members(
+                Dictionary(uniqueKeysWithValues: parameters.map { ($0, MovesMark.moves) }),
+                other: .fixed
+            )),
+            "mix": .moves
+        ],
         other: .fixed
     ))
-    // A source is a media frame, equal in every sample, or `{list}`, whose items take their marks.
+    // Every numeric parameter a filter op is written with.
+    private static let parameters = ["ev", "amount", "kelvin", "degrees", "input", "output", "radius", "color", "size"]
+    // A source is a media frame, equal in every sample, or `{list}`, whose items take their marks and whose own `size`,
+    // `background` and `compositing` are equal in every sample.
     private static let source = MovesMark.members(["list": .members(["items": .items], other: .fixed)], other: .fixed)
     private static let common: [String: MovesMark] = [
         "transform": .moves,

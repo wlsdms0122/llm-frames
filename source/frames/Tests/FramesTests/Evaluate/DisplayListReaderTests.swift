@@ -207,8 +207,8 @@ struct DisplayListReaderTests {
         .grain(amount: 0.2, size: 1.5)
     ]
 
-    // `items` with a picture of a nested list under a track matte, at 12, and a grain, at 13, so a sample list holds
-    // every field of the Moves columns.
+    // `items` with a picture of a nested list under a track matte, at 12, a grain, at 13, and a LUT, a bloom with a
+    // colour and levels, at 14, so a sample list holds every field of the Moves columns.
     private static let sampleItems = items + [
         DisplayItem(
             trackMatte: ItemTrackMatte(
@@ -222,7 +222,12 @@ struct DisplayListReaderTests {
                 destination: Rectangle(x: 100, y: 100, width: 400, height: 300)
             ))
         ),
-        DisplayItem(content: .adjust(AdjustItem(filter: [FilterEntry(operations: [.grain(amount: 0.2, size: 1.5)])])))
+        DisplayItem(content: .adjust(AdjustItem(filter: [FilterEntry(operations: [.grain(amount: 0.2, size: 1.5)])]))),
+        DisplayItem(content: .adjust(AdjustItem(filter: [FilterEntry(operations: [
+            .lut(file: PinnedFile(path: "/abs/film.cube", sha256: hash), amount: 0.5),
+            .bloom(amount: 0.5, radius: 4, color: Color(written: "#FFEEDD")),
+            .levels(input: [0.05, 0.95], output: [0, 1])
+        ])])))
     ]
 
     // A path in the written list with samples, what is put there or nil to remove it, and the message of the stop.
@@ -270,9 +275,18 @@ struct DisplayListReaderTests {
             "samples[1][12].trackMatte.source.list.items[0].origin (path)"
         ),
         (["1", "12", "source", "list", "size"], "[200, 150]", "samples[1][12].source.list.size[0] (picture)"),
+        (["1", "12", "source", "list", "background"], #""color(srgb 1 1 1 / 1)""#, "samples[1][12].source.list.background (picture)"),
+        (["1", "12", "source", "list", "compositing"], #""linear""#, "samples[1][12].source.list.compositing (picture)"),
         (["1", "12", "source", "list", "items"], "[]", "samples[1][12].source.list.items (picture)"),
         (["1", "12", "source", "list", "items", "0", "blend"], #""screen""#, "samples[1][12].source.list.items[0].blend (path)"),
-        (["1", "13"], nil, "samples[1] (display list)")
+        (["1", "14", "filter", "0", "ops", "0", "file"], #""/abs/other.cube""#, "samples[1][14].filter[0].ops[0].file (adjust)"),
+        (
+            ["1", "14", "filter", "0", "ops", "0", "sha256"],
+            "\"\(String(repeating: "b", count: 64))\"",
+            "samples[1][14].filter[0].ops[0].sha256 (adjust)"
+        ),
+        (["1", "14", "filter", "0", "ops", "0", "space"], #""srgb-linear""#, "samples[1][14].filter[0].ops[0].space (adjust)"),
+        (["1", "14"], nil, "samples[1] (display list)")
     ]
 
     // A path in the second sample list and what is written there.
@@ -313,7 +327,12 @@ struct DisplayListReaderTests {
         (["12", "dest"], "[0, 0, 200, 150]"),
         (["12", "source", "list", "items", "0", "transform"], "[2, 0, 0, 2, 0, 0]"),
         (["12", "trackMatte", "source", "list", "items", "0", "opacity"], "0.5"),
-        (["13", "filter", "0", "ops", "0", "amount"], "0.4")
+        (["13", "filter", "0", "ops", "0", "amount"], "0.4"),
+        (["14", "filter", "0", "ops", "0", "amount"], "0.25"),
+        (["14", "filter", "0", "ops", "1", "radius"], "8"),
+        (["14", "filter", "0", "ops", "1", "color"], #""color(srgb 1 0 0 / 1)""#),
+        (["14", "filter", "0", "ops", "2", "input"], "[0, 1]"),
+        (["14", "filter", "0", "ops", "2", "output"], "[0.1, 0.9]")
     ]
 
     // MARK: - Initializer
