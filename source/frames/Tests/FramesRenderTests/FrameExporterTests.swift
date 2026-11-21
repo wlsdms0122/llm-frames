@@ -173,6 +173,36 @@ struct FrameExporterTests {
         #expect(sheet.isPixel(x: 268, y: 59, blue, tolerance: 1.0 / 255))
     }
 
+    @Test("a sheet cell of a frame with motion blur is the frame as the renderer draws it, the mean of its samples")
+    func drawsMotionBlurSheet() throws {
+        // Given
+        let media = try TemporaryDirectory()
+        let output = try TemporaryDirectory()
+        let file = try image(in: media, named: "orange.png", color: orange)
+        let document = try DocumentResolver().resolve(#"""
+            { "kind": "sequence", "format": { "fps": 10 },
+              "storyline": [ { "media": "\#(file)", "duration": 1, "motionBlur": true,
+                               "keyframes": [ { "at": 0, "opacity": 1, "ease": "linear" }, { "at": 1, "opacity": 0 } ] } ] }
+            """#)
+        let face = try labelFace()
+        let sut = exporter()
+
+        // When
+        try sut.sheet(
+            .document(document),
+            range: FrameRange(step: 0.5),
+            columns: 6,
+            labelFace: face,
+            to: output.file("sheet.png")
+        )
+
+        // Then
+        // The exposures run over [0, 0.05) and [0.5, 0.55), so the mean opacities are those at 0.025 and 0.525.
+        let sheet = try picture(at: output.file("sheet.png"))
+        #expect(sheet.isPixel(x: 94, y: 59, orange.map { $0 * 0.975 }, tolerance: 2.0 / 255))
+        #expect(sheet.isPixel(x: 268, y: 59, orange.map { $0 * 0.475 }, tolerance: 2.0 / 255))
+    }
+
     @Test("extract writes a video's frames over the range at full size, named by index, into a directory it makes")
     func extractsVideo() async throws {
         // Given
