@@ -116,7 +116,13 @@ struct MediaResolverTests {
 
         // When
         let error = #expect(throws: ResolveError.self) {
-            try sut.transitionMedia(at: "/abs/print.jpg", page: nil, place: place, kind: .clip(.media(.video)), colorSpace: nil)
+            try sut.transitionMedia(
+                at: "/abs/print.jpg",
+                page: nil,
+                place: place,
+                kind: .clip(.media(.video)),
+                colorSpace: nil
+            )
         }
 
         // Then
