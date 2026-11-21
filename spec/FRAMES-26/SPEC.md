@@ -179,7 +179,7 @@ The form-free formulas, in the form `compositing` names:
 - the coverage of an antialiased edge (a path, a glyph, a reveal's edge, a mask's edge and feather), which is alpha,
 - the parts an item draws over each other: a picture's border over it, a shadow under its item, a title's background, highlights, underlines, strokes and fills in their order,
 - the two storyline pictures of a transition, so a dissolve in `linear` mixes light, and a transition cover over them ([FRAMES-14](../FRAMES-14/SPEC.md)),
-- the mean of the samples of a clip with motion blur, premultiplied ([FRAMES-29](../FRAMES-29/SPEC.md)),
+- the mean of the samples of a group of clips with motion blur, premultiplied ([FRAMES-29](../FRAMES-29/SPEC.md)),
 - an adjustment's filtered picture onto the unfiltered one, by its `blend` and alpha ([FRAMES-11](../FRAMES-11/SPEC.md)),
 - a filter entry's `mix` and a `lut`'s `amount` ([FRAMES-15](../FRAMES-15/SPEC.md)),
 - the blurs inside filter ops (`blur`, and `sharpen`'s blur and its unsharp mask) and `pixelate`'s mean, premultiplied ([FRAMES-15](../FRAMES-15/SPEC.md)),
