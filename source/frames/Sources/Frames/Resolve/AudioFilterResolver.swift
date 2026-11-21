@@ -44,7 +44,9 @@ struct AudioFilterResolver: Sendable {
         try checkArguments(of: property, entries: entries, isList: isList, looks: looks)
 
         let structure = LookStructureTable.audioFilter(
-            presets: published.keys.sorted().compactMap { name in published[name].map { (name, $0.parameters) } }
+            presets: published.keys.sorted().compactMap { name in
+                published[name].map { (name, $0.parameters, staticArguments(of: $0)) }
+            }
         )
         let timed = try looks.timed(property, key: Self.key, as: structure)
         let elements = if case let .list(elements) = timed { elements } else { [timed] }
@@ -62,6 +64,25 @@ struct AudioFilterResolver: Sendable {
         }
 
         return published
+    }
+
+    // The arguments a static op parameter of the preset reads, as a limiter's `lookahead`, which no keyframe may move.
+    private func staticArguments(of preset: PublishedPreset<AudioPreset>) -> Set<String> {
+        let objects = preset.value.objectValue?["ops"]?.arrayValue?.compactMap(\.objectValue) ?? []
+        let places = objects.enumerated().flatMap { index, object -> [Place] in
+            guard case let .object(structure) = LookStructureTable.audioOperation(object["op"]?.stringValue ?? "") else {
+                return []
+            }
+
+            let place = preset.place.appending(key: "ops").appending(index: index)
+            return structure.keys.compactMap { key, child in
+                guard case let .leaf(kind) = child, !kind.isTimed else { return nil }
+
+                return place.appending(key: key)
+            }
+        }
+
+        return Set(preset.references.filter { places.contains($0.place) }.map(\.name))
     }
 
     // A preset entry's arguments are checked by reading the preset with each keyframe's over the choice's. An argument

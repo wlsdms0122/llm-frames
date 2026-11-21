@@ -161,6 +161,17 @@ struct ResolvedDocumentReaderTests {
                        "keyframes": [ { "at": 0, "audioFilter": { "bands": [ { "frequency": 100, "q": 2 } ] } },
                                       { "at": 2, "audioFilter": { "bands": [ { "frequency": 8000, "q": 0.5 } ] } } ] } ] }
         """#,
+        // A sequence's own audio filter moved by its keyframes, and a compound clip's sound alone, which carries its nested
+        // sequence's audio filter beside its own.
+        #"""
+        { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "in": 0, "out": 3 } ],
+          "clips": [ { "media": { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "out": 2 } ],
+                                  "audioFilter": { "op": "limiter", "ceiling": -6, "lookahead": 0.01 } },
+                       "picture": false, "at": 1, "audioFilter": { "op": "gate", "threshold": -50 } } ],
+          "audioFilter": [ { "op": "gate", "threshold": -60 }, { "op": "limiter", "ceiling": -1 } ],
+          "keyframes": [ { "at": 0, "audioFilter": [ { "mix": 0 }, { "gain": 0 } ], "ease": "ease-in" },
+                         { "at": 2, "audioFilter": [ { "mix": 1 }, { "gain": 2 } ] } ] }
+        """#,
         // A title of runs over two lines with a background, one run in the stroked subtitle style.
         #"""
         { "kind": "sequence", "format": { "size": [1920, 1080] },

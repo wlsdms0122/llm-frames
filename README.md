@@ -146,6 +146,7 @@ frames transcode /path/to/out/edit.mov -o /path/to/out/edit-small.mp4 --quality 
 | Command | What it reports |
 | --- | --- |
 | `probe <media> [--json]` | the kind (`image`, `video`, `audio`, `imageSequence`), size, duration, frame rate, alpha, colour space and audio of a file or a directory of PNGs |
+| `loudness <media \| document> [--from <t>] [--to <t>] [--args <args.json>] [--json]` | the integrated loudness, loudness range, largest momentary and short-term loudness, true peak and sample peak of a document's mix, after the sequence's `audioFilter`, or of the mix of one clip of a medium, without rendering pictures. `--from` and `--to` measure part of it, read as part of the whole sound. `--args` with a medium stops, since a medium has no parameters to take them |
 | `ocr <image \| video> [--at <t> \| --from <t> --to <t> --step <s>] [--languages <tag>[,<tag>...]] [--color-space <name>] [--json]` | the recognised lines, `[x, y, w, h]  text` in media pixels, in the order a text area's `nth` counts them |
 | `track <video> --at <t> --area <area> [--to <t>] [--color-space <name>]` | the four corners of an area on every frame the tracker follows, and the motion fitted to them, as JSON |
 | `extract <video \| document> <outdir> [--from <t>] [--to <t>] [--step 1]` | frames as full-size PNGs, `0000.png`, `0001.png`, ... |
@@ -158,6 +159,7 @@ Given a video, `extract` and `sheet` take the frames shown at media times. Given
 
 ```sh
 frames probe /path/to/interview.mov
+frames loudness /path/to/edit.json --json
 frames ocr /path/to/board.png
 frames sheet /path/to/interview.mov -o /path/to/out/interview.png --step 1 --cols 6
 frames track /path/to/broll.mov --at 1 --area '[780, 360, 360, 360]' --to 3
@@ -630,6 +632,7 @@ With `--json`, and always for `evaluate`, `locate` and `track`, a command prints
 | Command | Object |
 | --- | --- |
 | `probe` | `{probe, kind, size, duration, fps, alpha, colorSpace, audio}`, `colorSpace` as `{name, primaries, transfer, matrix, bitDepth, hdr}` or `null` for sound, `audio` as `{channels, sampleRate}` or `null` |
+| `loudness` | `{loudness, integrated, range, momentaryMax, shortTermMax, truePeak, samplePeak}`, in LUFS, LU, dBTP and dBFS, each rounded to the nearest hundredth and `null` where the meter gives none |
 | `ocr` | `{ocr, size, languages, frames}`, each frame `{time, lines}` and each line `{text, rect}` |
 | `track` | `{track, time, target, frames}`, each frame `{time, quad, motion}` |
 | `timeline` | `{timeline, duration, storyline, clips}`. A storyline entry has `place, id, media, edit, drawn, clip, speed, timeRemap, transition`, and a clips entry `place, id, kind, visible, lane, storyline, parent, animation`. A compound clip or template instance adds `nested` |

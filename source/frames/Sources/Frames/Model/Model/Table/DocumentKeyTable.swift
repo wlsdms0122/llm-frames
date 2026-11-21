@@ -15,8 +15,20 @@ enum DocumentKeyTable {
             KeyRule("theme", theme),
             KeyRule("params", .parameters(ParameterKeyTable.template)),
             KeyRule("storyline", .clips(.storyline)),
-            KeyRule("clips", .clips(.sequence))
+            KeyRule("clips", .clips(.sequence)),
+            KeyRule("audioFilter", ChoiceKeyTable.audioFilter),
+            KeyRule("keyframes", .list(.object(keyframe)))
         ]
+    )
+    // A keyframe of the sequence's own, on its sequence time, which writes only its `audioFilter`.
+    static let keyframe = ObjectTable(
+        kind: "keyframe",
+        rules: [
+            KeyRule("at", .number(.any), isRequired: true),
+            KeyRule("ease", .ease),
+            KeyRule("audioFilter", ChoiceKeyTable.filterKeyframe)
+        ],
+        groups: [KeyGroup(keys: ["audioFilter"], isExclusive: false)]
     )
     static let format = ObjectTable(
         kind: "format",

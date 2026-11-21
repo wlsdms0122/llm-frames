@@ -5,7 +5,7 @@
 //  Created by JSilver on 11/19/26.
 //
 
-// An entry of a segment's audio filter: its ops in order, run on the entry's input, and the `mix` from 0 to 1 its
+// An entry of a segment's audio filter or a bus's chain: its ops in order, run on the entry's input, and the `mix` from 0 to 1 its
 // output takes of their result against that input.
 package struct MixFilterEntry: Equatable, Sendable {
     // MARK: - Property

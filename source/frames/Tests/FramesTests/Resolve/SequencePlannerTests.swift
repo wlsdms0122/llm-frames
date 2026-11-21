@@ -954,7 +954,7 @@ struct SequencePlannerTests {
                 #"{ "shape": "rect" }"#,
                 #"{ "area": [0, 0, 10, 10] }"#,
                 #"{ "shape": "ellipse", "area": [0, 0, 10, 10] }"#,
-                "clips[0].keyframes[1].mask.shape (keyframe): a name, a boolean or a form is static and is written on the clip, not in a keyframe"
+                "clips[0].keyframes[1].mask.shape (keyframe): a name, a boolean, a form or a static number is static and is written on the clip or the sequence, not in a keyframe"
             ),
             (
                 "clips",
@@ -968,14 +968,14 @@ struct SequencePlannerTests {
                 #"{ "shape": "rect" }"#,
                 #"{ "area": [0, 0, 10, 10] }"#,
                 #"{ "area": [0, 0, 10, 10], "invert": true }"#,
-                "clips[0].keyframes[1].mask.invert (keyframe): a name, a boolean or a form is static and is written on the clip, not in a keyframe"
+                "clips[0].keyframes[1].mask.invert (keyframe): a name, a boolean, a form or a static number is static and is written on the clip or the sequence, not in a keyframe"
             ),
             (
                 "clips",
                 #"[ { "shape": "rect" }, { "shape": "rect", "area": [0, 0, 5, 5] } ]"#,
                 #"[ { "area": [0, 0, 10, 10] }, { "feather": 1 } ]"#,
                 #"[ { "area": [0, 0, 10, 10] }, { "mode": "subtract" } ]"#,
-                "clips[0].keyframes[1].mask[1].mode (keyframe): a name, a boolean or a form is static and is written on the clip, not in a keyframe"
+                "clips[0].keyframes[1].mask[1].mode (keyframe): a name, a boolean, a form or a static number is static and is written on the clip or the sequence, not in a keyframe"
             ),
             (
                 "clips",
@@ -989,7 +989,7 @@ struct SequencePlannerTests {
                 #"{ "shape": "rect" }"#,
                 #"{ "area": [0, 0, 10, 10] }"#,
                 #"{ "shape": "ellipse" }"#,
-                "storyline[0].keyframes[1].mask.shape (keyframe): a name, a boolean or a form is static and is written on the clip, not in a keyframe"
+                "storyline[0].keyframes[1].mask.shape (keyframe): a name, a boolean, a form or a static number is static and is written on the clip or the sequence, not in a keyframe"
             )
         ]
     )

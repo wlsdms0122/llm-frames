@@ -6,7 +6,8 @@
 //
 
 // A checked sequence document, as far as the time plan reads it. `place` is where the document stands, so a
-// compound clip's places continue the place of the clip that holds it.
+// compound clip's places continue the place of the clip that holds it. `audioFilter` is its bus's chain as written,
+// its keyframes on sequence time, and `keyframes` the sequence's own keyframes with the leaves each writes.
 struct SequenceDocument: Equatable, Sendable {
     // MARK: - Property
     let place: Place
@@ -14,6 +15,8 @@ struct SequenceDocument: Equatable, Sendable {
     let format: SequenceFormat
     let storyline: [StorylineClip]
     let clips: [Clip]
+    let audioFilter: LookProperty?
+    let keyframes: [KeyframeInstant]
 
     // MARK: - Initializer
     init(
@@ -21,13 +24,17 @@ struct SequenceDocument: Equatable, Sendable {
         theme: ThemeReference?,
         format: SequenceFormat,
         storyline: [StorylineClip],
-        clips: [Clip]
+        clips: [Clip],
+        audioFilter: LookProperty?,
+        keyframes: [KeyframeInstant]
     ) {
         self.place = place
         self.theme = theme
         self.format = format
         self.storyline = storyline
         self.clips = clips
+        self.audioFilter = audioFilter
+        self.keyframes = keyframes
     }
 
     // MARK: - Public

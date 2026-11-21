@@ -85,8 +85,8 @@ Inside `Frames`, one folder per module:
 | `Area` | finding areas and points, reading order, and the OCR and tracker provider interfaces |
 | `Text` | text layout (fonts, line breaking, wrapping, boxes) and the shaping provider interface |
 | `Resolve` | the time plan and the sequence plan: media facts, content fit, crops, geometry, parents, track mattes, tracks, appearance, sound, presets with their arguments, and file hashes |
-| `Resolved` | the resolved document: its model, writing it, and reading and checking it |
-| `Evaluate` | display lists at a time, animation and transition sampling, parents, shapes, the mix plan, and the display list and mix plan as JSON |
+| `Resolved` | the resolved document: its model, writing it, reading it, and checking it and the files it pins |
+| `Evaluate` | display lists at a time, animation and transition sampling, parents, shapes, the mix plan and a sequence's mix through the mixer, and the display list and mix plan as JSON |
 | `Role` | the decoder, renderer, mixer and encoder interfaces, and the bitmaps, picture readings, sound buffers and targets they exchange |
 | `Render` | the render pipeline from a resolved document through the roles to a PNG, a master and a delivery file |
 | `Export` | `still`, `sheet` and `extract`: frames of a video or a sequence drawn to PNG files without encoding a video |

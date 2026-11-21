@@ -10,9 +10,6 @@ package protocol Mixer: Sendable {
     // Refuses a plan holding anything the mixer cannot mix, naming the first such thing and its place in the plan.
     func check(_ plan: MixPlan) throws
 
-    // 48 kHz stereo, `duration` seconds long from sequence time 0.
-    func mix(
-        _ plan: MixPlan,
-        duration: Double
-    ) throws -> SoundBuffer
+    // Stereo at `MixPlan.sampleRate`, the plan's `length` samples per channel from sequence time 0.
+    func mix(_ plan: MixPlan) throws -> SoundBuffer
 }
