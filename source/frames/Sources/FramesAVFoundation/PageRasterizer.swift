@@ -9,8 +9,8 @@ import CoreGraphics
 import Foundation
 
 // Draws a page of a PDF with Core Graphics into a bitmap of 32-bit floats, RGBA with premultiplied alpha, rows top
-// first, where nothing is painted transparent. Core Graphics draws no annotations, and does not clip to the crop box, so
-// `clip` is the part of user space drawn.
+// first, where nothing is painted transparent, or over opaque white where `isOverWhite` is set. Core Graphics draws no
+// annotations, and does not clip to the crop box, so `clip` is the part of user space drawn.
 struct PageRasterizer {
     // MARK: - Property
     // MARK: - Initializer
@@ -22,7 +22,8 @@ struct PageRasterizer {
         transform: CGAffineTransform,
         clip: CGRect?,
         space: CGColorSpace,
-        intent: CGColorRenderingIntent = .defaultIntent
+        intent: CGColorRenderingIntent = .defaultIntent,
+        isOverWhite: Bool = false
     ) -> [Float] {
         var pixels = [Float](repeating: 0, count: width * height * 4)
         pixels.withUnsafeMutableBytes { buffer in
@@ -43,6 +44,10 @@ struct PageRasterizer {
             }
 
             context.setRenderingIntent(intent)
+            if isOverWhite, let white = CGColor(colorSpace: space, components: [1, 1, 1, 1]) {
+                context.setFillColor(white)
+                context.fill(CGRect(x: 0, y: 0, width: width, height: height))
+            }
             context.concatenate(transform)
             if let clip { context.clip(to: clip) }
             context.drawPDFPage(page)

@@ -24,9 +24,10 @@ package protocol MediaDecoder: Sendable {
     ) throws -> Bitmap
 
     // `region` of the grid of the page `file` names at `scale` pixels per media pixel, read as `reading` says, as one
-    // draw: working values at depth `halfFloat`, or an analysis picture at depth `eight`, with what lies off the page
-    // transparent. A working reading's target peak does not apply, since a page is not HDR. A region whose width or
-    // height is under 1 or above `largestPictureSide`, a scale of 0 or less, and a page the decoder refuses stop.
+    // draw: working values at depth `halfFloat`, with what the page paints nothing over and what lies off it
+    // transparent, or an analysis picture at depth `eight`, the page over white (FRAMES-3 PDF pages). A working
+    // reading's target peak does not apply, since a page is not HDR. A region whose width or height is under 1 or above
+    // `largestPictureSide`, a scale of 0 or less, and a page the decoder refuses stop.
     func picture(
         of file: MediaFile,
         region: PageRegion,

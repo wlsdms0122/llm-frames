@@ -81,7 +81,8 @@ final class PageReader: @unchecked Sendable {
         }
     }
 
-    // `region` of page `number`'s grid at `scale`, read as `reading` says, after the page's checks.
+    // `region` of page `number`'s grid at `scale`, read as `reading` says, after the page's checks. An analysis picture
+    // is the page over white.
     func picture(
         _ number: Int,
         region: PageRegion,
@@ -112,6 +113,8 @@ final class PageReader: @unchecked Sendable {
             conversion = { managed.working($0) }
         }
         guard let space else { throw DecoderError.unreadable(file: path) }
+        // A page read for its values is the page over white, the paper a viewer shows (FRAMES-3 PDF pages).
+        let isAnalysis = if case .analysis = reading { true } else { false }
 
         var pixels = PageRasterizer.pixels(
             of: page,
@@ -120,10 +123,11 @@ final class PageReader: @unchecked Sendable {
             transform: geometry.transform(for: region, scale: scale),
             clip: geometry.cropBox,
             space: space,
-            intent: intent
+            intent: intent,
+            isOverWhite: isAnalysis
         )
 
-        if case .analysis = reading {
+        if isAnalysis {
             pixels.convertColors(width: region.width) { (conversion?($0) ?? $0).clipped(to: 0...1) }
 
             return Self.bitmap(eightBit: pixels, width: region.width, height: region.height)

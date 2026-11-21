@@ -118,6 +118,26 @@ struct PageReaderTests {
         #expect(pixels[((60 * 100) + 60) * 4 + 3] == 0)
     }
 
+    @Test("an analysis reading is the page over white, so what it paints nothing over is opaque white")
+    func readsAnalysisOverWhite() throws {
+        // Given
+        let path = directory.file("paper.pdf")
+        try PageFile.write([PageFile.page("0 0 0 rg 0 90 10 10 re f", mediaBox: [0, 0, 100, 100])], to: path)
+        let file = MediaFile(path: path, page: 1)
+        let region = PageRegion(x: 0, y: 0, width: 100, height: 100)
+
+        // When
+        let analysis = [UInt8](try sut.picture(of: file, region: region, scale: 1, reading: .analysis(colorSpace: nil)).pixels)
+        let working = try sut.picture(of: file, region: region, scale: 1, reading: .tagged).floatPixels()
+
+        // Then
+        let unpainted = ((50 * 100) + 50) * 4
+        let painted = ((5 * 100) + 5) * 4
+        #expect(Array(analysis[unpainted..<unpainted + 4]) == [255, 255, 255, 255])
+        #expect(Array(analysis[painted..<painted + 4]) == [0, 0, 0, 255])
+        #expect(working[unpainted + 3] == 0)
+    }
+
     @Test("nothing the page paints outside its crop box is drawn")
     func clipsToCropBox() throws {
         // Given
