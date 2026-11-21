@@ -39,6 +39,7 @@ extension ResolvedText {
                 color: color,
                 stroke: character["stroke"] ?? .off,
                 baselineShift: character["baselineShift"] ?? .off,
+                staticTracking: run.staticTracking,
                 tracking: plan.trackingSteps[run.source],
                 highlight: character["highlight"].flatMap { highlight in
                     guard highlight != .off else { return nil }
@@ -116,6 +117,7 @@ extension ResolvedText {
                     color: held(.color(color)),
                     stroke: .off,
                     baselineShift: .off,
+                    staticTracking: run.staticTracking,
                     tracking: .off,
                     highlight: nil,
                     underline: nil,

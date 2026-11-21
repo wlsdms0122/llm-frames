@@ -250,12 +250,13 @@ struct ResolvedDocumentWriterTests {
                         "ease": "linear"
                       }
                     ],
+                    "staticTracking": 0,
                     "tracking": null,
                     "highlight": null,
                     "underline": null,
                     "glyphs": [
-                      [72, 9, 20.7],
-                      [105, 19.125, 20.7]
+                      [72, 9, 20.7, 0, 0],
+                      [105, 19.125, 20.7, 0, 0]
                     ]
                   }
                 ]

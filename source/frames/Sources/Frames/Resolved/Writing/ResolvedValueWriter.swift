@@ -323,7 +323,7 @@ struct ResolvedValueWriter: Sendable {
     }
 
     // Glyph runs carry their font file pinned, the face in it, size, their timed attributes and their highlight and
-    // underline pieces, and each glyph as `[id, x, y]`, its pen position in the text's box without its placement
+    // underline pieces, and each glyph as `[id, x, y, dx, dy]`, its pen position in the text's box and its placement
     // offset. A line's range is `[start, end]`, a unit's characters `[line, first, count]` and a unit's part
     // `[run, piece, x0, x1]`.
     func text(_ text: ResolvedText) -> JSONValue {
@@ -404,10 +404,13 @@ struct ResolvedValueWriter: Sendable {
                     JSONMember(key: "color", value: timed(run.color)),
                     JSONMember(key: "stroke", value: timed(run.stroke)),
                     JSONMember(key: "baselineShift", value: timed(run.baselineShift)),
+                    JSONMember(key: "staticTracking", value: .number(run.staticTracking)),
                     JSONMember(key: "tracking", value: timed(run.tracking)),
                     JSONMember(key: "highlight", value: highlight ?? .null),
                     JSONMember(key: "underline", value: underline ?? .null),
-                    JSONMember(key: "glyphs", value: glyphs(run.glyphs))
+                    JSONMember(key: "glyphs", value: .array(run.glyphs.map { glyph in
+                        numbers([Double(glyph.id), glyph.x, glyph.y, glyph.placementOffset.x, glyph.placementOffset.y])
+                    }))
                 ]
             ))
         })
@@ -501,6 +504,7 @@ struct ResolvedValueWriter: Sendable {
         ])
     }
 
+    // A drawn glyph is `[id, x, y]`, where it is drawn.
     private func glyphs(_ glyphs: [PositionedGlyph]) -> JSONValue {
         .array(glyphs.map { numbers([Double($0.id), $0.x, $0.y]) })
     }

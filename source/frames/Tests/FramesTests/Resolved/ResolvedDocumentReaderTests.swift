@@ -5,6 +5,7 @@
 //  Created by JSilver on 11/16/26.
 //
 
+import Foundation
 import Testing
 
 @testable import Frames
@@ -662,10 +663,45 @@ struct ResolvedDocumentReaderTests {
         #expect(error?.description == message)
     }
 
+    @Test("a title read back from a file keeps its static tracking and draws each mark where the font places it")
+    func drawsMarksReadFromFile() throws {
+        // Given
+        // The acute is placed 0.3 em left of and 0.2 em above its pen, and the title's runs are set 100 apart.
+        let shaper = ShaperTable(placements: ["\u{301}": Point(x: -0.3, y: -0.2)])
+        let document = try resolved(
+            #"""
+            { "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4", "in": 0, "out": 3 } ],
+              "clips": [ { "title": "e\u0301x", "style": "title", "at": [0, 1], "position": [0, 0],
+                           "character": { "tracking": 100 } } ] }
+            """#,
+            shaper: shaper
+        )
+        let file = FileManager.default.temporaryDirectory.appendingPathComponent("frames-marks-\(UUID().uuidString).json")
+        try writer.write(document).write(to: file, atomically: true, encoding: .utf8)
+        defer { try? FileManager.default.removeItem(at: file) }
+
+        // When
+        let read = try sut.read(String(contentsOf: file, encoding: .utf8))
+
+        // Then
+        guard case let .title(title) = read.clips.first?.content else {
+            Issue.record("the first clip is not a title")
+            return
+        }
+        let run = try #require(title.runs.first)
+        let mark = try #require(run.glyphs.dropFirst().first)
+        let drawn = GlyphsItem(text: title, factor: 1, at: 0).runs[0].glyphs[1]
+        #expect(read == document)
+        #expect(run.staticTracking == run.size / 10)
+        #expect(mark.placementOffset == Point(x: -0.3 * run.size, y: -0.2 * run.size))
+        #expect(Point(x: drawn.x, y: drawn.y) == Point(x: mark.x + mark.placementOffset.x, y: mark.y + mark.placementOffset.y))
+    }
+
     // MARK: - Private
     private func resolved(
         _ document: String,
-        tracker: TrackerTable = Fixture.tracker
+        tracker: TrackerTable = Fixture.tracker,
+        shaper: ShaperTable = Fixture.shaper
     ) throws -> ResolvedSequence {
         let planner = DocumentPlanner(
             mediaFacts: Fixture.mediaFacts,
@@ -673,7 +709,7 @@ struct ResolvedDocumentReaderTests {
             ocr: Fixture.ocr,
             languages: nil,
             tracker: tracker,
-            shaper: Fixture.shaper,
+            shaper: shaper,
             library: Fixture.library
         )
 

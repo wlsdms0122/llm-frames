@@ -621,8 +621,8 @@ struct ResolvedValueReader: Sendable {
 
     private func run(_ value: PlacedJSONValue) throws -> ResolvedGlyphRun {
         let run = try value.object(keys: [
-            "source", "file", "sha256", "face", "size", "color", "stroke", "baselineShift", "tracking", "highlight",
-            "underline", "glyphs"
+            "source", "file", "sha256", "face", "size", "color", "stroke", "baselineShift", "staticTracking", "tracking",
+            "highlight", "underline", "glyphs"
         ])
         let length = ValueStructure.leaf(.length(.any))
 
@@ -638,6 +638,7 @@ struct ResolvedValueReader: Sendable {
             color: try timed(run.member("color"), as: .leaf(.color)),
             stroke: try timed(run.member("stroke"), as: LookStructureTable.textStroke, kind: "stroke"),
             baselineShift: try timed(run.member("baselineShift"), as: length),
+            staticTracking: try run.member("staticTracking").number(),
             tracking: try timed(run.member("tracking"), as: length),
             highlight: try run.member("highlight").optional { value in
                 let highlight = try value.object(kind: "highlight", keys: ["color", "padding", "radius", "rects"])
@@ -663,7 +664,17 @@ struct ResolvedValueReader: Sendable {
                     }
                 )
             },
-            glyphs: try glyphs(run.member("glyphs"))
+            glyphs: try run.member("glyphs").elements().map { element in
+                let numbers = try element.numbers(count: 5)
+                guard let id = Int(exactly: numbers[0]) else { throw element.wrongType("[glyph id, x, y, dx, dy]") }
+
+                return PositionedGlyph(
+                    id: id,
+                    x: numbers[1],
+                    y: numbers[2],
+                    placementOffset: Point(x: numbers[3], y: numbers[4])
+                )
+            }
         )
     }
 
@@ -793,7 +804,7 @@ struct ResolvedValueReader: Sendable {
         return CharacterRange(line: line, first: first, count: count)
     }
 
-    // A glyph is `[id, x, y]`, its pen position in the text's box, read with no placement offset.
+    // A drawn glyph is `[id, x, y]`, where it is drawn, read with no placement offset.
     private func glyphs(_ value: PlacedJSONValue) throws -> [PositionedGlyph] {
         try value.elements().map { element in
             let numbers = try element.numbers(count: 3)

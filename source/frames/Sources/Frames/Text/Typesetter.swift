@@ -417,7 +417,8 @@ struct Typesetter: Sendable {
                         line: lineIndex,
                         face: character.runFace,
                         size: character.style.size,
-                        glyphs: []
+                        glyphs: [],
+                        staticTracking: character.style.tracking * character.style.size / 1000
                     ))
                 }
                 let end = GlyphRange(run: firstRun + runs.count - 1, first: runs[runs.count - 1].glyphs.count, count: 0)
@@ -443,7 +444,8 @@ struct Typesetter: Sendable {
                         line: lineIndex,
                         face: previous.face,
                         size: previous.size,
-                        glyphs: previous.glyphs + [positioned]
+                        glyphs: previous.glyphs + [positioned],
+                        staticTracking: previous.staticTracking
                     )
                 } else {
                     runs.append(GlyphRun(
@@ -451,7 +453,8 @@ struct Typesetter: Sendable {
                         line: lineIndex,
                         face: glyph.face,
                         size: glyph.style.size,
-                        glyphs: [positioned]
+                        glyphs: [positioned],
+                        staticTracking: glyph.style.tracking * glyph.style.size / 1000
                     ))
                 }
             }
@@ -493,6 +496,7 @@ struct Typesetter: Sendable {
                 face: run.face,
                 size: run.size,
                 glyphs: run.glyphs,
+                staticTracking: run.staticTracking,
                 highlights: span.style.isHighlighted ? [highlight] : [],
                 underlines: span.style.isUnderlined ? [underline] : []
             )

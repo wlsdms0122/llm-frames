@@ -113,7 +113,7 @@ struct ResolvedSequenceWriterTests {
         #expect(media["frames"]?.arrayValue?[1] == .number(1.0 / 12))
     }
 
-    @Test("a title carries its runs with the font pinned, and glyphs as [id, x, y] in its box")
+    @Test("a title carries its runs with the font pinned and their static tracking, and glyphs as [id, x, y, dx, dy] in its box")
     func writesShapedTitle() throws {
         // Given
         let document = #"""
@@ -128,12 +128,13 @@ struct ResolvedSequenceWriterTests {
         let run = try #require(title["runs"]?.arrayValue?.first?.objectValue)
         #expect(title.keys == ["size", "textBox", "width", "background", "align", "lineHeight", "text", "lines", "units", "runs"])
         #expect(run.keys == [
-            "source", "file", "sha256", "face", "size", "color", "stroke", "baselineShift", "tracking", "highlight", "underline",
-            "glyphs"
+            "source", "file", "sha256", "face", "size", "color", "stroke", "baselineShift", "staticTracking", "tracking",
+            "highlight", "underline", "glyphs"
         ])
+        #expect(run["staticTracking"] == .number(0))
         #expect(run["sha256"] == .string("sha256-of-" + (run["file"]?.stringValue ?? "")))
         #expect(run["glyphs"]?.arrayValue?.compactMap { $0.arrayValue?.first } == [.number(72), .number(105)])
-        #expect(run["glyphs"]?.arrayValue?.allSatisfy { $0.arrayValue?.count == 3 } == true)
+        #expect(run["glyphs"]?.arrayValue?.allSatisfy { $0.arrayValue?.count == 5 } == true)
     }
 
     @Test("a clip keeps its place, id, visible window, lane, storyline and parent, and its properties in sequence time")
