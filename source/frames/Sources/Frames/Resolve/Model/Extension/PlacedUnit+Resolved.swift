@@ -6,14 +6,15 @@
 //
 
 // A unit as resolved, its box holding what it draws at its widest over the keyframes: its glyph box grown on every side
-// by half the widest stroke among its glyphs, then to hold its highlight parts at their largest padding and its
-// underline parts at their largest `width` and `offset`. A first or last part, which reaches its piece's end, holds the
-// padding there.
+// by half the widest stroke among the glyphs it draws, then to hold its highlight parts at their largest padding and
+// its underline parts at their largest `width` and `offset`. A first or last part, which reaches its piece's end, holds
+// the padding there.
 extension PlacedUnit {
     // MARK: - Property
     // MARK: - Initializer
     init(
         drawing unit: PlacedUnit,
+        lines: [PlacedLine],
         runs: [ResolvedGlyphRun]
     ) {
         let stroke = unit.glyphs.flatMap { Self.values(of: runs[$0.run].stroke["width"]) }.compactMap(\.first).max() ?? 0
@@ -34,7 +35,9 @@ extension PlacedUnit {
         }
 
         self.init(
-            glyphs: unit.glyphs,
+            characters: unit.characters,
+            hangingLines: unit.hangingLines,
+            lines: lines,
             glyphBox: unit.glyphBox,
             box: parts.reduce(unit.glyphBox.grown(by: stroke / 2)) { $0.union($1) },
             parts: unit.parts

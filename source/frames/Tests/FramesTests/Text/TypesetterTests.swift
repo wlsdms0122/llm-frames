@@ -623,26 +623,23 @@ struct TypesetterTests {
         let spaced = try sut.layout(apart, paragraph: paragraph(), width: nil, unit: .character, place: place, kind: "title")
 
         // Then
-        #expect(layout.units == [
-            PlacedUnit(
-                glyphs: [GlyphRange(run: 0, first: 0, count: 1)],
-                glyphBox: Rectangle(x: 0, y: 0, width: 40, height: 40),
-                box: Rectangle(x: 0, y: 0, width: 40, height: 40),
-                parts: []
-            ),
-            PlacedUnit(
-                glyphs: [GlyphRange(run: 0, first: 2, count: 1)],
-                glyphBox: Rectangle(x: 50, y: 0, width: 20, height: 40),
-                box: Rectangle(x: 50, y: 0, width: 20, height: 40),
-                parts: []
-            ),
-            PlacedUnit(
-                glyphs: [GlyphRange(run: 1, first: 0, count: 2)],
-                glyphBox: Rectangle(x: 0, y: 50, width: 40, height: 40),
-                box: Rectangle(x: 0, y: 50, width: 40, height: 40),
-                parts: []
-            )
+        // "fi" is one glyph, and its unit draws the space after it.
+        #expect(layout.units?.map(\.characters) == [
+            CharacterRange(line: 0, first: 0, count: 3),
+            CharacterRange(line: 0, first: 3, count: 1),
+            CharacterRange(line: 1, first: 0, count: 2)
         ])
+        #expect(layout.units?.map(\.glyphs) == [
+            [GlyphRange(run: 0, first: 0, count: 2)],
+            [GlyphRange(run: 0, first: 2, count: 1)],
+            [GlyphRange(run: 1, first: 0, count: 2)]
+        ])
+        #expect(layout.units?.map(\.glyphBox) == [
+            Rectangle(x: 0, y: 0, width: 40, height: 40),
+            Rectangle(x: 50, y: 0, width: 20, height: 40),
+            Rectangle(x: 0, y: 50, width: 40, height: 40)
+        ])
+        #expect(layout.units?.map(\.box) == layout.units?.map(\.glyphBox))
         #expect(spaced.units?.map(\.glyphs) == [
             [GlyphRange(run: 0, first: 0, count: 1)],
             [GlyphRange(run: 0, first: 1, count: 1)]

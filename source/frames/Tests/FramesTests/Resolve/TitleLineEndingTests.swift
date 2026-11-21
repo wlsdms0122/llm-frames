@@ -35,8 +35,8 @@ struct TitleLineEndingTests {
 
         // Then
         #expect(text.runs.flatMap(\.glyphs).map(\.id) == [97, 98])
-        #expect(text.lines?.map(\.range) == [0..<1, 2..<3])
-        #expect(text.lines?.map(\.hanging) == [[], []])
+        #expect(text.lines.map(\.range) == [0..<1, 2..<3])
+        #expect(text.lines.map(\.hanging) == [[], []])
     }
 
     @Test("a CR LF split over two runs is one \\n in the run of its CR")
@@ -46,7 +46,7 @@ struct TitleLineEndingTests {
 
         // Then
         #expect(text.runs.map(\.source) == [0, 1])
-        #expect(text.lines?.map { $0.clusters.map(\.glyphs.run) } == [[0], [1]])
+        #expect(text.lines.map { $0.clusters.map(\.glyphs.run) } == [[0], [1]])
     }
 
     // MARK: - Private

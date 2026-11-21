@@ -6,9 +6,9 @@
 //
 
 // A title's units at an instant, in its box then, whose top left is `box(at:)`'s origin. A unit's box and its glyph box
-// are their boxes as resolved, moved with its first glyph and widened by how far its last glyph moves beyond its first.
-// A part is cut where the next unit's first glyph is then, and the first and last parts of a piece reach past its ends,
-// so they hold its padding at any value.
+// are their boxes as resolved, moved with the first glyph of the characters it holds and widened by how far their last
+// glyph moves beyond it. A part is cut where the next unit's first held glyph is then, and the first and last parts of
+// a piece reach past its ends, so they hold its padding at any value.
 extension ResolvedText {
     // MARK: - Property
     // MARK: - Initializer
@@ -69,8 +69,9 @@ extension ResolvedText {
     ) -> Rectangle {
         let origin = self.box(at: time)
         let moves = glyphMoves(at: time)
+        let held = heldGlyphs(of: unit)
         let start = firstMove(of: unit, moves: moves)
-        let end = unit.glyphs.last.map { moves[$0.run][$0.first + $0.count - 1] } ?? start
+        let end = held.map { moves[$0.last.run][$0.last.index] } ?? start
 
         return Rectangle(
             x: box.x + start.x - origin.x,
@@ -84,6 +85,20 @@ extension ResolvedText {
         of unit: PlacedUnit,
         moves: [[Point]]
     ) -> Point {
-        unit.glyphs.first.map { moves[$0.run][$0.first] } ?? Point(x: 0, y: 0)
+        heldGlyphs(of: unit).map { moves[$0.first.run][$0.first.index] } ?? Point(x: 0, y: 0)
+    }
+
+    // The first and the last glyph of the characters a unit holds, its stretch's characters but its spaces, by run and
+    // index. A character with no glyph of its own takes its group's, which its group's first character holds.
+    private func heldGlyphs(of unit: PlacedUnit) -> (first: (run: Int, index: Int), last: (run: Int, index: Int))? {
+        let scalars = Array(text.unicodeScalars)
+        let clusters = lines[unit.characters.line].clusters
+        let stretch = unit.characters.first..<(unit.characters.first + unit.characters.count)
+        let owners = stretch
+            .filter { !(scalars[clusters[$0].range.lowerBound].properties.isWhitespace) }
+            .compactMap { index in clusters[...index].last { $0.glyphs.count > 0 }?.glyphs }
+        guard let first = owners.first, let last = owners.last else { return nil }
+
+        return ((first.run, first.first), (last.run, last.first + last.count - 1))
     }
 }

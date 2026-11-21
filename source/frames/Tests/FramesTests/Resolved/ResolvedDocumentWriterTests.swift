@@ -212,7 +212,21 @@ struct ResolvedDocumentWriterTests {
                     "ease": "linear"
                   }
                 ],
-                "lines": null,
+                "text": "Hi",
+                "lines": [
+                  {
+                    "width": 20.25,
+                    "baseline": 20.7,
+                    "ascent": 16.2,
+                    "descent": 4.05,
+                    "range": [0, 2],
+                    "clusters": [
+                      [0, 0, 1, 0, 1, 10.125],
+                      [0, 1, 1, 1, 2, 10.125]
+                    ],
+                    "hanging": []
+                  }
+                ],
                 "units": null,
                 "runs": [
                   {

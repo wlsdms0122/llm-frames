@@ -52,8 +52,10 @@ struct TitleGroupTests {
         #expect(list.items.map(\.origin) == Array(repeating: ItemOrigin(clip: clip), count: 9))
         #expect(list.items.map(\.transform) == Array(repeating: single.transform, count: 9))
         #expect(list.items.map { layer(of: $0) } == [GlyphLayer?.none] + GlyphLayer.allCases.flatMap { [$0, $0] })
-        #expect(list.items.map { self.glyphs(of: $0)?.runs.flatMap(\.glyphs).count ?? -1 } == [0] + Array(repeating: 2, count: 8))
-        #expect(self.glyphs(of: list.items[7])?.runs.first?.glyphs == Array(glyphs.runs[0].glyphs[0..<2]))
+        // "ab" draws the space after it.
+        let counts = list.items.map { self.glyphs(of: $0)?.runs.flatMap(\.glyphs).count ?? -1 }
+        #expect(counts == [0, 3, 2, 3, 2, 3, 2, 3, 2])
+        #expect(self.glyphs(of: list.items[7])?.runs.first?.glyphs == Array(glyphs.runs[0].glyphs[0..<3]))
         #expect(self.glyphs(of: list.items[8])?.runs.first?.glyphs == Array(glyphs.runs[0].glyphs[3..<5]))
     }
 

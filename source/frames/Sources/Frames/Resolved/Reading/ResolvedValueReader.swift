@@ -465,10 +465,23 @@ struct ResolvedValueReader: Sendable {
 
     func text(_ value: PlacedJSONValue) throws -> ResolvedText {
         let text = try value.object(keys: [
-            "size", "textBox", "width", "background", "align", "lineHeight", "lines", "units", "runs"
+            "size", "textBox", "width", "background", "align", "lineHeight", "text", "lines", "units", "runs"
         ])
         let alignments = [TextAlignment.left, .center, .right].map(\.rawValue)
         let length = ValueStructure.leaf(.length(.any))
+        let lines = try text.member("lines").elements().map { element in
+            let line = try element.object(keys: ["width", "baseline", "ascent", "descent", "range", "clusters", "hanging"])
+
+            return PlacedLine(
+                width: try line.member("width").number(),
+                baseline: try line.member("baseline").number(),
+                ascent: try line.member("ascent").number(),
+                descent: try line.member("descent").number(),
+                range: try scalarRange(line.member("range")),
+                clusters: try line.member("clusters").elements().map(cluster),
+                hanging: try line.member("hanging").elements().map(cluster)
+            )
+        }
 
         return ResolvedText(
             size: try size(text.member("size")),
@@ -485,29 +498,22 @@ struct ResolvedValueReader: Sendable {
             },
             align: try text.member("align").name(among: alignments, TextAlignment.init(rawValue:)),
             lineHeight: try timed(text.member("lineHeight"), as: length),
-            lines: try text.member("lines").optional { value in
-                try value.elements().map { element in
-                    let line = try element.object(keys: [
-                        "width", "baseline", "ascent", "descent", "range", "clusters", "hanging"
-                    ])
-
-                    return PlacedLine(
-                        width: try line.member("width").number(),
-                        baseline: try line.member("baseline").number(),
-                        ascent: try line.member("ascent").number(),
-                        descent: try line.member("descent").number(),
-                        range: try scalarRange(line.member("range")),
-                        clusters: try line.member("clusters").elements().map(cluster),
-                        hanging: try line.member("hanging").elements().map(cluster)
-                    )
-                }
-            },
+            text: try text.member("text").string(),
+            lines: lines,
             units: try text.member("units").optional { value in
                 try value.elements().map { element in
-                    let unit = try element.object(keys: ["box", "glyphBox", "glyphs", "parts"])
+                    let unit = try element.object(keys: ["box", "glyphBox", "characters", "hangingLines", "parts"])
 
                     return PlacedUnit(
-                        glyphs: try unit.member("glyphs").elements().map(glyphRange),
+                        characters: try characters(unit.member("characters"), in: lines),
+                        hangingLines: try unit.member("hangingLines").elements().map { element in
+                            guard let line = Int(exactly: try element.number()), lines.indices.contains(line) else {
+                                throw element.wrongType("a line index")
+                            }
+
+                            return line
+                        },
+                        lines: lines,
                         glyphBox: try rectangle(unit.member("glyphBox")),
                         box: try rectangle(unit.member("box")),
                         parts: try unit.member("parts").elements().map(unitPart)
@@ -766,17 +772,25 @@ struct ResolvedValueReader: Sendable {
         return start..<end
     }
 
-    private func glyphRange(_ value: PlacedJSONValue) throws -> GlyphRange {
+    // A unit's characters are `[line, first, count]`, a stretch of the clusters of one of `lines`.
+    private func characters(
+        _ value: PlacedJSONValue,
+        in lines: [PlacedLine]
+    ) throws -> CharacterRange {
         let numbers = try value.numbers(count: 3)
         guard
-            let run = Int(exactly: numbers[0]),
+            let line = Int(exactly: numbers[0]),
             let first = Int(exactly: numbers[1]),
-            let count = Int(exactly: numbers[2])
+            let count = Int(exactly: numbers[2]),
+            lines.indices.contains(line),
+            first >= 0,
+            count >= 0,
+            first + count <= lines[line].clusters.count
         else {
-            throw value.wrongType("[run, first, count]")
+            throw value.wrongType("[line, first, count]")
         }
 
-        return GlyphRange(run: run, first: first, count: count)
+        return CharacterRange(line: line, first: first, count: count)
     }
 
     // A glyph is `[id, x, y]`, its pen position in the text's box, read with no placement offset.

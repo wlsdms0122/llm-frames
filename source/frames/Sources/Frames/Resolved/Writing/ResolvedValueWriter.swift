@@ -324,7 +324,8 @@ struct ResolvedValueWriter: Sendable {
 
     // Glyph runs carry their font file pinned, the face in it, size, their timed attributes and their highlight and
     // underline pieces, and each glyph as `[id, x, y]`, its pen position in the text's box without its placement
-    // offset. A line's range is `[start, end]` and a unit's part `[run, piece, x0, x1]`.
+    // offset. A line's range is `[start, end]`, a unit's characters `[line, first, count]` and a unit's part
+    // `[run, piece, x0, x1]`.
     func text(_ text: ResolvedText) -> JSONValue {
         let background = text.background.map { background in
             JSONValue.object(JSONObject(members: [
@@ -334,28 +335,27 @@ struct ResolvedValueWriter: Sendable {
             ]))
         }
 
-        let lines = text.lines.map { lines in
-            JSONValue.array(lines.map { line in
-                .object(JSONObject(members: [
-                    JSONMember(key: "width", value: .number(line.width)),
-                    JSONMember(key: "baseline", value: .number(line.baseline)),
-                    JSONMember(key: "ascent", value: .number(line.ascent)),
-                    JSONMember(key: "descent", value: .number(line.descent)),
-                    JSONMember(key: "range", value: numbers([line.range.lowerBound, line.range.upperBound].map { Double($0) })),
-                    JSONMember(key: "clusters", value: .array(line.clusters.map(cluster))),
-                    JSONMember(key: "hanging", value: .array(line.hanging.map(cluster)))
-                ]))
-            })
-        }
+        let lines = JSONValue.array(text.lines.map { line in
+            .object(JSONObject(members: [
+                JSONMember(key: "width", value: .number(line.width)),
+                JSONMember(key: "baseline", value: .number(line.baseline)),
+                JSONMember(key: "ascent", value: .number(line.ascent)),
+                JSONMember(key: "descent", value: .number(line.descent)),
+                JSONMember(key: "range", value: numbers([line.range.lowerBound, line.range.upperBound].map { Double($0) })),
+                JSONMember(key: "clusters", value: .array(line.clusters.map(cluster))),
+                JSONMember(key: "hanging", value: .array(line.hanging.map(cluster)))
+            ]))
+        })
 
         let units = text.units.map { units in
             JSONValue.array(units.map { unit in
                 .object(JSONObject(members: [
                     JSONMember(key: "box", value: rectangle(unit.box)),
                     JSONMember(key: "glyphBox", value: rectangle(unit.glyphBox)),
-                    JSONMember(key: "glyphs", value: .array(unit.glyphs.map { glyphs in
-                        numbers([Double(glyphs.run), Double(glyphs.first), Double(glyphs.count)])
-                    })),
+                    JSONMember(key: "characters", value: numbers(
+                        [unit.characters.line, unit.characters.first, unit.characters.count].map { Double($0) }
+                    )),
+                    JSONMember(key: "hangingLines", value: numbers(unit.hangingLines.map { Double($0) })),
                     JSONMember(key: "parts", value: .array(unit.parts.map { part in
                         numbers([Double(part.run), Double(part.piece), part.span.lowerBound, part.span.upperBound])
                     }))
@@ -370,7 +370,8 @@ struct ResolvedValueWriter: Sendable {
             JSONMember(key: "background", value: background ?? .null),
             JSONMember(key: "align", value: .string(text.align.rawValue)),
             JSONMember(key: "lineHeight", value: timed(text.lineHeight)),
-            JSONMember(key: "lines", value: lines ?? .null),
+            JSONMember(key: "text", value: .string(text.text)),
+            JSONMember(key: "lines", value: lines),
             JSONMember(key: "units", value: units ?? .null),
             JSONMember(key: "runs", value: runs(text.runs))
         ]))

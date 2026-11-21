@@ -61,8 +61,7 @@ struct Typesetter: Sendable {
         let firstBaseline = padding.height + (lines.first?.ascent ?? 0)
         var placedRuns: [GlyphRun] = []
         var placedLines: [PlacedLine] = []
-        var characters: [[(cluster: PlacedCluster, character: Character, span: ClosedRange<Double>)]] = []
-        var extents: [ClosedRange<Double>] = []
+        var spans: [[ClosedRange<Double>]] = []
         for (index, line) in lines.enumerated() {
             let origin = Point(
                 x: padding.width + style.align.offset(of: line.width, in: textWidth),
@@ -71,21 +70,21 @@ struct Typesetter: Sendable {
             let placed = placed(line, index: index, origin: origin, firstRun: placedRuns.count)
             placedRuns += placed.runs
             placedLines.append(placed.line)
-            characters.append(placed.characters)
-            extents.append((origin.y - line.ascent)...(origin.y + line.descent))
+            spans.append(placed.spans)
         }
         let textHeight = Double(max(lines.count - 1, 0)) * style.lineHeight
             + (lines.first?.ascent ?? 0)
             + (lines.last?.descent ?? 0)
 
+        let text = runs.map(\.text).joined()
         return TextLayout(
-            text: runs.map(\.text).joined(),
+            text: text,
             size: Size(width: textWidth + padding.width * 2, height: textHeight + padding.height * 2),
             textBox: Rectangle(x: padding.width, y: padding.height, width: textWidth, height: textHeight),
             width: width,
             lines: placedLines,
             runs: placedRuns,
-            units: unit.map { finder.units(by: $0, lines: characters, extents: extents, runs: placedRuns) },
+            units: unit.map { finder.units(by: $0, text: text, lines: placedLines, spans: spans, runs: placedRuns) },
             background: style.background,
             align: style.align,
             lineHeight: style.lineHeight
@@ -385,13 +384,15 @@ struct Typesetter: Sendable {
 
     // Glyphs of one line of one text run in one face make one glyph run, and the runs of a line share its baseline.
     // Each glyph lies at the pen with its placement offset, and the pen moves by advances and by the tracking after
-    // each character with glyphs of its own but the line's last, so the spaces that hang past the line's end follow
-    // its last character untracked. A character with no glyph of its own is a range of count 0 after its group's
-    // glyphs and spans its group's first character. The pieces of a text run's highlight and underline span its
-    // characters on the line, from the start of the first one's span to the end of the last one's, the spaces that end
-    // the line excluded. A character's span is its glyph box across the line, from the pen where its glyphs begin, as
-    // wide as their advances. The line's clusters name glyphs by the index of their run among the text's, the first of
-    // this line's runs being `firstRun`. `index` is the line's among the text's.
+    // each character with glyphs of its own but the line's last, so the spaces that hang past the line's end follow its
+    // last character untracked. A character with no glyph of its own is a range of count 0 after its group's glyphs and
+    // spans its group's first character, and on a line with no glyph it is a range of count 0 at glyph 0 of the line's
+    // first run, written for it with no glyphs, spanning nothing at the line's start. The pieces of a text run's
+    // highlight and underline span its characters on the line, from the start of the first one's span to the end of the
+    // last one's, the spaces that end the line excluded. A character's span is its glyph box across the line, from the
+    // pen where its glyphs begin, as wide as their advances, and the spans of the line's characters are given in order.
+    // The line's clusters name glyphs by the index of their run among the text's, the first of this line's runs being
+    // `firstRun`. `index` is the line's among the text's.
     private func placed(
         _ line: TextLine,
         index lineIndex: Int,
@@ -400,7 +401,7 @@ struct Typesetter: Sendable {
     ) -> (
         runs: [GlyphRun],
         line: PlacedLine,
-        characters: [(cluster: PlacedCluster, character: Character, span: ClosedRange<Double>)]
+        spans: [ClosedRange<Double>]
     ) {
         var runs: [GlyphRun] = []
         var placed: [(cluster: PlacedCluster, character: StyledCharacter, span: ClosedRange<Double>)] = []
@@ -509,7 +510,7 @@ struct Typesetter: Sendable {
                 clusters: characters.map(\.cluster),
                 hanging: placed.dropFirst(visibleCount).map(\.cluster)
             ),
-            characters.map { ($0.cluster, $0.character.character, $0.span) }
+            characters.map(\.span)
         )
     }
 }

@@ -280,8 +280,8 @@ struct TitleKeyframeTests {
         #expect(steps(1) == [2, -1])
     }
 
-    @Test("a tracking that takes one value adds no steps, and the title carries no lines")
-    func carriesNoLinesForStaticTracking() throws {
+    @Test("a tracking that takes one value adds no steps, and the title still carries its lines")
+    func carriesLinesForStaticTracking() throws {
         // When
         let text = try resolvedText(#"""
             { "title": "ab", "style": "wide", "position": [400, 225],
@@ -289,7 +289,7 @@ struct TitleKeyframeTests {
             """#)
 
         // Then
-        #expect(text.lines == nil)
+        #expect(text.lines.count == 1)
         #expect(text.runs[0].tracking == .off)
     }
 
@@ -345,7 +345,7 @@ struct TitleKeyframeTests {
         let sut = GlyphsItem(text: text, factor: 1, at: 0.5)
 
         // Then
-        #expect(text.lines?.map(\.baseline) == [32, 82])
+        #expect(text.lines.map(\.baseline) == [32, 82])
         #expect(text.size.height == 90)
         #expect(box == Rectangle(x: 0, y: 0, width: 20, height: 100))
         #expect(sut.runs.first?.glyphs.first?.y == 32)
@@ -364,7 +364,7 @@ struct TitleKeyframeTests {
         let lineHeight = { (time: Double) in text.lineHeight.sampled(at: time, as: .leaf(.length(.any))).number }
         #expect(lineHeight(0) == 50)
         #expect(lineHeight(1) == 70)
-        #expect(text.lines != nil)
+        #expect(text.lines.count == 2)
     }
 
     @Test("a background's keyframed padding grows the title's box around its text box, and its background fills it")
@@ -382,7 +382,6 @@ struct TitleKeyframeTests {
 
         // Then
         #expect(text.size == Size(width: 40, height: 40))
-        #expect(text.lines == nil)
         #expect(box == Rectangle(x: -20, y: -10, width: 80, height: 60))
         #expect(sut.size == Size(width: 80, height: 60))
         #expect(sut.background?.rectangle == Rectangle(x: 0, y: 0, width: 80, height: 60))
