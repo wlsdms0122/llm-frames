@@ -304,14 +304,21 @@ struct PostScriptCalculator: Equatable, Sendable {
         case let ("xor", .integer(a), .integer(b)):
             return .integer(a ^ b)
 
+        // A negative shift is to the right, and a shift past the integer's bits leaves 0, or -1 to the right of a
+        // negative integer.
         case let ("bitshift", .integer(a), .integer(shift)):
-            return .integer(shift >= 0 ? a << shift : a >> -shift)
+            return .integer(a << shift)
 
+        // A quotient or remainder past the integers, of the least integer by -1, is an error, as division by 0 is.
         case let ("idiv", .integer(a), .integer(b)):
-            return b == 0 ? nil : .integer(a / b)
+            guard b != 0 else { return nil }
+            let (quotient, overflows) = a.dividedReportingOverflow(by: b)
+            return overflows ? nil : .integer(quotient)
 
         case let ("mod", .integer(a), .integer(b)):
-            return b == 0 ? nil : .integer(a % b)
+            guard b != 0 else { return nil }
+            let (remainder, overflows) = a.remainderReportingOverflow(dividingBy: b)
+            return overflows ? nil : .integer(remainder)
 
         case let ("add", .integer(a), .integer(b)):
             let (sum, overflows) = a.addingReportingOverflow(b)

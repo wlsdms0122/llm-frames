@@ -27,6 +27,7 @@ indirect enum PageColorSpace: Equatable, Sendable {
     case deviceN(componentCount: Int, alternate: PageColorSpace, tint: PDFFunction?)
     case pattern(base: PageColorSpace?)
     case unknown(String)
+    case malformed(String)
 
     // MARK: - Property
     private static let defaultLabRange: [Double] = [-100, 100, -100, 100]
@@ -71,6 +72,9 @@ indirect enum PageColorSpace: Equatable, Sendable {
 
         case let .unknown(family):
             family
+
+        case let .malformed(space):
+            space
         }
     }
 
@@ -103,6 +107,9 @@ indirect enum PageColorSpace: Equatable, Sendable {
 
         case let .unknown(family):
             return "the colour space \(family), which this decoder does not read"
+
+        case let .malformed(space):
+            return space
         }
     }
 
@@ -124,7 +131,7 @@ indirect enum PageColorSpace: Equatable, Sendable {
         case let .iccBased(componentCount, _), let .deviceN(componentCount, _, _):
             componentCount
 
-        case .pattern, .unknown:
+        case .pattern, .unknown, .malformed:
             0
         }
     }
@@ -135,7 +142,7 @@ indirect enum PageColorSpace: Equatable, Sendable {
         let ramp = Self.ramp
         switch self {
         case let .indexed(_, highValue, _):
-            return (0...min(highValue, 255)).map { [Double($0)] }
+            return (0...highValue).map { [Double($0)] }
 
         case let .lab(_, range):
             let chroma: [Double] = [-60, -30, -10, 10, 30, 60]
@@ -208,10 +215,11 @@ indirect enum PageColorSpace: Equatable, Sendable {
                 self = .unknown("an ICCBased space with no profile")
                 return
             }
-            self = .iccBased(
-                componentCount: entries["N"]?.number.map(Int.init) ?? 0,
-                color: ICCProfileReader(data: profile).color()
-            )
+            guard let componentCount = entries["N"]?.integer(in: 1...4) else {
+                self = .malformed("an ICCBased space whose N is not a whole number from 1 to 4")
+                return
+            }
+            self = .iccBased(componentCount: componentCount, color: ICCProfileReader(data: profile).color())
 
         case "Indexed", "I":
             let base = parameter(1).map(PageColorSpace.init) ?? .unknown("Indexed with no base")
@@ -222,7 +230,11 @@ indirect enum PageColorSpace: Equatable, Sendable {
             default:
                 []
             }
-            self = .indexed(base: base, highValue: parameter(2)?.number.map(Int.init) ?? 0, lookup: lookup)
+            guard let highValue = parameter(2)?.integer(in: 0...255) else {
+                self = .malformed("an Indexed space whose hival is not a whole number from 0 to 255")
+                return
+            }
+            self = .indexed(base: base, highValue: highValue, lookup: lookup)
 
         case "Separation":
             self = .separation(
@@ -305,7 +317,7 @@ indirect enum PageColorSpace: Equatable, Sendable {
 
             return alternate.linear(alternateComponents)
 
-        case .deviceCMYK, .pattern, .unknown:
+        case .deviceCMYK, .pattern, .unknown, .malformed:
             return nil
         }
     }

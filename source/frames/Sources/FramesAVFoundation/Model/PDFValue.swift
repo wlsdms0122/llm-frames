@@ -34,7 +34,7 @@ indirect enum PDFValue: Hashable, Sendable {
             Double(value)
 
         case let .real(value):
-            value
+            value.isFinite ? value : nil
 
         default:
             nil
@@ -151,6 +151,14 @@ indirect enum PDFValue: Hashable, Sendable {
     // MARK: - Public
     subscript(key: String) -> PDFValue? {
         dictionaryValue?[key]
+    }
+
+    // The whole number in `range` this value writes, nil for anything else: no number, a fraction, or a number past
+    // `range`. Every number the decoder reads as a count, an index or a kind is read here, and the caller refuses nil.
+    func integer(in range: ClosedRange<Int>) -> Int? {
+        guard let number, let whole = Int(exactly: number), range.contains(whole) else { return nil }
+
+        return whole
     }
 
     // MARK: - Private

@@ -262,6 +262,64 @@ struct PageReaderTests {
         #expect(throws: DecoderError.self) { try sut.check(file, reading: nil) }
     }
 
+    @Test(
+        "a colour space whose structure numbers are no whole number in their range is refused with the reason, not a trap",
+        arguments: [
+            (
+                PDFValue.array([.name("Indexed"), .name("DeviceRGB"), .integer(-1), .string(Data([255, 0, 0]))]),
+                "an Indexed space whose hival is not a whole number from 0 to 255"
+            ),
+            (
+                .array([.name("Indexed"), .name("DeviceRGB"), .real(1e300), .string(Data([255, 0, 0]))]),
+                "an Indexed space whose hival is not a whole number from 0 to 255"
+            ),
+            (
+                .array([.name("ICCBased"), .stream(["N": .real(1e300)], Data())]),
+                "an ICCBased space whose N is not a whole number from 1 to 4"
+            ),
+            (
+                Self.spot(["FunctionType": .real(1e300), "Domain": .array([.integer(0), .integer(1)])], Data()),
+                "Separation over DeviceRGB whose tint transform this decoder does not evaluate"
+            ),
+            (
+                Self.spot(Self.sampled(size: .real(1e300), bitsPerSample: .integer(8)), Data(repeating: 0, count: 6)),
+                "Separation over DeviceRGB whose tint transform this decoder does not evaluate"
+            ),
+            (
+                Self.spot(Self.sampled(size: .integer(2), bitsPerSample: .real(-1e300)), Data(repeating: 0, count: 6)),
+                "Separation over DeviceRGB whose tint transform this decoder does not evaluate"
+            ),
+            (
+                Self.spot(
+                    ["FunctionType": .integer(2), "Domain": .array([.integer(1), .integer(0)]), "N": .integer(1)],
+                    Data()
+                ),
+                "Separation over DeviceRGB whose tint transform this decoder does not evaluate"
+            ),
+            (
+                Self.spot(Self.sampled(size: .integer(2), bitsPerSample: .integer(8), domain: [1, 0]), Data(repeating: 0, count: 6)),
+                "Separation over DeviceRGB whose tint transform this decoder does not evaluate"
+            )
+        ]
+    )
+    func refusesMalformedColorSpace(
+        space: PDFValue,
+        reason: String
+    ) throws {
+        // Given
+        let path = directory.file("malformed.pdf")
+        try PageFile.write(
+            [PageFile.page("/C0 cs 0 sc 0 0 10 10 re f", resources: ["ColorSpace": .dictionary(["C0": space])], mediaBox: [0, 0, 10, 10])],
+            to: path
+        )
+
+        // When
+        let error = #expect(throws: DecoderError.self) { try sut.probedPage(1, of: path) }
+
+        // Then
+        #expect(error?.description.contains("it draws in \(reason)") == true)
+    }
+
     @Test("a page drawn in a spot colour whose tint transform is a PostScript calculator function is read by it")
     func readsCalculatorTint() throws {
         // Given
@@ -406,6 +464,29 @@ struct PageReaderTests {
     }
 
     // MARK: - Private
+    // A Separation over DeviceRGB whose tint transform is the function `entries` and `data` write.
+    private static func spot(
+        _ entries: [String: PDFValue],
+        _ data: Data
+    ) -> PDFValue {
+        .array([.name("Separation"), .name("Spot"), .name("DeviceRGB"), .stream(entries, data)])
+    }
+
+    // A sampled function of one input and three outputs, with that `Size` and `BitsPerSample`.
+    private static func sampled(
+        size: PDFValue,
+        bitsPerSample: PDFValue,
+        domain: [Int] = [0, 1]
+    ) -> [String: PDFValue] {
+        [
+            "FunctionType": .integer(0),
+            "Domain": .array(domain.map(PDFValue.integer)),
+            "Range": .array([0, 1, 0, 1, 0, 1].map(PDFValue.integer)),
+            "Size": .array([size]),
+            "BitsPerSample": bitsPerSample
+        ]
+    }
+
     // The sRGB encoding of a linear value.
     private static func encoded(_ linear: Double) -> Double {
         linear <= 0.0031308 ? 12.92 * linear : 1.055 * pow(linear, 1 / 2.4) - 0.055

@@ -79,6 +79,30 @@ struct PostScriptCalculatorTests {
     }
 
     @Test(
+        "integer arithmetic past the integers stops as an error, and a shift of any length leaves an integer",
+        arguments: [
+            ("{ -9223372036854775807 1 sub -1 idiv }", nil),
+            ("{ -9223372036854775807 1 sub -1 mod }", nil),
+            ("{ 1 -9223372036854775807 1 sub bitshift }", [0]),
+            ("{ 1 64 bitshift 1 -64 bitshift -8 -1 bitshift }", [0, 0, -4]),
+            ("{ 9223372036854775807 2 mul }", [0x1p64])
+        ] as [(String, [Double]?)]
+    )
+    func stopsOnIntegerOverflow(
+        program: String,
+        expected: [Double]?
+    ) throws {
+        // Given
+        let sut = try #require(PostScriptCalculator(program))
+
+        // When
+        let outputs = sut.run([])
+
+        // Then
+        #expect(outputs == expected)
+    }
+
+    @Test(
         "a program that is not one procedure, or that names an operator outside 7.10.5.2, is not read",
         arguments: ["1 2 add", "{ 1 2 add", "{ 1 foo }", "{ 1 { 2 } }", "{ 1 2 add } 3", "{ { 1 } { 2 } { 3 } ifelse }"]
     )

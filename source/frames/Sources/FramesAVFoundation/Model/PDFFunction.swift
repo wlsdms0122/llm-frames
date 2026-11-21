@@ -30,14 +30,23 @@ indirect enum PDFFunction: Equatable, Sendable {
 
     // MARK: - Initializer
     // The function `value` writes, nil where it is not one this reader evaluates: a sampled function of cubic spline
-    // interpolation (`Order` 3) is not.
+    // interpolation (`Order` 3) is not, and neither is one whose `Domain` has an interval whose lower end is above its
+    // upper (ISO 32000-1 7.10.1).
     init?(_ value: PDFValue) {
-        guard let entries = value.dictionaryValue, let type = entries["FunctionType"]?.number else { return nil }
+        guard let entries = value.dictionaryValue, let type = entries["FunctionType"]?.integer(in: 0...4) else {
+            return nil
+        }
         let domain = entries["Domain"]?.numbers ?? []
         let range = entries["Range"]?.numbers
-        guard domain.count >= 2, domain.count % 2 == 0 else { return nil }
+        guard
+            domain.count >= 2,
+            domain.count % 2 == 0,
+            stride(from: 0, to: domain.count, by: 2).allSatisfy({ domain[$0] <= domain[$0 + 1] })
+        else {
+            return nil
+        }
 
-        switch Int(type) {
+        switch type {
         case 0:
             guard
                 case let .stream(_, data) = value,
@@ -96,7 +105,8 @@ indirect enum PDFFunction: Equatable, Sendable {
     }
 
     // MARK: - Public
-    // The outputs for `inputs`, nil where a PostScript calculator function stops on an error.
+    // The outputs for `inputs`, nil where a PostScript calculator function stops on an error or where a sampled
+    // function's position in its grid is no number.
     func callAsFunction(_ inputs: [Double]) -> [Double]? {
         switch self {
         case let .sampled(domain, range, size, encode, decode, maximumSample, samples):
@@ -112,6 +122,7 @@ indirect enum PDFFunction: Equatable, Sendable {
 
                 return min(max(e, 0), Double(size[index] - 1))
             }
+            guard positions.allSatisfy({ !$0.isNaN }) else { return nil }
             let interpolated = Self.interpolatedSamples(at: positions, size: size, samples: samples, outputs: range.count / 2)
             let outputs = interpolated.enumerated().map { index, sample in
                 Self.interpolated(sample, from: 0, maximumSample, to: decode[index * 2], decode[index * 2 + 1])
@@ -160,25 +171,31 @@ indirect enum PDFFunction: Equatable, Sendable {
         guard
             range.count >= 2,
             range.count % 2 == 0,
-            let size = entries["Size"]?.numbers?.map(Int.init),
-            size.count == inputCount,
-            size.allSatisfy({ $0 >= 1 }),
-            let bitsPerSample = entries["BitsPerSample"]?.number.map(Int.init),
+            let written = entries["Size"]?.arrayValue,
+            written.count == inputCount,
+            let bitsPerSample = entries["BitsPerSample"]?.integer(in: 1...32),
             bitsPerSampleWritten.contains(bitsPerSample),
             (entries["Order"]?.number ?? 1) == 1
         else {
             return nil
         }
-        let encode = entries["Encode"]?.numbers ?? size.flatMap { [0, Double($0 - 1)] }
-        let decode = entries["Decode"]?.numbers ?? range
-        let sampleCount = size.reduce(1, *) * outputCount
+        // The data holds a sample of at least one bit for each point of the grid, which bounds every side of it.
+        let size = written.compactMap { $0.integer(in: 1...max(1, data.count * 8)) }
         guard
-            encode.count == inputCount * 2,
-            decode.count == outputCount * 2,
-            data.count * 8 >= sampleCount * bitsPerSample
+            size.count == inputCount,
+            let sampleCount = size.reduce(Optional(outputCount), { count, side in
+                count.flatMap { count in
+                    let (product, overflows) = count.multipliedReportingOverflow(by: side)
+                    return overflows ? nil : product
+                }
+            }),
+            sampleCount <= data.count * 8 / bitsPerSample
         else {
             return nil
         }
+        let encode = entries["Encode"]?.numbers ?? size.flatMap { [0, Double($0 - 1)] }
+        let decode = entries["Decode"]?.numbers ?? range
+        guard encode.count == inputCount * 2, decode.count == outputCount * 2 else { return nil }
 
         let bytes = [UInt8](data)
         let samples = (0..<sampleCount).map { index in
