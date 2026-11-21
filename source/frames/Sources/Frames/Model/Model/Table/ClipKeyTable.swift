@@ -82,32 +82,32 @@ enum ClipKeyTable {
         switch (place, kind) {
         case (.storyline, .media(.video)), (.storyline, .media(.sequence)):
             [
-                "crop", "position", "scale", "rotation", "opacity", "mask", "filter", "radius", "border", "shadow",
-                "volume", "pan", "audioFilter", "timeRemap"
+                "crop", "position", "scale", "rotation", "cornerPin", "opacity", "mask", "filter", "radius", "border",
+                "shadow", "volume", "pan", "audioFilter", "timeRemap"
             ]
 
         case (.storyline, .media):
-            ["crop", "position", "scale", "rotation", "opacity", "mask", "filter", "radius", "border", "shadow"]
+            ["crop", "position", "scale", "rotation", "cornerPin", "opacity", "mask", "filter", "radius", "border", "shadow"]
 
         case (_, .media(.audio)):
             ["volume", "pan", "audioFilter"]
 
         case (_, .media(.video)), (_, .media(.sequence)):
             [
-                "position", "scale", "rotation", "opacity", "crop", "mask", "filter", "radius", "border", "shadow",
-                "volume", "pan", "audioFilter", "timeRemap"
+                "position", "scale", "rotation", "cornerPin", "opacity", "crop", "mask", "filter", "radius", "border",
+                "shadow", "volume", "pan", "audioFilter", "timeRemap"
             ]
 
         case (_, .media):
-            ["position", "scale", "rotation", "opacity", "crop", "mask", "filter", "radius", "border", "shadow"]
+            ["position", "scale", "rotation", "cornerPin", "opacity", "crop", "mask", "filter", "radius", "border", "shadow"]
 
         case (_, .title):
-            ["position", "scale", "rotation", "opacity", "mask"] + titleLookKeys
+            ["position", "scale", "rotation", "cornerPin", "opacity", "mask"] + titleLookKeys
 
         case (_, .shape):
             [
-                "area", "width", "height", "points", "position", "scale", "rotation", "opacity", "trim", "radius", "outset",
-                "fill", "stroke", "shadow", "mask"
+                "area", "width", "height", "points", "position", "scale", "rotation", "cornerPin", "opacity", "trim",
+                "radius", "outset", "fill", "stroke", "shadow", "mask"
             ]
             .filter(keys(for: kind, in: place).contains)
 
@@ -166,8 +166,8 @@ enum ClipKeyTable {
         "keyframes"
     ]
 
-    // The keys every shape kind takes, then those of its geometry: a box for a rect or an ellipse, points for a path. A
-    // key a kind does not take stops as an unknown key.
+    // The keys every shape kind takes, then those of its geometry: a box for a rect or an ellipse, with the corner pin
+    // a box takes, and points for a path. A key a kind does not take stops as an unknown key.
     private static let everyShape = [
         "shape", "style", "position", "anchor", "fill", "stroke", "trim", "shadow", "scale", "rotation"
     ]
@@ -181,8 +181,8 @@ enum ClipKeyTable {
         case (.storyline, .media(.video)), (.storyline, .media(.sequence)):
             return [
                 "id", "metadata", "media", "colorSpace", "toneMap", "in", "out", "speed", "crop", "filter", "transition",
-                "anchor", "position", "scale", "rotation", "opacity", "blend", "mask", "trackMatte", "track", "radius",
-                "border", "shadow", "volume", "pan", "fadeIn", "fadeOut", "audioFilter", "split", "keyframes",
+                "anchor", "position", "scale", "rotation", "cornerPin", "opacity", "blend", "mask", "trackMatte", "track",
+                "radius", "border", "shadow", "volume", "pan", "fadeIn", "fadeOut", "audioFilter", "split", "keyframes",
                 "connected"
             ]
 
@@ -192,8 +192,8 @@ enum ClipKeyTable {
         case (.storyline, .media):
             return [
                 "id", "metadata", "media", "colorSpace", "toneMap", "duration", "crop", "filter", "transition", "anchor",
-                "position", "scale", "rotation", "opacity", "blend", "mask", "trackMatte", "radius", "border", "shadow",
-                "keyframes", "connected"
+                "position", "scale", "rotation", "cornerPin", "opacity", "blend", "mask", "trackMatte", "radius", "border",
+                "shadow", "keyframes", "connected"
             ]
 
         case (_, .media(.audio)):
@@ -205,20 +205,20 @@ enum ClipKeyTable {
         case (_, .media(.video)), (_, .media(.sequence)):
             return everyClip + [
                 "media", "picture", "colorSpace", "toneMap", "in", "out", "speed", "loop", "volume", "pan", "fadeIn",
-                "fadeOut", "audioFilter", "split", "placement", "position", "anchor", "scale", "rotation", "crop", "conform",
-                "filter", "width", "height", "radius", "border", "shadow"
+                "fadeOut", "audioFilter", "split", "placement", "position", "anchor", "scale", "rotation", "cornerPin", "crop",
+                "conform", "filter", "width", "height", "radius", "border", "shadow"
             ]
 
         case (_, .media):
             return everyClip + [
-                "media", "colorSpace", "toneMap", "placement", "position", "anchor", "scale", "rotation", "crop", "conform",
-                "filter", "width", "height", "radius", "border", "shadow"
+                "media", "colorSpace", "toneMap", "placement", "position", "anchor", "scale", "rotation", "cornerPin", "crop",
+                "conform", "filter", "width", "height", "radius", "border", "shadow"
             ]
 
         case (_, .title):
             return everyClip + [
                 "title", "style", "character", "paragraph", "width", "placement", "position", "anchor", "scale",
-                "rotation"
+                "rotation", "cornerPin"
             ]
 
         case let (_, .shape(shape)):
@@ -286,6 +286,9 @@ enum ClipKeyTable {
 
         case "points":
             .points
+
+        case "cornerPin":
+            .quad
 
         case "anchor", "placement":
             .literal(VocabularyTable.placementNames)
@@ -407,10 +410,10 @@ enum ClipKeyTable {
     private static func shapeKeys(of shape: String) -> [String] {
         switch ShapeKind(rawValue: shape) {
         case .rect:
-            ["area", "width", "height", "placement", "radius", "outset"]
+            ["area", "width", "height", "placement", "radius", "outset", "cornerPin"]
 
         case .ellipse:
-            ["area", "width", "height", "placement", "outset"]
+            ["area", "width", "height", "placement", "outset", "cornerPin"]
 
         case .path:
             ["points", "closed"]

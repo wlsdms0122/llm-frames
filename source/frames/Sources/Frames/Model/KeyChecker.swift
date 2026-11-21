@@ -213,6 +213,15 @@ struct KeyChecker: Sendable {
                 try check(element, as: AreaKeyTable.point, place: place.appending(index: index), kind: kind, scope: &scope)
             }
 
+        case .quad:
+            guard let elements = value.arrayValue, elements.count == 4 else {
+                throw wrongType(value, type, place, kind)
+            }
+
+            for (index, element) in elements.enumerated() {
+                try check(element, as: AreaKeyTable.point, place: place.appending(index: index), kind: kind, scope: &scope)
+            }
+
         case let .list(elementType):
             guard let elements = value.arrayValue else { throw wrongType(value, type, place, kind) }
             for (index, element) in elements.enumerated() {
@@ -1441,7 +1450,7 @@ struct KeyChecker: Sendable {
              (.identifier, .string), (.literal, .string), (.ease, .string):
             true
 
-        case (.ease, .array), (.ease, .object), (.numbers, .array), (.points, .array), (.list, .array),
+        case (.ease, .array), (.ease, .object), (.numbers, .array), (.points, .array), (.quad, .array), (.list, .array),
              (.clips, .array), (.dash, .array), (.stops, .array):
             true
 
@@ -1530,6 +1539,9 @@ struct KeyChecker: Sendable {
 
         case .points:
             "a list of at least two points"
+
+        case .quad:
+            "a list of four points"
 
         case .list:
             "a list"
