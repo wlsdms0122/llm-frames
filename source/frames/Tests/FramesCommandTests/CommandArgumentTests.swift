@@ -38,6 +38,7 @@ struct CommandArgumentTests {
         (["probe", "/abs/deck.pdf", "--page", "0"], #"probe: --page "0" is not a whole number from 1"#),
         (["ocr", "/abs/clip.mov", "--at", "1", "--from", "0"], "ocr: --at and --from are not given together"),
         (["ocr", "/abs/clip.mov", "--to", "1"], "ocr: missing --step <s>"),
+        (["ocr", "/abs/deck.pdf", "--page", "1.5"], #"ocr: --page "1.5" is not a whole number from 1"#),
         (["track", "/abs/clip.mov", "--area", "[0, 0, 1, 1]"], "track: missing --at <t>"),
         (["track", "/abs/clip.mov", "--at", "0"], "track: missing --area <area>"),
         (["evaluate", "/abs/doc.json"], "evaluate: missing --at <t>"),

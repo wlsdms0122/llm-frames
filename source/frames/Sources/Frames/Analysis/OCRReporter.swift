@@ -5,9 +5,10 @@
 //  Created by JSilver on 11/17/26.
 //
 
-// Recognises the lines of an image or of video frames with the OCR provider in the recognition languages, nil where
+// Recognises the lines of a still or of video frames with the OCR provider in the recognition languages, nil where
 // the provider detects them, and reports them as `ocr` prints them, in reading order, the order a text area's `nth`
 // counts them in. Each frame is the one shown at its media time, read in `colorSpace` where `--color-space` names one.
+// A page of a PDF is the page `--page` names, or the one page of a PDF of one page, and its lines are in its points.
 package struct OCRReporter: Sendable {
     // MARK: - Property
     private let mediaFacts: any MediaFactProvider
@@ -29,14 +30,12 @@ package struct OCRReporter: Sendable {
     // MARK: - Public
     package func report(
         of path: String,
+        page: Int? = nil,
         at selection: TimeSelection = .start,
         colorSpace: ColorSpace? = nil
     ) throws -> OCRReport {
-        guard let probed = try mediaFacts.probedMedia(of: path) else { throw AnalysisError.missingMedia(file: path) }
-        guard let size = probed.size else { throw AnalysisError.noPicture(file: path) }
-
-        let file = MediaFile(path: path, probed: probed)
-        let frames = try times(selection, in: probed, file: path).map { time in
+        let (file, size, times) = try media(at: path, page: page, selection: selection)
+        let frames = try times.map { time in
             let lines = try lines(in: file, atMediaTime: time, asked: selection, colorSpace: colorSpace)
             return OCRFrame(time: time, lines: order.sorted(lines))
         }
@@ -45,6 +44,24 @@ package struct OCRReporter: Sendable {
     }
 
     // MARK: - Private
+    // The file read, its picture's size and the media times read: a page of a PDF is a still of its size in points.
+    private func media(
+        at path: String,
+        page: Int?,
+        selection: TimeSelection
+    ) throws -> (MediaFile, Size, [Double]) {
+        if let (number, probed) = try mediaFacts.namedPage(page, of: path) {
+            guard selection == .start else { throw AnalysisError.timeOnStill(file: path) }
+            let file = MediaFile(path: path, size: probed.size, colorReading: .formulas(.srgb), page: number)
+
+            return (file, probed.size, [0])
+        }
+        guard let probed = try mediaFacts.probedMedia(of: path) else { throw AnalysisError.missingMedia(file: path) }
+        guard let size = probed.size else { throw AnalysisError.noPicture(file: path) }
+
+        return (MediaFile(path: path, probed: probed), size, try times(selection, in: probed, file: path))
+    }
+
     // A failure names the option that chose the frame, or the command when none did.
     private func lines(
         in file: MediaFile,
