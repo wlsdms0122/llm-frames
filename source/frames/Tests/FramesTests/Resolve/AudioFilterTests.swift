@@ -493,6 +493,33 @@ struct AudioFilterTests {
         }
     }
 
+    @Test("a resolved limiter is planned as a limiter op, its lookahead static, its held values numbers and its gain moving")
+    func plansLimiter() throws {
+        // Given
+        let plan = try plan(#"""
+            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "out": 4 } ],
+              "clips": [ { "media": "/abs/bgm.m4a", "at": 0, "audioFilter": { "op": "limiter", "lookahead": 0.01 },
+                "keyframes": [ { "at": 0, "audioFilter": { "gain": 0 } }, { "at": 2, "audioFilter": { "gain": 6 } } ] } ] }
+            """#)
+
+        // When
+        let mix = MixPlanner().mix(of: try ResolvedSequence(plan: plan, hashes: FileHashTable()))
+
+        // Then
+        let filter = try #require(mix.segments.first { !$0.filter.isEmpty }?.filter)
+        guard case let .limiter(limiter)? = filter.first?.operations.first, case let .envelope(gain) = limiter.gain else {
+            Issue.record("expected a limiter whose gain moves, got \(filter)")
+            return
+        }
+        #expect(filter.first?.mix == .constant(1))
+        #expect(limiter.lookahead == 0.01)
+        #expect(limiter.ceiling == .constant(-1))
+        #expect(limiter.release == .constant(0.1))
+        #expect(gain.first == EnvelopePoint(time: 0, value: 0))
+        #expect(gain.first { $0.time == 1 }?.value == 3)
+        #expect(gain.last?.value == 6)
+    }
+
     @Test("a keyframe that writes a limiter's lookahead stops, naming the keyframe")
     func refusesKeyframedLookahead() throws {
         // When, Then
