@@ -9,7 +9,8 @@ import CoreText
 import Foundation
 
 // The variation sequences a face maps in the format 14 subtable of its `cmap` table: for each variation selector, the
-// base characters it may follow, set in the base's own glyph (default UVS) or in a glyph of their own (non-default UVS).
+// base characters it may follow, set in the base's own glyph (default UVS) or in a glyph of its own (non-default
+// UVS).
 struct VariationSequenceTable {
     // MARK: - Property
     // Bytes of a selector record, a default UVS range and a non-default UVS mapping.

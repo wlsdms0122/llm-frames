@@ -164,7 +164,7 @@ struct CoreTextShaperTests {
     }
 
     @Test(
-        "a mark the face's GPOS table attaches has no advance and its placement offset from the pen puts it where CoreText draws it",
+        "a mark the face's GPOS table attaches has no advance, and its placement offset puts it where CoreText does",
         arguments: [("Times New Roman", "TimesNewRomanPSMT"), ("Arial", "ArialMT"), ("Courier New", "CourierNewPSMT")]
     )
     func placesMarkByOffset(family: String, name: String) throws {
