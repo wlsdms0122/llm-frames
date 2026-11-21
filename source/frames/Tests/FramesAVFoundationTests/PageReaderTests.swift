@@ -287,6 +287,69 @@ struct PageReaderTests {
         #expect(abs(pixels[2]) < 1e-3)
     }
 
+    @Test(
+        "a page has the formulas' colour away from edges: a fill outside every group, one in opaque Normal groups whose space holds it, an image of one colour",
+        arguments: [
+            ("0.2 0.6 0.4 rg 0 0 10 10 re f", [0.2, 0.6, 0.4]),
+            ("/C0 cs 0.5 sc 0 0 10 10 re f", Array(repeating: Self.encoded(pow(0.5, 2.2)), count: 3)),
+            ("/Fm0 Do", [0.2, 0.6, 0.4]),
+            ("/Fm1 Do", [0.2, 0.6, 0.4]),
+            ("q 10 0 0 10 0 0 cm /Im0 Do Q", [0.2, 0.6, 0.4])
+        ]
+    )
+    func readsFixedColor(
+        content: String,
+        expected: [Double]
+    ) throws {
+        // Given
+        let path = directory.file("color.pdf")
+        let group = PDFValue.dictionary(["S": .name("Transparency"), "CS": .name("DeviceRGB")])
+        let form = { (operators: String, resources: [String: PDFValue]) in
+            PDFValue.stream(
+                [
+                    "Type": .name("XObject"),
+                    "Subtype": .name("Form"),
+                    "BBox": .array([0, 0, 10, 10].map(PDFValue.integer)),
+                    "Group": group,
+                    "Resources": .dictionary(resources)
+                ],
+                Data(operators.utf8)
+            )
+        }
+        let inner = form("0.2 0.6 0.4 rg 0 0 10 10 re f", [:])
+        let image = PDFValue.stream(
+            [
+                "Type": .name("XObject"),
+                "Subtype": .name("Image"),
+                "Width": .integer(2),
+                "Height": .integer(2),
+                "ColorSpace": .name("DeviceRGB"),
+                "BitsPerComponent": .integer(8)
+            ],
+            Data(Array(repeating: [UInt8(51), 153, 102], count: 4).flatMap(\.self))
+        )
+        let d65 = PDFValue.array([.real(0.9505), .integer(1), .real(1.089)])
+        let resources: [String: PDFValue] = [
+            "ColorSpace": .dictionary(["C0": .array([.name("CalGray"), .dictionary(["WhitePoint": d65, "Gamma": .real(2.2)])])]),
+            "XObject": .dictionary([
+                "Fm0": inner,
+                "Fm1": form("/Fm0 Do", ["XObject": .dictionary(["Fm0": inner])]),
+                "Im0": image
+            ])
+        ]
+        try PageFile.write([PageFile.page(content, resources: resources, mediaBox: [0, 0, 10, 10])], to: path)
+        let file = MediaFile(path: path, page: 1)
+
+        // When
+        let pixels = try sut.picture(of: file, region: PageRegion(x: 0, y: 0, width: 10, height: 10), scale: 1, reading: .tagged)
+            .floatPixels()
+
+        // Then
+        let centre = (5 * 10 + 5) * 4
+        let found = Array(pixels[centre..<centre + 4]).map(Double.init)
+        #expect(zip(found, expected + [1]).allSatisfy { abs($0 - $1) < 2e-3 }, "\(found)")
+    }
+
     @Test("a PDF that opens only with a password is refused, and one with an empty user password opens")
     func refusesPassword() throws {
         // Given
@@ -343,6 +406,11 @@ struct PageReaderTests {
     }
 
     // MARK: - Private
+    // The sRGB encoding of a linear value.
+    private static func encoded(_ linear: Double) -> Double {
+        linear <= 0.0031308 ? 12.92 * linear : 1.055 * pow(linear, 1 / 2.4) - 0.055
+    }
+
     private func writeEncrypted(
         to path: String,
         userPassword: String
