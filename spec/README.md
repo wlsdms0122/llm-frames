@@ -13,7 +13,7 @@ A document is a sequence, as in an NLE: a primary storyline of clips, clips conn
 frames holds the editing tools that any result uses. The shape of a purpose (an annotation look, where a title goes in a lecture, a grid of pictures side by side, a band of text above a vertical cut) is made with those tools by packs and extensions, installed beside frames and not part of it ([FRAMES-25](FRAMES-25/SPEC.md)).
 
 - A resolved document and the files it pins are enough to make the result again.
-- frames composites media and does not generate it. Motion graphics, illustrations and diagrams are made with other tools (HTML in a headless browser, an image model, a design tool) and arrive as media: a PNG, a PNG sequence, or a video with alpha.
+- frames composites media and does not generate it. Motion graphics, illustrations and diagrams are made with other tools (HTML in a headless browser, an image model, a design tool) and arrive as media: a PNG, a PNG sequence, a video with alpha, or for vector artwork a page of a PDF, which is drawn at whatever size it is shown at ([FRAMES-3](FRAMES-3/SPEC.md)).
 - Titles, shapes (rect, ellipse, path), masks and track mattes are built in, as the basics of any NLE. Their geometry is part of frames, and how they move is keyframes and presets.
 - Looks and edits can be shared and sold as packs: presets, themes, LUTs, mattes, overlays and templates with published parameters ([FRAMES-17](FRAMES-17/SPEC.md)).
 
@@ -68,6 +68,7 @@ every media file is read through the decoder
 - GIF and WebM output. Rendering makes MOV, MP4 and PNG.
 - Speech synthesis, recording and transcription. Sound arrives as files.
 - Generating graphics. They arrive as media.
+- SVG. Vector artwork arrives as a page of a PDF, and an extension converts SVG to PDF (`rsvg-convert -f pdf`, Inkscape) before it is named ([FRAMES-3](FRAMES-3/SPEC.md)).
 - Fetching packs over the network. Installing is copying.
 
 Adding any of these later raises the minor version ([FRAMES-18](FRAMES-18/SPEC.md)). Whoever adds one updates the key tables, the README and the specification together.
