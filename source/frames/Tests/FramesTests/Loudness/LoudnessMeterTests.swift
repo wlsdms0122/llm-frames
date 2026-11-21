@@ -243,4 +243,16 @@ struct LoudnessMeterTests {
         #expect(rounded.truePeak == 0 && rounded.truePeak?.sign == .plus)
         #expect(rounded.samplePeak == nil)
     }
+
+    @Test("a sound that is not stereo at the mix plan's sample rate stops the meter, whose filters and windows are counted at that rate")
+    func stopsOnOtherSound() async {
+        // When
+        // Then
+        await #expect(processExitsWith: .failure) {
+            _ = LoudnessMeter().measure(SoundBuffer(sampleRate: 44_100, channels: 2, samples: [0, 0]))
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = LoudnessMeter().measure(SoundBuffer(sampleRate: 48_000, channels: 1, samples: [0, 0]))
+        }
+    }
 }

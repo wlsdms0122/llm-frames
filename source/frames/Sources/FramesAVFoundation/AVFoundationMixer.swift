@@ -9,15 +9,15 @@ import AVFoundation
 import Frames
 
 // The `avfoundation` mixer: reads each segment's media time through the decoder, maps its channels onto stereo,
-// resamples it to 48 kHz, stretches it in time with the pitch kept when its speed is not 1, runs its audio filter,
-// multiplies it by its envelope, pans it by its pan envelope with the pan law of its channel count, and adds it into
-// the bus that holds it from its start sample. A bus sums its segments and buses over its span, runs its chain over
-// the sum, at rest at the span's first sample, and multiplies the result by its level envelope before it is added to
-// the bus that holds it. The plan is the outermost bus: its chain runs over the whole sum of its `length` samples, and
-// that is the mix. The sum is not clipped.
+// resamples it to the plan's sample rate, stretches it in time with the pitch kept when its speed is not 1, runs its
+// audio filter, multiplies it by its envelope, pans it by its pan envelope with the pan law of its channel count, and
+// adds it into the bus that holds it from its start sample. A bus sums its segments and buses over its span, runs its
+// chain over the sum, at rest at the span's first sample, and multiplies the result by its level envelope before it is
+// added to the bus that holds it. The plan is the outermost bus: its chain runs over the whole sum of its `length`
+// samples, and that is the mix. The sum is not clipped.
 package final class AVFoundationMixer: Sendable {
     // MARK: - Property
-    private static let sampleRate: Double = 48_000
+    private static let sampleRate = Double(MixPlan.sampleRate)
 
     private let decoder: any MediaDecoder
 
@@ -150,7 +150,7 @@ package final class AVFoundationMixer: Sendable {
         }
     }
 
-    // The first sample of a span edge at `time`, by the span rule: round(48000 × time), halves up.
+    // The first sample of a span edge at `time`, by the span rule: round(sample rate × time), halves up.
     private func sample(at time: Double) -> Int {
         Int((time * Self.sampleRate).rounded())
     }

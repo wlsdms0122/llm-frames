@@ -32,12 +32,19 @@ package struct LoudnessMeter: Sendable {
         measure(sound, over: 0..<sound.frameCount)
     }
 
-    // The measures of the samples in `range`, which lies in the sound.
+    // The measures of the samples in `range`, which lies in the sound. The sound is a mix, stereo at the mix plan's
+    // sample rate, which the K-weighting coefficients, the blocks and the windows are counted at.
     package func measure(
         _ sound: SoundBuffer,
         over range: Range<Int>
     ) -> Loudness {
-        sound.samples.withUnsafeBufferPointer { samples in
+        precondition(
+            sound.channels == 2 && sound.sampleRate == Double(MixPlan.sampleRate),
+            "the meter reads stereo at \(MixPlan.sampleRate) Hz, given "
+                + "\(sound.channels) channels at \(sound.sampleRate) Hz"
+        )
+
+        return sound.samples.withUnsafeBufferPointer { samples in
             let powers = weightedPowers(of: samples, over: range)
             let channels = [samples.baseAddress!, samples.baseAddress! + 1]
             let truePeak = range.isEmpty
