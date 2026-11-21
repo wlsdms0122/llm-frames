@@ -142,6 +142,35 @@ struct SequenceAudioFilterTests {
         }
     }
 
+    @Test("the resolved sequence writes its audio filter after audio, a lookahead as a plain number, and a compound clip's sound its nested one")
+    func writesResolvedAudioFilter() throws {
+        // Given
+        let plan = try Fixture.documentPlanner.plan(Fixture.json(#"""
+            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "out": 4 } ],
+              "clips": [ { "media": { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "out": 2 } ],
+                                      "audioFilter": { "op": "limiter", "ceiling": -6 } },
+                           "picture": false, "at": 1 } ],
+              "audioFilter": { "op": "limiter", "lookahead": 0.01 } }
+            """#))
+
+        // When
+        let members = ResolvedSequenceWriter().members(of: try ResolvedSequence(plan: plan, hashes: FileHashTable()))
+
+        // Then
+        #expect(members.map(\.key) == ["format", "storyline", "clips", "audio", "audioFilter"])
+        let filter = members.last?.value.arrayValue?.first?.objectValue
+        let limiter = filter?["ops"]?.arrayValue?.first?.objectValue
+        #expect(limiter?["op"] == .string("limiter"))
+        #expect(limiter?["lookahead"] == .number(0.01))
+        #expect(limiter?["gain"]?.arrayValue?.count == 1)
+        let audio = members.first { $0.key == "audio" }?.value.arrayValue ?? []
+        #expect(audio.first?.objectValue?["nestedAudioFilter"] == .null)
+        let nested = audio.last?.objectValue?["nestedAudioFilter"]?.arrayValue?.first?.objectValue
+        let ceiling = nested?["ops"]?.arrayValue?.first?.objectValue?["ceiling"]?.arrayValue?.first?.objectValue
+        #expect(ceiling?["value"] == .number(-6))
+        #expect(audio.last?.objectValue?["audioFilter"] == .null)
+    }
+
     // MARK: - Private
     @discardableResult
     private func plan(_ document: String) throws -> SequencePlan {

@@ -5,12 +5,12 @@
 //  Created by JSilver on 11/16/26.
 //
 
-// Reads a resolved sequence as `ResolvedSequenceWriter` writes it: its format, its storyline, its other clips and every
-// source of sound. A nested document in place of a file is read as a sequence of its own. Which keys an entry
+// Reads a resolved sequence as `ResolvedSequenceWriter` writes it: its format, its storyline, its other clips, every
+// source of sound and its own audio filter. A nested document in place of a file is read as a sequence of its own. Which keys an entry
 // holds follows from what it is, so a key resolve writes only for another kind of entry stops by its name.
 struct ResolvedSequenceReader: Sendable {
     // MARK: - Property
-    static let keys = ["kind", "format", "storyline", "clips", "audio"]
+    static let keys = ["kind", "format", "storyline", "clips", "audio", "audioFilter"]
 
     // The keys every clips entry may hold besides what it draws.
     private static let clipKeys = [
@@ -70,7 +70,8 @@ struct ResolvedSequenceReader: Sendable {
             format: format,
             storyline: storyline,
             clips: clips,
-            audio: try object.member("audio").elements().map(sound)
+            audio: try object.member("audio").elements().map(sound),
+            audioFilter: try values.timed(object.member("audioFilter"), as: LookStructureTable.resolvedAudioFilter)
         )
     }
 
@@ -456,7 +457,7 @@ struct ResolvedSequenceReader: Sendable {
 
     private func sound(_ value: PlacedJSONValue) throws -> ResolvedSound {
         let sound = try value.object(kind: "audio", keys: [
-            "place", "media", "nested", "in", "origin", "out", "speed", "loop", "start", "end", "audible", "volume",
+            "place", "media", "nested", "nestedAudioFilter", "in", "origin", "out", "speed", "loop", "start", "end", "audible", "volume",
             "pan", "fadeIn", "fadeOut", "incoming", "outgoing", "audioFilter"
         ])
         let range = { (key: String) in try sound.member(key).optional(values.range) }
@@ -465,6 +466,10 @@ struct ResolvedSequenceReader: Sendable {
             place: try sound.member("place").string(),
             media: try sound.member("media").optional(values.media),
             nested: try sound.member("nested").elements().map(self.sound),
+            nestedAudioFilter: try values.timed(
+                sound.member("nestedAudioFilter"),
+                as: LookStructureTable.resolvedAudioFilter
+            ),
             played: PlayedRange(
                 map: TimeMap(
                     origin: try sound.member("origin").number(),

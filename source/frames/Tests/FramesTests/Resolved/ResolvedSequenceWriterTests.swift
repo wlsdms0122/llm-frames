@@ -44,7 +44,7 @@ struct ResolvedSequenceWriterTests {
         let resolved = try write(document)
 
         // Then
-        #expect(resolved.keys == ["kind", "resolved", "format", "storyline", "clips", "audio"])
+        #expect(resolved.keys == ["kind", "resolved", "format", "storyline", "clips", "audio", "audioFilter"])
         #expect(resolved["kind"] == .string("sequence"))
         #expect(resolved["resolved"] == .string(FramesVersion.current))
         #expect(resolved["format"]?.objectValue?.keys == ["size", "fps", "duration", "background", "conform", "colorSpace", "peak", "compositing"])
@@ -358,7 +358,7 @@ struct ResolvedSequenceWriterTests {
 
         // Then
         let nested = try #require(resolved["storyline"]?.arrayValue?.first?.objectValue?["media"]?.objectValue)
-        #expect(nested.keys == ["kind", "format", "storyline", "clips", "audio"])
+        #expect(nested.keys == ["kind", "format", "storyline", "clips", "audio", "audioFilter"])
         #expect(nested["storyline"]?.arrayValue?.first?.objectValue?["media"]?.objectValue?["file"] == .string("/abs/run.mp4"))
         #expect(resolved["audio"]?.arrayValue?.first?.objectValue?["media"] == .null)
         #expect(resolved["audio"]?.arrayValue?.first?.objectValue?["nested"]?.arrayValue?.count == 1)

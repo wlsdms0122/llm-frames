@@ -124,7 +124,8 @@ struct ContentFitPlanner: Sendable {
                     animation: .none
                 )
             },
-            audio: sequence.audio
+            audio: sequence.audio,
+            audioFilter: sequence.audioFilter
         )
     }
 

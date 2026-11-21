@@ -391,6 +391,7 @@ struct ResolvedDocumentWriterTests {
                 "sha256": "9f2c41d07b3e"
               },
               "nested": [],
+              "nestedAudioFilter": null,
               "in": 2,
               "origin": 0,
               "out": 8,
@@ -426,6 +427,7 @@ struct ResolvedDocumentWriterTests {
                 "sha256": "c07d9a1e44f2"
               },
               "nested": [],
+              "nestedAudioFilter": null,
               "in": 0,
               "origin": 0,
               "out": 20,
@@ -464,7 +466,8 @@ struct ResolvedDocumentWriterTests {
               "outgoing": null,
               "audioFilter": null
             }
-          ]
+          ],
+          "audioFilter": null
         }
 
         """#

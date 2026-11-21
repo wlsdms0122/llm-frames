@@ -6,7 +6,8 @@
 //
 
 // Writes a resolved sequence as the members of its resolved document after `kind`: its format, its storyline, its
-// other clips in document order, and every source of sound. A nested document is written in place of a file.
+// other clips in document order, every source of sound, and its own audio filter, its bus's chain. A nested document
+// is written in place of a file.
 struct ResolvedSequenceWriter: Sendable {
     // MARK: - Property
     private let values = ResolvedValueWriter()
@@ -20,7 +21,8 @@ struct ResolvedSequenceWriter: Sendable {
             JSONMember(key: "format", value: format(sequence.format)),
             JSONMember(key: "storyline", value: .array(sequence.storyline.map(storyline))),
             JSONMember(key: "clips", value: .array(sequence.clips.map(clip))),
-            JSONMember(key: "audio", value: .array(sequence.audio.map(sound)))
+            JSONMember(key: "audio", value: .array(sequence.audio.map(sound))),
+            JSONMember(key: "audioFilter", value: values.timed(sequence.audioFilter))
         ]
     }
 
@@ -223,6 +225,7 @@ struct ResolvedSequenceWriter: Sendable {
             JSONMember(key: "place", value: .string(sound.place)),
             JSONMember(key: "media", value: sound.media.map { .object(JSONObject(members: values.media($0))) } ?? .null),
             JSONMember(key: "nested", value: .array(sound.nested.map(self.sound))),
+            JSONMember(key: "nestedAudioFilter", value: values.timed(sound.nestedAudioFilter)),
             JSONMember(key: "in", value: .number(sound.played.in)),
             JSONMember(key: "origin", value: .number(sound.played.origin)),
             JSONMember(key: "out", value: .number(sound.played.out)),
