@@ -119,7 +119,7 @@ Evaluation has done everything above pixels: keyframes and eases (springs includ
 
 ### The mix plan
 
-The mix plan is the sound of a whole sequence as a tree of buses ([FRAMES-28](../FRAMES-28/SPEC.md#buses)): its length, its segments, each with a media file, its media start and speed, the sequence times it starts and ends, its audio filter, a gain envelope and a pan envelope, its buses, and its filter, the chain the mixer runs over their sum. Each bus holds the same three, its span and a level envelope.
+The mix plan is the sound of a whole sequence as a tree of buses ([FRAMES-28](../FRAMES-28/SPEC.md#buses)): its length, its segments, each with a media file, its media start and speed, the sequence times it starts and ends, its audio filter, a gain envelope and a pan envelope, its buses, and its filter, the chain the mixer runs over their sum. Each bus holds its own segments, buses and filter, its span and a level envelope.
 
 - A storyline clip's segment runs over its drawn range with its edges moved by its `split` ([FRAMES-13](../FRAMES-13/SPEC.md)), and its gain envelope's crossfade at an edge is moved with that edge. A visual media clip's segment, connected or in `clips`, runs over its visible window with its edges moved by its `split`.
 - The gain envelope is a list of points `[t, gain]` joined in straight lines. It already holds volume keyframes and their eases, fades, and transition crossfades on the transition's `audio` curve ([FRAMES-13](../FRAMES-13/SPEC.md)): with u the progress through the transition, `constant-power` gives the outgoing sound cos(uπ/2) and the incoming sin(uπ/2), and `constant-gain` gives them 1 - u and u. Eased keyframes and the crossfade curve are sampled at the frame rate.
