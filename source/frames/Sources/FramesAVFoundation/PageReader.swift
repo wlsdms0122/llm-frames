@@ -59,16 +59,17 @@ final class PageReader: @unchecked Sendable {
         return ProbedPage(size: geometry.size, pageCount: pageCount)
     }
 
-    // Refuses a page that draws content another file holds, and where `reading` is not a `platform` one, a page that
-    // sets drawn text in a font its file does not embed or draws in a colour space this decoder does not convert by
-    // the fixed formulas. A reading that names a colour space other than `srgb` reads the page's untagged colour in
-    // it, which this decoder does only on a page that draws in no other colour space.
+    // Refuses a page that draws content another file holds or content the View event shows otherwise than Core
+    // Graphics draws it, and where `reading` is not a `platform` one, a page that sets drawn text in a font its file
+    // does not embed or draws in a colour space this decoder does not convert by the fixed formulas. A reading that
+    // names a colour space other than `srgb` reads the page's untagged colour in it, which this decoder does only on a
+    // page that draws in no other colour space.
     func check(
         _ number: Int,
         reading: PictureReading?
     ) throws {
         let result = try pageCheck(number)
-        if let fault = result.externalContent {
+        if let fault = result.drawing {
             throw DecoderError.unreadablePage(file: path, page: number, fault: fault)
         }
         if case .platform = reading { return }
@@ -147,7 +148,15 @@ final class PageReader: @unchecked Sendable {
         let colorFault = content.faults.first { if case .colorSpace = $0 { true } else { false } }
             ?? spaces.lazy.compactMap { written, space in PageColorRamp.fault(of: space, written: written) }.first
         let result = PageCheck(
-            externalContent: content.faults.first { if case .externalContent = $0 { true } else { false } },
+            drawing: content.faults.first { fault in
+                switch fault {
+                case .externalContent, .viewEvent:
+                    true
+
+                default:
+                    false
+                }
+            },
             font: content.faults.first { if case .unembeddedFont = $0 { true } else { false } },
             color: colorFault,
             drawsOnlyUntaggedColor: spaces.allSatisfy { _, space in

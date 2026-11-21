@@ -159,8 +159,8 @@ struct PageReaderTests {
         #expect(pixels[(10 * 100 + 75) * 4 + 3] == 0)
     }
 
-    @Test("content the View event turns off is not drawn, and content it turns on is, as the check reads them")
-    func drawsViewEventState() throws {
+    @Test("a page whose View event shows or hides content otherwise than its default state is refused for every reading, since Core Graphics draws without it")
+    func refusesViewEventState() throws {
         // Given
         let path = directory.file("layers.pdf")
         var writer = PDFFileWriter()
@@ -194,16 +194,13 @@ struct PageReaderTests {
         let file = MediaFile(path: path, page: 1)
 
         // When
-        let pixels = try sut.picture(
-            of: file,
-            region: PageRegion(x: 0, y: 0, width: 100, height: 100),
-            scale: 1,
-            reading: .tagged
-        ).floatPixels()
+        let error = #expect(throws: DecoderError.self) {
+            try sut.picture(of: file, region: PageRegion(x: 0, y: 0, width: 100, height: 100), scale: 1, reading: .tagged)
+        }
 
         // Then
-        #expect(pixels[((5 * 100) + 5) * 4 + 3] == 0)
-        #expect(pixels[((5 * 100) + 55) * 4 + 3] == 1)
+        #expect(error == .unreadablePage(file: path, page: 1, fault: .viewEvent))
+        #expect(throws: DecoderError.self) { try sut.check(file, reading: .platform(colorSpace: .srgb)) }
     }
 
     @Test("a region under 1 pixel, a scale of 0, a region larger than the decoder holds and a frame of a page stop")

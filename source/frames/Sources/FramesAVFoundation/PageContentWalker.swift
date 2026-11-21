@@ -21,6 +21,8 @@ final class PageContentWalker {
     private static let abbreviatedSpaces = ["G": "DeviceGray", "RGB": "DeviceRGB", "CMYK": "DeviceCMYK", "I": "Indexed"]
 
     private let optionalContent: OptionalContentConfiguration
+    // The state Core Graphics draws, without the View event.
+    private let drawnOptionalContent: OptionalContentConfiguration
     private var states = [PageGraphicsState()]
     private var resources: [CGPDFDictionaryRef] = []
     private var markedContent: [Bool] = []
@@ -46,6 +48,7 @@ final class PageContentWalker {
     // MARK: - Initializer
     init(document: CGPDFDocument) {
         self.optionalContent = OptionalContentConfiguration(document: document)
+        self.drawnOptionalContent = OptionalContentConfiguration(document: document, isApplyingViewEvent: false)
     }
 
     // MARK: - Public
@@ -337,7 +340,7 @@ final class PageContentWalker {
         else {
             return
         }
-        if let membership = Self.dictionary(dictionary, "OC"), !optionalContent.shows(membership) { return }
+        if let membership = Self.dictionary(dictionary, "OC"), !shows(membership) { return }
         if Self.object(dictionary, "F") != nil { faults.append(.externalContent("an XObject's stream")) }
 
         if Self.name(dictionary, "Subtype") == "Form" {
@@ -433,7 +436,18 @@ final class PageContentWalker {
         let membership = CGPDFObjectGetValue(properties, .name, &propertyName)
             ? propertyName.flatMap { resource("Properties", String(cString: $0)) }.flatMap(Self.dictionary)
             : Self.dictionary(properties)
-        markedContent.append(membership.map { !optionalContent.shows($0) } ?? false)
+        markedContent.append(membership.map { !shows($0) } ?? false)
+    }
+
+    // Whether content `membership` marks is shown for viewing. Content the View event shows or hides otherwise than
+    // Core Graphics draws it is a fault, since no call hides or shows a group as Core Graphics draws.
+    private func shows(_ membership: CGPDFDictionaryRef) -> Bool {
+        let shows = optionalContent.shows(membership)
+        if shows != drawnOptionalContent.shows(membership), !faults.contains(.viewEvent) {
+            faults.append(.viewEvent)
+        }
+
+        return shows
     }
 
     private func record(_ space: PDFValue) {

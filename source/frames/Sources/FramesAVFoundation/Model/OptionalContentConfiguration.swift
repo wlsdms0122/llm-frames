@@ -18,7 +18,11 @@ struct OptionalContentConfiguration {
     private let off: Set<CGPDFDictionaryRef>
 
     // MARK: - Initializer
-    init(document: CGPDFDocument) {
+    // `isApplyingViewEvent` false gives the state without the `AS` entries, the one Core Graphics draws.
+    init(
+        document: CGPDFDocument,
+        isApplyingViewEvent: Bool = true
+    ) {
         var properties: CGPDFDictionaryRef?
         var configuration: CGPDFDictionaryRef?
         guard
@@ -38,7 +42,7 @@ struct OptionalContentConfiguration {
         let base = CGPDFDictionaryGetName(configuration, "BaseState", &baseState) ? baseState.map { String(cString: $0) } : nil
         var on = Self.groups(in: configuration, key: "ON")
         var off = Self.groups(in: configuration, key: "OFF")
-        for (group, isOn) in Self.viewStates(in: configuration) {
+        for (group, isOn) in isApplyingViewEvent ? Self.viewStates(in: configuration) : [] {
             if isOn {
                 on.insert(group)
                 off.remove(group)

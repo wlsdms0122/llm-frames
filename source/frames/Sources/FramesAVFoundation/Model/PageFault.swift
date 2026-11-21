@@ -9,10 +9,12 @@ import Frames
 
 // What keeps the decoder from reading a page of a PDF (FRAMES-3 PDF pages): a `Rotate` that is not a multiple of 90, a
 // size under 1 media pixel on a side, content held in another file, drawn text set in a font the file does not embed,
-// a colour space the decoder does not convert by the formulas of FRAMES-26 Media, and a `colorSpace` other than `srgb`
-// for the untagged colour of a page that draws in other colour spaces too. Core Graphics draws DeviceRGB and DeviceGray
-// as sRGB into every space, so the decoder reads untagged colour in another space by taking the drawn sRGB numbers in
-// that space, which holds only where no tagged colour is drawn.
+// a colour space the decoder does not convert by the formulas of FRAMES-26 Media, a `colorSpace` other than `srgb` for
+// the untagged colour of a page that draws in other colour spaces too, and content the View event of its optional
+// content shows or hides otherwise than its default state does. Core Graphics draws DeviceRGB and DeviceGray as sRGB
+// into every space, so the decoder reads untagged colour in another space by taking the drawn sRGB numbers in that
+// space, which holds only where no tagged colour is drawn. Core Graphics draws optional content in its default state
+// without the View event, and no call changes what it shows.
 package enum PageFault: Error, Equatable, Sendable {
     case rotation(Int)
     case size(Size)
@@ -20,6 +22,7 @@ package enum PageFault: Error, Equatable, Sendable {
     case unembeddedFont(String)
     case colorSpace(String)
     case untaggedColor(ColorSpace)
+    case viewEvent
 
     // MARK: - Property
     var reason: String {
@@ -44,6 +47,10 @@ package enum PageFault: Error, Equatable, Sendable {
                 + "\(colorSpace.rawValue) only on a page that draws in no other colour space, since Core Graphics draws "
                 + "DeviceRGB and DeviceGray as sRGB whatever space it draws into, and in one picture they cannot be told "
                 + "from the tagged colour"
+
+        case .viewEvent:
+            "its optional content's View event (/AS) shows or hides content otherwise than its BaseState, ON and OFF "
+                + "do, which Core Graphics does not apply when it draws"
         }
     }
 
@@ -53,7 +60,7 @@ package enum PageFault: Error, Equatable, Sendable {
         case .unembeddedFont, .colorSpace:
             true
 
-        case .rotation, .size, .externalContent, .untaggedColor:
+        case .rotation, .size, .externalContent, .untaggedColor, .viewEvent:
             false
         }
     }

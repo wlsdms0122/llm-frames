@@ -95,7 +95,7 @@ struct PageContentWalkerTests {
         #expect(content.colorSpaces == [.name("DeviceRGB")])
     }
 
-    @Test("the View event's usage sets the groups it lists after BaseState, ON and OFF, by each group's View usage")
+    @Test("the View event's usage sets the groups it lists after BaseState, ON and OFF, by each group's View usage, and content it shows or hides otherwise is a fault")
     func appliesViewEvent() {
         // Given
         var writer = PDFFileWriter()
@@ -129,7 +129,7 @@ struct PageContentWalkerTests {
         let content = walked(page, catalog: catalog, writer: writer)
 
         // Then
-        #expect(content.faults.isEmpty)
+        #expect(content.faults == [.viewEvent])
         #expect(content.colorSpaces == [.name("DeviceGray")])
     }
 
