@@ -28,25 +28,7 @@ struct ShapeEvaluator: Sendable {
             return []
         }
 
-        let factor = sample.lengthFactor
-
-        let trim = shape.trim.value(at: time)
-        let path = PathItem(
-            geometry: laid.geometry,
-            fill: Paint(sampled: shape.fill.sampled(at: time, as: LookStructureTable.fill), box: laid.box),
-            stroke: PathStroke(
-                sampled: shape.stroke.sampled(at: time, as: LookStructureTable.stroke),
-                factor: factor,
-                carried: carried,
-                box: laid.box
-            ),
-            trim: Trim(start: min(max(trim.start, 0), 1), end: min(max(trim.end, 0), 1)),
-            shadow: DropShadow(
-                sampled: shape.shadow.sampled(at: time, as: LookStructureTable.shadow),
-                factor: factor,
-                carried: carried
-            )
-        )
+        let path = path(of: shape, geometry: laid.geometry, box: laid.box, carried: carried, sample: sample, at: time)
 
         return [DisplayItem(
             transform: laid.transform,
@@ -69,7 +51,68 @@ struct ShapeEvaluator: Sendable {
             ?? space.tracked(by: clip.parentTrack, at: time).transform
     }
 
+    // A rect or an ellipse given by `width` and `height` drawn flat in its box B, `[0, 0, w, h]` at the time, for a clip
+    // with a corner pin (FRAMES-27 The key): its outline grown by its outset, its lengths carried by `plane`, the
+    // transform B is drawn with. Nil for a shape placed by its geometry, and where `plane` flattens B.
+    func flat(
+        _ shape: ResolvedShape,
+        sample: ClipSample,
+        plane: (Rectangle) -> AffineTransform,
+        at time: Double
+    ) -> (box: Rectangle, path: PathItem)? {
+        guard case let .box(width, height, outset) = shape.geometry else { return nil }
+
+        let box = Rectangle(x: 0, y: 0, width: width.value(at: time), height: height.value(at: time))
+        guard let carried = carried(by: plane(box), sample: sample) else { return nil }
+
+        let outline = box.grown(by: length(outset, at: time) * carried)
+        let geometry: PathGeometry = shape.kind == .ellipse
+            ? .ellipse(outline)
+            : .rect(outline, radius: length(shape.radius, at: time) * carried)
+        return (box, path(of: shape, geometry: geometry, box: box, carried: carried, sample: sample, at: time))
+    }
+
+    // What a shape's path draws carried by `transform`, its shadow included.
+    func receiverBox(
+        of path: PathItem,
+        carriedBy transform: AffineTransform
+    ) -> Rectangle {
+        let drawn = path.drawnBounds(carriedBy: transform)
+        guard let shadow = path.shadow else { return drawn }
+
+        return drawn.union(shadow.castBounds(of: drawn))
+    }
+
     // MARK: - Private
+    private func path(
+        of shape: ResolvedShape,
+        geometry: PathGeometry,
+        box: Rectangle,
+        carried: Double,
+        sample: ClipSample,
+        at time: Double
+    ) -> PathItem {
+        let factor = sample.lengthFactor
+        let trim = shape.trim.value(at: time)
+
+        return PathItem(
+            geometry: geometry,
+            fill: Paint(sampled: shape.fill.sampled(at: time, as: LookStructureTable.fill), box: box),
+            stroke: PathStroke(
+                sampled: shape.stroke.sampled(at: time, as: LookStructureTable.stroke),
+                factor: factor,
+                carried: carried,
+                box: box
+            ),
+            trim: Trim(start: min(max(trim.start, 0), 1), end: min(max(trim.end, 0), 1)),
+            shadow: DropShadow(
+                sampled: shape.shadow.sampled(at: time, as: LookStructureTable.shadow),
+                factor: factor,
+                carried: carried
+            )
+        )
+    }
+
     // `carried` is what a length the transform carries is multiplied by, nil where the transform flattens the plane;
     // the geometry then takes none. `box` is the shape's box as written, before its outset, in the geometry's
     // coordinates.
@@ -183,15 +226,5 @@ struct ShapeEvaluator: Sendable {
         at time: Double
     ) -> Double {
         value.sampled(at: time, as: LookStructureTable.length).number ?? 0
-    }
-
-    private func receiverBox(
-        of path: PathItem,
-        carriedBy transform: AffineTransform
-    ) -> Rectangle {
-        let drawn = path.drawnBounds(carriedBy: transform)
-        guard let shadow = path.shadow else { return drawn }
-
-        return drawn.union(shadow.castBounds(of: drawn))
     }
 }

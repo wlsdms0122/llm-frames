@@ -172,8 +172,9 @@ struct ClipEvaluator: Sendable {
     // with the transform part of its animation about B's centre, opacity 1 and `normal` blend, its reveal, and its masks
     // in its own space, in a nested list of D, the box its reveal wipes, with B's top left at (-x, -y) for D at (x, y).
     // The group's `rect` is B in the list, its `dest` B and its corner pin Q(t), and it carries the clip's opacity, its
-    // animation's included, and its blend. Nil where the corner pin draws nothing, and for a clip whose content draws
-    // no box: a shape's items take their placement from its own transform, which a clip with a corner pin has none of.
+    // animation's included, and its blend. Nil where the corner pin draws nothing, and for an adjustment, which takes
+    // no corner pin. A rect or an ellipse is drawn in the box its `width` and `height` give at the time, its own masks
+    // in that box.
     private func group(
         of clip: ResolvedClip,
         in space: ClipSpace,
@@ -222,7 +223,15 @@ struct ClipEvaluator: Sendable {
             }
             flat = (box, .picture(item), { Rectangle(bounding: $0.apply(toCornersOf: receiver)) }, crop ?? .identity)
 
-        case .shape, .adjustment:
+        case let .shape(shape):
+            let plane = { (box: Rectangle) in
+                ItemPresentation(area: box, opacity: sample.opacity, motion: sample.animation.motion).transform
+            }
+            guard let drawn = shapeEvaluator.flat(shape, sample: sample, plane: plane, at: time) else { return nil }
+
+            flat = (drawn.box, .path(drawn.path), { shapeEvaluator.receiverBox(of: drawn.path, carriedBy: $0) }, .identity)
+
+        case .adjustment:
             return nil
         }
 

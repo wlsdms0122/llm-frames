@@ -59,6 +59,35 @@ struct CornerPinEvaluationTests {
         #expect(inner.cornerPin == nil)
     }
 
+    @Test("a rect given by width and height with a corner pin is one group whose nested list draws its path in its box")
+    func drawsBoxShapeGroup() throws {
+        // Given
+        let sequence = try resolved(##"{ "id": "card", "shape": "rect", "width": 300, "height": 240, "fill": "#FFFFFF", "at": [0, 4], "cornerPin": \##(Self.pin) }"##)
+
+        // When
+        let list = sut.displayList(of: sequence, at: 1)
+
+        // Then
+        let size = try #require(sequence.clips.first?.cornerPin?.size)
+        let box = Rectangle(x: 0, y: 0, width: size.width, height: size.height)
+        let group = try #require(list.items.last)
+        guard
+            case let .picture(picture) = group.content,
+            case let .displayList(nested) = picture.source,
+            case let .path(path) = nested.items.first?.content,
+            case let .rect(rectangle, _) = path.geometry
+        else {
+            Issue.record("the group is not a picture of a nested list holding the rect's path")
+            return
+        }
+        #expect(group.transform == .identity)
+        #expect(picture.cornerPin == Self.quad)
+        #expect(picture.destination == box)
+        #expect(nested.size == size)
+        #expect(nested.items.first?.transform == .identity)
+        #expect(rectangle == box)
+    }
+
     @Test("a shadow past the box grows the nested list, with the box's top left at minus the list's origin")
     func growsListByShadow() throws {
         // Given
