@@ -312,6 +312,22 @@ struct PageContentWalkerTests {
         #expect(content.colorSpaces.contains(.name("DeviceCMYK")))
     }
 
+    @Test("a Q a nested stream does not match restores none of the state of the content that draws it")
+    func keepsCallerStateOnUnmatchedRestore() {
+        // Given
+        let form = PDFValue.stream(
+            ["Type": .name("XObject"), "Subtype": .name("Form"), "BBox": .array([0, 0, 10, 10].map(PDFValue.integer))],
+            Data("Q Q".utf8)
+        )
+        let page = PageFile.page("q 0 0 0 1 k /Fm0 Do 0 0 10 10 re f Q", resources: ["XObject": .dictionary(["Fm0": form])])
+
+        // When
+        let content = walked(page)
+
+        // Then
+        #expect(content.colorSpaces == [.name("DeviceCMYK")])
+    }
+
     @Test("a JPEG 2000 image whose dictionary names no colour space is a fault")
     func findsJPXWithoutSpace() {
         // Given

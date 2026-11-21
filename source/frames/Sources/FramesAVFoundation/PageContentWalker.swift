@@ -34,6 +34,8 @@ final class PageContentWalker {
     private var operators: CGPDFOperatorTableRef?
     private var contentStreams: [CGPDFContentStreamRef] = []
     private var uncoloredPatternDepth = 0
+    // The fewest states the stream read now holds: its own first state is the last a `Q` in it restores to.
+    private var stateBase = 1
 
     private var state: PageGraphicsState {
         get { states[states.count - 1] }
@@ -129,7 +131,7 @@ final class PageContentWalker {
     }
 
     // Scans `stream` with `streamResources`, or the resources in force where it has none, in a copy of the graphics
-    // state in force. A stream is scanned once for each `ContentStreamScan`.
+    // state in force, which no `Q` in it restores past. A stream is scanned once for each `ContentStreamScan`.
     private func scan(
         _ stream: CGPDFStreamRef,
         resources streamResources: CGPDFDictionaryRef?
@@ -150,7 +152,10 @@ final class PageContentWalker {
         )
         guard scannedStreams.insert(context).inserted else { return }
 
+        let base = states.count
+        let outerBase = stateBase
         states.append(current)
+        stateBase = states.count
         resources.append(streamResources)
         let depth = markedContent.count
         let content = CGPDFContentStreamCreateWithStream(stream, streamResources, parent)
@@ -158,7 +163,8 @@ final class PageContentWalker {
         CGPDFContentStreamRelease(content)
         markedContent = Array(markedContent.prefix(depth))
         resources.removeLast()
-        states.removeLast()
+        states.removeSubrange(base...)
+        stateBase = outerBase
     }
 
     private func save() {
@@ -166,7 +172,7 @@ final class PageContentWalker {
     }
 
     private func restore() {
-        guard states.count > 1 else { return }
+        guard states.count > stateBase else { return }
 
         states.removeLast()
     }
