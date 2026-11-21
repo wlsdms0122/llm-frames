@@ -469,6 +469,8 @@ struct ResolvedValueReader: Sendable {
         ])
         let alignments = [TextAlignment.left, .center, .right].map(\.rawValue)
         let length = ValueStructure.leaf(.length(.any))
+        let written = try text.member("text").string()
+        let scalarCount = written.unicodeScalars.count
         let runs = try runs(text.member("runs"))
         let lines = try text.member("lines").elements().map { element in
             let line = try element.object(keys: ["width", "baseline", "ascent", "descent", "range", "clusters", "hanging"])
@@ -478,17 +480,27 @@ struct ResolvedValueReader: Sendable {
                 baseline: try line.member("baseline").number(),
                 ascent: try line.member("ascent").number(),
                 descent: try line.member("descent").number(),
-                range: try scalarRange(line.member("range")),
-                clusters: try line.member("clusters").elements().map { try cluster($0, in: runs) },
-                hanging: try line.member("hanging").elements().map { try cluster($0, in: runs) }
+                range: try scalarRange(line.member("range"), in: scalarCount),
+                clusters: try line.member("clusters").elements().map { try cluster($0, in: runs, scalarCount: scalarCount) },
+                hanging: try line.member("hanging").elements().map { try cluster($0, in: runs, scalarCount: scalarCount) }
             )
         }
-        for (index, line) in lines.enumerated() where !pensFollow(on: line, runs: runs) {
-            throw ModelError.invalidValue(
-                place: value.place,
-                kind: value.kind,
-                reason: "line \(index)'s pen positions do not follow its clusters' advances, its runs' static tracking and its width"
-            )
+        for (index, line) in lines.enumerated() {
+            let ranges = (line.clusters + line.hanging).map(\.range)
+            guard zip(ranges, ranges.dropFirst()).allSatisfy({ $0.upperBound <= $1.lowerBound }) else {
+                throw ModelError.invalidValue(
+                    place: value.place,
+                    kind: value.kind,
+                    reason: "line \(index)'s clusters do not go up along the text"
+                )
+            }
+            guard pensFollow(on: line, runs: runs) else {
+                throw ModelError.invalidValue(
+                    place: value.place,
+                    kind: value.kind,
+                    reason: "line \(index)'s pen positions do not follow its clusters' advances, its runs' static tracking and its width"
+                )
+            }
         }
 
         return ResolvedText(
@@ -506,8 +518,8 @@ struct ResolvedValueReader: Sendable {
             },
             align: try text.member("align").name(among: alignments, TextAlignment.init(rawValue:)),
             lineHeight: try timed(text.member("lineHeight"), as: length),
-            text: try text.member("text").string(),
-            words: try text.member("words").elements().map(scalarRange),
+            text: written,
+            words: try text.member("words").elements().map { try scalarRange($0, in: scalarCount) },
             lines: lines,
             units: try text.member("units").optional { value in
                 try value.elements().map { element in
@@ -763,10 +775,12 @@ struct ResolvedValueReader: Sendable {
         return UnitPart(run: run, piece: piece, span: numbers[2]...numbers[3])
     }
 
-    // A line's cluster is `[run, first, count, start, end, advance]`, its glyphs a range of one of `runs`.
+    // A line's cluster is `[run, first, count, start, end, advance]`, its glyphs a range of one of `runs` and its
+    // scalars a range of at least one of the text's `scalarCount`.
     private func cluster(
         _ value: PlacedJSONValue,
-        in runs: [ResolvedGlyphRun]
+        in runs: [ResolvedGlyphRun],
+        scalarCount: Int
     ) throws -> PlacedCluster {
         let numbers = try value.numbers(count: 6)
         guard
@@ -779,9 +793,11 @@ struct ResolvedValueReader: Sendable {
             first >= 0,
             count >= 0,
             first + count <= runs[run].glyphs.count,
-            start <= end
+            start >= 0,
+            start < end,
+            end <= scalarCount
         else {
-            throw value.wrongType("[run, first, count, start, end, advance]")
+            throw value.wrongType("[run, first, count, start, end, advance] within the text's \(scalarCount) scalars")
         }
 
         let glyphs = GlyphRange(run: run, first: first, count: count)
@@ -816,11 +832,20 @@ struct ResolvedValueReader: Sendable {
         return abs(pens[0] + line.width - pens[characters.count - 1] - last.advance) <= tolerance
     }
 
-    // A range is `[start, end]`, counted in Unicode scalars.
-    private func scalarRange(_ value: PlacedJSONValue) throws -> Range<Int> {
+    // A range is `[start, end]`, counted in Unicode scalars, within the text's `scalarCount`.
+    private func scalarRange(
+        _ value: PlacedJSONValue,
+        in scalarCount: Int
+    ) throws -> Range<Int> {
         let numbers = try value.numbers(count: 2)
-        guard let start = Int(exactly: numbers[0]), let end = Int(exactly: numbers[1]), start <= end else {
-            throw value.wrongType("[start, end]")
+        guard
+            let start = Int(exactly: numbers[0]),
+            let end = Int(exactly: numbers[1]),
+            start >= 0,
+            start <= end,
+            end <= scalarCount
+        else {
+            throw value.wrongType("[start, end] within the text's \(scalarCount) scalars")
         }
 
         return start..<end

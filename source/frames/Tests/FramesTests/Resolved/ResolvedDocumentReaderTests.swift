@@ -793,6 +793,62 @@ struct ResolvedDocumentReaderTests {
             """#)
     }
 
+    @Test(
+        "a title's cluster, line or word range past its text, or clusters that do not go up along a line, stop when read",
+        arguments: [
+            ("cluster", "expected [run, first, count, start, end, advance] within the text's 5 scalars"),
+            ("line", "expected [start, end] within the text's 5 scalars"),
+            ("word", "expected [start, end] within the text's 5 scalars"),
+            ("order", "line 0's clusters do not go up along the text")
+        ]
+    )
+    func refusesTextRange(
+        change: String,
+        message: String
+    ) throws {
+        // Given
+        let text = try written(
+            #"""
+            { "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4", "in": 0, "out": 3 } ],
+              "clips": [ { "title": "ab cd", "style": "title", "at": [0, 1], "position": [0, 0] } ] }
+            """#
+        )
+        let changed = try replacingTitle(ofClip: 0, in: text) { title in
+            var lines = try #require(title["lines"]?.arrayValue)
+            let line = try #require(lines[0].objectValue)
+            var clusters = try #require(line["clusters"]?.arrayValue)
+            var words = try #require(title["words"]?.arrayValue)
+            switch change {
+            case "cluster":
+                var numbers = try #require(clusters[4].arrayValue)
+                numbers[4] = .number(99)
+                clusters[4] = .array(numbers)
+                lines[0] = .object(line.setting("clusters", to: .array(clusters)))
+
+            case "line":
+                lines[0] = .object(line.setting("range", to: .array([.number(0), .number(99)])))
+
+            case "word":
+                words[0] = .array([.number(0), .number(99)])
+
+            default:
+                var numbers = try #require(clusters[1].arrayValue)
+                numbers[3] = .number(0)
+                numbers[4] = .number(1)
+                clusters[1] = .array(numbers)
+                lines[0] = .object(line.setting("clusters", to: .array(clusters)))
+            }
+
+            return title.setting("lines", to: .array(lines)).setting("words", to: .array(words))
+        }
+
+        // When
+        let error = #expect(throws: ModelError.self) { try sut.read(changed) }
+
+        // Then
+        #expect(error?.description.contains(message) == true)
+    }
+
     @Test("the title of the example of the resolved document reads, and writes back as it was written")
     func readsExampleTitle() throws {
         // Given
