@@ -213,7 +213,7 @@ A document is a JSON object whose `kind` is `"sequence"`. Its keys are checked o
 | Object | Keys |
 | --- | --- |
 | sequence | `kind, format, theme, params, storyline, clips`. `kind` is required and is `"sequence"` |
-| format | `size, fps, background, conform, colorSpace, peak, compositing` |
+| format | `size, fps, background, conform, colorSpace, peak, compositing, motionBlur` |
 | content fit (a `size` written as an object) | `fit, margin` |
 
 - `size` is `[w, h]`, `{"fit": "content", "margin": m}` ([Stills and content fit](#stills-and-content-fit)), or left out for the size of the first video clip on the storyline (of the first storyline clip when there is no video). Sizes round to even numbers.
@@ -221,6 +221,7 @@ A document is a JSON object whose `kind` is `"sequence"`. Its keys are checked o
 - `background` defaults to the theme `background` colour, black in the base theme. A background that is not opaque gives a master with alpha.
 - `conform` is how a storyline crop fills the frame: `fit` (the default) shows the whole crop and leaves the rest transparent, `fill` fills the frame and cuts what overflows.
 - `colorSpace` is the colour space the sequence is output in, `srgb` by default, `peak` the mastering peak of a `rec2100-pq` sequence, and `compositing` the form it composites in, `encoded` by default or `linear` ([Colour](#colour)).
+- `motionBlur` is the shutter of every frame, `{shutterAngle, shutterPhase, samplesPerFrame}` ([Motion blur](#motion-blur)).
 - `theme` is a theme object, `<pack>/<name>` or an absolute path ([Theme](#theme)). `params` makes the document a template ([Templates](#templates)).
 
 [FRAMES-6](spec/FRAMES-6/SPEC.md), [FRAMES-9](spec/FRAMES-9/SPEC.md), [FRAMES-26](spec/FRAMES-26/SPEC.md)
@@ -235,16 +236,16 @@ A clip is a media clip (`media`), a title (`title`), a shape (`shape`), an adjus
 
 | Clip | Keys |
 | --- | --- |
-| storyline clip, timed media (video, image sequence, compound) | `id, metadata, media, colorSpace, toneMap, in, out, speed, crop, filter, transition, anchor, position, scale, rotation, opacity, blend, mask, trackMatte, track, radius, border, shadow, volume, pan, fadeIn, fadeOut, keyframes, connected` |
-| storyline clip, still (image) | `id, metadata, media, colorSpace, toneMap, duration, crop, filter, transition, anchor, position, scale, rotation, opacity, blend, mask, trackMatte, radius, border, shadow, keyframes, connected` |
-| storyline clip, solid | `id, metadata, solid, duration, transition, connected` |
-| every clip with a picture (connected and sequence) | `id, metadata, at, lane, parent, opacity, blend, mask, trackMatte, track, animation, keyframes` |
+| storyline clip, timed media (video, image sequence, compound) | `id, metadata, media, colorSpace, toneMap, in, out, speed, crop, filter, transition, anchor, position, scale, rotation, opacity, blend, motionBlur, mask, trackMatte, track, radius, border, shadow, volume, pan, fadeIn, fadeOut, keyframes, connected` |
+| storyline clip, still (image) | `id, metadata, media, colorSpace, toneMap, duration, crop, filter, transition, anchor, position, scale, rotation, opacity, blend, motionBlur, mask, trackMatte, radius, border, shadow, keyframes, connected` |
+| storyline clip, solid | `id, metadata, solid, duration, transition, motionBlur, connected` |
+| every clip with a picture (connected and sequence) | `id, metadata, at, lane, parent, opacity, blend, motionBlur, mask, trackMatte, track, animation, keyframes` |
 | visual media clip (video, image sequence, compound) | every clip with a picture's, `media, colorSpace, toneMap, in, out, speed, loop, volume, pan, fadeIn, fadeOut, placement, position, anchor, scale, rotation, crop, conform, filter, width, height, radius, border, shadow` |
 | still media clip (image) | every clip with a picture's, `media, colorSpace, toneMap, placement, position, anchor, scale, rotation, crop, conform, filter, width, height, radius, border, shadow` |
 | audio clip | `id, metadata, at, media, in, out, speed, loop, volume, pan, fadeIn, fadeOut, keyframes` |
 | title clip | every clip with a picture's, `title, style, width, placement, position, anchor, scale, rotation` |
 | shape clip | every clip with a picture's, `shape, style, area, width, height, placement, position, anchor, points, closed, radius, outset, fill, stroke, trim, shadow, scale, rotation` |
-| adjustment clip | every clip with a picture's, `adjust` |
+| adjustment clip | every clip with a picture's but `motionBlur`, and `adjust` |
 
 - `id` names a clip for `parent`, a track matte's `clip`, messages, machine output and the programs that change a document. It is unique within its document, and a duplicate stops.
 - `metadata` is an object frames does not read: what a program that changes the document keeps on a clip, as an NLE keeps keywords and notes.
@@ -453,6 +454,27 @@ The board is fitted to the 1920 by 1080 frame, and every clip on it is written i
 `blend` takes the W3C compositing modes: `normal` (default), `multiply`, `screen`, `overlay`, `darken`, `lighten`, `color-dodge`, `color-burn`, `hard-light`, `soft-light`, `difference`, `exclusion`, `plus-lighter`, and the non-separable `hue`, `saturation`, `color`, `luminosity`, and `add` (Linear Dodge). Light leaks and film burns come in as media with `screen`, `plus-lighter` or `add`. `add` adds light without bound, so it keeps an HDR highlight under a leak, which `screen` darkens and `plus-lighter` clips at 1, and a wide gamut leak's colour ([Colour](#colour)).
 
 An adjustment clip applies a filter choice (`adjust`) to everything below it in its frame, as an adjustment layer: over the whole frame, or inside its `mask`. Its `opacity` mixes the filtered picture with what is below. Inside a compound clip it reaches only that compound clip's clips. [FRAMES-11](spec/FRAMES-11/SPEC.md), [FRAMES-15](spec/FRAMES-15/SPEC.md)
+
+### Motion blur
+
+A clip with `"motionBlur": true` shows the motion frames gives it during each frame's exposure, as After Effects' Motion Blur switch does: its keyframes, animation, transition motion and its parent's motion. Every storyline clip takes it, and so do titles, shapes and media clips. An adjustment clip does not. The sequence's `format.motionBlur` is the shutter of every frame:
+
+| Key | Value | Default |
+| --- | --- | --- |
+| `shutterAngle` | how long the shutter is open, in degrees of a frame, above 0 and at most 720 | 180 |
+| `shutterPhase` | when it opens, in degrees from the frame's instant, from -360 to 360 | half the angle, negative, so the blur is centred on the frame |
+| `samplesPerFrame` | how many instants of the exposure are drawn, a whole number from 2 to 256 | 16 |
+
+- The clip is drawn at the midpoints of `samplesPerFrame` equal parts of the exposure, each kept inside its window, and shows their mean. Which clips show, the media frame of footage and tracked motion are those of the frame's own instant, so footage is never exposed twice and motion inside footage is not blurred.
+- A compound clip's own shutter applies only when it is rendered alone. Inside another sequence its clips with motion blur take the outer shutter through its speed and `timeRemap`, so a held frame shows no blur.
+- A fast move shows steps where the samples are far apart: raise `samplesPerFrame`. Each sample is a full drawing of the clip, so a clip with motion blur costs that many times as much to render.
+
+```json
+{ "at": [1, 3], "title": "Fast", "style": "title", "motionBlur": true,
+  "keyframes": [ { "at": 1, "position": [-400, 540], "ease": "ease-out" }, { "at": 1.5, "position": [960, 540] } ] }
+```
+
+[FRAMES-29](spec/FRAMES-29/SPEC.md)
 
 ### Colour
 
