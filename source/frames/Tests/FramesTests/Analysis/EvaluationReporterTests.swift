@@ -631,6 +631,7 @@ struct EvaluationReporterTests {
                   "opacity": 1,
                   "transform": [1, 0, 0, 1, 0, 0],
                   "rect": [0, 0, 200, 100],
+                  "cornerPins": null,
                   "characters": null
                 },
                 {
@@ -642,6 +643,7 @@ struct EvaluationReporterTests {
                   "opacity": 0.3,
                   "transform": [0, 1, -1, 0, 150, -50],
                   "rect": [80, 40, 40, 20],
+                  "cornerPins": null,
                   "characters": null
                 }
               ],
@@ -942,6 +944,114 @@ struct EvaluationReporterTests {
         #expect(report.items.first { $0.item == .glyphs }?.transform == text.transform)
     }
 
+    @Test("a character of a title with a corner pin under a turned parent, carried by its item's transform and then by its corner pins, lands where locate finds the title, and its text entry reports the same corner pins")
+    func carriesCharacterByCornerPins() throws {
+        // Given
+        let document = try resolved(#"""
+            { "kind": "sequence", "format": { "size": [1920, 1080] },
+              "theme": { "styles": { "caption": { "size": 40, "color": "#000000" } } },
+              "storyline": [ { "media": "/abs/screen.mp4" } ],
+              "clips": [
+                { "id": "box", "shape": "rect", "width": 200, "height": 100, "fill": "#FFFFFF", "position": [600, 300],
+                  "rotation": 30, "at": [0, 2] },
+                { "id": "t", "style": "caption", "at": [0, 2], "parent": "box", "title": "ab",
+                  "paragraph": { "background": { "color": "#FF0000", "padding": [8, 12] } },
+                  "cornerPin": [[200, 150], [500, 180], [480, 260], [220, 290]] } ] }
+            """#)
+
+        // When
+        let report = try sut.report(of: document, at: 1)
+
+        // Then
+        let item = try #require(report.items.first { $0.item == .glyphs })
+        let text = try #require(report.texts.first)
+        let pins = try #require(item.cornerPins)
+        let rect = try #require(item.characters?.first?.rect)
+        let centre = Point(x: rect.x + rect.width / 2, y: rect.y + rect.height / 2)
+        let onPlane = item.transform.apply(to: centre)
+        let carried = try pins.reduce(onPlane) { point, pin in
+            try #require(Homography(from: pin.destination, to: pin.cornerPin)?.apply(to: point))
+        }
+        let hits = try LocationReporter().report(of: document, at: 1, point: carried).hits
+        let missed = try LocationReporter().report(of: document, at: 1, point: onPlane).hits
+        #expect(pins.count == 1)
+        #expect(text.cornerPins == item.cornerPins)
+        #expect(report.items.first { $0.origin?.id == "box" }?.cornerPins == nil)
+        #expect(hits.contains { $0.origin?.id == "t" && $0.item == .glyphs })
+        #expect(!missed.contains { $0.origin?.id == "t" && $0.item == .glyphs })
+    }
+
+    @Test("an item inside two pictures with corner pins reports both, the innermost first, each carried into its transform's coordinates, so its point lands where the whole map takes it")
+    func reportsNestedCornerPins() throws {
+        // Given
+        // The inner picture is the trapezoid's, scaled by 2 and moved inside an outer picture whose corner pin is the
+        // trapezoid again.
+        let inner = pinned(listWidth: 100)
+        let scaled = DisplayItem(
+            transform: AffineTransform(a: 0.5, b: 0, c: 0, d: 0.5, tx: 10, ty: 5),
+            content: inner.content,
+            origin: entry
+        )
+        let middle = DisplayList(size: Size(width: 100, height: 100), background: transparent, seed: 0, items: [scaled])
+        let outer = DisplayItem(
+            transform: AffineTransform(a: 1, b: 0, c: 0, d: 1, tx: 20, ty: 0),
+            content: .picture(PictureItem(
+                source: .displayList(middle),
+                rectangle: Rectangle(x: 0, y: 0, width: 100, height: 100),
+                destination: Rectangle(x: 0, y: 0, width: 100, height: 100),
+                cornerPin: trapezoid
+            )),
+            origin: entry
+        )
+        let point = Point(x: 30, y: 60)
+
+        // When
+        let report = try sut.report(of: list([outer]), at: 0)
+
+        // Then
+        let item = try #require(report.items.first)
+        let pins = try #require(item.cornerPins)
+        let carried = try pins.reduce(item.transform.apply(to: point)) { point, pin in
+            try #require(Homography(from: pin.destination, to: pin.cornerPin)?.apply(to: point))
+        }
+        let toInner = try #require(Homography(from: Quad(Rectangle(x: 0, y: 0, width: 100, height: 100)), to: trapezoid))
+        let inMiddle = try #require(toInner.apply(to: point))
+        let inOuter = try #require(toInner.apply(to: Point(x: inMiddle.x * 0.5 + 10, y: inMiddle.y * 0.5 + 5)))
+        #expect(pins.count == 2)
+        #expect(pins.first?.destination == Quad(Rectangle(x: 30, y: 5, width: 50, height: 50)))
+        #expect(pins.last?.cornerPin == trapezoid.applying(AffineTransform(translation: Point(x: 20, y: 0))))
+        #expect(abs(carried.x - inOuter.x - 20) < 1e-9 && abs(carried.y - inOuter.y) < 1e-9)
+    }
+
+    @Test("an item's corner pins are written as FRAMES-23 gives them, each its dest and its corner pin as four points")
+    func writesCornerPins() throws {
+        // Given
+        let report = try sut.report(of: list([pinned(listWidth: 100)]), at: 0)
+
+        // When
+        let text = JSONWriter().write(report.machineOutput)
+
+        // Then
+        #expect(text.contains(#"""
+                  "cornerPins": [
+                    {
+                      "dest": [
+                        [0, 0],
+                        [100, 0],
+                        [100, 100],
+                        [0, 100]
+                      ],
+                      "cornerPin": [
+                        [60, 20],
+                        [160, 0],
+                        [160, 100],
+                        [60, 80]
+                      ]
+                    }
+                  ],
+            """#))
+    }
+
     @Test("a title in a compound clip is reported in its continued place, sampled at the time its sequence shows")
     func reportsNestedTitle() throws {
         // Given
@@ -1012,6 +1122,7 @@ struct EvaluationReporterTests {
                 "opacity": 1,
                 "transform": [1, 0, 0, 1, 380, 205],
                 "rect": [0, 0, 40, 40],
+                "cornerPins": null,
                 "characters": [
                   {
                     "text": "a",
@@ -1035,6 +1146,7 @@ struct EvaluationReporterTests {
                   "size": [40, 40],
                   "box": [-12, -8, 64, 56],
                   "transform": [1, 0, 0, 1, 380, 205],
+                  "cornerPins": null,
                   "lines": [
                     {
                       "text": "ab",
