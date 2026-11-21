@@ -7,8 +7,9 @@
 
 // A storyline clip as written, its keyframes on the clip's own clock. `media` is nil for a solid, and whether media is
 // timed or still is known once it is probed. `position`, `scale`, `rotation`, `opacity`, `blend`, `radius`, `border`
-// and `shadow` are its transform and how its box is drawn, as on a media clip. `transition` and `filter` are preset
-// choices as written, which resolve merges over the theme's defaults, `filter` with its keyframes.
+// and `shadow` are its transform and how its box is drawn, as on a media clip, and `isMotionBlurred` its `motionBlur`.
+// `transition` and `filter` are preset choices as written, which resolve merges over the theme's defaults, `filter`
+// with its keyframes.
 struct StorylineClip: Equatable, Sendable {
     // MARK: - Property
     let place: Place
@@ -29,6 +30,7 @@ struct StorylineClip: Equatable, Sendable {
     let rotation: PropertyValue<Double>?
     let opacity: PropertyValue<Double>?
     let blend: String?
+    let isMotionBlurred: Bool
     let radius: LookProperty?
     let border: LookProperty?
     let shadow: LookProperty?
@@ -54,6 +56,7 @@ struct StorylineClip: Equatable, Sendable {
         rotation: PropertyValue<Double>? = nil,
         opacity: PropertyValue<Double>? = nil,
         blend: String? = nil,
+        isMotionBlurred: Bool = false,
         radius: LookProperty? = nil,
         border: LookProperty? = nil,
         shadow: LookProperty? = nil,
@@ -77,6 +80,7 @@ struct StorylineClip: Equatable, Sendable {
         self.rotation = rotation
         self.opacity = opacity
         self.blend = blend
+        self.isMotionBlurred = isMotionBlurred
         self.radius = radius
         self.border = border
         self.shadow = shadow

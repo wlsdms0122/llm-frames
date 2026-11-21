@@ -196,7 +196,7 @@ struct TitleKeyframeTests {
         let sut = DrawnGlyphRun(
             run: run,
             factor: 1,
-            at: 0.5,
+            at: SampleTime(0.5),
             moves: run.glyphs.map { _ in still },
             pieceMove: PieceMove(start: still, end: still)
         )
@@ -302,9 +302,9 @@ struct TitleKeyframeTests {
             """#)
 
         // When
-        let moves = text.glyphMoves(at: 0.5)
-        let box = text.box(at: 0.5)
-        let sut = GlyphsItem(text: text, factor: 1, at: 0.5)
+        let moves = text.glyphMoves(at: SampleTime(0.5))
+        let box = text.box(at: SampleTime(0.5))
+        let sut = GlyphsItem(text: text, factor: 1, at: SampleTime(0.5))
 
         // Then
         #expect(text.width == nil)
@@ -323,8 +323,8 @@ struct TitleKeyframeTests {
             """#)
 
         // When
-        let moves = text.glyphMoves(at: 0.5)
-        let box = text.box(at: 0.5)
+        let moves = text.glyphMoves(at: SampleTime(0.5))
+        let box = text.box(at: SampleTime(0.5))
 
         // Then
         #expect(text.width == 100)
@@ -341,8 +341,8 @@ struct TitleKeyframeTests {
             """#)
 
         // When
-        let box = text.box(at: 0.5)
-        let sut = GlyphsItem(text: text, factor: 1, at: 0.5)
+        let box = text.box(at: SampleTime(0.5))
+        let sut = GlyphsItem(text: text, factor: 1, at: SampleTime(0.5))
 
         // Then
         #expect(text.lines.map(\.baseline) == [32, 82])
@@ -377,8 +377,8 @@ struct TitleKeyframeTests {
             """#)
 
         // When
-        let box = text.box(at: 1)
-        let sut = GlyphsItem(text: text, factor: 1, at: 1)
+        let box = text.box(at: SampleTime(1))
+        let sut = GlyphsItem(text: text, factor: 1, at: SampleTime(1))
 
         // Then
         #expect(text.size == Size(width: 40, height: 40))
@@ -423,7 +423,7 @@ struct TitleKeyframeTests {
             """#)
 
         // When
-        let sut = GlyphsItem(text: text, factor: 1, at: 0.5)
+        let sut = GlyphsItem(text: text, factor: 1, at: SampleTime(0.5))
 
         // Then
         let run = try #require(sut.runs.first)
@@ -449,7 +449,7 @@ struct TitleKeyframeTests {
             """#)
 
         // When
-        let sut = GlyphsItem(text: text, factor: 1, at: 0)
+        let sut = GlyphsItem(text: text, factor: 1, at: SampleTime(0))
 
         // Then
         #expect(sut.filledRects() == [
@@ -470,8 +470,8 @@ struct TitleKeyframeTests {
             """#)
 
         // When
-        let moves = text.glyphMoves(at: 0.5)
-        let box = text.box(at: 0.5)
+        let moves = text.glyphMoves(at: SampleTime(0.5))
+        let box = text.box(at: SampleTime(0.5))
 
         // Then
         // At 0.5 the tracking is 2 after "b" and none after "c", the line's last character, and the second line drops
@@ -495,8 +495,8 @@ struct TitleKeyframeTests {
             """#)
 
         // When
-        let moves = text.glyphMoves(at: 0.5)
-        let box = text.box(at: 0.5)
+        let moves = text.glyphMoves(at: SampleTime(0.5))
+        let box = text.box(at: SampleTime(0.5))
 
         // Then
         // "fi" is one glyph 40 wide and "x" 20, so one step of 2 follows the ligature and none follows "x".
@@ -514,7 +514,7 @@ struct TitleKeyframeTests {
             """#)
 
         // When
-        let sut = GlyphsItem(text: text, factor: 1, at: 1)
+        let sut = GlyphsItem(text: text, factor: 1, at: SampleTime(1))
 
         // Then
         // "a" is 20 wide and the space after it 10, each from 32 above the baseline at 32 to 8 below, raised by 10.
@@ -545,7 +545,7 @@ struct TitleKeyframeTests {
             trackMatte: nil,
             compositing: .encoded,
             seed: 0,
-            at: 1
+            at: SampleTime(1)
         )
 
         // Then

@@ -147,4 +147,24 @@ struct MediaClockTests {
         #expect(plan.clips[0].window == TimeRange(start: 1, end: 4))
         #expect(plan.clips[0].media?.sequence?.storyline[0].place.description == "storyline[0].connected[0].media.storyline[0]")
     }
+
+    @Test("a remap key eased by step clamps an instant past its end from T to the media time before it, and a line reads on")
+    func clampsRemapStepEnd() {
+        // Given
+        let remapped = MediaClock(
+            playback: .remapped([Keyframe(at: 0, value: 2, ease: .step), Keyframe(at: 1, value: 5), Keyframe(at: 3, value: 7)]),
+            frames: 0...10
+        )
+        let line = MediaClock(playback: .line(TimeMap(origin: 0, in: 0, speed: 1)), frames: 0...10)
+
+        // When
+        let fromBefore = remapped.mediaTime(atSequenceTime: 1.01, onSideOf: 0.99)
+        let fromAfter = remapped.mediaTime(atSequenceTime: 0.99, onSideOf: 1.01)
+        let onLine = line.mediaTime(atSequenceTime: 1.01, onSideOf: 0.99)
+
+        // Then
+        #expect(fromBefore == 2)
+        #expect(fromAfter == 5)
+        #expect(onLine == line.mediaTime(atSequenceTime: 1.01))
+    }
 }

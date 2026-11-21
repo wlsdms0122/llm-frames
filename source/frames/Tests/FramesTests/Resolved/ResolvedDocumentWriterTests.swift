@@ -49,7 +49,12 @@ struct ResolvedDocumentWriterTests {
             "conform": "fit",
             "colorSpace": "srgb",
             "peak": null,
-            "compositing": "encoded"
+            "compositing": "encoded",
+            "motionBlur": {
+              "shutterAngle": 180,
+              "shutterPhase": 0,
+              "samplesPerFrame": 16
+            }
           },
           "storyline": [
             {
@@ -119,6 +124,7 @@ struct ResolvedDocumentWriterTests {
                 }
               ],
               "blend": "screen",
+              "motionBlur": false,
               "filter": [
                 {
                   "ops": [
@@ -304,6 +310,7 @@ struct ResolvedDocumentWriterTests {
                 }
               ],
               "blend": "normal",
+              "motionBlur": false,
               "animation": {
                 "entrance": {
                   "seconds": 0.25,
@@ -392,6 +399,7 @@ struct ResolvedDocumentWriterTests {
                 }
               ],
               "blend": "normal",
+              "motionBlur": false,
               "animation": {
                 "entrance": null,
                 "loop": null,

@@ -79,7 +79,7 @@ package struct RenderPipeline: Sendable {
         try pinned.check(sequence.pinnedReferences)
 
         let list = evaluator.displayList(of: sequence, at: time)
-        try renderer.check(list)
+        try renderer.check(list, ofFrameAt: time)
         let target = ImageTarget.png(
             path: output,
             size: sequence.format.size,
@@ -105,7 +105,7 @@ package struct RenderPipeline: Sendable {
         let format = sequence.format
         let times = (0..<format.frameCount).map(format.frameTime)
         for time in times {
-            try renderer.check(evaluator.displayList(of: sequence, at: time))
+            try renderer.check(evaluator.displayList(of: sequence, at: time), ofFrameAt: time)
         }
 
         let master = EncodeTarget.master(path: output, alpha: !format.background.isOpaque, output: format.output)

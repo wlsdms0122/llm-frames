@@ -49,7 +49,7 @@ struct ClipEvaluatorTests {
         let clip = title(text, animation: ResolvedAnimation(entrance: entrance, loop: nil, exit: nil, units: nil), opacity: 0.8)
 
         // When
-        let items = sut.items(of: clip, in: frame, picture: nil, trackMatte: nil, compositing: .encoded, seed: 0, at: 0.5)
+        let items = sut.items(of: clip, in: frame, picture: nil, trackMatte: nil, compositing: .encoded, seed: 0, at: SampleTime(0.5))
 
         // Then
         // Halfway the scale is 0.75 about the bottom centre (50, 40) of the box, which stays at (100, 200), so the top
@@ -58,7 +58,7 @@ struct ClipEvaluatorTests {
             transform: AffineTransform(a: 0.75, b: 0, c: 0, d: 0.75, tx: 62.5, ty: 170),
             opacity: 0.4,
             reveal: Rectangle(x: 0, y: 20, width: 100, height: 20),
-            content: .glyphs(GlyphsItem(text: text, factor: 1, at: 0.5))
+            content: .glyphs(GlyphsItem(text: text, factor: 1, at: SampleTime(0.5)))
         )])
     }
 
@@ -97,7 +97,7 @@ struct ClipEvaluatorTests {
         )
 
         // When
-        let items = sut.items(of: clip, in: frame, picture: .media(MediaFrame(media: media, index: 0)), trackMatte: nil, compositing: .encoded, seed: 0, at: 0.5)
+        let items = sut.items(of: clip, in: frame, picture: .media(MediaFrame(media: media, index: 0)), trackMatte: nil, compositing: .encoded, seed: 0, at: SampleTime(0.5))
 
         // Then
         // The shadow is the 80 x 40 box moved by (4, 6) and grown by three times its radius, (-2, 0) to (90, 52), and
@@ -117,7 +117,7 @@ struct ClipEvaluatorTests {
         let clip = title(text, animation: .none, opacity: 1, scale: 2, rotation: 90)
 
         // When
-        let items = sut.items(of: clip, in: frame, picture: nil, trackMatte: nil, compositing: .encoded, seed: 0, at: 1)
+        let items = sut.items(of: clip, in: frame, picture: nil, trackMatte: nil, compositing: .encoded, seed: 0, at: SampleTime(1))
 
         // Then
         // Doubled and turned a quarter clockwise about (50, 40), which stays at (100, 200) once the box sits at
@@ -148,7 +148,7 @@ struct ClipEvaluatorTests {
         let space = ClipSpace(frame: Rectangle(x: 0, y: 0, width: 200, height: 200), transform: transform)
 
         // When
-        let items = sut.items(of: clip, in: space, picture: nil, trackMatte: nil, compositing: .encoded, seed: 0, at: 1)
+        let items = sut.items(of: clip, in: space, picture: nil, trackMatte: nil, compositing: .encoded, seed: 0, at: SampleTime(1))
 
         // Then
         let item = try #require(items.first)
@@ -244,7 +244,7 @@ struct ClipEvaluatorTests {
         }
 
         // When
-        let items = sut.items(of: clip, in: parent, picture: .media(MediaFrame(media: media, index: 0)), trackMatte: nil, compositing: .encoded, seed: 0, at: 1)
+        let items = sut.items(of: clip, in: parent, picture: .media(MediaFrame(media: media, index: 0)), trackMatte: nil, compositing: .encoded, seed: 0, at: SampleTime(1))
 
         // Then
         let item = try #require(items.first)
@@ -290,7 +290,7 @@ struct ClipEvaluatorTests {
         )
 
         // When
-        let items = sut.items(of: clip, in: parent, picture: nil, trackMatte: nil, compositing: .encoded, seed: 0, at: 1)
+        let items = sut.items(of: clip, in: parent, picture: nil, trackMatte: nil, compositing: .encoded, seed: 0, at: SampleTime(1))
 
         // Then
         // The mask is carried with what it cuts, at the parent's scale for a shape and an adjustment, whose geometry is
@@ -320,7 +320,7 @@ struct ClipEvaluatorTests {
         )
 
         // When
-        let items = sut.items(of: clip, in: frame, picture: nil, trackMatte: nil, compositing: .encoded, seed: 0, at: 1)
+        let items = sut.items(of: clip, in: frame, picture: nil, trackMatte: nil, compositing: .encoded, seed: 0, at: SampleTime(1))
 
         // Then
         let item = try #require(items.first)

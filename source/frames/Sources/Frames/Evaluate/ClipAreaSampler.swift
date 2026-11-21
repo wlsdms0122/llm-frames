@@ -6,13 +6,13 @@
 //
 
 // The clip areas `clip` writes, at an instant, in the space `clip` is drawn in. The named clip's box is taken before
-// its own transform and tracked motion, at the instant held to its window; a title's is its text box with its
-// background at that instant. With the same parent or none, a box of its own keeps its size in output pixels, so its
-// anchor point is carried out to output pixels by the parent's map and the box drawn there is carried back by the
-// map's inverse, bounded where the map turns, and the padding is divided by the map's length factor; a shape placed by
-// its geometry gives its geometry's box. Named as the parent, it is its box in the space it gives its children. Resolve
-// has checked that every id names a clip that may be named and that no cycle holds, so the walk through clip areas the
-// named clip writes ends.
+// its own transform and tracked motion, at the instant held to its window, and under motion blur at its own value time
+// by its own switch (FRAMES-29); a title's is its text box with its background at that instant. With the same parent or
+// none, a box of its own keeps its size in output pixels, so its anchor point is carried out to output pixels by the
+// parent's map and the box drawn there is carried back by the map's inverse, bounded where the map turns, and the
+// padding is divided by the map's length factor; a shape placed by its geometry gives its geometry's box. Named as the
+// parent, it is its box in the space it gives its children. Resolve has checked that every id names a clip that may be
+// named and that no cycle holds, so the walk through clip areas the named clip writes ends.
 struct ClipAreaSampler: Sendable {
     // MARK: - Property
     private let sequence: ResolvedSequence
@@ -30,7 +30,7 @@ struct ClipAreaSampler: Sendable {
     // MARK: - Public
     func rectangle(
         of area: GeometryArea,
-        at time: Double
+        at time: SampleTime
     ) -> Rectangle {
         switch area {
         case let .rectangle(rectangle):
@@ -43,7 +43,7 @@ struct ClipAreaSampler: Sendable {
 
     func point(
         of point: GeometryPoint,
-        at time: Double
+        at time: SampleTime
     ) -> Point {
         switch point {
         case let .point(point):
@@ -57,21 +57,21 @@ struct ClipAreaSampler: Sendable {
     // Each keyframe at `time`, a clip area in it the named clip's box at `time`, so a span next to one moves with it.
     func rectangles(
         of keyframes: [Keyframe<GeometryArea>],
-        at time: Double
+        at time: SampleTime
     ) -> [Keyframe<Rectangle>] {
         keyframes.map { $0.map { rectangle(of: $0, at: time) } }
     }
 
     func points(
         of keyframes: [Keyframe<GeometryPoint>],
-        at time: Double
+        at time: SampleTime
     ) -> [Keyframe<Point>] {
         keyframes.map { $0.map { point(of: $0, at: time) } }
     }
 
     func points(
         of keyframes: [Keyframe<[GeometryPoint]>],
-        at time: Double
+        at time: SampleTime
     ) -> [Keyframe<[Point]>] {
         keyframes.map { $0.map { points in points.map { point(of: $0, at: time) } } }
     }
@@ -79,13 +79,13 @@ struct ClipAreaSampler: Sendable {
     // MARK: - Private
     private func rectangle(
         of area: ClipArea,
-        at time: Double
+        at time: SampleTime
     ) -> Rectangle {
         guard let named = sequence.clips.first(where: { $0.id == area.clip }) else {
             return Rectangle(x: 0, y: 0, width: 0, height: 0)
         }
 
-        let held = TimeRange(start: named.start, end: named.end).held(time)
+        let held = named.valueTime(in: time.sample)
         if clip.parent == named.id {
             return childBox(of: named, at: held).grown(by: area.padding)
         }
@@ -99,7 +99,7 @@ struct ClipAreaSampler: Sendable {
     private func box(
         of named: ResolvedClip,
         in space: ClipSpace,
-        at time: Double
+        at time: SampleTime
     ) -> Rectangle {
         if case let .shape(shape) = named.content, let geometry = geometryBox(of: shape, writtenBy: named, at: time) {
             return geometry
@@ -122,7 +122,7 @@ struct ClipAreaSampler: Sendable {
     // The named parent's box in the space it gives its children.
     private func childBox(
         of named: ResolvedClip,
-        at time: Double
+        at time: SampleTime
     ) -> Rectangle {
         if case let .shape(shape) = named.content, let geometry = geometryBox(of: shape, writtenBy: named, at: time) {
             return geometry
@@ -140,7 +140,7 @@ struct ClipAreaSampler: Sendable {
     private func geometryBox(
         of shape: ResolvedShape,
         writtenBy named: ResolvedClip,
-        at time: Double
+        at time: SampleTime
     ) -> Rectangle? {
         let sampler = ClipAreaSampler(sequence: sequence, clip: named)
         switch shape.geometry {
@@ -161,7 +161,7 @@ struct ClipAreaSampler: Sendable {
     private func extent(
         of named: ResolvedClip,
         box: ResolvedBox,
-        at time: Double
+        at time: SampleTime
     ) -> Rectangle {
         switch named.content {
         case let .shape(shape):

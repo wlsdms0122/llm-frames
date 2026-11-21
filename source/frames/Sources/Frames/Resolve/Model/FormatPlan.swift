@@ -7,7 +7,7 @@
 
 // The output frame of a sequence in output pixels. `conform` is how storyline crops fill it, `colorSpace` the space its
 // output is in, `peak` the mastering peak of a `rec2100-pq` sequence in cd/m² and nil in any other space, and
-// `compositing` the form its sums of colours are taken in. `margin` is the room a content-fit frame leaves round what it
+// `compositing` the form its sums of colours are taken in, and `shutter` the shutter its frames are exposed by. `margin` is the room a content-fit frame leaves round what it
 // measures, nil for a frame of a written or default size.
 struct FormatPlan: Equatable, Sendable {
     // MARK: - Property
@@ -19,6 +19,7 @@ struct FormatPlan: Equatable, Sendable {
     let colorSpace: ColorSpace
     let peak: Double?
     let compositing: Compositing
+    let shutter: Shutter
     let margin: Margin?
 
     var frame: Rectangle {
@@ -40,6 +41,7 @@ struct FormatPlan: Equatable, Sendable {
         colorSpace: ColorSpace = .srgb,
         peak: Double? = nil,
         compositing: Compositing = .encoded,
+        shutter: Shutter = .default,
         margin: Margin? = nil
     ) {
         self.size = size
@@ -50,6 +52,7 @@ struct FormatPlan: Equatable, Sendable {
         self.colorSpace = colorSpace
         self.peak = peak
         self.compositing = compositing
+        self.shutter = shutter
         self.margin = margin
     }
 

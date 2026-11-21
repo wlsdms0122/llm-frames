@@ -17,6 +17,7 @@ struct StorylinePlan: Equatable, Sendable {
     let drawn: TimeRange
     let transition: TransitionPlan?
     let trackMatte: TrackMatte?
+    let isMotionBlurred: Bool
     let keyframes: [KeyframeInstant]
     let timeRemap: [Keyframe<Double>]?
 
@@ -46,6 +47,7 @@ struct StorylinePlan: Equatable, Sendable {
         drawn: TimeRange,
         transition: TransitionPlan?,
         trackMatte: TrackMatte?,
+        isMotionBlurred: Bool = false,
         keyframes: [KeyframeInstant],
         timeRemap: [Keyframe<Double>]?
     ) {
@@ -56,6 +58,7 @@ struct StorylinePlan: Equatable, Sendable {
         self.drawn = drawn
         self.transition = transition
         self.trackMatte = trackMatte
+        self.isMotionBlurred = isMotionBlurred
         self.keyframes = keyframes
         self.timeRemap = timeRemap
     }

@@ -264,10 +264,7 @@ struct TimePlanner: Sendable {
         return clips.indices.map { index in
             let edit = TimeRange(start: editPoints[index], end: editPoints[index + 1])
             let outgoing = transitions.indices.contains(index + 1) ? transitions[index + 1] : nil
-            let drawn = TimeRange(
-                start: transitions[index]?.range.start ?? edit.start,
-                end: outgoing?.range.end ?? edit.end
-            )
+            let drawn = TimeRange(drawing: edit, incoming: transitions[index]?.range, outgoing: outgoing?.range)
             let map = TimeMap(origin: edit.start, in: sources[index].clipRange.start, speed: sources[index].speed)
             let keyframes = clips[index].keyframes.map { keyframe in
                 keyframe.moved(to: map.sequenceTime(ofClipTime: keyframe.at))
@@ -285,6 +282,7 @@ struct TimePlanner: Sendable {
                 drawn: drawn,
                 transition: transitions[index],
                 trackMatte: clips[index].trackMatte,
+                isMotionBlurred: clips[index].isMotionBlurred,
                 keyframes: keyframes,
                 timeRemap: timeRemap
             )
@@ -447,6 +445,7 @@ struct TimePlanner: Sendable {
             space: OwnSpace(content: clip.content),
             storyline: owner,
             trackMatte: clip.trackMatte,
+            isMotionBlurred: clip.isMotionBlurred,
             lane: try lane(of: clip, kind: kind),
             clock: clock,
             window: window,

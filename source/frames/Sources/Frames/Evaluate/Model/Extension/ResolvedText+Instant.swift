@@ -15,7 +15,7 @@ extension ResolvedText {
     // MARK: - Property
     // MARK: - Initializer
     // MARK: - Public
-    func box(at time: Double) -> Rectangle {
+    func box(at time: SampleTime) -> Rectangle {
         let padding = padding(at: time)
         let box = textBox(at: time)
 
@@ -30,7 +30,7 @@ extension ResolvedText {
     // The title's text box at `time`, in its box at the static values. A title with a width keeps it, and one without
     // is as wide as its widest line then, keeping the edge or the centre `align` names. The top edge stays, and the box
     // ends as far below the last line's baseline as it did.
-    func textBox(at time: Double) -> Rectangle {
+    func textBox(at time: SampleTime) -> Rectangle {
         let steps = trackingSteps(at: time)
         let widest = lines.map { $0.width + addedWidth(of: $0, steps: steps) }.reduce(0, max)
         let width = self.width == nil ? widest : textBox.width
@@ -45,7 +45,7 @@ extension ResolvedText {
 
     // The title's drawn extent at `time`, in its text box then: the text box grown to hold the glyph box then of every
     // character and of every space hanging at a line's end, each raised by its run's baseline shift then.
-    func extent(at time: Double) -> Rectangle {
+    func extent(at time: SampleTime) -> Rectangle {
         let box = textBox(at: time)
         let moves = glyphMoves(at: time)
         let glyphBoxes = lines.indices.flatMap { line in
@@ -59,7 +59,7 @@ extension ResolvedText {
     // How far each glyph moves at `time`, by run and glyph: along its line by the tracking steps after the characters
     // before it on its line and its line's move by `align`, and down with its line. A space hanging at a line's end
     // moves with the line's last character, or with its line on a line with no character.
-    func glyphMoves(at time: Double) -> [[Point]] {
+    func glyphMoves(at time: SampleTime) -> [[Point]] {
         var moves = runs.map { run in Array(repeating: Point(x: 0, y: 0), count: run.glyphs.count) }
         let steps = trackingSteps(at: time)
         for (line, drop) in zip(lines, lineDrops(at: time)) {
@@ -91,7 +91,7 @@ extension ResolvedText {
         of clusters: [PlacedCluster],
         on line: Int,
         moves: [[Point]],
-        at time: Double
+        at time: SampleTime
     ) -> [Rectangle] {
         let origin = textBox(at: time)
 
@@ -108,7 +108,7 @@ extension ResolvedText {
         ofCharacters indices: Range<Int>,
         on line: Int,
         moves: [[Point]],
-        at time: Double
+        at time: SampleTime
     ) -> [Rectangle] {
         let origin = textBox(at: time)
         let clusters = lines[line].clusters
@@ -144,7 +144,7 @@ extension ResolvedText {
 
     // How far each line moves down at `time`: the first baseline stays, and each later one lies the line height then
     // below the one before it.
-    func lineDrops(at time: Double) -> [Double] {
+    func lineDrops(at time: SampleTime) -> [Double] {
         guard let first = lines.first else { return [] }
         guard let lineHeight = lineHeight.sampled(at: time, as: .leaf(.length(.any))).number else {
             return lines.map { _ in 0 }
@@ -159,7 +159,7 @@ extension ResolvedText {
         on line: Int,
         origin: Rectangle,
         moves: [[Point]],
-        at time: Double
+        at time: SampleTime
     ) -> Rectangle {
         let run = runs[cluster.glyphs.run]
         let move = moves[cluster.glyphs.run][cluster.glyphs.first]
@@ -179,7 +179,7 @@ extension ResolvedText {
         of cluster: PlacedCluster,
         on line: Int,
         origin: Rectangle,
-        at time: Double
+        at time: SampleTime
     ) -> Rectangle {
         let placed = lines[line]
         let width = placed.width + addedWidth(of: placed, steps: trackingSteps(at: time))
@@ -195,7 +195,7 @@ extension ResolvedText {
     }
 
     // The background's padding at `time`, written vertical then horizontal.
-    private func padding(at time: Double) -> Size {
+    private func padding(at time: SampleTime) -> Size {
         let structure = ValueStructure.leaf(.lengths(count: 2, domain: .nonNegative))
         guard let numbers = background?.padding.sampled(at: time, as: structure).numbers, numbers.count == 2 else {
             return Size(width: 0, height: 0)
@@ -204,7 +204,7 @@ extension ResolvedText {
         return Size(width: numbers[1], height: numbers[0])
     }
 
-    private func trackingSteps(at time: Double) -> [Double] {
+    private func trackingSteps(at time: SampleTime) -> [Double] {
         runs.map { run in run.tracking.sampled(at: time, as: .leaf(.length(.any))).number ?? 0 }
     }
 

@@ -302,7 +302,7 @@ struct ResolvedDocumentReaderTests {
             (
                 #""duration": 3,"#,
                 #""duration": 3, "fsp": 30,"#,
-                #"format (format): unknown key "fsp". Allowed: size, fps, duration, background, conform, colorSpace, peak, compositing"#
+                #"format (format): unknown key "fsp". Allowed: size, fps, duration, background, conform, colorSpace, peak, compositing, motionBlur"#
             ),
             (
                 #""loop": true,"#,
@@ -733,7 +733,7 @@ struct ResolvedDocumentReaderTests {
         }
         let run = try #require(title.runs.first)
         let mark = try #require(run.glyphs.dropFirst().first)
-        let drawn = GlyphsItem(text: title, factor: 1, at: 0).runs[0].glyphs[1]
+        let drawn = GlyphsItem(text: title, factor: 1, at: SampleTime(0)).runs[0].glyphs[1]
         #expect(read == document)
         #expect(run.staticTracking == run.size / 10)
         #expect(mark.placementOffset == Point(x: -0.3 * run.size, y: -0.2 * run.size))

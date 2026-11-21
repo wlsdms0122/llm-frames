@@ -15,7 +15,7 @@ extension ResolvedText {
     // MARK: - Public
     func unitBox(
         of index: Int,
-        at time: Double
+        at time: SampleTime
     ) -> Rectangle {
         guard let unit = units?[index] else { return Rectangle(x: 0, y: 0, width: 0, height: 0) }
 
@@ -24,7 +24,7 @@ extension ResolvedText {
 
     func glyphBox(
         of index: Int,
-        at time: Double
+        at time: SampleTime
     ) -> Rectangle {
         guard let unit = units?[index] else { return Rectangle(x: 0, y: 0, width: 0, height: 0) }
 
@@ -35,7 +35,7 @@ extension ResolvedText {
     // it and of the hanging spaces it draws, each raised by its run's baseline shift then.
     func extent(
         of index: Int,
-        at time: Double
+        at time: SampleTime
     ) -> Rectangle {
         guard let unit = units?[index] else { return Rectangle(x: 0, y: 0, width: 0, height: 0) }
 
@@ -51,7 +51,7 @@ extension ResolvedText {
 
     func parts(
         of index: Int,
-        at time: Double
+        at time: SampleTime
     ) -> [UnitPart] {
         guard let units, units.indices.contains(index) else { return [] }
 
@@ -83,7 +83,7 @@ extension ResolvedText {
     private func moved(
         _ box: Rectangle,
         of unit: PlacedUnit,
-        at time: Double
+        at time: SampleTime
     ) -> Rectangle {
         let origin = textBox(at: time)
         let moves = glyphMoves(at: time)

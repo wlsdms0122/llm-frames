@@ -34,5 +34,36 @@ struct KeyframeTrack<Value: Interpolable>: Equatable, Sendable {
         return Value.interpolate(from: start.value, to: end.value, progress: start.ease.value(at: fraction))
     }
 
+    // The value at an instant on T's side, T being the frame's instant: clamped to T's side of every jump between
+    // them, and the limit from T's side at that jump (FRAMES-29). A jump is the end of a span eased by `step` and two
+    // keyframes at one instant. T reads a jump's later side when it lies on it, so an instant before T is clamped to the
+    // value at the jump, and one after T to the value just before it.
+    func value(
+        at time: Double,
+        onSideOf frameTime: Double
+    ) -> Value? {
+        if time > frameTime, let jump = jumps.first(where: { frameTime < $0 && $0 <= time }) {
+            return value(justBefore: jump)
+        }
+        if time < frameTime, let jump = jumps.last(where: { time < $0 && $0 <= frameTime }) {
+            return value(at: jump)
+        }
+
+        return value(at: time)
+    }
+
     // MARK: - Private
+    // The instants the value jumps at, in time order: where a span eased by `step` ends, and where two keyframes meet.
+    private var jumps: [Double] {
+        zip(keyframes, keyframes.dropFirst())
+            .filter { start, end in start.ease == .step || start.at == end.at }
+            .map(\.1.at)
+    }
+
+    // The limit from before a jump: a `step` span's start value, or the keyframe the line that reaches it ends on.
+    private func value(justBefore jump: Double) -> Value? {
+        guard let index = keyframes.lastIndex(where: { $0.at < jump }) else { return keyframes.first?.value }
+
+        return keyframes[index].ease == .step ? keyframes[index].value : keyframes[index + 1].value
+    }
 }

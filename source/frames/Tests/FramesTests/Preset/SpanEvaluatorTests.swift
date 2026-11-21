@@ -133,4 +133,91 @@ struct SpanEvaluatorTests {
         #expect(before.value(of: .scale) == 0.6)
         #expect(after.value(of: .scale) == 1)
     }
+
+    @Test("two keys at one t under back-out clamp an instant whose bent progress lies past t from T's to T's key's line at t")
+    func clampsDoubleKeyUnderBackOut() {
+        // Given
+        let span = Span(ease: .backOut, keys: [
+            SpanKey(t: 0, values: [.opacity: 0]),
+            SpanKey(t: 0.5, values: [.opacity: 0.2]),
+            SpanKey(t: 0.5, values: [.opacity: 0.8]),
+            SpanKey(t: 1, values: [.opacity: 1])
+        ])
+
+        // When
+        let clamped = sut.motion(of: span, at: 0.15, onSideOf: 0.05)
+        let fromAfter = sut.motion(of: span, at: 0.05, onSideOf: 0.15)
+
+        // Then
+        #expect(clamped.value(of: .opacity) == 0.2)
+        #expect(fromAfter.value(of: .opacity) == 0.8)
+    }
+
+    @Test("an overshoot past two keys at 1 is clamped to T's key's line, and one past a single key at 1 runs on")
+    func clampsOvershootOnlyAtDoubleKey() {
+        // Given
+        let double = Span(ease: .backOut, keys: [
+            SpanKey(t: 0, values: [.scale: 1]),
+            SpanKey(t: 1, values: [.scale: 2]),
+            SpanKey(t: 1, values: [.scale: 3])
+        ])
+        let single = Span(ease: .backOut, keys: [SpanKey(t: 0, values: [.scale: 1]), SpanKey(t: 1, values: [.scale: 2])])
+
+        // When
+        let clamped = sut.motion(of: double, at: 0.5, onSideOf: 0.3)
+        let runsOn = sut.motion(of: single, at: 0.5, onSideOf: 0.3)
+
+        // Then
+        #expect(clamped.value(of: .scale) == 2)
+        #expect(runsOn.value(of: .scale) == sut.motion(of: single, at: 0.5).value(of: .scale))
+        #expect(runsOn.value(of: .scale) > 2)
+    }
+
+    @Test("a step span clamps the progress itself: T's start value before its end, its end value from it")
+    func clampsStepSpan() {
+        // Given
+        let span = Span(ease: .step, keys: [SpanKey(t: 0, values: [.opacity: 0]), SpanKey(t: 1, values: [.opacity: 1])])
+
+        // When
+        let fromBefore = sut.motion(of: span, at: 1, onSideOf: 0.9)
+        let fromAfter = sut.motion(of: span, at: 0.95, onSideOf: 1)
+
+        // Then
+        #expect(fromBefore.value(of: .opacity) == 0)
+        #expect(fromAfter.value(of: .opacity) == 1)
+    }
+
+    @Test("an instant with no jump between it and T reads the span as it is")
+    func readsWithoutJump() {
+        // Given
+        let span = Span(ease: .easeInOut, keys: keys)
+
+        // When
+        let motion = sut.motion(of: span, at: 0.6, onSideOf: 0.4)
+
+        // Then
+        #expect(motion == sut.motion(of: span, at: 0.6))
+    }
+
+    @Test("a double key is a jump of the property it names only, and a step end of every property")
+    func findsJumpPerProperty() {
+        // Given
+        let double = Span(ease: .linear, keys: [
+            SpanKey(t: 0, values: [.opacity: 0, .x: 0]),
+            SpanKey(t: 0.5, values: [.opacity: 0.2]),
+            SpanKey(t: 0.5, values: [.opacity: 0.8]),
+            SpanKey(t: 1, values: [.opacity: 1, .x: 10])
+        ])
+        let step = Span(ease: .step, keys: [SpanKey(t: 0, values: [.x: 0]), SpanKey(t: 1, values: [.x: 10])])
+
+        // When
+        let opacity = sut.hasJump(of: .opacity, in: double, between: 0.4, and: 0.6)
+        let x = sut.hasJump(of: .x, in: double, between: 0.4, and: 0.6)
+        let stepEnd = sut.hasJump(of: .scale, in: step, between: 0.9, and: 1.1)
+
+        // Then
+        #expect(opacity)
+        #expect(!x)
+        #expect(stepEnd)
+    }
 }

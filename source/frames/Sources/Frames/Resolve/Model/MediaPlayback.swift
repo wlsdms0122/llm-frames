@@ -25,7 +25,22 @@ enum MediaPlayback: Equatable, Sendable {
             range.clipTime(atSequenceTime: time)
 
         case let .remapped(keyframes):
-            keyframes.value(at: time)
+            KeyframeTrack(keyframes: keyframes).value(at: time) ?? keyframes[0].value
+        }
+    }
+
+    // The media time at an instant on T's side, T being the frame's instant: remap keys are clamped at their jumps,
+    // while a line has none, and a played range's loop seam and its hold at `out` are not jumps.
+    func mediaTime(
+        atSequenceTime time: Double,
+        onSideOf frameTime: Double
+    ) -> Double {
+        switch self {
+        case .line, .played:
+            mediaTime(atSequenceTime: time)
+
+        case let .remapped(keyframes):
+            keyframes.value(at: time, onSideOf: frameTime)
         }
     }
 

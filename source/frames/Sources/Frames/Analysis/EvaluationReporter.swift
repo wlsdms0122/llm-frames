@@ -25,7 +25,11 @@ package struct EvaluationReporter: Sendable {
     ) throws -> EvaluationReport {
         try FrameSpan(end: sequence.format.duration, kind: "sequence").check(time, option: "--at")
 
-        return report(of: evaluator.displayList(of: sequence, at: time), titles: sequence.titles(at: time), at: time)
+        return try report(
+            of: evaluator.displayListWithoutMotionBlur(of: sequence, at: time),
+            titles: sequence.titles(at: time),
+            at: time
+        )
     }
 
     // `titles` are the resolved titles the list's glyphs items are drawn from, by place.
@@ -33,10 +37,10 @@ package struct EvaluationReporter: Sendable {
         of list: DisplayList,
         titles: [String: TitleSample] = [:],
         at time: Double
-    ) -> EvaluationReport {
+    ) throws -> EvaluationReport {
         var items: [EvaluationItem] = []
         var texts: [EvaluationText] = []
-        for item in flattener.items(of: list) {
+        for item in try flattener.items(of: list) {
             guard item.item == .glyphs, let origin = item.origin, let title = titles[origin.place] else {
                 items.append(EvaluationItem(item))
                 continue
@@ -45,12 +49,13 @@ package struct EvaluationReporter: Sendable {
             if !texts.contains(where: { $0.place == origin.place }) {
                 texts.append(text(of: title, origin: origin, transform: item.transform))
             }
+            let titleTime = SampleTime(title.time)
             switch item.characters {
             case .title:
-                items.append(EvaluationItem(item, characters: title.text.characters(at: title.time)))
+                items.append(EvaluationItem(item, characters: title.text.characters(at: titleTime)))
 
             case let .unit(unit):
-                items.append(EvaluationItem(item, characters: title.text.characters(of: unit, at: title.time)))
+                items.append(EvaluationItem(item, characters: title.text.characters(of: unit, at: titleTime)))
 
             case .none:
                 items.append(EvaluationItem(item))
@@ -68,8 +73,9 @@ package struct EvaluationReporter: Sendable {
         transform: AffineTransform
     ) -> EvaluationText {
         let text = title.text
-        let textBox = text.textBox(at: title.time)
-        let box = text.box(at: title.time)
+        let time = SampleTime(title.time)
+        let textBox = text.textBox(at: time)
+        let box = text.box(at: time)
 
         return EvaluationText(
             place: origin.place,
@@ -78,7 +84,7 @@ package struct EvaluationReporter: Sendable {
             size: Size(width: textBox.width, height: textBox.height),
             box: Rectangle(x: box.x - textBox.x, y: box.y - textBox.y, width: box.width, height: box.height),
             transform: transform,
-            lines: text.evaluationLines(at: title.time),
+            lines: text.evaluationLines(at: time),
             words: text.evaluationWords
         )
     }

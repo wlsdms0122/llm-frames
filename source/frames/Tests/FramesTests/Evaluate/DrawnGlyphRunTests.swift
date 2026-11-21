@@ -37,7 +37,13 @@ struct DrawnGlyphRunTests {
         let still = PieceMove(start: Point(x: 0, y: 0), end: Point(x: 0, y: 0))
 
         // When
-        let sut = DrawnGlyphRun(run: run, factor: 1, at: 0, moves: [Point(x: 3, y: 4), Point(x: 3, y: 4)], pieceMove: still)
+        let sut = DrawnGlyphRun(
+            run: run,
+            factor: 1,
+            at: SampleTime(0),
+            moves: [Point(x: 3, y: 4), Point(x: 3, y: 4)],
+            pieceMove: still
+        )
 
         // Then
         #expect(sut.glyphs == [PositionedGlyph(id: 1, x: 3, y: 36), PositionedGlyph(id: 2, x: 13, y: 16)])

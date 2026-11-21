@@ -20,7 +20,7 @@ extension ResolvedText {
     // MARK: - Initializer
     // MARK: - Public
     // Every character of the title, in reading order.
-    func characters(at time: Double) -> [EvaluationCharacter] {
+    func characters(at time: SampleTime) -> [EvaluationCharacter] {
         let moves = glyphMoves(at: time)
 
         return lines.indices.flatMap { line in
@@ -31,7 +31,7 @@ extension ResolvedText {
     // The characters of the unit at `index`: those it holds and the spaces that go with it, in reading order.
     func characters(
         of index: Int,
-        at time: Double
+        at time: SampleTime
     ) -> [EvaluationCharacter] {
         guard let units, units.indices.contains(index) else { return [] }
 
@@ -45,7 +45,7 @@ extension ResolvedText {
         )
     }
 
-    func evaluationLines(at time: Double) -> [EvaluationLine] {
+    func evaluationLines(at time: SampleTime) -> [EvaluationLine] {
         let top = textBox(at: time).y
 
         return zip(lines, lineDrops(at: time)).map { line, drop in
@@ -64,7 +64,7 @@ extension ResolvedText {
         _ indices: Range<Int>,
         on line: Int,
         moves: [[Point]],
-        at time: Double
+        at time: SampleTime
     ) -> [EvaluationCharacter] {
         let rects = glyphBoxes(ofCharacters: indices, on: line, moves: moves, at: time)
 

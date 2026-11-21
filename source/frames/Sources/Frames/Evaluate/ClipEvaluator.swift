@@ -26,7 +26,7 @@ struct ClipEvaluator: Sendable {
         trackMatte: ItemTrackMatte?,
         compositing: Compositing,
         seed: Int,
-        at time: Double
+        at time: SampleTime
     ) -> [DisplayItem] {
         let mask = masks(of: clip, in: space, at: time)
 
@@ -40,7 +40,7 @@ struct ClipEvaluator: Sendable {
     func childTransform(
         of clip: ResolvedClip,
         in space: ClipSpace,
-        at time: Double
+        at time: SampleTime
     ) -> AffineTransform {
         let sample = ClipSample(clip: clip, at: time)
 
@@ -86,7 +86,7 @@ struct ClipEvaluator: Sendable {
         picture: PictureItemSource?,
         compositing: Compositing,
         seed: Int,
-        at time: Double
+        at time: SampleTime
     ) -> [DisplayItem] {
         let sample = ClipSample(clip: clip, at: time)
 
@@ -135,7 +135,8 @@ struct ClipEvaluator: Sendable {
                 radius: media.appearance.radius.sampled(at: time, as: LookStructureTable.length).number ?? 0,
                 border: MediaBorder(
                     sampled: media.appearance.border.sampled(at: time, as: LookStructureTable.border),
-                    factor: sample.lengthFactor
+                    factor: sample.lengthFactor,
+                    isSample: time.sample.isSample
                 ),
                 shadow: DropShadow(
                     sampled: media.appearance.shadow.sampled(at: time, as: LookStructureTable.shadow),
@@ -180,7 +181,7 @@ struct ClipEvaluator: Sendable {
         in space: ClipSpace,
         compositing: Compositing,
         seed: Int,
-        at time: Double
+        at time: SampleTime
     ) -> DisplayItem {
         let origin = ItemOrigin(clip: clip)
         let sampler = UnitSampler()
@@ -263,7 +264,7 @@ struct ClipEvaluator: Sendable {
         sample: ClipSample,
         in space: ClipSpace,
         content: DisplayContent,
-        at time: Double,
+        at time: SampleTime,
         receiver: (AffineTransform) -> Rectangle
     ) -> DisplayItem {
         let size = Size(width: drawn.width, height: drawn.height)
@@ -289,7 +290,7 @@ struct ClipEvaluator: Sendable {
         size: Size,
         sample: ClipSample,
         in space: ClipSpace,
-        at time: Double
+        at time: SampleTime
     ) -> ItemPresentation {
         let tracked = space.tracked(by: clip.parentTrack, at: time)
         let anchor = tracked.transform.apply(to: space.anchor(of: box, track: clip.parentTrack, at: time))
@@ -310,7 +311,7 @@ struct ClipEvaluator: Sendable {
         filter: TimedValue,
         sample: ClipSample,
         in space: ClipSpace,
-        at time: Double
+        at time: SampleTime
     ) -> DisplayItem {
         let bounds = maskBounds(of: clip, in: space, at: time)
         let presentation = adjustPresentation(of: clip, sample: sample, in: space, at: time)
@@ -329,7 +330,7 @@ struct ClipEvaluator: Sendable {
         of clip: ResolvedClip,
         sample: ClipSample,
         in space: ClipSpace,
-        at time: Double
+        at time: SampleTime
     ) -> ItemPresentation {
         guard let bounds = maskBounds(of: clip, in: space, at: time) else {
             return ItemPresentation(area: space.frame, opacity: sample.opacity, motion: sample.animation.motion)
@@ -348,7 +349,7 @@ struct ClipEvaluator: Sendable {
     private func masks(
         of clip: ResolvedClip,
         in space: ClipSpace,
-        at time: Double
+        at time: SampleTime
     ) -> [ItemMask] {
         guard let mask = clip.mask else { return [] }
 
@@ -373,7 +374,7 @@ struct ClipEvaluator: Sendable {
     private func maskBounds(
         of clip: ResolvedClip,
         in space: ClipSpace,
-        at time: Double
+        at time: SampleTime
     ) -> Rectangle? {
         clip.mask.flatMap { space.masks(of: $0, track: clip.parentTrack, at: time).bounds }
     }

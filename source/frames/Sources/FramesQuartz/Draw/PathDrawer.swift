@@ -15,7 +15,8 @@ import Frames
 // axes apart does not stretch it, and drawn back in the item's coordinates.
 // The stroked line and its heads are united into one shape filled once, so a translucent colour is not drawn twice
 // where they overlap. Dashes are laid in the item's own distances along the outline, from the start of the stroke as
-// drawn, so they stretch with it, and cut at the heads' bases; the heads are drawn whole. A gradient paints the fill
+// drawn, so they stretch with it, and cut at the heads' bases; the heads are drawn whole. A dash with no length above 0
+// draws the stroke whole. A gradient paints the fill
 // or the stroke's shape through it as a clip, laid in the item's own coordinates.
 struct PathDrawer {
     // MARK: - Property
@@ -49,6 +50,11 @@ struct PathDrawer {
     }
 
     // MARK: - Private
+    // The stroke's dash lengths, nil for a whole stroke.
+    private func pattern(of stroke: PathStroke) -> [Double]? {
+        stroke.dash.flatMap { dash in dash.contains { $0 > 0 } ? dash : nil }
+    }
+
     // The inside of `path` by the nonzero rule.
     private func paint(
         _ path: CGPath,
@@ -76,7 +82,7 @@ struct PathDrawer {
         along outline: PathOutline,
         own: PathOutline
     ) -> CGPath? {
-        guard !drawn.isWhole || stroke.dash != nil else { return stroked(outline.path, by: stroke) }
+        guard !drawn.isWhole || pattern(of: stroke) != nil else { return stroked(outline.path, by: stroke) }
 
         let line = line(
             of: stroke,
@@ -104,7 +110,7 @@ struct PathDrawer {
         own: PathOutline
     ) -> CGPath? {
         guard upper > lower else { return nil }
-        guard let dash = stroke.dash else { return stroked(outline.piece(from: lower, to: upper), by: stroke) }
+        guard let dash = pattern(of: stroke) else { return stroked(outline.piece(from: lower, to: upper), by: stroke) }
 
         let first = outline.distance(lower, onto: own)
         let last = outline.distance(upper, onto: own)

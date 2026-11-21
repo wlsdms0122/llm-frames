@@ -234,7 +234,7 @@ struct ShippedTransitionPresetTests {
         of preset: TransitionPreset,
         at progress: Double
     ) -> Double {
-        preset.cover.map { sampler.coverOpacity(of: $0.span, at: progress) } ?? 0
+        preset.cover.map { sampler.coverOpacity(of: $0.span, at: SampleProgress(progress)) } ?? 0
     }
 
     // What a storyline picture's outer item takes from a span at a progress: its transform about the centre of the

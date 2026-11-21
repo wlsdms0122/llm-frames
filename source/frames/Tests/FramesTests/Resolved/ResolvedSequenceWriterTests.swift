@@ -47,7 +47,7 @@ struct ResolvedSequenceWriterTests {
         #expect(resolved.keys == ["kind", "resolved", "format", "storyline", "clips", "audio", "audioFilter"])
         #expect(resolved["kind"] == .string("sequence"))
         #expect(resolved["resolved"] == .string(FramesVersion.current))
-        #expect(resolved["format"]?.objectValue?.keys == ["size", "fps", "duration", "background", "conform", "colorSpace", "peak", "compositing"])
+        #expect(resolved["format"]?.objectValue?.keys == ["size", "fps", "duration", "background", "conform", "colorSpace", "peak", "compositing", "motionBlur"])
         #expect(resolved["format"]?.objectValue?["duration"] == .number(3))
         #expect(resolved["format"]?.objectValue?["background"]?.stringValue?.hasPrefix("color(srgb ") == true)
     }
@@ -444,7 +444,7 @@ struct ResolvedSequenceWriterTests {
         #expect(clips[0].keys == [
             "place", "id", "shape", "area", "width", "height", "points", "closed", "outset", "radius", "trim", "fill",
             "stroke", "shadow", "start", "end", "lane", "storyline", "parent", "size", "position", "anchor", "crop", "mask",
-            "trackMatte", "track", "opacity", "scale", "rotation", "blend", "animation"
+            "trackMatte", "track", "opacity", "scale", "rotation", "blend", "motionBlur", "animation"
         ])
         #expect(clips[0]["area"] == keyframes(at: 0, Rectangle(x: 0, y: 0, width: 100, height: 100)))
         #expect(clips[0]["width"] == .null)

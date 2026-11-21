@@ -47,7 +47,7 @@ package struct GlyphsItem: Equatable, Sendable {
     init(
         text: ResolvedText,
         factor: Double,
-        at time: Double
+        at time: SampleTime
     ) {
         let textBox = text.textBox(at: time)
         let box = text.box(at: time)
