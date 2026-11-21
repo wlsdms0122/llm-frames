@@ -255,6 +255,8 @@ struct DisplayListReaderTests {
         (["1", "0", "matte", "invert"], "false", "samples[1][0].matte.invert (picture)"),
         (["1", "0", "filter"], "[]", "samples[1][0].filter (picture)"),
         (["1", "0", "border"], "null", "samples[1][0].border (picture)"),
+        (["1", "0", "reveal"], "null", "samples[1][0].reveal (picture)"),
+        (["1", "1", "reveal"], "[0, 0, 10, 10]", "samples[1][1].reveal (picture)"),
         (
             ["1", "0", "filter", "0", "ops"],
             #"[{ "op": "blur", "radius": 2 }, { "op": "exposure", "ev": 0.5 }]"#,
@@ -295,7 +297,7 @@ struct DisplayListReaderTests {
     private static let movedFields: [([String], String)] = [
         (["0", "transform"], "[1, 0, 0, 1, 5, 5]"),
         (["0", "opacity"], "0.25"),
-        (["0", "reveal"], "null"),
+        (["0", "reveal"], "[0, 0, 270, 1920]"),
         (["0", "mask", "1", "geometry"], #"{ "ellipse": { "rect": [1, 2, 3, 4] } }"#),
         (["0", "mask", "1", "transform"], "[1, 0, 0, 1, 0, 0]"),
         (["0", "mask", "1", "feather"], "2"),

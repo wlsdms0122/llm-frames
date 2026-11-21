@@ -311,4 +311,41 @@ struct AnimationSamplerTests {
         #expect(sample.motion.value(of: .scale) == 1)
         #expect(abs(sample.motion.value(of: .opacity) - 0.78) < 1e-9)
     }
+
+    @Test(
+        "in a sample of a frame with motion blur, an animation with a span that writes reveal sets the reveal, whichever span plays",
+        arguments: [(2.25, true), (4.0, true), (5.75, true)]
+    )
+    func setsRevealInSample(time: Double, isRevealSet: Bool) {
+        // Given
+        let animation = ResolvedAnimation(entrance: entrance, loop: loop, exit: exit, units: nil)
+        let sampled = SampleTime(
+            instant: time,
+            frameTime: time,
+            sample: SampleInstant(instant: time, frameTime: time, reads: MotionBlurReads())
+        )
+
+        // When
+        let sample = sut.sample(of: animation, in: TimeRange(start: 2, end: 6), at: sampled)
+
+        // Then
+        #expect(sample.isRevealSet == isRevealSet)
+    }
+
+    @Test("an animation with no span that writes reveal sets none in a sample, and no animation sets one outside a sample")
+    func leavesRevealUnset() {
+        // Given
+        let unrevealed = ResolvedAnimation(entrance: nil, loop: loop, exit: exit, units: nil)
+        let revealed = ResolvedAnimation(entrance: entrance, loop: loop, exit: exit, units: nil)
+        let window = TimeRange(start: 2, end: 6)
+        let sampled = SampleTime(instant: 4, frameTime: 4, sample: SampleInstant(instant: 4, frameTime: 4, reads: MotionBlurReads()))
+
+        // When
+        let inSample = sut.sample(of: unrevealed, in: window, at: sampled)
+        let outsideSample = sut.sample(of: revealed, in: window, at: SampleTime(2.25))
+
+        // Then
+        #expect(!inSample.isRevealSet)
+        #expect(!outsideSample.isRevealSet)
+    }
 }

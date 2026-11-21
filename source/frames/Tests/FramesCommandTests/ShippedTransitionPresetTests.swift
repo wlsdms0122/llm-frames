@@ -247,7 +247,7 @@ struct ShippedTransitionPresetTests {
             MotionSample(motion: SpanEvaluator().motion(of: span, at: progress), revealFrom: span.revealFrom)
         } ?? .none
         let presentation = ItemPresentation(area: frame, opacity: 1, motion: sample.motion)
-        let reveal = sample.reveal.rectangle(wiping: frame, from: sample.revealFrom)
+        let reveal = sample.revealRectangle(wiping: frame)
 
         return (presentation.transform, presentation.opacity, reveal)
     }

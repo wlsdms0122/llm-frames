@@ -108,7 +108,17 @@ enum Fixture {
             "frames/push-up": transition(seconds: 0.5),
             "frames/wipe-right": transition(seconds: 1),
             "mine/long": transition(seconds: 4),
-            "mine/same-take": transition(seconds: 1, audio: .constantGain)
+            "mine/same-take": transition(seconds: 1, audio: .constantGain),
+            "mine/wipe-in": TransitionPreset(
+                description: "",
+                seconds: 1,
+                over: .incoming,
+                audio: .constantPower,
+                incoming: wipe,
+                outgoing: nil,
+                cover: nil,
+                matte: nil
+            )
         ],
         animations: [
             "frames/none": AnimationPreset(description: "", entrance: nil, loop: nil, exit: nil),
@@ -116,7 +126,13 @@ enum Fixture {
             "frames/fade": AnimationPreset(description: "", entrance: span(0.25), loop: nil, exit: span(0.25)),
             "frames/stamp": AnimationPreset(description: "", entrance: span(0.25), loop: nil, exit: nil),
             "frames/wipe": AnimationPreset(description: "", entrance: span(0.5), loop: nil, exit: nil),
-            "frames/pulse": AnimationPreset(description: "", entrance: span(0.25), loop: span(1), exit: span(0.25))
+            "frames/pulse": AnimationPreset(description: "", entrance: span(0.25), loop: span(1), exit: span(0.25)),
+            "mine/wipe-in": AnimationPreset(
+                description: "",
+                entrance: AnimationSpan(length: 0.5, span: wipe),
+                loop: nil,
+                exit: nil
+            )
         ],
         filters: [
             "frames/warm": #"{"description": "", "ops": []}"#,
@@ -205,6 +221,12 @@ enum Fixture {
             matte: nil
         )
     }
+
+    // A wipe from the left at an even pace.
+    private static let wipe = Span(ease: .linear, revealFrom: .left, keys: [
+        SpanKey(t: 0, values: [.reveal: 0]),
+        SpanKey(t: 1, values: [.reveal: 1])
+    ])
 
     private static func span(_ length: Double) -> AnimationSpan {
         AnimationSpan(length: length, span: Span(ease: .linear, keys: []))

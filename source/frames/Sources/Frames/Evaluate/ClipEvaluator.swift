@@ -199,10 +199,7 @@ struct ClipEvaluator: Sendable {
                 )
             }
             let reveal = reveal(
-                of: sample.reveal.rectangle(
-                    wiping: layers[0].drawnBounds(carriedBy: presentation.transform),
-                    from: sample.revealFrom
-                ),
+                of: sample.revealRectangle(wiping: layers[0].drawnBounds(carriedBy: presentation.transform)),
                 within: item.reveal
             )
 
@@ -269,7 +266,7 @@ struct ClipEvaluator: Sendable {
             transform: transform,
             opacity: presentation.opacity,
             blend: sample.blend,
-            reveal: sample.animation.reveal.rectangle(wiping: receiver(transform), from: sample.animation.revealFrom),
+            reveal: sample.animation.revealRectangle(wiping: receiver(transform)),
             content: content
         )
     }
@@ -314,7 +311,7 @@ struct ClipEvaluator: Sendable {
             transform: presentation.transform,
             opacity: presentation.opacity,
             blend: sample.blend,
-            reveal: sample.animation.reveal.rectangle(wiping: bounds ?? space.frame, from: sample.animation.revealFrom),
+            reveal: sample.animation.revealRectangle(wiping: bounds ?? space.frame),
             content: .adjust(AdjustItem(filter: FilterEntry.entries(of: filter, at: time)))
         )
     }

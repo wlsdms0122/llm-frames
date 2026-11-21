@@ -49,7 +49,8 @@ struct TransitionSampler: Sendable {
     }
 
     // Which transition the entry takes part in is decided at T. Out of the entry's drawn range this holds the motion at
-    // the range's edge.
+    // the range's edge. In a sample of a frame with motion blur the motion has its reveal set where the span the entry
+    // takes writes `reveal`.
     func motion(
         of index: Int,
         in storyline: [ResolvedStorylineClip],
@@ -98,7 +99,8 @@ struct TransitionSampler: Sendable {
 
         return MotionSample(
             motion: evaluator.motion(of: span, at: progress.progress, onSideOf: progress.frameProgress),
-            revealFrom: span.revealFrom
+            revealFrom: span.revealFrom,
+            isRevealSet: sample.isSample && span.writes(.reveal)
         )
     }
 }

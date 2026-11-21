@@ -16,7 +16,8 @@ struct AnimationSampler: Sendable {
     init() { }
 
     // MARK: - Public
-    // A sample of a frame with motion blur reads on T's side of the jumps.
+    // A sample of a frame with motion blur reads on T's side of the jumps, and has its reveal set where any of the
+    // animation's spans writes `reveal` and T lies in the window.
     func sample(
         of animation: ResolvedAnimation,
         in window: TimeRange,
@@ -25,7 +26,10 @@ struct AnimationSampler: Sendable {
         guard window.contains(time.instant) else { return .none }
         guard time.sample.isSample else { return sample(of: animation, in: window, at: time.instant) }
 
+        let spans = [animation.entrance, animation.loop, animation.exit].compactMap { $0?.span }
+
         return sample(of: animation, in: window, at: time.instant, onSideOf: time.frameTime)
+            .settingReveal(window.contains(time.frameTime) && spans.contains { $0.writes(.reveal) })
     }
 
     // The sample at a time outside a sample of a frame with motion blur.
