@@ -883,6 +883,65 @@ struct EvaluationReporterTests {
         #expect(item.characters?.first?.rect == Rectangle(x: 0, y: 0, width: 20, height: 40))
     }
 
+    @Test("a title with a corner pin reports its text and characters in its text box as without one, and as its transform its text box's place in its box followed by its tracked motion, none untracked")
+    func reportsPinnedTitle() throws {
+        // Given
+        let pinned = try resolved(#"""
+            { "kind": "sequence", "format": { "size": [1920, 1080] },
+              "theme": { "styles": { "caption": { "size": 40, "color": "#000000" } } },
+              "storyline": [ { "media": "/abs/screen.mp4" } ],
+              "clips": [ { "id": "t", "style": "caption", "at": [0, 2], "title": "ab",
+                           "paragraph": { "background": { "color": "#FF0000", "padding": [8, 12] } },
+                           "cornerPin": [[100, 100], [500, 120], [480, 400], [120, 380]] } ] }
+            """#)
+        let placed = try resolved(titled(#"""
+            { "title": "ab", "paragraph": { "background": { "color": "#FF0000", "padding": [8, 12] } } }
+            """#))
+
+        // When
+        let report = try sut.report(of: pinned, at: 1)
+        let unpinned = try sut.report(of: placed, at: 1)
+
+        // Then
+        let item = try #require(report.items.first { $0.item == .glyphs })
+        let text = try #require(report.texts.first)
+        let expected = try #require(unpinned.texts.first)
+        #expect(item.characters == unpinned.items.first { $0.item == .glyphs }?.characters)
+        #expect(item.rect == Rectangle(x: 0, y: 0, width: 40, height: 40))
+        #expect(text.size == expected.size)
+        #expect(text.box == expected.box)
+        #expect(text.lines == expected.lines)
+        #expect(text.words == expected.words)
+        #expect(text.transform == AffineTransform(translation: Point(x: 12, y: 8)))
+        #expect(item.transform == text.transform)
+    }
+
+    @Test("a title with a corner pin under a turned parent reports as its transform its text box's place in its box followed by the parent's map, which the corner pin does not interrupt")
+    func reportsPinnedTitleUnderParent() throws {
+        // Given
+        let document = try resolved(#"""
+            { "kind": "sequence", "format": { "size": [1920, 1080] },
+              "theme": { "styles": { "caption": { "size": 40, "color": "#000000" } } },
+              "storyline": [ { "media": "/abs/screen.mp4" } ],
+              "clips": [
+                { "id": "box", "shape": "rect", "width": 200, "height": 100, "fill": "#FFFFFF", "position": [600, 300],
+                  "rotation": 30, "at": [0, 2] },
+                { "id": "t", "style": "caption", "at": [0, 2], "parent": "box", "title": "ab",
+                  "paragraph": { "background": { "color": "#FF0000", "padding": [8, 12] } },
+                  "cornerPin": [[10, 10], [150, 10], [150, 80], [10, 80]] } ] }
+            """#)
+
+        // When
+        let report = try sut.report(of: document, at: 1)
+
+        // Then
+        let parent = try #require(report.items.first { $0.origin?.id == "box" })
+        let text = try #require(report.texts.first)
+        let expected = AffineTransform(translation: Point(x: 12, y: 8)).concatenating(parent.transform)
+        #expect(isClose(text.transform, expected))
+        #expect(report.items.first { $0.item == .glyphs }?.transform == text.transform)
+    }
+
     @Test("a title in a compound clip is reported in its continued place, sampled at the time its sequence shows")
     func reportsNestedTitle() throws {
         // Given
