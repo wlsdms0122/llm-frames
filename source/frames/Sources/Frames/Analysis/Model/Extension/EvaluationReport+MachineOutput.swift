@@ -6,11 +6,12 @@
 //
 
 // `{"evaluate": "1.0.0", time, size, items, texts}`, the object `evaluate` prints. Each item is `{place, id, kind,
-// item, bounds, opacity, transform, rect, characters}` with `bounds` as `[x, y, w, h]` in output pixels, or `null`
-// where it covers nothing, `transform` as `[a, b, c, d, tx, ty]`, `rect` as `[x, y, w, h]` in the item's own
-// coordinates, and `characters` a list of `{text, range, rect, baseline}`, or `null` on an item that reports none. Each
-// text is `{place, id, text, size, box, transform, lines, words}`, each line `{text, range, baseline, ascent, descent}`
-// and each word `{text, range}`. A range is `[start, end]` in whole Unicode scalars.
+// item, bounds, opacity, transform, rect, cornerPins, characters}` with `bounds` as `[x, y, w, h]` in output pixels, or
+// `null` where it covers nothing, `transform` as `[a, b, c, d, tx, ty]`, `rect` as `[x, y, w, h]` in the item's own
+// coordinates, `cornerPins` a list of `{dest, cornerPin}`, each four points `[x, y]`, or `null` on an item no corner
+// pin carries, and `characters` a list of `{text, range, rect, baseline}`, or `null` on an item that reports none. Each
+// text is `{place, id, text, size, box, transform, cornerPins, lines, words}`, each line `{text, range, baseline,
+// ascent, descent}` and each word `{text, range}`. A range is `[start, end]` in whole Unicode scalars.
 extension EvaluationReport {
     // MARK: - Property
     package var machineOutput: JSONValue {
@@ -33,6 +34,7 @@ extension EvaluationReport {
             JSONMember(key: "opacity", value: .measure(item.opacity)),
             JSONMember(key: "transform", value: output(item.transform)),
             JSONMember(key: "rect", value: output(item.rect)),
+            JSONMember(key: "cornerPins", value: output(item.cornerPins)),
             JSONMember(key: "characters", value: item.characters.map { .array($0.map(output)) } ?? .null)
         ]))
     }
@@ -54,6 +56,7 @@ extension EvaluationReport {
             JSONMember(key: "size", value: output(text.size)),
             JSONMember(key: "box", value: output(text.box)),
             JSONMember(key: "transform", value: output(text.transform)),
+            JSONMember(key: "cornerPins", value: output(text.cornerPins)),
             JSONMember(key: "lines", value: .array(text.lines.map(output))),
             JSONMember(key: "words", value: .array(text.words.map(output)))
         ]))
@@ -74,6 +77,21 @@ extension EvaluationReport {
             JSONMember(key: "text", value: .string(word.text)),
             JSONMember(key: "range", value: output(word.range))
         ]))
+    }
+
+    private func output(_ cornerPins: [EvaluationCornerPin]?) -> JSONValue {
+        cornerPins.map { cornerPins in
+            .array(cornerPins.map { cornerPin in
+                .object(JSONObject(members: [
+                    JSONMember(key: "dest", value: output(cornerPin.destination)),
+                    JSONMember(key: "cornerPin", value: output(cornerPin.cornerPin))
+                ]))
+            })
+        } ?? .null
+    }
+
+    private func output(_ quad: Quad) -> JSONValue {
+        .array(quad.corners.map { .array([.measure($0.x), .measure($0.y)]) })
     }
 
     private func output(_ transform: AffineTransform) -> JSONValue {

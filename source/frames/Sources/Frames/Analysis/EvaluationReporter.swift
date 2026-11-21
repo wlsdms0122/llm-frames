@@ -9,7 +9,8 @@
 // nested lists flattened, with the text of every title drawn then. A frame with motion blur is reported as the list it
 // has without motion blur (FRAMES-29). A title's text is read from the resolved title at the time that list draws it
 // at, not from its items. A title's first item names it and gives its text box's map to output pixels: its one item, or
-// the background item under its units, which carries the title's transform without a unit's motion. A unit's `fills`
+// the background item under its units, which carries the title's transform without a unit's motion, and the corner pins
+// that carry it. A unit's `fills`
 // item reports the characters of the unit it names, of the title its origin names.
 package struct EvaluationReporter: Sendable {
     // MARK: - Property
@@ -48,7 +49,7 @@ package struct EvaluationReporter: Sendable {
             }
 
             if !texts.contains(where: { $0.place == origin.place }) {
-                texts.append(text(of: title, origin: origin, transform: item.transform))
+                texts.append(text(of: title, origin: origin, item: EvaluationItem(item)))
             }
             switch item.characters {
             case .title:
@@ -70,7 +71,7 @@ package struct EvaluationReporter: Sendable {
     private func text(
         of title: TitleSample,
         origin: ItemOrigin,
-        transform: AffineTransform
+        item: EvaluationItem
     ) -> EvaluationText {
         let text = title.text
         let time = title.time
@@ -83,7 +84,8 @@ package struct EvaluationReporter: Sendable {
             text: text.text,
             size: Size(width: textBox.width, height: textBox.height),
             box: Rectangle(x: box.x - textBox.x, y: box.y - textBox.y, width: box.width, height: box.height),
-            transform: transform,
+            transform: item.transform,
+            cornerPins: item.cornerPins,
             lines: text.evaluationLines(at: time),
             words: text.evaluationWords
         )

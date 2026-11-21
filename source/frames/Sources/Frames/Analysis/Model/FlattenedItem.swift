@@ -6,7 +6,8 @@
 //
 
 // One item of a display list with every list it is nested in flattened away: the clip that drew it, what it draws, its
-// opacity times the opacity of every picture holding it, the map from its own coordinates to output pixels, its extent
+// opacity times the opacity of every picture holding it, the map from its own coordinates to output pixels with the
+// corner pins that carry it left out and those corner pins, innermost first, its extent
 // in its own coordinates before anything cuts it, what it covers of the output, for a picture of media where that
 // media is drawn, and for a glyphs item that reports characters which of its title's it reports.
 struct FlattenedItem: Equatable, Sendable {
@@ -15,6 +16,7 @@ struct FlattenedItem: Equatable, Sendable {
     let item: ItemKind
     let opacity: Double
     let transform: AffineTransform
+    let cornerPins: [EvaluationCornerPin]
     let rect: Rectangle
     let coverage: ItemCoverage
     let media: MediaPlacement?
@@ -26,6 +28,7 @@ struct FlattenedItem: Equatable, Sendable {
         item: ItemKind,
         opacity: Double,
         transform: AffineTransform,
+        cornerPins: [EvaluationCornerPin] = [],
         rect: Rectangle,
         coverage: ItemCoverage,
         media: MediaPlacement? = nil,
@@ -35,6 +38,7 @@ struct FlattenedItem: Equatable, Sendable {
         self.item = item
         self.opacity = opacity
         self.transform = transform
+        self.cornerPins = cornerPins
         self.rect = rect
         self.coverage = coverage
         self.media = media

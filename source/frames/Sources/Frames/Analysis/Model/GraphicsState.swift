@@ -12,12 +12,15 @@
 // none does, and each corner pin is the homography from its picture's destination to its corner pin followed by the
 // transform that carries that picture's coordinates on, innermost first. A shape is cut to the part in front of each
 // corner pin's horizon before that corner pin carries it. `affineTransform` is the same chain with every corner pin left
-// out, the map P_n R_n ... P_1 R_1 T an item reports as its transform (FRAMES-23).
+// out, the map P_n R_n ... P_1 R_1 T an item reports as its transform, and `reportedCornerPins` are the corner pins an
+// item reports, innermost first, each its picture's destination and corner pin carried into the coordinates
+// `affineTransform` gives (FRAMES-23).
 struct GraphicsState: Equatable, Sendable {
     // MARK: - Property
     let transform: AffineTransform
     let affineTransform: AffineTransform
     let cornerPins: [Homography]
+    let reportedCornerPins: [EvaluationCornerPin]
     let clips: [ConvexPolygon]
     let opacity: Double
     let origin: ItemOrigin?
@@ -32,6 +35,7 @@ struct GraphicsState: Equatable, Sendable {
         transform: AffineTransform,
         affineTransform: AffineTransform? = nil,
         cornerPins: [Homography] = [],
+        reportedCornerPins: [EvaluationCornerPin] = [],
         clips: [ConvexPolygon],
         opacity: Double,
         origin: ItemOrigin?
@@ -39,6 +43,7 @@ struct GraphicsState: Equatable, Sendable {
         self.transform = transform
         self.affineTransform = affineTransform ?? transform
         self.cornerPins = cornerPins
+        self.reportedCornerPins = reportedCornerPins
         self.clips = clips
         self.opacity = opacity
         self.origin = origin
@@ -52,6 +57,7 @@ struct GraphicsState: Equatable, Sendable {
             transform: item.transform.concatenating(transform),
             affineTransform: item.transform.concatenating(affineTransform),
             cornerPins: cornerPins,
+            reportedCornerPins: reportedCornerPins,
             clips: clips,
             opacity: opacity * item.opacity,
             origin: item.origin ?? origin
@@ -73,6 +79,7 @@ struct GraphicsState: Equatable, Sendable {
             transform: transform.concatenating(self.transform),
             affineTransform: transform.concatenating(affineTransform),
             cornerPins: cornerPins,
+            reportedCornerPins: reportedCornerPins,
             clips: clips,
             opacity: opacity,
             origin: origin
@@ -85,16 +92,25 @@ struct GraphicsState: Equatable, Sendable {
     }
 
     // The state of a list nested in a picture with a corner pin drawn in this state: carried from the list onto the
-    // picture's destination by `transform`, then onto its corner pin by `cornerPin`. The whole list shows, the part
-    // outside the source rect and the destination included (FRAMES-20).
+    // picture's destination by `transform`, then onto its corner pin by the homography from the destination's corners
+    // to it. The whole list shows, the part outside the source rect and the destination included (FRAMES-20). Nil for a
+    // destination with no area, which no homography carries: a corner pin is strictly convex.
     func nesting(
         transform: AffineTransform,
-        cornerPin: Homography
-    ) -> GraphicsState {
-        GraphicsState(
+        destination: Rectangle,
+        cornerPin: Quad
+    ) -> GraphicsState? {
+        guard let homography = Homography(from: Quad(destination), to: cornerPin) else { return nil }
+
+        let reported = EvaluationCornerPin(
+            destination: Quad(destination).applying(affineTransform),
+            cornerPin: cornerPin.applying(affineTransform)
+        )
+        return GraphicsState(
             transform: transform,
             affineTransform: transform.concatenating(affineTransform),
-            cornerPins: [cornerPin.concatenating(Homography(self.transform))] + cornerPins,
+            cornerPins: [homography.concatenating(Homography(self.transform))] + cornerPins,
+            reportedCornerPins: [reported] + reportedCornerPins,
             clips: clips,
             opacity: opacity,
             origin: origin
@@ -127,6 +143,7 @@ struct GraphicsState: Equatable, Sendable {
             transform: transform,
             affineTransform: affineTransform,
             cornerPins: cornerPins,
+            reportedCornerPins: reportedCornerPins,
             clips: clips + polygons,
             opacity: opacity,
             origin: origin

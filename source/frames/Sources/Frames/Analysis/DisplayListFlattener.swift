@@ -11,7 +11,7 @@
 // they cover only what the picture shows. A picture with a corner pin shows its whole list and carries it on from its
 // destination to its corner pin by their homography, each shape cut to the part in front of its horizon first
 // (FRAMES-20, FRAMES-23). An item's transform is P_n R_n ... P_1 R_1 T of FRAMES-23, the affine maps of the pictures
-// that hold it, which leaves out their corner pins, so it is the output map only where no corner pin holds the item.
+// that hold it with their corner pins left out, and the corner pins it reports finish that map.
 // What an item covers follows its shape in convex pieces: a picture's destination, a path's geometry with its stroke
 // and arrowheads, what a glyphs item draws, and an adjustment's list frame, each cut to the region its masks bound
 // (`ConvexPolygon(bounding:)`). Rounded corners, transition mattes and track mattes are left out: a track matte's
@@ -48,6 +48,7 @@ struct DisplayListFlattener: Sendable {
                 item: .background,
                 opacity: state.opacity,
                 transform: state.affineTransform,
+                cornerPins: state.reportedCornerPins,
                 rect: frame,
                 coverage: state.covered(ItemCoverage(pieces: [ConvexPolygon(rectangle: frame)]))
             )]
@@ -96,6 +97,7 @@ struct DisplayListFlattener: Sendable {
             item: ItemKind(content: item.content),
             opacity: own.opacity,
             transform: transform,
+            cornerPins: own.reportedCornerPins,
             rect: rect,
             coverage: coverage,
             characters: characters
@@ -122,6 +124,7 @@ struct DisplayListFlattener: Sendable {
                 item: .picture,
                 opacity: own.opacity,
                 transform: own.affineTransform,
+                cornerPins: own.reportedCornerPins,
                 rect: picture.destination,
                 coverage: coverage,
                 media: placement
@@ -135,10 +138,12 @@ struct DisplayListFlattener: Sendable {
                 let nested = own.nesting(rectangle: rectangle, transform: transform, destination: picture.destination)
                 return try items(of: list, state: nested)
             }
-            // A corner pin is strictly convex, so only a destination with no area has no homography to it.
-            guard let homography = Homography(from: Quad(picture.destination), to: cornerPin) else { return [] }
+            guard let nested = own.nesting(transform: transform, destination: picture.destination, cornerPin: cornerPin)
+            else {
+                return []
+            }
 
-            return try items(of: list, state: own.nesting(transform: transform, cornerPin: homography))
+            return try items(of: list, state: nested)
         }
     }
 
