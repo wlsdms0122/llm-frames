@@ -344,6 +344,112 @@ struct QuartzRendererTests {
         expect(bitmap.pixel(x: 2, y: 2), equals: [0, 0, 0, 1])
     }
 
+    @Test(
+        "a list with samples is the mean of its sample pictures, taken in the form its compositing names",
+        arguments: [(Compositing.encoded, 0.5), (.linear, 0.735357)]
+    )
+    func drawsSampleMean(
+        compositing: Compositing,
+        mean: Double
+    ) throws {
+        // Given
+        let sut = QuartzRenderer(decoder: AVFoundationDecoder())
+        let samples = ["#FFFFFF", "#000000"].map { color in
+            [DisplayItem(content: .path(PathItem(filling: Rectangle(x: 0, y: 0, width: 4, height: 4), color: Color(written: color))))]
+        }
+        let list = samplesList(size: 4, compositing: compositing, samples: samples)
+
+        // When
+        let bitmap = try sut.frame(of: list)
+
+        // Then
+        expect(bitmap.pixel(x: 2, y: 2), equals: [mean, mean, mean, 1])
+    }
+
+    @Test("sample lists that draw the same picture give that picture back", arguments: [2, 3, 16, 64, 256])
+    func returnsEqualPictures(count: Int) throws {
+        // Given
+        // Each sample's own colour lies under an opaque square, so every sample draws the same picture.
+        let sut = QuartzRenderer(decoder: AVFoundationDecoder())
+        let samples = (0..<count).map { index in
+            let gray = Double(index) / Double(count)
+            return [
+                DisplayItem(content: .path(PathItem(
+                    filling: Rectangle(x: 0, y: 0, width: 6, height: 6),
+                    color: Color(written: "color(srgb \(gray) \(gray) \(gray) / 1)")
+                ))),
+                DisplayItem(content: .path(PathItem(filling: Rectangle(x: 0, y: 0, width: 6, height: 6), color: Color(written: "#FF0000")))),
+                DisplayItem(opacity: 0.6, content: .path(PathItem(
+                    geometry: .ellipse(Rectangle(x: 0.5, y: 1, width: 4.5, height: 3.7)),
+                    fill: .color(Color(written: "#3366CC")),
+                    stroke: nil
+                )))
+            ]
+        }
+        let picture = try sut.frame(of: list(size: 6, items: samples[0]))
+
+        // When
+        let bitmap = try sut.frame(of: samplesList(size: 6, samples: samples))
+
+        // Then
+        #expect(components(of: bitmap) == components(of: picture))
+    }
+
+    @Test("the mean is the sum of the sample pictures in 32-bit float in sample order, divided once, the same in every run")
+    func sumsSamplesInOrder() throws {
+        // Given
+        let sut = QuartzRenderer(decoder: AVFoundationDecoder())
+        let samples = (0..<5).map { index in
+            [DisplayItem(
+                transform: Frames.AffineTransform(a: 1, b: 0, c: 0, d: 1, tx: 0.37 * Double(index), ty: 0.21 * Double(index)),
+                opacity: 0.8,
+                content: .path(PathItem(
+                    geometry: .ellipse(Rectangle(x: 1, y: 1, width: 5.3, height: 4.1)),
+                    fill: .color(Color(written: "color(srgb 0.9 0.4 0.2 / 0.7)")),
+                    stroke: nil
+                ))
+            )]
+        }
+        let pictures = try samples.map { try sut.frame(of: list(size: 8, items: $0)) }
+        var sums = [Float](repeating: 0, count: 8 * 8 * 4)
+        for picture in pictures {
+            for (index, half) in halves(of: picture).enumerated() {
+                sums[index] += Float(half)
+            }
+        }
+        let expected = sums.map { Float16($0 / Float(samples.count)) }
+
+        // When
+        let bitmap = try sut.frame(of: samplesList(size: 8, samples: samples))
+        let again = try QuartzRenderer(decoder: AVFoundationDecoder()).frame(of: samplesList(size: 8, samples: samples))
+
+        // Then
+        #expect(halves(of: bitmap) == expected)
+        #expect(components(of: bitmap) == components(of: again))
+    }
+
+    @Test("both sides of a push meet in every sample, so the seam is opaque in their mean")
+    func keepsPushSeamOpaque() throws {
+        // Given
+        // The seam lies at x = 2 + i in sample i, so the pixel at x = 3 is the left side's in two of the four samples.
+        let sut = QuartzRenderer(decoder: AVFoundationDecoder())
+        let samples = (0..<4).map { index in
+            let seam = 2 + Double(index)
+            return [
+                DisplayItem(content: .path(PathItem(filling: Rectangle(x: 0, y: 0, width: seam, height: 2), color: Color(written: "#FF0000")))),
+                DisplayItem(content: .path(PathItem(filling: Rectangle(x: seam, y: 0, width: 8 - seam, height: 2), color: Color(written: "#0000FF"))))
+            ]
+        }
+        let list = samplesList(size: 8, background: "#00000000", samples: samples)
+
+        // When
+        let bitmap = try sut.frame(of: list)
+
+        // Then
+        #expect((0..<8).allSatisfy { x in bitmap.pixel(x: x, y: 1)[3] == 1 })
+        #expect(bitmap.pixel(x: 3, y: 1) == [0.5, 0, 0.5, 1])
+    }
+
     // MARK: - Private
     // One sharp `add` mask of the rectangle in output pixels.
     private func mask(_ rectangle: Rectangle) -> [ItemMask] {
@@ -355,6 +461,31 @@ struct QuartzRendererTests {
         items: [DisplayItem]
     ) -> DisplayList {
         DisplayList(size: Size(width: size, height: size), background: Color(written: "#FFFFFF"), seed: 0, items: items)
+    }
+
+    private func samplesList(
+        size: Double,
+        background: String = "#FFFFFF",
+        compositing: Compositing = .encoded,
+        samples: [[DisplayItem]]
+    ) -> DisplayList {
+        DisplayList(
+            size: Size(width: size, height: size),
+            background: Color(written: background),
+            compositing: compositing,
+            seed: 0,
+            samples: samples
+        )
+    }
+
+    // Every component of the bitmap, row by row, as its raw sixteen bits.
+    private func components(of bitmap: Bitmap) -> [UInt16] {
+        (0..<bitmap.height).flatMap { y in (0..<bitmap.width).flatMap { x in bitmap.components(x: x, y: y) } }
+    }
+
+    // Every component of a half float bitmap, row by row.
+    private func halves(of bitmap: Bitmap) -> [Float16] {
+        components(of: bitmap).map(Float16.init(bitPattern:))
     }
 
     private func sha256(of contents: String) -> String {

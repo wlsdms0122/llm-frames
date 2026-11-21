@@ -8,8 +8,9 @@
 import Frames
 
 // The `quartz` renderer: draws display lists with Core Graphics and Core Image on the working values of FRAMES-26, each
-// list in the form its `compositing` names, reading media pictures through the decoder at any bit depth. A frame is a
-// half float premultiplied RGBA bitmap of encoded working values, unbounded, of the list's size.
+// list in the form its `compositing` names, reading media pictures through the decoder at any bit depth, and a list
+// given as sample lists as the mean of their pictures. A frame is a half float premultiplied RGBA bitmap of encoded
+// working values, unbounded, of the list's size.
 package final class QuartzRenderer: Sendable {
     // MARK: - Property
     private let pictures: MediaPictureCache
