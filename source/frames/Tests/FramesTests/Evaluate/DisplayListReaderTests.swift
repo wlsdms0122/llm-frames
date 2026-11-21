@@ -270,6 +270,7 @@ struct DisplayListReaderTests {
         (["1", "6", "runs", "0", "size"], "30", "samples[1][6].runs[0].size (glyphs)"),
         (["1", "6", "runs", "0", "glyphs", "1", "0"], "77", "samples[1][6].runs[0].glyphs[1][0] (glyphs)"),
         (["1", "11", "layer"], #""fills""#, "samples[1][11].layer (glyphs)"),
+        (["1", "11", "unit"], "4", "samples[1][11].unit (glyphs)"),
         (["1", "12", "trackMatte", "mode"], #""alpha""#, "samples[1][12].trackMatte.mode (picture)"),
         (["1", "12", "trackMatte", "invert"], "true", "samples[1][12].trackMatte.invert (picture)"),
         (
