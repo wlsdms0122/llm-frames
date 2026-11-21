@@ -630,7 +630,7 @@ With `--json`, and always for `evaluate`, `locate` and `track`, a command prints
 
 | Command | Object |
 | --- | --- |
-| `probe` | `{probe, kind, size, duration, fps, alpha, colorSpace, audio, pages}`, `colorSpace` as `{name, primaries, transfer, matrix, bitDepth, hdr}` or `null` for sound, `audio` as `{channels, sampleRate}` or `null`, `pages` the page count of a PDF or `null` |
+| `probe` | `{probe, kind, size, duration, fps, alpha, colorSpace, audio, pages}`, `colorSpace` as `{name, primaries, transfer, matrix, bitDepth, hdr}` or `null` for sound, `audio` as `{channels, sampleRate}` or `null`, `pages` the page count of a PDF or `null`, and for a page `size` in points, which may be fractions, and `bitDepth` `null` |
 | `ocr` | `{ocr, size, languages, frames}`, each frame `{time, lines}` and each line `{text, rect}` |
 | `track` | `{track, time, target, frames}`, each frame `{time, quad, motion}` |
 | `timeline` | `{timeline, duration, storyline, clips}`. A storyline entry has `place, id, media, edit, drawn, clip, speed, timeRemap, transition`, and a clips entry `place, id, kind, visible, lane, storyline, parent, animation`. A compound clip or template instance adds `nested` |
