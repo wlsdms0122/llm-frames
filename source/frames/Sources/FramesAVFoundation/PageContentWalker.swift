@@ -31,6 +31,7 @@ final class PageContentWalker {
     private var scannedStreams: Set<String> = []
     private var operators: CGPDFOperatorTableRef?
     private var contentStreams: [CGPDFContentStreamRef] = []
+    private var uncoloredPatternDepth = 0
 
     private var state: PageGraphicsState {
         get { states[states.count - 1] }
@@ -283,8 +284,8 @@ final class PageContentWalker {
         if strokes { paint(in: state.stroke, pattern: state.strokePattern) }
     }
 
-    // A Pattern space paints what its pattern draws: a tiling pattern's content, in the underlying space of an
-    // uncoloured one, or a shading pattern's shading.
+    // A Pattern space paints what its pattern draws: a tiling pattern's content, or a shading pattern's shading. An
+    // uncoloured tiling pattern's content paints in the underlying space, so the colour its content sets is not drawn.
     private func paint(
         in space: PDFValue,
         pattern: CGPDFObjectRef?
@@ -297,7 +298,11 @@ final class PageContentWalker {
         guard let pattern else { return }
 
         if let stream = Self.stream(pattern), let dictionary = CGPDFStreamGetDictionary(stream) {
+            var paintType: CGPDFInteger = 1
+            let isUncolored = CGPDFDictionaryGetInteger(dictionary, "PaintType", &paintType) && paintType == 2
+            if isUncolored { uncoloredPatternDepth += 1 }
             scan(stream, resources: Self.dictionary(dictionary, "Resources"))
+            if isUncolored { uncoloredPatternDepth -= 1 }
         } else if
             let dictionary = Self.dictionary(pattern),
             let shading = Self.object(dictionary, "Shading"),
@@ -422,7 +427,7 @@ final class PageContentWalker {
     }
 
     private func record(_ space: PDFValue) {
-        guard !isHidden, seenColorSpaces.insert(space).inserted else { return }
+        guard !isHidden, uncoloredPatternDepth == 0, seenColorSpaces.insert(space).inserted else { return }
 
         colorSpaces.append(space)
     }

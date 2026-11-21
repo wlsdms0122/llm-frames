@@ -175,6 +175,36 @@ struct PageContentWalkerTests {
         #expect(content.colorSpaces.contains(.name("DeviceRGB")))
     }
 
+    @Test("an uncoloured tiling pattern paints in its underlying space, and the colour its content sets is not drawn")
+    func readsUncolouredPattern() {
+        // Given
+        let pattern = PDFValue.stream(
+            [
+                "PatternType": .integer(1),
+                "PaintType": .integer(2),
+                "TilingType": .integer(1),
+                "BBox": .array([0, 0, 2, 2].map(PDFValue.integer)),
+                "XStep": .integer(2),
+                "YStep": .integer(2),
+                "Resources": .dictionary([:])
+            ],
+            Data("1 0 0 0 k 0 0 1 1 re f".utf8)
+        )
+        let page = PageFile.page(
+            "/P0 cs 1 0 0 /T0 scn 0 0 10 10 re f",
+            resources: [
+                "ColorSpace": .dictionary(["P0": .array([.name("Pattern"), .name("DeviceRGB")])]),
+                "Pattern": .dictionary(["T0": pattern])
+            ]
+        )
+
+        // When
+        let content = walked(page)
+
+        // Then
+        #expect(content.colorSpaces == [.name("DeviceRGB")])
+    }
+
     @Test("a JPEG 2000 image whose dictionary names no colour space is a fault")
     func findsJPXWithoutSpace() {
         // Given
