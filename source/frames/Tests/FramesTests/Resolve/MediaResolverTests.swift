@@ -116,7 +116,7 @@ struct MediaResolverTests {
 
         // When
         let error = #expect(throws: ResolveError.self) {
-            try sut.transitionMedia(at: "/abs/print.jpg", place: place, kind: .clip(.media(.video)), colorSpace: nil)
+            try sut.transitionMedia(at: "/abs/print.jpg", page: nil, place: place, kind: .clip(.media(.video)), colorSpace: nil)
         }
 
         // Then
@@ -134,6 +134,7 @@ struct MediaResolverTests {
         try sut.checkColor(of: media, colorSpace: .srgb, place: .root, kind: .genericClip(.storyline))
         let matte = try sut.transitionMedia(
             at: "/abs/print.jpg",
+            page: nil,
             place: .root,
             kind: .clip(.media(.video)),
             colorSpace: .srgb

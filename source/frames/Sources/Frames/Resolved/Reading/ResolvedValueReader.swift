@@ -50,7 +50,7 @@ struct ResolvedValueReader: Sendable {
             .imageSequence(try object.member("imageSequence").elements().map { element in
                 try pinned(element.object(keys: ["file", "sha256"]))
             })
-        } else if let page = try object.optionalMember("page") {
+        } else if let page = object.optionalMember("page") {
             .page(try pinned(object), page: try pageNumber(page))
         } else {
             .file(try pinned(object))
