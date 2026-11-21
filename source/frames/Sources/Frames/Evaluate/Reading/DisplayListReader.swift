@@ -147,13 +147,27 @@ package struct DisplayListReader: Sendable {
         )
     }
 
-    // `size` is the size of the list that holds the items.
+    // `size` is the size of the list that holds the items. A list's `fills` items name the units 0, 1, 2 and on in
+    // order, since a title by unit draws one for each unit in reading order.
     private func items(
         _ value: PlacedJSONValue,
         in size: Size,
         seed: Int
     ) throws -> [DisplayItem] {
-        try value.elements().map { element in try item(element, in: size, seed: seed) }
+        let elements = try value.elements()
+        let items = try elements.map { element in try item(element, in: size, seed: seed) }
+        let fills = zip(elements, items).compactMap { element, item in fillsUnit(of: item).map { (element, $0) } }
+        for (expected, (element, unit)) in fills.enumerated() where unit != expected {
+            let written = try values.member("unit", of: element, kind: "glyphs")
+            throw ModelError.invalidValue(
+                place: written.place,
+                kind: "glyphs",
+                reason: "the list's fills items name the units 0, 1, 2 and on in order, and this one names unit \(unit) "
+                    + "in place of \(expected)"
+            )
+        }
+
+        return items
     }
 
     // Each sample list is read before they are compared, so a member of another shape stops as it does in `items`.
@@ -213,7 +227,7 @@ package struct DisplayListReader: Sendable {
             ["geometry", "fill", "stroke", "trim", "shadow"]
 
         case "glyphs":
-            ["size", "runs", "layer", "unitBox", "unitGlyphBox", "background"]
+            ["size", "runs", "layer", "unit", "unitBox", "extent", "background"]
 
         default:
             ["filter"]
@@ -479,9 +493,8 @@ package struct DisplayListReader: Sendable {
         GlyphsItem(
             size: try values.size(item.member("size")),
             runs: try values.drawnRuns(item.member("runs")),
-            layer: try item.member("layer").optional { try literal($0) },
-            unitBox: try item.member("unitBox").optional { try values.rectangle($0) },
-            unitGlyphBox: try item.member("unitGlyphBox").optional { try values.rectangle($0) },
+            unit: try unit(of: item),
+            extent: try values.rectangle(item.member("extent")),
             background: try item.member("background").optional { value in
                 let background = try value.object(keys: ["rect", "radius", "color"])
 
@@ -492,6 +505,39 @@ package struct DisplayListReader: Sendable {
                 )
             }
         )
+    }
+
+    // A unit's item carries its layer, its unit's index and its unit's box, and a title's own item none of them.
+    private func unit(of item: PlacedJSONObject) throws -> UnitDrawing? {
+        let layer: GlyphLayer? = try item.member("layer").optional { try literal($0) }
+        let index = try item.member("unit").optional { value in
+            guard let unit = Int(exactly: try value.number()), unit >= 0 else { throw value.wrongType("a unit index") }
+
+            return unit
+        }
+        let box = try item.member("unitBox").optional { try values.rectangle($0) }
+        switch (layer, index, box) {
+        case let (layer?, index?, box?):
+            return UnitDrawing(layer: layer, index: index, box: box)
+
+        case (nil, nil, nil):
+            return nil
+
+        default:
+            let found = [("layer", layer != nil), ("unit", index != nil), ("unitBox", box != nil)].filter(\.1).map(\.0)
+            throw ModelError.invalidValue(
+                place: item.place,
+                kind: item.kind,
+                reason: "a unit's item carries layer, unit and unitBox, and a title's own item none of them, found only "
+                    + found.joined(separator: " and ")
+            )
+        }
+    }
+
+    private func fillsUnit(of item: DisplayItem) -> Int? {
+        guard case let .glyphs(glyphs) = item.content, let unit = glyphs.unit, unit.layer == .fills else { return nil }
+
+        return unit.index
     }
 
     private func filter(

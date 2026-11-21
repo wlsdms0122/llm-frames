@@ -50,10 +50,13 @@ struct TitleGroupTests {
         #expect(list.size == Size(width: 1920, height: 1080))
         #expect(list.seed == 7)
         #expect(list.items.map(\.origin) == Array(repeating: ItemOrigin(clip: clip), count: 9))
+        #expect(list.items.map { self.glyphs(of: $0)?.unit?.index } == [nil] + (0..<4).flatMap { _ in [0, 1] })
         #expect(list.items.map(\.transform) == Array(repeating: single.transform, count: 9))
         #expect(list.items.map { layer(of: $0) } == [GlyphLayer?.none] + GlyphLayer.allCases.flatMap { [$0, $0] })
-        #expect(list.items.map { self.glyphs(of: $0)?.runs.flatMap(\.glyphs).count ?? -1 } == [0] + Array(repeating: 2, count: 8))
-        #expect(self.glyphs(of: list.items[7])?.runs.first?.glyphs == Array(glyphs.runs[0].glyphs[0..<2]))
+        // "ab" draws the space after it.
+        let counts = list.items.map { self.glyphs(of: $0)?.runs.flatMap(\.glyphs).count ?? -1 }
+        #expect(counts == [0, 3, 2, 3, 2, 3, 2, 3, 2])
+        #expect(self.glyphs(of: list.items[7])?.runs.first?.glyphs == Array(glyphs.runs[0].glyphs[0..<3]))
         #expect(self.glyphs(of: list.items[8])?.runs.first?.glyphs == Array(glyphs.runs[0].glyphs[3..<5]))
     }
 
@@ -71,14 +74,15 @@ struct TitleGroupTests {
         )
 
         // Then
-        // Each unit draws its glyphs grown by 2 for half its stroke, which is its box: "ab" from 0 to 40 and "cd" from
-        // 50 to 90, each from -32 to 8 about the baseline at 32.
+        // Each unit's box is its glyph box grown by 2 for half its stroke: "ab" from 0 to 40 and "cd" from 50 to 90,
+        // each from -32 to 8 about the baseline at 32. "ab" also draws the space after it, so its reveal wipes 0 to 50
+        // grown by 2.
         let first = text.unitBox(of: 0, at: SampleTime(0.25))
         let second = text.unitBox(of: 1, at: SampleTime(0.25))
         #expect(first == Rectangle(x: -2, y: -2, width: 44, height: 44))
         #expect(second == Rectangle(x: 48, y: -2, width: 44, height: 44))
         #expect(list.items[0].reveal == nil)
-        #expect(list.items[1].reveal == Rectangle(x: -2, y: -2, width: 22, height: 44))
+        #expect(list.items[1].reveal == Rectangle(x: -2, y: -2, width: 27, height: 44))
         #expect(list.items[2].reveal == Rectangle(x: 48, y: -2, width: 0, height: 44))
     }
 
@@ -133,15 +137,16 @@ struct TitleGroupTests {
         let resting = try group(of: animation, at: 1.5)
 
         // Then
-        // "ab" lies in 0 to 40 both ways. Its stroke, 4 at the title's scale factor of root 2, is drawn 4 root 2 wide in
-        // output pixels, so it reaches root 2 across and 2 root 2 down in the title's box, scaled 2 across and 1 down.
+        // "ab" and the space it draws lie in 0 to 50 across and 0 to 40 down. Its stroke, 4 at the title's scale factor
+        // of root 2, is drawn 4 root 2 wide in output pixels, so it reaches root 2 across and 2 root 2 down in the
+        // title's text box, scaled 2 across and 1 down.
         let reveal = try #require(entering.items[1].reveal)
         let across = 2.squareRoot()
         let down = 2 * 2.squareRoot()
         #expect(abs(reveal.x + across) < 1e-9)
         #expect(abs(reveal.y + down) < 1e-9)
         #expect(abs(reveal.height - (40 + 2 * down)) < 1e-9)
-        #expect(abs(reveal.width - (40 + 2 * across) * time / 0.5) < 1e-9)
+        #expect(abs(reveal.width - (50 + 2 * across) * time / 0.5) < 1e-9)
         #expect(resting.items[1].reveal == nil)
     }
 
@@ -161,12 +166,13 @@ struct TitleGroupTests {
         let resting = try group(of: animation, in: parent, at: 1.5)
 
         // Then
-        // A title keeps its size under a parent, so its stroke, 4 wide, reaches 2 past "ab", which lies in 0 to 40.
+        // A title keeps its size under a parent, so its stroke, 4 wide, reaches 2 past "ab" and the space it draws,
+        // which lie in 0 to 50 across and 0 to 40 down.
         let reveal = try #require(entering.items[1].reveal)
         #expect(abs(reveal.x + 2) < 1e-9)
         #expect(abs(reveal.y + 2) < 1e-9)
         #expect(abs(reveal.height - 44) < 1e-9)
-        #expect(abs(reveal.width - 44 * time / 0.5) < 1e-9)
+        #expect(abs(reveal.width - 54 * time / 0.5) < 1e-9)
         #expect(resting.items[1].reveal == nil)
     }
 
@@ -247,6 +253,48 @@ struct TitleGroupTests {
         ])
     }
 
+    @Test("every glyph of a title by word is drawn by one unit, a line's hanging space by its last unit, whose extent holds it")
+    func drawsHangingSpaceByLastUnit() throws {
+        // Given
+        let clip = try resolvedClip(#"{ "title": "ab cd ", "style": "caption", "position": [400, 225] }"#)
+
+        // When
+        let list = try group(of: animated(clip, entrance: fade, stagger: 0.1), at: 1)
+
+        // Then
+        let fills = list.items.suffix(2).compactMap { glyphs(of: $0) }
+        #expect(fills.map { $0.runs.flatMap(\.glyphs).count } == [3, 3])
+        #expect(fills.map(\.extent) == [
+            Rectangle(x: 0, y: 0, width: 50, height: 40),
+            Rectangle(x: 50, y: 0, width: 50, height: 40)
+        ])
+        #expect(glyphs(of: list.items[0])?.extent == Rectangle(x: 0, y: 0, width: 100, height: 40))
+    }
+
+    @Test("a title by word with no character draws one item of every step, as a title not animated by unit")
+    func drawsTitleWithoutUnitAsOne() throws {
+        // Given
+        let clip = try resolvedClip(#"{ "title": "  ", "style": "caption", "position": [400, 225] }"#)
+        let text = try title(of: clip)
+
+        // When
+        let items = sut.items(
+            of: animated(clip, entrance: fade, stagger: 0.1),
+            in: space,
+            picture: nil,
+            trackMatte: nil,
+            compositing: .encoded,
+            seed: 0,
+            at: SampleTime(1)
+        )
+
+        // Then
+        #expect(text.units == [])
+        #expect(items.count == 1)
+        #expect(items.first.flatMap { glyphs(of: $0) }?.unit == nil)
+        #expect(items.first.flatMap { glyphs(of: $0) } != nil)
+    }
+
     @Test("the loop's reveal cuts the whole title in its box: the background and each resting unit alike")
     func revealsLoopOnTitle() throws {
         // Given
@@ -268,6 +316,38 @@ struct TitleGroupTests {
         let reveal = try #require(title.reveal)
         #expect(reveal == Rectangle(x: -2, y: -2, width: 47, height: 44))
         #expect(list.items.map(\.reveal) == Array(repeating: reveal, count: 9))
+    }
+
+    @Test("in a sample of a frame with motion blur, a loop whose wipe is complete writes the title's whole box on the background and every unit, which holds what each unit draws")
+    func writesCompleteLoopOnUnits() throws {
+        // Given
+        let whole = Span(ease: .linear, keys: [SpanKey(t: 0, values: [.reveal: 1]), SpanKey(t: 1, values: [.reveal: 1])])
+        let grow = Span(ease: .linear, keys: [SpanKey(t: 0, values: [.scale: 0.2]), SpanKey(t: 1, values: [.scale: 1])])
+        let clip = try resolvedClip(#"{ "title": "ab cd", "style": "caption", "position": [400, 225] }"#)
+        let animated = animated(
+            clip,
+            entrance: AnimationSpan(length: 0.5, span: grow),
+            loop: AnimationSpan(length: 1, span: whole),
+            stagger: 0.5
+        )
+        let time = SampleTime(instant: 0.25, frameTime: 0.25, sample: SampleInstant(instant: 0.25, frameTime: 0.25, reads: MotionBlurReads()))
+
+        // When
+        let item = try #require(
+            sut.items(of: animated, in: space, picture: nil, trackMatte: nil, compositing: .encoded, seed: 0, at: time).first
+        )
+
+        // Then
+        guard case let .picture(picture) = item.content, case let .displayList(list) = picture.source else {
+            Issue.record("the title draws a group")
+            return
+        }
+        let background = try #require(list.items.first?.reveal)
+        let units = list.items.dropFirst().compactMap { unit in
+            glyphs(of: unit).map { (reveal: unit.reveal, drawn: $0.drawnBounds(carriedBy: unit.transform)) }
+        }
+        #expect(units.count == 8)
+        #expect(units.allSatisfy { $0.reveal == background && background.contains($0.drawn) })
     }
 
     @Test("a title's group reads back as written, each unit's item with its layer and its bands")
@@ -292,7 +372,7 @@ struct TitleGroupTests {
         #expect(read == list)
     }
 
-    @Test("a title's units cover only their boxes, and its background only where it has one")
+    @Test("a title's units cover what they draw, the spaces after their words included, and its background item only its background, or nothing")
     func flattensGroup() throws {
         // Given
         let plain = try resolvedClip(#"{ "title": "ab cd", "style": "caption", "position": [400, 225] }"#)
@@ -317,8 +397,8 @@ struct TitleGroupTests {
                 )
             ))
         }
-        // The title's box, 90 wide, is centred on (400, 225): "cd" starts 50 from its left edge, and the gap between
-        // the words, 42 to 48 with their strokes, belongs to no unit.
+        // The title's box, 90 wide, is centred on (400, 225): "cd" starts 50 from its left edge, and the space between
+        // the words, 40 to 50, is drawn by "ab".
         let gap = Point(x: 400, y: 225)
         let word = Point(x: 400 + 15, y: 225)
 
@@ -327,11 +407,13 @@ struct TitleGroupTests {
         let boxedItems = try flattened(boxed)
 
         // Then
-        #expect(plainItems.count == 8)
-        #expect(plainItems.filter { $0.coverage.contains(gap) }.isEmpty)
+        // The background item of a title with no background is reported and covers nothing.
+        #expect(plainItems.count == 9)
+        #expect(plainItems[0].coverage.bounds == nil)
+        #expect(plainItems.filter { $0.coverage.contains(gap) }.count == 4)
         #expect(plainItems.filter { $0.coverage.contains(word) }.count == 4)
         #expect(boxedItems.count == 9)
-        #expect(boxedItems.filter { $0.coverage.contains(gap) }.count == 1)
+        #expect(boxedItems.filter { $0.coverage.contains(gap) }.count == 5)
         #expect(boxedItems.allSatisfy { $0.origin == ItemOrigin(clip: boxed) })
     }
 
@@ -369,7 +451,7 @@ struct TitleGroupTests {
     }
 
     private func layer(of item: DisplayItem) -> GlyphLayer? {
-        glyphs(of: item)?.layer
+        glyphs(of: item)?.unit?.layer
     }
 
     private func highlight(of item: DisplayItem) -> DrawnHighlight? {

@@ -110,9 +110,12 @@ struct ContactSheetComposer: Sendable {
         )
 
         let text = try ResolvedText(layout: layout, color: Self.textColor, hashes: hasher)
+        // The label's item lies in its text box inside its box.
+        let textBox = text.textBox(at: SampleTime(0))
 
         return DisplayItem(
-            transform: AffineTransform(mapping: layout.size, onto: frame),
+            transform: AffineTransform(translation: Point(x: textBox.x, y: textBox.y))
+                .concatenating(AffineTransform(mapping: layout.size, onto: frame)),
             content: .glyphs(GlyphsItem(text: text, factor: 1, at: SampleTime(0)))
         )
     }

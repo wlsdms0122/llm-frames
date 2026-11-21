@@ -467,10 +467,43 @@ struct ResolvedValueReader: Sendable {
 
     func text(_ value: PlacedJSONValue) throws -> ResolvedText {
         let text = try value.object(keys: [
-            "size", "textBox", "width", "background", "align", "lineHeight", "lines", "units", "runs"
+            "size", "textBox", "width", "background", "align", "lineHeight", "text", "words", "lines", "units", "runs"
         ])
         let alignments = [TextAlignment.left, .center, .right].map(\.rawValue)
         let length = ValueStructure.leaf(.length(.any))
+        let written = try text.member("text").string()
+        let scalarCount = written.unicodeScalars.count
+        let runs = try runs(text.member("runs"))
+        let lines = try text.member("lines").elements().map { element in
+            let line = try element.object(keys: ["width", "baseline", "ascent", "descent", "range", "clusters", "hanging"])
+
+            return PlacedLine(
+                width: try line.member("width").number(),
+                baseline: try line.member("baseline").number(),
+                ascent: try line.member("ascent").number(),
+                descent: try line.member("descent").number(),
+                range: try scalarRange(line.member("range"), in: scalarCount),
+                clusters: try line.member("clusters").elements().map { try cluster($0, in: runs, scalarCount: scalarCount) },
+                hanging: try line.member("hanging").elements().map { try cluster($0, in: runs, scalarCount: scalarCount) }
+            )
+        }
+        for (index, line) in lines.enumerated() {
+            let ranges = (line.clusters + line.hanging).map(\.range)
+            guard zip(ranges, ranges.dropFirst()).allSatisfy({ $0.upperBound <= $1.lowerBound }) else {
+                throw ModelError.invalidValue(
+                    place: value.place,
+                    kind: value.kind,
+                    reason: "line \(index)'s clusters do not go up along the text"
+                )
+            }
+            guard pensFollow(on: line, runs: runs) else {
+                throw ModelError.invalidValue(
+                    place: value.place,
+                    kind: value.kind,
+                    reason: "line \(index)'s pen positions do not follow its clusters' advances, its runs' static tracking and its width"
+                )
+            }
+        }
 
         return ResolvedText(
             size: try size(text.member("size")),
@@ -487,30 +520,30 @@ struct ResolvedValueReader: Sendable {
             },
             align: try text.member("align").name(among: alignments, TextAlignment.init(rawValue:)),
             lineHeight: try timed(text.member("lineHeight"), as: length),
-            lines: try text.member("lines").optional { value in
-                try value.elements().map { element in
-                    let line = try element.object(keys: ["width", "baseline", "clusters"])
-
-                    return PlacedLine(
-                        width: try line.member("width").number(),
-                        baseline: try line.member("baseline").number(),
-                        clusters: try line.member("clusters").elements().map(glyphRange)
-                    )
-                }
-            },
+            text: written,
+            words: try text.member("words").elements().map { try scalarRange($0, in: scalarCount) },
+            lines: lines,
             units: try text.member("units").optional { value in
                 try value.elements().map { element in
-                    let unit = try element.object(keys: ["box", "glyphBox", "glyphs", "parts"])
+                    let unit = try element.object(keys: ["box", "glyphBox", "characters", "hangingLines", "parts"])
 
                     return PlacedUnit(
-                        glyphs: try unit.member("glyphs").elements().map(glyphRange),
+                        characters: try characters(unit.member("characters"), in: lines),
+                        hangingLines: try unit.member("hangingLines").elements().map { element in
+                            guard let line = Int(exactly: try element.number()), lines.indices.contains(line) else {
+                                throw element.wrongType("a line index")
+                            }
+
+                            return line
+                        },
+                        lines: lines,
                         glyphBox: try rectangle(unit.member("glyphBox")),
                         box: try rectangle(unit.member("box")),
-                        parts: try unit.member("parts").elements().map(unitPart)
+                        parts: try unit.member("parts").elements().map { try unitPart($0, in: runs) }
                     )
                 }
             },
-            runs: try runs(text.member("runs"))
+            runs: runs
         )
     }
 
@@ -611,8 +644,8 @@ struct ResolvedValueReader: Sendable {
 
     private func run(_ value: PlacedJSONValue) throws -> ResolvedGlyphRun {
         let run = try value.object(keys: [
-            "source", "file", "sha256", "face", "size", "color", "stroke", "baselineShift", "tracking", "highlight",
-            "underline", "glyphs"
+            "source", "file", "sha256", "face", "size", "color", "stroke", "baselineShift", "staticTracking", "tracking",
+            "highlight", "underline", "glyphs"
         ])
         let length = ValueStructure.leaf(.length(.any))
 
@@ -628,6 +661,7 @@ struct ResolvedValueReader: Sendable {
             color: try timed(run.member("color"), as: .leaf(.color)),
             stroke: try timed(run.member("stroke"), as: LookStructureTable.textStroke, kind: "stroke"),
             baselineShift: try timed(run.member("baselineShift"), as: length),
+            staticTracking: try run.member("staticTracking").number(),
             tracking: try timed(run.member("tracking"), as: length),
             highlight: try run.member("highlight").optional { value in
                 let highlight = try value.object(kind: "highlight", keys: ["color", "padding", "radius", "rects"])
@@ -653,7 +687,19 @@ struct ResolvedValueReader: Sendable {
                     }
                 )
             },
-            glyphs: try glyphs(run.member("glyphs"))
+            glyphs: try run.member("glyphs").elements().map { element in
+                let numbers = try element.numbers(count: 5)
+                guard let id = UInt16(exactly: numbers[0]) else {
+                    throw element.wrongType("[glyph id, x, y, dx, dy] with a glyph id from 0 to 65535")
+                }
+
+                return PositionedGlyph(
+                    id: Int(id),
+                    x: numbers[1],
+                    y: numbers[2],
+                    placementOffset: Point(x: numbers[3], y: numbers[4])
+                )
+            }
         )
     }
 
@@ -674,31 +720,39 @@ struct ResolvedValueReader: Sendable {
             },
             highlight: try run.member("highlight").optional { value in
                 let highlight = try value.object(keys: ["rects", "radius", "color", "bands"])
+                let rects = try highlight.member("rects").elements().map(rectangle)
 
                 return DrawnHighlight(
-                    rects: try highlight.member("rects").elements().map(rectangle),
+                    rects: rects,
                     radius: try highlight.member("radius").number(),
                     color: try color(highlight.member("color")),
-                    bands: try bands(highlight.member("bands"))
+                    bands: try bands(highlight.member("bands"), count: rects.count)
                 )
             },
             underline: try run.member("underline").optional { value in
                 let underline = try value.object(keys: ["rects", "color", "bands"])
+                let rects = try underline.member("rects").elements().map(rectangle)
 
                 return DrawnUnderline(
-                    rects: try underline.member("rects").elements().map(rectangle),
+                    rects: rects,
                     color: try color(underline.member("color")),
-                    bands: try bands(underline.member("bands"))
+                    bands: try bands(underline.member("bands"), count: rects.count)
                 )
             },
             glyphs: try glyphs(run.member("glyphs"))
         )
     }
 
-    // A band is `[x0, x1]`, x0 no greater than x1.
-    private func bands(_ value: PlacedJSONValue) throws -> [ClosedRange<Double>]? {
+    // A band is `[x0, x1]`, x0 no greater than x1, one for each of the `count` rectangles.
+    private func bands(
+        _ value: PlacedJSONValue,
+        count: Int
+    ) throws -> [ClosedRange<Double>]? {
         try value.optional { value in
-            try value.elements().map { element in
+            let elements = try value.elements()
+            guard elements.count == count else { throw value.wrongType("a band for each rect, \(count) in all") }
+
+            return try elements.map { element in
                 let numbers = try element.numbers(count: 2)
                 guard numbers[0] <= numbers[1] else { throw element.wrongType("[x0, x1] with x0 no greater than x1") }
 
@@ -723,36 +777,135 @@ struct ResolvedValueReader: Sendable {
         return UnitStagger(by: unit, stagger: seconds)
     }
 
-    // A cluster is `[run, first, count]`, its glyphs in the text's glyph runs.
-    private func unitPart(_ value: PlacedJSONValue) throws -> UnitPart {
+    // A unit's part is `[run, piece, x0, x1]`: a piece of one of `runs` with a highlight or an underline, the piece one
+    // of that run's highlight pieces and of its underline pieces where it has each, and its span from x0 to x1.
+    private func unitPart(
+        _ value: PlacedJSONValue,
+        in runs: [ResolvedGlyphRun]
+    ) throws -> UnitPart {
         let numbers = try value.numbers(count: 4)
-        guard let run = Int(exactly: numbers[0]), let piece = Int(exactly: numbers[1]), numbers[2] <= numbers[3] else {
-            throw value.wrongType("[run, piece, x0, x1]")
+        guard
+            let run = Int(exactly: numbers[0]),
+            let piece = Int(exactly: numbers[1]),
+            runs.indices.contains(run),
+            runs[run].highlight != nil || runs[run].underline != nil,
+            runs[run].highlight.map({ $0.rects.indices.contains(piece) }) ?? true,
+            runs[run].underline.map({ $0.rects.indices.contains(piece) }) ?? true,
+            numbers[2] <= numbers[3]
+        else {
+            throw value.wrongType("[run, piece, x0, x1] naming a highlight or underline piece of one of the title's runs")
         }
 
         return UnitPart(run: run, piece: piece, span: numbers[2]...numbers[3])
     }
 
-    private func glyphRange(_ value: PlacedJSONValue) throws -> GlyphRange {
-        let numbers = try value.numbers(count: 3)
+    // A line's cluster is `[run, first, count, start, end, advance]`, its glyphs a range of one of `runs` and its
+    // scalars a range of at least one of the text's `scalarCount`.
+    private func cluster(
+        _ value: PlacedJSONValue,
+        in runs: [ResolvedGlyphRun],
+        scalarCount: Int
+    ) throws -> PlacedCluster {
+        let numbers = try value.numbers(count: 6)
         guard
             let run = Int(exactly: numbers[0]),
             let first = Int(exactly: numbers[1]),
-            let count = Int(exactly: numbers[2])
+            let count = Int(exactly: numbers[2]),
+            let start = Int(exactly: numbers[3]),
+            let end = Int(exactly: numbers[4]),
+            runs.indices.contains(run),
+            first >= 0,
+            count >= 0,
+            first + count <= runs[run].glyphs.count,
+            start >= 0,
+            start < end,
+            end <= scalarCount
         else {
-            throw value.wrongType("[run, first, count]")
+            throw value.wrongType("[run, first, count, start, end, advance] within the text's \(scalarCount) scalars")
         }
 
-        return GlyphRange(run: run, first: first, count: count)
+        let glyphs = GlyphRange(run: run, first: first, count: count)
+
+        return PlacedCluster(glyphs: glyphs, range: start..<end, advance: numbers[5])
     }
 
-    // A glyph is `[id, x, y]`, its baseline origin in the text's box.
+    // A line's clusters and then its hanging spaces, those with no glyph of their own left out, each start at the pen
+    // start of the one before plus its advance, plus its run's static tracking when it is a character other than the
+    // last character taken. The last character ends at the first one's pen start plus the line's width, and a line with
+    // no character taken has a width of 0.
+    private func pensFollow(
+        on line: PlacedLine,
+        runs: [ResolvedGlyphRun]
+    ) -> Bool {
+        let tolerance = 1e-6
+        let characters = line.clusters.filter { $0.glyphs.count > 0 }
+        let taken = characters.map { (cluster: $0, isCharacter: true) }
+            + line.hanging.filter { $0.glyphs.count > 0 }.map { (cluster: $0, isCharacter: false) }
+        let pens = taken.map { runs[$0.cluster.glyphs.run].glyphs[$0.cluster.glyphs.first].x }
+
+        for index in taken.indices.dropFirst() {
+            let previous = taken[index - 1]
+            let tracking = previous.isCharacter && index - 1 != characters.count - 1
+                ? runs[previous.cluster.glyphs.run].staticTracking
+                : 0
+            guard abs(pens[index - 1] + previous.cluster.advance + tracking - pens[index]) <= tolerance else { return false }
+        }
+
+        guard let last = characters.last else { return abs(line.width) <= tolerance }
+
+        return abs(pens[0] + line.width - pens[characters.count - 1] - last.advance) <= tolerance
+    }
+
+    // A range is `[start, end]`, counted in Unicode scalars, within the text's `scalarCount`.
+    private func scalarRange(
+        _ value: PlacedJSONValue,
+        in scalarCount: Int
+    ) throws -> Range<Int> {
+        let numbers = try value.numbers(count: 2)
+        guard
+            let start = Int(exactly: numbers[0]),
+            let end = Int(exactly: numbers[1]),
+            start >= 0,
+            start <= end,
+            end <= scalarCount
+        else {
+            throw value.wrongType("[start, end] within the text's \(scalarCount) scalars")
+        }
+
+        return start..<end
+    }
+
+    // A unit's characters are `[line, first, count]`, a stretch of the clusters of one of `lines`.
+    private func characters(
+        _ value: PlacedJSONValue,
+        in lines: [PlacedLine]
+    ) throws -> CharacterRange {
+        let numbers = try value.numbers(count: 3)
+        guard
+            let line = Int(exactly: numbers[0]),
+            let first = Int(exactly: numbers[1]),
+            let count = Int(exactly: numbers[2]),
+            lines.indices.contains(line),
+            first >= 0,
+            count >= 0,
+            first + count <= lines[line].clusters.count
+        else {
+            throw value.wrongType("[line, first, count]")
+        }
+
+        return CharacterRange(line: line, first: first, count: count)
+    }
+
+    // A drawn glyph is `[id, x, y]`, where it is drawn, read with no placement offset, its id one an OpenType face can
+    // hold.
     private func glyphs(_ value: PlacedJSONValue) throws -> [PositionedGlyph] {
         try value.elements().map { element in
             let numbers = try element.numbers(count: 3)
-            guard let id = Int(exactly: numbers[0]) else { throw element.wrongType("[glyph id, x, y]") }
+            guard let id = UInt16(exactly: numbers[0]) else {
+                throw element.wrongType("[glyph id, x, y] with a glyph id from 0 to 65535")
+            }
 
-            return PositionedGlyph(id: id, x: numbers[1], y: numbers[2])
+            return PositionedGlyph(id: Int(id), x: numbers[1], y: numbers[2])
         }
     }
 

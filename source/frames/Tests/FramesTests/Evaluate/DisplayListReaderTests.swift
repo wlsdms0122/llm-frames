@@ -183,11 +183,10 @@ struct DisplayListReaderTests {
         DisplayItem(content: .glyphs(GlyphsItem(
             size: Size(width: 10, height: 10),
             runs: [],
-            layer: .strokes,
-            unitBox: Rectangle(x: 2, y: 1, width: 6, height: 8),
-            unitGlyphBox: Rectangle(x: 3, y: 2, width: 4, height: 6),
+            unit: UnitDrawing(layer: .strokes, index: 3, box: Rectangle(x: 2, y: 1, width: 6, height: 8)),
+            extent: Rectangle(x: 3, y: 2, width: 4, height: 6),
             background: nil
-        )))
+        )), origin: ItemOrigin(place: "clips[1]", id: "lower", kind: "title"))
     ]
 
     private static let operations: [ResolvedFilterOperation] = [
@@ -267,6 +266,8 @@ struct DisplayListReaderTests {
         (["1", "0", "matte", "invert"], "false", "samples[1][0].matte.invert (picture)"),
         (["1", "0", "filter"], "[]", "samples[1][0].filter (picture)"),
         (["1", "0", "border"], "null", "samples[1][0].border (picture)"),
+        (["1", "0", "reveal"], "null", "samples[1][0].reveal (picture)"),
+        (["1", "1", "reveal"], "[0, 0, 10, 10]", "samples[1][1].reveal (picture)"),
         (
             ["1", "0", "filter", "0", "ops"],
             #"[{ "op": "blur", "radius": 2 }, { "op": "exposure", "ev": 0.5 }]"#,
@@ -280,7 +281,8 @@ struct DisplayListReaderTests {
         (["1", "6", "runs", "0", "face"], #""Inter-Regular""#, "samples[1][6].runs[0].face (glyphs)"),
         (["1", "6", "runs", "0", "size"], "30", "samples[1][6].runs[0].size (glyphs)"),
         (["1", "6", "runs", "0", "glyphs", "1", "0"], "77", "samples[1][6].runs[0].glyphs[1][0] (glyphs)"),
-        (["1", "11", "layer"], #""fills""#, "samples[1][11].layer (glyphs)"),
+        (["1", "11", "layer"], #""highlights""#, "samples[1][11].layer (glyphs)"),
+        (["1", "11", "unit"], "4", "samples[1][11].unit (glyphs)"),
         (["1", "12", "trackMatte", "mode"], #""alpha""#, "samples[1][12].trackMatte.mode (picture)"),
         (["1", "12", "trackMatte", "invert"], "true", "samples[1][12].trackMatte.invert (picture)"),
         (
@@ -310,7 +312,7 @@ struct DisplayListReaderTests {
     private static let movedFields: [([String], String)] = [
         (["0", "transform"], "[1, 0, 0, 1, 5, 5]"),
         (["0", "opacity"], "0.25"),
-        (["0", "reveal"], "null"),
+        (["0", "reveal"], "[0, 0, 270, 1920]"),
         (["0", "mask", "1", "geometry"], #"{ "ellipse": { "rect": [1, 2, 3, 4] } }"#),
         (["0", "mask", "1", "transform"], "[1, 0, 0, 1, 0, 0]"),
         (["0", "mask", "1", "feather"], "2"),
@@ -340,7 +342,7 @@ struct DisplayListReaderTests {
         (["6", "runs", "0", "glyphs", "1", "2"], "30"),
         (["8", "filter", "0", "ops", "0", "amount"], "0.5"),
         (["11", "unitBox"], "[0, 0, 1, 1]"),
-        (["11", "unitGlyphBox"], "[0, 0, 1, 1]"),
+        (["11", "extent"], "[0, 0, 1, 1]"),
         (["12", "dest"], "[0, 0, 200, 150]"),
         (["12", "source", "list", "items", "0", "transform"], "[2, 0, 0, 2, 0, 0]"),
         (["12", "trackMatte", "source", "list", "items", "0", "opacity"], "0.5"),
@@ -715,7 +717,13 @@ struct DisplayListReaderTests {
             (#""item": "path""#, #""item": "line""#, #"items[2].item (display item): unknown value "line". Allowed: picture, path, glyphs, adjust"#),
             (#""frame": 2"#, #""frame": 3"#, "items[0].source.frame (picture): frame 3 is not a frame of the media, whose frames are 0 to 2"),
             (#""opacity": 0.75"#, #""opacity": "0.75""#, #"items[6].opacity (glyphs): expected a number, found "0.75""#),
-            (#""layer": "strokes""#, #""layer": "glow""#, #"items[11].layer (glyphs): unknown value "glow". Allowed: highlights, underlines, strokes, fills"#)
+            (#""layer": "strokes""#, #""layer": "glow""#, #"items[11].layer (glyphs): unknown value "glow". Allowed: highlights, underlines, strokes, fills"#),
+            (#""layer": "strokes""#, #""layer": null"#, "items[11] (glyphs): a unit's item carries layer, unit and unitBox, and a title's own item none of them, found only unit and unitBox"),
+            (#""unit": 3"#, #""unit": null"#, "items[11] (glyphs): a unit's item carries layer, unit and unitBox, and a title's own item none of them, found only layer and unitBox"),
+            (#""unitBox": [2, 1, 6, 8]"#, #""unitBox": null"#, "items[11] (glyphs): a unit's item carries layer, unit and unitBox, and a title's own item none of them, found only layer and unit"),
+            (#""unit": null"#, #""unit": 0"#, "items[6] (glyphs): a unit's item carries layer, unit and unitBox, and a title's own item none of them, found only unit"),
+            (#""bands": ["#, #""bands": [[30, 40], "#, "items[6].runs[0].highlight.bands (glyphs): expected a band for each rect, 1 in all, found a list of 2"),
+            (#"[43, 12, 36]"#, #"[65536, 12, 36]"#, #"items[6].runs[0].glyphs[0] (glyphs): expected [glyph id, x, y] with a glyph id from 0 to 65535, found a list of 3"#)
         ]
     )
     func refusesUnreadableMember(
@@ -752,6 +760,58 @@ struct DisplayListReaderTests {
         #expect(item["trim"] == .array([.number(0), .number(0.6)]))
         #expect(item["stroke"]?.objectValue?.keys == ["width", "paint", "join", "cap", "start", "end", "dash", "dashOffset"])
         #expect(item["geometry"] == (try Fixture.json(#"{ "polyline": { "points": [[240, 175], [300, 175]], "closed": false } }"#)))
+    }
+
+    @Test("a unit's item writes its unit beside its unit box, and its origin names only the clip that drew it")
+    func writesUnitOfGlyphs() throws {
+        // Given
+        let list = list(items: [Self.items[6], Self.items[11]])
+
+        // When
+        let written = writer.document(list).objectValue?["items"]?.arrayValue
+        let items = try #require(written).compactMap(\.objectValue)
+
+        // Then
+        #expect(items.map(\.keys) == Array(repeating: [
+            "item", "origin", "transform", "opacity", "blend", "mask", "trackMatte", "reveal", "size", "runs", "layer", "unit",
+            "unitBox", "extent", "background"
+        ], count: 2))
+        #expect(items.map { $0["unit"] } == [.null, .number(3)])
+        #expect(items.map { $0["origin"]?.objectValue?.keys } == [["place", "id", "kind"], ["place", "id", "kind"]])
+    }
+
+    @Test("a list whose fills items name its units 0, 1, 2 and on in order reads back, between items of other layers")
+    func readsFillsInUnitOrder() throws {
+        // Given
+        let list = list(items: [unitItem(unit: 0, layer: .strokes), unitItem(unit: 1, layer: .strokes), unitItem(unit: 0), unitItem(unit: 1)])
+
+        // When
+        let read = try sut.read(writer.write(list))
+
+        // Then
+        #expect(read == list)
+    }
+
+    @Test(
+        "a list whose fills items do not name its units 0, 1, 2 and on in order stops, naming the first item out of order",
+        arguments: [
+            ([1, 0], "items[0].unit (glyphs): the list's fills items name the units 0, 1, 2 and on in order, and this one names unit 1 in place of 0"),
+            ([0, 2], "items[1].unit (glyphs): the list's fills items name the units 0, 1, 2 and on in order, and this one names unit 2 in place of 1"),
+            ([0, 0], "items[1].unit (glyphs): the list's fills items name the units 0, 1, 2 and on in order, and this one names unit 0 in place of 1")
+        ]
+    )
+    func refusesFillsOutOfUnitOrder(
+        units: [Int],
+        message: String
+    ) throws {
+        // Given
+        let list = list(items: units.map { unitItem(unit: $0) })
+
+        // When
+        let error = #expect(throws: (any Error).self) { try sut.read(writer.write(list)) }
+
+        // Then
+        #expect((error as? CustomStringConvertible)?.description == message)
     }
 
     @Test("a fill and a stroke paint are a colour or a gradient of one member named by its kind, its stops [offset, colour]")
@@ -1037,6 +1097,20 @@ struct DisplayListReaderTests {
             Issue.record("\(component) names a member of a value that has none")
             return written
         }
+    }
+
+    // A unit's item with no runs, of `layer`, of the unit at `unit`.
+    private func unitItem(
+        unit: Int,
+        layer: GlyphLayer = .fills
+    ) -> DisplayItem {
+        DisplayItem(content: .glyphs(GlyphsItem(
+            size: Size(width: 10, height: 10),
+            runs: [],
+            unit: UnitDrawing(layer: layer, index: unit, box: Rectangle(x: 0, y: 0, width: 5, height: 10)),
+            extent: Rectangle(x: 0, y: 0, width: 5, height: 10),
+            background: nil
+        )))
     }
 
     // The outermost list by default, which carries a colour space; a nested one carries none.

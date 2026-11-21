@@ -6,7 +6,8 @@
 //
 
 // Glyphs of one line set in one face and size, all of one text run, whose index among the text's runs is `source`, and
-// whose line is the `line`th of the text. `highlights` and `underlines` are the pieces of the text run's highlight and
+// whose line is the `line`th of the text. `staticTracking` is the tracking set after each of its characters with glyphs
+// of their own but the line's last, in output pixels. `highlights` and `underlines` are the pieces of the text run's highlight and
 // underline on this line, held by the first glyph run of the text run on it: a highlight piece from the run's ascent to its descent
 // without padding, an underline piece on the baseline.
 struct GlyphRun: Equatable, Sendable {
@@ -16,6 +17,7 @@ struct GlyphRun: Equatable, Sendable {
     let face: FontFace
     let size: Double
     let glyphs: [PositionedGlyph]
+    let staticTracking: Double
     let highlights: [Rectangle]
     let underlines: [UnderlinePiece]
 
@@ -26,6 +28,7 @@ struct GlyphRun: Equatable, Sendable {
         face: FontFace,
         size: Double,
         glyphs: [PositionedGlyph],
+        staticTracking: Double = 0,
         highlights: [Rectangle] = [],
         underlines: [UnderlinePiece] = []
     ) {
@@ -34,6 +37,7 @@ struct GlyphRun: Equatable, Sendable {
         self.face = face
         self.size = size
         self.glyphs = glyphs
+        self.staticTracking = staticTracking
         self.highlights = highlights
         self.underlines = underlines
     }

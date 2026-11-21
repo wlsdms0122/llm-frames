@@ -136,7 +136,7 @@ struct AnalysisCommandTests {
         // Then
         #expect(code == 0)
         #expect(resolvedCode == 0)
-        #expect(try keys(of: output) == ["evaluate", "time", "size", "items"])
+        #expect(try keys(of: output) == ["evaluate", "time", "size", "items", "texts"])
         #expect(output.hasPrefix("{\n  \"evaluate\": \"\(FramesVersion.current)\",\n  \"time\": 0.25,"))
         #expect(output.contains(#""place": "storyline[0]""#))
         #expect(sut.standardOutput == output)

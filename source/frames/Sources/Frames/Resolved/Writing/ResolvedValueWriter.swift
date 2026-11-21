@@ -326,7 +326,8 @@ struct ResolvedValueWriter: Sendable {
     }
 
     // Glyph runs carry their font file pinned, the face in it, size, their timed attributes and their highlight and
-    // underline pieces, and each glyph as `[id, x, y]`, its baseline origin in the text's box. A unit's part is
+    // underline pieces, and each glyph as `[id, x, y, dx, dy]`, its pen position in the text's box and its placement
+    // offset. A line's range is `[start, end]`, a unit's characters `[line, first, count]` and a unit's part
     // `[run, piece, x0, x1]`.
     func text(_ text: ResolvedText) -> JSONValue {
         let background = text.background.map { background in
@@ -337,26 +338,27 @@ struct ResolvedValueWriter: Sendable {
             ]))
         }
 
-        let lines = text.lines.map { lines in
-            JSONValue.array(lines.map { line in
-                .object(JSONObject(members: [
-                    JSONMember(key: "width", value: .number(line.width)),
-                    JSONMember(key: "baseline", value: .number(line.baseline)),
-                    JSONMember(key: "clusters", value: .array(line.clusters.map { cluster in
-                        numbers([Double(cluster.run), Double(cluster.first), Double(cluster.count)])
-                    }))
-                ]))
-            })
-        }
+        let lines = JSONValue.array(text.lines.map { line in
+            .object(JSONObject(members: [
+                JSONMember(key: "width", value: .number(line.width)),
+                JSONMember(key: "baseline", value: .number(line.baseline)),
+                JSONMember(key: "ascent", value: .number(line.ascent)),
+                JSONMember(key: "descent", value: .number(line.descent)),
+                JSONMember(key: "range", value: numbers([line.range.lowerBound, line.range.upperBound].map { Double($0) })),
+                JSONMember(key: "clusters", value: .array(line.clusters.map(cluster))),
+                JSONMember(key: "hanging", value: .array(line.hanging.map(cluster)))
+            ]))
+        })
 
         let units = text.units.map { units in
             JSONValue.array(units.map { unit in
                 .object(JSONObject(members: [
                     JSONMember(key: "box", value: rectangle(unit.box)),
                     JSONMember(key: "glyphBox", value: rectangle(unit.glyphBox)),
-                    JSONMember(key: "glyphs", value: .array(unit.glyphs.map { glyphs in
-                        numbers([Double(glyphs.run), Double(glyphs.first), Double(glyphs.count)])
-                    })),
+                    JSONMember(key: "characters", value: numbers(
+                        [unit.characters.line, unit.characters.first, unit.characters.count].map { Double($0) }
+                    )),
+                    JSONMember(key: "hangingLines", value: numbers(unit.hangingLines.map { Double($0) })),
                     JSONMember(key: "parts", value: .array(unit.parts.map { part in
                         numbers([Double(part.run), Double(part.piece), part.span.lowerBound, part.span.upperBound])
                     }))
@@ -371,7 +373,11 @@ struct ResolvedValueWriter: Sendable {
             JSONMember(key: "background", value: background ?? .null),
             JSONMember(key: "align", value: .string(text.align.rawValue)),
             JSONMember(key: "lineHeight", value: timed(text.lineHeight)),
-            JSONMember(key: "lines", value: lines ?? .null),
+            JSONMember(key: "text", value: .string(text.text)),
+            JSONMember(key: "words", value: .array(text.words.map { word in
+                numbers([word.lowerBound, word.upperBound].map { Double($0) })
+            })),
+            JSONMember(key: "lines", value: lines),
             JSONMember(key: "units", value: units ?? .null),
             JSONMember(key: "runs", value: runs(text.runs))
         ]))
@@ -404,10 +410,13 @@ struct ResolvedValueWriter: Sendable {
                     JSONMember(key: "color", value: timed(run.color)),
                     JSONMember(key: "stroke", value: timed(run.stroke)),
                     JSONMember(key: "baselineShift", value: timed(run.baselineShift)),
+                    JSONMember(key: "staticTracking", value: .number(run.staticTracking)),
                     JSONMember(key: "tracking", value: timed(run.tracking)),
                     JSONMember(key: "highlight", value: highlight ?? .null),
                     JSONMember(key: "underline", value: underline ?? .null),
-                    JSONMember(key: "glyphs", value: glyphs(run.glyphs))
+                    JSONMember(key: "glyphs", value: .array(run.glyphs.map { glyph in
+                        numbers([Double(glyph.id), glyph.x, glyph.y, glyph.placementOffset.x, glyph.placementOffset.y])
+                    }))
                 ]
             ))
         })
@@ -487,6 +496,21 @@ struct ResolvedValueWriter: Sendable {
         bands.map { bands in .array(bands.map { numbers([$0.lowerBound, $0.upperBound]) }) } ?? .null
     }
 
+    // A line's cluster is `[run, first, count, start, end, advance]`: its glyphs, its range and its advance.
+    private func cluster(_ cluster: PlacedCluster) -> JSONValue {
+        let glyphs = cluster.glyphs
+
+        return numbers([
+            Double(glyphs.run),
+            Double(glyphs.first),
+            Double(glyphs.count),
+            Double(cluster.range.lowerBound),
+            Double(cluster.range.upperBound),
+            cluster.advance
+        ])
+    }
+
+    // A drawn glyph is `[id, x, y]`, where it is drawn.
     private func glyphs(_ glyphs: [PositionedGlyph]) -> JSONValue {
         .array(glyphs.map { numbers([Double($0.id), $0.x, $0.y]) })
     }

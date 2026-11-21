@@ -7,8 +7,9 @@
 
 // Plans a title. Each run takes the character attributes of its own style with the title's `character` merged over
 // them, and the whole title the paragraph attributes of the clip's style with its `paragraph` merged over them, each
-// timed by the title's keyframes; the text is set at their static values, its lengths at the length scale of the
-// place it is drawn, and its lines break with each run at the largest tracking it takes while the title is seen.
+// timed by the title's keyframes; the text, its line endings read as `\n`, is set at their static values, its lengths
+// at the length scale of the place it is drawn, and its lines break with each run at the largest tracking it takes
+// while the title is seen.
 struct TitlePlanner: Sendable {
     // MARK: - Property
     private let fonts: FontFinder
@@ -48,6 +49,7 @@ struct TitlePlanner: Sendable {
         var textRuns: [TextRun] = []
         var characters: [TimedValue] = []
         var trackingSteps: [TimedValue] = []
+        let texts = lineEndingsRead(in: title.runs.map(\.text))
         for (index, run) in title.runs.enumerated() {
             let runStyle = run.style ?? title.style
             if let named = run.style {
@@ -75,7 +77,7 @@ struct TitlePlanner: Sendable {
             characters.append(timed)
             trackingSteps.append(steps(of: tracking, over: style))
             textRuns.append(TextRun(
-                text: run.text,
+                text: texts[index],
                 style: style,
                 faces: runFaces,
                 widestTracking: range.upperBound,
@@ -118,6 +120,26 @@ struct TitlePlanner: Sendable {
     }
 
     // MARK: - Private
+    // Each line ending UAX #14 breaks at becomes one `\n` in the runs' texts: CR LF, CR, next line, line tabulation,
+    // form feed, line separator and paragraph separator. A CR LF whose CR ends one run and whose LF begins the next is
+    // one `\n` in the run of its CR.
+    private func lineEndingsRead(in texts: [String]) -> [String] {
+        let endings: Set<Unicode.Scalar> = ["\r", "\u{85}", "\u{0B}", "\u{0C}", "\u{2028}", "\u{2029}"]
+        var isAfterReturn = false
+
+        return texts.map { text in
+            var read = String.UnicodeScalarView()
+            for scalar in text.unicodeScalars {
+                if !(scalar == "\n" && isAfterReturn) {
+                    read.append(endings.contains(scalar) ? "\n" : scalar)
+                }
+                isAfterReturn = scalar == "\r"
+            }
+
+            return String(read)
+        }
+    }
+
     // The title's `character` merged over the style `style`.
     private func merged(
         _ character: LookProperty?,

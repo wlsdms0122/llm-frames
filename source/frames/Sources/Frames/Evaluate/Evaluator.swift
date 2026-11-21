@@ -206,7 +206,6 @@ package struct Evaluator: Sendable {
         }
     }
 
-    // A still has no clock and shows media time 0.
     private func picture(
         of clip: ResolvedClip,
         at sample: SampleInstant,
@@ -310,7 +309,7 @@ package struct Evaluator: Sendable {
             transform: presentation.transform,
             opacity: presentation.opacity,
             blend: entry.blend,
-            reveal: motion.reveal.rectangle(wiping: frame, from: motion.revealFrom),
+            reveal: motion.revealRectangle(wiping: frame),
             content: .picture(picture),
             origin: ItemOrigin(entry: entry)
         )

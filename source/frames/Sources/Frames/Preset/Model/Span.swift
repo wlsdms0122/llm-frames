@@ -23,5 +23,10 @@ struct Span: Equatable, Sendable {
     }
 
     // MARK: - Public
+    // Whether any of the span's keys writes the property.
+    func writes(_ property: MotionProperty) -> Bool {
+        keys.contains { $0.values[property] != nil }
+    }
+
     // MARK: - Private
 }

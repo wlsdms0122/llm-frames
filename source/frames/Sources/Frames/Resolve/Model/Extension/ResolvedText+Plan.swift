@@ -10,19 +10,13 @@ extension ResolvedText {
     // MARK: - Property
     // MARK: - Initializer
     // A title takes each run's attributes from the timed value of its text run, and its line height and background
-    // from the timed paragraph. An underline leaf no layer gives takes the run's colour. Its lines are written where
-    // its glyphs move along them or with them, and its units where it is animated by unit.
+    // from the timed paragraph. An underline leaf no layer gives takes the run's colour. Its units are written where it is
+    // animated by unit.
     init(
         plan: TitlePlan,
         hashes: any FileHashProvider
     ) throws {
-        let isTracked = plan.trackingSteps.contains { $0 != .off }
         let lineHeight = plan.paragraph["lineHeight"] ?? .off
-        let isLeaded = plan.layout.lines.count > 1 && {
-            guard case let .track(keyframes) = lineHeight else { return false }
-
-            return keyframes.contains { $0.value != .number(plan.layout.lineHeight) }
-        }()
         let background = plan.paragraph["background"].flatMap { background -> ResolvedBackground? in
             guard background != .off else { return nil }
 
@@ -45,6 +39,7 @@ extension ResolvedText {
                 color: color,
                 stroke: character["stroke"] ?? .off,
                 baselineShift: character["baselineShift"] ?? .off,
+                staticTracking: run.staticTracking,
                 tracking: plan.trackingSteps[run.source],
                 highlight: character["highlight"].flatMap { highlight in
                     guard highlight != .off else { return nil }
@@ -79,8 +74,12 @@ extension ResolvedText {
             background: background,
             align: plan.layout.align,
             lineHeight: lineHeight,
-            lines: isTracked || isLeaded ? plan.layout.lines : nil,
-            units: plan.layout.units.map { units in units.map { PlacedUnit(drawing: $0, runs: runs) } },
+            text: plan.layout.text,
+            words: plan.layout.words,
+            lines: plan.layout.lines,
+            units: plan.layout.units.map { units in
+                units.map { PlacedUnit(drawing: $0, lines: plan.layout.lines, runs: runs) }
+            },
             runs: runs
         )
     }
@@ -107,7 +106,9 @@ extension ResolvedText {
             },
             align: layout.align,
             lineHeight: held(.number(layout.lineHeight)),
-            lines: nil,
+            text: layout.text,
+            words: layout.words,
+            lines: layout.lines,
             units: nil,
             runs: try layout.runs.map { run in
                 ResolvedGlyphRun(
@@ -118,6 +119,7 @@ extension ResolvedText {
                     color: held(.color(color)),
                     stroke: .off,
                     baselineShift: .off,
+                    staticTracking: run.staticTracking,
                     tracking: .off,
                     highlight: nil,
                     underline: nil,

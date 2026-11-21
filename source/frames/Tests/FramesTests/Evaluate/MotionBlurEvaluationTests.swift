@@ -16,12 +16,13 @@ struct MotionBlurEvaluationTests {
     // MARK: - Property
     private let sut = Evaluator()
     private let offsets = (0 ..< 16).map { 0.00125 * (Double($0) + 0.5) }
-    // Each leaf that can pass through 0, keyframed so that it does inside the exposure of the frame at the time given: a
-    // picture's border width, which a clip takes from its theme and writes in output pixels at its scale factor, so it
-    // reaches 0 only by a picture popping in from scale 0; a stroke's width from 0; a dash whose `back-out` overshoot
-    // clamps every length to 0 from a progress of about 0.43; and a stroked, dashed and shadowed shape popping in from
-    // scale 0.
-    private static let leavesThroughZero: [(String, String?, Double)] = [
+    // Each field whose value can reach an end, keyframed or animated so that it does inside the exposure of the frame at
+    // the time given: a picture's border width, which a clip takes from its theme and writes in output pixels at its
+    // scale factor, so it reaches 0 only by a picture popping in from scale 0; a stroke's width from 0; a dash whose
+    // `back-out` overshoot clamps every length to 0 from a progress of about 0.43; a stroked, dashed and shadowed shape
+    // popping in from scale 0; and a reveal reaching 1, by a shape's wipe from 1 to 1.5, complete after T and before
+    // it, by a picture's, and by a wipe transition from 1.5 to 2.5 inside a compound clip.
+    private static let valuesThroughEnds: [(String, String?, Double)] = [
         (
             #"""
             { "id": "leaf", "media": "/abs/card.png", "at": [1, 4], "border": true, "motionBlur": true,
@@ -56,6 +57,37 @@ struct MotionBlurEvaluationTests {
             """#,
             #"{ "shutterPhase": -180 }"#,
             1.01
+        ),
+        (
+            #"""
+            { "id": "leaf", "shape": "rect", "fill": "#FF0000", "at": [1, 4], "width": 100, "height": 50, "position": [500, 500],
+              "animation": "mine/wipe-in", "motionBlur": true }
+            """#,
+            nil,
+            1.49
+        ),
+        (
+            #"""
+            { "id": "leaf", "shape": "rect", "fill": "#FF0000", "at": [1, 4], "width": 100, "height": 50, "position": [500, 500],
+              "animation": "mine/wipe-in", "motionBlur": true }
+            """#,
+            #"{ "shutterPhase": -180 }"#,
+            1.51
+        ),
+        (
+            #"{ "id": "leaf", "media": "/abs/card.png", "at": [1, 4], "animation": "mine/wipe-in", "motionBlur": true }"#,
+            nil,
+            1.49
+        ),
+        (
+            #"""
+            { "id": "leaf", "at": [0, 4],
+              "media": { "kind": "sequence", "format": { "size": [1920, 1080] },
+                         "storyline": [ { "solid": "#000000", "duration": 2 },
+                                        { "solid": "#FFFFFF", "duration": 2, "transition": "mine/wipe-in", "motionBlur": true } ] } }
+            """#,
+            nil,
+            2.49
         )
     ]
 
@@ -198,10 +230,10 @@ struct MotionBlurEvaluationTests {
     }
 
     @Test(
-        "a leaf keyframed through 0 over an exposure is written with the same keys in every sample, and the samples read back",
-        arguments: leavesThroughZero
+        "a field whose value reaches an end over an exposure is written with the same keys in every sample, and the samples read back",
+        arguments: valuesThroughEnds
     )
-    func keepsKeysOfLeafThroughZero(
+    func keepsKeysOfValueThroughEnd(
         clip: String,
         shutter: String?,
         time: Double
@@ -219,6 +251,30 @@ struct MotionBlurEvaluationTests {
         #expect(samples.count == 16)
         #expect(samples.allSatisfy { keys(of: $0) == firstKeys })
         #expect(try DisplayListReader().read(DisplayListWriter().write(list)).samples?.count == 16)
+    }
+
+    @Test("a wipe that ends inside the exposure is written in every sample, whole once complete, and an item no reveal is set on in none")
+    func keepsRevealInEverySample() throws {
+        // Given
+        let wiped = #"""
+            { "id": "wiped", "shape": "rect", "fill": "#FF0000", "at": [1, 4], "width": 100, "height": 50, "position": [500, 500],
+              "animation": "mine/wipe-in", "motionBlur": true }
+            """#
+        let sequence = try resolved(clips: [wiped], shutter: #"{ "shutterPhase": -180 }"#)
+
+        // When
+        let list = sut.displayList(of: sequence, at: 1.51)
+
+        // Then
+        let samples = try #require(list.samples)
+        let reveals = try samples.map { try item("wiped", in: $0).reveal }
+        let whole = try #require(reveals.last ?? nil)
+        let atT = try item("wiped", in: sut.displayListWithoutMotionBlur(of: sequence, at: 1.51).items)
+        #expect(reveals.allSatisfy { $0 != nil })
+        #expect((reveals.first??.width ?? whole.width) < whole.width)
+        #expect(whole.width == 100)
+        #expect(atT.reveal == nil)
+        #expect(try samples.allSatisfy { try item("back", in: $0).reveal == nil })
     }
 
     @Test("a clip and a storyline entry give the time their values are read at, by their own switch, held in their windows")
@@ -518,6 +574,38 @@ struct MotionBlurEvaluationTests {
         #expect(report == (try EvaluationReporter().report(of: sharp, at: 1)))
     }
 
+    @Test("a title by unit with motionBlur mid entrance gives samples whose extents move with its tracking, and the samples read back")
+    func readsBackTitleByUnit() throws {
+        // Given
+        let sequence = try title(isMotionBlurred: true)
+
+        // When
+        let list = sut.displayList(of: sequence, at: 0.1)
+
+        // Then
+        let samples = try #require(list.samples)
+        let units = try samples.map { try glyphs(of: "title", in: $0).filter { $0.unit != nil } }
+        // Each of the four passes draws the units "a", "b ", "c" and "d" in reading order.
+        #expect(units.allSatisfy { $0.compactMap(\.unit?.index) == Array(repeating: [0, 1, 2, 3], count: 4).flatMap { $0 } })
+        #expect(units.first?.map(\.extent) != units.last?.map(\.extent))
+        #expect(try DisplayListReader().read(DisplayListWriter().write(list)).samples?.count == 16)
+    }
+
+    @Test("evaluate reports a title by unit with motionBlur mid entrance as at T, its characters and texts those without motion blur")
+    func reportsTitleByUnitAtT() throws {
+        // Given
+        let blurred = try title(isMotionBlurred: true)
+        let sharp = try title(isMotionBlurred: false)
+
+        // When
+        let report = try EvaluationReporter().report(of: blurred, at: 0.1)
+
+        // Then
+        #expect(report.items.compactMap(\.characters).flatMap { $0 }.map(\.text) == ["a", "b", " ", "c", "d"])
+        #expect(report.texts.count == 1)
+        #expect(report == (try EvaluationReporter().report(of: sharp, at: 0.1)))
+    }
+
     // MARK: - Private
     // Slides right at 500 pixels a second, from 100 at 0 to 1100 at 2.
     private func slider(isMotionBlurred: Bool) -> String {
@@ -525,6 +613,18 @@ struct MotionBlurEvaluationTests {
             { "id": "slider", "shape": "rect", "fill": "#FF0000", "at": [0, 4], "width": 100, "height": 50, "motionBlur": \#(isMotionBlurred),
               "keyframes": [ { "at": 0, "position": [100, 500] }, { "at": 2, "position": [1100, 500] } ] }
             """#
+    }
+
+    // "ab cd" fading in by character from 0, its tracking keyframed from 0 at 0 to 100 at 1.
+    private func title(isMotionBlurred: Bool) throws -> ResolvedSequence {
+        try resolved(#"""
+            { "kind": "sequence", "format": { "size": [1920, 1080], "fps": 25 },
+              "theme": { "styles": { "caption": { "size": 40, "color": "#000000" } } },
+              "storyline": [ { "id": "back", "solid": "#202020", "duration": 4 } ],
+              "clips": [ { "id": "title", "title": "ab cd", "style": "caption", "position": [400, 225], "at": [0, 2],
+                           "motionBlur": \#(isMotionBlurred), "animation": { "preset": "frames/fade", "by": "character" },
+                           "keyframes": [ { "at": 0, "character": { "tracking": 0 } }, { "at": 1, "character": { "tracking": 100 } } ] } ] }
+            """#)
     }
 
     // Parented to the slider, and growing 100 pixels a second in width from 50 at 0 when `growing`.
@@ -679,6 +779,27 @@ struct MotionBlurEvaluationTests {
         }
 
         return Rectangle(bounding: item.transform.apply(toCornersOf: rectangle))
+    }
+
+    // The glyphs items the clip at `id` draws, those of the list its picture holds for a title by unit.
+    private func glyphs(
+        of id: String,
+        in items: [DisplayItem]
+    ) throws -> [GlyphsItem] {
+        try items.filter { $0.origin?.id == id }.flatMap { item in
+            switch item.content {
+            case let .glyphs(glyphs):
+                return [glyphs]
+
+            case let .picture(picture):
+                guard case let .displayList(list) = picture.source else { return [] }
+
+                return try glyphs(of: id, in: list.items)
+
+            case .path, .adjust:
+                return []
+            }
+        }
     }
 
     // The items of the compound clip C's nested list.

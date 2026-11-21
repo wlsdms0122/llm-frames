@@ -22,9 +22,11 @@ package protocol ShapingProvider: Sendable {
     // The faces of `family` installed on the machine.
     func installedFaces(family: String) -> [FontFace]
 
-    // `text` set at `size` with `features` over the font's defaults, in order. Each character is set in the first of
-    // `faces` that has it, and one none of them has in a face the provider finds on the machine for `weight` and
-    // `italic`, each run with the face it was set in. A face its file does not hold stops.
+    // `text` set at `size` with `features` over the font's defaults, its glyphs in glyph order, each with its advance,
+    // its placement offset from the pen and the index of the scalar it was set from. Each grapheme cluster is set
+    // whole in the first of `faces` that has every scalar of it but its default ignorable ones, and one none of them
+    // has whole in a face the provider finds on the machine for `weight` and `italic`, each run with the face it was
+    // set in. A face its file does not hold stops.
     func shape(
         _ text: String,
         faces: [FontFace],

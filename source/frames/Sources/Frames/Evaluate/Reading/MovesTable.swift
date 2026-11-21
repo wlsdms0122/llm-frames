@@ -33,7 +33,7 @@ struct MovesTable: Sendable {
         "opacity": .moves,
         "mask": .elements(.members(["geometry": .moves, "transform": .moves, "feather": .moves], other: .fixed)),
         "trackMatte": .members(["source": source], other: .fixed),
-        "reveal": .moves
+        "reveal": .elements(.moves)
     ]
     // A glyph is written `[id, x, y]`: its id holds and its position moves.
     private static let kinds: [String: [String: MovesMark]] = [
@@ -69,7 +69,7 @@ struct MovesTable: Sendable {
                 other: .fixed
             )),
             "unitBox": .moves,
-            "unitGlyphBox": .moves,
+            "extent": .moves,
             "background": .moves,
             "size": .moves
         ],

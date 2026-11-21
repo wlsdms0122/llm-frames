@@ -7,7 +7,7 @@
 
 // Splits text at the word boundaries of UAX #29's default rules, with no dictionary, so each ideograph is a word of its
 // own and a run of letters of any alphabet, Hangul among them, is one. It reads grapheme clusters, which hold the
-// marks and joiners the rules would keep with the character before them.
+// marks and joiners the rules would keep with the character before them, and finds the words among the pieces.
 struct WordSegmenter: Sendable {
     // MARK: - Property
     // MARK: - Initializer
@@ -41,7 +41,68 @@ struct WordSegmenter: Sendable {
         }
     }
 
+    // A piece between word boundaries that holds a letter, a digit or an ideograph is a word. A piece of punctuation
+    // or symbols, general categories P and S, with the pieces of them it touches, joins the word it touches, the one
+    // before it when it touches two, and is a word of its own when it touches none. A default ignorable character takes
+    // no part, and a piece of other characters is in no word. Each word is the range of `characters` from its first
+    // piece to its last, in order.
+    func words(of characters: [Character]) -> [Range<Int>] {
+        var groups: [[Int]] = []
+        var punctuation: [Int] = []
+        var isAfterWord = false
+        for segment in segments(of: characters) {
+            let marks = characters[segment].filter { !isIgnorable($0) }
+            if marks.isEmpty {
+                continue
+            } else if marks.allSatisfy(\.unicodeScalars.isSpace) {
+                if !punctuation.isEmpty {
+                    groups.append(punctuation)
+                    punctuation = []
+                }
+                isAfterWord = false
+            } else if marks.contains(where: isWordCharacter) {
+                groups.append(punctuation + Array(segment))
+                punctuation = []
+                isAfterWord = true
+            } else if marks.allSatisfy(isPunctuation) {
+                if isAfterWord {
+                    groups[groups.count - 1] += Array(segment)
+                } else {
+                    punctuation += Array(segment)
+                }
+            }
+        }
+        if !punctuation.isEmpty {
+            groups.append(punctuation)
+        }
+
+        return groups.compactMap { group in group.first.map { $0..<(group[group.count - 1] + 1) } }
+    }
+
     // MARK: - Private
+    private func isIgnorable(_ character: Character) -> Bool {
+        character.unicodeScalars.allSatisfy(\.properties.isDefaultIgnorableCodePoint)
+    }
+
+    private func isWordCharacter(_ character: Character) -> Bool {
+        character.unicodeScalars.first.map { scalar in
+            scalar.properties.isAlphabetic
+                || scalar.properties.isIdeographic
+                || scalar.properties.generalCategory == .decimalNumber
+        } ?? false
+    }
+
+    private func isPunctuation(_ character: Character) -> Bool {
+        switch character.unicodeScalars.first?.properties.generalCategory {
+        case .connectorPunctuation, .dashPunctuation, .openPunctuation, .closePunctuation, .initialPunctuation,
+            .finalPunctuation, .otherPunctuation, .mathSymbol, .currencySymbol, .modifierSymbol, .otherSymbol:
+            true
+
+        default:
+            false
+        }
+    }
+
     // Whether the rules keep `left` and `right` in one word, `before` and `after` the properties around them.
     private func isJoined(
         before: WordBreakProperty?,

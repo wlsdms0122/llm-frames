@@ -6,7 +6,7 @@
 //
 
 // A run of shaped glyphs as a `glyphs` item draws it at one instant: one face, size, colour and stroke, its highlight
-// and underline, and each glyph's origin in the item's own box.
+// and underline, and each glyph at the position it is drawn at in the item's own box.
 package struct DrawnGlyphRun: Equatable, Sendable {
     // MARK: - Property
     package let font: PinnedFile
@@ -39,10 +39,11 @@ package struct DrawnGlyphRun: Equatable, Sendable {
         self.glyphs = glyphs
     }
 
-    // A resolved run at `time`, its glyphs and pieces raised by its baseline shift then, its glyphs moved by `moves`,
-    // one for each glyph, and its pieces' ends by `pieceMove`. A highlight rectangle is its piece grown by the padding
-    // then, and an underline rectangle a band across its piece the width then thick, its top edge the offset then
-    // below the baseline. The stroke is its width then times `factor`.
+    // A resolved run at `time`, its glyphs and pieces raised by its baseline shift then, its glyphs drawn at their pen
+    // with their placement offset and moved by `moves`, one for each glyph, and its pieces' ends by `pieceMove`. A
+    // highlight rectangle is its piece grown by the padding then, and an underline rectangle a band across its piece
+    // the width then thick, its top edge the offset then below the baseline. The stroke is its width then times
+    // `factor`.
     init(
         run: ResolvedGlyphRun,
         factor: Double,
@@ -105,7 +106,11 @@ package struct DrawnGlyphRun: Equatable, Sendable {
                 }
             },
             glyphs: zip(run.glyphs, moves).map { glyph, move in
-                PositionedGlyph(id: glyph.id, x: glyph.x + move.x, y: glyph.y + move.y - shift)
+                PositionedGlyph(
+                    id: glyph.id,
+                    x: glyph.x + glyph.placementOffset.x + move.x,
+                    y: glyph.y + glyph.placementOffset.y + move.y - shift
+                )
             }
         )
     }
@@ -144,7 +149,7 @@ package struct DrawnGlyphRun: Equatable, Sendable {
                         bands: parts.map { band(of: $0, across: underline.rects[$0.piece]) }
                     )
             },
-            glyphs: ranges.flatMap { range in glyphs[range.first..<range.first + range.count] }
+            glyphs: ranges.flatMap { range in glyphs[range.glyphs] }
         )
     }
 
