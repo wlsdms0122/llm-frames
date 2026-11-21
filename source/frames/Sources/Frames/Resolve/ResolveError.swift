@@ -56,6 +56,7 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
     case cornerPinWithPlacement(place: Place, kind: PlaceKind, key: String)
     case cornerPinOnGeometry(place: Place, kind: PlaceKind)
     case cornerPinNotConvex(place: Place, kind: PlaceKind, time: Double?)
+    case trackOnStorylineCornerPin(place: Place, kind: PlaceKind)
     // `layer` is the theme layer that turned the value off, nil where no layer of the look gives one.
     case missingLookLeaf(place: Place, kind: PlaceKind, key: String, layer: Place?)
     case partialChoiceOverNone(place: Place, kind: PlaceKind, layer: Place?)
@@ -265,6 +266,10 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
             "\(place) (\(kind.label)): the corner pin\(time.map { " at \(number($0))" } ?? "") is not strictly convex, "
                 + "so no homography takes the clip's box to it"
 
+        case let .trackOnStorylineCornerPin(place, kind):
+            "\(place) (\(kind.label)): a storyline clip with a corner pin is placed in the frame, which has no media "
+                + "to follow, so it takes no \"track\""
+
         case let .textMaskInOwnBox(place, kind):
             "\(place) (\(kind.label)): a text form is searched in media, and this clip's mask is in its own box"
 
@@ -345,7 +350,8 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
 
         case let .textUnderClipArea(place, kind, parent):
             "\(place) (\(kind.label)): text found under \(quoted(parent)) is brought back through its transform when "
-                + "resolved, and its geometry or position holds a clip area, whose box is known only when evaluated"
+                + "resolved, and its geometry, position or corner pin holds a clip area, whose box is known only when "
+                + "evaluated"
 
         case let .trackWithoutVideo(place, kind):
             "\(place) (\(kind.label)): track follows the video or image sequence of the clip or of its parent, "

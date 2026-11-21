@@ -77,6 +77,7 @@ struct ResolvedDocumentWriterTests {
                 }
               ],
               "anchor": [0, 0],
+              "cornerPin": null,
               "crop": [
                 {
                   "at": 0,

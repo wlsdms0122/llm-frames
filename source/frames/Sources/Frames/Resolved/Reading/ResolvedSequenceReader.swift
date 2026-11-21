@@ -236,14 +236,19 @@ struct ResolvedSequenceReader: Sendable {
         return duration
     }
 
+    // An entry with media has a corner pin, and a solid has none. An entry with a corner pin has `size`, and its
+    // `position`, `anchor`, `scale` and `rotation` are null.
     private func storyline(_ value: PlacedJSONValue) throws -> ResolvedStorylineClip {
-        let entry = try value.object(kind: "storyline clip", keys: [
+        let keys = [
             "place", "id", "media", "solid", "colorSpace", "toneMap", "in", "out", "speed", "timeRemap", "start", "end",
-            "size", "position", "anchor", "crop", "mask", "trackMatte", "track", "opacity", "scale", "rotation", "blend",
-            "filter", "radius", "border", "shadow", "transition"
-        ])
+            "size", "position", "anchor", "cornerPin", "crop", "mask", "trackMatte", "track", "opacity", "scale",
+            "rotation", "blend", "filter", "radius", "border", "shadow", "transition"
+        ]
+        let isMedia = try !value.object(kind: "storyline clip", keys: keys).member("media").isNull
+        let entry = try value.object(kind: "storyline clip", keys: keys.filter { isMedia || $0 != "cornerPin" })
         let media = try entry.member("media").optional(self.media)
         let reading = try reading(of: entry, media: media)
+        let cornerPin = isMedia ? try self.cornerPin(of: entry) : nil
 
         return ResolvedStorylineClip(
             place: try entry.member("place").string(),
@@ -263,14 +268,17 @@ struct ResolvedSequenceReader: Sendable {
             trackMatte: try entry.member("trackMatte").optional(trackMatte),
             track: try entry.member("track").optional(track),
             filter: try values.timed(entry.member("filter"), as: LookStructureTable.resolvedFilter),
-            box: ResolvedBox(
-                size: try values.size(entry.member("size")),
-                position: try values.keyframes(entry.member("position")) { .point(try values.point($0)) },
-                anchor: try values.point(entry.member("anchor"))
-            ),
+            box: cornerPin == nil
+                ? ResolvedBox(
+                    size: try values.size(entry.member("size")),
+                    position: try values.keyframes(entry.member("position")) { .point(try values.point($0)) },
+                    anchor: try values.point(entry.member("anchor"))
+                )
+                : nil,
+            cornerPin: cornerPin,
             opacity: try values.numbers(entry.member("opacity")),
-            scale: try values.scales(entry.member("scale")),
-            rotation: try values.numbers(entry.member("rotation")),
+            scale: cornerPin == nil ? try values.scales(entry.member("scale")) : nil,
+            rotation: cornerPin == nil ? try values.numbers(entry.member("rotation")) : nil,
             blend: try entry.member("blend").string(),
             radius: try values.timed(entry.member("radius"), as: LookStructureTable.length),
             border: try values.timed(entry.member("border"), as: LookStructureTable.border, kind: "border"),

@@ -5,16 +5,17 @@
 //  Created by JSilver on 11/18/26.
 //
 
-// Brings what a text form found for a clip under a shape or adjustment parent into that parent's space. The text is
-// where it lies in the media searched at the time the value or its keyframe holds, and the chain of shapes and
-// adjustments from the parent out to that media carries the parent's space to it, so the value is brought back through
-// the transform of each at that time, the outermost first, without animation, each held at the edges of its own window
-// as its evaluation holds it: an adjustment's tracked motion, and a shape's own scale and rotation about its anchor
-// point and its position, then its tracked motion. A shape's own geometry and position are brought into its own
-// parent's space the same way first. An area carried back through a rotation is the box bounding its four carried
-// corners. A value written as numbers is in the parent's space already, and so is a clip area. A link with no inverse
-// at that time, a scale of 0 on an axis, stops the clip, and so does a shape whose geometry or position holds a clip
-// area, whose box only evaluation knows.
+// Brings what a text form found for a clip under a shape, adjustment or clip with a corner pin parent into that
+// parent's space. The text is where it lies in the media searched at the time the value or its keyframe holds, and the
+// chain of such parents from the parent out to that media carries the parent's space to it, so the value is brought
+// back through the transform of each at that time, the outermost first, without animation, each held at the edges of
+// its own window as its evaluation holds it: an adjustment's and a clip with a corner pin's tracked motion, and a
+// shape's own scale and rotation about its anchor point and its position, then its tracked motion. A shape's own
+// geometry and position are brought into its own parent's space the same way first. An area carried back through a
+// rotation is the box bounding its four carried corners. A value written as numbers is in the parent's space already,
+// and so is a clip area. A link with no inverse at that time, a scale of 0 on an axis, stops the clip, and so does a
+// shape whose geometry or position holds a clip area, or a clip whose corner pin holds one, whose box or points only
+// evaluation knows.
 struct ParentSpacePlanner: Sendable {
     // MARK: - Property
     private let tracked: TrackPlan
@@ -147,10 +148,11 @@ struct ParentSpacePlanner: Sendable {
         }
     }
 
-    // The map of each shape and adjustment from the parent out to the clip whose media is searched, the outermost
-    // first, each from the space its children are written in to that of its own parent at the time its window holds.
-    // Only one parented to a clip with video is tracked, a shape given by `width` and `height` has a space with no
-    // picture to search, and ParentFinder has ruled out a cycle, so the chain ends.
+    // The map of each shape, adjustment and clip with a corner pin from the parent out to the clip whose media is
+    // searched, the outermost first, each from the space its children are written in to that of its own parent at the
+    // time its window holds: a clip with a corner pin carries its children by its tracked motion only (FRAMES-10). Only
+    // one parented to a clip with video is tracked, a shape given by `width` and `height` has a space with no picture to
+    // search, and ParentFinder has ruled out a cycle, so the chain ends.
     private func links(
         under parent: ClipParent,
         at time: Double,
@@ -162,14 +164,17 @@ struct ParentSpacePlanner: Sendable {
         while case let .clip(index, _) = next {
             let plan = tracked.time.clips[index]
             switch plan.kind {
-            case .shape where transforms[index] != nil, .adjust:
+            case _ where plan.isPinned, .shape where transforms[index] != nil, .adjust:
                 break
 
             default:
                 return links.reversed()
             }
 
-            if let transform = transforms[index], transform.geometry.holdsClipArea {
+            let holdsClipArea = plan.isPinned
+                ? cornerPins[index]?.keyframes(at: plan.instant) { $0 }.contains { $0.value.contains { $0.clipArea != nil } } == true
+                : transforms[index]?.geometry.holdsClipArea == true
+            if holdsClipArea {
                 throw ResolveError.textUnderClipArea(
                     place: written[child].place.appending(key: key),
                     kind: .clip(tracked.time.clips[child].kind),

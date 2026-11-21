@@ -191,6 +191,117 @@ struct CornerPinTests {
         #expect(error?.description.hasPrefix("storyline[0].cornerPin[0].area (video):") == true)
     }
 
+    @Test("a storyline clip with a corner pin places its storyline picture's box, the frame, by its four points")
+    func placesStorylineByCornerPin() throws {
+        // When
+        let plan = try plan(#"{ "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4", "cornerPin": \#(Self.pin) } ] }"#)
+
+        // Then
+        let appearance = plan.storyline[0].appearance
+        #expect(appearance.box == nil)
+        #expect(appearance.cornerPin == ClipCornerPin(size: Size(width: 1206, height: 2622), points: .value(Self.points)))
+    }
+
+    @Test(
+        "a storyline clip with a corner pin and a key that places it otherwise stops, naming both keys",
+        arguments: [
+            (#""position": [10, 10]"#, "storyline[0]", "position"),
+            (#""anchor": "top-left""#, "storyline[0]", "anchor"),
+            (#""scale": 2"#, "storyline[0]", "scale"),
+            (#""keyframes": [ { "at": 0, "opacity": 1 }, { "at": 1, "rotation": 10 } ]"#, "storyline[0].keyframes[1]", "rotation")
+        ]
+    )
+    func refusesStorylinePlacementKey(
+        key: String,
+        place: String,
+        name: String
+    ) throws {
+        // Given
+        let document = #"{ "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4", "cornerPin": \#(Self.pin), \#(key) } ] }"#
+
+        // When, Then
+        let error = #expect(throws: ResolveError.self) { try plan(document) }
+        #expect(error?.description == #"\#(place).\#(name) (video): a clip placed by "cornerPin" takes no "\#(name)", since its corner pin places it"#)
+    }
+
+    @Test("a storyline clip's corner pin that is not strictly convex stops, naming its place")
+    func refusesStorylineNonConvex() throws {
+        // Given
+        let document = #"{ "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4", "cornerPin": [[0, 0], [10, 0], [0, 10], [10, 10]] } ] }"#
+
+        // When, Then
+        let error = #expect(throws: ResolveError.self) { try plan(document) }
+        #expect(error?.description == "storyline[0].cornerPin (video): the corner pin is not strictly convex, so no homography takes the clip's box to it")
+    }
+
+    @Test("a storyline clip's corner pin is in output pixels, so a text form in it stops")
+    func refusesStorylineTextForm() throws {
+        // Given
+        let document = #"""
+            { "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4",
+              "cornerPin": [ { "area": { "text": "Total" }, "point": "top-left" }, [500, 120], [480, 400], [120, 380] ] } ] }
+            """#
+
+        // When, Then
+        let error = #expect(throws: ResolveError.self) { try plan(document) }
+        #expect(error?.description.hasPrefix("storyline[0].cornerPin[0] (video):") == true)
+    }
+
+    @Test("a storyline clip with a corner pin has no parent's media to follow, so track stops, naming the corner pin")
+    func refusesTrackOnStorylineCornerPin() throws {
+        // Given
+        let document = #"{ "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4", "cornerPin": \#(Self.pin), "track": { "text": "Total" } } ] }"#
+
+        // When, Then
+        let error = #expect(throws: ResolveError.self) { try plan(document) }
+        #expect(error?.description == #"storyline[0].cornerPin (video): a storyline clip with a corner pin is placed in the frame, which has no media to follow, so it takes no "track""#)
+    }
+
+    @Test("a clip parented to a storyline clip with a corner pin is in output pixels, so a text form in it stops")
+    func refusesTextUnderStorylineCornerPin() throws {
+        // Given
+        let document = #"""
+            { "kind": "sequence", "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "cornerPin": \#(Self.pin), "connected": [
+              { "shape": "rect", "fill": "accent", "area": { "text": "Total" }, "at": [0, 3], "parent": "screen" } ] } ] }
+            """#
+
+        // When, Then
+        let error = #expect(throws: ResolveError.self) { try plan(document) }
+        #expect(error?.description.hasPrefix("storyline[0]#screen.connected[0].area (rect): a text area is searched in the media of the clip's parent") == true)
+    }
+
+    @Test("a clip parented to a media clip with a corner pin searches text in that clip's parent's media, the space its corner pin is written in")
+    func searchesTextUnderCornerPin() throws {
+        // Given
+        let document = #"""
+            { "kind": "sequence", "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "connected": [
+              { "id": "card", "media": "/abs/card.png", "at": [0, 3], "parent": "screen", "cornerPin": \#(Self.pin) },
+              { "shape": "rect", "fill": "accent", "area": { "text": "Total" }, "at": [0, 3], "parent": "card" } ] } ] }
+            """#
+
+        // When
+        let plan = try plan(document)
+
+        // Then
+        #expect(plan.clips[1].area?.firstValue.found?.rectangle == Fixture.total)
+    }
+
+    @Test("a clip parented to a clip whose corner pin holds a clip area takes no text form, since its parent's map moves with the named clip")
+    func refusesTextUnderClipAreaCornerPin() throws {
+        // Given
+        let document = #"""
+            { "kind": "sequence", "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "connected": [
+              { "id": "bar", "shape": "rect", "fill": "accent", "area": [0, 0, 100, 100], "at": [0, 3], "parent": "screen" },
+              { "id": "card", "media": "/abs/card.png", "at": [0, 3], "parent": "screen",
+                "cornerPin": [ { "area": { "clip": "bar" }, "point": "top-left" }, [500, 120], [480, 400], [120, 380] ] },
+              { "shape": "rect", "fill": "accent", "area": { "text": "Total" }, "at": [0, 3], "parent": "card" } ] } ] }
+            """#
+
+        // When, Then
+        let error = #expect(throws: ResolveError.self) { try plan(document) }
+        #expect(error?.description == #"storyline[0]#screen.connected[2].area (rect): text found under "card" is brought back through its transform when resolved, and its geometry, position or corner pin holds a clip area, whose box is known only when evaluated"#)
+    }
+
     // MARK: - Private
     private func geometry(of clip: String) throws -> ClipGeometry {
         try plan(#"{ "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4" } ], "clips": [ \#(clip) ] }"#).clips[0]

@@ -6,7 +6,8 @@
 //
 
 // A connected or sequence clip on the sequence clock. `space` is its own coordinate space, which its mask is in and
-// which it gives its children. `window` is where its `at` puts it, and `visible` is the part of the window it is seen
+// which it gives its children, except that a clip with a corner pin (`isPinned`) gives its children the space its
+// corner pin is written in (FRAMES-10). `window` is where its `at` puts it, and `visible` is the part of the window it is seen
 // or heard in. `storyline` is the index of the storyline clip a connected clip belongs to, and `clock` maps its
 // instants to sequence time. `instant`, the start of its window, is where its areas take effect. `keyframes` are in
 // sequence time.
@@ -16,6 +17,7 @@ struct ClipPlan: Equatable, Sendable {
     let id: String?
     let kind: ClipKind
     let space: OwnSpace
+    let isPinned: Bool
     let storyline: Int?
     let parent: ClipParent?
     let trackMatte: TrackMatte?
@@ -40,6 +42,7 @@ struct ClipPlan: Equatable, Sendable {
         id: String?,
         kind: ClipKind,
         space: OwnSpace,
+        isPinned: Bool = false,
         storyline: Int?,
         parent: ClipParent? = nil,
         trackMatte: TrackMatte?,
@@ -57,6 +60,7 @@ struct ClipPlan: Equatable, Sendable {
         self.id = id
         self.kind = kind
         self.space = space
+        self.isPinned = isPinned
         self.storyline = storyline
         self.parent = parent
         self.trackMatte = trackMatte
@@ -78,6 +82,7 @@ struct ClipPlan: Equatable, Sendable {
             id: id,
             kind: kind,
             space: space,
+            isPinned: isPinned,
             storyline: storyline,
             parent: parent,
             trackMatte: trackMatte,
@@ -99,6 +104,7 @@ struct ClipPlan: Equatable, Sendable {
             id: id,
             kind: kind,
             space: space,
+            isPinned: isPinned,
             storyline: storyline,
             parent: parent,
             trackMatte: trackMatte,

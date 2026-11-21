@@ -1284,7 +1284,9 @@ struct EvaluatorTests {
         border: MediaBorder? = nil,
         shadow: DropShadow? = nil
     ) -> ResolvedStorylineClip {
-        ResolvedStorylineClip(
+        // The entries restyled here have a box.
+        let box = entry.box!
+        return ResolvedStorylineClip(
             place: entry.place,
             id: entry.id,
             media: entry.media,
@@ -1301,11 +1303,11 @@ struct EvaluatorTests {
             track: entry.track,
             filter: entry.filter,
             box: ResolvedBox(
-                size: entry.box.size,
+                size: box.size,
                 position: topLeft.map { keyframes in
-                    keyframes.map { $0.map { .point(Point(x: $0.x + entry.box.anchor.x, y: $0.y + entry.box.anchor.y)) } }
-                } ?? entry.box.position,
-                anchor: entry.box.anchor
+                    keyframes.map { $0.map { .point(Point(x: $0.x + box.anchor.x, y: $0.y + box.anchor.y)) } }
+                } ?? box.position,
+                anchor: box.anchor
             ),
             opacity: [Keyframe(at: entry.start, value: opacity)],
             scale: scale ?? entry.scale,

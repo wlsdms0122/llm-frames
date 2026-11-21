@@ -6,13 +6,15 @@
 //
 
 // How a storyline clip's picture is drawn inside its storyline picture. `box` is the frame its conformed crop fills,
-// placed by its position and anchor. Keyframes are in sequence time, and `opacity`, `scale` and `rotation` are 1, 1
+// placed by its position and anchor, and `cornerPin` that box placed by its corner pin instead, nil for a clip without
+// one (FRAMES-27). Keyframes are in sequence time, and `opacity`, `scale` and `rotation` are 1, 1
 // and 0 when not written. `blend` is the blend mode its storyline picture takes over what lies below, and `radius`,
 // `border` and `shadow` are timed values in output pixels, `off` for none. A solid keeps the plain values and has no
 // box, since it fills the frame.
 struct StorylineAppearance: Equatable, Sendable {
     // MARK: - Property
     let box: ClipBox?
+    let cornerPin: ClipCornerPin?
     let opacity: PropertyValue<Double>
     let scale: PropertyValue<Scale>
     let rotation: PropertyValue<Double>
@@ -24,6 +26,7 @@ struct StorylineAppearance: Equatable, Sendable {
     // MARK: - Initializer
     init(
         box: ClipBox?,
+        cornerPin: ClipCornerPin? = nil,
         opacity: PropertyValue<Double>,
         scale: PropertyValue<Scale>,
         rotation: PropertyValue<Double>,
@@ -33,6 +36,7 @@ struct StorylineAppearance: Equatable, Sendable {
         shadow: TimedValue
     ) {
         self.box = box
+        self.cornerPin = cornerPin
         self.opacity = opacity
         self.scale = scale
         self.rotation = rotation

@@ -445,6 +445,7 @@ struct TimePlanner: Sendable {
             id: clip.id,
             kind: kind,
             space: OwnSpace(content: clip.content),
+            isPinned: clip.cornerPin != nil,
             storyline: owner,
             trackMatte: clip.trackMatte,
             lane: try lane(of: clip, kind: kind),

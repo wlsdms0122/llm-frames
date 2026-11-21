@@ -162,6 +162,7 @@ struct ResolvedDocumentReaderTests {
                                       { "at": 2, "audioFilter": { "bands": [ { "frequency": 8000, "q": 0.5 } ] } } ] } ] }
         """#,
         cornerPinDocument,
+        storylineCornerPinDocument,
         // A title of runs over two lines with a background, one run in the stroked subtitle style.
         #"""
         { "kind": "sequence", "format": { "size": [1920, 1080] },
@@ -182,6 +183,16 @@ struct ResolvedDocumentReaderTests {
                      { "title": "Hi", "style": "title", "at": [0, 3], "cornerPin": [[600, 100], [900, 100], [900, 200], [600, 200]] },
                      { "shape": "rect", "fill": "accent", "width": 40, "height": 20, "at": [0, 3],
                        "cornerPin": [ { "area": { "clip": "card" }, "point": "bottom-left" }, [500, 500], [500, 600], [400, 600] ] } ] }
+        """#
+
+    // A storyline entry with a corner pin, one without and a solid.
+    private static let storylineCornerPinDocument = #"""
+        { "kind": "sequence", "format": { "size": [1920, 1080] },
+          "storyline": [ { "media": "/abs/run.mp4", "out": 1,
+                           "keyframes": [ { "at": 0, "cornerPin": [[100, 100], [500, 120], [480, 400], [120, 380]] },
+                                          { "at": 1, "cornerPin": [[110, 100], [510, 120], [490, 400], [130, 380]] } ] },
+                         { "media": "/abs/run.mp4", "out": 1 },
+                         { "solid": "#000000", "duration": 1 } ] }
         """#
 
     // A tracked screen, a shape that follows the screen it is parented to, and a media clip of video under it that

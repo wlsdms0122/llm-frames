@@ -260,11 +260,14 @@ package struct Evaluator: Sendable {
         at time: Double,
         seed: Int
     ) -> [DisplayItem] {
+        // An entry with a corner pin draws no item here.
+        guard let size = entry.box?.size, let scale = entry.scale else { return [] }
+
         let origin = ItemOrigin(entry: entry)
-        let box = Rectangle(x: 0, y: 0, width: entry.box.size.width, height: entry.box.size.height)
+        let box = Rectangle(x: 0, y: 0, width: size.width, height: size.height)
         let presentation = entry.presentation(at: time)
         // A box's own pixels are carried at the entry's scale, so a carried length is written as it is.
-        let factor = entry.scale.value(at: time).factor
+        let factor = scale.value(at: time).factor
         let content: DisplayContent
         if let media = entry.media {
             content = .picture(PictureItem(

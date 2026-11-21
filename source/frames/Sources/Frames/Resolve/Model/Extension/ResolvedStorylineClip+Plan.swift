@@ -7,8 +7,9 @@
 
 // A storyline clip as resolve decided it. Its crop is conformed to its box, the frame or under content fit the pixel
 // size of its first crop, so evaluation fills the box with it as it is, and a clip written without a crop shows its
-// whole picture, conformed the same way. A solid's box is the frame at the origin, so its transform is the identity. A
-// static crop is one keyframe at the clip's `in`, and so is every other static property.
+// whole picture, conformed the same way. A clip with a corner pin conforms it to the box its corner pin places. A
+// solid's box is the frame at the origin, so its transform is the identity. A static crop is one keyframe at the
+// clip's `in`, and so is every other static property.
 extension ResolvedStorylineClip {
     // MARK: - Property
     // MARK: - Initializer
@@ -21,8 +22,12 @@ extension ResolvedStorylineClip {
         let appearance = geometry.appearance
         let clipBox = appearance.box
             ?? ClipBox(size: format.size, position: .value(.point(format.frame.center)), anchor: format.frame.center)
+        let cornerPin = appearance.cornerPin.map { pin in
+            ResolvedCornerPin(size: pin.size, points: pin.points.keyframes(at: plan.instant) { $0 })
+        }
+        let size = cornerPin?.size ?? clipBox.size
         let conformer = CropConformer()
-        let box = Rectangle(x: 0, y: 0, width: clipBox.size.width, height: clipBox.size.height)
+        let box = Rectangle(x: 0, y: 0, width: size.width, height: size.height)
         let conform = { (rectangle: Rectangle) in
             Crop(conformer.conformed(rectangle, to: box, by: format.conform))
         }
@@ -51,14 +56,17 @@ extension ResolvedStorylineClip {
                 try file.map { try ResolvedTrack(track: track, file: $0, hashes: hashes) }
             },
             filter: try geometry.filter.pinningFiles(hashes: hashes),
-            box: ResolvedBox(
-                size: clipBox.size,
-                position: clipBox.position.keyframes(at: plan.instant) { $0 },
-                anchor: clipBox.anchor
-            ),
+            box: cornerPin == nil
+                ? ResolvedBox(
+                    size: clipBox.size,
+                    position: clipBox.position.keyframes(at: plan.instant) { $0 },
+                    anchor: clipBox.anchor
+                )
+                : nil,
+            cornerPin: cornerPin,
             opacity: appearance.opacity.keyframes(at: plan.instant) { $0 },
-            scale: appearance.scale.keyframes(at: plan.instant) { $0 },
-            rotation: appearance.rotation.keyframes(at: plan.instant) { $0 },
+            scale: cornerPin == nil ? (appearance.scale.keyframes(at: plan.instant) { $0 }) : nil,
+            rotation: cornerPin == nil ? (appearance.rotation.keyframes(at: plan.instant) { $0 }) : nil,
             blend: appearance.blend,
             radius: appearance.radius,
             border: appearance.border,

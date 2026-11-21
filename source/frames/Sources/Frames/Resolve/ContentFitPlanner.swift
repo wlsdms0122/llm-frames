@@ -91,6 +91,7 @@ struct ContentFitPlanner: Sendable {
                     track: entry.track,
                     filter: entry.filter,
                     box: entry.box,
+                    cornerPin: entry.cornerPin,
                     opacity: entry.opacity,
                     scale: entry.scale,
                     rotation: entry.rotation,
@@ -128,12 +129,18 @@ struct ContentFitPlanner: Sendable {
         )
     }
 
-    // The extent of every measured clip at sequence time 0, in the measuring space.
+    // The extent of every measured clip at sequence time 0, in the measuring space. A storyline picture with a corner
+    // pin covers the quadrilateral of its four points.
     private func extents(of sequence: ResolvedSequence) -> [Rectangle] {
         let parents = ParentEvaluator(sequence: sequence)
-        let storyline = sequence.storyline.filter { $0.media != nil }.map { entry in
-            let box = Rectangle(x: 0, y: 0, width: entry.box.size.width, height: entry.box.size.height)
-            return bounds(of: box, by: entry.presentation(at: 0).transform)
+        let storyline = sequence.storyline.filter { $0.media != nil }.compactMap { entry -> Rectangle? in
+            if let pin = entry.cornerPin {
+                return Rectangle(bounding: pin.points.map { $0.map { $0.map(\.fixed) } }.value(at: 0))
+            }
+            guard let box = entry.box else { return nil }
+
+            let rectangle = Rectangle(x: 0, y: 0, width: box.size.width, height: box.size.height)
+            return bounds(of: rectangle, by: entry.presentation(at: 0).transform)
         }
         let clips = sequence.clips.filter { !sequence.isMatte($0) }.compactMap { clip in
             extent(of: clip, in: parents.space(of: clip, at: 0))
@@ -202,7 +209,7 @@ struct ContentFitPlanner: Sendable {
         )
     }
 
-    // A storyline picture's box moves with the content. A solid has none, and fills the measured frame.
+    // A storyline picture's box or corner pin moves with the content. A solid has neither, and fills the measured frame.
     private func moved(
         _ geometry: StorylineGeometry,
         by offset: Point
@@ -210,6 +217,9 @@ struct ContentFitPlanner: Sendable {
         let appearance = geometry.appearance
         let box = appearance.box.map { box in
             ClipBox(size: box.size, position: box.position.map { $0.map { moved($0, by: offset) } }, anchor: box.anchor)
+        }
+        let cornerPin = appearance.cornerPin.map { pin in
+            ClipCornerPin(size: pin.size, points: pin.points.map { points in points.map { $0.map { moved($0, by: offset) } } })
         }
 
         return StorylineGeometry(
@@ -221,6 +231,7 @@ struct ContentFitPlanner: Sendable {
             color: geometry.color,
             appearance: StorylineAppearance(
                 box: box,
+                cornerPin: cornerPin,
                 opacity: appearance.opacity,
                 scale: appearance.scale,
                 rotation: appearance.rotation,

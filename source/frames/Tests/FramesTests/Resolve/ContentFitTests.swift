@@ -53,7 +53,7 @@ struct ContentFitTests {
 
         // Then
         #expect(plan.format.size == Size(width: 400, height: 200))
-        #expect(resolved.storyline[0].box.size == Size(width: 400, height: 200))
+        #expect(resolved.storyline[0].box?.size == Size(width: 400, height: 200))
         #expect(resolved.storyline[0].crop.map(\.value) == [
             Crop(Rectangle(x: 0, y: 0, width: 400, height: 200)),
             Crop(Rectangle(x: -50, y: 0, width: 200, height: 100))

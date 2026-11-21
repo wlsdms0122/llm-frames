@@ -7,15 +7,16 @@
 
 // A storyline entry. `place` is its place in the document as written, and `media` is nil for a solid, which carries its
 // colour as `solid`. `colorSpace` is the space that overrides its file's tags, nil where they apply, and `isToneMapped`
-// its `toneMap`, nil for a solid and for a nested sequence, whose pictures are working values already. `in` and `out` are its clip time, `speed` as written, `timeRemap` keyframes in sequence time whose
-// values are media seconds (nil for none, when clip time is media time), and `start` and `end` its edit range in
-// sequence time.
-// `crop` is every crop conformed to the frame, the whole picture when none was written, with keyframes in sequence
-// time. `mask` is its masks in the media pixels of its media, nil for none, a keyframe's where it lies at its own
-// time when tracked, and `trackMatte` its track matte, nil for none. `box` is the frame the crop fills, placed by its
-// position and anchor, and `opacity`, `scale` and `rotation` are keyframes in sequence time. `blend` is how its
-// storyline picture is drawn over what lies below, and `radius`, `border` and `shadow` how its box is drawn. A solid
-// keeps their plain values.
+// its `toneMap`, nil for a solid and for a nested sequence, whose pictures are working values already. `in` and `out`
+// are its clip time, `speed` as written, `timeRemap` keyframes in sequence time whose values are media seconds (nil
+// for none, when clip time is media time), and `start` and `end` its edit range in sequence time. `crop` is every crop
+// conformed to the frame, the whole picture when none was written, with keyframes in sequence time. `mask` is its
+// masks in the media pixels of its media, nil for none, a keyframe's where it lies at its own time when tracked, and
+// `trackMatte` its track matte, nil for none. `box` is the frame the crop fills, placed by its position and anchor,
+// and `opacity`, `scale` and `rotation` are keyframes in sequence time. A clip with a corner pin has `cornerPin`, its
+// box's size and the four points in output pixels its corners go to, and no `box`, `scale` or `rotation` (FRAMES-27).
+// `blend` is how its storyline picture is drawn over what lies below, and `radius`, `border` and `shadow` how its box
+// is drawn. A solid keeps their plain values.
 struct ResolvedStorylineClip: Equatable, Sendable {
     // MARK: - Property
     let place: String
@@ -35,10 +36,11 @@ struct ResolvedStorylineClip: Equatable, Sendable {
     let trackMatte: TrackMatte?
     let track: ResolvedTrack?
     let filter: TimedValue
-    let box: ResolvedBox
+    let box: ResolvedBox?
+    let cornerPin: ResolvedCornerPin?
     let opacity: [Keyframe<Double>]
-    let scale: [Keyframe<Scale>]
-    let rotation: [Keyframe<Double>]
+    let scale: [Keyframe<Scale>]?
+    let rotation: [Keyframe<Double>]?
     let blend: String
     let radius: TimedValue
     let border: TimedValue
@@ -73,10 +75,11 @@ struct ResolvedStorylineClip: Equatable, Sendable {
         trackMatte: TrackMatte?,
         track: ResolvedTrack?,
         filter: TimedValue,
-        box: ResolvedBox,
+        box: ResolvedBox?,
+        cornerPin: ResolvedCornerPin? = nil,
         opacity: [Keyframe<Double>],
-        scale: [Keyframe<Scale>],
-        rotation: [Keyframe<Double>],
+        scale: [Keyframe<Scale>]?,
+        rotation: [Keyframe<Double>]?,
         blend: String,
         radius: TimedValue,
         border: TimedValue,
@@ -101,6 +104,7 @@ struct ResolvedStorylineClip: Equatable, Sendable {
         self.track = track
         self.filter = filter
         self.box = box
+        self.cornerPin = cornerPin
         self.opacity = opacity
         self.scale = scale
         self.rotation = rotation

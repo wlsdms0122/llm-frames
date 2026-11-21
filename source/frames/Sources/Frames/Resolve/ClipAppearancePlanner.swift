@@ -116,9 +116,17 @@ struct ClipAppearancePlanner: Sendable {
         let kind = PlaceKind.clip(plan.kind)
         let isPlacedByBox = if case .box = shape?.geometry { true } else { false }
         guard shape == nil || isPlacedByBox else {
-            throw ResolveError.cornerPinOnGeometry(place: place(of: pin, key: "cornerPin", in: written), kind: kind)
+            throw ResolveError.cornerPinOnGeometry(place: place(of: pin, key: "cornerPin", at: written.place), kind: kind)
         }
-        if let (place, key) = placementKey(of: written) {
+        let key = placementKey(
+            at: written.place,
+            placement: written.placement,
+            position: written.position,
+            anchor: written.anchor,
+            scale: written.scale,
+            rotation: written.rotation
+        )
+        if let (place, key) = key {
             throw ResolveError.cornerPinWithPlacement(place: place, kind: kind, key: key)
         }
         try checkConvexity(of: points, written: pin, place: written.place, kind: kind)
@@ -249,11 +257,14 @@ struct ClipAppearancePlanner: Sendable {
     // goes to its position. That is the centre of the frame unless written, so a clip that writes none of its transform
     // fills the frame exactly, and under content fit the box's top left lies at the origin. Its radius, border and
     // shadow are drawn as a media clip's. A solid has no box and takes no transform, so it keeps the plain values and
-    // its transform is the identity, as its children's space is output pixels.
+    // its transform is the identity, as its children's space is output pixels. A clip with a corner pin, `cornerPin`
+    // its points in output pixels, has its box placed by it and no other placement, so a key that places it otherwise
+    // stops beside it, and keeps the plain scale and rotation (FRAMES-27).
     func appearance(
         of plan: StorylinePlan,
         written: StorylineClip,
         position: PropertyValue<Point>?,
+        cornerPin: PropertyValue<[GeometryPoint]>?,
         box: Size?,
         format: FormatPlan,
         scale: Double,
@@ -280,13 +291,33 @@ struct ClipAppearancePlanner: Sendable {
             scale: scale,
             theme: theme
         )
+        let kind = PlaceKind.clip(plan.source.kind)
+        let pinned: ClipCornerPin?
+        if let cornerPin, let pin = written.cornerPin {
+            let key = placementKey(
+                at: written.place,
+                placement: nil,
+                position: written.position,
+                anchor: written.anchor,
+                scale: written.scale,
+                rotation: written.rotation
+            )
+            if let (place, key) = key {
+                throw ResolveError.cornerPinWithPlacement(place: place, kind: kind, key: key)
+            }
+            try checkConvexity(of: cornerPin, written: pin, place: written.place, kind: kind)
+            pinned = ClipCornerPin(size: box, points: cornerPin)
+        } else {
+            pinned = nil
+        }
         let bounds = Rectangle(x: 0, y: 0, width: box.width, height: box.height)
         let anchor = bounds.point(named: written.anchor ?? "center")
         let placed = position.map { $0.map(GeometryPoint.point) }
             ?? .value(.point(format.isMeasured ? anchor : format.frame.center))
 
         return StorylineAppearance(
-            box: ClipBox(size: box, position: placed, anchor: anchor),
+            box: pinned == nil ? ClipBox(size: box, position: placed, anchor: anchor) : nil,
+            cornerPin: pinned,
             opacity: property(written.opacity, plain: 1, clock: plan.map),
             scale: property(written.scale, plain: .identity, clock: plan.map),
             rotation: property(written.rotation, plain: 0, clock: plan.map),
@@ -428,39 +459,46 @@ struct ClipAppearancePlanner: Sendable {
         }
     }
 
-    // The first key beside a corner pin that places a clip otherwise, with its place: on the clip, or in a keyframe.
-    private func placementKey(of written: Clip) -> (Place, String)? {
-        if written.placement != nil {
-            return (written.place.appending(key: "placement"), "placement")
+    // The first key beside a corner pin that places a clip otherwise, with its place: on the clip at `place`, or in a
+    // keyframe.
+    private func placementKey(
+        at place: Place,
+        placement: String?,
+        position: PropertyValue<PositionForm>?,
+        anchor: String?,
+        scale: PropertyValue<Scale>?,
+        rotation: PropertyValue<Double>?
+    ) -> (Place, String)? {
+        if placement != nil {
+            return (place.appending(key: "placement"), "placement")
         }
-        if let position = written.position {
-            return (place(of: position, key: "position", in: written), "position")
+        if let position {
+            return (self.place(of: position, key: "position", at: place), "position")
         }
-        if written.anchor != nil {
-            return (written.place.appending(key: "anchor"), "anchor")
+        if anchor != nil {
+            return (place.appending(key: "anchor"), "anchor")
         }
-        if let scale = written.scale {
-            return (place(of: scale, key: "scale", in: written), "scale")
+        if let scale {
+            return (self.place(of: scale, key: "scale", at: place), "scale")
         }
-        if let rotation = written.rotation {
-            return (place(of: rotation, key: "rotation", in: written), "rotation")
+        if let rotation {
+            return (self.place(of: rotation, key: "rotation", at: place), "rotation")
         }
         return nil
     }
 
-    // Where a property is written: the clip's key, or the first keyframe that writes it.
+    // Where a property is written: the key of the clip at `place`, or the first keyframe that writes it.
     private func place<Value>(
         of property: PropertyValue<Value>,
         key: String,
-        in written: Clip
+        at place: Place
     ) -> Place {
         switch property {
         case .value:
-            written.place.appending(key: key)
+            place.appending(key: key)
 
         case let .keyframes(keyframes):
-            written.place.appending(key: "keyframes").appending(index: keyframes.map(\.index).min() ?? 0)
-                .appending(key: key)
+            place.appending(key: "keyframes").appending(index: keyframes.map(\.index).min() ?? 0).appending(key: key)
         }
     }
 
