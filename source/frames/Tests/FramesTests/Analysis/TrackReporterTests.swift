@@ -7,8 +7,8 @@
 
 import Foundation
 import FramesAVFoundation
-import FramesPointTracker
 import FramesTestMedia
+import FramesTracker
 import FramesVision
 import Testing
 

@@ -26,7 +26,7 @@ let package = Package(
             dependencies: ["Frames"]
         ),
         .target(
-            name: "FramesPointTracker",
+            name: "FramesTracker",
             dependencies: ["Frames"]
         ),
         .target(
@@ -41,7 +41,7 @@ let package = Package(
                 "FramesQuartz",
                 "FramesVision",
                 "FramesCoreText",
-                "FramesPointTracker"
+                "FramesTracker"
             ],
             resources: [
                 .copy("Resources/packs")
@@ -63,7 +63,7 @@ let package = Package(
                 "FramesAVFoundation",
                 "FramesVision",
                 "FramesCoreText",
-                "FramesPointTracker",
+                "FramesTracker",
                 "FramesTestMedia"
             ]
         ),
@@ -80,8 +80,8 @@ let package = Package(
             dependencies: ["FramesCoreText"]
         ),
         .testTarget(
-            name: "FramesPointTrackerTests",
-            dependencies: ["FramesPointTracker", "FramesAVFoundation", "FramesTestMedia"]
+            name: "FramesTrackerTests",
+            dependencies: ["FramesTracker", "FramesAVFoundation", "FramesTestMedia"]
         ),
         .testTarget(
             name: "FramesQuartzTests",
@@ -99,7 +99,7 @@ let package = Package(
                 "FramesQuartz",
                 "FramesVision",
                 "FramesCoreText",
-                "FramesPointTracker",
+                "FramesTracker",
                 "FramesTestMedia"
             ]
         )

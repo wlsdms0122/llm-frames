@@ -1,24 +1,25 @@
 //
-//  TrackEstimate.swift
-//  FramesPointTracker
+//  TrackPointMatch.swift
+//  FramesTracker
 //
 //  Created by JSilver on 11/16/26.
 //
 
 import Foundation
 
-// Where the track points lie on a frame, and the lower of the points' correlations.
-struct TrackEstimate: Sendable {
+// Where a track point lies on a frame, and how well the frame there matches its feature, as a correlation from -1
+// to 1.
+struct TrackPointMatch: Sendable {
     // MARK: - Property
-    let points: [CGPoint]
+    let point: CGPoint
     let correlation: Double
 
     // MARK: - Initializer
     init(
-        points: [CGPoint],
+        point: CGPoint,
         correlation: Double
     ) {
-        self.points = points
+        self.point = point
         self.correlation = correlation
     }
 

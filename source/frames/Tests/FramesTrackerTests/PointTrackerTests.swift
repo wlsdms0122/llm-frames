@@ -1,6 +1,6 @@
 //
 //  PointTrackerTests.swift
-//  FramesPointTrackerTests
+//  FramesTrackerTests
 //
 //  Created by JSilver on 11/16/26.
 //
@@ -9,7 +9,7 @@ import Foundation
 import Frames
 import FramesAVFoundation
 import FramesTestMedia
-import FramesPointTracker
+import FramesTracker
 import Testing
 
 // Serialized, since AVAssetReader needs a free thread of the shared pool, which tests reading video at once can

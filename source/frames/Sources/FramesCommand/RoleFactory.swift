@@ -8,8 +8,8 @@
 import Frames
 import FramesAVFoundation
 import FramesCoreText
-import FramesPointTracker
 import FramesQuartz
+import FramesTracker
 import FramesVision
 
 // Builds the roles and providers by the names the global options give. The decoder is built once and handed to

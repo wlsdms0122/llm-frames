@@ -9,8 +9,8 @@ import CoreText
 import Foundation
 import FramesAVFoundation
 import FramesCoreText
-import FramesPointTracker
 import FramesTestMedia
+import FramesTracker
 import FramesVision
 import Testing
 
