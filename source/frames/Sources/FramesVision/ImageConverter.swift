@@ -9,7 +9,8 @@ import CoreGraphics
 import Foundation
 import Frames
 
-// Gives Vision a decoder's picture as an sRGB image, its pixels as they are.
+// Gives Vision a decoder's picture as an sRGB image of its premultiplied colour with its alpha skipped, the picture over
+// black (FRAMES-26 Providers and analysis pictures).
 struct ImageConverter: Sendable {
     // MARK: - Property
     private static let workingSpace = CGColorSpace(name: CGColorSpace.sRGB)!
@@ -31,7 +32,7 @@ struct ImageConverter: Sendable {
                 bitsPerPixel: picture.depth.bitsPerComponent * 4,
                 bytesPerRow: picture.bytesPerRow,
                 space: Self.workingSpace,
-                bitmapInfo: CGBitmapInfo(rawValue: CGImageAlphaInfo.premultipliedLast.rawValue | byteOrder.rawValue),
+                bitmapInfo: CGBitmapInfo(rawValue: CGImageAlphaInfo.noneSkipLast.rawValue | byteOrder.rawValue),
                 provider: provider,
                 decode: nil,
                 shouldInterpolate: false,
