@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
-# Writes the bidirectional classes and paired brackets UAX #9 reads, from the Unicode Character Database, and the part
-# of its conformance tests that the tests of frames hold.
+# Writes the bidirectional classes and paired brackets UAX #9 reads, from the Unicode Character Database, and a sample
+# of its conformance tests for the tests of frames to run.
 #
 #   python3 source/bidi-data.py 17.0.0
 #
 # The version is the Unicode version of the Swift standard library frames builds with, so the classes agree with the
 # scalar properties it reads from Swift, such as general category and mirroring. The conformance files are some
-# megabytes each, so the tests hold every case of BidiCharacterTest.txt before its permutations and every hundredth
-# after, and every two hundredth case of BidiTest.txt.
+# megabytes each, so the sample, which is all the tests run, is every case of BidiCharacterTest.txt before its
+# permutations and every hundredth after, and every two hundredth case of BidiTest.txt.
 import os
 import re
 import sys

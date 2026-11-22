@@ -10,9 +10,9 @@ import Testing
 
 @testable import Frames
 
-// The conformance files are a part of the Unicode ones `source/bidi-data.py` writes, each case one line resolved as one
-// paragraph and one line of text. A level the files give as `x` is one rule X9 removes, which they leave out of the
-// visual order.
+// The conformance files are a sample of the Unicode ones, which `source/bidi-data.py` takes, each case one line
+// resolved as one paragraph and one line of text. A level the files give as `x` is one rule X9 removes, which they
+// leave out of the visual order.
 @Suite("BidiResolver Tests")
 struct BidiResolverTests {
     private struct ConformanceCase {
@@ -123,8 +123,8 @@ struct BidiResolverTests {
         #expect(visualOrder == order)
     }
 
-    @Test("every case of BidiCharacterTest.txt resolves as Unicode gives it")
-    func bidiCharacterTest() throws {
+    @Test("a sample of BidiCharacterTest.txt, every case before the permutations and every hundredth after, resolves as given")
+    func resolvesBidiCharacterTestSample() throws {
         // Given
         let cases = try characterCases()
 
@@ -136,8 +136,8 @@ struct BidiResolverTests {
         #expect(failed.isEmpty, "\(failed.count) of \(cases.count) cases fail, the first on lines \(failed.prefix(10))")
     }
 
-    @Test("every case of BidiTest.txt resolves as Unicode gives it")
-    func bidiTest() throws {
+    @Test("a sample of BidiTest.txt, every two hundredth case, resolves as given")
+    func resolvesBidiTestSample() throws {
         // Given
         let cases = try classCases()
 
