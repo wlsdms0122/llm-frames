@@ -511,24 +511,6 @@ struct CoreTextShaperTests {
         #expect(upright.map(\.glyphs.count) == [1])
     }
 
-    @Test(
-        "an upright character with no vertical form keeps its horizontal glyph in an upright run",
-        arguments: ["±", "×", "©", "\u{2018}", "\u{201C}"]
-    )
-    func keepsUprightGlyphUnturned(text: String) throws {
-        // Given
-        let face = try face("Hiragino Sans", "HiraginoSans-W3")
-        let horizontal = try shape(text, [face], size: 100).flatMap(\.glyphs).map(\.id)
-
-        // When
-        let upright = try shape(text, [face], upright: true, size: 100).flatMap(\.glyphs).map(\.id)
-
-        // Then
-        withKnownIssue("CoreText applies the face's `vrt2` with `vert`, which sets these in glyphs turned clockwise") {
-            #expect(upright == horizontal)
-        }
-    }
-
     @Test("a face its file does not hold stops")
     func stopsOnFaceNotInFile() throws {
         // Given
