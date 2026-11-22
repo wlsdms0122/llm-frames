@@ -263,6 +263,7 @@ struct ResolvedDocumentWriterTests {
                       }
                     ],
                     "sideways": false,
+                    "horizontalScale": 1,
                     "staticTracking": 0,
                     "tracking": null,
                     "highlight": null,

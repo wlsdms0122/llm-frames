@@ -213,6 +213,7 @@ struct ResolvedSequencePinnedReferencesTests {
             stroke: .off,
             baselineShift: .off,
             isSideways: false,
+            horizontalScale: 1,
             staticTracking: 0,
             tracking: .off,
             highlight: nil,

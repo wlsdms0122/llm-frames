@@ -508,6 +508,28 @@ struct SequencePlannerTests {
         #expect(characters.map { $0["stroke"]?["color"]?.color } == [Color(written: "#000000"), Color(written: "#FFFFFF")])
     }
 
+    @Test("a title's `character` text orientation and composition merge over every run's style, and a run keeps its own where it writes neither")
+    func mergesTextOrientationOverRuns() throws {
+        // When
+        let plan = try plan(#"""
+            { "kind": "sequence", "format": { "size": [1920, 1080] },
+              "theme": { "styles": { "caption": { "size": 40, "textOrientation": "sideways" },
+                                     "date": { "size": 40, "textCombineUpright": "all" } } },
+              "storyline": [ { "media": "/abs/screen.mp4" } ],
+              "clips": [ { "title": [ { "text": "NHK" }, { "text": "12", "style": "date" } ], "style": "caption",
+                           "character": { "textOrientation": "upright" }, "placement": "top", "at": [0, 1] },
+                         { "title": [ { "text": "NHK" }, { "text": "12", "style": "date" } ], "style": "caption",
+                           "placement": "top", "at": [0, 1] } ] }
+            """#)
+
+        // Then
+        let characters = try plan.clips.map { clip in
+            try #require(clip.title).characters.map { $0.sampled(at: 0, as: LookStructureTable.character) }
+        }
+        #expect(characters.map { $0.map { $0["textOrientation"]?.name } } == [["upright", "upright"], ["sideways", nil]])
+        #expect(characters.map { $0.map { $0["textCombineUpright"]?.name } } == [[nil, "all"], [nil, "all"]])
+    }
+
     @Test("a title's `paragraph` merges over its style's paragraph attributes, and its default line height follows `character`")
     func mergesParagraphOverStyle() throws {
         // When

@@ -82,9 +82,9 @@ extension MergedTheme {
     }
 
     // A style's character attributes with its size multiplied by `scale`. A property it leaves out takes the plain
-    // value: the theme `font`, regular, upright, no tracking, kerned, and no highlight or underline. Every style has a
-    // size, since the merged theme stopped on one without, and the typesetter stopped on a name the theme does not
-    // hold.
+    // value: the theme `font`, regular, not italic, no tracking, kerned, no highlight or underline, and `mixed` and
+    // `none`. Every style has a size, since the merged theme stopped on one without, and the typesetter stopped on a
+    // name the theme does not hold.
     func characterStyle(
         named name: String,
         scale: Double
@@ -108,14 +108,17 @@ extension MergedTheme {
                 member.value.numberValue.flatMap { Int(exactly: $0) }.map { FontFeature(tag: member.key, value: $0) }
             },
             isHighlighted: style["highlight"]?.objectValue != nil,
-            isUnderlined: style["underline"] == .bool(true) || style["underline"]?.objectValue != nil
+            isUnderlined: style["underline"] == .bool(true) || style["underline"]?.objectValue != nil,
+            textOrientation: style["textOrientation"]?.stringValue.flatMap(TextOrientation.init) ?? .mixed,
+            textCombineUpright: style["textCombineUpright"]?.stringValue.flatMap(TextCombineUpright.init)
+                ?? TextCombineUpright.none
         )
     }
 
     // A style's paragraph attributes with its lengths multiplied by `scale`. A property it leaves out takes the plain
     // value: a line height of 1.25 times its size, no background, `horizontal-tb` and no limit on lines, and `direction`
-    // and `align` none, which the text's direction decides. A background leaves out the `background` colour, no padding and no
-    // radius.
+    // and `align` none, which the text's direction decides. A background leaves out the `background` colour, no padding
+    // and no radius.
     func paragraphStyle(
         named name: String,
         scale: Double

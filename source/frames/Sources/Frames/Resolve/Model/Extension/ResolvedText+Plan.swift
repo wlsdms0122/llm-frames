@@ -40,6 +40,7 @@ extension ResolvedText {
                 stroke: character["stroke"] ?? .off,
                 baselineShift: character["baselineShift"] ?? .off,
                 isSideways: run.isSideways,
+                horizontalScale: run.horizontalScale,
                 staticTracking: run.staticTracking,
                 tracking: plan.trackingSteps[run.source],
                 highlight: character["highlight"].flatMap { highlight in
@@ -127,6 +128,7 @@ extension ResolvedText {
                     stroke: .off,
                     baselineShift: .off,
                     isSideways: run.isSideways,
+                    horizontalScale: run.horizontalScale,
                     staticTracking: run.staticTracking,
                     tracking: .off,
                     highlight: nil,

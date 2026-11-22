@@ -57,6 +57,8 @@ struct TitleKeyframeTests {
             (#""character": { "italic": true }"#, "clips[0].keyframes[0].character.italic"),
             (#""character": { "kerning": "none" }"#, "clips[0].keyframes[0].character.kerning"),
             (#""character": { "features": { "tnum": 1 } }"#, "clips[0].keyframes[0].character.features.tnum"),
+            (#""character": { "textOrientation": "upright" }"#, "clips[0].keyframes[0].character.textOrientation"),
+            (#""character": { "textCombineUpright": "all" }"#, "clips[0].keyframes[0].character.textCombineUpright"),
             (#""paragraph": { "align": "right" }"#, "clips[0].keyframes[0].paragraph.align"),
             (#""paragraph": { "writingMode": "vertical-rl" }"#, "clips[0].keyframes[0].paragraph.writingMode")
         ]

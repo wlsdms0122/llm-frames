@@ -627,6 +627,7 @@ struct Typesetter: Sendable {
                         size: previous.size,
                         glyphs: previous.glyphs + [positioned],
                         isSideways: previous.isSideways,
+                        horizontalScale: previous.horizontalScale,
                         staticTracking: previous.staticTracking
                     )
                 } else {
@@ -721,6 +722,7 @@ struct Typesetter: Sendable {
                     size: run.size,
                     glyphs: run.glyphs,
                     isSideways: run.isSideways,
+                    horizontalScale: run.horizontalScale,
                     staticTracking: run.staticTracking,
                     highlights: style.isHighlighted ? pieces.map { piece in
                         writingMode.turned(Rectangle(

@@ -232,14 +232,16 @@ struct ResolvedDocumentReaderTests {
             { "source": 0, "file": "/System/Library/Fonts/HelveticaNeue.ttc",
               "sha256": "41aa0c9e5d17b2f3a8c4e6d1907b5f2e3c8a1d4b6e9f0a2c5d7e8b1f3a6c9d0e", "face": "HelveticaNeue-Bold", "size": 48,
               "color": [ { "at": 1.2, "value": "color(srgb 1 1 1 / 1)", "ease": "linear" } ], "stroke": null,
-              "baselineShift": [ { "at": 1.2, "value": 0, "ease": "linear" } ], "sideways": false, "staticTracking": 0, "tracking": null,
+              "baselineShift": [ { "at": 1.2, "value": 0, "ease": "linear" } ], "sideways": false, "horizontalScale": 1, "staticTracking": 0,
+              "tracking": null,
               "highlight": null, "underline": null,
               "glyphs": [ [48, 0, 45.7, 0, 0], [76, 41.8, 45.7, 0, 0], [81, 54.2, 45.7, 0, 0], [68, 82.7, 45.7, 0, 0], [3, 110.3, 45.7, 0, 0] ] },
             { "source": 1, "file": "/System/Library/Fonts/HelveticaNeue.ttc",
               "sha256": "41aa0c9e5d17b2f3a8c4e6d1907b5f2e3c8a1d4b6e9f0a2c5d7e8b1f3a6c9d0e", "face": "HelveticaNeue", "size": 36,
               "color": [ { "at": 1.2, "value": "color(srgb 0.788235294117647 0.8392156862745098 0.9176470588235294 / 1)", "ease": "linear" } ],
               "stroke": null,
-              "baselineShift": [ { "at": 1.2, "value": 0, "ease": "linear" } ], "sideways": false, "staticTracking": 0, "tracking": null,
+              "baselineShift": [ { "at": 1.2, "value": 0, "ease": "linear" } ], "sideways": false, "horizontalScale": 1, "staticTracking": 0,
+              "tracking": null,
               "highlight": { "color": [ { "at": 1.2, "value": "color(srgb 0.9490196078431372 0.7176470588235294 0.0196078431372549 / 1)", "ease": "linear" } ],
                              "padding": [ { "at": 1.2, "value": [2, 8], "ease": "linear" } ],
                              "radius": [ { "at": 1.2, "value": 4, "ease": "linear" } ],
@@ -1025,6 +1027,47 @@ struct ResolvedDocumentReaderTests {
         }
         #expect(title.runs.map(\.isSideways) == [false, true])
         #expect(error?.description.contains("sideways") == true)
+    }
+
+    @Test("a run's horizontal scale is read and written back as written, and one that is not a number stops when read")
+    func readsHorizontalScale() throws {
+        // Given
+        let text = try written(
+            #"""
+            { "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4", "in": 0, "out": 3 } ],
+              "clips": [ { "title": "12", "style": "title", "at": [0, 1], "position": [0, 0] } ] }
+            """#
+        )
+        let change = { (scale: JSONValue) in
+            try self.replacingTitle(ofClip: 0, in: text) { title in
+                var runs = try #require(title["runs"]?.arrayValue)
+                let run = try #require(runs[0].objectValue)
+                runs[0] = .object(run.setting("horizontalScale", to: scale))
+
+                return title.setting("runs", to: .array(runs))
+            }
+        }
+        let narrowed = try change(.number(0.5))
+        let unreadable = try change(.string("0.5"))
+
+        // When
+        let read = try sut.read(text)
+        let readNarrowed = try sut.read(narrowed)
+        let rewritten = try sut.read(writer.write(readNarrowed))
+        let error = #expect(throws: ModelError.self) { try sut.read(unreadable) }
+
+        // Then
+        guard case let .title(title) = read.clips.first?.content,
+            case let .title(narrowedTitle) = readNarrowed.clips.first?.content,
+            case let .title(rewrittenTitle) = rewritten.clips.first?.content
+        else {
+            Issue.record("the first clip is not a title")
+            return
+        }
+        #expect(title.runs.map(\.horizontalScale) == [1])
+        #expect(narrowedTitle.runs.map(\.horizontalScale) == [0.5])
+        #expect(rewrittenTitle.runs.map(\.horizontalScale) == [0.5])
+        #expect(error?.description.contains("horizontalScale") == true)
     }
 
     @Test(

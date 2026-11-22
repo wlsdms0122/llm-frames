@@ -9,7 +9,8 @@
 // multiplied by the length scale of the place the text is drawn, `tracking` is in thousandths of an em, and `features`
 // are the style's own settings, without `kern`. `isHighlighted` and `isUnderlined` say whether the run's highlight and
 // underline pieces are cut; their colours and lengths, like the run's colour, stroke and baseline shift, change no
-// glyph's place and are timed by the title planner.
+// glyph's place and are timed by the title planner. `textOrientation` and `textCombineUpright` say how the run is set
+// in a vertical line.
 struct CharacterStyle: Equatable, Sendable {
     // MARK: - Property
     let families: [String]
@@ -21,6 +22,8 @@ struct CharacterStyle: Equatable, Sendable {
     let features: [FontFeature]
     let isHighlighted: Bool
     let isUnderlined: Bool
+    let textOrientation: TextOrientation
+    let textCombineUpright: TextCombineUpright
 
     // MARK: - Initializer
     init(
@@ -32,7 +35,9 @@ struct CharacterStyle: Equatable, Sendable {
         isKerned: Bool = true,
         features: [FontFeature] = [],
         isHighlighted: Bool = false,
-        isUnderlined: Bool = false
+        isUnderlined: Bool = false,
+        textOrientation: TextOrientation = .mixed,
+        textCombineUpright: TextCombineUpright = .none
     ) {
         self.families = families
         self.weight = weight
@@ -43,6 +48,8 @@ struct CharacterStyle: Equatable, Sendable {
         self.features = features
         self.isHighlighted = isHighlighted
         self.isUnderlined = isUnderlined
+        self.textOrientation = textOrientation
+        self.textCombineUpright = textCombineUpright
     }
 
     // MARK: - Public

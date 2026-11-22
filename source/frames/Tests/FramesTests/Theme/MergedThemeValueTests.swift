@@ -124,6 +124,24 @@ struct MergedThemeValueTests {
         #expect(modes == [.verticalRightToLeft, .verticalLeftToRight, .horizontalTopToBottom, .horizontalTopToBottom])
     }
 
+    @Test("a style's text orientation and composition are read as written, and `mixed` and `none` where no layer gives them")
+    func readsTextOrientationAndCombineUpright() throws {
+        // Given
+        let sut = try theme(#"""
+            { "styles": { "acronym": { "size": 40, "textOrientation": "upright" },
+                          "quote": { "size": 40, "textOrientation": "sideways" },
+                          "date": { "size": 40, "textOrientation": "mixed", "textCombineUpright": "all" },
+                          "caption": { "size": 40, "textCombineUpright": "none" } } }
+            """#)
+
+        // When
+        let styles = ["acronym", "quote", "date", "caption"].map { sut.characterStyle(named: $0, scale: 1) }
+
+        // Then
+        #expect(styles.map(\.textOrientation) == [.upright, .sideways, .mixed, .mixed])
+        #expect(styles.map(\.textCombineUpright) == [.none, .none, .all, .none])
+    }
+
     @Test("a style's lines is the most lines its text may take, two for the base subtitle")
     func readsLines() throws {
         // Given

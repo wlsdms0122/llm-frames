@@ -432,6 +432,7 @@ struct ResolvedValueWriter: Sendable {
                     JSONMember(key: "stroke", value: timed(run.stroke)),
                     JSONMember(key: "baselineShift", value: timed(run.baselineShift)),
                     JSONMember(key: "sideways", value: .bool(run.isSideways)),
+                    JSONMember(key: "horizontalScale", value: .number(run.horizontalScale)),
                     JSONMember(key: "staticTracking", value: .number(run.staticTracking)),
                     JSONMember(key: "tracking", value: timed(run.tracking)),
                     JSONMember(key: "highlight", value: highlight ?? .null),

@@ -37,7 +37,7 @@ enum ThemeKeyTable {
     )
     static let characterKeys = [
         "font", "size", "weight", "italic", "tracking", "kerning", "features", "baselineShift", "color", "stroke",
-        "highlight", "underline"
+        "highlight", "underline", "textOrientation", "textCombineUpright"
     ]
     static let defaults = ObjectTable(
         kind: "defaults",
