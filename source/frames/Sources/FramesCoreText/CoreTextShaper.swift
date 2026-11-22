@@ -14,8 +14,9 @@ import Frames
 // it but its default ignorable ones, else in the face CoreText finds on the machine for it from the first face, which
 // follows its weight and slant. Each stretch of clusters in one face is set as a CoreText line sets it, in that face
 // alone, with the feature settings given over the font's defaults, and in the run's direction, which overrides every
-// character's, so CoreText reorders nothing by a bidirectional pass of its own. A right-to-left run's stretches are
-// given from right to left, the order they lie in on the line.
+// character's and is the line's base direction, so CoreText reorders nothing by a bidirectional pass of its own and
+// sets trailing whitespace on the run's side. A right-to-left run's stretches are given from right to left, the order
+// they lie in on the line.
 package struct CoreTextShaper: Sendable {
     // MARK: - Property
     // Offsets into the OS/2 table: `usWeightClass`, `usWidthClass` and `fsSelection`, whose bit 0 is italic and bit 9
