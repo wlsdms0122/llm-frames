@@ -730,7 +730,8 @@ struct ResolvedValueReader: Sendable {
 
     private func drawnRun(_ value: PlacedJSONValue) throws -> DrawnGlyphRun {
         let run = try value.object(keys: [
-            "file", "sha256", "face", "size", "sideways", "color", "stroke", "highlight", "underline", "glyphs"
+            "file", "sha256", "face", "size", "sideways", "horizontalScale", "color", "stroke", "highlight", "underline",
+            "glyphs"
         ])
 
         return DrawnGlyphRun(
@@ -738,6 +739,7 @@ struct ResolvedValueReader: Sendable {
             face: try run.member("face").string(),
             size: try run.member("size").number(),
             isSideways: try run.member("sideways").bool(),
+            horizontalScale: try run.member("horizontalScale").number(),
             color: try color(run.member("color")),
             stroke: try run.member("stroke").optional { value in
                 let stroke = try value.object(keys: ["width", "color"])

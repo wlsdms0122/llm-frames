@@ -6,14 +6,16 @@
 //
 
 // A run of shaped glyphs as a `glyphs` item draws it at one instant: one face and size, whether its glyphs are drawn
-// turned 90 degrees clockwise about their origins, one colour and stroke, its highlight and underline, and each glyph
-// at the position its origin is drawn at in the item's own box.
+// turned 90 degrees clockwise about their origins, the scale they are drawn at along their own horizontal axis about
+// their origins before that turn, one colour and stroke, its highlight and underline, and each glyph at the position its
+// origin is drawn at in the item's own box.
 package struct DrawnGlyphRun: Equatable, Sendable {
     // MARK: - Property
     package let font: PinnedFile
     package let face: String
     package let size: Double
     package let isSideways: Bool
+    package let horizontalScale: Double
     package let color: Color
     package let stroke: TextStroke?
     package let highlight: DrawnHighlight?
@@ -26,6 +28,7 @@ package struct DrawnGlyphRun: Equatable, Sendable {
         face: String,
         size: Double,
         isSideways: Bool = false,
+        horizontalScale: Double = 1,
         color: Color,
         stroke: TextStroke?,
         highlight: DrawnHighlight?,
@@ -36,6 +39,7 @@ package struct DrawnGlyphRun: Equatable, Sendable {
         self.face = face
         self.size = size
         self.isSideways = isSideways
+        self.horizontalScale = horizontalScale
         self.color = color
         self.stroke = stroke
         self.highlight = highlight
@@ -78,6 +82,7 @@ package struct DrawnGlyphRun: Equatable, Sendable {
             face: run.face,
             size: run.size,
             isSideways: run.isSideways,
+            horizontalScale: run.horizontalScale,
             color: run.color.sampled(at: time, as: .leaf(.color)).color ?? .black,
             stroke: stroke["width"]?.number.flatMap { width in
                 stroke["color"]?.color.map { TextStroke(width: width * factor, color: $0) }
@@ -156,6 +161,7 @@ package struct DrawnGlyphRun: Equatable, Sendable {
             face: face,
             size: size,
             isSideways: isSideways,
+            horizontalScale: horizontalScale,
             color: color,
             stroke: stroke.map { TextStroke(width: $0.width * factor, color: $0.color) },
             highlight: highlight.flatMap { highlight in

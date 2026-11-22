@@ -51,4 +51,47 @@ struct DrawnGlyphRunTests {
         // Then
         #expect(sut.glyphs == [PositionedGlyph(id: 1, x: 3, y: 36), PositionedGlyph(id: 2, x: 13, y: 16)])
     }
+
+    @Test("a drawn run is narrowed and turned as its resolved run is, and the run a unit carries keeps both")
+    func carriesOrientationAndHorizontalScale() {
+        // Given
+        let run = ResolvedGlyphRun(
+            source: 0,
+            font: PinnedFile(path: "/abs/font.ttf", sha256: String(repeating: "0", count: 64)),
+            face: "Font-Regular",
+            size: 40,
+            color: .track([Keyframe(at: 0, value: .color(Color(written: "#FFFFFF")))]),
+            stroke: .off,
+            baselineShift: .off,
+            isSideways: true,
+            horizontalScale: 0.5,
+            staticTracking: 0,
+            tracking: .off,
+            highlight: nil,
+            underline: nil,
+            glyphs: [PositionedGlyph(id: 1, x: 0, y: 32)]
+        )
+
+        // When
+        let sut = DrawnGlyphRun(
+            run: run,
+            writingMode: .verticalRightToLeft,
+            factor: 1,
+            at: SampleTime(0),
+            moves: [Point(x: 0, y: 0)],
+            pieceMoves: []
+        )
+        let carried = sut.carrying(
+            glyphs: [GlyphRange(run: 0, first: 0, count: 1)],
+            parts: [],
+            writingMode: .verticalRightToLeft,
+            factor: 1
+        )
+
+        // Then
+        #expect(sut.isSideways)
+        #expect(sut.horizontalScale == 0.5)
+        #expect(carried.isSideways)
+        #expect(carried.horizontalScale == 0.5)
+    }
 }

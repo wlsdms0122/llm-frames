@@ -126,7 +126,7 @@ struct GlyphDrawerTests {
     func turnsSidewaysGlyph() throws {
         // Given
         let sut = QuartzRenderer(decoder: AVFoundationDecoder())
-        let (glyph, ink) = try inkOfI()
+        let (glyph, ink) = try ink(of: "I")
         let origin = CGPoint(x: 30, y: 20)
         let turned = CGRect(x: origin.x + ink.minY, y: origin.y + ink.minX, width: ink.height, height: ink.width)
         let stroke = TextStroke(width: 6, color: Color(written: "#0000FF"))
@@ -158,6 +158,89 @@ struct GlyphDrawerTests {
         }
         #expect(outside.filled == 0)
         #expect(outside.stroked == 0)
+    }
+
+    @Test("a narrowed run's glyph is drawn narrowed about its origin along its own horizontal axis, its ink half as wide at a scale of 0.5")
+    func narrowsGlyph() throws {
+        // Given
+        let sut = QuartzRenderer(decoder: AVFoundationDecoder())
+        let (glyph, ink) = try ink(of: "H")
+        let origin = CGPoint(x: 20, y: 60)
+        let item = { (horizontalScale: Double) in
+            DisplayItem(content: .glyphs(GlyphsItem(
+                size: Size(width: 100, height: 100),
+                runs: [self.run(glyph: glyph, at: origin, isSideways: false, horizontalScale: horizontalScale, stroke: nil)],
+                background: nil
+            )))
+        }
+
+        // When
+        let whole = inked(try sut.frame(of: list(items: [item(1)])))
+        let narrowed = inked(try sut.frame(of: list(items: [item(0.5)])))
+
+        // Then
+        #expect(abs(whole.minX - (origin.x + ink.minX)) <= 1)
+        #expect(abs(whole.maxX - (origin.x + ink.maxX)) <= 1)
+        #expect(abs(narrowed.minX - (origin.x + ink.minX * 0.5)) <= 1)
+        #expect(abs(narrowed.maxX - (origin.x + ink.maxX * 0.5)) <= 1)
+        #expect(abs(narrowed.width - whole.width * 0.5) <= 1)
+        #expect(narrowed.minY == whole.minY)
+        #expect(narrowed.maxY == whole.maxY)
+    }
+
+    @Test("a narrowed sideways run's glyph is narrowed along its own horizontal axis before it is turned, so its ink is half as long down the item")
+    func narrowsSidewaysGlyphBeforeTurn() throws {
+        // Given
+        let sut = QuartzRenderer(decoder: AVFoundationDecoder())
+        let (glyph, ink) = try ink(of: "H")
+        let origin = CGPoint(x: 40, y: 10)
+        let item = { (horizontalScale: Double) in
+            DisplayItem(content: .glyphs(GlyphsItem(
+                size: Size(width: 100, height: 100),
+                writingMode: .verticalRightToLeft,
+                runs: [self.run(glyph: glyph, at: origin, isSideways: true, horizontalScale: horizontalScale, stroke: nil)],
+                background: nil
+            )))
+        }
+
+        // When
+        let whole = inked(try sut.frame(of: list(items: [item(1)])))
+        let narrowed = inked(try sut.frame(of: list(items: [item(0.5)])))
+
+        // Then
+        #expect(abs(narrowed.minY - (origin.y + ink.minX * 0.5)) <= 1)
+        #expect(abs(narrowed.maxY - (origin.y + ink.maxX * 0.5)) <= 1)
+        #expect(abs(narrowed.height - whole.height * 0.5) <= 1)
+        #expect(abs(narrowed.minX - (origin.x + ink.minY)) <= 1)
+        #expect(abs(narrowed.maxX - (origin.x + ink.maxY)) <= 1)
+        #expect(narrowed.minX == whole.minX)
+        #expect(narrowed.maxX == whole.maxX)
+    }
+
+    @Test("a narrowed glyph's stroke is drawn at the run's full width on the narrowed outline, reaching half the width past its ink on every side")
+    func strokesNarrowedGlyphAtFullWidth() throws {
+        // Given
+        let sut = QuartzRenderer(decoder: AVFoundationDecoder())
+        let (glyph, _) = try ink(of: "H")
+        let origin = CGPoint(x: 30, y: 60)
+        let stroke = TextStroke(width: 10, color: Color(written: "#0000FF"))
+        let item = { (stroke: TextStroke?) in
+            DisplayItem(content: .glyphs(GlyphsItem(
+                size: Size(width: 100, height: 100),
+                runs: [self.run(glyph: glyph, at: origin, isSideways: false, horizontalScale: 0.5, stroke: stroke)],
+                background: nil
+            )))
+        }
+
+        // When
+        let filled = inked(try sut.frame(of: list(items: [item(nil)])))
+        let stroked = inked(try sut.frame(of: list(items: [item(stroke)])))
+
+        // Then
+        #expect(abs((filled.minX - stroked.minX) - stroke.width / 2) <= 1)
+        #expect(abs((stroked.maxX - filled.maxX) - stroke.width / 2) <= 1)
+        #expect(abs((filled.minY - stroked.minY) - stroke.width / 2) <= 1)
+        #expect(abs((stroked.maxY - filled.maxY) - stroke.width / 2) <= 1)
     }
 
     @Test("in a vertical item a band cuts its piece across y, and two parts cut inside a pixel draw it as the whole piece")
@@ -214,6 +297,18 @@ struct GlyphDrawerTests {
     }
 
     // MARK: - Private
+    // The smallest rectangle of whole pixels that holds every pixel `bitmap` inks.
+    private func inked(_ bitmap: Bitmap) -> CGRect {
+        var inked = CGRect.null
+        for y in 0..<bitmap.height {
+            for x in 0..<bitmap.width where bitmap.pixel(x: x, y: y)[3] > 0 {
+                inked = inked.union(CGRect(x: x, y: y, width: 1, height: 1))
+            }
+        }
+
+        return inked
+    }
+
     private func list(items: [DisplayItem]) -> DisplayList {
         DisplayList(size: Size(width: 100, height: 100), background: Color(written: "#00000000"), seed: 0, items: items)
     }
@@ -239,6 +334,7 @@ struct GlyphDrawerTests {
         glyph: CGGlyph,
         at origin: CGPoint,
         isSideways: Bool,
+        horizontalScale: Double = 1,
         stroke: TextStroke?
     ) -> DrawnGlyphRun {
         DrawnGlyphRun(
@@ -246,6 +342,7 @@ struct GlyphDrawerTests {
             face: Self.face,
             size: Self.size,
             isSideways: isSideways,
+            horizontalScale: horizontalScale,
             color: Color(written: "#FF0000"),
             stroke: stroke,
             highlight: nil,
@@ -278,7 +375,7 @@ struct GlyphDrawerTests {
 
     // The glyph of "I" in the face and its ink bounds in the output, y down from the baseline origin.
     private func letterI() throws -> (glyph: CGGlyph, bounds: CGRect) {
-        let (glyph, ink) = try inkOfI()
+        let (glyph, ink) = try ink(of: "I")
 
         let bounds = CGRect(
             x: Self.baseline.x + ink.minX,
@@ -289,10 +386,10 @@ struct GlyphDrawerTests {
         return (glyph, bounds)
     }
 
-    // The glyph of "I" in the face and its ink bounds in its own space, y up from its origin.
-    private func inkOfI() throws -> (glyph: CGGlyph, ink: CGRect) {
+    // The glyph of `letter` in the face and its ink bounds in its own space, y up from its origin.
+    private func ink(of letter: Unicode.Scalar) throws -> (glyph: CGGlyph, ink: CGRect) {
         let font = try FontLibrary().font(file: Self.file, face: Self.face, size: Self.size)
-        var character = UniChar(UInt8(ascii: "I"))
+        var character = UniChar(letter.value)
         var glyph = CGGlyph(0)
         CTFontGetGlyphsForCharacters(font, &character, &glyph, 1)
         var ink = CGRect.zero

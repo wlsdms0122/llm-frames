@@ -12,9 +12,10 @@ import Frames
 // Draws a glyphs item in its text's own box: the background, then every run's highlight rectangles in run order, then
 // every run's underline rectangles, then the outline of every glyph of every run with a stroke, then every glyph's fill,
 // so no stroke covers a fill. An item of a layer draws only that step and no background. Glyphs are drawn at their
-// written origins and shaped no further, a sideways run's turned 90 degrees clockwise about each origin, and bands cut
-// rectangles along the item's inline axis. A run's stroke width is in output pixels, so it is drawn at that width along
-// the outlines carried by `transform`, and a transform that scales its axes apart does not stretch it.
+// written origins and shaped no further, each narrowed about its origin along its own horizontal axis by its run's
+// horizontal scale and then, in a sideways run, turned 90 degrees clockwise about it, and bands cut rectangles along the
+// item's inline axis. A run's stroke width is in output pixels, so it is drawn at that width along the outlines carried
+// by `transform`, narrowed ones among them, and a transform that scales its axes apart does not stretch it.
 struct GlyphDrawer {
     // MARK: - Property
     private let fonts: FontLibrary
@@ -79,7 +80,7 @@ struct GlyphDrawer {
             // are drawn once.
             let outlines = CGMutablePath()
             for (run, font) in runs where run.stroke == stroke {
-                let space = glyphSpace(isSideways: run.isSideways)
+                let space = glyphSpace(of: run)
                 for glyph in run.glyphs {
                     var placement = CGAffineTransform(
                         a: space.a,
@@ -112,9 +113,9 @@ struct GlyphDrawer {
 
         for (run, font) in runs where draws(.fills) {
             let glyphs = run.glyphs.map { CGGlyph($0.id) }
-            let space = glyphSpace(isSideways: run.isSideways)
-            // The glyph space is its own inverse, so it also takes each origin into that space.
-            let positions = run.glyphs.map { CGPoint(x: $0.x, y: $0.y).applying(space) }
+            let space = glyphSpace(of: run)
+            let origins = space.inverted()
+            let positions = run.glyphs.map { CGPoint(x: $0.x, y: $0.y).applying(origins) }
 
             context.saveGState()
             context.concatenate(space)
@@ -125,12 +126,15 @@ struct GlyphDrawer {
     }
 
     // MARK: - Private
-    // The map from a glyph's own space, y up, to the item's, y down: turned 90 degrees clockwise in a sideways run, so
-    // its ascenders point right.
-    private func glyphSpace(isSideways: Bool) -> CGAffineTransform {
-        isSideways
+    // The map from a glyph's own space, y up, to the item's, y down: narrowed along its own x by the run's horizontal
+    // scale, then turned 90 degrees clockwise in a sideways run, so its ascenders point right.
+    private func glyphSpace(of run: DrawnGlyphRun) -> CGAffineTransform {
+        let narrowing = CGAffineTransform(scaleX: CGFloat(run.horizontalScale), y: 1)
+        let turn = run.isSideways
             ? CGAffineTransform(a: 0, b: 1, c: 1, d: 0, tx: 0, ty: 0)
             : CGAffineTransform(a: 1, b: 0, c: 0, d: -1, tx: 0, ty: 0)
+
+        return narrowing.concatenating(turn)
     }
 
     // Each rectangle is drawn whole and cut to its band, the one at its index, where there are bands, a span along the
