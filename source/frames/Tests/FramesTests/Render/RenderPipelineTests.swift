@@ -118,7 +118,7 @@ struct RenderPipelineTests {
         let sut = pipeline(log: log, hasher: FileHashTable(["/abs/run.mp4": "a different digest"]))
 
         // When
-        #expect(throws: RenderError.changedFile(path: "/abs/run.mp4", place: "storyline[0]")) {
+        #expect(throws: PinnedReferenceError.changedFile(path: "/abs/run.mp4", place: "storyline[0]")) {
             try sut.render(sequence(fps: 2, duration: 1), to: master, at: nil, delivery: nil)
         }
 
@@ -167,7 +167,7 @@ struct RenderPipelineTests {
         let sut = pipeline(log: log, hasher: FileHasher())
 
         // When
-        #expect(throws: RenderError.changedFile(path: path, place: "storyline[0]")) {
+        #expect(throws: PinnedReferenceError.changedFile(path: path, place: "storyline[0]")) {
             try sut.render(sequence(fps: 2, duration: 1, media: pinned), to: master, at: nil, delivery: nil)
         }
 
@@ -186,7 +186,7 @@ struct RenderPipelineTests {
         let sut = pipeline(log: log, hasher: FileHasher())
 
         // When
-        #expect(throws: RenderError.unreadableFile(path: path, place: "storyline[0]")) {
+        #expect(throws: PinnedReferenceError.unreadableFile(path: path, place: "storyline[0]")) {
             try sut.render(sequence(fps: 2, duration: 1, media: pinned), to: master, at: nil, delivery: nil)
         }
 

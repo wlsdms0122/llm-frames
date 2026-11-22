@@ -6,7 +6,7 @@
 //
 
 // A storyline entry. `place` is its place in the document as written, and `media` is nil for a solid, which carries its
-// colour as `solid`. `colorSpace` is the space that overrides its file's tags, nil where they apply, and `isToneMapped`
+// colour as `solid`, keyframes in sequence time. `colorSpace` is the space that overrides its file's tags, nil where they apply, and `isToneMapped`
 // its `toneMap`, nil for a solid, for a page, which takes none, and for a nested sequence, whose pictures are working
 // values already. `in` and `out` are its clip time, `speed` as written, `timeRemap` keyframes in sequence time whose
 // values are media seconds (nil for none, when clip time is media time), and `start` and `end` its edit range in
@@ -23,7 +23,7 @@ struct ResolvedStorylineClip: Equatable, Sendable {
     let place: String
     let id: String?
     let media: ResolvedMediaContent?
-    let solid: Color?
+    let solid: [Keyframe<Color>]?
     let colorSpace: ColorSpace?
     let isToneMapped: Bool?
     let `in`: Double
@@ -63,7 +63,7 @@ struct ResolvedStorylineClip: Equatable, Sendable {
         place: String,
         id: String?,
         media: ResolvedMediaContent?,
-        solid: Color?,
+        solid: [Keyframe<Color>]?,
         colorSpace: ColorSpace? = nil,
         isToneMapped: Bool? = nil,
         in: Double,

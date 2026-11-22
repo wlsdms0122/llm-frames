@@ -42,7 +42,7 @@ extension ResolvedStorylineClip {
             place: plan.place.description,
             id: plan.id,
             media: try ResolvedMediaContent(media: plan.source.media, nested: geometry.nested, hashes: hashes),
-            solid: geometry.color,
+            solid: geometry.solid,
             colorSpace: plan.source.media?.colorSpace,
             isToneMapped: plan.source.media?.isToneMapped,
             in: plan.source.clipRange.start,

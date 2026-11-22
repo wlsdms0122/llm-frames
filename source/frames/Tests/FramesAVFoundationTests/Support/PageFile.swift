@@ -6,7 +6,6 @@
 //
 
 import Foundation
-@testable import FramesAVFoundation
 
 // Hand-written PDFs of pages for the decoder's page tests: each page a media box, resources, a content stream and any
 // further page keys.

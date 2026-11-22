@@ -235,7 +235,7 @@ struct ContentFitPlanner: Sendable {
             track: geometry.track,
             nested: geometry.nested,
             filter: geometry.filter,
-            color: geometry.color,
+            solid: geometry.solid,
             appearance: StorylineAppearance(
                 box: box,
                 cornerPin: cornerPin,

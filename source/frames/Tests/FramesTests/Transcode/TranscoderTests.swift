@@ -100,7 +100,7 @@ struct TranscoderTests {
         #expect(result.format == .png)
     }
 
-    @Test("a page its decoder refuses for its colour or fonts is read by the platform into the output's space")
+    @Test("a page its decoder refuses for its fonts is read by the platform into the output's space")
     func readsPageByPlatform() throws {
         // Given
         let directory = try TemporaryDirectory()

@@ -41,7 +41,7 @@ Titles and shapes are the basics of any NLE. A lower third is a name and a role 
 
 | Key | Form | Meaning |
 | --- | --- | --- |
-| `fill` | a colour, a gradient ([Gradients](#gradients)), or `false` | the inside of the outline painted with that colour or gradient, as SVG's `fill` takes a paint. A path is filled as if it were closed, by the nonzero rule, as SVG fills it. `false` turns off a style's fill |
+| `fill` | a colour, a gradient ([Gradients](#shapes)), or `false` | the inside of the outline painted with that colour or gradient, as SVG's `fill` takes a paint. A path is filled as if it were closed, by the nonzero rule, as SVG fills it. `false` turns off a style's fill |
 | `stroke` | `{color, gradient, width, join, cap, start, end, dash, dashOffset}`, or `false` | the outline drawn centred on itself. `false` turns off a style's stroke |
 | `trim` | `[a, b]`, each from 0 to 1, default `[0, 1]` | the part of the outline the stroke draws, as After Effects' Trim Paths |
 | `shadow` | `true` (on, with its style's shadow, or the theme `shadow` where the style gives none), `false`, or `{radius, offset, color}` whose missing keys come from the theme `shadow` | a drop shadow of the shape's drawn picture ([FRAMES-22](../FRAMES-22/SPEC.md)) |
@@ -50,7 +50,7 @@ Titles and shapes are the basics of any NLE. A lower third is a name and a role 
 | Stroke key | Form | Default |
 | --- | --- | --- |
 | `color` | a colour | the theme `accent` colour, when the stroke has no `gradient` |
-| `gradient` | a gradient ([Gradients](#gradients)), which paints the stroke in place of `color` | none |
+| `gradient` | a gradient ([Gradients](#shapes)), which paints the stroke in place of `color` | none |
 | `width` | a theme length above 0 ([FRAMES-1](../FRAMES-1/SPEC.md)), 0 or more where two keyframes or more write it ([FRAMES-4](../FRAMES-4/SPEC.md)), where a width of 0 draws no stroke and no arrowhead | required |
 | `join` | `miter`, `round` or `bevel`, as SVG `stroke-linejoin`, with a miter limit of 4 as SVG's | `round` |
 | `cap` | `butt`, `round` or `square`, as SVG `stroke-linecap` | `butt` |

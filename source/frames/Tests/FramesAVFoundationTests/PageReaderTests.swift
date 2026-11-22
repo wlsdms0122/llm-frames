@@ -159,50 +159,6 @@ struct PageReaderTests {
         #expect(pixels[(10 * 100 + 75) * 4 + 3] == 0)
     }
 
-    @Test("a page whose View event shows or hides content otherwise than its default state is refused for every reading, since Core Graphics draws without it")
-    func refusesViewEventState() throws {
-        // Given
-        let path = directory.file("layers.pdf")
-        var writer = PDFFileWriter()
-        let hidden = writer.add(.dictionary([
-            "Type": .name("OCG"),
-            "Name": .string(Data("hidden".utf8)),
-            "Usage": .dictionary(["View": .dictionary(["ViewState": .name("OFF")])])
-        ]))
-        let shown = writer.add(.dictionary([
-            "Type": .name("OCG"),
-            "Name": .string(Data("shown".utf8)),
-            "Usage": .dictionary(["View": .dictionary(["ViewState": .name("ON")])])
-        ]))
-        let page = PageFile.page(
-            "/OC /Hidden BDC 1 0 0 rg 0 90 10 10 re f EMC /OC /Shown BDC 0 0 1 rg 50 90 10 10 re f EMC",
-            resources: ["Properties": .dictionary(["Hidden": hidden, "Shown": shown])],
-            mediaBox: [0, 0, 100, 100]
-        )
-        let catalog: [String: PDFValue] = ["OCProperties": .dictionary([
-            "OCGs": .array([hidden, shown]),
-            "D": .dictionary([
-                "OFF": .array([shown]),
-                "AS": .array([.dictionary([
-                    "Event": .name("View"),
-                    "OCGs": .array([hidden, shown]),
-                    "Category": .array([.name("View")])
-                ])])
-            ])
-        ])]
-        try PageFile.write([page], to: path, catalog: catalog, writer: writer)
-        let file = MediaFile(path: path, page: 1)
-
-        // When
-        let error = #expect(throws: DecoderError.self) {
-            try sut.picture(of: file, region: PageRegion(x: 0, y: 0, width: 100, height: 100), scale: 1, reading: .tagged)
-        }
-
-        // Then
-        #expect(error == .unreadablePage(file: path, page: 1, fault: .viewEvent))
-        #expect(throws: DecoderError.self) { try sut.check(file, reading: .platform(colorSpace: .srgb)) }
-    }
-
     @Test("a region under 1 pixel, a scale of 0, a region larger than the decoder holds and a frame of a page stop")
     func refusesRequests() throws {
         // Given
@@ -249,220 +205,26 @@ struct PageReaderTests {
         #expect(throws: Never.self) { try sut.check(file, reading: .platform(colorSpace: .srgb)) }
     }
 
-    @Test("a page drawn in DeviceCMYK is refused at the probe and at the check")
-    func refusesCMYK() throws {
+    @Test("a page drawn in DeviceCMYK is read as Core Graphics draws it, and a written colour space for its untagged colour is refused")
+    func readsCMYK() throws {
         // Given
         let path = directory.file("cmyk.pdf")
-        try PageFile.write([PageFile.page("0 0 0 1 k 0 0 10 10 re f")], to: path)
+        try PageFile.write([PageFile.page("0 0 0 1 k 0 0 10 10 re f", mediaBox: [0, 0, 10, 10])], to: path)
         let file = MediaFile(path: path, page: 1)
 
         // When
-        // Then
-        #expect(throws: DecoderError.self) { try sut.probedPage(1, of: path) }
-        #expect(throws: DecoderError.self) { try sut.check(file, reading: nil) }
-    }
-
-    @Test("a form drawn under two parents' resources, the second naming DeviceCMYK by the name the first gives DeviceRGB, is refused")
-    func refusesFormUnderSecondResources() throws {
-        // Given
-        let path = directory.file("forms.pdf")
-        var writer = PDFFileWriter()
-        let form = writer.add(.stream(
-            ["Type": .name("XObject"), "Subtype": .name("Form"), "BBox": .array([0, 0, 10, 10].map(PDFValue.integer))],
-            Data("/CS0 cs 0 0 10 10 re f".utf8)
-        ))
-        let parent = { (space: String) in
-            PDFValue.stream(
-                [
-                    "Type": .name("XObject"),
-                    "Subtype": .name("Form"),
-                    "BBox": .array([0, 0, 10, 10].map(PDFValue.integer)),
-                    "Resources": .dictionary([
-                        "ColorSpace": .dictionary(["CS0": .name(space)]),
-                        "XObject": .dictionary(["Fm0": form])
-                    ])
-                ],
-                Data("/Fm0 Do".utf8)
-            )
-        }
-        try PageFile.write(
-            [PageFile.page(
-                "/P1 Do /P2 Do",
-                resources: ["XObject": .dictionary(["P1": parent("DeviceRGB"), "P2": parent("DeviceCMYK")])],
-                mediaBox: [0, 0, 10, 10]
-            )],
-            to: path,
-            writer: writer
-        )
-
-        // When
-        let error = #expect(throws: DecoderError.self) { try sut.probedPage(1, of: path) }
-
-        // Then
-        #expect(error?.description.contains("it draws in DeviceCMYK") == true)
-    }
-
-    @Test(
-        "a colour space whose structure numbers are no whole number in their range is refused with the reason, not a trap",
-        arguments: [
-            (
-                PDFValue.array([.name("Indexed"), .name("DeviceRGB"), .integer(-1), .string(Data([255, 0, 0]))]),
-                "an Indexed space whose hival is not a whole number from 0 to 255"
-            ),
-            (
-                .array([.name("Indexed"), .name("DeviceRGB"), .real(1e300), .string(Data([255, 0, 0]))]),
-                "an Indexed space whose hival is not a whole number from 0 to 255"
-            ),
-            (
-                .array([.name("ICCBased"), .stream(["N": .real(1e300)], Data())]),
-                "an ICCBased space whose N is not a whole number from 1 to 4"
-            ),
-            (
-                Self.spot(["FunctionType": .real(1e300), "Domain": .array([.integer(0), .integer(1)])], Data()),
-                "Separation over DeviceRGB whose tint transform this decoder does not evaluate"
-            ),
-            (
-                Self.spot(Self.sampled(size: .real(1e300), bitsPerSample: .integer(8)), Data(repeating: 0, count: 6)),
-                "Separation over DeviceRGB whose tint transform this decoder does not evaluate"
-            ),
-            (
-                Self.spot(Self.sampled(size: .integer(2), bitsPerSample: .real(-1e300)), Data(repeating: 0, count: 6)),
-                "Separation over DeviceRGB whose tint transform this decoder does not evaluate"
-            ),
-            (
-                Self.spot(
-                    ["FunctionType": .integer(2), "Domain": .array([.integer(1), .integer(0)]), "N": .integer(1)],
-                    Data()
-                ),
-                "Separation over DeviceRGB whose tint transform this decoder does not evaluate"
-            ),
-            (
-                Self.spot(Self.sampled(size: .integer(2), bitsPerSample: .integer(8), domain: [1, 0]), Data(repeating: 0, count: 6)),
-                "Separation over DeviceRGB whose tint transform this decoder does not evaluate"
-            ),
-            (
-                Self.lab(range: [.real(1e19), .real(2e19), .real(1e19), .real(2e19)]),
-                "Lab of Range 1e+19 2e+19 1e+19 2e+19"
-            ),
-            (
-                Self.lab(range: [.integer(10), .integer(-10), .integer(-100), .integer(100)]),
-                "a Lab space whose Range is not four finite numbers, each pair's lower end at most its upper"
-            ),
-            (
-                .array([
-                    .name("Separation"),
-                    .name("Spot"),
-                    .array([.name("Indexed"), .name("DeviceRGB"), .integer(1), .string(Data([255, 0, 0, 0, 255, 0]))]),
-                    .dictionary(["FunctionType": .integer(2), "Domain": .array([.integer(0), .integer(1)]), "N": .integer(-1)])
-                ]),
-                "Separation over Indexed over DeviceRGB, whose formula gives no colour for some of its values"
-            )
-        ]
-    )
-    func refusesMalformedColorSpace(
-        space: PDFValue,
-        reason: String
-    ) throws {
-        // Given
-        let path = directory.file("malformed.pdf")
-        try PageFile.write(
-            [PageFile.page("/C0 cs 0 sc 0 0 10 10 re f", resources: ["ColorSpace": .dictionary(["C0": space])], mediaBox: [0, 0, 10, 10])],
-            to: path
-        )
-
-        // When
-        let error = #expect(throws: DecoderError.self) { try sut.probedPage(1, of: path) }
-
-        // Then
-        #expect(error?.description.contains("it draws in \(reason)") == true)
-    }
-
-    @Test("a page drawn in a spot colour whose tint transform is a PostScript calculator function is read by it")
-    func readsCalculatorTint() throws {
-        // Given
-        let path = directory.file("spot.pdf")
-        let tint = PDFValue.stream(
-            ["FunctionType": .integer(4), "Domain": .array([.integer(0), .integer(1)]), "Range": .array([0, 1, 0, 1, 0, 1].map(PDFValue.integer))],
-            Data("{ dup 0.5 mul 0 }".utf8)
-        )
-        let spot = PDFValue.array([.name("Separation"), .name("Spot"), .name("DeviceRGB"), tint])
-        try PageFile.write(
-            [PageFile.page("/C0 cs 1 scn 0 0 10 10 re f", resources: ["ColorSpace": .dictionary(["C0": spot])], mediaBox: [0, 0, 10, 10])],
-            to: path
-        )
-        let file = MediaFile(path: path, page: 1)
-
-        // When
-        let pixels = try sut.picture(of: file, region: PageRegion(x: 0, y: 0, width: 10, height: 10), scale: 1, reading: .tagged)
-            .floatPixels()
-
-        // Then
-        #expect(abs(pixels[0] - 1) < 1e-3)
-        #expect(abs(pixels[1] - 0.5) < 1e-3)
-        #expect(abs(pixels[2]) < 1e-3)
-    }
-
-    @Test(
-        "a page has the formulas' colour away from edges: a fill outside every group, one in opaque Normal groups whose space holds it, an image of one colour",
-        arguments: [
-            ("0.2 0.6 0.4 rg 0 0 10 10 re f", [0.2, 0.6, 0.4]),
-            ("/C0 cs 0.5 sc 0 0 10 10 re f", Array(repeating: Self.encoded(pow(0.5, 2.2)), count: 3)),
-            ("/Fm0 Do", [0.2, 0.6, 0.4]),
-            ("/Fm1 Do", [0.2, 0.6, 0.4]),
-            ("q 10 0 0 10 0 0 cm /Im0 Do Q", [0.2, 0.6, 0.4])
-        ]
-    )
-    func readsFixedColor(
-        content: String,
-        expected: [Double]
-    ) throws {
-        // Given
-        let path = directory.file("color.pdf")
-        let group = PDFValue.dictionary(["S": .name("Transparency"), "CS": .name("DeviceRGB")])
-        let form = { (operators: String, resources: [String: PDFValue]) in
-            PDFValue.stream(
-                [
-                    "Type": .name("XObject"),
-                    "Subtype": .name("Form"),
-                    "BBox": .array([0, 0, 10, 10].map(PDFValue.integer)),
-                    "Group": group,
-                    "Resources": .dictionary(resources)
-                ],
-                Data(operators.utf8)
-            )
-        }
-        let inner = form("0.2 0.6 0.4 rg 0 0 10 10 re f", [:])
-        let image = PDFValue.stream(
-            [
-                "Type": .name("XObject"),
-                "Subtype": .name("Image"),
-                "Width": .integer(2),
-                "Height": .integer(2),
-                "ColorSpace": .name("DeviceRGB"),
-                "BitsPerComponent": .integer(8)
-            ],
-            Data(Array(repeating: [UInt8(51), 153, 102], count: 4).flatMap(\.self))
-        )
-        let d65 = PDFValue.array([.real(0.9505), .integer(1), .real(1.089)])
-        let resources: [String: PDFValue] = [
-            "ColorSpace": .dictionary(["C0": .array([.name("CalGray"), .dictionary(["WhitePoint": d65, "Gamma": .real(2.2)])])]),
-            "XObject": .dictionary([
-                "Fm0": inner,
-                "Fm1": form("/Fm0 Do", ["XObject": .dictionary(["Fm0": inner])]),
-                "Im0": image
-            ])
-        ]
-        try PageFile.write([PageFile.page(content, resources: resources, mediaBox: [0, 0, 10, 10])], to: path)
-        let file = MediaFile(path: path, page: 1)
-
-        // When
+        let probed = try sut.probedPage(1, of: path)
         let pixels = try sut.picture(of: file, region: PageRegion(x: 0, y: 0, width: 10, height: 10), scale: 1, reading: .tagged)
             .floatPixels()
 
         // Then
         let centre = (5 * 10 + 5) * 4
-        let found = Array(pixels[centre..<centre + 4]).map(Double.init)
-        #expect(zip(found, expected + [1]).allSatisfy { abs($0 - $1) < 2e-3 }, "\(found)")
+        #expect(probed?.pageCount == 1)
+        #expect(pixels[centre + 3] == 1)
+        #expect(pixels[centre..<centre + 3].allSatisfy { $0 < 0.5 })
+        #expect(throws: DecoderError.unreadablePage(file: path, page: 1, fault: .untaggedColor(.displayP3))) {
+            try sut.check(file, reading: .working(colorSpace: .displayP3, targetPeak: nil))
+        }
     }
 
     @Test("a PDF that opens only with a password is refused, and one with an empty user password opens")
@@ -521,42 +283,6 @@ struct PageReaderTests {
     }
 
     // MARK: - Private
-    // A Separation over DeviceRGB whose tint transform is the function `entries` and `data` write.
-    private static func spot(
-        _ entries: [String: PDFValue],
-        _ data: Data
-    ) -> PDFValue {
-        .array([.name("Separation"), .name("Spot"), .name("DeviceRGB"), .stream(entries, data)])
-    }
-
-    // A Lab space at the D50 white with that `Range`.
-    private static func lab(range: [PDFValue]) -> PDFValue {
-        .array([
-            .name("Lab"),
-            .dictionary(["WhitePoint": .array([.real(0.9642), .integer(1), .real(0.8249)]), "Range": .array(range)])
-        ])
-    }
-
-    // A sampled function of one input and three outputs, with that `Size` and `BitsPerSample`.
-    private static func sampled(
-        size: PDFValue,
-        bitsPerSample: PDFValue,
-        domain: [Int] = [0, 1]
-    ) -> [String: PDFValue] {
-        [
-            "FunctionType": .integer(0),
-            "Domain": .array(domain.map(PDFValue.integer)),
-            "Range": .array([0, 1, 0, 1, 0, 1].map(PDFValue.integer)),
-            "Size": .array([size]),
-            "BitsPerSample": bitsPerSample
-        ]
-    }
-
-    // The sRGB encoding of a linear value.
-    private static func encoded(_ linear: Double) -> Double {
-        linear <= 0.0031308 ? 12.92 * linear : 1.055 * pow(linear, 1 / 2.4) - 0.055
-    }
-
     private func writeEncrypted(
         to path: String,
         userPassword: String

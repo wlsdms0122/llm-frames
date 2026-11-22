@@ -5,22 +5,21 @@
 //  Created by JSilver on 11/21/26.
 //
 
-// What a page of a PDF draws, as far as the decoder's checks read it (FRAMES-3 PDF pages): the faults found in drawing
-// order, content held in another file, drawn text in a font the file does not embed and an image whose colour space
-// only its codestream holds, and each colour space drawn content paints or blends in, once, in the order first met, a
-// device space under a default space as that default space.
-struct PageContent: Equatable {
+// What a page of a PDF draws, as far as the decoder's checks read it (FRAMES-3 PDF pages): the first font drawn text
+// that sets glyphs is set in that the file does not embed, nil where there is none, and whether the page draws in no
+// colour space but its untagged colour.
+struct PageContent: Equatable, Sendable {
     // MARK: - Property
-    let faults: [PageFault]
-    let colorSpaces: [PDFValue]
+    let unembeddedFont: String?
+    let drawsOnlyUntaggedColor: Bool
 
     // MARK: - Initializer
     init(
-        faults: [PageFault],
-        colorSpaces: [PDFValue]
+        unembeddedFont: String?,
+        drawsOnlyUntaggedColor: Bool
     ) {
-        self.faults = faults
-        self.colorSpaces = colorSpaces
+        self.unembeddedFont = unembeddedFont
+        self.drawsOnlyUntaggedColor = drawsOnlyUntaggedColor
     }
 
     // MARK: - Public

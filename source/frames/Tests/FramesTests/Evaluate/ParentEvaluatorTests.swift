@@ -417,7 +417,7 @@ struct ParentEvaluatorTests {
                     place: "storyline[1]",
                     id: "next",
                     media: nil,
-                    solid: red,
+                    solid: [Keyframe(at: 2, value: red)],
                     in: 0,
                     out: 2,
                     speed: 1,

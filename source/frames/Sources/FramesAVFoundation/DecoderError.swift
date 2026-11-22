@@ -69,7 +69,7 @@ package enum DecoderError: Error, Equatable, CustomStringConvertible, Sendable {
         case let .unreadablePage(file, page, fault):
             fault.suggestsConversion
                 ? "media \(file) page \(page) cannot be read: \(fault.reason). Convert it with transcode, or with a "
-                    + "program that writes a PDF this decoder reads"
+                    + "program that embeds its fonts"
                 : "media \(file) page \(page) cannot be read: \(fault.reason)"
 
         case let .pageFrame(file, page):

@@ -305,7 +305,7 @@ done
 
 The instants cover the dissolve, the ring's entrance, the frames on each side of the edit point, the ring's exit, the note and the fade out. Every one should print `same`.
 
-A blade through a solid works the same way, except that every later part moves the `at` and keyframes of its connected clips back by where it starts. A 2 second title card bladed at 0.5, with a subtitle connected at `[1, 1.8]` that slides down:
+A blade through a solid works the same way, except that every later part moves its own keyframes, and the `at` and keyframes of its connected clips, back by where it starts. A 2 second title card bladed at 0.5, with a subtitle connected at `[1, 1.8]` that slides down:
 
 ```json
 { "id": "card", "solid": "#111827", "duration": 0.5,

@@ -25,6 +25,8 @@ enum LookStructureTable {
 
     static let stops = ValueStructure.list(.tuple([.leaf(.number(.range(0...1))), .leaf(.color)]))
 
+    static let solid = ValueStructure.leaf(.color)
+
     static let fill = ValueStructure.forms([(ValueStructure.colorForm, .leaf(.color))] + gradientForms)
 
     static let stroke = ValueStructure.object(ObjectStructure(
