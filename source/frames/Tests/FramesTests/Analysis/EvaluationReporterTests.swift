@@ -708,23 +708,47 @@ struct EvaluationReporterTests {
         let item = try #require(report.items.first { $0.item == .glyphs })
         let height = 40.0
         #expect(item.characters == [
-            EvaluationCharacter(text: "a", range: 0..<1, rect: Rectangle(x: 0, y: 0, width: 20, height: height), baseline: 32),
-            EvaluationCharacter(text: "b", range: 1..<2, rect: Rectangle(x: 20, y: 0, width: 20, height: height), baseline: 32),
-            EvaluationCharacter(text: " ", range: 2..<3, rect: Rectangle(x: 40, y: 0, width: 10, height: height), baseline: 32),
-            EvaluationCharacter(text: "c", range: 3..<4, rect: Rectangle(x: 50, y: 0, width: 20, height: height), baseline: 32),
-            EvaluationCharacter(text: "d", range: 4..<5, rect: Rectangle(x: 70, y: 0, width: 20, height: height), baseline: 32)
+            EvaluationCharacter(text: "a", range: 0..<1, level: 0, rect: Rectangle(x: 0, y: 0, width: 20, height: height), baseline: 32),
+            EvaluationCharacter(text: "b", range: 1..<2, level: 0, rect: Rectangle(x: 20, y: 0, width: 20, height: height), baseline: 32),
+            EvaluationCharacter(text: " ", range: 2..<3, level: 0, rect: Rectangle(x: 40, y: 0, width: 10, height: height), baseline: 32),
+            EvaluationCharacter(text: "c", range: 3..<4, level: 0, rect: Rectangle(x: 50, y: 0, width: 20, height: height), baseline: 32),
+            EvaluationCharacter(text: "d", range: 4..<5, level: 0, rect: Rectangle(x: 70, y: 0, width: 20, height: height), baseline: 32)
         ])
         #expect(report.texts == [
             EvaluationText(
                 place: "clips[0]#t",
                 id: "t",
                 text: "ab cd",
+                direction: .ltr,
                 size: Size(width: 90, height: 40),
                 box: Rectangle(x: 0, y: 0, width: 90, height: 40),
                 transform: item.transform,
                 lines: [EvaluationLine(text: "ab cd", range: 0..<5, baseline: 32, ascent: 32, descent: 8)],
                 words: [EvaluationWord(text: "ab", range: 0..<2), EvaluationWord(text: "cd", range: 3..<5)]
             )
+        ])
+    }
+
+    @Test("a right-to-left title reports its direction, and each character in reading order at its level where its glyphs lie")
+    func reportsRightToLeftCharacters() throws {
+        // Given
+        let document = try resolved(titled(#"{ "title": "אב 12" }"#))
+
+        // When
+        let report = try sut.report(of: document, at: 1)
+
+        // Then
+        // The number lies at level 2 inside the line at level 1, which is placed 1 2 space ב א: 1 at 0, 2 at 20, the
+        // space at 40, 10 wide, ב at 50 and א at 70.
+        let item = try #require(report.items.first { $0.item == .glyphs })
+        let rect = { (x: Double, width: Double) in Rectangle(x: x, y: 0, width: width, height: 40) }
+        #expect(report.texts.map(\.direction) == [.rtl])
+        #expect(item.characters == [
+            EvaluationCharacter(text: "א", range: 0..<1, level: 1, rect: rect(70, 20), baseline: 32),
+            EvaluationCharacter(text: "ב", range: 1..<2, level: 1, rect: rect(50, 20), baseline: 32),
+            EvaluationCharacter(text: " ", range: 2..<3, level: 1, rect: rect(40, 10), baseline: 32),
+            EvaluationCharacter(text: "1", range: 3..<4, level: 2, rect: rect(0, 20), baseline: 32),
+            EvaluationCharacter(text: "2", range: 4..<5, level: 2, rect: rect(20, 20), baseline: 32)
         ])
     }
 
@@ -757,8 +781,8 @@ struct EvaluationReporterTests {
         // Then
         let item = try #require(report.items.first { $0.item == .glyphs })
         #expect(item.characters == [
-            EvaluationCharacter(text: "e\u{301}", range: 0..<2, rect: Rectangle(x: 0, y: 0, width: 40, height: 40), baseline: 32),
-            EvaluationCharacter(text: "x", range: 2..<3, rect: Rectangle(x: 40, y: 0, width: 20, height: 40), baseline: 32)
+            EvaluationCharacter(text: "e\u{301}", range: 0..<2, level: 0, rect: Rectangle(x: 0, y: 0, width: 40, height: 40), baseline: 32),
+            EvaluationCharacter(text: "x", range: 2..<3, level: 0, rect: Rectangle(x: 40, y: 0, width: 20, height: 40), baseline: 32)
         ])
         #expect(report.texts.first?.words == [EvaluationWord(text: "e\u{301}x", range: 0..<3)])
     }
@@ -775,9 +799,9 @@ struct EvaluationReporterTests {
         let item = try #require(report.items.first { $0.item == .glyphs })
         let ligature = Rectangle(x: 0, y: 0, width: 40, height: 40)
         #expect(item.characters == [
-            EvaluationCharacter(text: "f", range: 0..<1, rect: ligature, baseline: 32),
-            EvaluationCharacter(text: "i", range: 1..<2, rect: ligature, baseline: 32),
-            EvaluationCharacter(text: "x", range: 2..<3, rect: Rectangle(x: 40, y: 0, width: 20, height: 40), baseline: 32)
+            EvaluationCharacter(text: "f", range: 0..<1, level: 0, rect: ligature, baseline: 32),
+            EvaluationCharacter(text: "i", range: 1..<2, level: 0, rect: ligature, baseline: 32),
+            EvaluationCharacter(text: "x", range: 2..<3, level: 0, rect: Rectangle(x: 40, y: 0, width: 20, height: 40), baseline: 32)
         ])
     }
 
@@ -834,12 +858,13 @@ struct EvaluationReporterTests {
         let second = try #require(report.texts.first?.lines.last?.baseline)
         let group = Rectangle(x: 0, y: 0, width: 20, height: 40)
         #expect(item.characters == [
-            EvaluationCharacter(text: "\u{200B}", range: 0..<1, rect: group, baseline: 32),
-            EvaluationCharacter(text: "a", range: 1..<2, rect: group, baseline: 32),
-            EvaluationCharacter(text: "b", range: 2..<3, rect: Rectangle(x: 20, y: 0, width: 20, height: 40), baseline: 32),
+            EvaluationCharacter(text: "\u{200B}", range: 0..<1, level: 0, rect: group, baseline: 32),
+            EvaluationCharacter(text: "a", range: 1..<2, level: 0, rect: group, baseline: 32),
+            EvaluationCharacter(text: "b", range: 2..<3, level: 0, rect: Rectangle(x: 20, y: 0, width: 20, height: 40), baseline: 32),
             EvaluationCharacter(
                 text: "\u{2060}",
                 range: 4..<5,
+                level: 0,
                 rect: Rectangle(x: 0, y: second - 32, width: 0, height: 40),
                 baseline: second
             )
@@ -1158,12 +1183,14 @@ struct EvaluationReporterTests {
                   {
                     "text": "a",
                     "range": [0, 1],
+                    "level": 0,
                     "rect": [0, 0, 20, 40],
                     "baseline": 32
                   },
                   {
                     "text": "b",
                     "range": [1, 2],
+                    "level": 0,
                     "rect": [20, 0, 20, 40],
                     "baseline": 32
                   }
@@ -1174,6 +1201,7 @@ struct EvaluationReporterTests {
                   "place": "clips[0]#t",
                   "id": "t",
                   "text": "ab",
+                  "direction": "ltr",
                   "size": [40, 40],
                   "box": [-12, -8, 64, 56],
                   "transform": [1, 0, 0, 1, 380, 205],

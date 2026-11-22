@@ -9,9 +9,10 @@
 // item, bounds, opacity, transform, rect, cornerPins, characters}` with `bounds` as `[x, y, w, h]` in output pixels, or
 // `null` where it covers nothing, `transform` as `[a, b, c, d, tx, ty]`, `rect` as `[x, y, w, h]` in the item's own
 // coordinates, `cornerPins` a list of `{dest, cornerPin}`, each four points `[x, y]`, or `null` on an item no corner
-// pin carries, and `characters` a list of `{text, range, rect, baseline}`, or `null` on an item that reports none. Each
-// text is `{place, id, text, size, box, transform, cornerPins, lines, words}`, each line `{text, range, baseline,
-// ascent, descent}` and each word `{text, range}`. A range is `[start, end]` in whole Unicode scalars.
+// pin carries, and `characters` a list of `{text, range, level, rect, baseline}`, or `null` on an item that reports
+// none. Each text is `{place, id, text, direction, size, box, transform, cornerPins, lines, words}`, `direction`
+// `ltr` or `rtl`, each line `{text, range, baseline, ascent, descent}` and each word `{text, range}`. A range is
+// `[start, end]` in whole Unicode scalars.
 extension EvaluationReport {
     // MARK: - Property
     package var machineOutput: JSONValue {
@@ -43,6 +44,7 @@ extension EvaluationReport {
         .object(JSONObject(members: [
             JSONMember(key: "text", value: .string(character.text)),
             JSONMember(key: "range", value: output(character.range)),
+            JSONMember(key: "level", value: .number(Double(character.level))),
             JSONMember(key: "rect", value: output(character.rect)),
             JSONMember(key: "baseline", value: .measure(character.baseline))
         ]))
@@ -53,6 +55,7 @@ extension EvaluationReport {
             JSONMember(key: "place", value: .string(text.place)),
             JSONMember(key: "id", value: text.id.map(JSONValue.string) ?? .null),
             JSONMember(key: "text", value: .string(text.text)),
+            JSONMember(key: "direction", value: .string(text.direction.rawValue)),
             JSONMember(key: "size", value: output(text.size)),
             JSONMember(key: "box", value: output(text.box)),
             JSONMember(key: "transform", value: output(text.transform)),
