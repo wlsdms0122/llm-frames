@@ -31,7 +31,9 @@ enum ThemeKeyTable {
     )
     static let paragraph = ObjectTable(
         kind: "paragraph",
-        rules: style.rules.filter { ["direction", "align", "lineHeight", "background"].contains($0.name) }
+        rules: style.rules.filter {
+            ["writingMode", "direction", "align", "lineHeight", "background"].contains($0.name)
+        }
     )
     static let characterKeys = [
         "font", "size", "weight", "italic", "tracking", "kerning", "features", "baselineShift", "color", "stroke",

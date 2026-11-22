@@ -484,9 +484,10 @@ struct ResolvedValueReader: Sendable {
 
     func text(_ value: PlacedJSONValue) throws -> ResolvedText {
         let text = try value.object(keys: [
-            "size", "textBox", "width", "background", "direction", "align", "lineHeight", "text", "words", "lines", "units",
-            "runs"
+            "size", "textBox", "width", "background", "writingMode", "direction", "align", "lineHeight", "text", "words",
+            "lines", "units", "runs"
         ])
+        let writingModes = WritingMode.allCases.map(\.rawValue)
         let directions = TextDirection.allCases.map(\.rawValue)
         let alignments = [TextAlignment.left, .center, .right].map(\.rawValue)
         let length = ValueStructure.leaf(.length(.any))
@@ -537,6 +538,7 @@ struct ResolvedValueReader: Sendable {
                     radius: try timed(background.member("radius"), as: length)
                 )
             },
+            writingMode: try text.member("writingMode").name(among: writingModes, WritingMode.init(rawValue:)),
             direction: try text.member("direction").name(among: directions, TextDirection.init(rawValue:)),
             align: try text.member("align").name(among: alignments, TextAlignment.init(rawValue:)),
             lineHeight: try timed(text.member("lineHeight"), as: length),

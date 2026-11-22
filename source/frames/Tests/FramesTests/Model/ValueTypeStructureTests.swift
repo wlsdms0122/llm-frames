@@ -272,6 +272,7 @@ struct ValueTypeStructureTests {
             KeyRule("lineHeight", .number(.positive)),
             KeyRule("placement", .literal(VocabularyTable.placementNames)),
             KeyRule("offset", .number(.nonNegative)),
+            KeyRule("writingMode", .literal(["horizontal-tb", "vertical-rl", "vertical-lr"])),
             KeyRule("direction", .literal(["auto", "ltr", "rtl"])),
             KeyRule("align", .literal(["left", "center", "right"])),
             KeyRule("lines", .leaf(.positiveInteger))

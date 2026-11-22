@@ -211,6 +211,7 @@ struct ResolvedDocumentWriterTests {
                     }
                   ]
                 },
+                "writingMode": "horizontal-tb",
                 "direction": "ltr",
                 "align": "left",
                 "lineHeight": [

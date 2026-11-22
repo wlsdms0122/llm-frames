@@ -113,6 +113,7 @@ struct Typesetter: Sendable {
                 finder.units(by: unit, text: text, words: words, lines: placedLines, spans: spans, runs: placedRuns)
             },
             background: style.background,
+            writingMode: style.writingMode,
             direction: direction,
             align: align,
             lineHeight: style.lineHeight

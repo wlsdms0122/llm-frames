@@ -108,6 +108,22 @@ struct MergedThemeValueTests {
         #expect(directions == [.rtl, .ltr, nil, nil])
     }
 
+    @Test("a style's writing mode is read as written, and `horizontal-tb` where no layer gives it")
+    func readsWritingMode() throws {
+        // Given
+        let sut = try theme(#"""
+            { "styles": { "column": { "size": 40, "writingMode": "vertical-rl" },
+                          "mongolian": { "size": 40, "writingMode": "vertical-lr" },
+                          "line": { "size": 40, "writingMode": "horizontal-tb" }, "caption": { "size": 40 } } }
+            """#)
+
+        // When
+        let modes = ["column", "mongolian", "line", "caption"].map { sut.paragraphStyle(named: $0, scale: 1).writingMode }
+
+        // Then
+        #expect(modes == [.verticalRightToLeft, .verticalLeftToRight, .horizontalTopToBottom, .horizontalTopToBottom])
+    }
+
     @Test("a style's lines is the most lines its text may take, two for the base subtitle")
     func readsLines() throws {
         // Given

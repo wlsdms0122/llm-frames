@@ -127,8 +127,8 @@ struct ResolvedSequenceWriterTests {
         // Then
         let run = try #require(title["runs"]?.arrayValue?.first?.objectValue)
         #expect(title.keys == [
-            "size", "textBox", "width", "background", "direction", "align", "lineHeight", "text", "words", "lines",
-            "units", "runs"
+            "size", "textBox", "width", "background", "writingMode", "direction", "align", "lineHeight", "text", "words",
+            "lines", "units", "runs"
         ])
         #expect(run.keys == [
             "source", "file", "sha256", "face", "size", "color", "stroke", "baselineShift", "staticTracking", "tracking",
@@ -160,6 +160,24 @@ struct ResolvedSequenceWriterTests {
         #expect(line["clusters"]?.arrayValue?.allSatisfy { $0.arrayValue?.count == 8 } == true)
         #expect(levels("clusters") == [.number(1), .number(1), .number(1), .number(2)])
         #expect(levels("hanging") == [.number(1)])
+    }
+
+    @Test("a title writes the writing mode it was laid out in, `horizontal-tb` where no layer gives one")
+    func writesWritingMode() throws {
+        // Given
+        let document = #"""
+            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "in": 0, "out": 3 } ],
+              "clips": [ { "title": "縦", "style": "title", "placement": "top", "at": [0, 1],
+                           "paragraph": { "writingMode": "vertical-rl" } },
+                         { "title": "横", "style": "title", "placement": "top", "at": [0, 1] } ] }
+            """#
+
+        // When
+        let clips = try #require(try write(document)["clips"]?.arrayValue)
+
+        // Then
+        let modes = clips.map { $0.objectValue?["title"]?.objectValue?["writingMode"] }
+        #expect(modes == [.string("vertical-rl"), .string("horizontal-tb")])
     }
 
     @Test("a clip keeps its place, id, visible window, lane, storyline and parent, and its properties in sequence time")

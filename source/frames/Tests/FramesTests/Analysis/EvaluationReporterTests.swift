@@ -719,6 +719,7 @@ struct EvaluationReporterTests {
                 place: "clips[0]#t",
                 id: "t",
                 text: "ab cd",
+                writingMode: .horizontalTopToBottom,
                 direction: .ltr,
                 size: Size(width: 90, height: 40),
                 box: Rectangle(x: 0, y: 0, width: 90, height: 40),
@@ -743,6 +744,7 @@ struct EvaluationReporterTests {
         let item = try #require(report.items.first { $0.item == .glyphs })
         let rect = { (x: Double, width: Double) in Rectangle(x: x, y: 0, width: width, height: 40) }
         #expect(report.texts.map(\.direction) == [.rtl])
+        #expect(report.texts.map(\.writingMode) == [.horizontalTopToBottom])
         #expect(item.characters == [
             EvaluationCharacter(text: "א", range: 0..<1, level: 1, rect: rect(70, 20), baseline: 32),
             EvaluationCharacter(text: "ב", range: 1..<2, level: 1, rect: rect(50, 20), baseline: 32),
@@ -1201,6 +1203,7 @@ struct EvaluationReporterTests {
                   "place": "clips[0]#t",
                   "id": "t",
                   "text": "ab",
+                  "writingMode": "horizontal-tb",
                   "direction": "ltr",
                   "size": [40, 40],
                   "box": [-12, -8, 64, 56],

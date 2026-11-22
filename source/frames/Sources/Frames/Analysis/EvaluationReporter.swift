@@ -81,6 +81,7 @@ package struct EvaluationReporter: Sendable {
             place: origin.place,
             id: origin.id,
             text: text.text,
+            writingMode: text.writingMode,
             direction: text.direction,
             size: Size(width: textBox.width, height: textBox.height),
             box: text.boxInTextBox(at: time),

@@ -217,8 +217,8 @@ struct ResolvedDocumentReaderTests {
 
     // The title `name` of the example of the resolved document, written whole with its hashes in full.
     private static let nameTitle = #"""
-        { "size": [216.2, 55.9], "textBox": [0, 0, 216.2, 55.9], "width": null, "background": null, "direction": "ltr",
-          "align": "left", "lineHeight": [ { "at": 1.2, "value": 60, "ease": "linear" } ],
+        { "size": [216.2, 55.9], "textBox": [0, 0, 216.2, 55.9], "width": null, "background": null,
+          "writingMode": "horizontal-tb", "direction": "ltr", "align": "left", "lineHeight": [ { "at": 1.2, "value": 60, "ease": "linear" } ],
           "text": "Mina Baker", "words": [ [0, 4], [5, 10] ],
           "lines": [ { "width": 216.2, "baseline": 45.7, "ascent": 45.7, "descent": 10.2, "range": [0, 10],
                        "clusters": [ [0, 0, 1, 0, 1, 41.8, 0, ""], [0, 1, 1, 1, 2, 12.4, 0, ""],
@@ -966,6 +966,34 @@ struct ResolvedDocumentReaderTests {
         // Then
         #expect(error?.description.contains("auto") == true)
         #expect(error?.description.contains("ltr") == true)
+    }
+
+    @Test("a title's writing mode is read as written, and one CSS does not name stops when read")
+    func readsWritingMode() throws {
+        // Given
+        let text = try written(
+            #"""
+            { "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4", "in": 0, "out": 3 } ],
+              "clips": [ { "title": "ab", "style": "title", "at": [0, 1], "position": [0, 0],
+                           "paragraph": { "writingMode": "vertical-lr" } } ] }
+            """#
+        )
+        let changed = try replacingTitle(ofClip: 0, in: text) { title in
+            title.setting("writingMode", to: .string("sideways-rl"))
+        }
+
+        // When
+        let read = try sut.read(text)
+        let error = #expect(throws: ModelError.self) { try sut.read(changed) }
+
+        // Then
+        guard case let .title(title) = read.clips.first?.content else {
+            Issue.record("the first clip is not a title")
+            return
+        }
+        #expect(title.writingMode == .verticalLeftToRight)
+        #expect(error?.description.contains("sideways-rl") == true)
+        #expect(error?.description.contains("vertical-rl") == true)
     }
 
     @Test(

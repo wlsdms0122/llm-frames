@@ -390,6 +390,7 @@ struct ResolvedValueWriter: Sendable {
             JSONMember(key: "textBox", value: rectangle(text.textBox)),
             JSONMember(key: "width", value: text.width.map(JSONValue.number) ?? .null),
             JSONMember(key: "background", value: background ?? .null),
+            JSONMember(key: "writingMode", value: .string(text.writingMode.rawValue)),
             JSONMember(key: "direction", value: .string(text.direction.rawValue)),
             JSONMember(key: "align", value: .string(text.align.rawValue)),
             JSONMember(key: "lineHeight", value: timed(text.lineHeight)),

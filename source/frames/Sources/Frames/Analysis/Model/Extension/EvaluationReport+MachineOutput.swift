@@ -10,8 +10,8 @@
 // `null` where it covers nothing, `transform` as `[a, b, c, d, tx, ty]`, `rect` as `[x, y, w, h]` in the item's own
 // coordinates, `cornerPins` a list of `{dest, cornerPin}`, each four points `[x, y]`, or `null` on an item no corner
 // pin carries, and `characters` a list of `{text, range, level, rect, baseline}`, or `null` on an item that reports
-// none. Each text is `{place, id, text, direction, size, box, transform, cornerPins, lines, words}`, `direction`
-// `ltr` or `rtl`, each line `{text, range, baseline, ascent, descent}` and each word `{text, range}`. A range is
+// none. Each text is `{place, id, text, writingMode, direction, size, box, transform, cornerPins, lines, words}`,
+// `writingMode` `horizontal-tb`, `vertical-rl` or `vertical-lr`, `direction` `ltr` or `rtl`, each line `{text, range, baseline, ascent, descent}` and each word `{text, range}`. A range is
 // `[start, end]` in whole Unicode scalars.
 extension EvaluationReport {
     // MARK: - Property
@@ -55,6 +55,7 @@ extension EvaluationReport {
             JSONMember(key: "place", value: .string(text.place)),
             JSONMember(key: "id", value: text.id.map(JSONValue.string) ?? .null),
             JSONMember(key: "text", value: .string(text.text)),
+            JSONMember(key: "writingMode", value: .string(text.writingMode.rawValue)),
             JSONMember(key: "direction", value: .string(text.direction.rawValue)),
             JSONMember(key: "size", value: output(text.size)),
             JSONMember(key: "box", value: output(text.box)),

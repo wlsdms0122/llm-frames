@@ -10,8 +10,8 @@
 // text fills in output pixels, its background's padding included, and `runs` are placed in that box, each line placed
 // by `align` and `lineHeight` below the one before it. `textBox` is the box inside it that the lines fill, and `width`
 // the width the text wraps at, nil for text that breaks only at `\n`. `units` are the units of a title animated by
-// unit, and nil for other text. `direction` is the paragraph direction the text was laid out in, and `align` the
-// alignment its lines were placed by, its default resolved.
+// unit, and nil for other text. `writingMode` and `direction` are the writing mode and the paragraph direction the text
+// was laid out in, and `align` the alignment its lines were placed by, its default resolved.
 struct TextLayout: Equatable, Sendable {
     // MARK: - Property
     let text: String
@@ -23,6 +23,7 @@ struct TextLayout: Equatable, Sendable {
     let runs: [GlyphRun]
     let units: [PlacedUnit]?
     let background: TextBackground?
+    let writingMode: WritingMode
     let direction: TextDirection
     let align: TextAlignment
     let lineHeight: Double
@@ -42,6 +43,7 @@ struct TextLayout: Equatable, Sendable {
         runs: [GlyphRun],
         units: [PlacedUnit]? = nil,
         background: TextBackground?,
+        writingMode: WritingMode = .horizontalTopToBottom,
         direction: TextDirection = .ltr,
         align: TextAlignment,
         lineHeight: Double
@@ -55,6 +57,7 @@ struct TextLayout: Equatable, Sendable {
         self.runs = runs
         self.units = units
         self.background = background
+        self.writingMode = writingMode
         self.direction = direction
         self.align = align
         self.lineHeight = lineHeight
