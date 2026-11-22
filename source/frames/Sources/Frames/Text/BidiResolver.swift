@@ -18,6 +18,9 @@ struct BidiResolver: Sendable {
     }
 
     // MARK: - Property
+    // The highest level the rules give a character: rules I1 and I2 raise an explicit level of at most max_depth by at
+    // most two at an even level and one at an odd one, so 124 raises a number to 126 and 125 a letter of `L` to 126.
+    static let maxLevel = maxDepth + 1
     private static let maxDepth = 125
     // BD16 pairs brackets with a stack of this many openings.
     private static let maxOpenings = 63

@@ -820,7 +820,7 @@ struct ResolvedValueReader: Sendable {
     }
 
     // A line's cluster is `[run, first, count, start, end, advance, level]`, its glyphs a range of one of `runs`, its
-    // scalars a range of at least one of the text's `scalarCount` and its level an embedding level.
+    // scalars a range of at least one of the text's `scalarCount` and its level an embedding level UAX #9 can give.
     private func cluster(
         _ value: PlacedJSONValue,
         in runs: [ResolvedGlyphRun],
@@ -841,7 +841,8 @@ struct ResolvedValueReader: Sendable {
             start >= 0,
             start < end,
             end <= scalarCount,
-            level >= 0
+            level >= 0,
+            level <= BidiResolver.maxLevel
         else {
             throw value.wrongType("[run, first, count, start, end, advance, level] within the text's \(scalarCount) scalars")
         }

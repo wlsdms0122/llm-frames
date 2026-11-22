@@ -968,10 +968,11 @@ struct ResolvedDocumentReaderTests {
     }
 
     @Test(
-        "a title's cluster, line or word range past its text, or clusters that do not go up along a line, stop when read",
+        "a title's cluster, line or word range past its text, a level UAX #9 cannot give, or clusters that do not go up along a line, stop when read",
         arguments: [
             ("cluster", "expected [run, first, count, start, end, advance, level] within the text's 5 scalars"),
             ("level", "expected [run, first, count, start, end, advance, level] within the text's 5 scalars"),
+            ("deep level", "expected [run, first, count, start, end, advance, level] within the text's 5 scalars"),
             ("line", "expected [start, end] within the text's 5 scalars"),
             ("word", "expected [start, end] within the text's 5 scalars"),
             ("order", "line 0's clusters do not go up along the text")
@@ -1003,6 +1004,13 @@ struct ResolvedDocumentReaderTests {
             case "level":
                 var numbers = try #require(clusters[0].arrayValue)
                 numbers[6] = .number(-1)
+                clusters[0] = .array(numbers)
+                lines[0] = .object(line.setting("clusters", to: .array(clusters)))
+
+            case "deep level":
+                // UAX #9 gives no level above 126, max_depth 125 raised by one.
+                var numbers = try #require(clusters[0].arrayValue)
+                numbers[6] = .number(127)
                 clusters[0] = .array(numbers)
                 lines[0] = .object(line.setting("clusters", to: .array(clusters)))
 
