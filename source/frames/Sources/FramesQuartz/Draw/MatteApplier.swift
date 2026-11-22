@@ -42,9 +42,11 @@ struct MatteApplier {
             tx: destination.minX + held.minX * horizontal,
             ty: destination.maxY - held.maxY * vertical
         )
-        let stretched = CIImage(cgImage: image, options: [.colorSpace: NSNull()])
+        let source = CIImage(cgImage: image, options: [.colorSpace: NSNull()])
+        let stretched = source.clampedToExtent()
             .samplingLinear()
             .transformed(by: stretch, highQualityDownsample: true)
+            .cropped(to: source.extent.applying(stretch))
         let arguments: [Any] = [
             picture,
             values(of: stretched, over: picture.extent),
