@@ -100,6 +100,16 @@ struct GreyImage: Sendable {
         return GreyImage(width: halfWidth, height: halfHeight, values: halved)
     }
 
+    // The image and `levels` more, each the one before halved.
+    func pyramid(levels: Int) -> [GreyImage] {
+        var pyramid = [self]
+        for _ in 0..<levels {
+            pyramid.append(pyramid[pyramid.count - 1].halved())
+        }
+
+        return pyramid
+    }
+
     // MARK: - Private
     private static func component(
         of pixels: UnsafeRawBufferPointer,
