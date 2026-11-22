@@ -82,9 +82,8 @@ package struct CoreTextShaper: Sendable {
             return asked
         }
         guard let file = file(of: font) else { throw ShapingError.fallbackWithoutFile(name: name) }
-        let named = descriptor(named: name, in: file).map { CTFontCreateWithFontDescriptor($0, 1, nil) }
 
-        return self.face(of: named ?? font, file: file)
+        return face(named: name, in: file) ?? self.face(of: font, file: file)
     }
 
     private func descriptors(in file: String) -> [CTFontDescriptor] {
