@@ -211,6 +211,7 @@ struct ResolvedDocumentWriterTests {
                     }
                   ]
                 },
+                "writingMode": "horizontal-tb",
                 "direction": "ltr",
                 "align": "left",
                 "lineHeight": [
@@ -261,6 +262,7 @@ struct ResolvedDocumentWriterTests {
                         "ease": "linear"
                       }
                     ],
+                    "sideways": false,
                     "staticTracking": 0,
                     "tracking": null,
                     "highlight": null,

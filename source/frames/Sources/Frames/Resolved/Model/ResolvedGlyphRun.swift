@@ -6,10 +6,11 @@
 //
 
 // A run of shaped glyphs in one face and size, set from the text's run at `source`, each glyph at its pen position in
-// its text's own box with the baseline shift not applied, and its placement offset from the pen. `color` and
-// `baselineShift` are keyframe lists and `stroke` is off or a timed `{width, color}`. `staticTracking` is the tracking
-// resolve set after each of its characters with glyphs of their own but a line's last, and `tracking` is off or a
-// keyframe list of the tracking added after each of them beyond it, both in output pixels.
+// its text's own box with the baseline shift not applied, and its placement offset from the pen, turned 90 degrees
+// clockwise about its origin where `isSideways`. `color` and `baselineShift` are keyframe lists and `stroke` is off or
+// a timed `{width, color}`. `staticTracking` is the tracking resolve set after each of its characters with glyphs of
+// their own but a line's last, and `tracking` is off or a keyframe list of the tracking added after each of them beyond
+// it, both in output pixels.
 struct ResolvedGlyphRun: Equatable, Sendable {
     // MARK: - Property
     let source: Int
@@ -19,6 +20,7 @@ struct ResolvedGlyphRun: Equatable, Sendable {
     let color: TimedValue
     let stroke: TimedValue
     let baselineShift: TimedValue
+    let isSideways: Bool
     let staticTracking: Double
     let tracking: TimedValue
     let highlight: ResolvedHighlight?
@@ -34,6 +36,7 @@ struct ResolvedGlyphRun: Equatable, Sendable {
         color: TimedValue,
         stroke: TimedValue,
         baselineShift: TimedValue,
+        isSideways: Bool,
         staticTracking: Double,
         tracking: TimedValue,
         highlight: ResolvedHighlight?,
@@ -47,6 +50,7 @@ struct ResolvedGlyphRun: Equatable, Sendable {
         self.color = color
         self.stroke = stroke
         self.baselineShift = baselineShift
+        self.isSideways = isSideways
         self.staticTracking = staticTracking
         self.tracking = tracking
         self.highlight = highlight

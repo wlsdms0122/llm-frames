@@ -5,14 +5,14 @@
 //  Created by JSilver on 11/16/26.
 //
 
-// Each run is shaped on its own, in shaping runs of one embedding level each, and lines break by UAX #14 over the text
-// of all runs together, in logical order. A line's glyphs are cut into groups by the characters they are set from, and
-// a group's glyphs belong to the first character they are set from. Each line is then ordered by UAX #9: its groups lie
-// from left to right in the visual order of their first characters, and tracking lies between every two neighbouring
-// characters as placed, the tracking of whichever comes first in the text, so it widens no line past its outermost
-// characters and moves no centred or right-aligned line off its place, but between two letters of one cursive script,
-// whose connection it would break. Which character a character is drawn with,
-// where a highlight or underline piece is cut and which glyph run holds it are those `PlacedLine` gives.
+// Each run is shaped on its own, in shaping runs of one embedding level and one orientation each, and lines break by
+// UAX #14 over the text of all runs together, in logical order. A line's glyphs are cut into groups by the characters
+// they are set from, and a group's glyphs belong to the first character they are set from. Each line is then ordered by
+// UAX #9: its groups lie from left to right in the visual order of their first characters, and tracking lies between
+// every two neighbouring characters as placed, the tracking of whichever comes first in the text, so it widens no line
+// past its outermost characters and moves no centred or right-aligned line off its place, but between two letters of
+// one cursive script, whose connection it would break. Which character a character is drawn with, where a highlight or
+// underline piece is cut and which glyph run holds it are those `PlacedLine` gives.
 struct Typesetter: Sendable {
     // MARK: - Property
     private let shaper: any ShapingProvider
@@ -31,11 +31,13 @@ struct Typesetter: Sendable {
     // tracking, while glyphs are placed at its static tracking. Without it the text breaks only at `\n` and the box
     // is as wide as the widest line. A piece of a word wider than `width` that cannot break widens the box to hold it.
     // Text that takes more lines than its paragraph style's `lines`, counting every `\n`, stops. A style of one line
-    // wraps at no width, and is too wide when it is wider than `width`. Lines lie the line height apart, baseline to
-    // baseline: the first baseline is its line's largest ascent below the top, and the box ends the last line's largest
-    // descent below the last. `unit` splits the text into units, for a title animated by unit. The text is laid out in
-    // its style's direction, `auto` taking it from the first paragraph that holds a strong character, and its lines are
-    // aligned by its style's `align`, or on the side that direction starts from.
+    // wraps at no width, and is too wide when it is wider than `width`. The text is laid out in line coordinates, which
+    // its style's writing mode turns into the box's, `width` its inline size. Lines lie the line height apart, baseline
+    // to baseline, stacked from the block-start edge: the first baseline lies its line's largest extent on the side
+    // facing that edge inside it, and the box ends the last line's largest extent on the side facing block-end past the
+    // last. `unit` splits the text into units, for a title animated by unit. The text is laid out in its style's
+    // direction, `auto` taking it from the first paragraph that holds a strong character, and its lines are aligned
+    // along the inline axis by its style's `align`, or on the side that direction starts from.
     func layout(
         _ runs: [TextRun],
         paragraph style: ParagraphStyle,
@@ -58,6 +60,7 @@ struct Typesetter: Sendable {
                 from: paragraph.start,
                 levels: levels,
                 paragraphLevel: paragraphLevel,
+                writingMode: style.writingMode,
                 width: isOneLine ? nil : width,
                 place: place,
                 kind: kind
@@ -73,46 +76,58 @@ struct Typesetter: Sendable {
         }
         let textWidth = max(width ?? 0, widest)
 
+        let writingMode = style.writingMode
         let padding = style.background?.padding ?? Size(width: 0, height: 0)
-        let firstBaseline = padding.height + (lines.first?.ascent ?? 0)
+        let startExtent = writingMode.startExtent(ascent: lines.first?.ascent ?? 0, descent: lines.first?.descent ?? 0)
+        let endExtent = writingMode.endExtent(ascent: lines.last?.ascent ?? 0, descent: lines.last?.descent ?? 0)
+        let textHeight = Double(max(lines.count - 1, 0)) * style.lineHeight + startExtent + endExtent
+        let blockSize = textHeight + padding.height * 2
+        let firstBaseline = writingMode.block(fromStart: padding.height + startExtent, in: blockSize)
         var placedRuns: [GlyphRun] = []
         var placedLines: [PlacedLine] = []
         var spans: [[ClosedRange<Double>]] = []
         for (index, line) in lines.enumerated() {
             let origin = Point(
                 x: padding.width + align.offset(of: line.width, in: textWidth),
-                y: firstBaseline + Double(index) * style.lineHeight
+                y: writingMode.block(Double(index) * style.lineHeight, after: firstBaseline)
             )
             let placed = placed(
                 line,
                 index: index,
                 origin: origin,
                 firstRun: placedRuns.count,
-                paragraphLevel: paragraphLevel
+                paragraphLevel: paragraphLevel,
+                writingMode: writingMode
             )
             placedRuns += placed.runs
             placedLines.append(placed.line)
             spans.append(placed.spans)
         }
-        placedRuns = decorated(placedRuns, lines: placedLines, spans: spans, styles: runs)
-        let textHeight = Double(max(lines.count - 1, 0)) * style.lineHeight
-            + (lines.first?.ascent ?? 0)
-            + (lines.last?.descent ?? 0)
+        placedRuns = decorated(placedRuns, lines: placedLines, spans: spans, styles: runs, writingMode: writingMode)
 
         let words = text.scalarRanges(of: segmenter.words(of: Array(text)))
 
         return TextLayout(
             text: text,
             words: words,
-            size: Size(width: textWidth + padding.width * 2, height: textHeight + padding.height * 2),
-            textBox: Rectangle(x: padding.width, y: padding.height, width: textWidth, height: textHeight),
+            size: writingMode.turned(Size(width: textWidth + padding.width * 2, height: blockSize)),
+            textBox: writingMode.turned(Rectangle(x: padding.width, y: padding.height, width: textWidth, height: textHeight)),
             width: width,
             lines: placedLines,
             runs: placedRuns,
             units: unit.map { unit in
-                finder.units(by: unit, text: text, words: words, lines: placedLines, spans: spans, runs: placedRuns)
+                finder.units(
+                    by: unit,
+                    text: text,
+                    words: words,
+                    lines: placedLines,
+                    spans: spans,
+                    runs: placedRuns,
+                    writingMode: writingMode
+                )
             },
             background: style.background,
+            writingMode: writingMode,
             direction: direction,
             align: align,
             lineHeight: style.lineHeight
@@ -183,18 +198,26 @@ struct Typesetter: Sendable {
     // wider overflows alone. Without a width only a mandatory break ends a line. A line breaks only before a character
     // with glyphs of its own, so a group of glyphs stays on one line. `start` is the index of the paragraph's first
     // scalar in the text of all runs, and `levels` the embedding level of each scalar of that text. A line is measured
-    // as it is placed, its characters ordered at `paragraphLevel`.
+    // as it is placed, its characters ordered at `paragraphLevel`, and shaped as `writingMode` sets it.
     private func lines(
         of paragraph: [(source: Int, run: TextRun)],
         from start: Int,
         levels: [Int],
         paragraphLevel: Int,
+        writingMode: WritingMode,
         width: Double?,
         place: Place,
         kind: String
     ) throws -> [TextLine] {
         let scalars = paragraph.flatMap { Array($0.run.text.unicodeScalars) }
-        let characters = try shaped(paragraph, from: start, levels: levels, place: place, kind: kind)
+        let characters = try shaped(
+            paragraph,
+            from: start,
+            levels: levels,
+            writingMode: writingMode,
+            place: place,
+            kind: kind
+        )
         let breaks = breaker.breaks(in: scalars)
         let starts = [0] + characters.compactMap { character -> Int? in
             let offset = character.range.lowerBound - start
@@ -235,10 +258,14 @@ struct Typesetter: Sendable {
         lines.append(current)
 
         // A line with no glyphs, as a paragraph with no text is, takes the extent of the run its paragraph begins in.
-        let home = paragraph.first.map { [TextExtent(face: $0.run.faces[0], size: $0.run.style.size)] } ?? []
+        let home = paragraph.first.map { first in
+            [TextExtent(face: first.run.faces[0], size: first.run.style.size, writingMode: writingMode)]
+        } ?? []
         return lines.map { characters in
             let glyphs = characters.flatMap(\.glyphs)
-            let extents = glyphs.isEmpty ? home : glyphs.map { TextExtent(face: $0.face, size: $0.style.size) }
+            let extents = glyphs.isEmpty
+                ? home
+                : glyphs.map { TextExtent(face: $0.face, size: $0.style.size, writingMode: writingMode) }
             let visible = visibleCharacters(of: characters)
             let first = visible.first?.range.lowerBound ?? characters.first?.range.lowerBound ?? start
 
@@ -267,16 +294,18 @@ struct Typesetter: Sendable {
         }
     }
 
-    // Each run is shaped on its own in shaping runs, stretches of its characters at one embedding level, since a run
-    // boundary and a change of level each end a shaping run, and its glyphs are told by the scalar they start at in the
-    // whole paragraph. Each character is a grapheme cluster of its run, its range counted from `start`, its level that
-    // of its first scalar among `levels`, and owns the glyphs of the group it is the first character of, in the order
-    // the provider gave them. A shaping run's glyphs are grouped in the order it is read, from its right end at an odd
-    // level.
+    // Each run is shaped on its own in shaping runs, stretches of its characters at one embedding level and one
+    // orientation, since a run boundary, a change of level and, in a vertical `writingMode`, a change between upright
+    // and sideways each end a shaping run, and its glyphs are told by the scalar they start at in the whole paragraph.
+    // In a horizontal line no character is upright or sideways. Each character is a grapheme cluster of its run, its
+    // range counted from `start`, its level that of its first scalar among `levels`, and owns the glyphs of the group
+    // it is the first character of, in the order the provider gave them. A shaping run's glyphs are grouped in the
+    // order it is read, from its right end at an odd level.
     private func shaped(
         _ paragraph: [(source: Int, run: TextRun)],
         from start: Int,
         levels: [Int],
+        writingMode: WritingMode,
         place: Place,
         kind: String
     ) throws -> [StyledCharacter] {
@@ -290,12 +319,14 @@ struct Typesetter: Sendable {
                 runCharacters.append((character, offset..<(offset + count), levels[start + offset], source, run))
                 offset += count
             }
+            let uprights = runCharacters.map { writingMode.isVertical && isUpright($0.character) }
 
-            for stretch in stretches(of: runCharacters.map(\.level)) {
+            for stretch in stretches(levels: runCharacters.map(\.level), uprights: uprights) {
                 let direction = TextDirection(level: runCharacters[stretch.lowerBound].level)
+                let isUpright = uprights[stretch.lowerBound]
                 let text = String(runCharacters[stretch].map(\.character))
                 let shapingStart = runCharacters[stretch.lowerBound].range.lowerBound
-                let shapedRuns = try Result { try shape(text, direction: direction, run: run) }
+                let shapedRuns = try Result { try shape(text, direction: direction, upright: isUpright, run: run) }
                     .mapError { error in
                         ProviderError.failed(
                             provider: .shaping,
@@ -316,6 +347,7 @@ struct Typesetter: Sendable {
                                 placementOffset: glyph.placementOffset
                             ),
                             face: shaped.face,
+                            isSideways: writingMode.isVertical && !isUpright,
                             source: source,
                             style: run.style,
                             runFace: run.faces[0]
@@ -351,10 +383,15 @@ struct Typesetter: Sendable {
         }
     }
 
-    // The stretches of `levels` at one level, as ranges of their indices.
-    private func stretches(of levels: [Int]) -> [Range<Int>] {
+    // The stretches of characters at one level, among `levels`, and one orientation, among `uprights`, as ranges of
+    // their indices.
+    private func stretches(
+        levels: [Int],
+        uprights: [Bool]
+    ) -> [Range<Int>] {
         levels.indices.reduce(into: [Range<Int>]()) { stretches, index in
-            if let last = stretches.last, levels[last.lowerBound] == levels[index] {
+            if let last = stretches.last,
+                levels[last.lowerBound] == levels[index], uprights[last.lowerBound] == uprights[index] {
                 stretches[stretches.count - 1] = last.lowerBound..<(index + 1)
             } else {
                 stretches.append(index..<(index + 1))
@@ -401,11 +438,13 @@ struct Typesetter: Sendable {
         return owned
     }
 
-    // `text` of `run` set in `direction`, with the style's features over `kern`, which `kerning` sets, and over the
-    // optional ligatures, off in a run spaced apart. A later setting of a tag replaces an earlier one.
+    // `text` of `run` set in `direction`, `upright` in a vertical line or as horizontal text, with the style's features
+    // over `kern`, which `kerning` sets, and over the optional ligatures, off in a run spaced apart. A later setting of
+    // a tag replaces an earlier one.
     private func shape(
         _ text: String,
         direction: TextDirection,
+        upright: Bool,
         run: TextRun
     ) throws -> [ShapedRun] {
         let style = run.style
@@ -419,6 +458,7 @@ struct Typesetter: Sendable {
         return try shaper.shape(
             text,
             direction: direction,
+            upright: upright,
             faces: run.faces,
             size: style.size,
             features: features,
@@ -454,6 +494,15 @@ struct Typesetter: Sendable {
 
             return index < visibleCount ? lineLevels[first] : paragraphLevel
         }
+    }
+
+    // Whether a character stands upright in a vertical line: by the Vertical_Orientation of its first scalar, as
+    // UAX #50 orients a grapheme cluster, and always when it holds an enclosing mark, which a turned base would leave.
+    private func isUpright(_ character: Character) -> Bool {
+        guard let first = character.unicodeScalars.first else { return false }
+        let isEnclosed = character.unicodeScalars.contains { $0.properties.generalCategory == .enclosingMark }
+
+        return isEnclosed || VerticalOrientation(first).isUpright
     }
 
     // The cursive scripts a character is a letter of: those of its first scalar when it is a letter or a number, as CSS
@@ -504,25 +553,28 @@ struct Typesetter: Sendable {
         visibleWidth(of: characters, tracking: \.widestTracking, paragraphLevel: paragraphLevel)
     }
 
-    // Glyphs of one line of one text run in one face that lie side by side make one glyph run, and the runs of a line
-    // share its baseline. The groups of glyphs lie in the order `placedOrder` gives, each glyph at the pen with its
-    // placement offset, and the pen moves from left to right by advances and by the tracking `PlacedLine.placedOwners`
-    // puts between neighbouring characters, so the spaces that hang lie past the line's end untracked: after its right
-    // end, or before its left end at an odd paragraph level, where L2 places them first, on a line with no character
-    // too. A character with no glyph of its own is a range of count 0 after the glyphs of the character
-    // `PlacedLine.owners(hasGlyphs:)` draws it with and spans that character, and on a line with no glyph it is a range
-    // of count 0 at glyph 0 of the line's first run, written for it with no glyphs, spanning nothing at the line's
-    // start. The hanging spaces, which are no characters, are cut into groups among themselves. A character's span is
-    // its glyph box across the line, from the pen where its glyphs begin, as wide as their advances, and the spans of
-    // the line's characters are given in text order. The line's clusters name glyphs by the index of their run among
-    // the text's, the first of this line's runs being `firstRun`, and carry their levels after rule L1 and their
+    // Glyphs of one line of one text run in one face and one orientation that lie side by side make one glyph run, and
+    // the runs of a line share its baseline, which `origin` gives with the line's start in line coordinates. The
+    // groups of glyphs lie in the order `placedOrder` gives, each glyph at the pen with its placement offset, a sideways
+    // glyph's moved toward line-under onto its face's alphabetic baseline, both turned into the box's coordinates by
+    // `writingMode`, and the pen moves from left to right by advances and by the tracking
+    // `PlacedLine.placedOwners` puts between neighbouring characters, so the spaces that hang lie past the line's end
+    // untracked: after its right end, or before its left end at an odd paragraph level, where L2 places them first, on
+    // a line with no character too. A character with no glyph of its own is a range of count 0 after the glyphs of the
+    // character `PlacedLine.owners(hasGlyphs:)` draws it with and spans that character, and on a line with no glyph it
+    // is a range of count 0 at glyph 0 of the line's first run, written for it with no glyphs, spanning nothing at the
+    // line's start. The hanging spaces, which are no characters, are cut into groups among themselves. A character's
+    // span is its glyph box along the line, from the pen where its glyphs begin, as long as their advances, and the
+    // spans of the line's characters are given in text order, in line coordinates. The line's clusters name glyphs by the index of their run
+    // among the text's, the first of this line's runs being `firstRun`, and carry their levels after rule L1 and their
     // cursive scripts. `index` is the line's among the text's.
     private func placed(
         _ line: TextLine,
         index lineIndex: Int,
         origin: Point,
         firstRun: Int,
-        paragraphLevel: Int
+        paragraphLevel: Int,
+        writingMode: WritingMode
     ) -> (
         runs: [GlyphRun],
         line: PlacedLine,
@@ -553,21 +605,28 @@ struct Typesetter: Sendable {
 
             let start = x
             for glyph in character.glyphs {
+                let pen = writingMode.turned(Point(x: x, y: origin.y))
+                let offset = glyph.glyph.placementOffset
+                let under = glyph.isSideways
+                    ? offset.y + TextExtent(face: glyph.face, size: glyph.style.size, writingMode: writingMode).alphabetic
+                    : offset.y
                 let positioned = PositionedGlyph(
                     id: glyph.glyph.id,
-                    x: x,
-                    y: origin.y,
-                    placementOffset: glyph.glyph.placementOffset
+                    x: pen.x,
+                    y: pen.y,
+                    placementOffset: writingMode.turned(Point(x: offset.x, y: writingMode.lineUnder * under))
                 )
                 x += glyph.glyph.advance
 
-                if let previous = runs.last, previous.source == glyph.source, previous.face == glyph.face {
+                if let previous = runs.last, previous.source == glyph.source, previous.face == glyph.face,
+                    previous.isSideways == glyph.isSideways {
                     runs[runs.count - 1] = GlyphRun(
                         source: previous.source,
                         line: lineIndex,
                         face: previous.face,
                         size: previous.size,
                         glyphs: previous.glyphs + [positioned],
+                        isSideways: previous.isSideways,
                         staticTracking: previous.staticTracking
                     )
                 } else {
@@ -577,6 +636,7 @@ struct Typesetter: Sendable {
                         face: glyph.face,
                         size: glyph.style.size,
                         glyphs: [positioned],
+                        isSideways: glyph.isSideways,
                         staticTracking: glyph.style.tracking * glyph.style.size / 1000
                     ))
                 }
@@ -633,13 +693,15 @@ struct Typesetter: Sendable {
     // `runs` with the highlight and underline pieces of the text runs `styles` gives, by index: on each of `lines`, one
     // piece for each stretch of a text run's characters `PlacedLine.pieces(of:sources:)` gives, from the start of the
     // span among `spans` of its leftmost character to the end of its rightmost one's, held by the glyph run
-    // `PlacedLine.holder(of:sources:)` names. A highlight piece runs from the text run's ascent above the line's
-    // baseline to its descent below it, in its first face at its size, and an underline piece lies on the baseline.
+    // `PlacedLine.holder(of:sources:)` names. A highlight piece runs from the text run's ascent on the line-over side of
+    // the line's baseline to its descent on the line-under side, in its first face at its size, and an underline piece
+    // lies on its alphabetic baseline, both in the box's coordinates.
     private func decorated(
         _ runs: [GlyphRun],
         lines: [PlacedLine],
         spans: [[ClosedRange<Double>]],
-        styles: [TextRun]
+        styles: [TextRun],
+        writingMode: WritingMode
     ) -> [GlyphRun] {
         let sources = runs.map(\.source)
         var decorated = runs
@@ -648,7 +710,7 @@ struct Typesetter: Sendable {
             where line.holder(of: runs[holder].source, sources: sources) == holder {
                 let run = runs[holder]
                 let style = styles[run.source].style
-                let extent = TextExtent(face: styles[run.source].faces[0], size: style.size)
+                let extent = TextExtent(face: styles[run.source].faces[0], size: style.size, writingMode: writingMode)
                 let pieces = line.pieces(of: run.source, sources: sources).map { characters in
                     spans[index][characters[0]].lowerBound...spans[index][characters[characters.count - 1]].upperBound
                 }
@@ -658,21 +720,23 @@ struct Typesetter: Sendable {
                     face: run.face,
                     size: run.size,
                     glyphs: run.glyphs,
+                    isSideways: run.isSideways,
                     staticTracking: run.staticTracking,
                     highlights: style.isHighlighted ? pieces.map { piece in
-                        Rectangle(
+                        writingMode.turned(Rectangle(
                             x: piece.lowerBound,
-                            y: line.baseline - extent.ascent,
+                            y: writingMode.blockStart(around: line.baseline, over: extent.ascent, under: extent.descent),
                             width: piece.upperBound - piece.lowerBound,
                             height: extent.ascent + extent.descent
-                        )
+                        ))
                     } : [],
                     underlines: style.isUnderlined ? pieces.map { piece in
-                        UnderlinePiece(
+                        let start = writingMode.turned(Point(
                             x: piece.lowerBound,
-                            y: line.baseline,
-                            width: piece.upperBound - piece.lowerBound
-                        )
+                            y: writingMode.block(extent.alphabetic, under: line.baseline)
+                        ))
+
+                        return UnderlinePiece(x: start.x, y: start.y, width: piece.upperBound - piece.lowerBound)
                     } : []
                 )
             }

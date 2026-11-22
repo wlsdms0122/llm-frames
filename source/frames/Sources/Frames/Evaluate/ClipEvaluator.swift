@@ -374,7 +374,13 @@ struct ClipEvaluator: Sendable {
         let background = DisplayItem(
             transform: item.transform,
             reveal: item.reveal,
-            content: .glyphs(GlyphsItem(size: glyphs.size, runs: [], extent: glyphs.extent, background: glyphs.background)),
+            content: .glyphs(GlyphsItem(
+                size: glyphs.size,
+                writingMode: glyphs.writingMode,
+                runs: [],
+                extent: glyphs.extent,
+                background: glyphs.background
+            )),
             origin: origin
         )
         let passes = GlyphLayer.allCases.indices.flatMap { layer in unitItems.map { $0[layer] } }

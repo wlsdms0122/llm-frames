@@ -6,8 +6,8 @@
 //
 
 // One line of a title `evaluate` reports: its text, its `[start, end)` in Unicode scalars over its title's text, the y
-// of its baseline in its title's text box at the time, with the line height then and no baseline shift, and its ascent
-// and descent.
+// of its baseline in its title's text box at the time, its x in a vertical writing mode, with the line height then
+// and no baseline shift, and its ascent and descent.
 package struct EvaluationLine: Equatable, Sendable {
     // MARK: - Property
     package let text: String

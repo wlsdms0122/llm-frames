@@ -390,6 +390,7 @@ struct ResolvedValueWriter: Sendable {
             JSONMember(key: "textBox", value: rectangle(text.textBox)),
             JSONMember(key: "width", value: text.width.map(JSONValue.number) ?? .null),
             JSONMember(key: "background", value: background ?? .null),
+            JSONMember(key: "writingMode", value: .string(text.writingMode.rawValue)),
             JSONMember(key: "direction", value: .string(text.direction.rawValue)),
             JSONMember(key: "align", value: .string(text.align.rawValue)),
             JSONMember(key: "lineHeight", value: timed(text.lineHeight)),
@@ -430,6 +431,7 @@ struct ResolvedValueWriter: Sendable {
                     JSONMember(key: "color", value: timed(run.color)),
                     JSONMember(key: "stroke", value: timed(run.stroke)),
                     JSONMember(key: "baselineShift", value: timed(run.baselineShift)),
+                    JSONMember(key: "sideways", value: .bool(run.isSideways)),
                     JSONMember(key: "staticTracking", value: .number(run.staticTracking)),
                     JSONMember(key: "tracking", value: timed(run.tracking)),
                     JSONMember(key: "highlight", value: highlight ?? .null),
@@ -448,6 +450,7 @@ struct ResolvedValueWriter: Sendable {
             .object(JSONObject(members: pinned(run.font) + [
                 JSONMember(key: "face", value: .string(run.face)),
                 JSONMember(key: "size", value: .number(run.size)),
+                JSONMember(key: "sideways", value: .bool(run.isSideways)),
                 JSONMember(key: "color", value: color(run.color)),
                 JSONMember(key: "stroke", value: run.stroke.map(stroke) ?? .null),
                 JSONMember(key: "highlight", value: run.highlight.map { highlight in

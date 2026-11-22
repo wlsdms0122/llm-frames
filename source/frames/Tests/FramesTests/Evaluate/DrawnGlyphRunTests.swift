@@ -25,6 +25,7 @@ struct DrawnGlyphRunTests {
             color: .track([Keyframe(at: 0, value: .color(Color(written: "#FFFFFF")))]),
             stroke: .off,
             baselineShift: .off,
+            isSideways: false,
             staticTracking: 0,
             tracking: .off,
             highlight: nil,
@@ -39,6 +40,7 @@ struct DrawnGlyphRunTests {
         // When
         let sut = DrawnGlyphRun(
             run: run,
+            writingMode: .horizontalTopToBottom,
             factor: 1,
             at: SampleTime(0),
             moves: [Point(x: 3, y: 4), Point(x: 3, y: 4)],

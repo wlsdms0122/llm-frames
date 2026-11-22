@@ -127,13 +127,14 @@ struct ResolvedSequenceWriterTests {
         // Then
         let run = try #require(title["runs"]?.arrayValue?.first?.objectValue)
         #expect(title.keys == [
-            "size", "textBox", "width", "background", "direction", "align", "lineHeight", "text", "words", "lines",
-            "units", "runs"
+            "size", "textBox", "width", "background", "writingMode", "direction", "align", "lineHeight", "text", "words",
+            "lines", "units", "runs"
         ])
         #expect(run.keys == [
-            "source", "file", "sha256", "face", "size", "color", "stroke", "baselineShift", "staticTracking", "tracking",
-            "highlight", "underline", "glyphs"
+            "source", "file", "sha256", "face", "size", "color", "stroke", "baselineShift", "sideways", "staticTracking",
+            "tracking", "highlight", "underline", "glyphs"
         ])
+        #expect(run["sideways"] == .bool(false))
         #expect(run["staticTracking"] == .number(0))
         #expect(run["sha256"] == .string("sha256-of-" + (run["file"]?.stringValue ?? "")))
         #expect(run["glyphs"]?.arrayValue?.compactMap { $0.arrayValue?.first } == [.number(72), .number(105)])
@@ -160,6 +161,41 @@ struct ResolvedSequenceWriterTests {
         #expect(line["clusters"]?.arrayValue?.allSatisfy { $0.arrayValue?.count == 8 } == true)
         #expect(levels("clusters") == [.number(1), .number(1), .number(1), .number(2)])
         #expect(levels("hanging") == [.number(1)])
+    }
+
+    @Test("a title writes the writing mode it was laid out in, `horizontal-tb` where no layer gives one")
+    func writesWritingMode() throws {
+        // Given
+        let document = #"""
+            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "in": 0, "out": 3 } ],
+              "clips": [ { "title": "縦", "style": "title", "placement": "top", "at": [0, 1],
+                           "paragraph": { "writingMode": "vertical-rl" } },
+                         { "title": "横", "style": "title", "placement": "top", "at": [0, 1] } ] }
+            """#
+
+        // When
+        let clips = try #require(try write(document)["clips"]?.arrayValue)
+
+        // Then
+        let modes = clips.map { $0.objectValue?["title"]?.objectValue?["writingMode"] }
+        #expect(modes == [.string("vertical-rl"), .string("horizontal-tb")])
+    }
+
+    @Test("a run writes whether its glyphs are set sideways, a vertical title's Latin letters cut into a run of their own")
+    func writesSideways() throws {
+        // Given
+        let document = #"""
+            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "in": 0, "out": 3 } ],
+              "clips": [ { "title": "縦A", "style": "title", "placement": "top", "at": [0, 1],
+                           "paragraph": { "writingMode": "vertical-rl" } } ] }
+            """#
+
+        // When
+        let clip = try #require(try write(document)["clips"]?.arrayValue?.first?.objectValue)
+
+        // Then
+        let runs = try #require(clip["title"]?.objectValue?["runs"]?.arrayValue)
+        #expect(runs.map { $0.objectValue?["sideways"] } == [.bool(false), .bool(true)])
     }
 
     @Test("a clip keeps its place, id, visible window, lane, storyline and parent, and its properties in sequence time")

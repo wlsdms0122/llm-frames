@@ -8,20 +8,26 @@
 // A unit as resolved, its box holding what it draws at its widest over the keyframes: its glyph box grown on every side
 // by half the widest stroke among the glyphs it draws, then to hold its highlight parts at their largest padding and
 // its underline parts at their largest `width` and `offset`. A first or last part, which reaches its piece's end, holds
-// the padding there.
+// the padding there. A padding's first value is on the block axis and its second on the inline axis, which
+// `writingMode` turns, as it turns an underline's band toward line-under.
 extension PlacedUnit {
     // MARK: - Property
     // MARK: - Initializer
     init(
         drawing unit: PlacedUnit,
         lines: [PlacedLine],
-        runs: [ResolvedGlyphRun]
+        runs: [ResolvedGlyphRun],
+        writingMode: WritingMode
     ) {
         let stroke = unit.glyphs.flatMap { Self.values(of: runs[$0.run].stroke["width"]) }.compactMap(\.first).max() ?? 0
         let parts = unit.parts.flatMap { part in
             let run = runs[part.run]
-            let highlight = run.highlight.map { Self.drawn(part, of: $0.rects[part.piece], padding: $0.padding) }
-            let underline = run.underline.map { Self.drawn(part, of: $0.rects[part.piece], underline: $0) }
+            let highlight = run.highlight.map { highlight in
+                Self.drawn(part, of: highlight.rects[part.piece], padding: highlight.padding, writingMode: writingMode)
+            }
+            let underline = run.underline.map { underline in
+                Self.drawn(part, of: underline.rects[part.piece], underline: underline, writingMode: writingMode)
+            }
 
             return [highlight, underline].compactMap { $0 }
         }
@@ -41,34 +47,44 @@ extension PlacedUnit {
     private static func drawn(
         _ part: UnitPart,
         of piece: Rectangle,
-        padding: TimedValue
+        padding: TimedValue,
+        writingMode: WritingMode
     ) -> Rectangle {
         let paddings = values(of: padding)
-        let vertical = paddings.map { $0.first ?? 0 }.max() ?? 0
-        let horizontal = paddings.map { $0.last ?? 0 }.max() ?? 0
-        let start = part.span.lowerBound == piece.x ? piece.x - horizontal : part.span.lowerBound
-        let end = part.span.upperBound == piece.maxX ? piece.maxX + horizontal : part.span.upperBound
+        let block = paddings.map { $0.first ?? 0 }.max() ?? 0
+        let inline = paddings.map { $0.last ?? 0 }.max() ?? 0
+        let piece = writingMode.turned(piece)
+        let start = part.span.lowerBound == piece.x ? piece.x - inline : part.span.lowerBound
+        let end = part.span.upperBound == piece.maxX ? piece.maxX + inline : part.span.upperBound
 
-        return Rectangle(x: start, y: piece.y - vertical, width: end - start, height: piece.height + vertical * 2)
+        return writingMode.turned(Rectangle(
+            x: start,
+            y: piece.y - block,
+            width: end - start,
+            height: piece.height + block * 2
+        ))
     }
 
-    // An underline piece lies on the baseline, its band from `offset` to `offset + width` below it.
+    // An underline piece lies on its run's alphabetic baseline, its band from `offset` to `offset + width` toward
+    // line-under from it.
     private static func drawn(
         _ part: UnitPart,
         of piece: UnderlinePiece,
-        underline: ResolvedUnderline
+        underline: ResolvedUnderline,
+        writingMode: WritingMode
     ) -> Rectangle {
         let offsets = values(of: underline.offset).compactMap(\.first)
         let width = values(of: underline.width).compactMap(\.first).max() ?? 0
-        let top = piece.y + (offsets.min() ?? 0)
-        let bottom = piece.y + (offsets.max() ?? 0) + width
+        let baseline = writingMode.turned(Point(x: piece.x, y: piece.y)).y
+        let top = writingMode.block(offsets.min() ?? 0, under: baseline)
+        let bottom = writingMode.block(width, under: writingMode.block(offsets.max() ?? 0, under: baseline))
 
-        return Rectangle(
+        return writingMode.turned(Rectangle(
             x: part.span.lowerBound,
-            y: top,
+            y: min(top, bottom),
             width: part.span.upperBound - part.span.lowerBound,
-            height: bottom - top
-        )
+            height: abs(bottom - top)
+        ))
     }
 
     // The numbers a timed leaf takes at its keyframes.

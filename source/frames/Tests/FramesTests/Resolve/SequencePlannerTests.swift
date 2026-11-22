@@ -551,6 +551,23 @@ struct SequencePlannerTests {
         #expect(layouts.map { $0.runs.map { $0.glyphs.map(\.x) } } == [[[160, 180]], [[0, 20]]])
     }
 
+    @Test("a title's `paragraph` writing mode merges over its style's, which a title without one keeps")
+    func readsParagraphWritingMode() throws {
+        // When
+        let plan = try plan(#"""
+            { "kind": "sequence", "format": { "size": [1920, 1080] },
+              "theme": { "styles": { "caption": { "size": 40, "writingMode": "vertical-lr" } } },
+              "storyline": [ { "media": "/abs/screen.mp4" } ],
+              "clips": [ { "title": "ab", "style": "caption", "paragraph": { "writingMode": "vertical-rl" },
+                           "placement": "top", "at": [0, 1] },
+                         { "title": "ab", "style": "caption", "placement": "top", "at": [0, 1] } ] }
+            """#)
+
+        // Then
+        let layouts = try plan.clips.map { try #require($0.title?.layout) }
+        #expect(layouts.map(\.writingMode) == [.verticalRightToLeft, .verticalLeftToRight])
+    }
+
     @Test("a title's `character` stroke over a run style without one stops when it gives no width")
     func refusesCharacterStrokeWithoutWidth() throws {
         // Given

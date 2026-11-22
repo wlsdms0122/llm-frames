@@ -6,8 +6,10 @@
 //
 
 // A glyph the shaping provider gave: its id in its face, its advance, which moves the pen along the line, `offset`,
-// the index of the first Unicode scalar of the text it was shaped from, and `placementOffset`, where it is drawn from
-// the pen, y down, as a font's GPOS table places a mark over its base.
+// the index of the first Unicode scalar of the text it was shaped from, and `placementOffset`, the move from the pen to
+// the origin it is drawn from, x along the line and y toward its line-under side. It holds what a font's GPOS table
+// places, a mark over its base, and for an upright glyph in a vertical line the move from its vertical origin, which
+// lies at the pen, to its origin.
 package struct ShapedGlyph: Equatable, Sendable {
     // MARK: - Property
     package let id: Int

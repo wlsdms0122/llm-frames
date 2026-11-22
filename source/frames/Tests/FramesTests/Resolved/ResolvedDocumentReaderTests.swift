@@ -217,8 +217,8 @@ struct ResolvedDocumentReaderTests {
 
     // The title `name` of the example of the resolved document, written whole with its hashes in full.
     private static let nameTitle = #"""
-        { "size": [216.2, 55.9], "textBox": [0, 0, 216.2, 55.9], "width": null, "background": null, "direction": "ltr",
-          "align": "left", "lineHeight": [ { "at": 1.2, "value": 60, "ease": "linear" } ],
+        { "size": [216.2, 55.9], "textBox": [0, 0, 216.2, 55.9], "width": null, "background": null,
+          "writingMode": "horizontal-tb", "direction": "ltr", "align": "left", "lineHeight": [ { "at": 1.2, "value": 60, "ease": "linear" } ],
           "text": "Mina Baker", "words": [ [0, 4], [5, 10] ],
           "lines": [ { "width": 216.2, "baseline": 45.7, "ascent": 45.7, "descent": 10.2, "range": [0, 10],
                        "clusters": [ [0, 0, 1, 0, 1, 41.8, 0, ""], [0, 1, 1, 1, 2, 12.4, 0, ""],
@@ -232,14 +232,14 @@ struct ResolvedDocumentReaderTests {
             { "source": 0, "file": "/System/Library/Fonts/HelveticaNeue.ttc",
               "sha256": "41aa0c9e5d17b2f3a8c4e6d1907b5f2e3c8a1d4b6e9f0a2c5d7e8b1f3a6c9d0e", "face": "HelveticaNeue-Bold", "size": 48,
               "color": [ { "at": 1.2, "value": "color(srgb 1 1 1 / 1)", "ease": "linear" } ], "stroke": null,
-              "baselineShift": [ { "at": 1.2, "value": 0, "ease": "linear" } ], "staticTracking": 0, "tracking": null,
+              "baselineShift": [ { "at": 1.2, "value": 0, "ease": "linear" } ], "sideways": false, "staticTracking": 0, "tracking": null,
               "highlight": null, "underline": null,
               "glyphs": [ [48, 0, 45.7, 0, 0], [76, 41.8, 45.7, 0, 0], [81, 54.2, 45.7, 0, 0], [68, 82.7, 45.7, 0, 0], [3, 110.3, 45.7, 0, 0] ] },
             { "source": 1, "file": "/System/Library/Fonts/HelveticaNeue.ttc",
               "sha256": "41aa0c9e5d17b2f3a8c4e6d1907b5f2e3c8a1d4b6e9f0a2c5d7e8b1f3a6c9d0e", "face": "HelveticaNeue", "size": 36,
               "color": [ { "at": 1.2, "value": "color(srgb 0.788235294117647 0.8392156862745098 0.9176470588235294 / 1)", "ease": "linear" } ],
               "stroke": null,
-              "baselineShift": [ { "at": 1.2, "value": 0, "ease": "linear" } ], "staticTracking": 0, "tracking": null,
+              "baselineShift": [ { "at": 1.2, "value": 0, "ease": "linear" } ], "sideways": false, "staticTracking": 0, "tracking": null,
               "highlight": { "color": [ { "at": 1.2, "value": "color(srgb 0.9490196078431372 0.7176470588235294 0.0196078431372549 / 1)", "ease": "linear" } ],
                              "padding": [ { "at": 1.2, "value": [2, 8], "ease": "linear" } ],
                              "radius": [ { "at": 1.2, "value": 4, "ease": "linear" } ],
@@ -968,6 +968,65 @@ struct ResolvedDocumentReaderTests {
         #expect(error?.description.contains("ltr") == true)
     }
 
+    @Test("a title's writing mode is read as written, and one CSS does not name stops when read")
+    func readsWritingMode() throws {
+        // Given
+        let text = try written(
+            #"""
+            { "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4", "in": 0, "out": 3 } ],
+              "clips": [ { "title": "ab", "style": "title", "at": [0, 1], "position": [0, 0],
+                           "paragraph": { "writingMode": "vertical-lr" } } ] }
+            """#
+        )
+        let changed = try replacingTitle(ofClip: 0, in: text) { title in
+            title.setting("writingMode", to: .string("sideways-rl"))
+        }
+
+        // When
+        let read = try sut.read(text)
+        let error = #expect(throws: ModelError.self) { try sut.read(changed) }
+
+        // Then
+        guard case let .title(title) = read.clips.first?.content else {
+            Issue.record("the first clip is not a title")
+            return
+        }
+        #expect(title.writingMode == .verticalLeftToRight)
+        #expect(error?.description.contains("sideways-rl") == true)
+        #expect(error?.description.contains("vertical-rl") == true)
+    }
+
+    @Test("a run's orientation is read as written, and one that is not a boolean stops when read")
+    func readsSideways() throws {
+        // Given
+        let text = try written(
+            #"""
+            { "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4", "in": 0, "out": 3 } ],
+              "clips": [ { "title": "縦A", "style": "title", "at": [0, 1], "position": [0, 0],
+                           "paragraph": { "writingMode": "vertical-rl" } } ] }
+            """#
+        )
+        let changed = try replacingTitle(ofClip: 0, in: text) { title in
+            var runs = try #require(title["runs"]?.arrayValue)
+            let run = try #require(runs[1].objectValue)
+            runs[1] = .object(run.setting("sideways", to: .string("true")))
+
+            return title.setting("runs", to: .array(runs))
+        }
+
+        // When
+        let read = try sut.read(text)
+        let error = #expect(throws: ModelError.self) { try sut.read(changed) }
+
+        // Then
+        guard case let .title(title) = read.clips.first?.content else {
+            Issue.record("the first clip is not a title")
+            return
+        }
+        #expect(title.runs.map(\.isSideways) == [false, true])
+        #expect(error?.description.contains("sideways") == true)
+    }
+
     @Test(
         "a title's cluster, line or word range past its text, a level UAX #9 cannot give, a script code ISO 15924 cannot give, or clusters that do not go up along a line, stop when read",
         arguments: [
@@ -1168,6 +1227,59 @@ struct ResolvedDocumentReaderTests {
         #expect(read == document)
         #expect(line.clusters.map(\.cursiveScripts) == scripts)
         #expect(abs(line.width - line.clusters.map(\.advance).reduce(0, +) - 3 * tracking) < 1e-9)
+        #expect(error?.description.contains("line 0's pen positions do not follow its clusters' advances") == true)
+    }
+
+    @Test("a vertical title from resolve reads back as it was resolved, its pens checked down its lines")
+    func readsVerticalTitle() throws {
+        // Given
+        let document = try resolved(
+            #"""
+            { "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4", "in": 0, "out": 3 } ],
+              "clips": [ { "title": "縦A\n字b", "style": "title", "at": [0, 1], "position": [0, 0],
+                           "paragraph": { "writingMode": "vertical-rl" },
+                           "character": { "tracking": 100, "highlight": { "color": "#FF0000", "padding": [4, 6] },
+                                          "underline": true },
+                           "animation": { "preset": "frames/fade", "by": "word" } } ] }
+            """#
+        )
+        let text = writer.write(document)
+        let moved = try replacingTitle(ofClip: 0, in: text) { title in
+            var runs = try #require(title["runs"]?.arrayValue)
+            let run = try #require(runs[1].objectValue)
+            var glyphs = try #require(run["glyphs"]?.arrayValue)
+            var glyph = try #require(glyphs.first?.arrayValue)
+            glyph[2] = .number(try #require(glyph[2].numberValue) + 1)
+            glyphs[0] = .array(glyph)
+            runs[1] = .object(run.setting("glyphs", to: .array(glyphs)))
+
+            return title.setting("runs", to: .array(runs))
+        }
+
+        // When
+        let read = try sut.read(text)
+        let error = #expect(throws: ModelError.self) { try sut.read(moved) }
+
+        // Then
+        guard case let .title(title) = read.clips.first?.content else {
+            Issue.record("the first clip is not a title")
+            return
+        }
+        // The first unit, `縦`, carries the part that starts its line's piece and ends where `A`'s begins, so its box
+        // takes the highlight's second padding value at the top end and its first on both sides across the line, those
+        // values as theme lengths.
+        let unit = try #require(title.units?.first)
+        let part = try #require(unit.parts.first)
+        let across = unit.glyphBox.x - unit.box.x
+        let down = part.span.lowerBound - unit.box.y
+        #expect(read == document)
+        #expect(title.writingMode == .verticalRightToLeft)
+        #expect(title.lines.count == 2)
+        #expect(title.lines[0].baseline > title.lines[1].baseline)
+        #expect(title.runs[0].glyphs[0].x == title.lines[0].baseline)
+        #expect(abs(down - across * 6 / 4) < 1e-9)
+        #expect(abs(unit.box.width - unit.glyphBox.width - across * 2) < 1e-9)
+        #expect(abs(unit.box.y + unit.box.height - part.span.upperBound) < 1e-9)
         #expect(error?.description.contains("line 0's pen positions do not follow its clusters' advances") == true)
     }
 

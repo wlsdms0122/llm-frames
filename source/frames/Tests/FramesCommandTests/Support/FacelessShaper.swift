@@ -35,6 +35,7 @@ struct FacelessShaper: ShapingProvider {
     func shape(
         _ text: String,
         direction: TextDirection,
+        upright: Bool,
         faces: [FontFace],
         size: Double,
         features: [FontFeature],

@@ -39,6 +39,7 @@ extension ResolvedText {
                 color: color,
                 stroke: character["stroke"] ?? .off,
                 baselineShift: character["baselineShift"] ?? .off,
+                isSideways: run.isSideways,
                 staticTracking: run.staticTracking,
                 tracking: plan.trackingSteps[run.source],
                 highlight: character["highlight"].flatMap { highlight in
@@ -72,6 +73,7 @@ extension ResolvedText {
             textBox: plan.layout.textBox,
             width: plan.layout.width,
             background: background,
+            writingMode: plan.layout.writingMode,
             direction: plan.layout.direction,
             align: plan.layout.align,
             lineHeight: lineHeight,
@@ -79,7 +81,9 @@ extension ResolvedText {
             words: plan.layout.words,
             lines: plan.layout.lines,
             units: plan.layout.units.map { units in
-                units.map { PlacedUnit(drawing: $0, lines: plan.layout.lines, runs: runs) }
+                units.map { unit in
+                    PlacedUnit(drawing: unit, lines: plan.layout.lines, runs: runs, writingMode: plan.layout.writingMode)
+                }
             },
             runs: runs
         )
@@ -105,6 +109,7 @@ extension ResolvedText {
                     radius: held(.number(background.radius))
                 )
             },
+            writingMode: layout.writingMode,
             direction: layout.direction,
             align: layout.align,
             lineHeight: held(.number(layout.lineHeight)),
@@ -121,6 +126,7 @@ extension ResolvedText {
                     color: held(.color(color)),
                     stroke: .off,
                     baselineShift: .off,
+                    isSideways: run.isSideways,
                     staticTracking: run.staticTracking,
                     tracking: .off,
                     highlight: nil,

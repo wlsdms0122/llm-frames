@@ -57,7 +57,8 @@ struct TitleKeyframeTests {
             (#""character": { "italic": true }"#, "clips[0].keyframes[0].character.italic"),
             (#""character": { "kerning": "none" }"#, "clips[0].keyframes[0].character.kerning"),
             (#""character": { "features": { "tnum": 1 } }"#, "clips[0].keyframes[0].character.features.tnum"),
-            (#""paragraph": { "align": "right" }"#, "clips[0].keyframes[0].paragraph.align")
+            (#""paragraph": { "align": "right" }"#, "clips[0].keyframes[0].paragraph.align"),
+            (#""paragraph": { "writingMode": "vertical-rl" }"#, "clips[0].keyframes[0].paragraph.writingMode")
         ]
     )
     func refusesStaticAttributeInKeyframe(
@@ -209,6 +210,7 @@ struct TitleKeyframeTests {
         let still = Point(x: 0, y: 0)
         let sut = DrawnGlyphRun(
             run: run,
+            writingMode: text.writingMode,
             factor: 1,
             at: SampleTime(0.5),
             moves: run.glyphs.map { _ in still },
