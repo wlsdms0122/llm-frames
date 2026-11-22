@@ -489,16 +489,16 @@ struct Typesetter: Sendable {
     // share its baseline. The groups of glyphs lie in the order `placedOrder` gives, each glyph at the pen with its
     // placement offset, and the pen moves from left to right by advances and by the tracking between neighbouring
     // characters, so the spaces that hang lie past the line's end untracked: after its right end, or before its left
-    // end where they come first as placed. A character with no glyph of its own is a range of count 0 after its
-    // group's glyphs and spans its group's first character, and on a line with no glyph it is a range of count 0 at
-    // glyph 0 of the line's first run, written for it with no glyphs, spanning nothing at the line's start. A text
-    // run's highlight and underline make one piece for each stretch of its characters that lie side by side, from the
-    // start of the leftmost one's span to the end of the rightmost one's, the spaces that end the line excluded, the
-    // pieces in the text order of their first characters and held by the first glyph run of the text run on the line.
-    // A character's span is its glyph box across the line, from the pen where its glyphs begin, as wide as their
-    // advances, and the spans of the line's characters are given in text order. The line's clusters name glyphs by the
-    // index of their run among the text's, the first of this line's runs being `firstRun`, and carry their levels
-    // after rule L1. `index` is the line's among the text's.
+    // end at an odd paragraph level, where L2 places them first, on a line with no character too. A character with no
+    // glyph of its own is a range of count 0 after its group's glyphs and spans its group's first character, and on a
+    // line with no glyph it is a range of count 0 at glyph 0 of the line's first run, written for it with no glyphs,
+    // spanning nothing at the line's start. A text run's highlight and underline make one piece for each stretch of its
+    // characters that lie side by side, from the start of the leftmost one's span to the end of the rightmost one's,
+    // the spaces that end the line excluded, the pieces in the text order of their first characters and held by the
+    // first glyph run of the text run on the line. A character's span is its glyph box across the line, from the pen
+    // where its glyphs begin, as wide as their advances, and the spans of the line's characters are given in text
+    // order. The line's clusters name glyphs by the index of their run among the text's, the first of this line's runs
+    // being `firstRun`, and carry their levels after rule L1. `index` is the line's among the text's.
     private func placed(
         _ line: TextLine,
         index lineIndex: Int,
@@ -514,7 +514,7 @@ struct Typesetter: Sendable {
         let visibleCount = visibleCharacters(of: characters).count
         let levels = lineLevels(of: characters, paragraphLevel: paragraphLevel)
         let order = PlacedLine.placedOrder(levels: levels, owners: characters.map { !$0.glyphs.isEmpty })
-        let leading = order.prefix { $0 >= visibleCount }
+        let leading = TextDirection(level: paragraphLevel) == .rtl ? order.filter { $0 >= visibleCount } : []
 
         var runs: [GlyphRun] = []
         var groups: [Int: (glyphs: GlyphRange, span: ClosedRange<Double>)] = [:]
