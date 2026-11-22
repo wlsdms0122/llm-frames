@@ -574,7 +574,7 @@ struct SequenceCheckTests {
     }
 
     @Test(
-        "a storyline clip takes no placement and no parent, and a solid takes a transition only",
+        "a storyline clip takes no placement and no parent, and a solid no transform",
         arguments: [
             (
                 #"{ "media": "/abs/run.mp4", "parent": "intro" }"#,
@@ -586,7 +586,7 @@ struct SequenceCheckTests {
             ),
             (
                 ##"{ "solid": "#FF0000", "duration": 2, "scale": 2 }"##,
-                #"storyline[0] (solid): unknown key "scale". Allowed: id, metadata, solid, duration, transition, motionBlur, connected"#
+                #"storyline[0] (solid): unknown key "scale". Allowed: id, metadata, solid, duration, transition, motionBlur, keyframes, connected"#
             )
         ]
     )
@@ -603,17 +603,19 @@ struct SequenceCheckTests {
     }
 
     @Test(
-        "a storyline solid takes no transform key, keyframed or not, so its transform is always the identity",
+        "a storyline solid takes no transform key, statically or in a keyframe, so its transform is always the identity",
         arguments: [
-            (#""anchor": "top-left""#, "anchor"),
-            (#""position": [0, 0]"#, "position"),
-            (#""scale": 2"#, "scale"),
-            (#""rotation": 90"#, "rotation"),
-            (#""keyframes": [ { "at": 0, "position": [0, 0] } ]"#, "keyframes")
+            (#""anchor": "top-left""#, "storyline[0]", "solid", "anchor"),
+            (#""position": [0, 0]"#, "storyline[0]", "solid", "position"),
+            (#""scale": 2"#, "storyline[0]", "solid", "scale"),
+            (#""rotation": 90"#, "storyline[0]", "solid", "rotation"),
+            (#""keyframes": [ { "at": 0, "position": [0, 0] } ]"#, "storyline[0].keyframes[0]", "keyframe", "position")
         ]
     )
     func refusesSolidTransform(
         key: String,
+        place: String,
+        kind: String,
         name: String
     ) throws {
         // Given
@@ -621,7 +623,7 @@ struct SequenceCheckTests {
 
         // When, Then
         let error = #expect(throws: ModelError.self) { try sut.check(document: document) }
-        #expect(error?.description == #"storyline[0] (solid): unknown key "\#(name)". Allowed: id, metadata, solid, duration, transition, motionBlur, connected"#)
+        #expect(error?.description.hasPrefix(#"\#(place) (\#(kind)): unknown key "\#(name)". Allowed: "#) == true)
     }
 
     @Test("an id is a string unique within its document, and a nested document has its own")

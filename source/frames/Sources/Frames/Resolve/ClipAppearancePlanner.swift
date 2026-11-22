@@ -384,6 +384,33 @@ struct ClipAppearancePlanner: Sendable {
         )
     }
 
+    // A solid's colour, timed over its static value, which a keyframe's `null` points at.
+    func solid(
+        of written: StorylineClip,
+        plan: StorylinePlan,
+        theme: MergedTheme
+    ) throws -> [Keyframe<Color>]? {
+        guard let solid = written.solid else { return nil }
+
+        let looks = ClipLookPlanner(
+            place: written.place,
+            kind: .clip(.solid),
+            clock: plan.map,
+            instant: plan.instant,
+            scale: 1,
+            theme: theme
+        )
+        guard case let .track(keyframes) = try looks.timed(solid, key: "solid", as: LookStructureTable.solid) else {
+            return nil
+        }
+
+        return keyframes.compactMap { keyframe in
+            guard case let .color(color) = keyframe.value else { return nil }
+
+            return Keyframe(at: keyframe.at, value: color, ease: keyframe.ease)
+        }
+    }
+
     // A clip applies the filter it writes merged over the theme's default when it takes one, the default when it
     // writes none, and otherwise none, so both are typed by `FilterResolver`. `key` is the clip's key for it on the
     // clip at `place`. The clip's stops name its choice, and the default's name the theme.

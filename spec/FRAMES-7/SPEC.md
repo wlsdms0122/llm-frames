@@ -129,7 +129,7 @@ Keyframable properties, as the principle of [FRAMES-4](../FRAMES-4/SPEC.md) give
 
 `timeRemap` is written only in keyframes ([FRAMES-8](../FRAMES-8/SPEC.md)), so a static `timeRemap` on a clip stops. A keyframe sets the leaves it writes and no others, and each leaf is timed on its own ([FRAMES-4](../FRAMES-4/SPEC.md)): `mask`, `filter`, `adjust`, `fill`, `stroke`, `shadow`, `border`, `character`, `paragraph` and `audioFilter` in a keyframe write the numbers and colours they change, timed over the merged value (the clip's static value, with the structure its keyframes give, merged over its style's), whose names and structure are static, and a leaf written `null` is the merged value at that instant.
 
-Keys are checked over the whole JSON tree before any value is read, except the media rows, which follow the probe. A value of the wrong type also stops, with its place, and so does a key written twice in one object. A leaf written statically and given a value in every keyframe that writes it stops, since the static value would never show ([FRAMES-4](../FRAMES-4/SPEC.md)).
+Keys are checked over the whole JSON tree before any value is read, except the media rows, which follow the probe. A value of the wrong type also stops, with its place, and so does a key written twice in one object. A leaf written statically and given a value in every keyframe that writes it stops, since the static value would never show, except a solid's `solid`, which makes the clip a solid ([FRAMES-4](../FRAMES-4/SPEC.md)).
 
 ## Interactions
 

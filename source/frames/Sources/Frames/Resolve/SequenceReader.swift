@@ -72,7 +72,7 @@ struct SequenceReader: Sendable {
             place: place,
             id: object["id"]?.stringValue,
             media: object["media"].map { media($0, of: object, place: place.appending(key: "media")) },
-            solid: object["solid"]?.stringValue,
+            solid: look("solid", of: object),
             duration: object["duration"]?.numberValue,
             transition: object["transition"],
             keyframes: keyframes(object["keyframes"]),

@@ -99,7 +99,7 @@ enum ClipKeyTable {
             ["opacity", "mask", "adjust"]
 
         case (_, .solid):
-            []
+            ["solid"]
         }
     }
 
@@ -159,7 +159,7 @@ enum ClipKeyTable {
     // Keys of the look, timed leaf by leaf over the merged value: a keyframe may write any of their leaves, `null` for
     // the merged value's, and a clip may write them statically beside keyframes, which timing checks leaf by leaf.
     static let lookKeys = [
-        "radius", "outset", "fill", "stroke", "shadow", "border", "filter", "adjust", "mask", "audioFilter"
+        "radius", "outset", "fill", "stroke", "shadow", "border", "filter", "adjust", "mask", "audioFilter", "solid"
     ] + titleLookKeys
 
     // A title's character and paragraph attributes, merged over its styles' as every look key is.
@@ -192,7 +192,7 @@ enum ClipKeyTable {
             ]
 
         case (_, .solid):
-            return ["id", "metadata", "solid", "duration", "transition", "motionBlur", "connected"]
+            return ["id", "metadata", "solid", "duration", "transition", "motionBlur", "keyframes", "connected"]
 
         case (.storyline, .media):
             return [

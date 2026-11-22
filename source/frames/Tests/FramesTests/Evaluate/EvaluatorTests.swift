@@ -1257,7 +1257,7 @@ struct EvaluatorTests {
             place: "storyline",
             id: id,
             media: media,
-            solid: solid,
+            solid: solid.map { [Keyframe(at: start, value: $0)] },
             in: `in`,
             out: `in` + (end - start) * speed,
             speed: speed,

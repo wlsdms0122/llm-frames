@@ -224,7 +224,10 @@ struct TimedValueBuilder: Sendable {
             return .track([Keyframe(at: instant, value: try leaf(value, kind, source))])
         }
 
-        if case .leaf = written, keyframes.allSatisfy({ $0.value != .unset }) {
+        // A static leaf every keyframe replaces never shows, unless it is the whole value of the key that makes the
+        // clip its kind, which the clip must write.
+        let isKind = place.path == .root && ClipKeyTable.kindKeys.contains(place.key)
+        if case .leaf = written, !isKind, keyframes.allSatisfy({ $0.value != .unset }) {
             throw LookError.staticAndKeyframed(place: place.written)
         }
 

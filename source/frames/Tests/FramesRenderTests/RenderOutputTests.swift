@@ -140,7 +140,7 @@ struct RenderOutputTests {
         let sut = pipeline()
 
         // When
-        let error = #expect(throws: RenderError.self) {
+        let error = #expect(throws: PinnedReferenceError.self) {
             try sut.render(document, to: output.file("out.mov"), at: nil, delivery: output.file("out.mp4"))
         }
 

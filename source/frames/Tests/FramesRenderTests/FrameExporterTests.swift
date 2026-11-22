@@ -302,7 +302,7 @@ struct FrameExporterTests {
         let sut = exporter()
 
         // When
-        let error = #expect(throws: RenderError.self) {
+        let error = #expect(throws: PinnedReferenceError.self) {
             try sut.extract(.document(document), range: FrameRange(), to: output.file("frames"))
         }
 

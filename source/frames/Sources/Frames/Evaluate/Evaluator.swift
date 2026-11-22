@@ -375,7 +375,7 @@ package struct Evaluator: Sendable {
                 )
             ))
         } else if let solid = entry.solid {
-            content = .path(PathItem(filling: box, color: solid))
+            content = .path(PathItem(filling: box, color: solid.value(at: time)))
         } else {
             return []
         }
