@@ -18,7 +18,9 @@ struct UnitFinder: Sendable {
     // MARK: - Public
     // `text` is the text every range counts, `words` its words in reading order, each its range, `spans` the glyph box
     // span across its line of each character of each line, and `runs` the text's glyph runs, which hold the highlight
-    // and underline pieces.
+    // and underline pieces. A unit's glyph box runs from the leftmost character it holds to the rightmost, and a piece
+    // is cut into parts wherever two of its characters that are neighbours as placed go with different units, at the
+    // glyph box of the right one, so a unit carries one part of a piece or several where its characters lie apart.
     func units(
         by unit: TextUnit,
         text: String,
@@ -43,21 +45,25 @@ struct UnitFinder: Sendable {
             hangingLines[owner].append(index)
         }
 
+        var unitAt = lines.map { line in line.clusters.map { _ in 0 } }
+        for (unit, stretch) in stretches.enumerated() {
+            for cluster in stretch.clusters {
+                unitAt[stretch.line][cluster] = unit
+            }
+        }
+
         var parts = stretches.map { _ in [UnitPart]() }
         for (index, run) in runs.enumerated() {
-            let carriers = stretches.indices.filter { unit in
-                let stretch = stretches[unit]
-                return stretch.line == run.line && lines[stretch.line].clusters[stretch.clusters].contains {
-                    runs[$0.glyphs.run].source == run.source
+            let held = characters(ofPiecesOf: run, on: lines[run.line], runs: runs)
+            for (piece, (span, characters)) in zip(pieces(of: run), held).enumerated() {
+                var cuts: [(unit: Int, start: Double)] = []
+                for character in characters where cuts.last?.unit != unitAt[run.line][character] {
+                    let start = cuts.isEmpty ? span.lowerBound : spans[run.line][character].lowerBound
+                    cuts.append((unitAt[run.line][character], start))
                 }
-            }
-            for (piece, span) in pieces(of: run).enumerated() {
-                for (order, unit) in carriers.enumerated() {
-                    let start = order == 0 ? span.lowerBound : glyphStart(of: stretches[unit], spans: spans)
-                    let end = order == carriers.count - 1
-                        ? span.upperBound
-                        : glyphStart(of: stretches[carriers[order + 1]], spans: spans)
-                    parts[unit].append(UnitPart(run: index, piece: piece, span: start...end))
+                for (order, cut) in cuts.enumerated() {
+                    let end = cuts.indices.contains(order + 1) ? cuts[order + 1].start : span.upperBound
+                    parts[cut.unit].append(UnitPart(run: index, piece: piece, span: cut.start...end))
                 }
             }
         }
@@ -66,8 +72,8 @@ struct UnitFinder: Sendable {
             let stretch = stretches[index]
             let line = lines[stretch.line]
             let held = stretch.clusters.filter { !spaces[stretch.line][$0] }
-            let first = held.first.map { spans[stretch.line][$0].lowerBound } ?? 0
-            let last = held.last.map { spans[stretch.line][$0].upperBound } ?? first
+            let first = held.map { spans[stretch.line][$0].lowerBound }.min() ?? 0
+            let last = held.map { spans[stretch.line][$0].upperBound }.max() ?? first
             let box = Rectangle(
                 x: first,
                 y: line.baseline - line.ascent,
@@ -143,12 +149,25 @@ struct UnitFinder: Sendable {
         return groups.isEmpty ? visible.map { [$0] } : groups
     }
 
-    // Where a unit's first character's glyph box starts across its line.
-    private func glyphStart(
-        of stretch: CharacterRange,
-        spans: [[ClosedRange<Double>]]
-    ) -> Double {
-        spans[stretch.line][stretch.first].lowerBound
+    // The characters of each piece of `run`'s text run on `line`, by their index among its clusters, as they are placed
+    // from left to right: each stretch of its characters that lie side by side, the stretches in the text order of
+    // their first characters, as the pieces are. A character is of the text run of the glyph run its glyphs name.
+    private func characters(
+        ofPiecesOf run: GlyphRun,
+        on line: PlacedLine,
+        runs: [GlyphRun]
+    ) -> [[Int]] {
+        var stretches: [(source: Int, characters: [Int])] = []
+        for index in line.placedOrder where index < line.clusters.count {
+            let source = runs[line.clusters[index].glyphs.run].source
+            if stretches.last?.source == source {
+                stretches[stretches.count - 1].characters.append(index)
+            } else {
+                stretches.append((source, [index]))
+            }
+        }
+
+        return stretches.filter { $0.source == run.source }.map(\.characters).sorted { ($0.min() ?? 0) < ($1.min() ?? 0) }
     }
 
     // A run's pieces across the line, its highlight's and its underline's being the same.
