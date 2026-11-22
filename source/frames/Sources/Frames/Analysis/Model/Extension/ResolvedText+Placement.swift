@@ -10,7 +10,8 @@
 // moved as its glyphs move then and raised by its run's baseline shift then, and sits on its line's baseline then less
 // that shift, at the embedding level its cluster was resolved at. A character with no glyph of its own lies where the
 // character it is drawn with does, and on a line with no glyph where the line starts then. A line lies where its
-// baseline is then, with no shift. A space hanging at a line's end is no character.
+// baseline is then, with no shift. A space hanging at a line's end is no character. A baseline is a coordinate on the
+// block axis, y in a horizontal writing mode and x in a vertical one.
 extension ResolvedText {
     // MARK: - Property
     var evaluationWords: [EvaluationWord] {
@@ -50,7 +51,7 @@ extension ResolvedText {
     }
 
     func evaluationLines(at time: SampleTime) -> [EvaluationLine] {
-        let top = textBox(at: time).y
+        let top = writingMode.turned(textBox(at: time)).y
 
         return zip(lines, lineDrops(at: time)).map { line, drop in
             EvaluationLine(
@@ -72,15 +73,18 @@ extension ResolvedText {
     ) -> [EvaluationCharacter] {
         let rects = glyphBoxes(ofCharacters: indices, on: line, moves: moves, at: time)
 
+        let placed = lines[line]
+        let baselineInset = -writingMode.blockStart(around: 0, over: placed.ascent, under: placed.descent)
+
         return zip(indices, rects).map { index, rect in
-            let cluster = lines[line].clusters[index]
+            let cluster = placed.clusters[index]
 
             return EvaluationCharacter(
                 text: text.text(over: cluster.range),
                 range: cluster.range,
                 level: cluster.level,
                 rect: rect,
-                baseline: rect.y + lines[line].ascent
+                baseline: writingMode.turned(rect).y + baselineInset
             )
         }
     }

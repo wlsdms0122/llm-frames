@@ -11,7 +11,7 @@
 // which one of its characters comes first in the text, in output pixels. `highlights` and `underlines` are the pieces
 // of the text run's highlight and underline on this line, one for each stretch of its characters that lie side by side,
 // in the text order of their first characters, held by the first glyph run of the text run on it: a highlight piece
-// from the run's ascent to its descent without padding, an underline piece on the baseline.
+// from the run's ascent to its descent without padding, an underline piece on the run's alphabetic baseline.
 struct GlyphRun: Equatable, Sendable {
     // MARK: - Property
     let source: Int

@@ -491,6 +491,7 @@ struct ResolvedValueReader: Sendable {
         let directions = TextDirection.allCases.map(\.rawValue)
         let alignments = [TextAlignment.left, .center, .right].map(\.rawValue)
         let length = ValueStructure.leaf(.length(.any))
+        let writingMode = try text.member("writingMode").name(among: writingModes, WritingMode.init(rawValue:))
         let written = try text.member("text").string()
         let scalarCount = written.unicodeScalars.count
         let runs = try runs(text.member("runs"))
@@ -516,7 +517,7 @@ struct ResolvedValueReader: Sendable {
                     reason: "line \(index)'s clusters do not go up along the text"
                 )
             }
-            guard pensFollow(on: line, runs: runs) else {
+            guard pensFollow(on: line, runs: runs, writingMode: writingMode) else {
                 throw ModelError.invalidValue(
                     place: value.place,
                     kind: value.kind,
@@ -538,7 +539,7 @@ struct ResolvedValueReader: Sendable {
                     radius: try timed(background.member("radius"), as: length)
                 )
             },
-            writingMode: try text.member("writingMode").name(among: writingModes, WritingMode.init(rawValue:)),
+            writingMode: writingMode,
             direction: try text.member("direction").name(among: directions, TextDirection.init(rawValue:)),
             align: try text.member("align").name(among: alignments, TextAlignment.init(rawValue:)),
             lineHeight: try timed(text.member("lineHeight"), as: length),
@@ -888,15 +889,21 @@ struct ResolvedValueReader: Sendable {
     // A line's clusters and its hanging spaces, taken in the order they are placed in with those with no glyph of their
     // own left out, each start at the pen start of the one before plus its advance, plus the static tracking of the run
     // of the character `PlacedLine.placedOwners` puts between them, when it puts one. The rightmost character ends at the
-    // leftmost one's pen start plus the line's width, and a line with no character taken has a width of 0.
+    // leftmost one's pen start plus the line's width, and a line with no character taken has a width of 0. A pen start
+    // is read along the line's axis, as `writingMode` turns it.
     private func pensFollow(
         on line: PlacedLine,
-        runs: [ResolvedGlyphRun]
+        runs: [ResolvedGlyphRun],
+        writingMode: WritingMode
     ) -> Bool {
         let tolerance = 1e-6
         let placed = line.clusters + line.hanging
         let owners = line.placedOwners
-        let pen = { (index: Int) in runs[placed[index].glyphs.run].glyphs[placed[index].glyphs.first].x }
+        let pen = { (index: Int) in
+            let glyph = runs[placed[index].glyphs.run].glyphs[placed[index].glyphs.first]
+
+            return writingMode.turned(Point(x: glyph.x, y: glyph.y)).x
+        }
 
         for (previous, owner) in zip(owners.map(\.index), owners.dropFirst()) {
             let tracking = owner.tracking.map { runs[placed[$0].glyphs.run].staticTracking } ?? 0

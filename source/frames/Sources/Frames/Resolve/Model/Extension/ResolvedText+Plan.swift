@@ -81,7 +81,9 @@ extension ResolvedText {
             words: plan.layout.words,
             lines: plan.layout.lines,
             units: plan.layout.units.map { units in
-                units.map { PlacedUnit(drawing: $0, lines: plan.layout.lines, runs: runs) }
+                units.map { unit in
+                    PlacedUnit(drawing: unit, lines: plan.layout.lines, runs: runs, writingMode: plan.layout.writingMode)
+                }
             },
             runs: runs
         )

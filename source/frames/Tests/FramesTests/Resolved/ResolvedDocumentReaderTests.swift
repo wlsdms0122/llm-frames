@@ -1230,6 +1230,59 @@ struct ResolvedDocumentReaderTests {
         #expect(error?.description.contains("line 0's pen positions do not follow its clusters' advances") == true)
     }
 
+    @Test("a vertical title from resolve reads back as it was resolved, its pens checked down its lines")
+    func readsVerticalTitle() throws {
+        // Given
+        let document = try resolved(
+            #"""
+            { "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4", "in": 0, "out": 3 } ],
+              "clips": [ { "title": "縦A\n字b", "style": "title", "at": [0, 1], "position": [0, 0],
+                           "paragraph": { "writingMode": "vertical-rl" },
+                           "character": { "tracking": 100, "highlight": { "color": "#FF0000", "padding": [4, 6] },
+                                          "underline": true },
+                           "animation": { "preset": "frames/fade", "by": "word" } } ] }
+            """#
+        )
+        let text = writer.write(document)
+        let moved = try replacingTitle(ofClip: 0, in: text) { title in
+            var runs = try #require(title["runs"]?.arrayValue)
+            let run = try #require(runs[1].objectValue)
+            var glyphs = try #require(run["glyphs"]?.arrayValue)
+            var glyph = try #require(glyphs.first?.arrayValue)
+            glyph[2] = .number(try #require(glyph[2].numberValue) + 1)
+            glyphs[0] = .array(glyph)
+            runs[1] = .object(run.setting("glyphs", to: .array(glyphs)))
+
+            return title.setting("runs", to: .array(runs))
+        }
+
+        // When
+        let read = try sut.read(text)
+        let error = #expect(throws: ModelError.self) { try sut.read(moved) }
+
+        // Then
+        guard case let .title(title) = read.clips.first?.content else {
+            Issue.record("the first clip is not a title")
+            return
+        }
+        // The first unit, `縦`, carries the part that starts its line's piece and ends where `A`'s begins, so its box
+        // takes the highlight's second padding value at the top end and its first on both sides across the line, those
+        // values as theme lengths.
+        let unit = try #require(title.units?.first)
+        let part = try #require(unit.parts.first)
+        let across = unit.glyphBox.x - unit.box.x
+        let down = part.span.lowerBound - unit.box.y
+        #expect(read == document)
+        #expect(title.writingMode == .verticalRightToLeft)
+        #expect(title.lines.count == 2)
+        #expect(title.lines[0].baseline > title.lines[1].baseline)
+        #expect(title.runs[0].glyphs[0].x == title.lines[0].baseline)
+        #expect(abs(down - across * 6 / 4) < 1e-9)
+        #expect(abs(unit.box.width - unit.glyphBox.width - across * 2) < 1e-9)
+        #expect(abs(unit.box.y + unit.box.height - part.span.upperBound) < 1e-9)
+        #expect(error?.description.contains("line 0's pen positions do not follow its clusters' advances") == true)
+    }
+
     @Test("the title of the example of the resolved document reads, and writes back as it was written")
     func readsExampleTitle() throws {
         // Given

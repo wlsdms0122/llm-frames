@@ -131,7 +131,8 @@ struct UnitFinderTests {
             words: between.words,
             lines: between.lines,
             spans: between.spans,
-            runs: [run("ab "), run("  ", line: 1), run("cd", line: 2)]
+            runs: [run("ab "), run("  ", line: 1), run("cd", line: 2)],
+            writingMode: .horizontalTopToBottom
         )
         let beforeWords = sut.units(
             by: .word,
@@ -139,7 +140,8 @@ struct UnitFinderTests {
             words: first.words,
             lines: first.lines,
             spans: first.spans,
-            runs: [run(" "), run("ab ", line: 1)]
+            runs: [run(" "), run("ab ", line: 1)],
+            writingMode: .horizontalTopToBottom
         )
 
         // Then
@@ -190,7 +192,8 @@ struct UnitFinderTests {
             words: words(of: "fix"),
             lines: [ligature],
             spans: [[0...30, 0...30, 30...50]],
-            runs: [run("fx")]
+            runs: [run("fx")],
+            writingMode: .horizontalTopToBottom
         )
         let led = sut.units(
             by: .character,
@@ -198,7 +201,8 @@ struct UnitFinderTests {
             words: words(of: "a bc"),
             lines: [spaced],
             spans: [[0...20, 20...50, 20...50, 50...70]],
-            runs: [run("a c")]
+            runs: [run("a c")],
+            writingMode: .horizontalTopToBottom
         )
 
         // Then
@@ -261,7 +265,15 @@ struct UnitFinderTests {
         let runs = [run("a", highlight: Rectangle(x: 0, y: 0, width: 40, height: 40)), run("a")]
 
         // When
-        let units = sut.units(by: .word, text: "a", words: words(of: "a"), lines: [line], spans: [[0...40]], runs: runs)
+        let units = sut.units(
+            by: .word,
+            text: "a",
+            words: words(of: "a"),
+            lines: [line],
+            spans: [[0...40]],
+            runs: runs,
+            writingMode: .horizontalTopToBottom
+        )
 
         // Then
         #expect(units.map(\.parts) == [[UnitPart(run: 0, piece: 0, span: 0...40)]])
@@ -327,7 +339,15 @@ struct UnitFinderTests {
         of title: (text: String, words: [Range<Int>], lines: [PlacedLine], spans: [[ClosedRange<Double>]]),
         runs: [GlyphRun]
     ) -> [PlacedUnit] {
-        sut.units(by: unit, text: title.text, words: title.words, lines: title.lines, spans: title.spans, runs: runs)
+        sut.units(
+            by: unit,
+            text: title.text,
+            words: title.words,
+            lines: title.lines,
+            spans: title.spans,
+            runs: runs,
+            writingMode: .horizontalTopToBottom
+        )
     }
 
     // The words of `text`, each its range of Unicode scalars.

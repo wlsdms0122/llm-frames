@@ -9,7 +9,7 @@
 // that go with it, one stretch of one line, and `hangingLines` the lines, in order, whose hanging spaces it draws.
 // `glyphs` are the glyphs it draws, those of every cluster of the stretch and of every hanging space of those lines, as
 // ranges of the text's glyph runs in that order. `parts` are the parts of highlight and underline pieces it carries.
-// Both boxes lie in the text's box: `glyphBox` runs across the characters it holds and down its line, without their
+// Both boxes lie in the text's box: `glyphBox` runs along the characters it holds and across its line, without their
 // strokes, and `box` is the box its motion acts about, as set its glyph box, as resolved also holding their strokes and
 // its parts at their widest.
 struct PlacedUnit: Equatable, Sendable {

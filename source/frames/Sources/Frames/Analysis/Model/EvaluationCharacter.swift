@@ -6,8 +6,8 @@
 //
 
 // One character an item of `evaluate` reports: its text, its `[start, end)` in Unicode scalars over its title's text,
-// the embedding level it lies at on its line, its glyph box at the time and the y of the baseline it sits on, both in
-// its title's text box at the time.
+// the embedding level it lies at on its line, its glyph box at the time and the y of the baseline it sits on, its x in
+// a vertical writing mode, both in its title's text box at the time.
 package struct EvaluationCharacter: Equatable, Sendable {
     // MARK: - Property
     package let text: String

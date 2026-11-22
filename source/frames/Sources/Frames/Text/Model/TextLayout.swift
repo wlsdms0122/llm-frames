@@ -8,7 +8,8 @@
 // `text` is the text of its runs joined in order, which every range counts in Unicode scalars, and `words` its words in
 // reading order, each its range, a word a line breaks inside one range. `size` is the box the
 // text fills in output pixels, its background's padding included, and `runs` are placed in that box, each line placed
-// by `align` and `lineHeight` below the one before it. `textBox` is the box inside it that the lines fill, and `width`
+// by `align` along its inline axis and `lineHeight` toward block-end from the one before it, as `writingMode` turns
+// them. `textBox` is the box inside it that the lines fill, and `width`
 // the width the text wraps at, nil for text that breaks only at `\n`. `units` are the units of a title animated by
 // unit, and nil for other text. `writingMode` and `direction` are the writing mode and the paragraph direction the text
 // was laid out in, and `align` the alignment its lines were placed by, its default resolved.

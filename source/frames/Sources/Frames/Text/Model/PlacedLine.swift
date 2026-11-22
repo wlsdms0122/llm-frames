@@ -5,8 +5,9 @@
 //  Created by JSilver on 11/19/26.
 //
 
-// A line as it is set: its width at the static tracking, the y of its baseline in the text's box at the static line
-// height, the largest ascent and descent among its runs, and its range of the title's text. `clusters` are its
+// A line as it is set: its width at the static tracking, the block coordinate of its baseline in the text's box at the
+// static line height, y in a horizontal writing mode and x in a vertical one, the largest ascent and descent among its
+// runs, and its range of the title's text. `clusters` are its
 // characters, its grapheme clusters up to the last one that is not a space, and `hanging` the spaces after them, which
 // hang past its end and are no character, both in text order. A line with no character has the empty range where it
 // starts.

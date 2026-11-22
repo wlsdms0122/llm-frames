@@ -5,8 +5,8 @@
 //  Created by JSilver on 11/16/26.
 //
 
-// A box behind the text. `padding` is its room above and below the text (`height`) and on its left and right
-// (`width`), in output pixels, as is `radius`.
+// A box behind the text. `padding` is its room on the block axis, above and below horizontal text (`height`), and on
+// the inline axis, at both ends of its lines (`width`), in output pixels, as is `radius`.
 struct TextBackground: Equatable, Sendable {
     // MARK: - Property
     let color: Color

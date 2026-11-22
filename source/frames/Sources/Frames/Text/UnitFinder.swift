@@ -17,18 +17,20 @@ struct UnitFinder: Sendable {
 
     // MARK: - Public
     // `text` is the text every range counts, `words` its words in reading order, each its range, `spans` the glyph box
-    // span across its line of each character of each line, and `runs` the text's glyph runs, which hold the highlight
+    // span along its line of each character of each line, and `runs` the text's glyph runs, which hold the highlight
     // and underline pieces, each piece of a run that of the characters `PlacedLine.pieces(of:sources:)` gives at its
-    // index. A unit's glyph box runs from the leftmost character it holds to the rightmost, and a piece
-    // is cut into parts wherever two of its characters that are neighbours as placed go with different units, at the
-    // glyph box of the right one, so a unit carries one part of a piece or several where its characters lie apart.
+    // index. A unit's glyph box runs from the leftmost character it holds to the rightmost, and a piece is cut into
+    // parts wherever two of its characters that are neighbours as placed go with different units, at the glyph box of
+    // the right one, so a unit carries one part of a piece or several where its characters lie apart. Spans and parts
+    // lie on the inline axis, and boxes in the box's coordinates, as `writingMode` turns them.
     func units(
         by unit: TextUnit,
         text: String,
         words: [Range<Int>],
         lines: [PlacedLine],
         spans: [[ClosedRange<Double>]],
-        runs: [GlyphRun]
+        runs: [GlyphRun],
+        writingMode: WritingMode
     ) -> [PlacedUnit] {
         let scalars = Array(text.unicodeScalars)
         let spaces = lines.map { line in line.clusters.map { scalars[$0.range].isSpace } }
@@ -57,7 +59,7 @@ struct UnitFinder: Sendable {
         let sources = runs.map(\.source)
         for (index, run) in runs.enumerated() {
             let held = lines[run.line].pieces(of: run.source, sources: sources)
-            for (piece, span) in pieces(of: run).enumerated() {
+            for (piece, span) in pieces(of: run, writingMode: writingMode).enumerated() {
                 let characters = held[piece]
                 var cuts: [(unit: Int, start: Double)] = []
                 for character in characters where cuts.last?.unit != unitAt[run.line][character] {
@@ -77,12 +79,12 @@ struct UnitFinder: Sendable {
             let held = stretch.clusters.filter { !spaces[stretch.line][$0] }
             let first = held.map { spans[stretch.line][$0].lowerBound }.min() ?? 0
             let last = held.map { spans[stretch.line][$0].upperBound }.max() ?? first
-            let box = Rectangle(
+            let box = writingMode.turned(Rectangle(
                 x: first,
-                y: line.baseline - line.ascent,
+                y: writingMode.blockStart(around: line.baseline, over: line.ascent, under: line.descent),
                 width: last - first,
                 height: line.ascent + line.descent
-            )
+            ))
 
             return PlacedUnit(
                 characters: stretch,
@@ -152,10 +154,21 @@ struct UnitFinder: Sendable {
         return groups.isEmpty ? visible.map { [$0] } : groups
     }
 
-    // A run's pieces across the line, its highlight's and its underline's being the same.
-    private func pieces(of run: GlyphRun) -> [ClosedRange<Double>] {
-        let highlights = run.highlights.map { $0.x...($0.x + $0.width) }
-        let underlines = run.underlines.map { $0.x...($0.x + $0.width) }
+    // A run's pieces along the line, its highlight's and its underline's being the same.
+    private func pieces(
+        of run: GlyphRun,
+        writingMode: WritingMode
+    ) -> [ClosedRange<Double>] {
+        let highlights = run.highlights.map { piece in
+            let span = writingMode.turned(piece)
+
+            return span.x...(span.x + span.width)
+        }
+        let underlines = run.underlines.map { piece in
+            let start = writingMode.turned(Point(x: piece.x, y: piece.y)).x
+
+            return start...(start + piece.width)
+        }
 
         return highlights.isEmpty ? underlines : highlights
     }
