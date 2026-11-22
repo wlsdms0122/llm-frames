@@ -54,10 +54,9 @@ package struct GlyphsItem: Equatable, Sendable {
                     factor: factor,
                     at: time,
                     moves: moves[index].map(placed),
-                    pieceMove: PieceMove(
-                        start: placed(pieceMoves[index].start),
-                        end: placed(pieceMoves[index].end)
-                    )
+                    pieceMoves: pieceMoves[index].map { move in
+                        PieceMove(start: placed(move.start), end: placed(move.end))
+                    }
                 )
             },
             extent: text.extent(at: time),

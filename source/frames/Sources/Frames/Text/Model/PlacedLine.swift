@@ -27,6 +27,21 @@ struct PlacedLine: Equatable, Sendable {
         return Self.placedOrder(levels: placed.map(\.level), owners: placed.map { $0.glyphs.count > 0 })
     }
 
+    // Its clusters and hanging spaces with glyphs of their own, by their index among them, in the order they are placed
+    // in, each with `tracking`, the character whose run's tracking lies between it and its neighbour on its left:
+    // whichever of the two comes first in the text when both are characters, and nil otherwise.
+    var placedOwners: [(index: Int, tracking: Int?)] {
+        let placed = clusters + hanging
+        let owners = placedOrder.filter { placed[$0].glyphs.count > 0 }
+
+        return owners.indices.map { order in
+            let index = owners[order]
+            guard order > 0, owners[order - 1] < clusters.count, index < clusters.count else { return (index, nil) }
+
+            return (index, min(owners[order - 1], index))
+        }
+    }
+
     // MARK: - Initializer
     init(
         width: Double,
@@ -62,6 +77,33 @@ struct PlacedLine: Equatable, Sendable {
         return BidiResolver().visualOrder(of: levels).filter { owners[$0] }.flatMap { first in
             Array((first == leading ? 0 : first)..<ends[first, default: owners.count])
         }
+    }
+
+    // The index of the character whose glyphs the character at `index` is drawn with: itself when it has glyphs of its
+    // own, and otherwise its group's first character, the nearest before it with glyphs, or nil when none is before it.
+    func owner(of index: Int) -> Int? {
+        clusters[...index].lastIndex { $0.glyphs.count > 0 }
+    }
+
+    // The characters of each piece of the highlight and underline of the text run at `source` on the line, by their
+    // index among its clusters, as they are placed from left to right: each stretch of its characters that lie side by
+    // side, the stretches in the text order of their first characters, as the pieces are. A character is of the text
+    // run of the glyph run its glyphs name, and `sources` gives the text run of each glyph run.
+    func pieces(
+        of source: Int,
+        sources: [Int]
+    ) -> [[Int]] {
+        var stretches: [(source: Int, characters: [Int])] = []
+        for index in placedOrder where index < clusters.count {
+            let characterSource = sources[clusters[index].glyphs.run]
+            if stretches.last?.source == characterSource {
+                stretches[stretches.count - 1].characters.append(index)
+            } else {
+                stretches.append((characterSource, [index]))
+            }
+        }
+
+        return stretches.filter { $0.source == source }.map(\.characters).sorted { ($0.min() ?? 0) < ($1.min() ?? 0) }
     }
 
     // MARK: - Private

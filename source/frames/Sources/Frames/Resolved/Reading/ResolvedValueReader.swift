@@ -861,17 +861,15 @@ struct ResolvedValueReader: Sendable {
     ) -> Bool {
         let tolerance = 1e-6
         let placed = line.clusters + line.hanging
-        let taken = line.placedOrder.filter { placed[$0].glyphs.count > 0 }
+        let owners = line.placedOwners
         let pen = { (index: Int) in runs[placed[index].glyphs.run].glyphs[placed[index].glyphs.first].x }
 
-        for (previous, index) in zip(taken, taken.dropFirst()) {
-            let tracking = previous < line.clusters.count && index < line.clusters.count
-                ? runs[placed[min(previous, index)].glyphs.run].staticTracking
-                : 0
-            guard abs(pen(previous) + placed[previous].advance + tracking - pen(index)) <= tolerance else { return false }
+        for (previous, owner) in zip(owners.map(\.index), owners.dropFirst()) {
+            let tracking = owner.tracking.map { runs[placed[$0].glyphs.run].staticTracking } ?? 0
+            guard abs(pen(previous) + placed[previous].advance + tracking - pen(owner.index)) <= tolerance else { return false }
         }
 
-        let characters = taken.filter { $0 < line.clusters.count }
+        let characters = owners.map(\.index).filter { $0 < line.clusters.count }
         guard let first = characters.first, let last = characters.last else { return abs(line.width) <= tolerance }
 
         return abs(pen(first) + line.width - pen(last) - placed[last].advance) <= tolerance
