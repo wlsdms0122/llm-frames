@@ -122,6 +122,74 @@ struct GlyphDrawerTests {
         }
     }
 
+    @Test("a sideways run's glyph is drawn turned 90 degrees clockwise about its origin, its fill and its stroke alike")
+    func turnsSidewaysGlyph() throws {
+        // Given
+        let sut = QuartzRenderer(decoder: AVFoundationDecoder())
+        let (glyph, ink) = try inkOfI()
+        let origin = CGPoint(x: 30, y: 20)
+        let turned = CGRect(x: origin.x + ink.minY, y: origin.y + ink.minX, width: ink.height, height: ink.width)
+        let stroke = TextStroke(width: 6, color: Color(written: "#0000FF"))
+        let item = { (stroke: TextStroke?) in
+            DisplayItem(content: .glyphs(GlyphsItem(
+                size: Size(width: 100, height: 100),
+                writingMode: .verticalRightToLeft,
+                runs: [self.run(glyph: glyph, at: origin, isSideways: true, stroke: stroke)],
+                background: nil
+            )))
+        }
+
+        // When
+        let filled = try sut.frame(of: list(items: [item(nil)]))
+        let stroked = try sut.frame(of: list(items: [item(stroke)]))
+
+        // Then
+        #expect(filled.pixel(x: Int(turned.midX), y: Int(turned.midY)) == [1, 0, 0, 1])
+        #expect(stroked.pixel(x: Int(turned.minX) - 2, y: Int(turned.midY)) == [0, 0, 1, 1])
+        let grown = turned.insetBy(dx: -1, dy: -1)
+        let reach = turned.insetBy(dx: -4, dy: -4)
+        var outside = (filled: 0, stroked: 0)
+        for y in 0..<100 {
+            for x in 0..<100 {
+                let pixel = CGRect(x: x, y: y, width: 1, height: 1)
+                outside.filled += !grown.intersects(pixel) && filled.pixel(x: x, y: y)[3] > 0 ? 1 : 0
+                outside.stroked += !reach.intersects(pixel) && stroked.pixel(x: x, y: y)[3] > 0 ? 1 : 0
+            }
+        }
+        #expect(outside.filled == 0)
+        #expect(outside.stroked == 0)
+    }
+
+    @Test("in a vertical item a band cuts its piece across y, and two parts cut inside a pixel draw it as the whole piece")
+    func cutsVerticalPieceAlongY() throws {
+        // Given
+        let sut = QuartzRenderer(decoder: AVFoundationDecoder())
+        let piece = Rectangle(x: 20.5, y: 10, width: 40, height: 80)
+        let part = { (band: ClosedRange<Double>?) in
+            DisplayItem(content: .glyphs(GlyphsItem(
+                size: Size(width: 100, height: 100),
+                writingMode: .verticalRightToLeft,
+                runs: [self.highlighted(piece, band: band)],
+                background: nil
+            )))
+        }
+
+        // When
+        let upper = try sut.frame(of: list(items: [part(10...50.4)]))
+        let parts = try sut.frame(of: list(items: [part(10...50.4), part(50.4...90)]))
+        let whole = try sut.frame(of: list(items: [part(nil)]))
+
+        // Then
+        #expect(upper.pixel(x: 40, y: 30) == [0, 0, 1, 1])
+        #expect(upper.pixel(x: 40, y: 70)[3] == 0)
+        // The columns at 20 and 60 are half covered, so a pixel either part drew again would be darker there.
+        for x in [20, 40, 60] {
+            for y in 48..<53 {
+                #expect(parts.pixel(x: x, y: y) == whole.pixel(x: x, y: y), "at (\(x), \(y))")
+            }
+        }
+    }
+
     @Test("a face the font file does not hold is refused, naming both")
     func refusesMissingFace() throws {
         // Given
@@ -167,6 +235,25 @@ struct GlyphDrawerTests {
         )
     }
 
+    private func run(
+        glyph: CGGlyph,
+        at origin: CGPoint,
+        isSideways: Bool,
+        stroke: TextStroke?
+    ) -> DrawnGlyphRun {
+        DrawnGlyphRun(
+            font: PinnedFile(path: Self.file, sha256: ""),
+            face: Self.face,
+            size: Self.size,
+            isSideways: isSideways,
+            color: Color(written: "#FF0000"),
+            stroke: stroke,
+            highlight: nil,
+            underline: nil,
+            glyphs: [PositionedGlyph(id: Int(glyph), x: origin.x, y: origin.y)]
+        )
+    }
+
     // A run with no glyphs and one highlight piece, cut to `band` when there is one.
     private func highlighted(
         _ piece: Rectangle,
@@ -191,12 +278,7 @@ struct GlyphDrawerTests {
 
     // The glyph of "I" in the face and its ink bounds in the output, y down from the baseline origin.
     private func letterI() throws -> (glyph: CGGlyph, bounds: CGRect) {
-        let font = try FontLibrary().font(file: Self.file, face: Self.face, size: Self.size)
-        var character = UniChar(UInt8(ascii: "I"))
-        var glyph = CGGlyph(0)
-        CTFontGetGlyphsForCharacters(font, &character, &glyph, 1)
-        var ink = CGRect.zero
-        CTFontGetBoundingRectsForGlyphs(font, .default, &glyph, &ink, 1)
+        let (glyph, ink) = try inkOfI()
 
         let bounds = CGRect(
             x: Self.baseline.x + ink.minX,
@@ -205,5 +287,17 @@ struct GlyphDrawerTests {
             height: ink.height
         )
         return (glyph, bounds)
+    }
+
+    // The glyph of "I" in the face and its ink bounds in its own space, y up from its origin.
+    private func inkOfI() throws -> (glyph: CGGlyph, ink: CGRect) {
+        let font = try FontLibrary().font(file: Self.file, face: Self.face, size: Self.size)
+        var character = UniChar(UInt8(ascii: "I"))
+        var glyph = CGGlyph(0)
+        CTFontGetGlyphsForCharacters(font, &character, &glyph, 1)
+        var ink = CGRect.zero
+        CTFontGetBoundingRectsForGlyphs(font, .default, &glyph, &ink, 1)
+
+        return (glyph, ink)
     }
 }

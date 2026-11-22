@@ -35,13 +35,13 @@ package enum WritingMode: String, CaseIterable, Equatable, Sendable {
     // MARK: - Initializer
     // MARK: - Public
     // A point in line coordinates in box coordinates, or one in box coordinates in line coordinates.
-    func turned(_ point: Point) -> Point {
+    package func turned(_ point: Point) -> Point {
         isVertical ? Point(x: point.y, y: point.x) : point
     }
 
     // A rectangle in line coordinates in box coordinates, or one in box coordinates in line coordinates: its width is
     // its inline size in line coordinates and its height its block size.
-    func turned(_ rectangle: Rectangle) -> Rectangle {
+    package func turned(_ rectangle: Rectangle) -> Rectangle {
         guard isVertical else { return rectangle }
 
         return Rectangle(x: rectangle.y, y: rectangle.x, width: rectangle.height, height: rectangle.width)
@@ -58,6 +58,35 @@ package enum WritingMode: String, CaseIterable, Equatable, Sendable {
         under baseline: Double
     ) -> Double {
         baseline + lineUnder * distance
+    }
+
+    // `point`, in box coordinates, moved `distance` toward line-over, toward line-under where it is negative.
+    func raised(
+        _ point: Point,
+        by distance: Double
+    ) -> Point {
+        let line = turned(point)
+
+        return turned(Point(x: line.x, y: block(-distance, under: line.y)))
+    }
+
+    // The block coordinate `distance` toward block-end from `coordinate`, toward block-start where it is negative.
+    func block(
+        _ distance: Double,
+        after coordinate: Double
+    ) -> Double {
+        coordinate + blockEnd * distance
+    }
+
+    // `rectangle`, in line coordinates, with its block-start edge where it is and its block-end edge moved by `move`
+    // on the block axis.
+    func moving(
+        blockEndOf rectangle: Rectangle,
+        by move: Double
+    ) -> Rectangle {
+        blockEnd > 0
+            ? Rectangle(x: rectangle.x, y: rectangle.y, width: rectangle.width, height: rectangle.height + move)
+            : Rectangle(x: rectangle.x, y: rectangle.y + move, width: rectangle.width, height: rectangle.height - move)
     }
 
     // The smaller block coordinate of the stretch from `over` toward line-over of `baseline` to `under` toward

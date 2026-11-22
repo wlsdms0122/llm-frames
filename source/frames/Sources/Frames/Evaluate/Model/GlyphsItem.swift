@@ -5,13 +5,15 @@
 //  Created by JSilver on 11/16/26.
 //
 
-// Shaped glyphs and their background in a title's text box at one instant, of `size`, origin at its top left. `unit` is
-// what a unit's item draws of its unit, and nil for a title's own item, which draws every step. `extent` is the drawn
-// extent of its glyphs, its unit's for a unit's item and its title's for any other, which is the text box when it is
-// not given. The background's rect is the text box grown by the background's padding.
+// Shaped glyphs and their background in a title's text box at one instant, of `size`, origin at its top left, set in
+// its title's `writingMode`, whose inline axis its bands lie along. `unit` is what a unit's item draws of its unit, and
+// nil for a title's own item, which draws every step. `extent` is the drawn extent of its glyphs, its unit's for a
+// unit's item and its title's for any other, which is the text box when it is not given. The background's rect is the
+// text box grown by the background's padding.
 package struct GlyphsItem: Equatable, Sendable {
     // MARK: - Property
     package let size: Size
+    package let writingMode: WritingMode
     package let runs: [DrawnGlyphRun]
     package let unit: UnitDrawing?
     package let extent: Rectangle
@@ -20,12 +22,14 @@ package struct GlyphsItem: Equatable, Sendable {
     // MARK: - Initializer
     package init(
         size: Size,
+        writingMode: WritingMode = .horizontalTopToBottom,
         runs: [DrawnGlyphRun],
         unit: UnitDrawing? = nil,
         extent: Rectangle? = nil,
         background: GlyphBackground?
     ) {
         self.size = size
+        self.writingMode = writingMode
         self.runs = runs
         self.unit = unit
         self.extent = extent ?? Rectangle(x: 0, y: 0, width: size.width, height: size.height)
@@ -48,9 +52,11 @@ package struct GlyphsItem: Equatable, Sendable {
 
         self.init(
             size: Size(width: textBox.width, height: textBox.height),
+            writingMode: text.writingMode,
             runs: text.runs.indices.map { index in
                 DrawnGlyphRun(
                     run: text.runs[index],
+                    writingMode: text.writingMode,
                     factor: factor,
                     at: time,
                     moves: moves[index].map(placed),
@@ -85,10 +91,12 @@ package struct GlyphsItem: Equatable, Sendable {
     ) {
         self.init(
             size: item.size,
+            writingMode: item.writingMode,
             runs: Set(glyphs.map(\.run) + parts.map(\.run)).sorted().map { index in
                 item.runs[index].carrying(
                     glyphs: glyphs.filter { $0.run == index },
                     parts: parts.filter { $0.run == index },
+                    writingMode: item.writingMode,
                     factor: factor
                 )
             },
@@ -143,11 +151,12 @@ package struct GlyphsItem: Equatable, Sendable {
         guard let bands else { return rects }
 
         return zip(rects, bands).compactMap { rect, band in
+            let rect = writingMode.turned(rect)
             let start = max(rect.x, band.lowerBound)
             let end = min(rect.x + rect.width, band.upperBound)
             guard start < end else { return nil }
 
-            return Rectangle(x: start, y: rect.y, width: end - start, height: rect.height)
+            return writingMode.turned(Rectangle(x: start, y: rect.y, width: end - start, height: rect.height))
         }
     }
 }

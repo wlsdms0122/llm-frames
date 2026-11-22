@@ -450,6 +450,7 @@ struct ResolvedValueWriter: Sendable {
             .object(JSONObject(members: pinned(run.font) + [
                 JSONMember(key: "face", value: .string(run.face)),
                 JSONMember(key: "size", value: .number(run.size)),
+                JSONMember(key: "sideways", value: .bool(run.isSideways)),
                 JSONMember(key: "color", value: color(run.color)),
                 JSONMember(key: "stroke", value: run.stroke.map(stroke) ?? .null),
                 JSONMember(key: "highlight", value: run.highlight.map { highlight in

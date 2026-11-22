@@ -5,19 +5,20 @@
 //  Created by JSilver on 11/19/26.
 //
 
-// A title at an instant, in its box at the static values. Its glyphs move along their lines by the tracking then, the
-// tracking lying between neighbours as they are placed, and with their lines by the line height then, and each line is
-// placed again by `align` on its width then. Its box is its text box then grown by its background's padding then. A
-// glyph box is a character's or a hanging space's: from the pen where its glyphs begin, as wide as its advance, and
-// down its line from the baseline less the line's ascent to the baseline plus its descent. A character with no glyph of
-// its own has the glyph box of the character `PlacedLine.owner(of:)` draws it with, and one on a line with no glyph a
-// box as wide as nothing where the line starts.
+// A title at an instant, in its box at the static values, worked out in line coordinates on the axes of its writing
+// mode and given in box coordinates. Its glyphs move along their lines by the tracking then, the tracking lying between
+// neighbours as they are placed, and with their lines by the line height then, and each line is placed again by
+// `align` on its width then. Its box is its text box then grown by its background's padding then. A glyph box is a
+// character's or a hanging space's: from the pen where its glyphs begin, as long as its advance along the line, and
+// across it from the line's ascent toward line-over of the baseline to its descent toward line-under. A character with
+// no glyph of its own has the glyph box of the character `PlacedLine.owner(of:)` draws it with, and one on a line with
+// no glyph a box as long as nothing where the line starts.
 extension ResolvedText {
     // MARK: - Property
     // MARK: - Initializer
     // MARK: - Public
     func box(at time: SampleTime) -> Rectangle {
-        let padding = padding(at: time)
+        let padding = writingMode.turned(padding(at: time))
         let box = textBox(at: time)
 
         return Rectangle(
@@ -29,19 +30,21 @@ extension ResolvedText {
     }
 
     // The title's text box at `time`, in its box at the static values. A title with a width keeps it, and one without
-    // is as wide as its widest line then, keeping the edge or the centre `align` names. The top edge stays, and the box
-    // ends as far below the last line's baseline as it did.
+    // is as long as its longest line then, keeping the end or the centre `align` names. The block-start edge stays, and
+    // the box ends as far past the last line's baseline toward block-end as it did.
     func textBox(at time: SampleTime) -> Rectangle {
         let steps = trackingSteps(at: time)
         let widest = lines.map { $0.width + addedWidth(of: $0, steps: steps) }.reduce(0, max)
+        let textBox = writingMode.turned(self.textBox)
         let width = self.width == nil ? widest : textBox.width
-
-        return Rectangle(
+        let placed = Rectangle(
             x: textBox.x + align.offset(of: width, in: textBox.width),
             y: textBox.y,
             width: width,
-            height: textBox.height + (lineDrops(at: time).last ?? 0)
+            height: textBox.height
         )
+
+        return writingMode.turned(writingMode.moving(blockEndOf: placed, by: lineDrops(at: time).last ?? 0))
     }
 
     // Where the title's text box lies in its box at `time`: the map from the text box's coordinates, its top left at
@@ -76,22 +79,23 @@ extension ResolvedText {
         return glyphBoxes.reduce(Rectangle(x: 0, y: 0, width: box.width, height: box.height)) { $0.union($1) }
     }
 
-    // How far each glyph moves at `time`, by run and glyph: along its line by the tracking steps between the
-    // neighbouring characters left of it as placed and its line's move by `align`, and down with its line. A space
-    // hanging at a line's end moves with the outermost character on its side, or with its line on a line with no
-    // character.
+    // How far each glyph moves at `time`, by run and glyph, in box coordinates: along its line by the tracking steps
+    // between the neighbouring characters left of it as placed and its line's move by `align`, and with its line on the
+    // block axis. A space hanging at a line's end moves with the outermost character on its side, or with its line on a
+    // line with no character.
     func glyphMoves(at time: SampleTime) -> [[Point]] {
         var moves = runs.map { run in Array(repeating: Point(x: 0, y: 0), count: run.glyphs.count) }
         let steps = trackingSteps(at: time)
+        let inlineSize = writingMode.turned(textBox).width
         for (line, drop) in zip(lines, lineDrops(at: time)) {
             let placed = line.clusters + line.hanging
             let along = trackingMoves(of: line, steps: steps)
-            let shift = align.offset(of: line.width + along.added, in: textBox.width)
-                - align.offset(of: line.width, in: textBox.width)
+            let shift = align.offset(of: line.width + along.added, in: inlineSize)
+                - align.offset(of: line.width, in: inlineSize)
             for (index, move) in along.moves {
                 let glyphs = placed[index].glyphs
                 for glyph in glyphs.glyphs {
-                    moves[glyphs.run][glyph] = Point(x: move + shift, y: drop)
+                    moves[glyphs.run][glyph] = writingMode.turned(Point(x: move + shift, y: drop))
                 }
             }
         }
@@ -136,8 +140,8 @@ extension ResolvedText {
         }
     }
 
-    // How far each piece of each run moves with the glyph moves `moves`, by run and piece: its start with its leftmost
-    // character and its end with its rightmost, as they are placed. The run `PlacedLine.holder(of:sources:)` names
+    // How far each piece of each run moves with the glyph moves `moves`, by run and piece, in box coordinates: its
+    // start with its leftmost character and its end with its rightmost, as they are placed. The run `PlacedLine.holder(of:sources:)` names
     // holds the pieces of its text run on its line, in the order `PlacedLine.pieces(of:sources:)` gives them.
     func pieceMoves(of moves: [[Point]]) -> [[PieceMove]] {
         var pieces = runs.map { _ in [PieceMove]() }
@@ -173,15 +177,17 @@ extension ResolvedText {
         } ?? Point(x: 0, y: 0)
     }
 
-    // How far each line moves down at `time`: the first baseline stays, and each later one lies the line height then
-    // below the one before it.
+    // How far each line's baseline moves on the block axis at `time`, as a move of its block coordinate: the first
+    // baseline stays, and each later one lies the line height then toward block-end from the one before it.
     func lineDrops(at time: SampleTime) -> [Double] {
         guard let first = lines.first else { return [] }
         guard let lineHeight = lineHeight.sampled(at: time, as: .leaf(.length(.any))).number else {
             return lines.map { _ in 0 }
         }
 
-        return lines.enumerated().map { index, line in first.baseline + Double(index) * lineHeight - line.baseline }
+        return lines.enumerated().map { index, line in
+            writingMode.block(Double(index) * lineHeight, after: first.baseline) - line.baseline
+        }
     }
 
     // MARK: - Private
@@ -193,18 +199,22 @@ extension ResolvedText {
         at time: SampleTime
     ) -> Rectangle {
         let run = runs[cluster.glyphs.run]
-        let move = moves[cluster.glyphs.run][cluster.glyphs.first]
+        let glyph = run.glyphs[cluster.glyphs.first]
+        let pen = writingMode.turned(Point(x: glyph.x, y: glyph.y))
+        let move = writingMode.turned(moves[cluster.glyphs.run][cluster.glyphs.first])
+        let origin = writingMode.turned(origin)
         let shift = run.baselineShift.sampled(at: time, as: .leaf(.length(.any))).number ?? 0
+        let baseline = writingMode.block(-shift, under: lines[line].baseline + move.y)
 
-        return Rectangle(
-            x: run.glyphs[cluster.glyphs.first].x + move.x - origin.x,
-            y: lines[line].baseline + move.y - shift - lines[line].ascent - origin.y,
+        return writingMode.turned(Rectangle(
+            x: pen.x + move.x - origin.x,
+            y: writingMode.blockStart(around: baseline, over: lines[line].ascent, under: lines[line].descent) - origin.y,
             width: cluster.advance,
             height: lines[line].ascent + lines[line].descent
-        )
+        ))
     }
 
-    // The box as wide as nothing of `cluster`, which has no glyph, where the line at `line` starts at `time`: at the
+    // The box as long as nothing of `cluster`, which has no glyph, where the line at `line` starts at `time`: at the
     // line's place by `align` on its width then.
     private func lineStart(
         of cluster: PlacedCluster,
@@ -216,16 +226,20 @@ extension ResolvedText {
         let width = placed.width + addedWidth(of: placed, steps: trackingSteps(at: time))
         let drop = lineDrops(at: time)[line]
         let shift = runs[cluster.glyphs.run].baselineShift.sampled(at: time, as: .leaf(.length(.any))).number ?? 0
+        let textBox = writingMode.turned(textBox)
+        let origin = writingMode.turned(origin)
+        let baseline = writingMode.block(-shift, under: placed.baseline + drop)
 
-        return Rectangle(
+        return writingMode.turned(Rectangle(
             x: textBox.x + align.offset(of: width, in: textBox.width) - origin.x,
-            y: placed.baseline + drop - shift - placed.ascent - origin.y,
+            y: writingMode.blockStart(around: baseline, over: placed.ascent, under: placed.descent) - origin.y,
             width: 0,
             height: placed.ascent + placed.descent
-        )
+        ))
     }
 
-    // The background's padding at `time`, written vertical then horizontal.
+    // The background's padding at `time`, written block then inline, as a size whose width is the inline value and
+    // whose height the block value.
     private func padding(at time: SampleTime) -> Size {
         let structure = ValueStructure.leaf(.lengths(count: 2, domain: .nonNegative))
         guard let numbers = background?.padding.sampled(at: time, as: structure).numbers, numbers.count == 2 else {

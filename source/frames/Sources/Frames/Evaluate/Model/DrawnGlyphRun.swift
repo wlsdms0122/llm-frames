@@ -5,13 +5,15 @@
 //  Created by JSilver on 11/19/26.
 //
 
-// A run of shaped glyphs as a `glyphs` item draws it at one instant: one face, size, colour and stroke, its highlight
-// and underline, and each glyph at the position it is drawn at in the item's own box.
+// A run of shaped glyphs as a `glyphs` item draws it at one instant: one face and size, whether its glyphs are drawn
+// turned 90 degrees clockwise about their origins, one colour and stroke, its highlight and underline, and each glyph
+// at the position its origin is drawn at in the item's own box.
 package struct DrawnGlyphRun: Equatable, Sendable {
     // MARK: - Property
     package let font: PinnedFile
     package let face: String
     package let size: Double
+    package let isSideways: Bool
     package let color: Color
     package let stroke: TextStroke?
     package let highlight: DrawnHighlight?
@@ -23,6 +25,7 @@ package struct DrawnGlyphRun: Equatable, Sendable {
         font: PinnedFile,
         face: String,
         size: Double,
+        isSideways: Bool = false,
         color: Color,
         stroke: TextStroke?,
         highlight: DrawnHighlight?,
@@ -32,6 +35,7 @@ package struct DrawnGlyphRun: Equatable, Sendable {
         self.font = font
         self.face = face
         self.size = size
+        self.isSideways = isSideways
         self.color = color
         self.stroke = stroke
         self.highlight = highlight
@@ -39,14 +43,17 @@ package struct DrawnGlyphRun: Equatable, Sendable {
         self.glyphs = glyphs
     }
 
-    // A resolved run at `time`, its glyphs and pieces raised by its baseline shift then, its glyphs drawn at their pen
-    // with their placement offset and moved by `moves`, one for each glyph, and each piece's ends by its move among
-    // `pieceMoves`, one for each piece its line's clusters give. A piece with none stays, since a resolved document
-    // read back holds the rects it writes, which no rule ties to its clusters. A highlight rectangle is its piece
-    // grown by the padding then, and an underline rectangle a band across its piece the width then thick, its top edge
-    // the offset then below the baseline. The stroke is its width then times `factor`.
+    // A resolved run at `time`, on the axes of `writingMode`, its glyphs and pieces raised by its baseline shift then,
+    // its glyphs drawn at their pen with their placement offset and moved by `moves`, one for each glyph, and each
+    // piece's ends by its move among `pieceMoves`, one for each piece its line's clusters give, both in box
+    // coordinates. A piece with none stays, since a resolved document read back holds the rects it writes, which no
+    // rule ties to its clusters. A highlight rectangle is its piece grown by the padding then, its first value across
+    // the line and its second along it, and an underline rectangle a band across its piece the width then thick, its
+    // top edge the offset then toward line-under of its run's alphabetic baseline. The stroke is its width then times
+    // `factor`.
     init(
         run: ResolvedGlyphRun,
+        writingMode: WritingMode,
         factor: Double,
         at time: SampleTime,
         moves: [Point],
@@ -56,16 +63,21 @@ package struct DrawnGlyphRun: Equatable, Sendable {
         let shift = run.baselineShift.sampled(at: time, as: length).number ?? 0
         let stroke = run.stroke.sampled(at: time, as: LookStructureTable.textStroke)
         let still = PieceMove(start: Point(x: 0, y: 0), end: Point(x: 0, y: 0))
-        let move = { (piece: Int) in pieceMoves.indices.contains(piece) ? pieceMoves[piece] : still }
+        let move = { (piece: Int) in
+            let move = pieceMoves.indices.contains(piece) ? pieceMoves[piece] : still
+
+            return PieceMove(start: writingMode.turned(move.start), end: writingMode.turned(move.end))
+        }
         let span = { (piece: Int, x: Double, width: Double) in
             (x: x + move(piece).start.x, width: width + move(piece).end.x - move(piece).start.x)
         }
-        let rise = { (piece: Int) in move(piece).start.y - shift }
+        let rise = { (piece: Int) in writingMode.block(-shift, under: move(piece).start.y) }
 
         self.init(
             font: run.font,
             face: run.face,
             size: run.size,
+            isSideways: run.isSideways,
             color: run.color.sampled(at: time, as: .leaf(.color)).color ?? .black,
             stroke: stroke["width"]?.number.flatMap { width in
                 stroke["color"]?.color.map { TextStroke(width: width * factor, color: $0) }
@@ -77,14 +89,15 @@ package struct DrawnGlyphRun: Equatable, Sendable {
                 return highlight.color.sampled(at: time, as: .leaf(.color)).color.map { color in
                     DrawnHighlight(
                         rects: highlight.rects.enumerated().map { index, piece in
+                            let piece = writingMode.turned(piece)
                             let (x, width) = span(index, piece.x, piece.width)
 
-                            return Rectangle(
+                            return writingMode.turned(Rectangle(
                                 x: x - padding[1],
                                 y: piece.y + rise(index) - padding[0],
                                 width: width + padding[1] * 2,
                                 height: piece.height + padding[0] * 2
-                            )
+                            ))
                         },
                         radius: highlight.radius.sampled(at: time, as: length).number ?? 0,
                         color: color,
@@ -99,9 +112,16 @@ package struct DrawnGlyphRun: Equatable, Sendable {
                 return underline.color.sampled(at: time, as: .leaf(.color)).color.map { color in
                     DrawnUnderline(
                         rects: underline.rects.enumerated().map { index, piece in
-                            let (x, length) = span(index, piece.x, piece.width)
+                            let start = writingMode.turned(Point(x: piece.x, y: piece.y))
+                            let (x, length) = span(index, start.x, piece.width)
+                            let top = writingMode.block(offset, under: start.y + rise(index))
 
-                            return Rectangle(x: x, y: piece.y + rise(index) + offset, width: length, height: width)
+                            return writingMode.turned(Rectangle(
+                                x: x,
+                                y: writingMode.blockStart(around: top, over: 0, under: width),
+                                width: length,
+                                height: width
+                            ))
                         },
                         color: color,
                         bands: nil
@@ -109,28 +129,33 @@ package struct DrawnGlyphRun: Equatable, Sendable {
                 }
             },
             glyphs: zip(run.glyphs, moves).map { glyph, move in
-                PositionedGlyph(
-                    id: glyph.id,
-                    x: glyph.x + glyph.placementOffset.x + move.x,
-                    y: glyph.y + glyph.placementOffset.y + move.y - shift
+                let origin = writingMode.raised(
+                    Point(x: glyph.x + glyph.placementOffset.x + move.x, y: glyph.y + glyph.placementOffset.y + move.y),
+                    by: shift
                 )
+
+                return PositionedGlyph(id: glyph.id, x: origin.x, y: origin.y)
             }
         )
     }
 
     // MARK: - Public
     // The run as a unit's item holds it: the glyphs of `glyphs`, ranges of this run, and the highlight and underline
-    // pieces `parts` name, each whole, with its band the part's span cut to the rectangle drawn, and its stroke
-    // `factor` times as wide.
+    // pieces `parts` name, each whole, with its band the part's span cut to the rectangle drawn along the inline axis
+    // of `writingMode`, and its stroke `factor` times as wide.
     func carrying(
         glyphs ranges: [GlyphRange],
         parts: [UnitPart],
+        writingMode: WritingMode,
         factor: Double
     ) -> DrawnGlyphRun {
-        DrawnGlyphRun(
+        let band = { (part: UnitPart, rect: Rectangle) in self.band(of: part, across: writingMode.turned(rect)) }
+
+        return DrawnGlyphRun(
             font: font,
             face: face,
             size: size,
+            isSideways: isSideways,
             color: color,
             stroke: stroke.map { TextStroke(width: $0.width * factor, color: $0.color) },
             highlight: highlight.flatMap { highlight in
@@ -140,7 +165,7 @@ package struct DrawnGlyphRun: Equatable, Sendable {
                         rects: parts.map { highlight.rects[$0.piece] },
                         radius: highlight.radius,
                         color: highlight.color,
-                        bands: parts.map { band(of: $0, across: highlight.rects[$0.piece]) }
+                        bands: parts.map { band($0, highlight.rects[$0.piece]) }
                     )
             },
             underline: underline.flatMap { underline in
@@ -149,7 +174,7 @@ package struct DrawnGlyphRun: Equatable, Sendable {
                     : DrawnUnderline(
                         rects: parts.map { underline.rects[$0.piece] },
                         color: underline.color,
-                        bands: parts.map { band(of: $0, across: underline.rects[$0.piece]) }
+                        bands: parts.map { band($0, underline.rects[$0.piece]) }
                     )
             },
             glyphs: ranges.flatMap { range in glyphs[range.glyphs] }
@@ -157,6 +182,7 @@ package struct DrawnGlyphRun: Equatable, Sendable {
     }
 
     // MARK: - Private
+    // `rect` is in line coordinates.
     private func band(
         of part: UnitPart,
         across rect: Rectangle

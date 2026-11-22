@@ -82,14 +82,14 @@ struct Typesetter: Sendable {
         let endExtent = writingMode.endExtent(ascent: lines.last?.ascent ?? 0, descent: lines.last?.descent ?? 0)
         let textHeight = Double(max(lines.count - 1, 0)) * style.lineHeight + startExtent + endExtent
         let blockSize = textHeight + padding.height * 2
-        let firstBaseline = padding.height + startExtent
+        let firstBaseline = writingMode.block(fromStart: padding.height + startExtent, in: blockSize)
         var placedRuns: [GlyphRun] = []
         var placedLines: [PlacedLine] = []
         var spans: [[ClosedRange<Double>]] = []
         for (index, line) in lines.enumerated() {
             let origin = Point(
                 x: padding.width + align.offset(of: line.width, in: textWidth),
-                y: writingMode.block(fromStart: firstBaseline + Double(index) * style.lineHeight, in: blockSize)
+                y: writingMode.block(Double(index) * style.lineHeight, after: firstBaseline)
             )
             let placed = placed(
                 line,

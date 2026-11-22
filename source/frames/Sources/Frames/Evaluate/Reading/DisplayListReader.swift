@@ -239,7 +239,7 @@ package struct DisplayListReader: Sendable {
             ["geometry", "fill", "stroke", "trim", "shadow"]
 
         case "glyphs":
-            ["size", "runs", "layer", "unit", "unitBox", "extent", "background"]
+            ["size", "writingMode", "runs", "layer", "unit", "unitBox", "extent", "background"]
 
         default:
             ["filter"]
@@ -537,6 +537,7 @@ package struct DisplayListReader: Sendable {
     private func glyphs(_ item: PlacedJSONObject) throws -> GlyphsItem {
         GlyphsItem(
             size: try values.size(item.member("size")),
+            writingMode: try literal(item.member("writingMode")),
             runs: try values.drawnRuns(item.member("runs")),
             unit: try unit(of: item),
             extent: try values.rectangle(item.member("extent")),

@@ -40,6 +40,7 @@ struct DrawnGlyphRunTests {
         // When
         let sut = DrawnGlyphRun(
             run: run,
+            writingMode: .horizontalTopToBottom,
             factor: 1,
             at: SampleTime(0),
             moves: [Point(x: 3, y: 4), Point(x: 3, y: 4)],

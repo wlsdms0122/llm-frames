@@ -210,6 +210,7 @@ struct TitleKeyframeTests {
         let still = Point(x: 0, y: 0)
         let sut = DrawnGlyphRun(
             run: run,
+            writingMode: text.writingMode,
             factor: 1,
             at: SampleTime(0.5),
             moves: run.glyphs.map { _ in still },

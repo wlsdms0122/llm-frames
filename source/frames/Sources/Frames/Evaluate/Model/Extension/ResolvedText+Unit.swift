@@ -5,12 +5,12 @@
 //  Created by JSilver on 11/19/26.
 //
 
-// A title's units at an instant, in its text box then, whose top left is `textBox(at:)`'s origin. A unit's box and its
-// glyph box are their boxes as resolved, their left edges moved as the leftmost left edge among the glyph boxes of the
-// characters it holds moves and their right edges as the rightmost right edge does, and down with its line. A part
-// moves its cuts with the characters whose left edges they lie at, the leftmost character of its stretch of its piece
-// and the one right of its rightmost, and the leftmost and rightmost parts of a piece reach past its ends, so they hold
-// its padding at any value.
+// A title's units at an instant, in its text box then, whose top left is `textBox(at:)`'s origin, worked out in line
+// coordinates on the axes of its writing mode. A unit's box and its glyph box are their boxes as resolved, their left
+// edges moved as the leftmost left edge among the glyph boxes of the characters it holds moves and their right edges
+// as the rightmost right edge does, and with its line on the block axis. A part moves its cuts with the characters
+// whose left edges they lie at, the leftmost character of its stretch of its piece and the one right of its rightmost,
+// and the leftmost and rightmost parts of a piece reach past its ends, so they hold its padding at any value.
 extension ResolvedText {
     // MARK: - Property
     // MARK: - Initializer
@@ -56,7 +56,7 @@ extension ResolvedText {
     ) -> [UnitPart] {
         guard let units, units.indices.contains(index) else { return [] }
 
-        let origin = textBox(at: time)
+        let origin = writingMode.turned(textBox(at: time))
         let moves = glyphMoves(at: time)
         let line = units[index].characters.line
         let parts = units[index].parts
@@ -73,7 +73,9 @@ extension ResolvedText {
                 )
             }
 
-            let move = { (cut: Int) in self.move(of: cuts[cut].first, on: self.lines[line], moves: moves).x - origin.x }
+            let move = { (cut: Int) in
+                self.writingMode.turned(self.move(of: cuts[cut].first, on: self.lines[line], moves: moves)).x - origin.x
+            }
             let start = order == 0 ? -Double.infinity : part.span.lowerBound + move(order)
             let end = order == cuts.count - 1 ? Double.infinity : part.span.upperBound + move(order + 1)
 
@@ -88,17 +90,25 @@ extension ResolvedText {
         of unit: PlacedUnit,
         at time: SampleTime
     ) -> Rectangle {
-        let origin = textBox(at: time)
+        let origin = writingMode.turned(textBox(at: time))
         let moves = glyphMoves(at: time)
         let line = lines[unit.characters.line]
+        let box = writingMode.turned(box)
         let edges = heldOwners(of: unit).map { owner in
             let glyphs = line.clusters[owner].glyphs
-            let x = runs[glyphs.run].glyphs[glyphs.first].x
+            let glyph = runs[glyphs.run].glyphs[glyphs.first]
+            let x = writingMode.turned(Point(x: glyph.x, y: glyph.y)).x
 
-            return (left: x, right: x + line.clusters[owner].advance, move: moves[glyphs.run][glyphs.first])
+            return (
+                left: x,
+                right: x + line.clusters[owner].advance,
+                move: writingMode.turned(moves[glyphs.run][glyphs.first])
+            )
         }
         guard let first = edges.first else {
-            return Rectangle(x: box.x - origin.x, y: box.y - origin.y, width: box.width, height: box.height)
+            return writingMode.turned(
+                Rectangle(x: box.x - origin.x, y: box.y - origin.y, width: box.width, height: box.height)
+            )
         }
 
         let left = edges.map(\.left).reduce(first.left, min)
@@ -106,12 +116,12 @@ extension ResolvedText {
         let movedLeft = edges.map { $0.left + $0.move.x }.reduce(first.left + first.move.x, min)
         let movedRight = edges.map { $0.right + $0.move.x }.reduce(first.right + first.move.x, max)
 
-        return Rectangle(
+        return writingMode.turned(Rectangle(
             x: box.x + movedLeft - left - origin.x,
             y: box.y + first.move.y - origin.y,
             width: box.width + (movedRight - right) - (movedLeft - left),
             height: box.height
-        )
+        ))
     }
 
     // The characters with glyphs a unit's characters but its spaces are drawn with, by their index on its line.

@@ -5,6 +5,7 @@
 //  Created by JSilver on 11/22/26.
 //
 
+import CoreText
 import FramesCoreText
 import Testing
 
@@ -141,6 +142,56 @@ struct CoreTextTypesetterTests {
         #expect(start(of: space, in: layout) + space.advance == start(of: comma, in: layout))
         #expect(start(of: comma, in: layout) + comma.advance == start(of: ayin, in: layout))
         #expect(layout.runs.flatMap(\.glyphs).allSatisfy { $0.placementOffset == Point(x: 0, y: 0) })
+    }
+
+    @Test("a vertical line in Hiragino Sans stands ideographs on their vertical origins and turns Latin onto its alphabetic baseline")
+    func setsVerticalLine() throws {
+        // Given
+        let face = try #require(shaper.installedFaces(family: "Hiragino Sans").first { $0.name == "HiraginoSans-W3" })
+        let size = 100.0
+        let font = CTFontCreateWithName(face.name as CFString, size, nil)
+        let text = "漢字、「Hi」ー2026。"
+
+        // When
+        let layout = try sut.layout(
+            [TextRun(text: text, style: CharacterStyle(families: ["Hiragino Sans"], weight: .regular, size: size), faces: [face])],
+            paragraph: ParagraphStyle(lineHeight: 150, background: nil, writingMode: .verticalRightToLeft, align: .left, lines: nil),
+            width: nil,
+            place: place,
+            kind: "title"
+        )
+
+        // Then
+        // FRAMES-5: each extent is half the face's ascent plus descent, the alphabetic baseline lies half its ascent
+        // less its descent toward line-under, left, of the central baseline, and the line is as wide as the face is tall.
+        let extent = (face.ascent + face.descent) * size / 2
+        let alphabetic = (face.ascent - face.descent) * size / 2
+        let glyphs = layout.runs.flatMap { run in run.glyphs.map { (glyph: $0, isSideways: run.isSideways) } }
+        #expect(layout.runs.map(\.isSideways) == [false, true, false, true, false])
+        #expect(glyphs.count == text.count)
+        #expect(layout.lines.map(\.baseline) == [extent])
+        #expect(layout.textBox.x == 0 && layout.textBox.y == 0)
+        #expect(abs(layout.textBox.width - 2 * extent) < 1e-9)
+        var pen = 0.0
+        for (glyph, isSideways) in glyphs {
+            var id = CGGlyph(glyph.id)
+            var advance = CGSize.zero
+            CTFontGetAdvancesForGlyphs(font, isSideways ? .horizontal : .vertical, &id, &advance, 1)
+            #expect(glyph.x == extent, "glyph \(glyph.id)")
+            #expect(abs(glyph.y - pen) < 1e-9, "glyph \(glyph.id) at \(glyph.y), not \(pen)")
+            if isSideways {
+                #expect(abs(glyph.placementOffset.x + alphabetic) < 1e-9, "glyph \(glyph.id)")
+                #expect(glyph.placementOffset.y == 0, "glyph \(glyph.id)")
+            } else {
+                // Core Text gives the move from a glyph's horizontal origin to its vertical one, y up.
+                var translation = CGSize.zero
+                CTFontGetVerticalTranslationsForGlyphs(font, &id, &translation, 1)
+                #expect(abs(glyph.placementOffset.x - translation.width) < 1e-9, "glyph \(glyph.id)")
+                #expect(abs(glyph.placementOffset.y + translation.height) < 1e-9, "glyph \(glyph.id)")
+            }
+            pen += hypot(advance.width, advance.height)
+        }
+        #expect(abs(layout.textBox.height - pen) < 1e-9)
     }
 
     // MARK: - Private

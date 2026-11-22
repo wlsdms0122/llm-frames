@@ -847,11 +847,56 @@ struct DisplayListReaderTests {
 
         // Then
         #expect(items.map(\.keys) == Array(repeating: [
-            "item", "origin", "transform", "opacity", "blend", "mask", "trackMatte", "reveal", "size", "runs", "layer", "unit",
-            "unitBox", "extent", "background"
+            "item", "origin", "transform", "opacity", "blend", "mask", "trackMatte", "reveal", "size", "writingMode", "runs",
+            "layer", "unit", "unitBox", "extent", "background"
         ], count: 2))
         #expect(items.map { $0["unit"] } == [.null, .number(3)])
         #expect(items.map { $0["origin"]?.objectValue?.keys } == [["place", "id", "kind"], ["place", "id", "kind"]])
+    }
+
+    @Test("a vertical glyphs item reads back as written, with its writing mode, its runs turned or not and its bands")
+    func roundTripsVerticalGlyphs() throws {
+        // Given
+        let run = { (isSideways: Bool) in
+            DrawnGlyphRun(
+                font: PinnedFile(path: "/abs/Inter.ttf", sha256: Self.hash),
+                face: "Inter-Regular",
+                size: 40,
+                isSideways: isSideways,
+                color: Color(written: "#FF0000"),
+                stroke: nil,
+                highlight: DrawnHighlight(
+                    rects: [Rectangle(x: 0, y: 10, width: 40, height: 60)],
+                    radius: 2,
+                    color: Color(written: "#00FF00"),
+                    bands: [20...45]
+                ),
+                underline: DrawnUnderline(
+                    rects: [Rectangle(x: 3, y: 10, width: 2, height: 60)],
+                    color: Color(written: "#0000FF"),
+                    bands: [20...45]
+                ),
+                glyphs: [PositionedGlyph(id: 7, x: 8, y: 30)]
+            )
+        }
+        let item = DisplayItem(content: .glyphs(GlyphsItem(
+            size: Size(width: 40, height: 80),
+            writingMode: .verticalRightToLeft,
+            runs: [run(false), run(true)],
+            unit: UnitDrawing(layer: .highlights, index: 0, box: Rectangle(x: 0, y: 20, width: 40, height: 25)),
+            extent: Rectangle(x: 0, y: 20, width: 40, height: 25),
+            background: nil
+        )))
+        let list = list(items: [item])
+
+        // When
+        let written = writer.document(list).objectValue?["items"]?.arrayValue?.first?.objectValue
+        let read = try sut.read(writer.write(list))
+
+        // Then
+        #expect(written?["writingMode"] == .string("vertical-rl"))
+        #expect(written?["runs"]?.arrayValue?.map { $0.objectValue?["sideways"] } == [.bool(false), .bool(true)])
+        #expect(read == list)
     }
 
     @Test("a list whose fills items name its units 0, 1, 2 and on in order reads back, between items of other layers")

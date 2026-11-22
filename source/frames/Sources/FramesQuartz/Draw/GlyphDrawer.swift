@@ -12,8 +12,9 @@ import Frames
 // Draws a glyphs item in its text's own box: the background, then every run's highlight rectangles in run order, then
 // every run's underline rectangles, then the outline of every glyph of every run with a stroke, then every glyph's fill,
 // so no stroke covers a fill. An item of a layer draws only that step and no background. Glyphs are drawn at their
-// written baseline origins and shaped no further. A run's stroke width is in output pixels, so it is drawn at that width
-// along the outlines carried by `transform`, and a transform that scales its axes apart does not stretch it.
+// written origins and shaped no further, a sideways run's turned 90 degrees clockwise about each origin, and bands cut
+// rectangles along the item's inline axis. A run's stroke width is in output pixels, so it is drawn at that width along
+// the outlines carried by `transform`, and a transform that scales its axes apart does not stretch it.
 struct GlyphDrawer {
     // MARK: - Property
     private let fonts: FontLibrary
@@ -39,12 +40,26 @@ struct GlyphDrawer {
         for run in item.runs where draws(.highlights) {
             guard let highlight = run.highlight else { continue }
 
-            fill(highlight.rects, radius: highlight.radius, color: highlight.color, bands: highlight.bands, in: context)
+            fill(
+                highlight.rects,
+                radius: highlight.radius,
+                color: highlight.color,
+                bands: highlight.bands,
+                writingMode: item.writingMode,
+                in: context
+            )
         }
         for run in item.runs where draws(.underlines) {
             guard let underline = run.underline else { continue }
 
-            fill(underline.rects, radius: 0, color: underline.color, bands: underline.bands, in: context)
+            fill(
+                underline.rects,
+                radius: 0,
+                color: underline.color,
+                bands: underline.bands,
+                writingMode: item.writingMode,
+                in: context
+            )
         }
         guard draws(.strokes) || draws(.fills) else { return }
 
@@ -64,8 +79,16 @@ struct GlyphDrawer {
             // are drawn once.
             let outlines = CGMutablePath()
             for (run, font) in runs where run.stroke == stroke {
+                let space = glyphSpace(isSideways: run.isSideways)
                 for glyph in run.glyphs {
-                    var placement = CGAffineTransform(a: 1, b: 0, c: 0, d: -1, tx: glyph.x, ty: glyph.y)
+                    var placement = CGAffineTransform(
+                        a: space.a,
+                        b: space.b,
+                        c: space.c,
+                        d: space.d,
+                        tx: glyph.x,
+                        ty: glyph.y
+                    )
                     guard let outline = CTFontCreatePathForGlyph(font, CGGlyph(glyph.id), &placement) else { continue }
 
                     outlines.addPath(outline)
@@ -89,11 +112,12 @@ struct GlyphDrawer {
 
         for (run, font) in runs where draws(.fills) {
             let glyphs = run.glyphs.map { CGGlyph($0.id) }
-            // Core Text draws upright in y-up coordinates, so the run is drawn with y turned back up.
-            let positions = run.glyphs.map { CGPoint(x: $0.x, y: -$0.y) }
+            let space = glyphSpace(isSideways: run.isSideways)
+            // The glyph space is its own inverse, so it also takes each origin into that space.
+            let positions = run.glyphs.map { CGPoint(x: $0.x, y: $0.y).applying(space) }
 
             context.saveGState()
-            context.scaleBy(x: 1, y: -1)
+            context.concatenate(space)
             context.setFillColor(run.color.cgColor)
             CTFontDrawGlyphs(font, glyphs, positions, glyphs.count, context)
             context.restoreGState()
@@ -101,46 +125,66 @@ struct GlyphDrawer {
     }
 
     // MARK: - Private
-    // Each rectangle is drawn whole and cut to its band, the one at its index, where there are bands. A band's end
-    // inside the rectangle, where two units' parts meet, is cut aliased on the nearest pixel edge, so each pixel on it
-    // goes whole to one part and no seam shows between them: an aliased clip whose edge crosses a pixel takes that pixel
-    // on both sides. An end at the rectangle's own edge cuts nothing, keeping that edge antialiased.
+    // The map from a glyph's own space, y up, to the item's, y down: turned 90 degrees clockwise in a sideways run, so
+    // its ascenders point right.
+    private func glyphSpace(isSideways: Bool) -> CGAffineTransform {
+        isSideways
+            ? CGAffineTransform(a: 0, b: 1, c: 1, d: 0, tx: 0, ty: 0)
+            : CGAffineTransform(a: 1, b: 0, c: 0, d: -1, tx: 0, ty: 0)
+    }
+
+    // Each rectangle is drawn whole and cut to its band, the one at its index, where there are bands, a span along the
+    // inline axis of `writingMode`. A band's end inside the rectangle, where two units' parts meet, is cut aliased on
+    // the nearest pixel edge, so each pixel on it goes whole to one part and no seam shows between them: an aliased clip
+    // whose edge crosses a pixel takes that pixel on both sides. An end at the rectangle's own edge cuts nothing,
+    // keeping that edge antialiased.
     private func fill(
         _ rects: [Rectangle],
         radius: Double,
         color: Color,
         bands: [ClosedRange<Double>]?,
+        writingMode: WritingMode,
         in context: CGContext
     ) {
-        for (index, rect) in rects.enumerated() {
+        for (index, drawn) in rects.enumerated() {
             context.saveGState()
             if let band = bands?[index] {
+                let rect = writingMode.turned(drawn)
                 let margin = rect.width + rect.height
                 let start = band.lowerBound > rect.x
-                    ? pixelEdge(near: band.lowerBound, y: rect.y, in: context)
+                    ? pixelEdge(near: band.lowerBound, block: rect.y, writingMode: writingMode, in: context)
                     : rect.x - margin
                 let right = rect.x + rect.width
                 let end = band.upperBound < right
-                    ? pixelEdge(near: band.upperBound, y: rect.y, in: context)
+                    ? pixelEdge(near: band.upperBound, block: rect.y, writingMode: writingMode, in: context)
                     : right + margin
+                let clip = writingMode.turned(
+                    Rectangle(x: start, y: rect.y - margin, width: end - start, height: rect.height + margin * 2)
+                )
                 context.setShouldAntialias(false)
-                context.clip(to: CGRect(x: start, y: rect.y - margin, width: end - start, height: rect.height + margin * 2))
+                context.clip(to: CGRect(x: clip.x, y: clip.y, width: clip.width, height: clip.height))
                 context.setShouldAntialias(true)
             }
-            context.addPath(PathOutline(.rect(rect, radius: radius)).path)
+            context.addPath(PathOutline(.rect(drawn, radius: radius)).path)
             context.setFillColor(color.cgColor)
             context.fillPath()
             context.restoreGState()
         }
     }
 
+    // The inline coordinate nearest `along` of a pixel edge, in line coordinates of `writingMode` at `block`.
     private func pixelEdge(
-        near x: Double,
-        y: Double,
+        near along: Double,
+        block: Double,
+        writingMode: WritingMode,
         in context: CGContext
     ) -> Double {
-        let device = context.convertToDeviceSpace(CGPoint(x: x, y: y))
+        let point = writingMode.turned(Point(x: along, y: block))
+        let device = context.convertToDeviceSpace(CGPoint(x: point.x, y: point.y))
+        let line = writingMode.turned(Point(x: device.x, y: device.y))
+        let edge = writingMode.turned(Point(x: line.x.rounded(), y: line.y))
+        let user = context.convertToUserSpace(CGPoint(x: edge.x, y: edge.y))
 
-        return context.convertToUserSpace(CGPoint(x: device.x.rounded(), y: device.y)).x
+        return writingMode.turned(Point(x: user.x, y: user.y)).x
     }
 }
