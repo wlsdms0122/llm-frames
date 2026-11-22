@@ -61,9 +61,9 @@ struct CoreTextTypesetterTests {
         let face = try #require(shaper.installedFaces(family: "Geeza Pro").first { $0.name == "GeezaPro" })
         let style = CharacterStyle(families: ["Geeza Pro"], weight: .regular, size: 48, tracking: 200)
         let word = "\u{645}\u{631}\u{62D}\u{628}\u{627}"
-        let untracked = ["liga", "clig", "dlig"].map { FontFeature(tag: $0, value: 0) }
+        let optionalLigaturesOff = ["liga", "clig", "dlig"].map { FontFeature(tag: $0, value: 0) }
         let shaped = try shaper
-            .shape(word, direction: .rtl, faces: [face], size: 48, features: untracked, weight: .regular, italic: false)
+            .shape(word, direction: .rtl, faces: [face], size: 48, features: optionalLigaturesOff, weight: .regular, italic: false)
             .flatMap(\.glyphs)
 
         // When
@@ -79,7 +79,7 @@ struct CoreTextTypesetterTests {
         // The paragraph is left to right from `A`, and the line is placed `Apple`, the space and the Arabic word. A
         // tracking of 200 at size 48 puts 9.6 between the Latin letters, after `e` and after the space, and none
         // between the Arabic letters, so each Arabic letter starts where the one on its left ends, the word is as wide
-        // as its glyphs shaped untracked, and the line is its advances and six gaps wide.
+        // as its glyphs shaped alone with the optional ligatures off, as a tracked run shapes them, and the line is its advances and six gaps wide.
         let tracking = 9.6
         let line = try #require(layout.lines.first)
         let latin = line.clusters.prefix(6)
