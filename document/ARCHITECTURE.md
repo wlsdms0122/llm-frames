@@ -67,7 +67,7 @@ The package `Frames` is split into one target for the engine, one per backend of
 | `FramesQuartz` | the `quartz` renderer, Core Graphics and Core Image on half float working values: drawing items, filters and LUTs, blend modes, mattes and track mattes as kernels, and the check of a display list before the first frame |
 | `FramesVision` | the `vision` OCR provider |
 | `FramesCoreText` | the `coretext` shaping provider |
-| `FramesTracker` | the `point` tracker provider in `PointTracker`, and in `Image` the grey images and sampling it reads frames with |
+| `FramesTracker` | the `point` tracker provider in `PointTracker`, the `planar` tracker provider in `PlanarTracker`, and in `Image` the grey images, pyramids and sampling they read frames with |
 | `FramesCommand` | the commands, their arguments and messages, the role table that builds each role by name, extensions, and the pack `frames` in `Resources/packs/frames` |
 | `FramesTool` | the `frames` executable |
 

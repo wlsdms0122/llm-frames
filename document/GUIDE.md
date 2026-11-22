@@ -30,7 +30,7 @@ audio 2 channels, 48000 Hz
 - `probe` gives the size, length, frame rate, alpha and sound. Write the document's `format` from it, or decide how the material is conformed when it differs.
 - Lay the whole video out with `sheet` every 1 to 2 seconds to find the parts that matter, then again every 0.5 seconds over the part you chose. Each frame is labelled with its media time. On a storyline clip without `timeRemap`, clip time is media time ([FRAMES-8](../spec/FRAMES-8/SPEC.md)), so a time read from a sheet goes straight into `in`, `out`, a connected clip's `at` and the clip's keyframes.
 - Listen to the sound in a player: where speech starts and ends, where the beat falls, where a noise has to be cut around. A picture cut against the sound is decided here.
-- Where a place has to be found or followed, `track` it. Where it is found by its text on screen, `ocr` the frame first.
+- Where a place has to be found or followed, `track` it. Where it is found by its text on screen, `ocr` the frame first. A plane seen in perspective, a screen or a sign a `cornerPin` is laid on, is followed with `--tracker planar`.
 
 ```sh
 frames ocr /path/to/recording.mov --at 1

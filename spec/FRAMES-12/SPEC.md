@@ -8,7 +8,7 @@ Status: accepted
 
 ## Motivation
 
-Things in a shot move. A title pinned to a moving sign, a blur kept on a face while the camera pans, a zoom that stays on a runner, a logo replaced on a turning product: a value written at one instant drifts off its subject as soon as the subject moves, and keyframing it by hand frame by frame is the work a tracker exists to save, as in After Effects and Premiere Pro. Following the target once and carrying every value of the clip through the motion keeps each one on its subject, while the clip's own keyframes still say what it does relative to it. A tracker frames does not have, such as a planar tracker run outside it, gives the same four corners on each frame, and written in the document as track data they stay one value that keeps every rule of the track, where keyframes on every frame would not.
+Things in a shot move. A title pinned to a moving sign, a blur kept on a face while the camera pans, a zoom that stays on a runner, a logo replaced on a turning product: a value written at one instant drifts off its subject as soon as the subject moves, and keyframing it by hand frame by frame is the work a tracker exists to save, as in After Effects and Premiere Pro. Following the target once and carrying every value of the clip through the motion keeps each one on its subject, while the clip's own keyframes still say what it does relative to it. A tracker run outside frames gives the same four corners on each frame, and written in the document as track data they stay one value that keeps every rule of the track, where keyframes on every frame would not.
 
 ## Rules
 
@@ -65,7 +65,7 @@ The target is found on the track's frame, before its padding, and a text form in
 - A frame whose quad, as carried to the whole target, is not strictly convex, or is strictly convex with the other orientation than the target's quad ([FRAMES-27](../FRAMES-27/SPEC.md#the-homography)), is not followed, for every tracked clip, and the track ends before it in that direction, as where the tracker reports the target lost: a plane folded over itself, or seen from its back, is not a plane followed.
 - A value of the clip at a time whose media frame was not followed, a keyframe beyond the window or in a handle, is brought back through the motion of the nearest frame followed, the edge of the track in that direction, as a storyline clip's motion holds in a handle. So such a keyframe still shapes the span it begins or ends.
 
-**Note.** The tracker contract is a quad on each frame, which holds perspective, so a tracker that follows perspective drives a corner pin through it ([FRAMES-27](../FRAMES-27/SPEC.md)). The `point` tracker reports similarity images of its target, so its homography is its motion.
+**Note.** The tracker contract is a quad on each frame, which holds perspective, so a tracker that follows perspective drives a corner pin through it ([FRAMES-27](../FRAMES-27/SPEC.md)). The `point` tracker reports similarity images of its target, so its homography is its motion. The `planar` tracker reports the image of its target under the homography of the plane it lies on, so it drives a corner pin without track data.
 
 ### Track data
 
