@@ -8,8 +8,8 @@
 import Foundation
 import FramesAVFoundation
 import FramesCoreText
-import FramesPointTracker
 import FramesTestMedia
+import FramesTracker
 import FramesVision
 
 @testable import Frames

@@ -8,8 +8,8 @@
 import Frames
 import FramesAVFoundation
 import FramesCoreText
-import FramesPointTracker
 import FramesQuartz
+import FramesTracker
 import FramesVision
 
 // Builds the roles and providers by the names the global options give. The decoder is built once and handed to
@@ -56,7 +56,7 @@ struct RoleFactory: Sendable {
         role: "tracker provider",
         option: "--tracker",
         defaultName: "point",
-        builders: ["point": { PointTracker(decoder: $0) }]
+        builders: ["planar": { PlanarTracker(decoder: $0) }, "point": { PointTracker(decoder: $0) }]
     )
 
     // MARK: - Initializer

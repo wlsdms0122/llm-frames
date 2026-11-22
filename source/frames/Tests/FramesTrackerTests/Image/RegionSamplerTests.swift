@@ -1,12 +1,12 @@
 //
 //  RegionSamplerTests.swift
-//  FramesPointTrackerTests
+//  FramesTrackerTests
 //
 //  Created by JSilver on 11/16/26.
 //
 
 import Foundation
-@testable import FramesPointTracker
+@testable import FramesTracker
 import Testing
 
 @Suite("RegionSampler Tests")
@@ -82,6 +82,20 @@ struct RegionSamplerTests {
 
         // Then
         #expect(region.values == [7.5, 27.5])
+    }
+
+    @Test("values at points are read between the pixels about them, and NaN where a point's pixel leaves the image")
+    func readsPoints() {
+        // Given
+        let sut = RegionSampler()
+        let points = [CGPoint(x: 0.5, y: 0.5), CGPoint(x: 2.25, y: 1.75), CGPoint(x: 3.5, y: 3.5), CGPoint(x: 0.4, y: 2)]
+
+        // When
+        let values = sut.sample(image, at: points)
+
+        // Then
+        #expect(Array(values[0..<3]) == [0, 14.25, 33])
+        #expect(values[3].isNaN)
     }
 
     // MARK: - Private

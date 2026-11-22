@@ -1,13 +1,13 @@
 //
 //  RegionSampler.swift
-//  FramesPointTracker
+//  FramesTracker
 //
 //  Created by JSilver on 11/16/26.
 //
 
 import Foundation
 
-// Reads a region of an image into a grey image of a fixed size, by bilinear interpolation.
+// Reads an image by bilinear interpolation: a region of it into a grey image of a fixed size, or its values at points.
 struct RegionSampler: Sendable {
     // MARK: - Property
     // MARK: - Initializer
@@ -73,13 +73,7 @@ struct RegionSampler: Sendable {
                         else {
                             continue
                         }
-                        let (above, below, downward) = neighbours(y, count: image.height)
-                        let (before, after, rightward) = neighbours(x, count: image.width)
-                        let upper = source[above * image.width + before] * (1 - rightward)
-                            + source[above * image.width + after] * rightward
-                        let lower = source[below * image.width + before] * (1 - rightward)
-                            + source[below * image.width + after] * rightward
-                        values[row * width + column] = upper * (1 - downward) + lower * downward
+                        values[row * width + column] = interpolated(source, of: image, x: x, y: y)
                     }
                 }
             }
@@ -88,7 +82,41 @@ struct RegionSampler: Sendable {
         return GreyImage(width: width, height: height, values: values)
     }
 
+    // The values of `image` at `points`. A point whose pixel, the upright square of one pixel about it, does not lie
+    // wholly in the image is NaN.
+    func sample(
+        _ image: GreyImage,
+        at points: [CGPoint]
+    ) -> [Float] {
+        let width = Double(image.width)
+        let height = Double(image.height)
+
+        return image.values.withUnsafeBufferPointer { source in
+            points.map { point in
+                guard point.x >= 0.5, point.x <= width - 0.5, point.y >= 0.5, point.y <= height - 0.5 else { return .nan }
+
+                return interpolated(source, of: image, x: point.x, y: point.y)
+            }
+        }
+    }
+
     // MARK: - Private
+    // `source` is the values of `image`.
+    private func interpolated(
+        _ source: UnsafeBufferPointer<Float>,
+        of image: GreyImage,
+        x: Double,
+        y: Double
+    ) -> Float {
+        let width = image.width
+        let (above, below, downward) = neighbours(y, count: image.height)
+        let (before, after, rightward) = neighbours(x, count: width)
+        let upper = source[above * width + before] * (1 - rightward) + source[above * width + after] * rightward
+        let lower = source[below * width + before] * (1 - rightward) + source[below * width + after] * rightward
+
+        return upper * (1 - downward) + lower * downward
+    }
+
     // The two pixels along one axis whose centres lie either side of `position`, and how far it lies from the first
     // towards the second. Past the outer pixels' centres both are the outer pixel.
     private func neighbours(

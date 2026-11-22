@@ -115,7 +115,7 @@ struct CommandShellTests {
         "the global options before --help are checked as for any command, and --help takes nothing after it",
         arguments: [
             (["--renderer", "metal", "--help"], #"--renderer: unknown renderer "metal". Known: quartz"#),
-            (["--tracker", "klt", "render", "--help"], #"--tracker: unknown tracker provider "klt". Known: point"#),
+            (["--tracker", "klt", "render", "--help"], #"--tracker: unknown tracker provider "klt". Known: planar, point"#),
             (["--ocr-languages", "en_US", "--help"], #"--ocr-languages "en_US" is not BCP 47 tags separated by commas"#),
             (["--theme", "a/b", "--theme", "c/d", "--help"], "--theme is given more than once"),
             (["--help", "render"], #"--help takes no arguments, found "render". A command's help is frames <command> --help"#),
@@ -181,7 +181,7 @@ struct CommandShellTests {
             (["--renderer", "metal", "theme"], #"--renderer: unknown renderer "metal". Known: quartz"#),
             (["--ocr", "tesseract", "theme"], #"--ocr: unknown OCR provider "tesseract". Known: vision"#),
             (["--shaper", "harfbuzz", "theme"], #"--shaper: unknown shaping provider "harfbuzz". Known: coretext"#),
-            (["--tracker", "klt", "theme"], #"--tracker: unknown tracker provider "klt". Known: point"#),
+            (["--tracker", "klt", "theme"], #"--tracker: unknown tracker provider "klt". Known: planar, point"#),
             (["--mixer", "core", "theme"], #"--mixer: unknown mixer "core". Known: avfoundation"#),
             (["--encoder", "ffmpeg", "theme"], #"--encoder: unknown encoder "ffmpeg". Known: avfoundation"#),
             (["theme", "base"], #"theme: unexpected argument "base""#),

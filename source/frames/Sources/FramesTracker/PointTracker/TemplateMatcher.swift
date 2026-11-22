@@ -1,6 +1,6 @@
 //
 //  TemplateMatcher.swift
-//  FramesPointTracker
+//  FramesTracker
 //
 //  Created by JSilver on 11/16/26.
 //
@@ -31,12 +31,8 @@ struct TemplateMatcher: Sendable {
         _ template: GreyImage,
         in window: GreyImage
     ) -> TemplateMatch? {
-        var templates = [template]
-        var windows = [window]
-        for _ in 0..<levels {
-            templates.append(templates[templates.count - 1].halved())
-            windows.append(windows[windows.count - 1].halved())
-        }
+        let templates = template.pyramid(levels: levels)
+        let windows = window.pyramid(levels: levels)
 
         var best: (x: Int, y: Int)?
         for level in stride(from: levels, through: 0, by: -1) {

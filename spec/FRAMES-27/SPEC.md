@@ -96,7 +96,7 @@ A clip with a corner pin is placed by points written in its parent's space, so i
                              { "time": 0.04, "quad": [ [815, 302], [1133, 355], [1103, 921], [781, 862] ] } ] } } ] }
 ```
 
-A recording of an app is placed on a phone's screen in the shot, its corner pin written on the shot's first frame in the shot's media pixels, the frame the data's `time` names, and the track data of a planar tracker run outside frames, cut short here, keeps it on the screen as the phone turns. With `"track": {"time": 0}` in place of the data, the tracker provider follows the corner pin itself from that frame.
+A recording of an app is placed on a phone's screen in the shot, its corner pin written on the shot's first frame in the shot's media pixels, the frame the data's `time` names, and the track data of a planar tracker run outside frames, cut short here, keeps it on the screen as the phone turns. With `"track": {"time": 0}` in place of the data, the tracker provider follows the corner pin itself from that frame, in perspective with `--tracker planar`.
 
 ### What a renderer holds
 
