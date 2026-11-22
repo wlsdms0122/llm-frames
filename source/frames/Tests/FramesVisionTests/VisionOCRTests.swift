@@ -197,6 +197,26 @@ struct VisionOCRTests {
         #expect(isNear(line.rectangle, drawn, tolerance: 2), "\(line.rectangle) inked at \(drawn)")
     }
 
+    @Test(
+        "an image with alpha is read over black, so light text on its transparent part is found and dark text is not",
+        arguments: [(255, ["Send message"]), (0, [])] as [(Double, [String])]
+    )
+    func readsAlphaOverBlack(ink: Double, expected: [String]) throws {
+        // Given
+        let directory = try TemporaryDirectory()
+        let file = directory.file("title.png")
+        try ImageWriter(size: Size(width: 800, height: 450)).write(to: file) { canvas in
+            canvas.draw("Send message", font: "Helvetica", size: 48, x: 60, y: 150, gray: ink)
+        }
+        let sut = VisionOCR(decoder: decoder)
+
+        // When
+        let lines = try sut.lines(in: MediaFile(path: file), atMediaTime: 0, languages: Self.languages, colorSpace: nil)
+
+        // Then
+        #expect(lines.map(\.text) == expected)
+    }
+
     // MARK: - Private
     private func isNear(
         _ found: Rectangle,
