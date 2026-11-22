@@ -29,7 +29,7 @@ struct MergedThemeValueTests {
             weight: .regular,
             size: 40
         ))
-        #expect(paragraph == ParagraphStyle(lineHeight: 50, background: nil, align: .left, lines: nil))
+        #expect(paragraph == ParagraphStyle(lineHeight: 50, background: nil, align: nil, lines: nil))
     }
 
     @Test("a background without colour, padding or radius takes the plain values")
@@ -91,6 +91,21 @@ struct MergedThemeValueTests {
         #expect(paragraph.background == nil)
         #expect(character.size == 96)
         #expect(paragraph.lineHeight == 120)
+    }
+
+    @Test("a style's direction is read as written, `auto` and a direction left out being none")
+    func readsDirection() throws {
+        // Given
+        let sut = try theme(#"""
+            { "styles": { "arabic": { "size": 40, "direction": "rtl" }, "latin": { "size": 40, "direction": "ltr" },
+                          "either": { "size": 40, "direction": "auto" }, "caption": { "size": 40 } } }
+            """#)
+
+        // When
+        let directions = ["arabic", "latin", "either", "caption"].map { sut.paragraphStyle(named: $0, scale: 1).direction }
+
+        // Then
+        #expect(directions == [.rtl, .ltr, nil, nil])
     }
 
     @Test("a style's lines is the most lines its text may take, two for the base subtitle")

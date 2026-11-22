@@ -532,6 +532,25 @@ struct SequencePlannerTests {
         #expect(title.runs.map { $0.glyphs.map(\.y) } == [[74], [174]])
     }
 
+    @Test("a title's `paragraph` direction lays its text out in that direction, its lines on the side it starts from")
+    func readsParagraphDirection() throws {
+        // When
+        let plan = try plan(#"""
+            { "kind": "sequence", "format": { "size": [1920, 1080] },
+              "theme": { "styles": { "caption": { "size": 40 } } },
+              "storyline": [ { "media": "/abs/screen.mp4" } ],
+              "clips": [ { "title": "ab", "style": "caption", "width": 200, "paragraph": { "direction": "rtl" },
+                           "placement": "top", "at": [0, 1] },
+                         { "title": "ab", "style": "caption", "width": 200, "placement": "top", "at": [0, 1] } ] }
+            """#)
+
+        // Then
+        let layouts = try plan.clips.map { try #require($0.title?.layout) }
+        #expect(layouts.map(\.direction) == [.rtl, .ltr])
+        #expect(layouts.map(\.align) == [.right, .left])
+        #expect(layouts.map { $0.runs.map { $0.glyphs.map(\.x) } } == [[[160, 180]], [[0, 20]]])
+    }
+
     @Test("a title's `character` stroke over a run style without one stops when it gives no width")
     func refusesCharacterStrokeWithoutWidth() throws {
         // Given

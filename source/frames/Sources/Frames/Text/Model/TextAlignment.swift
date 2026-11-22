@@ -5,7 +5,7 @@
 //  Created by JSilver on 11/16/26.
 //
 
-// Text is laid out left to right, so an alignment names a physical side.
+// Where a line sits names a physical side, whatever direction the line reads in.
 enum TextAlignment: String, CaseIterable, Equatable, Sendable {
     case left
     case center

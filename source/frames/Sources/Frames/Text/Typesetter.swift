@@ -15,6 +15,7 @@ struct Typesetter: Sendable {
     private let breaker = LineBreaker()
     private let segmenter = WordSegmenter()
     private let finder = UnitFinder()
+    private let resolver = BidiResolver()
 
     // MARK: - Initializer
     init(shaper: any ShapingProvider) {
@@ -28,7 +29,9 @@ struct Typesetter: Sendable {
     // Text that takes more lines than its paragraph style's `lines`, counting every `\n`, stops. A style of one line
     // wraps at no width, and is too wide when it is wider than `width`. Lines lie the line height apart, baseline to
     // baseline: the first baseline is its line's largest ascent below the top, and the box ends the last line's largest
-    // descent below the last. `unit` splits the text into units, for a title animated by unit.
+    // descent below the last. `unit` splits the text into units, for a title animated by unit. The text is laid out in
+    // its style's direction, `auto` taking it from the first paragraph that holds a strong character, and its lines are
+    // aligned by its style's `align`, or on the side that direction starts from.
     func layout(
         _ runs: [TextRun],
         paragraph style: ParagraphStyle,
@@ -38,6 +41,11 @@ struct Typesetter: Sendable {
         kind: String
     ) throws -> TextLayout {
         let runs = clustered(runs)
+        let text = runs.map(\.text).joined()
+        let scalars = Array(text.unicodeScalars)
+        let paragraphLevel = style.direction?.paragraphLevel ?? resolver.paragraphLevel(of: scalars) ?? 0
+        let direction = TextDirection(level: paragraphLevel)
+        let align = style.align ?? direction.start
         let isOneLine = style.lines == 1
         let lines = try paragraphs(of: runs).flatMap { paragraph in
             try self.lines(
@@ -65,7 +73,7 @@ struct Typesetter: Sendable {
         var spans: [[ClosedRange<Double>]] = []
         for (index, line) in lines.enumerated() {
             let origin = Point(
-                x: padding.width + style.align.offset(of: line.width, in: textWidth),
+                x: padding.width + align.offset(of: line.width, in: textWidth),
                 y: firstBaseline + Double(index) * style.lineHeight
             )
             let placed = placed(line, index: index, origin: origin, firstRun: placedRuns.count)
@@ -77,7 +85,6 @@ struct Typesetter: Sendable {
             + (lines.first?.ascent ?? 0)
             + (lines.last?.descent ?? 0)
 
-        let text = runs.map(\.text).joined()
         let words = text.scalarRanges(of: segmenter.words(of: Array(text)))
 
         return TextLayout(
@@ -92,7 +99,8 @@ struct Typesetter: Sendable {
                 finder.units(by: unit, text: text, words: words, lines: placedLines, spans: spans, runs: placedRuns)
             },
             background: style.background,
-            align: style.align,
+            direction: direction,
+            align: align,
             lineHeight: style.lineHeight
         )
     }

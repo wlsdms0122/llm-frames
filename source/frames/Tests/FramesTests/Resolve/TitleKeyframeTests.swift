@@ -76,6 +76,20 @@ struct TitleKeyframeTests {
         #expect(error.map(String.init(describing:)) == message)
     }
 
+    @Test("a paragraph direction in a keyframe stops, naming the keyframe, since the lines are ordered once")
+    func refusesDirectionInKeyframe() throws {
+        // Given
+        let clip = #"""
+            { "title": "a", "style": "caption", "position": [400, 225],
+              "keyframes": [ { "at": 0, "paragraph": { "direction": "rtl" } }, { "at": 1, "character": { "color": "#FFFFFF" } } ] }
+            """#
+
+        // When, Then
+        let message = "clips[0].keyframes[0].paragraph.direction (keyframe): a name, a boolean, a form or a static number is static and is written on the clip or the sequence, not in a keyframe"
+        let error = #expect(throws: (any Error).self) { try title(clip) }
+        #expect(error.map(String.init(describing:)) == message)
+    }
+
     @Test("a look value outside its domain written statically on a clip stops where it is written, as in a keyframe")
     func refusesStaticValueOutsideDomain() throws {
         // Given
