@@ -25,7 +25,10 @@ struct ResolveEndToEndTests {
     // may lie from where the drawn line moved it, in media pixels.
     private let ocrTolerance = 8.0
     private let trackTolerance = 1.5
+    // How far a corner pin tracked by the planar tracker may lie from its projected corners, in output pixels.
+    private let planarTolerance = 0.5
     private let times = ScreenRecording.frameTimes
+    private let decoder = AVFoundationDecoder()
 
     // MARK: - Initializer
     // MARK: - Test
@@ -35,7 +38,7 @@ struct ResolveEndToEndTests {
         let directory = try TemporaryDirectory()
         let packs = try TemporaryDirectory()
         let (document, drawn) = try await screenDocument(in: directory)
-        let sut = planner(packs: packs)
+        let sut = planner(packs: packs, tracker: PointTracker(decoder: decoder))
 
         // When
         let plan = try sut.plan(document)
@@ -77,7 +80,7 @@ struct ResolveEndToEndTests {
               "clips": [ { "at": [0, 1], "title": [ { "text": "Ana", "style": "name" }, { "text": " Ruiz\nDirector" } ],
                            "style": "role", "position": [400, 225] } ] }
             """#)
-        let sut = planner(packs: packs)
+        let sut = planner(packs: packs, tracker: PointTracker(decoder: decoder))
 
         // When
         let plan = try sut.plan(document)
@@ -105,7 +108,8 @@ struct ResolveEndToEndTests {
         let directory = try TemporaryDirectory()
         let packs = try TemporaryDirectory()
         let (document, drawn) = try await screenDocument(in: directory)
-        let resolved = try ResolvedSequence(plan: try planner(packs: packs).plan(document), hashes: FileHasher())
+        let plan = try planner(packs: packs, tracker: PointTracker(decoder: decoder)).plan(document)
+        let resolved = try ResolvedSequence(plan: plan, hashes: FileHasher())
         let sut = Evaluator()
 
         // When
@@ -124,6 +128,70 @@ struct ResolveEndToEndTests {
         }
     }
 
+    @Test("a corner pin tracked by the planar tracker on a poster turning in perspective lies on the poster's projected corners")
+    func pinsCornersOnPlanarTrack() async throws {
+        // Given
+        let directory = try TemporaryDirectory()
+        let packs = try TemporaryDirectory()
+        let file = directory.file("poster.mov")
+        let size = Size(width: 640, height: 360)
+        let posterSize = Size(width: 400, height: 280)
+        let frameCount = 30
+        let placement = { (index: Int) in
+            let progress = Double(index) / Double(frameCount - 1)
+            let pose = PlanePose(
+                x: -40 + 80 * progress,
+                distance: 900 - 100 * progress,
+                yaw: -25 + 50 * progress,
+                pitch: 8 * sin(2 * .pi * progress)
+            )
+
+            return pose.corners(of: posterSize, focal: 600, on: size)
+        }
+        try await PlaneMovie(
+            size: size,
+            frameTimes: (0..<frameCount).map { Double($0) / 30 },
+            end: Double(frameCount) / 30,
+            poster: GreyTexture.poster(width: 400, height: 280, seed: 7),
+            background: GreyTexture.poster(width: 640, height: 360, seed: 31),
+            placement: placement
+        )
+        .write(to: file)
+        // The pin's corners in the poster's pixels, carried on each frame by the homography that places the poster.
+        let pinned = Quad(Rectangle(x: 60, y: 50, width: 280, height: 180))
+        let posterRectangle = Quad(Rectangle(x: 0, y: 0, width: posterSize.width, height: posterSize.height))
+        let truth = try (0..<frameCount).map { index in
+            let homography = try #require(Homography(from: posterRectangle, to: placement(index)))
+            return try #require(homography.apply(to: pinned))
+        }
+        let corners = truth[0].corners.map { "[\($0.x), \($0.y)]" }.joined(separator: ", ")
+        let document = try Fixture.json(#"""
+            { "kind": "sequence", "format": { "size": [640, 360], "fps": 30 },
+              "storyline": [ { "id": "poster", "media": "\#(file)", "connected": [
+                { "id": "card", "shape": "rect", "fill": "#FF0000", "width": 100, "height": 50, "parent": "poster",
+                  "cornerPin": [\#(corners)], "track": { "time": 0 } } ] } ] }
+            """#)
+        let resolved = try ResolvedSequence(
+            plan: try planner(packs: packs, tracker: PlanarTracker(decoder: decoder)).plan(document),
+            hashes: FileHasher()
+        )
+        let sut = EvaluationReporter()
+
+        // When
+        let frames = [0, 10, 20, 29]
+        let reports = try frames.map { index in try sut.report(of: resolved, at: (Double(index) + 0.5) / 30) }
+
+        // Then
+        for (index, report) in zip(frames, reports) {
+            let item = report.items.first { $0.origin?.id == "card" && $0.cornerPins != nil }
+            let cornerPins = try #require(item?.cornerPins)
+            let cornerPin = try #require(cornerPins.first?.cornerPin)
+            let error = zip(cornerPin.corners, truth[index].corners).map { hypot($0.x - $1.x, $0.y - $1.y) }.max() ?? 0
+            #expect(cornerPins.count == 1)
+            #expect(error <= planarTolerance, "frame \(index): corner \(error) px")
+        }
+    }
+
     // MARK: - Private
     // The screen recording with a box tracking its scrolling line and a title over it. The drawn boxes of the
     // scrolling line come back in frame order.
@@ -139,8 +207,10 @@ struct ResolveEndToEndTests {
         return (document, drawn)
     }
 
-    private func planner(packs: TemporaryDirectory) -> DocumentPlanner {
-        let decoder = AVFoundationDecoder()
+    private func planner(
+        packs: TemporaryDirectory,
+        tracker: any TrackerProvider
+    ) -> DocumentPlanner {
         let library = ReferenceLibrary(
             packs: PackLibrary(installed: URL(fileURLWithPath: packs.path), shipped: URL(fileURLWithPath: packs.path)),
             mediaFacts: decoder
@@ -151,7 +221,7 @@ struct ResolveEndToEndTests {
             presets: Fixture.presets,
             ocr: VisionOCR(decoder: decoder),
             languages: ["ko-KR", "en-US"].compactMap(LanguageTag.init),
-            tracker: PointTracker(decoder: decoder),
+            tracker: tracker,
             shaper: CoreTextShaper(),
             library: library
         )
