@@ -79,8 +79,10 @@ Inside `Frames`, one folder per module:
 | `Model` | document types, the key tables (`Model/Model/Table`), the key checker, keyframes, and filling parameters with arguments |
 | `Theme` | the base theme, merging, checking a theme, and the theme layer of a clip |
 | `Preset` | reading presets and evaluating spans |
+| `Look` | the look merge of a value's layers, from theme to style to clip, by the value structure of each keyframable key, reading a layer's JSON into that structure, and timing each leaf of the merged value over its keyframes, each number checked against its leaf's domain |
 | `Color` | colour spaces, their primaries, transfers and H.273 code points, conversions between working values and a colour space, media colour outside the table (ICC matrix profiles and tone curves), tone mapping and the compositing form: the one place for the colour formulas |
 | `Filter` | the filter ops' colour science and reading `.cube` LUTs |
+| `Loudness` | the loudness meter over a range of a stereo 48 kHz mix: K-weighting, integrated loudness, loudness range, momentary and short-term maxima, sample peak, and true peak by the peak detector and its interpolating filter, which the `avfoundation` limiter also reads |
 | `Pack` | finding packs and their manifests, presets, themes, media and templates by name, and instantiating templates |
 | `Area` | finding areas and points, reading order, and the OCR and tracker provider interfaces |
 | `Text` | text layout (fonts, line breaking, wrapping, boxes) and the shaping provider interface |
@@ -90,7 +92,7 @@ Inside `Frames`, one folder per module:
 | `Role` | the decoder, renderer, mixer and encoder interfaces, and the bitmaps, picture readings, sound buffers and targets they exchange |
 | `Render` | the render pipeline from a resolved document through the roles to a PNG, a master and a delivery file |
 | `Export` | `still`, `sheet` and `extract`: frames of a video or a sequence drawn to PNG files without encoding a video |
-| `Analysis` | the reports of `probe`, `ocr`, `track`, `timeline`, `evaluate` and `locate`, and their machine output |
+| `Analysis` | the reports of `probe`, `ocr`, `track`, `timeline`, `evaluate`, `locate` and `loudness`, and their machine output |
 | `Transcode` | image, audio and video delivery files |
 
 Each folder holds its types at its top and their values in `Model/`. Tests follow the targets: `FramesTests` for the engine, one test target per backend, `FramesCommandTests`, `FramesRenderTests` for whole renders, and `FramesTestMedia`, which writes the media the tests use.
