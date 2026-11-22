@@ -153,7 +153,7 @@ The example is a document in `examples/`. It names its media by absolute placeho
 
 A how-to is `document/howto/<name>.md`, or `howto/<name>.md` in a pack. It teaches a technique that belongs to no form: a motion graphic, an effect beyond the filter ops, a caption track from a transcript. It has no theme and no example of its own, since the form that uses it brings both. Making material outside frames is a how-to.
 
-A how-to shows the steps with real commands, says what frames expects of the material (size, frame rate, alpha, how files are named), and shows the document fragment that brings it in. See [motion graphics](howto/motion-graphics.md) and [effects](howto/effects.md).
+A how-to shows the steps with real commands, says what frames expects of the material (size, frame rate, alpha, how files are named), and shows the document fragment that brings it in. See [motion graphics](howto/motion-graphics.md), [effects](howto/effects.md) and [text on a path](howto/text-on-a-path.md).
 
 ## Writing an extension
 

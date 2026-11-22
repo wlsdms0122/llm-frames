@@ -674,7 +674,7 @@ Times are rounded to the microsecond and positions, sizes, opacities and the num
 - [document/GUIDE.md](document/GUIDE.md): the editing loop from material to delivery, writing a guide, a how-to or an extension, and editing a document without changing what it shows.
 - [document/PRESET.md](document/PRESET.md): how to write a transition, an animation and a filter.
 - [document/PACK.md](document/PACK.md): what a pack holds, how to make one, a form and a template.
-- [document/howto/](document/howto/): techniques that belong to no form, such as [motion graphics](document/howto/motion-graphics.md) and [effects](document/howto/effects.md).
+- [document/howto/](document/howto/): techniques that belong to no form, such as [motion graphics](document/howto/motion-graphics.md), [effects](document/howto/effects.md) and [text on a path](document/howto/text-on-a-path.md).
 - [packs/](packs/): packs kept beside frames, each a directory to copy into `$FRAMES_HOME/packs/`. A form's guide is its `guide.md`, such as [packs/demo/guide.md](packs/demo/guide.md).
 - [document/ARCHITECTURE.md](document/ARCHITECTURE.md): how an implementation is laid out.
 - [spec/](spec/README.md): the specification.
