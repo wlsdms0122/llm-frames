@@ -12,16 +12,16 @@ import os
 
 // A PDF opened with Core Graphics, whose pages the decoder checks and draws (FRAMES-3 PDF pages). A page is drawn on its
 // pixel grid at a scale, a region of it in one draw, clipped to its crop box, with Core Graphics' parser and renderer,
-// into an extended sRGB context of floats, where DeviceRGB and DeviceGray are taken as `srgb` and every tagged space
-// is converted by Core Graphics. A page's checks are made once: what it draws, by `PageContentWalker`, and each colour
-// space it draws in, by `PageColorRamp`. Core Graphics draws one document from several threads at once.
+// into an extended sRGB context of floats, where DeviceRGB and DeviceGray are taken as `srgb` and Core Graphics
+// converts every tagged space. What a page draws is read once, by `PageContentWalker`. Core Graphics draws one
+// document from several threads at once.
 final class PageReader: @unchecked Sendable {
     // MARK: - Property
     let path: String
     let pageCount: Int
 
     private let document: CGPDFDocument
-    private let checks = OSAllocatedUnfairLock<[Int: PageCheck]>(initialState: [:])
+    private let contents = OSAllocatedUnfairLock<[Int: PageContent]>(initialState: [:])
     private let extendedSRGB = CGColorSpace(name: CGColorSpace.extendedSRGB)
 
     // MARK: - Initializer
@@ -59,20 +59,20 @@ final class PageReader: @unchecked Sendable {
         return ProbedPage(size: geometry.size, pageCount: pageCount)
     }
 
-    // Where `reading` is not a `platform` one, refuses a page that sets drawn text in a font its file does not embed or
-    // draws in a colour space this decoder does not convert by the fixed formulas. A reading that names a colour space other than `srgb` reads the page's untagged colour in it,
-    // which this decoder does only on a page that draws in no other colour space.
+    // Where `reading` is not a `platform` one, refuses a page that sets drawn text in a font its file does not embed.
+    // A reading that names a colour space other than `srgb` reads the page's untagged colour in it, which this decoder
+    // does only on a page that draws in no other colour space.
     func check(
         _ number: Int,
         reading: PictureReading?
     ) throws {
         if case .platform = reading { return }
-        let result = try pageCheck(number)
+        let content = try content(of: number)
 
-        if let fault = result.font ?? result.color {
-            throw DecoderError.unreadablePage(file: path, page: number, fault: fault)
+        if let font = content.unembeddedFont {
+            throw DecoderError.unreadablePage(file: path, page: number, fault: .unembeddedFont(font))
         }
-        if let colorSpace = reading?.colorSpace, colorSpace != .srgb, !result.drawsOnlyUntaggedColor {
+        if let colorSpace = reading?.colorSpace, colorSpace != .srgb, !content.drawsOnlyUntaggedColor {
             throw DecoderError.unreadablePage(file: path, page: number, fault: .untaggedColor(colorSpace))
         }
     }
@@ -134,28 +134,14 @@ final class PageReader: @unchecked Sendable {
     }
 
     // MARK: - Private
-    private func pageCheck(_ number: Int) throws -> PageCheck {
-        if let result = checks.withLock({ $0[number] }) { return result }
+    private func content(of number: Int) throws -> PageContent {
+        if let content = contents.withLock({ $0[number] }) { return content }
         let (page, _) = try self.page(number)
 
         let content = PageContentWalker().content(of: page)
-        let spaces = content.colorSpaces.map { ($0, PageColorSpace($0)) }
-        var colorFault = content.faults.first { if case .colorSpace = $0 { true } else { false } }
-        for (written, space) in spaces where colorFault == nil {
-            colorFault = try PageColorRamp.fault(of: space, written: written)
-        }
-        let result = PageCheck(
-            font: content.faults.first { if case .unembeddedFont = $0 { true } else { false } },
-            color: colorFault,
-            drawsOnlyUntaggedColor: spaces.allSatisfy { _, space in
-                if case .pattern(base: nil) = space { return true }
+        contents.withLock { $0[number] = content }
 
-                return space.isUntagged
-            }
-        )
-        checks.withLock { $0[number] = result }
-
-        return result
+        return content
     }
 
     private static func bitmap(

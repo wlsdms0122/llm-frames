@@ -7,15 +7,13 @@
 
 import CoreGraphics
 
-// A content stream as the page walk reads it: the stream, the resources it resolves names with, the graphics state it
-// starts in, and whether it is an uncoloured pattern's content, where the colours it sets are not drawn. These decide
-// all a scan of the stream records, so a stream is scanned once for each.
+// A content stream as the page walk reads it: the stream, the resources it resolves names with, and the graphics
+// state it starts in. These decide all a scan of the stream finds, so a stream is scanned once for each.
 struct ContentStreamScan: Hashable {
     // MARK: - Property
     let stream: CGPDFDictionaryRef
     let resources: CGPDFDictionaryRef
     let state: PageGraphicsState
-    let isUncolored: Bool
 
     // MARK: - Initializer
     // MARK: - Public
