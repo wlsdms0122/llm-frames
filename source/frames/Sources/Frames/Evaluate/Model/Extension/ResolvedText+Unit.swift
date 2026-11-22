@@ -6,9 +6,11 @@
 //
 
 // A title's units at an instant, in its text box then, whose top left is `textBox(at:)`'s origin. A unit's box and its
-// glyph box are their boxes as resolved, moved with the first glyph of the characters it holds and widened by how far
-// their last glyph moves beyond it. A part is cut where the next unit's first held glyph is then, and the first and last
-// parts of a piece reach past its ends, so they hold its padding at any value.
+// glyph box are their boxes as resolved, their left edges moved as the leftmost left edge among the glyph boxes of the
+// characters it holds moves and their right edges as the rightmost right edge does, and down with its line. A part
+// moves its cuts with the characters whose left edges they lie at, the leftmost character of its stretch of its piece
+// and the one right of its rightmost, and the leftmost and rightmost parts of a piece reach past its ends, so they hold
+// its padding at any value.
 extension ResolvedText {
     // MARK: - Property
     // MARK: - Initializer
@@ -56,22 +58,24 @@ extension ResolvedText {
 
         let origin = textBox(at: time)
         let moves = glyphMoves(at: time)
+        let line = units[index].characters.line
+        let parts = units[index].parts
 
-        return units[index].parts.map { part in
-            let sharing = units.indices
-                .flatMap { unit in
-                    units[unit].parts
-                        .filter { $0.run == part.run && $0.piece == part.piece }
-                        .map { (unit: unit, start: $0.span.lowerBound) }
-                }
-                .sorted { $0.start < $1.start }
-            let order = sharing.firstIndex { $0.unit == index } ?? 0
-            let start = order == 0
-                ? -Double.infinity
-                : part.span.lowerBound + firstMove(of: units[index], moves: moves).x - origin.x
-            let end = order == sharing.count - 1
-                ? Double.infinity
-                : part.span.upperBound + firstMove(of: units[sharing[order + 1].unit], moves: moves).x - origin.x
+        return parts.indices.map { offset in
+            let part = parts[offset]
+            let earlier = parts[..<offset].filter { $0.run == part.run && $0.piece == part.piece }.count
+            let cuts = cuts(of: part, on: line, units: units)
+            guard let order = cuts.indices.filter({ cuts[$0].unit == index }).dropFirst(earlier).first else {
+                return UnitPart(
+                    run: part.run,
+                    piece: part.piece,
+                    span: (part.span.lowerBound - origin.x)...(part.span.upperBound - origin.x)
+                )
+            }
+
+            let move = { (cut: Int) in self.move(of: cuts[cut].first, on: self.lines[line], moves: moves).x - origin.x }
+            let start = order == 0 ? -Double.infinity : part.span.lowerBound + move(order)
+            let end = order == cuts.count - 1 ? Double.infinity : part.span.upperBound + move(order + 1)
 
             // A tracking that tightens fast may carry the next unit's start past this one's.
             return UnitPart(run: part.run, piece: part.piece, span: start...max(start, end))
@@ -86,35 +90,62 @@ extension ResolvedText {
     ) -> Rectangle {
         let origin = textBox(at: time)
         let moves = glyphMoves(at: time)
-        let held = heldGlyphs(of: unit)
-        let start = firstMove(of: unit, moves: moves)
-        let end = held.map { moves[$0.last.run][$0.last.index] } ?? start
+        let line = lines[unit.characters.line]
+        let edges = heldOwners(of: unit).map { owner in
+            let glyphs = line.clusters[owner].glyphs
+            let x = runs[glyphs.run].glyphs[glyphs.first].x
+
+            return (left: x, right: x + line.clusters[owner].advance, move: moves[glyphs.run][glyphs.first])
+        }
+        guard let first = edges.first else {
+            return Rectangle(x: box.x - origin.x, y: box.y - origin.y, width: box.width, height: box.height)
+        }
+
+        let left = edges.map(\.left).reduce(first.left, min)
+        let right = edges.map(\.right).reduce(first.right, max)
+        let movedLeft = edges.map { $0.left + $0.move.x }.reduce(first.left + first.move.x, min)
+        let movedRight = edges.map { $0.right + $0.move.x }.reduce(first.right + first.move.x, max)
 
         return Rectangle(
-            x: box.x + start.x - origin.x,
-            y: box.y + start.y - origin.y,
-            width: box.width + end.x - start.x,
+            x: box.x + movedLeft - left - origin.x,
+            y: box.y + first.move.y - origin.y,
+            width: box.width + (movedRight - right) - (movedLeft - left),
             height: box.height
         )
     }
 
-    private func firstMove(
-        of unit: PlacedUnit,
-        moves: [[Point]]
-    ) -> Point {
-        heldGlyphs(of: unit).map { moves[$0.first.run][$0.first.index] } ?? Point(x: 0, y: 0)
+    // The characters with glyphs a unit's characters but its spaces are drawn with, by their index on its line.
+    private func heldOwners(of unit: PlacedUnit) -> [Int] {
+        let scalars = Array(text.unicodeScalars)
+        let line = lines[unit.characters.line]
+
+        return unit.characters.clusters
+            .filter { !scalars[line.clusters[$0].range].isSpace }
+            .compactMap { line.owner(of: $0) }
     }
 
-    // The first and the last glyph of the characters a unit holds, its stretch's characters but its spaces, by run and
-    // index. A character with no glyph of its own takes its group's, which its group's first character holds.
-    private func heldGlyphs(of unit: PlacedUnit) -> (first: (run: Int, index: Int), last: (run: Int, index: Int))? {
-        let scalars = Array(text.unicodeScalars)
-        let clusters = lines[unit.characters.line].clusters
-        let owners = unit.characters.clusters
-            .filter { !scalars[clusters[$0].range].isSpace }
-            .compactMap { index in clusters[...index].last { $0.glyphs.count > 0 }?.glyphs }
-        guard let first = owners.first, let last = owners.last else { return nil }
+    // The cuts of the piece `part` is of on the line at `line`, from left to right: each stretch of the piece's
+    // characters as placed that go with one of `units`, as that unit and the stretch's leftmost character, as resolve
+    // cut them.
+    private func cuts(
+        of part: UnitPart,
+        on line: Int,
+        units: [PlacedUnit]
+    ) -> [(unit: Int, first: Int)] {
+        let pieces = lines[line].pieces(of: runs[part.run].source, sources: runs.map(\.source))
+        guard pieces.indices.contains(part.piece) else { return [] }
 
-        return ((first.run, first.first), (last.run, last.first + last.count - 1))
+        var unitAt: [Int: Int] = [:]
+        for (unit, placed) in units.enumerated() where placed.characters.line == line {
+            for cluster in placed.characters.clusters {
+                unitAt[cluster] = unit
+            }
+        }
+
+        return pieces[part.piece].reduce(into: []) { cuts, character in
+            guard let unit = unitAt[character], cuts.last?.unit != unit else { return }
+
+            cuts.append((unit, character))
+        }
     }
 }

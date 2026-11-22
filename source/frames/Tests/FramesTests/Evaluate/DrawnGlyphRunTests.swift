@@ -42,7 +42,7 @@ struct DrawnGlyphRunTests {
             factor: 1,
             at: SampleTime(0),
             moves: [Point(x: 3, y: 4), Point(x: 3, y: 4)],
-            pieceMove: still
+            pieceMoves: [still]
         )
 
         // Then

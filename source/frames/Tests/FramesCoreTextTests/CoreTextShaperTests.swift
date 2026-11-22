@@ -305,6 +305,93 @@ struct CoreTextShaperTests {
         #expect(runs.flatMap(\.glyphs).map(\.offset) == offsets)
     }
 
+    @Test("a right-to-left run's glyphs lie from right to left, each with the scalar it was set from, a mark placed as drawn")
+    func setsRightToLeft() throws {
+        // Given
+        let face = try face("Arial Hebrew", "ArialHebrew")
+        let text = "\u{5D1}\u{5B8}\u{5D0}"
+
+        // When
+        let glyphs = try shape(text, [face], direction: .rtl).flatMap(\.glyphs)
+
+        // Then
+        #expect(glyphs.map(\.offset) == [2, 1, 0])
+        #expect(glyphs[1].advance == 0)
+        #expect(glyphs[1].placementOffset.x != 0)
+        let pens = glyphs.indices.map { index in glyphs[..<index].map(\.advance).reduce(0, +) }
+        let drawn = zip(pens, glyphs).map { pen, glyph in
+            Point(x: pen + glyph.placementOffset.x, y: glyph.placementOffset.y)
+        }
+        let positions = positions(text, face: face.name, size: 48)
+        #expect(zip(drawn, positions).allSatisfy { abs($0.x - $1.x) < 1e-9 && abs($0.y - $1.y) < 1e-9 })
+    }
+
+    @Test("a bracket in a right-to-left run is set in its mirrored glyph, and the faces of the run lie from right to left")
+    func mirrorsInRightToLeft() throws {
+        // Given
+        let latin = try face("Helvetica", "Helvetica")
+        let hebrew = try face("Arial Hebrew", "ArialHebrew")
+        let opening = try shape("(", [latin]).flatMap(\.glyphs).map(\.id)
+        let closing = try shape(")", [latin]).flatMap(\.glyphs).map(\.id)
+
+        // When
+        let runs = try shape("(\u{5D0}\u{5D1})", [latin, hebrew], direction: .rtl)
+        let kept = try shape("(ab)", [latin])
+
+        // Then
+        #expect(runs.map(\.face) == [latin, hebrew, latin])
+        #expect(runs.map { $0.glyphs.map(\.offset) } == [[3], [2, 1], [0]])
+        #expect(runs.first?.glyphs.map(\.id) == opening)
+        #expect(runs.last?.glyphs.map(\.id) == closing)
+        #expect(kept.flatMap(\.glyphs).first.map { [$0.id] } == opening)
+    }
+
+    @Test(
+        "a run's glyphs lie in its direction whatever its text's first strong character says, a space at its end too",
+        arguments: [
+            (", ", "Helvetica", "Helvetica", TextDirection.rtl, [1, 0]),
+            ("1 ", "Helvetica", "Helvetica", .rtl, [1, 0]),
+            ("\u{5D0}\u{5D1} ", "Arial Hebrew", "ArialHebrew", .ltr, [0, 1, 2])
+        ]
+    )
+    func keepsTrailingSpaceInRunDirection(
+        text: String,
+        family: String,
+        name: String,
+        direction: TextDirection,
+        offsets: [Int]
+    ) throws {
+        // Given
+        let face = try face(family, name)
+
+        // When
+        let runs = try shape(text, [face], direction: direction)
+
+        // Then
+        // Every scalar of the run lies at its one level, so the space at its end lies on the side the run ends on, left
+        // in a right-to-left run and right in a left-to-right one. No glyph is placed against another, so each is drawn
+        // at its pen.
+        #expect(runs.map(\.face) == [face])
+        #expect(runs.flatMap(\.glyphs).map(\.offset) == offsets)
+        #expect(runs.flatMap(\.glyphs).allSatisfy { $0.placementOffset == Point(x: 0, y: 0) })
+    }
+
+    @Test("an Arabic word set right to left keeps its letters joined, and `lam` with `alef` is one glyph")
+    func joinsArabic() throws {
+        // Given
+        let face = try face("Geeza Pro", "GeezaPro")
+        let alone = try shape("\u{628}", [face], direction: .rtl).flatMap(\.glyphs).map(\.id)
+
+        // When
+        let word = try shape("\u{628}\u{628}", [face], direction: .rtl).flatMap(\.glyphs)
+        let ligature = try shape("\u{644}\u{627}", [face], direction: .rtl).flatMap(\.glyphs)
+
+        // Then
+        #expect(word.map(\.offset) == [1, 0])
+        #expect(word.allSatisfy { !alone.contains($0.id) })
+        #expect(ligature.map(\.offset) == [0])
+    }
+
     @Test("characters no face given has are set in a face found on the machine, which names its file")
     func fallsBack() throws {
         // Given
@@ -357,9 +444,10 @@ struct CoreTextShaperTests {
     private func shape(
         _ text: String,
         _ faces: [FontFace],
+        direction: TextDirection = .ltr,
         features: [FontFeature] = []
     ) throws -> [ShapedRun] {
-        try sut.shape(text, faces: faces, size: 48, features: features, weight: .regular, italic: false)
+        try sut.shape(text, direction: direction, faces: faces, size: 48, features: features, weight: .regular, italic: false)
     }
 
     private func lineWidth(

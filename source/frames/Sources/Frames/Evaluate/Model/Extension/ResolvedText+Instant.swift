@@ -5,12 +5,13 @@
 //  Created by JSilver on 11/19/26.
 //
 
-// A title at an instant, in its box at the static values. Its glyphs move along their lines by the tracking then and
-// with their lines by the line height then, and each line is placed again by `align` on its width then. Its box is its
-// text box then grown by its background's padding then. A glyph box is a character's or a hanging space's: from the pen
-// where its glyphs begin, as wide as its advance, and down its line from the baseline less the line's ascent to the
-// baseline plus its descent. A character with no glyph of its own has its group's first character's glyph box, and one
-// with no character with glyphs before it on its line a box as wide as nothing where the line starts.
+// A title at an instant, in its box at the static values. Its glyphs move along their lines by the tracking then, the
+// tracking lying between neighbours as they are placed, and with their lines by the line height then, and each line is
+// placed again by `align` on its width then. Its box is its text box then grown by its background's padding then. A
+// glyph box is a character's or a hanging space's: from the pen where its glyphs begin, as wide as its advance, and
+// down its line from the baseline less the line's ascent to the baseline plus its descent. A character with no glyph of
+// its own has the glyph box of the character `PlacedLine.owner(of:)` draws it with, and one on a line with no glyph a
+// box as wide as nothing where the line starts.
 extension ResolvedText {
     // MARK: - Property
     // MARK: - Initializer
@@ -75,28 +76,22 @@ extension ResolvedText {
         return glyphBoxes.reduce(Rectangle(x: 0, y: 0, width: box.width, height: box.height)) { $0.union($1) }
     }
 
-    // How far each glyph moves at `time`, by run and glyph: along its line by the tracking steps after the characters
-    // before it on its line and its line's move by `align`, and down with its line. A space hanging at a line's end
-    // moves with the line's last character, or with its line on a line with no character.
+    // How far each glyph moves at `time`, by run and glyph: along its line by the tracking steps between the
+    // neighbouring characters left of it as placed and its line's move by `align`, and down with its line. A space
+    // hanging at a line's end moves with the outermost character on its side, or with its line on a line with no
+    // character.
     func glyphMoves(at time: SampleTime) -> [[Point]] {
         var moves = runs.map { run in Array(repeating: Point(x: 0, y: 0), count: run.glyphs.count) }
         let steps = trackingSteps(at: time)
         for (line, drop) in zip(lines, lineDrops(at: time)) {
-            let added = addedWidth(of: line, steps: steps)
-            let shift = align.offset(of: line.width + added, in: textBox.width)
+            let placed = line.clusters + line.hanging
+            let along = trackingMoves(of: line, steps: steps)
+            let shift = align.offset(of: line.width + along.added, in: textBox.width)
                 - align.offset(of: line.width, in: textBox.width)
-            var before = 0.0
-            var last = 0.0
-            for cluster in line.clusters.map(\.glyphs) where cluster.count > 0 {
-                for index in cluster.glyphs {
-                    moves[cluster.run][index] = Point(x: before + shift, y: drop)
-                }
-                last = before
-                before += steps[cluster.run]
-            }
-            for space in line.hanging.map(\.glyphs) {
-                for index in space.glyphs {
-                    moves[space.run][index] = Point(x: last + shift, y: drop)
+            for (index, move) in along.moves {
+                let glyphs = placed[index].glyphs
+                for glyph in glyphs.glyphs {
+                    moves[glyphs.run][glyph] = Point(x: move + shift, y: drop)
                 }
             }
         }
@@ -120,9 +115,9 @@ extension ResolvedText {
     }
 
     // The glyph box at `time` of each character at `indices` on the line at `line`, in the text box then. A character
-    // with no glyph of its own has the box of the nearest character before it on its line with glyphs, its group's first
-    // character, and one with none before it a box as wide as nothing where the line starts then, on its line's baseline
-    // then raised by its run's baseline shift then.
+    // with no glyph of its own has the box of the character `PlacedLine.owner(of:)` draws it with, and one on a line
+    // with no glyph a box as wide as nothing where the line starts then, on its line's baseline then raised by its
+    // run's baseline shift then.
     func glyphBoxes(
         ofCharacters indices: Range<Int>,
         on line: Int,
@@ -133,32 +128,49 @@ extension ResolvedText {
         let clusters = lines[line].clusters
 
         return indices.map { index in
-            guard let owner = clusters[...index].last(where: { $0.glyphs.count > 0 }) else {
+            guard let owner = lines[line].owner(of: index) else {
                 return lineStart(of: clusters[index], on: line, origin: origin, at: time)
             }
 
-            return glyphBox(of: owner, on: line, origin: origin, moves: moves, at: time)
+            return glyphBox(of: clusters[owner], on: line, origin: origin, moves: moves, at: time)
         }
     }
 
-    // How far each run's pieces move with the glyph moves `moves`: a piece's start with the run's first glyph, and its
-    // end with the last glyph of the last character of the run's `source` on its line.
-    func pieceMoves(of moves: [[Point]]) -> [PieceMove] {
-        let still = PieceMove(start: Point(x: 0, y: 0), end: Point(x: 0, y: 0))
-        var pieces = runs.map { _ in still }
+    // How far each piece of each run moves with the glyph moves `moves`, by run and piece: its start with its leftmost
+    // character and its end with its rightmost, as they are placed. The run `PlacedLine.holder(of:sources:)` names
+    // holds the pieces of its text run on its line, in the order `PlacedLine.pieces(of:sources:)` gives them.
+    func pieceMoves(of moves: [[Point]]) -> [[PieceMove]] {
+        var pieces = runs.map { _ in [PieceMove]() }
+        let sources = runs.map(\.source)
         for line in lines {
-            var ends: [Int: Point] = [:]
-            for cluster in line.clusters.map(\.glyphs) where cluster.count > 0 {
-                ends[runs[cluster.run].source] = moves[cluster.run][cluster.first + cluster.count - 1]
-            }
-            for run in Set(line.clusters.map(\.glyphs.run)) {
-                guard let start = moves[run].first, let end = ends[runs[run].source] else { continue }
+            for run in Set(line.clusters.map(\.glyphs.run))
+            where line.holder(of: sources[run], sources: sources) == run {
+                pieces[run] = line.pieces(of: sources[run], sources: sources).compactMap { characters in
+                    guard let first = characters.first, let last = characters.last else { return nil }
 
-                pieces[run] = PieceMove(start: start, end: end)
+                    return PieceMove(
+                        start: move(of: first, on: line, moves: moves),
+                        end: move(of: last, on: line, moves: moves)
+                    )
+                }
             }
         }
 
         return pieces
+    }
+
+    // How far the glyphs of the character at `index` on `line` move with the glyph moves `moves`: those of the
+    // character `PlacedLine.owner(of:)` draws it with, and not at all on a line with no glyph.
+    func move(
+        of index: Int,
+        on line: PlacedLine,
+        moves: [[Point]]
+    ) -> Point {
+        line.owner(of: index).map { owner in
+            let glyphs = line.clusters[owner].glyphs
+
+            return moves[glyphs.run][glyphs.first]
+        } ?? Point(x: 0, y: 0)
     }
 
     // How far each line moves down at `time`: the first baseline stays, and each later one lies the line height then
@@ -227,12 +239,30 @@ extension ResolvedText {
         runs.map { run in run.tracking.sampled(at: time, as: .leaf(.length(.any))).number ?? 0 }
     }
 
-    // The width the tracking at its steps adds to a line: a step after every character with glyphs of its own but the
-    // line's last.
+    // The width the tracking at its steps adds to a line: a step between every two neighbouring characters with glyphs
+    // of their own as placed.
     private func addedWidth(
         of line: PlacedLine,
         steps: [Double]
     ) -> Double {
-        line.clusters.filter { $0.glyphs.count > 0 }.dropLast().map { steps[$0.glyphs.run] }.reduce(0, +)
+        trackingMoves(of: line, steps: steps).added
+    }
+
+    // How far each of a line's clusters and hanging spaces with glyphs of its own moves along it by the tracking steps
+    // `steps`, by its index among them: the steps between the neighbours left of it as placed, each the step of the run
+    // of whichever of two neighbours comes first in the text. `added` is the width they add to the line.
+    private func trackingMoves(
+        of line: PlacedLine,
+        steps: [Double]
+    ) -> (moves: [(index: Int, move: Double)], added: Double) {
+        let placed = line.clusters + line.hanging
+        var added = 0.0
+        let moves = line.placedOwners.map { owner in
+            added += owner.tracking.map { steps[placed[$0].glyphs.run] } ?? 0
+
+            return (index: owner.index, move: added)
+        }
+
+        return (moves, added)
     }
 }

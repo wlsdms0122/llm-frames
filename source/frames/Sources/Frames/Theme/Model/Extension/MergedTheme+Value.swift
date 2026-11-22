@@ -113,8 +113,9 @@ extension MergedTheme {
     }
 
     // A style's paragraph attributes with its lengths multiplied by `scale`. A property it leaves out takes the plain
-    // value: a line height of 1.25 times its size, left, no background and no limit on lines. A background leaves out
-    // the `background` colour, no padding and no radius.
+    // value: a line height of 1.25 times its size, no background and no limit on lines, and `direction` and `align`
+    // none, which the text's direction decides. A background leaves out the `background` colour, no padding and no
+    // radius.
     func paragraphStyle(
         named name: String,
         scale: Double
@@ -134,7 +135,8 @@ extension MergedTheme {
         ParagraphStyle(
             lineHeight: (style["lineHeight"]?.numberValue ?? defaultLineHeight(of: size)) * scale,
             background: style["background"]?.objectValue.map { box(of: $0, scale: scale) },
-            align: style["align"]?.stringValue.flatMap(TextAlignment.init) ?? .left,
+            direction: style["direction"]?.stringValue.flatMap(TextDirection.init),
+            align: style["align"]?.stringValue.flatMap(TextAlignment.init),
             lines: style["lines"]?.numberValue.flatMap { Int(exactly: $0) }
         )
     }

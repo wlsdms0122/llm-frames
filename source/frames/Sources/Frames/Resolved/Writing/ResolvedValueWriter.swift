@@ -390,6 +390,7 @@ struct ResolvedValueWriter: Sendable {
             JSONMember(key: "textBox", value: rectangle(text.textBox)),
             JSONMember(key: "width", value: text.width.map(JSONValue.number) ?? .null),
             JSONMember(key: "background", value: background ?? .null),
+            JSONMember(key: "direction", value: .string(text.direction.rawValue)),
             JSONMember(key: "align", value: .string(text.align.rawValue)),
             JSONMember(key: "lineHeight", value: timed(text.lineHeight)),
             JSONMember(key: "text", value: .string(text.text)),
@@ -515,18 +516,22 @@ struct ResolvedValueWriter: Sendable {
         bands.map { bands in .array(bands.map { numbers([$0.lowerBound, $0.upperBound]) }) } ?? .null
     }
 
-    // A line's cluster is `[run, first, count, start, end, advance]`: its glyphs, its range and its advance.
+    // A line's cluster is `[run, first, count, start, end, advance, level, cursive]`: its glyphs, its range, its
+    // advance, its embedding level on the line and the ISO 15924 codes of the cursive scripts it is a letter of,
+    // separated by spaces as ScriptExtensions.txt writes them, so the cluster stays a flat list.
     private func cluster(_ cluster: PlacedCluster) -> JSONValue {
         let glyphs = cluster.glyphs
-
-        return numbers([
+        let values = [
             Double(glyphs.run),
             Double(glyphs.first),
             Double(glyphs.count),
             Double(cluster.range.lowerBound),
             Double(cluster.range.upperBound),
-            cluster.advance
-        ])
+            cluster.advance,
+            Double(cluster.level)
+        ]
+
+        return .array(values.map(JSONValue.number) + [.string(cluster.cursiveScripts.joined(separator: " "))])
     }
 
     // A drawn glyph is `[id, x, y]`, where it is drawn.

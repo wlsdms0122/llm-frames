@@ -253,6 +253,102 @@ struct TitleGroupTests {
         ])
     }
 
+    @Test("a right-to-left title by word at rest draws every glyph and piece where it draws them without `by`, its first word on the right")
+    func drawsRightToLeftUnitsAsWhole() throws {
+        // Given
+        let clip = try resolvedClip(#"""
+            { "title": "אב גד", "style": "caption", "position": [400, 225],
+              "character": { "highlight": { "color": "#FF0000" } } }
+            """#)
+        let text = try title(of: clip)
+        let whole = try #require(sut.items(
+            of: animated(clip, entrance: fade, stagger: nil),
+            in: space,
+            picture: nil,
+            trackMatte: nil,
+            compositing: .encoded,
+            seed: 0,
+            at: SampleTime(1)
+        ).first.flatMap { glyphs(of: $0) })
+
+        // When
+        let list = try group(of: animated(clip, entrance: fade, stagger: 0.1), at: 1)
+
+        // Then
+        // The line is placed ד ג space ב א, at 0, 20, 40, 50 and 70. `אב` is the first unit and lies on the right,
+        // from 50 to 90, with the space after it, so the piece from 0 to 90 is cut at 40, the space's left edge.
+        let piece = Rectangle(x: 0, y: 0, width: 90, height: 40)
+        let fills = list.items.filter { layer(of: $0) == .fills }.compactMap { glyphs(of: $0) }
+        let highlights = list.items.filter { layer(of: $0) == .highlights }.compactMap { highlight(of: $0) }
+        #expect(text.units?.map(\.glyphBox) == [
+            Rectangle(x: 50, y: 0, width: 40, height: 40),
+            Rectangle(x: 0, y: 0, width: 40, height: 40)
+        ])
+        #expect(fills.flatMap { $0.runs.flatMap(\.glyphs) }.sorted { $0.x < $1.x } == whole.runs.flatMap(\.glyphs))
+        #expect(whole.runs.first?.highlight?.rects == [piece])
+        #expect(highlights.map(\.rects) == [[piece], [piece]])
+        #expect(highlights.map(\.bands) == [[40...90], [0...40]])
+    }
+
+    @Test("a right-to-left unit's glyph box and its part move with its leftmost and rightmost characters as placed")
+    func movesRightToLeftUnitsByTracking() throws {
+        // Given
+        let clip = try resolvedClip(#"""
+            { "title": "אב גד", "style": "caption", "position": [400, 225],
+              "character": { "highlight": { "color": "#FF0000" } },
+              "keyframes": [ { "at": 0, "character": { "tracking": 0 } }, { "at": 2, "character": { "tracking": 100 } } ] }
+            """#)
+        let sut = try title(of: clip)
+
+        // When
+        let glyphBoxes = [0, 1].map { sut.glyphBox(of: $0, at: SampleTime(1)) }
+        let parts = [0, 1].map { sut.parts(of: $0, at: SampleTime(1)) }
+
+        // Then
+        // Placed ד ג space ב א, each gap steps 2 at 1, so they move 0, 2, 4, 6 and 8 and the line widens to 98. Right
+        // aligned, it moves 8 left, so in the text box then ד lies at 0, ג at 22, the space at 44, ב at 56 and א at
+        // 78. `אב` runs from 56 to 98 and `גד` from 0 to 42, and the cut between their parts lies at the space, 44.
+        #expect(glyphBoxes == [
+            Rectangle(x: 56, y: 0, width: 42, height: 40),
+            Rectangle(x: 0, y: 0, width: 42, height: 40)
+        ])
+        #expect(parts == [
+            [UnitPart(run: 0, piece: 0, span: 44...Double.infinity)],
+            [UnitPart(run: 0, piece: 0, span: -Double.infinity...44)]
+        ])
+    }
+
+    @Test("a word whose characters lie apart as placed moves as one glyph box, and each of its parts moves with its own cuts")
+    func movesPartsOfWordLyingApart() throws {
+        // Given
+        let clip = try resolvedClip(#"""
+            { "title": "aב ג", "style": "caption", "position": [400, 225],
+              "character": { "highlight": { "color": "#FF0000" } },
+              "keyframes": [ { "at": 0, "character": { "tracking": 0 } }, { "at": 2, "character": { "tracking": 100 } } ] }
+            """#)
+        let sut = try title(of: clip)
+
+        // When
+        let glyphBoxes = [0, 1].map { sut.glyphBox(of: $0, at: SampleTime(1)) }
+        let parts = [0, 1].map { sut.parts(of: $0, at: SampleTime(1)) }
+
+        // Then
+        // At levels 0 1 1 1 the line is placed a ג space ב, at 0, 20, 40 and 50, and each gap steps 2 at 1, so they lie
+        // at 0, 22, 44 and 56. `aב` holds a and ב, one glyph box from 0 to 76, and carries the parts left of ג and
+        // from the space on, and `ג` the part between them.
+        #expect(glyphBoxes == [
+            Rectangle(x: 0, y: 0, width: 76, height: 40),
+            Rectangle(x: 22, y: 0, width: 20, height: 40)
+        ])
+        #expect(parts == [
+            [
+                UnitPart(run: 0, piece: 0, span: -Double.infinity...22),
+                UnitPart(run: 0, piece: 0, span: 44...Double.infinity)
+            ],
+            [UnitPart(run: 0, piece: 0, span: 22...44)]
+        ])
+    }
+
     @Test("every glyph of a title by word is drawn by one unit, a line's hanging space by its last unit, whose extent holds it")
     func drawsHangingSpaceByLastUnit() throws {
         // Given

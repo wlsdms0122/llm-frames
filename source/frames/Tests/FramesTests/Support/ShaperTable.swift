@@ -14,12 +14,16 @@
 // a scalar in `missing` or that no face has whole in `fallback`, default ignorable scalars left out of both. A scalar
 // in `placements` is placed that far from the pen, in ems, and one in `prebase` is set before the glyph before it in its
 // face, as a pre-base matra is. A scalar in `ignored` is set as nothing, as a shaper leaves out a default ignorable
-// scalar its face does not map.
+// scalar its face does not map. A right-to-left run is set as a left-to-right one, its runs and their glyphs then given
+// from right to left, and a bracket in it is set in the glyph of the bracket that mirrors it.
 struct ShaperTable: ShapingProvider {
     // MARK: - Property
     static let fallback = face("Fallback", .regular, file: "/System/Fallback.ttc")
     static let ligature = 0xFB01
     static let kerning = 0.1
+    static let mirrors: [Unicode.Scalar: Unicode.Scalar] = [
+        "(": ")", ")": "(", "[": "]", "]": "[", "{": "}", "}": "{", "<": ">", ">": "<"
+    ]
 
     let installed: Set<String>
     let advances: [Unicode.Scalar: Double]
@@ -107,6 +111,7 @@ struct ShaperTable: ShapingProvider {
 
     func shape(
         _ text: String,
+        direction: TextDirection,
         faces: [FontFace],
         size: Double,
         features: [FontFeature],
@@ -134,8 +139,9 @@ struct ShaperTable: ShapingProvider {
             let isLigature = isLigated && scalar == "f" && next == "i"
             let kern = isKerned && scalar == "A" && next == "V" ? Self.kerning : 0
             let advance = isLigature ? 1 : (advances[scalar] ?? 0.5) - kern
+            let mirrored = direction == .rtl ? Self.mirrors[scalar] ?? scalar : scalar
             let glyph = ShapedGlyph(
-                id: isLigature ? Self.ligature : Int(scalar.value),
+                id: isLigature ? Self.ligature : Int(mirrored.value),
                 advance: advance * size,
                 offset: offset,
                 placementOffset: placements[scalar].map { Point(x: $0.x * size, y: $0.y * size) } ?? Point(x: 0, y: 0)
@@ -152,7 +158,9 @@ struct ShaperTable: ShapingProvider {
             offset += isLigature ? 2 : 1
         }
 
-        return runs
+        guard direction == .rtl else { return runs }
+
+        return runs.reversed().map { ShapedRun(face: $0.face, glyphs: $0.glyphs.reversed()) }
     }
 
     // MARK: - Private

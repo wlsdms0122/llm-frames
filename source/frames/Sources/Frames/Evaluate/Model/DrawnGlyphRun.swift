@@ -40,24 +40,27 @@ package struct DrawnGlyphRun: Equatable, Sendable {
     }
 
     // A resolved run at `time`, its glyphs and pieces raised by its baseline shift then, its glyphs drawn at their pen
-    // with their placement offset and moved by `moves`, one for each glyph, and its pieces' ends by `pieceMove`. A
-    // highlight rectangle is its piece grown by the padding then, and an underline rectangle a band across its piece
-    // the width then thick, its top edge the offset then below the baseline. The stroke is its width then times
-    // `factor`.
+    // with their placement offset and moved by `moves`, one for each glyph, and each piece's ends by its move among
+    // `pieceMoves`, one for each piece its line's clusters give. A piece with none stays, since a resolved document
+    // read back holds the rects it writes, which no rule ties to its clusters. A highlight rectangle is its piece
+    // grown by the padding then, and an underline rectangle a band across its piece the width then thick, its top edge
+    // the offset then below the baseline. The stroke is its width then times `factor`.
     init(
         run: ResolvedGlyphRun,
         factor: Double,
         at time: SampleTime,
         moves: [Point],
-        pieceMove: PieceMove
+        pieceMoves: [PieceMove]
     ) {
         let length = ValueStructure.leaf(.length(.any))
         let shift = run.baselineShift.sampled(at: time, as: length).number ?? 0
         let stroke = run.stroke.sampled(at: time, as: LookStructureTable.textStroke)
-        let span = { (x: Double, width: Double) in
-            (x: x + pieceMove.start.x, width: width + pieceMove.end.x - pieceMove.start.x)
+        let still = PieceMove(start: Point(x: 0, y: 0), end: Point(x: 0, y: 0))
+        let move = { (piece: Int) in pieceMoves.indices.contains(piece) ? pieceMoves[piece] : still }
+        let span = { (piece: Int, x: Double, width: Double) in
+            (x: x + move(piece).start.x, width: width + move(piece).end.x - move(piece).start.x)
         }
-        let rise = pieceMove.start.y - shift
+        let rise = { (piece: Int) in move(piece).start.y - shift }
 
         self.init(
             font: run.font,
@@ -73,12 +76,12 @@ package struct DrawnGlyphRun: Equatable, Sendable {
 
                 return highlight.color.sampled(at: time, as: .leaf(.color)).color.map { color in
                     DrawnHighlight(
-                        rects: highlight.rects.map { piece in
-                            let (x, width) = span(piece.x, piece.width)
+                        rects: highlight.rects.enumerated().map { index, piece in
+                            let (x, width) = span(index, piece.x, piece.width)
 
                             return Rectangle(
                                 x: x - padding[1],
-                                y: piece.y + rise - padding[0],
+                                y: piece.y + rise(index) - padding[0],
                                 width: width + padding[1] * 2,
                                 height: piece.height + padding[0] * 2
                             )
@@ -95,10 +98,10 @@ package struct DrawnGlyphRun: Equatable, Sendable {
 
                 return underline.color.sampled(at: time, as: .leaf(.color)).color.map { color in
                     DrawnUnderline(
-                        rects: underline.rects.map { piece in
-                            let (x, length) = span(piece.x, piece.width)
+                        rects: underline.rects.enumerated().map { index, piece in
+                            let (x, length) = span(index, piece.x, piece.width)
 
-                            return Rectangle(x: x, y: piece.y + rise + offset, width: length, height: width)
+                            return Rectangle(x: x, y: piece.y + rise(index) + offset, width: length, height: width)
                         },
                         color: color,
                         bands: nil

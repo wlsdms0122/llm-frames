@@ -92,8 +92,9 @@ enum LookStructureTable {
         shorthands: [.on]
     ))
 
-    // A text style's `kerning` and `align`, which a title's `character` and `paragraph` write as well.
+    // A text style's `kerning`, `direction` and `align`, which a title's `character` and `paragraph` write as well.
     static let kerning = ValueStructure.leaf(.name(among: ["metrics", "none"]))
+    static let direction = ValueStructure.leaf(.name(among: ["auto"] + TextDirection.allCases.map(\.rawValue)))
     static let align = ValueStructure.leaf(.name(among: TextAlignment.allCases.map(\.rawValue)))
 
     static let textStyle = ObjectStructure(
@@ -114,6 +115,7 @@ enum LookStructureTable {
             ("underline", underline),
             ("placement", .leaf(.name(among: VocabularyTable.placementNames))),
             ("offset", .leaf(.length())),
+            ("direction", direction),
             ("align", align),
             ("lines", .leaf(.number(.positive)))
         ],
@@ -139,8 +141,9 @@ enum LookStructureTable {
         checks: ["weight": .fontWeight, "features": .fontFeatures]
     ))
 
-    // A title's paragraph attributes: `align` is static.
+    // A title's paragraph attributes: `direction` and `align` are static.
     static let paragraph = ValueStructure.object(ObjectStructure([
+        ("direction", direction),
         ("align", align),
         ("lineHeight", .leaf(.length(.positive))),
         ("background", background)

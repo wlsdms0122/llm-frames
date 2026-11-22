@@ -11,8 +11,8 @@ import Testing
 
 // Titles are sequence clips over `/abs/screen.mp4` in a 1920 by 1080 frame, so theme lengths are output pixels, and each
 // is checked by the key tables before it is planned. The theme holds the style `caption`, 40 in `#000000` with a stroke
-// 4 wide in `#000000`, `small`, 20 in `#FF0000`, and `wide`, 20 tracked by 100. A glyph is half an em wide and a space
-// a quarter.
+// 4 wide in `#000000`, `small`, 20 in `#FF0000`, `wide`, 20 tracked by 100, and `marked`, 40 highlighted in `#FF0000`.
+// A glyph is half an em wide and a space a quarter, and a right-to-left run's glyphs are given from right to left.
 @Suite("Title keyframe Tests")
 struct TitleKeyframeTests {
     // MARK: - Property
@@ -72,6 +72,20 @@ struct TitleKeyframeTests {
 
         // When, Then
         let message = place + " (keyframe): a name, a boolean, a form or a static number is static and is written on the clip or the sequence, not in a keyframe"
+        let error = #expect(throws: (any Error).self) { try title(clip) }
+        #expect(error.map(String.init(describing:)) == message)
+    }
+
+    @Test("a paragraph direction in a keyframe stops, naming the keyframe, since the lines are ordered once")
+    func refusesDirectionInKeyframe() throws {
+        // Given
+        let clip = #"""
+            { "title": "a", "style": "caption", "position": [400, 225],
+              "keyframes": [ { "at": 0, "paragraph": { "direction": "rtl" } }, { "at": 1, "character": { "color": "#FFFFFF" } } ] }
+            """#
+
+        // When, Then
+        let message = "clips[0].keyframes[0].paragraph.direction (keyframe): a name, a boolean, a form or a static number is static and is written on the clip or the sequence, not in a keyframe"
         let error = #expect(throws: (any Error).self) { try title(clip) }
         #expect(error.map(String.init(describing:)) == message)
     }
@@ -198,7 +212,7 @@ struct TitleKeyframeTests {
             factor: 1,
             at: SampleTime(0.5),
             moves: run.glyphs.map { _ in still },
-            pieceMove: PieceMove(start: still, end: still)
+            pieceMoves: [PieceMove(start: still, end: still)]
         )
 
         // Then
@@ -486,6 +500,166 @@ struct TitleKeyframeTests {
         #expect(box.width == 42)
     }
 
+    @Test("evaluation moves a right-to-left title's glyphs by the tracking between neighbours as placed, keeping its right edge")
+    func movesRightToLeftGlyphsByTracking() throws {
+        // Given
+        let text = try resolvedText(#"""
+            { "title": "אב", "style": "caption", "position": [400, 225],
+              "keyframes": [ { "at": 0, "character": { "tracking": 0 } }, { "at": 1, "character": { "tracking": 100 } } ] }
+            """#)
+
+        // When
+        let moves = text.glyphMoves(at: SampleTime(0.5))
+        let box = text.box(at: SampleTime(0.5))
+        let sut = GlyphsItem(text: text, factor: 1, at: SampleTime(0.5))
+
+        // Then
+        // The line is placed ב at 0 and א at 20, and the step of 2 between them moves א. The line, right aligned, is 42
+        // wide then, so it moves 2 left: ב by -2 and א by 0, and the box keeps its right edge at 40.
+        #expect(text.direction == .rtl)
+        #expect(text.runs[0].glyphs.map(\.x) == [0, 20])
+        #expect(moves == [[Point(x: -2, y: 0), Point(x: 0, y: 0)]])
+        #expect(box == Rectangle(x: -2, y: 0, width: 42, height: 40))
+        #expect(sut.runs[0].glyphs.map(\.x) == [0, 22])
+    }
+
+    @Test("evaluation steps the gaps of a mixed line as placed, each by the run of whichever neighbour comes first in the text")
+    func stepsMixedLineAsPlaced() throws {
+        // Given
+        let text = try resolvedText(#"""
+            { "title": [ { "text": "א" }, { "text": "ב", "style": "small" }, { "text": "c" } ], "style": "caption",
+              "position": [400, 225], "paragraph": { "direction": "ltr" },
+              "keyframes": [ { "at": 0, "character": { "tracking": 0 } }, { "at": 1, "character": { "tracking": 100 } } ] }
+            """#)
+
+        // When
+        let moves = text.glyphMoves(at: SampleTime(0.5))
+        let box = text.box(at: SampleTime(0.5))
+
+        // Then
+        // At levels 1 1 0 the line is placed ב א c, ב 10 wide and the others 20. At 0.5 a run of 40 steps 2 and one of
+        // 20 steps 1. Both gaps take the step of א, which comes first in the text in each pair, so א moves 2 and c 4,
+        // where logical order would give 2 after א and 1 after ב.
+        #expect(text.runs.map(\.source) == [1, 0, 2])
+        #expect(moves == [[Point(x: 0, y: 0)], [Point(x: 2, y: 0)], [Point(x: 4, y: 0)]])
+        #expect(box.width == 54)
+    }
+
+    @Test("evaluation moves the spaces hanging left of a right-to-left line with its leftmost character")
+    func movesLeadingHangingSpaces() throws {
+        // Given
+        let text = try resolvedText(#"""
+            { "title": "א\nבג ", "style": "caption", "position": [400, 225],
+              "keyframes": [ { "at": 0, "character": { "tracking": 0 }, "paragraph": { "lineHeight": 50 } },
+                             { "at": 1, "character": { "tracking": 100 }, "paragraph": { "lineHeight": 70 } } ] }
+            """#)
+
+        // When
+        let moves = text.glyphMoves(at: SampleTime(0.5))
+        let box = text.box(at: SampleTime(0.5))
+
+        // Then
+        // The second line is placed space ג ב, the space hanging left of the line's start at -10, and drops 10 at 0.5.
+        // The step of 2 between ג and ב makes the line 42 wide, so right aligned it moves 2 left: the space and ג, the
+        // leftmost character, by -2 and ב by 0.
+        #expect(text.lines.map { $0.hanging.count } == [0, 1])
+        #expect(text.runs[1].glyphs.map(\.x) == [-10, 0, 20])
+        #expect(moves == [
+            [Point(x: 0, y: 0)],
+            [Point(x: -2, y: 10), Point(x: -2, y: 10), Point(x: 0, y: 10)]
+        ])
+        #expect(box.width == 42)
+    }
+
+    @Test("evaluation stretches a right-to-left piece from its leftmost character to its rightmost where they are at an instant")
+    func stretchesRightToLeftPiece() throws {
+        // Given
+        let text = try resolvedText(#"""
+            { "title": "אב", "style": "caption", "position": [400, 225],
+              "character": { "highlight": { "color": "#FF0000", "padding": [2, 4] }, "underline": true },
+              "keyframes": [ { "at": 0, "character": { "tracking": 0 } }, { "at": 1, "character": { "tracking": 100 } } ] }
+            """#)
+
+        // When
+        let sut = GlyphsItem(text: text, factor: 1, at: SampleTime(0.5))
+
+        // Then
+        // ב lies leftmost at 0 and א rightmost, 22 to 42 in the text box then, so the piece runs from 0 to 42, grown
+        // by the padding.
+        let run = try #require(sut.runs.first)
+        #expect(run.highlight?.rects == [Rectangle(x: -4, y: -2, width: 50, height: 44)])
+        #expect(run.underline?.rects == [Rectangle(x: 0, y: 36, width: 42, height: 2)])
+    }
+
+    @Test("evaluation moves each piece of a run split by reordering with its own characters")
+    func movesEachPieceOfSplitRun() throws {
+        // Given
+        let text = try resolvedText(#"""
+            { "title": [ { "text": "אa", "style": "marked" }, { "text": "b" } ],
+              "style": "caption", "position": [400, 225],
+              "keyframes": [ { "at": 0, "character": { "tracking": 0 } }, { "at": 1, "character": { "tracking": 100 } } ] }
+            """#)
+
+        // When
+        let sut = GlyphsItem(text: text, factor: 1, at: SampleTime(0.5))
+
+        // Then
+        // At levels 1 2 2 the line is placed a b א, at 0, 20 and 40, and the first glyph run holds the run's pieces in
+        // text order, א's then a's. At 0.5 the steps of 2 move b 2 and א 4, so in the text box then, 64 wide, a lies at
+        // 0, b at 22 and א at 44, and each piece lies under its own character.
+        #expect(text.runs.map(\.source) == [0, 1, 0])
+        #expect(sut.runs.map { $0.glyphs.map(\.x) } == [[0], [22], [44]])
+        #expect(sut.runs[0].highlight?.rects == [
+            Rectangle(x: 44, y: 0, width: 20, height: 40),
+            Rectangle(x: 0, y: 0, width: 20, height: 40)
+        ])
+    }
+
+    @Test("evaluation moves a right-to-left line's piece with its glyphs when a space in another face hangs left of it")
+    func movesPieceBesideHangingSpace() throws {
+        // Given
+        let shaper = ShaperTable(lacks: ["Apple SD Gothic Neo": Set("Aple".unicodeScalars)])
+        let text = try resolvedText(#"""
+            { "title": "مرحبا Apple \nمرحبا", "style": "marked", "position": [400, 225],
+              "keyframes": [ { "at": 0, "character": { "tracking": 0 } }, { "at": 1, "character": { "tracking": 100 } } ] }
+            """#, shaper: shaper)
+
+        // When
+        let sut = GlyphsItem(text: text, factor: 1, at: SampleTime(0.5))
+
+        // Then
+        // The first line is placed the hanging space, `Apple` in the fallback face, a space and the Arabic word, 210
+        // wide. At 0.5 its six gaps outside the Arabic word add 2 each, and the four between its letters none, so in
+        // the text box then, 222 wide, `Apple` lies from 0 and the line ends at 222, and the piece, held by the glyph
+        // run of `Apple`, runs from 0 to 222.
+        #expect(sut.runs[1].glyphs.map(\.x) == [0, 22, 44, 66, 88])
+        #expect(sut.runs.prefix(3).map { $0.highlight?.rects ?? [] } == [
+            [],
+            [Rectangle(x: 0, y: 0, width: 222, height: 40)],
+            []
+        ])
+    }
+
+    @Test("evaluation steps no gap between two letters of one cursive script, and the Latin word and space beside them step")
+    func stepsNoCursiveGap() throws {
+        // Given
+        let text = try resolvedText(#"""
+            { "title": "ab مرحبا", "style": "caption", "position": [400, 225],
+              "keyframes": [ { "at": 0, "character": { "tracking": 0 } }, { "at": 1, "character": { "tracking": 100 } } ] }
+            """#)
+
+        // When
+        let moves = text.glyphMoves(at: SampleTime(0.5))
+        let box = text.box(at: SampleTime(0.5))
+
+        // Then
+        // The line is placed `a`, `b`, the space and the Arabic word, letters 20 wide and the space 10, 150 in all. At
+        // 0.5 a step is 2, which lies between `a` and `b`, `b` and the space, and the space and the word, and not
+        // between the word's letters, so `b` moves 2, the space 4 and every Arabic letter 6, and the line is 156 wide.
+        #expect(moves.flatMap { $0 }.map(\.x) == [0, 2, 4, 6, 6, 6, 6, 6])
+        #expect(box.width == 156)
+    }
+
     @Test("a ligature kept under keyframed tracking takes one step after it, and none when it ends its line")
     func stepsOnceAfterLigature() throws {
         // Given
@@ -622,8 +796,20 @@ struct TitleKeyframeTests {
         return try #require(try ResolvedSequence(plan: plan, hashes: FileHashTable()).clips.first)
     }
 
-    private func resolvedText(_ clip: String) throws -> ResolvedText {
-        let plan = try Fixture.documentPlanner.plan(try Fixture.json(document(clip)))
+    private func resolvedText(
+        _ clip: String,
+        shaper: ShaperTable = Fixture.shaper
+    ) throws -> ResolvedText {
+        let planner = DocumentPlanner(
+            mediaFacts: Fixture.mediaFacts,
+            presets: Fixture.presets,
+            ocr: Fixture.ocr,
+            languages: nil,
+            tracker: Fixture.tracker,
+            shaper: shaper,
+            library: Fixture.library
+        )
+        let plan = try planner.plan(try Fixture.json(document(clip)))
         let clips = try ResolvedSequence(plan: plan, hashes: FileHashTable()).clips
         guard case let .title(text) = clips.first?.content else {
             Issue.record("the clip is a title")
@@ -645,7 +831,8 @@ struct TitleKeyframeTests {
               "theme": { "colors": { "accent": "#FFD43B" },
                          "styles": { "caption": { "size": 40, "color": "#000000", "stroke": { "width": 4, "color": "#000000" } },
                                      "small": { "size": 20, "color": "#FF0000" },
-                                     "wide": { "size": 20, "tracking": 100 } } },
+                                     "wide": { "size": 20, "tracking": 100 },
+                                     "marked": { "size": 40, "highlight": { "color": "#FF0000" } } } },
               "storyline": [ { "media": "/abs/screen.mp4" } ], "clips": [ \#(clip.dropLast(1)), "at": [0, 2] } ] }
             """#
     }

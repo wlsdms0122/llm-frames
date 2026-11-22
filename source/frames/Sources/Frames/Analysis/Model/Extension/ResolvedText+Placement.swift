@@ -8,9 +8,9 @@
 // Where a title's text lies at an instant, as `evaluate` reports it, in its text box then and read from the resolved
 // title alone. A character lies in its glyph box then, the box of its first glyph's pen and its advance on its line,
 // moved as its glyphs move then and raised by its run's baseline shift then, and sits on its line's baseline then less
-// that shift. A character with no glyph of its own lies where its group's first character does, and one with no
-// character with glyphs before it on its line where the line starts then. A line lies where its baseline is then, with
-// no shift. A space hanging at a line's end is no character.
+// that shift, at the embedding level its cluster was resolved at. A character with no glyph of its own lies where the
+// character it is drawn with does, and on a line with no glyph where the line starts then. A line lies where its
+// baseline is then, with no shift. A space hanging at a line's end is no character.
 extension ResolvedText {
     // MARK: - Property
     var evaluationWords: [EvaluationWord] {
@@ -78,6 +78,7 @@ extension ResolvedText {
             return EvaluationCharacter(
                 text: text.text(over: cluster.range),
                 range: cluster.range,
+                level: cluster.level,
                 rect: rect,
                 baseline: rect.y + lines[line].ascent
             )
