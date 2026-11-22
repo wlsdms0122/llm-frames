@@ -819,14 +819,29 @@ struct ResolvedValueReader: Sendable {
         return UnitPart(run: run, piece: piece, span: numbers[2]...numbers[3])
     }
 
-    // A line's cluster is `[run, first, count, start, end, advance, level]`, its glyphs a range of one of `runs`, its
-    // scalars a range of at least one of the text's `scalarCount` and its level an embedding level UAX #9 can give.
+    // A line's cluster is `[run, first, count, start, end, advance, level, cursive]`, its glyphs a range of one of
+    // `runs`, its scalars a range of at least one of the text's `scalarCount`, its level an embedding level UAX #9 can
+    // give and `cursive` the cursive scripts it is a letter of, ISO 15924 codes separated by single spaces, none twice,
+    // or empty for none.
     private func cluster(
         _ value: PlacedJSONValue,
         in runs: [ResolvedGlyphRun],
         scalarCount: Int
     ) throws -> PlacedCluster {
-        let numbers = try value.numbers(count: 7)
+        let form = "[run, first, count, start, end, advance, level, cursive]"
+        let elements = try value.elements()
+        guard elements.count == 8 else { throw value.wrongType("\(form) within the text's \(scalarCount) scalars") }
+        let numbers = try elements.prefix(7).map { try $0.number() }
+        let written = try elements[7].string()
+        let cursiveScripts = written.isEmpty
+            ? []
+            : written.split(separator: " ", omittingEmptySubsequences: false).map(String.init)
+        guard
+            cursiveScripts.allSatisfy(isScriptCode),
+            Set(cursiveScripts).count == cursiveScripts.count
+        else {
+            throw elements[7].wrongType("distinct ISO 15924 script codes separated by spaces")
+        }
         guard
             let run = Int(exactly: numbers[0]),
             let first = Int(exactly: numbers[1]),
@@ -844,17 +859,32 @@ struct ResolvedValueReader: Sendable {
             level >= 0,
             level <= BidiResolver.maxLevel
         else {
-            throw value.wrongType("[run, first, count, start, end, advance, level] within the text's \(scalarCount) scalars")
+            throw value.wrongType("\(form) within the text's \(scalarCount) scalars")
         }
 
         let glyphs = GlyphRange(run: run, first: first, count: count)
 
-        return PlacedCluster(glyphs: glyphs, range: start..<end, advance: numbers[5], level: level)
+        return PlacedCluster(
+            glyphs: glyphs,
+            range: start..<end,
+            advance: numbers[5],
+            level: level,
+            cursiveScripts: cursiveScripts
+        )
+    }
+
+    // An ISO 15924 code is four ASCII letters, the first upper case and the rest lower case.
+    private func isScriptCode(_ code: String) -> Bool {
+        let scalars = Array(code.unicodeScalars)
+
+        return scalars.count == 4
+            && ("A"..."Z").contains(scalars[0])
+            && scalars.dropFirst().allSatisfy { ("a"..."z").contains($0) }
     }
 
     // A line's clusters and its hanging spaces, taken in the order they are placed in with those with no glyph of their
-    // own left out, each start at the pen start of the one before plus its advance, plus, when both are characters, the
-    // static tracking of the run of whichever of the two comes first in the text. The rightmost character ends at the
+    // own left out, each start at the pen start of the one before plus its advance, plus the static tracking of the run
+    // of the character `PlacedLine.placedOwners` puts between them, when it puts one. The rightmost character ends at the
     // leftmost one's pen start plus the line's width, and a line with no character taken has a width of 0.
     private func pensFollow(
         on line: PlacedLine,

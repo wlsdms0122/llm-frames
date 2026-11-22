@@ -210,6 +210,47 @@ struct TypesetterDirectionTests {
         #expect(layout.size.width == 58)
     }
 
+    @Test("no tracking lies between two letters of one cursive script, while a Latin word and the space beside it track")
+    func keepsCursiveLettersTogether() throws {
+        // Given
+        let runs = [run("ab \u{645}\u{631}\u{62D}\u{628}\u{627}", style: character(tracking: 100))]
+
+        // When
+        let layout = try sut.layout(runs, paragraph: paragraph(), width: nil, place: place, kind: "title")
+
+        // Then
+        // The paragraph is left to right from `a`, and the line is placed `a`, `b`, the space and the Arabic word from
+        // its last letter, each letter 20 wide and the space 10. Tracking 4 lies between `a` and `b`, `b` and the
+        // space, and the space and the word, and none between the word's letters, so the word is 100 wide as it is
+        // untracked and the line 150 and three gaps.
+        let arabic = Array(repeating: ["Arab"], count: 5)
+        #expect(layout.runs.flatMap(\.glyphs).map(\.x) == [0, 24, 48, 62, 82, 102, 122, 142])
+        #expect(layout.lines.map(\.width) == [162])
+        #expect(layout.lines.flatMap(\.clusters).map(\.cursiveScripts) == [[], [], []] + arabic)
+    }
+
+    @Test("an Arabic-Indic digit and the tatweel are letters of Arabic, and a letter of another cursive script beside one tracks")
+    func readsCursiveScriptsOfCharacters() throws {
+        // Given
+        let runs = [run("\u{628}\u{640}\u{661}\u{712}", style: character(tracking: 100))]
+
+        // When
+        let layout = try sut.layout(runs, paragraph: paragraph(), width: nil, place: place, kind: "title")
+
+        // Then
+        // `ب`, the tatweel and `١` are letters of Arabic, the tatweel also of Syriac and the other scripts it extends
+        // to, and `ܒ` a letter of Syriac. The tatweel shares Arabic with `ب` and Syriac with `ܒ`, so no gap takes
+        // tracking but the one between `١` and `ܒ`, which share no script: the line is four letters and one gap wide.
+        let clusters = layout.lines.flatMap(\.clusters)
+        #expect(clusters.map(\.cursiveScripts) == [
+            ["Arab"],
+            ["Adlm", "Arab", "Mand", "Mani", "Ougr", "Phlp", "Rohg", "Sogd", "Syrc"],
+            ["Arab"],
+            ["Syrc"]
+        ])
+        #expect(layout.lines.map(\.width) == [84])
+    }
+
     @Test("line breaking measures a candidate line as it would be placed")
     func breaksAtWidthAsPlaced() throws {
         // Given

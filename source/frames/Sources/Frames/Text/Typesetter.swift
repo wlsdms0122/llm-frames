@@ -10,7 +10,8 @@
 // a group's glyphs belong to the first character they are set from. Each line is then ordered by UAX #9: its groups lie
 // from left to right in the visual order of their first characters, and tracking lies between every two neighbouring
 // characters as placed, the tracking of whichever comes first in the text, so it widens no line past its outermost
-// characters and moves no centred or right-aligned line off its place. Which character a character is drawn with,
+// characters and moves no centred or right-aligned line off its place, but between two letters of one cursive script,
+// whose connection it would break. Which character a character is drawn with,
 // where a highlight or underline piece is cut and which glyph run holds it are those `PlacedLine` gives.
 struct Typesetter: Sendable {
     // MARK: - Property
@@ -344,7 +345,8 @@ struct Typesetter: Sendable {
                 glyphs: given.map { glyphs[$0].glyph },
                 isSpace: character.unicodeScalars.isSpace,
                 tracking: isOwner ? run.style.tracking * em : 0,
-                widestTracking: isOwner ? run.widestTracking * em : 0
+                widestTracking: isOwner ? run.widestTracking * em : 0,
+                cursiveScripts: cursiveScripts(of: character)
             )
         }
     }
@@ -454,30 +456,45 @@ struct Typesetter: Sendable {
         }
     }
 
-    // The order a line's characters are placed in from left to right, by their index.
-    private func placedOrder(
+    // The cursive scripts a character is a letter of: those of its first scalar when it is a letter or a number, as CSS
+    // Text 3 takes a typographic character unit's properties from its first scalar, and none otherwise.
+    private func cursiveScripts(of character: Character) -> [String] {
+        guard let scalar = character.unicodeScalars.first else { return [] }
+
+        switch scalar.properties.generalCategory {
+        case .uppercaseLetter, .lowercaseLetter, .titlecaseLetter, .modifierLetter, .otherLetter, .decimalNumber,
+            .letterNumber, .otherNumber:
+            return CursiveScript.codes(of: scalar)
+
+        default:
+            return []
+        }
+    }
+
+    // A line's characters and hanging spaces with glyphs of their own in the order they are placed in, each with the
+    // character whose run's tracking lies on its left, as `PlacedLine.placedOwners` gives them.
+    private func placedOwners(
         of characters: [StyledCharacter],
         paragraphLevel: Int
-    ) -> [Int] {
-        PlacedLine.placedOrder(
+    ) -> [(index: Int, tracking: Int?)] {
+        PlacedLine.placedOwners(
             levels: lineLevels(of: characters, paragraphLevel: paragraphLevel),
-            hasGlyphs: characters.map { !$0.glyphs.isEmpty }
+            hasGlyphs: characters.map { !$0.glyphs.isEmpty },
+            characterCount: visibleCharacters(of: characters).count,
+            cursiveScripts: characters.map(\.cursiveScripts)
         )
     }
 
-    // The advances of the visible characters and the tracking between every two of them with glyphs of their own that
-    // are neighbours as placed, the tracking of whichever comes first in the text.
+    // The advances of the visible characters and the tracking between every two of them that `placedOwners` gives.
     private func visibleWidth(
         of characters: [StyledCharacter],
         tracking: KeyPath<StyledCharacter, Double>,
         paragraphLevel: Int
     ) -> Double {
-        let visible = visibleCharacters(of: characters)
-        let tracked = placedOrder(of: characters, paragraphLevel: paragraphLevel)
-            .filter { $0 < visible.count && !characters[$0].glyphs.isEmpty }
-        let gaps = zip(tracked, tracked.dropFirst()).map { characters[min($0, $1)][keyPath: tracking] }
+        let gaps = placedOwners(of: characters, paragraphLevel: paragraphLevel)
+            .compactMap { $0.tracking.map { characters[$0][keyPath: tracking] } }
 
-        return visible.map(\.advance).reduce(0, +) + gaps.reduce(0, +)
+        return visibleCharacters(of: characters).map(\.advance).reduce(0, +) + gaps.reduce(0, +)
     }
 
     private func breakWidth(
@@ -489,16 +506,17 @@ struct Typesetter: Sendable {
 
     // Glyphs of one line of one text run in one face that lie side by side make one glyph run, and the runs of a line
     // share its baseline. The groups of glyphs lie in the order `placedOrder` gives, each glyph at the pen with its
-    // placement offset, and the pen moves from left to right by advances and by the tracking between neighbouring
-    // characters, so the spaces that hang lie past the line's end untracked: after its right end, or before its left
-    // end at an odd paragraph level, where L2 places them first, on a line with no character too. A character with no
-    // glyph of its own is a range of count 0 after the glyphs of the character `PlacedLine.owners(hasGlyphs:)` draws
-    // it with and spans that character, and on a line with no glyph it is a range of count 0 at glyph 0 of the line's
-    // first run, written for it with no glyphs, spanning nothing at the line's start. The hanging spaces, which are no
-    // characters, are cut into groups among themselves. A character's span is its glyph box across the line, from the
-    // pen where its glyphs begin, as wide as their advances, and the spans of the line's characters are given in text
-    // order. The line's clusters name glyphs by the index of their run among the text's, the first of
-    // this line's runs being `firstRun`, and carry their levels after rule L1. `index` is the line's among the text's.
+    // placement offset, and the pen moves from left to right by advances and by the tracking `PlacedLine.placedOwners`
+    // puts between neighbouring characters, so the spaces that hang lie past the line's end untracked: after its right
+    // end, or before its left end at an odd paragraph level, where L2 places them first, on a line with no character
+    // too. A character with no glyph of its own is a range of count 0 after the glyphs of the character
+    // `PlacedLine.owners(hasGlyphs:)` draws it with and spans that character, and on a line with no glyph it is a range
+    // of count 0 at glyph 0 of the line's first run, written for it with no glyphs, spanning nothing at the line's
+    // start. The hanging spaces, which are no characters, are cut into groups among themselves. A character's span is
+    // its glyph box across the line, from the pen where its glyphs begin, as wide as their advances, and the spans of
+    // the line's characters are given in text order. The line's clusters name glyphs by the index of their run among
+    // the text's, the first of this line's runs being `firstRun`, and carry their levels after rule L1 and their
+    // cursive scripts. `index` is the line's among the text's.
     private func placed(
         _ line: TextLine,
         index lineIndex: Int,
@@ -515,6 +533,12 @@ struct Typesetter: Sendable {
         let levels = lineLevels(of: characters, paragraphLevel: paragraphLevel)
         let hasGlyphs = characters.map { !$0.glyphs.isEmpty }
         let order = PlacedLine.placedOrder(levels: levels, hasGlyphs: hasGlyphs)
+        let placedOwners = PlacedLine.placedOwners(
+            levels: levels,
+            hasGlyphs: hasGlyphs,
+            characterCount: visibleCount,
+            cursiveScripts: characters.map(\.cursiveScripts)
+        )
         let hangingOwners = PlacedLine.owners(hasGlyphs: Array(hasGlyphs.dropFirst(visibleCount)))
         let owners = PlacedLine.owners(hasGlyphs: Array(hasGlyphs.prefix(visibleCount)))
             + hangingOwners.map { $0.map { visibleCount + $0 } }
@@ -523,13 +547,9 @@ struct Typesetter: Sendable {
         var runs: [GlyphRun] = []
         var groups: [Int: (glyphs: GlyphRange, span: ClosedRange<Double>)] = [:]
         var x = origin.x - leading.map { characters[$0].advance }.reduce(0, +)
-        var neighbour: Int?
-        for index in order where !characters[index].glyphs.isEmpty {
+        for (index, owner) in placedOwners {
             let character = characters[index]
-            if let neighbour, neighbour < visibleCount, index < visibleCount {
-                x += characters[min(neighbour, index)].tracking
-            }
-            neighbour = index
+            x += owner.map { characters[$0].tracking } ?? 0
 
             let start = x
             for glyph in character.glyphs {
@@ -588,7 +608,8 @@ struct Typesetter: Sendable {
                 glyphs: glyphs,
                 range: character.range,
                 advance: isOwner ? character.advance : 0,
-                level: levels[index]
+                level: levels[index],
+                cursiveScripts: character.cursiveScripts
             )
 
             return (cluster: cluster, span: held.span)

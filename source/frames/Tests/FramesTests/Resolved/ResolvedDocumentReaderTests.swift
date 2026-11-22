@@ -221,10 +221,11 @@ struct ResolvedDocumentReaderTests {
           "align": "left", "lineHeight": [ { "at": 1.2, "value": 60, "ease": "linear" } ],
           "text": "Mina Baker", "words": [ [0, 4], [5, 10] ],
           "lines": [ { "width": 216.2, "baseline": 45.7, "ascent": 45.7, "descent": 10.2, "range": [0, 10],
-                       "clusters": [ [0, 0, 1, 0, 1, 41.8, 0], [0, 1, 1, 1, 2, 12.4, 0], [0, 2, 1, 2, 3, 28.5, 0],
-                                     [0, 3, 1, 3, 4, 27.6, 0], [0, 4, 1, 4, 5, 13.3, 0], [1, 0, 1, 5, 6, 24.7, 0],
-                                     [1, 1, 1, 6, 7, 19.3, 0], [1, 2, 1, 7, 8, 18, 0], [1, 3, 1, 8, 9, 19.3, 0],
-                                     [1, 4, 1, 9, 10, 11.3, 0] ],
+                       "clusters": [ [0, 0, 1, 0, 1, 41.8, 0, ""], [0, 1, 1, 1, 2, 12.4, 0, ""],
+                                     [0, 2, 1, 2, 3, 28.5, 0, ""], [0, 3, 1, 3, 4, 27.6, 0, ""],
+                                     [0, 4, 1, 4, 5, 13.3, 0, ""], [1, 0, 1, 5, 6, 24.7, 0, ""],
+                                     [1, 1, 1, 6, 7, 19.3, 0, ""], [1, 2, 1, 7, 8, 18, 0, ""],
+                                     [1, 3, 1, 8, 9, 19.3, 0, ""], [1, 4, 1, 9, 10, 11.3, 0, ""] ],
                        "hanging": [] } ],
           "units": null,
           "runs": [
@@ -968,11 +969,12 @@ struct ResolvedDocumentReaderTests {
     }
 
     @Test(
-        "a title's cluster, line or word range past its text, a level UAX #9 cannot give, or clusters that do not go up along a line, stop when read",
+        "a title's cluster, line or word range past its text, a level UAX #9 cannot give, a script code ISO 15924 cannot give, or clusters that do not go up along a line, stop when read",
         arguments: [
-            ("cluster", "expected [run, first, count, start, end, advance, level] within the text's 5 scalars"),
-            ("level", "expected [run, first, count, start, end, advance, level] within the text's 5 scalars"),
-            ("deep level", "expected [run, first, count, start, end, advance, level] within the text's 5 scalars"),
+            ("cluster", "expected [run, first, count, start, end, advance, level, cursive] within the text's 5 scalars"),
+            ("level", "expected [run, first, count, start, end, advance, level, cursive] within the text's 5 scalars"),
+            ("deep level", "expected [run, first, count, start, end, advance, level, cursive] within the text's 5 scalars"),
+            ("script", "expected distinct ISO 15924 script codes separated by spaces"),
             ("line", "expected [start, end] within the text's 5 scalars"),
             ("word", "expected [start, end] within the text's 5 scalars"),
             ("order", "line 0's clusters do not go up along the text")
@@ -1012,6 +1014,12 @@ struct ResolvedDocumentReaderTests {
                 var numbers = try #require(clusters[0].arrayValue)
                 numbers[6] = .number(127)
                 clusters[0] = .array(numbers)
+                lines[0] = .object(line.setting("clusters", to: .array(clusters)))
+
+            case "script":
+                var values = try #require(clusters[0].arrayValue)
+                values[7] = .string("Arab arab")
+                clusters[0] = .array(values)
                 lines[0] = .object(line.setting("clusters", to: .array(clusters)))
 
             case "line":
@@ -1115,6 +1123,52 @@ struct ResolvedDocumentReaderTests {
         #expect(error?.description.contains(
             "runs[0].glyphs[0] (clip): expected [glyph id, x, y, dx, dy] with a glyph id from 0 to 65535"
         ) == true)
+    }
+
+    @Test("a tracked title of Arabic and Latin from resolve reads back with its clusters' cursive scripts, and stops without them")
+    func readsCursiveScripts() throws {
+        // Given
+        let document = try resolved(
+            #"""
+            { "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4", "in": 0, "out": 3 } ],
+              "clips": [ { "title": "ab مرحبا", "style": "title", "at": [0, 1], "position": [0, 0],
+                           "character": { "tracking": 100 } } ] }
+            """#
+        )
+        let text = writer.write(document)
+        let stripped = try replacingTitle(ofClip: 0, in: text) { title in
+            var lines = try #require(title["lines"]?.arrayValue)
+            let line = try #require(lines[0].objectValue)
+            let clusters = try #require(line["clusters"]?.arrayValue).map { cluster in
+                var values = try #require(cluster.arrayValue)
+                values[7] = .string("")
+
+                return JSONValue.array(values)
+            }
+            lines[0] = .object(line.setting("clusters", to: .array(clusters)))
+
+            return title.setting("lines", to: .array(lines))
+        }
+
+        // When
+        let read = try sut.read(text)
+        let error = #expect(throws: ModelError.self) { try sut.read(stripped) }
+
+        // Then
+        // Tracking lies between `a` and `b`, `b` and the space, and the space and the Arabic word, and not between the
+        // word's letters. Read without their scripts, the word's pens lie closer than the tracking between its letters
+        // would put them.
+        guard case let .title(title) = read.clips.first?.content else {
+            Issue.record("the first clip is not a title")
+            return
+        }
+        let line = try #require(title.lines.first)
+        let tracking = title.runs[0].staticTracking
+        let scripts: [[String]] = [[], [], []] + Array(repeating: ["Arab"], count: 5)
+        #expect(read == document)
+        #expect(line.clusters.map(\.cursiveScripts) == scripts)
+        #expect(abs(line.width - line.clusters.map(\.advance).reduce(0, +) - 3 * tracking) < 1e-9)
+        #expect(error?.description.contains("line 0's pen positions do not follow its clusters' advances") == true)
     }
 
     @Test("the title of the example of the resolved document reads, and writes back as it was written")

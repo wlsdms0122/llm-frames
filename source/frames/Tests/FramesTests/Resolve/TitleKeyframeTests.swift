@@ -629,14 +629,35 @@ struct TitleKeyframeTests {
 
         // Then
         // The first line is placed the hanging space, `Apple` in the fallback face, a space and the Arabic word, 210
-        // wide. At 0.5 its ten gaps add 2 each, so in the text box then, 230 wide, `Apple` lies from 0 and the line
-        // ends at 230, and the piece, held by the glyph run of `Apple`, runs from 0 to 230.
+        // wide. At 0.5 its six gaps outside the Arabic word add 2 each, and the four between its letters none, so in
+        // the text box then, 222 wide, `Apple` lies from 0 and the line ends at 222, and the piece, held by the glyph
+        // run of `Apple`, runs from 0 to 222.
         #expect(sut.runs[1].glyphs.map(\.x) == [0, 22, 44, 66, 88])
         #expect(sut.runs.prefix(3).map { $0.highlight?.rects ?? [] } == [
             [],
-            [Rectangle(x: 0, y: 0, width: 230, height: 40)],
+            [Rectangle(x: 0, y: 0, width: 222, height: 40)],
             []
         ])
+    }
+
+    @Test("evaluation steps no gap between two letters of one cursive script, and the Latin word and space beside them step")
+    func stepsNoCursiveGap() throws {
+        // Given
+        let text = try resolvedText(#"""
+            { "title": "ab مرحبا", "style": "caption", "position": [400, 225],
+              "keyframes": [ { "at": 0, "character": { "tracking": 0 } }, { "at": 1, "character": { "tracking": 100 } } ] }
+            """#)
+
+        // When
+        let moves = text.glyphMoves(at: SampleTime(0.5))
+        let box = text.box(at: SampleTime(0.5))
+
+        // Then
+        // The line is placed `a`, `b`, the space and the Arabic word, letters 20 wide and the space 10, 150 in all. At
+        // 0.5 a step is 2, which lies between `a` and `b`, `b` and the space, and the space and the word, and not
+        // between the word's letters, so `b` moves 2, the space 4 and every Arabic letter 6, and the line is 156 wide.
+        #expect(moves.flatMap { $0 }.map(\.x) == [0, 2, 4, 6, 6, 6, 6, 6])
+        #expect(box.width == 156)
     }
 
     @Test("a ligature kept under keyframed tracking takes one step after it, and none when it ends its line")

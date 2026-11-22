@@ -55,6 +55,50 @@ struct CoreTextTypesetterTests {
         ])
     }
 
+    @Test("a tracked Arabic word keeps its glyphs advance to advance and its width, and a Latin word beside it tracks")
+    func keepsTrackedArabicWordJoined() throws {
+        // Given
+        let face = try #require(shaper.installedFaces(family: "Geeza Pro").first { $0.name == "GeezaPro" })
+        let style = CharacterStyle(families: ["Geeza Pro"], weight: .regular, size: 48, tracking: 200)
+        let word = "\u{645}\u{631}\u{62D}\u{628}\u{627}"
+        let untracked = ["liga", "clig", "dlig"].map { FontFeature(tag: $0, value: 0) }
+        let shaped = try shaper
+            .shape(word, direction: .rtl, faces: [face], size: 48, features: untracked, weight: .regular, italic: false)
+            .flatMap(\.glyphs)
+
+        // When
+        let layout = try sut.layout(
+            [TextRun(text: "Apple " + word, style: style, faces: [face])],
+            paragraph: ParagraphStyle(lineHeight: 60, background: nil, align: nil, lines: nil),
+            width: nil,
+            place: place,
+            kind: "title"
+        )
+
+        // Then
+        // The paragraph is left to right from `A`, and the line is placed `Apple`, the space and the Arabic word. A
+        // tracking of 200 at size 48 puts 9.6 between the Latin letters, after `e` and after the space, and none
+        // between the Arabic letters, so each Arabic letter starts where the one on its left ends, the word is as wide
+        // as its glyphs shaped untracked, and the line is its advances and six gaps wide.
+        let tracking = 9.6
+        let line = try #require(layout.lines.first)
+        let latin = line.clusters.prefix(6)
+        let arabic = line.clusters.dropFirst(6).filter { $0.glyphs.count > 0 }
+            .sorted { start(of: $0, in: layout) < start(of: $1, in: layout) }
+        let arabicWidth = arabic.map(\.advance).reduce(0, +)
+        let shapedWidth = shaped.map(\.advance).reduce(0, +)
+        let latinGaps = zip(latin, latin.dropFirst()).map { gap(between: $0, and: $1, in: layout) }
+        let arabicGaps = zip(arabic, arabic.dropFirst()).map { gap(between: $0, and: $1, in: layout) }
+        let spaceGap = gap(between: latin[5], and: arabic[0], in: layout)
+        let scripts: [[String]] = Array(repeating: [], count: 6) + Array(repeating: ["Arab"], count: 5)
+        #expect(line.clusters.map(\.cursiveScripts) == scripts)
+        #expect(latinGaps.allSatisfy { abs($0 - tracking) < 1e-9 })
+        #expect(arabicGaps.allSatisfy { abs($0) < 1e-9 })
+        #expect(abs(spaceGap - tracking) < 1e-9)
+        #expect(abs(arabicWidth - shapedWidth) < 1e-9)
+        #expect(abs(line.width - line.clusters.map(\.advance).reduce(0, +) - 6 * tracking) < 1e-9)
+    }
+
     @Test("a comma and the space after it in Hebrew text set in a fallback face are each a group, the comma beside its word")
     func placesCommaAndSpaceInHebrew() throws {
         // Given
@@ -100,6 +144,15 @@ struct CoreTextTypesetterTests {
         layout.runs[cluster.glyphs.run].glyphs[cluster.glyphs.first].x
     }
 
+    // The space between where `left`'s glyph box ends and `right`'s starts.
+    private func gap(
+        between left: PlacedCluster,
+        and right: PlacedCluster,
+        in layout: TextLayout
+    ) -> Double {
+        start(of: right, in: layout) - start(of: left, in: layout) - left.advance
+    }
+
     private func shape(
         _ text: String,
         _ face: FontFace
@@ -114,6 +167,12 @@ struct CoreTextTypesetterTests {
         _ range: Range<Int>,
         _ advance: Double
     ) -> PlacedCluster {
-        PlacedCluster(glyphs: GlyphRange(run: 0, first: first, count: count), range: range, advance: advance, level: 1)
+        PlacedCluster(
+            glyphs: GlyphRange(run: 0, first: first, count: count),
+            range: range,
+            advance: advance,
+            level: 1,
+            cursiveScripts: ["Arab"]
+        )
     }
 }

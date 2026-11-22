@@ -11,7 +11,8 @@
 // none otherwise, in the order they lie on the line. `isSpace` says its first scalar is white space, so it hangs at a
 // line's end. `tracking` is the space between it and a neighbour as placed that comes after it in the text, at the
 // run's static tracking, in output pixels, and `widestTracking` at the widest tracking the run takes, both 0 for a
-// character with no glyph of its own.
+// character with no glyph of its own. `cursiveScripts` are the ISO 15924 codes of the cursive scripts it is a letter
+// of.
 struct StyledCharacter: Equatable, Sendable {
     // MARK: - Property
     let character: Character
@@ -24,6 +25,7 @@ struct StyledCharacter: Equatable, Sendable {
     let isSpace: Bool
     let tracking: Double
     let widestTracking: Double
+    let cursiveScripts: [String]
 
     var advance: Double {
         glyphs.map(\.glyph.advance).reduce(0, +)
@@ -40,7 +42,8 @@ struct StyledCharacter: Equatable, Sendable {
         glyphs: [StyledGlyph],
         isSpace: Bool,
         tracking: Double,
-        widestTracking: Double
+        widestTracking: Double,
+        cursiveScripts: [String]
     ) {
         self.character = character
         self.range = range
@@ -52,6 +55,7 @@ struct StyledCharacter: Equatable, Sendable {
         self.isSpace = isSpace
         self.tracking = tracking
         self.widestTracking = widestTracking
+        self.cursiveScripts = cursiveScripts
     }
 
     // MARK: - Public

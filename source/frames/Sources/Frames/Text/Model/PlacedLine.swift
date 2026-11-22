@@ -27,19 +27,17 @@ struct PlacedLine: Equatable, Sendable {
         return Self.placedOrder(levels: placed.map(\.level), hasGlyphs: placed.map { $0.glyphs.count > 0 })
     }
 
-    // Its clusters and hanging spaces with glyphs of their own, by their index among them, in the order they are placed
-    // in, each with `tracking`, the character whose run's tracking lies between it and its neighbour on its left:
-    // whichever of the two comes first in the text when both are characters, and nil otherwise.
+    // Its clusters and hanging spaces with glyphs of their own in the order they are placed in, each with the character
+    // whose run's tracking lies on its left, as the static `placedOwners` gives them.
     var placedOwners: [(index: Int, tracking: Int?)] {
         let placed = clusters + hanging
-        let owners = placedOrder.filter { placed[$0].glyphs.count > 0 }
 
-        return owners.indices.map { order in
-            let index = owners[order]
-            guard order > 0, owners[order - 1] < clusters.count, index < clusters.count else { return (index, nil) }
-
-            return (index, min(owners[order - 1], index))
-        }
+        return Self.placedOwners(
+            levels: placed.map(\.level),
+            hasGlyphs: placed.map { $0.glyphs.count > 0 },
+            characterCount: clusters.count,
+            cursiveScripts: placed.map(\.cursiveScripts)
+        )
     }
 
     // MARK: - Initializer
@@ -89,6 +87,36 @@ struct PlacedLine: Equatable, Sendable {
         let groups = Dictionary(grouping: hasGlyphs.indices) { owners[$0] ?? 0 }
 
         return BidiResolver.visualOrder(of: levels).filter { hasGlyphs[$0] }.flatMap { groups[$0] ?? [] }
+    }
+
+    // A line's characters and hanging spaces with glyphs of their own, by their index among `levels`, in the order
+    // `placedOrder(levels:hasGlyphs:)` places them, the first `characterCount` being characters and the rest hanging
+    // spaces. Each comes with `tracking`, the character whose run's tracking lies between it and its neighbour on its
+    // left: whichever of the two comes first in the text when both are characters, and nil otherwise or when both are
+    // letters of one cursive script among `cursiveScripts`, since tracking there would break the connection a cursive
+    // script draws across the two, as CSS Text 3 spaces no two letters of a cursive script apart.
+    static func placedOwners(
+        levels: [Int],
+        hasGlyphs: [Bool],
+        characterCount: Int,
+        cursiveScripts: [[String]]
+    ) -> [(index: Int, tracking: Int?)] {
+        let owners = placedOrder(levels: levels, hasGlyphs: hasGlyphs).filter { hasGlyphs[$0] }
+
+        return owners.indices.map { order in
+            let index = owners[order]
+            guard order > 0 else { return (index, nil) }
+            let neighbour = owners[order - 1]
+            guard
+                neighbour < characterCount,
+                index < characterCount,
+                Set(cursiveScripts[neighbour]).isDisjoint(with: cursiveScripts[index])
+            else {
+                return (index, nil)
+            }
+
+            return (index, min(neighbour, index))
+        }
     }
 
     // The index of the character whose glyphs the character at `index` is drawn with, as `owners(hasGlyphs:)` gives it

@@ -155,9 +155,9 @@ struct ResolvedSequenceWriterTests {
         // `auto` resolves to `rtl` from `א`. `c` lies at level 2 by I2, the space before it at level 1 by N2, and the
         // space that ends the line hangs at the paragraph's level 1 by L1.
         let line = try #require(title["lines"]?.arrayValue?.first?.objectValue)
-        let levels = { (key: String) in line[key]?.arrayValue?.compactMap { $0.arrayValue?.last } }
+        let levels = { (key: String) in line[key]?.arrayValue?.compactMap { $0.arrayValue?[6] } }
         #expect(title["direction"] == .string("rtl"))
-        #expect(line["clusters"]?.arrayValue?.allSatisfy { $0.arrayValue?.count == 7 } == true)
+        #expect(line["clusters"]?.arrayValue?.allSatisfy { $0.arrayValue?.count == 8 } == true)
         #expect(levels("clusters") == [.number(1), .number(1), .number(1), .number(2)])
         #expect(levels("hanging") == [.number(1)])
     }
