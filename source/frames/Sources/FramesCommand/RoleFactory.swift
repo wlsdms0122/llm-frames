@@ -56,7 +56,7 @@ struct RoleFactory: Sendable {
         role: "tracker provider",
         option: "--tracker",
         defaultName: "point",
-        builders: ["point": { PointTracker(decoder: $0) }]
+        builders: ["planar": { PlanarTracker(decoder: $0) }, "point": { PointTracker(decoder: $0) }]
     )
 
     // MARK: - Initializer
