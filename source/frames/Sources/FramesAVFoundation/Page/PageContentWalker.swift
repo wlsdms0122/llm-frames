@@ -48,9 +48,6 @@ final class PageContentWalker {
         if let group = Self.dictionary(dictionary, "Group"), let space = Self.object(group, "CS") {
             record(resolved(PDFValue(space)))
         }
-        for stream in Self.contentStreams(of: dictionary) where Self.object(stream, "F") != nil {
-            faults.append(.externalContent("its content stream"))
-        }
 
         resources = Self.inheritedResources(of: dictionary).map { [$0] } ?? []
         let content = CGPDFContentStreamCreateWithPage(page)
@@ -330,10 +327,7 @@ final class PageContentWalker {
         else {
             return
         }
-        if Self.object(dictionary, "F") != nil { faults.append(.externalContent("an XObject's stream")) }
-
         if Self.name(dictionary, "Subtype") == "Form" {
-            if Self.object(dictionary, "Ref") != nil { faults.append(.externalContent("a reference XObject")) }
             if let group = Self.dictionary(dictionary, "Group"), let space = Self.object(group, "CS") {
                 record(resolved(PDFValue(space)))
             }
@@ -477,20 +471,6 @@ final class PageContentWalker {
         }
 
         return nil
-    }
-
-    private static func contentStreams(of page: CGPDFDictionaryRef) -> [CGPDFDictionaryRef] {
-        guard let contents = object(page, "Contents") else { return [] }
-        if let single = stream(contents).flatMap(CGPDFStreamGetDictionary) { return [single] }
-        var array: CGPDFArrayRef?
-        guard CGPDFObjectGetValue(contents, .array, &array), let array else { return [] }
-
-        return (0..<CGPDFArrayGetCount(array)).compactMap { index in
-            var element: CGPDFStreamRef?
-            guard CGPDFArrayGetStream(array, index, &element), let element else { return nil }
-
-            return CGPDFStreamGetDictionary(element)
-        }
     }
 
     private static func entries(of dictionary: CGPDFDictionaryRef) -> [(String, CGPDFObjectRef)] {

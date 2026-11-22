@@ -116,30 +116,6 @@ struct PageContentWalkerTests {
         #expect(content.faults.isEmpty)
     }
 
-    @Test("a form XObject's stream with /F and a reference XObject are content another file holds")
-    func findsExternalContent() {
-        // Given
-        let external = PDFValue.stream(
-            ["Subtype": .name("Form"), "BBox": .array([0, 0, 10, 10].map(PDFValue.integer)), "F": .string(Data("other.pdf".utf8))],
-            Data()
-        )
-        let reference = PDFValue.stream(
-            [
-                "Subtype": .name("Form"),
-                "BBox": .array([0, 0, 10, 10].map(PDFValue.integer)),
-                "Ref": .dictionary(["F": .string(Data("other.pdf".utf8)), "Page": .integer(0)])
-            ],
-            Data()
-        )
-        let page = PageFile.page("/X1 Do /X2 Do", resources: ["XObject": .dictionary(["X1": external, "X2": reference])])
-
-        // When
-        let content = walked(page)
-
-        // Then
-        #expect(content.faults == [.externalContent("an XObject's stream"), .externalContent("a reference XObject")])
-    }
-
     @Test("a device space under a default space is that default space, where the resources in force name one")
     func readsDefaultSpace() {
         // Given

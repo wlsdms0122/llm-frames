@@ -6,9 +6,9 @@
 //
 
 // What a page of a PDF draws, as far as the decoder's checks read it (FRAMES-3 PDF pages): the faults found in drawing
-// order, content held in another file, drawn text in a font the file does not embed and an image whose colour space
-// only its codestream holds, and each colour space drawn content paints or blends in, once, in the order first met, a
-// device space under a default space as that default space.
+// order, drawn text in a font the file does not embed and an image whose colour space only its codestream holds, and
+// each colour space drawn content paints or blends in, once, in the order first met, a device space under a default
+// space as that default space.
 struct PageContent: Equatable {
     // MARK: - Property
     let faults: [PageFault]

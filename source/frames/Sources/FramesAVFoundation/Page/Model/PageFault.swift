@@ -8,7 +8,7 @@
 import Frames
 
 // What keeps the decoder from reading a page of a PDF (FRAMES-3 PDF pages): a `Rotate` that is not a multiple of 90, a
-// size under 1 media pixel on a side, content held in another file, drawn text set in a font the file does not embed,
+// size under 1 media pixel on a side, drawn text set in a font the file does not embed,
 // a colour space the decoder does not convert by the formulas of FRAMES-26 Media, and a `colorSpace` other than `srgb`
 // for the untagged colour of a page that draws in other colour spaces too. Core Graphics draws DeviceRGB and
 // DeviceGray as sRGB into every space, so the decoder reads untagged colour in another space by taking the drawn sRGB
@@ -16,7 +16,6 @@ import Frames
 package enum PageFault: Error, Equatable, Sendable {
     case rotation(Int)
     case size(Size)
-    case externalContent(String)
     case unembeddedFont(String)
     case colorSpace(String)
     case untaggedColor(ColorSpace)
@@ -29,9 +28,6 @@ package enum PageFault: Error, Equatable, Sendable {
 
         case let .size(size):
             "its size \(size.width)x\(size.height) is under 1 point on a side"
-
-        case let .externalContent(content):
-            "it draws \(content), which another file holds"
 
         case let .unembeddedFont(font):
             "it sets text in the font \(font), which the file does not embed"
@@ -53,7 +49,7 @@ package enum PageFault: Error, Equatable, Sendable {
         case .unembeddedFont, .colorSpace:
             true
 
-        case .rotation, .size, .externalContent, .untaggedColor:
+        case .rotation, .size, .untaggedColor:
             false
         }
     }
