@@ -211,6 +211,7 @@ struct ResolvedDocumentWriterTests {
                     }
                   ]
                 },
+                "direction": "ltr",
                 "align": "left",
                 "lineHeight": [
                   {
@@ -231,8 +232,8 @@ struct ResolvedDocumentWriterTests {
                     "descent": 4.05,
                     "range": [0, 2],
                     "clusters": [
-                      [0, 0, 1, 0, 1, 10.125],
-                      [0, 1, 1, 1, 2, 10.125]
+                      [0, 0, 1, 0, 1, 10.125, 0],
+                      [0, 1, 1, 1, 2, 10.125, 0]
                     ],
                     "hanging": []
                   }

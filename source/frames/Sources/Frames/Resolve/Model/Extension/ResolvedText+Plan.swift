@@ -72,6 +72,7 @@ extension ResolvedText {
             textBox: plan.layout.textBox,
             width: plan.layout.width,
             background: background,
+            direction: plan.layout.direction,
             align: plan.layout.align,
             lineHeight: lineHeight,
             text: plan.layout.text,
@@ -104,6 +105,7 @@ extension ResolvedText {
                     radius: held(.number(background.radius))
                 )
             },
+            direction: layout.direction,
             align: layout.align,
             lineHeight: held(.number(layout.lineHeight)),
             text: layout.text,

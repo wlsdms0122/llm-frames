@@ -217,14 +217,14 @@ struct ResolvedDocumentReaderTests {
 
     // The title `name` of the example of the resolved document, written whole with its hashes in full.
     private static let nameTitle = #"""
-        { "size": [216.2, 55.9], "textBox": [0, 0, 216.2, 55.9], "width": null, "background": null, "align": "left",
-          "lineHeight": [ { "at": 1.2, "value": 60, "ease": "linear" } ],
+        { "size": [216.2, 55.9], "textBox": [0, 0, 216.2, 55.9], "width": null, "background": null, "direction": "ltr",
+          "align": "left", "lineHeight": [ { "at": 1.2, "value": 60, "ease": "linear" } ],
           "text": "Mina Baker", "words": [ [0, 4], [5, 10] ],
           "lines": [ { "width": 216.2, "baseline": 45.7, "ascent": 45.7, "descent": 10.2, "range": [0, 10],
-                       "clusters": [ [0, 0, 1, 0, 1, 41.8], [0, 1, 1, 1, 2, 12.4], [0, 2, 1, 2, 3, 28.5],
-                                     [0, 3, 1, 3, 4, 27.6], [0, 4, 1, 4, 5, 13.3], [1, 0, 1, 5, 6, 24.7],
-                                     [1, 1, 1, 6, 7, 19.3], [1, 2, 1, 7, 8, 18], [1, 3, 1, 8, 9, 19.3],
-                                     [1, 4, 1, 9, 10, 11.3] ],
+                       "clusters": [ [0, 0, 1, 0, 1, 41.8, 0], [0, 1, 1, 1, 2, 12.4, 0], [0, 2, 1, 2, 3, 28.5, 0],
+                                     [0, 3, 1, 3, 4, 27.6, 0], [0, 4, 1, 4, 5, 13.3, 0], [1, 0, 1, 5, 6, 24.7, 0],
+                                     [1, 1, 1, 6, 7, 19.3, 0], [1, 2, 1, 7, 8, 18, 0], [1, 3, 1, 8, 9, 19.3, 0],
+                                     [1, 4, 1, 9, 10, 11.3, 0] ],
                        "hanging": [] } ],
           "units": null,
           "runs": [
@@ -871,10 +871,107 @@ struct ResolvedDocumentReaderTests {
             """#)
     }
 
+    @Test("a right-to-left title from resolve reads back with its direction and its clusters' levels")
+    func readsRightToLeftTitle() throws {
+        // Given
+        let document = try resolved(
+            #"""
+            { "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4", "in": 0, "out": 3 } ],
+              "clips": [ { "title": "אב 12 cd", "style": "title", "at": [0, 1], "position": [0, 0],
+                           "character": { "tracking": 100 } } ] }
+            """#
+        )
+
+        // When
+        let read = try sut.read(writer.write(document))
+
+        // Then
+        // The Hebrew letters lie at level 1 and the digits and Latin letters at level 2 by I2. The space after `ב` is R
+        // by N1 and the one before `c` takes the paragraph's direction by N2, both at level 1, so the line is placed
+        // c d, space, 1 2, space, ב א from left to right.
+        guard case let .title(title) = read.clips.first?.content else {
+            Issue.record("the first clip is not a title")
+            return
+        }
+        let line = try #require(title.lines.first)
+        #expect(read == document)
+        #expect(title.direction == .rtl)
+        #expect(line.clusters.map(\.level) == [1, 1, 1, 2, 2, 1, 2, 2])
+        #expect(line.placedOrder == [6, 7, 5, 3, 4, 2, 1, 0])
+    }
+
+    @Test("pens are checked in the order they are placed in, with the tracking of whichever neighbour comes first")
+    func readsPensInPlacedOrder() throws {
+        // Given
+        // Placed `ב א c`, both gaps take the static tracking of the run of `א`, which comes first in the text in each
+        // pair, and neither takes that of the small run of `ב`.
+        let document = try resolved(
+            #"""
+            { "kind": "sequence", "theme": { "styles": { "small": { "size": 20 } } },
+              "storyline": [ { "media": "/abs/screen.mp4", "in": 0, "out": 3 } ],
+              "clips": [ { "title": [ { "text": "א" }, { "text": "בc", "style": "small" } ], "style": "title",
+                           "at": [0, 1], "position": [0, 0], "paragraph": { "direction": "ltr" },
+                           "character": { "tracking": 100 } } ] }
+            """#
+        )
+        let text = writer.write(document)
+        let reordered = try replacingTitle(ofClip: 0, in: text) { title in
+            var lines = try #require(title["lines"]?.arrayValue)
+            let line = try #require(lines[0].objectValue)
+            let clusters = try #require(line["clusters"]?.arrayValue).map { cluster in
+                var numbers = try #require(cluster.arrayValue)
+                numbers[6] = .number(0)
+
+                return JSONValue.array(numbers)
+            }
+            lines[0] = .object(line.setting("clusters", to: .array(clusters)))
+
+            return title.setting("lines", to: .array(lines))
+        }
+
+        // When
+        let read = try sut.read(text)
+        let error = #expect(throws: ModelError.self) { try sut.read(reordered) }
+
+        // Then
+        guard case let .title(title) = read.clips.first?.content else {
+            Issue.record("the first clip is not a title")
+            return
+        }
+        let line = try #require(title.lines.first)
+        let wide = title.runs[line.clusters[0].glyphs.run].staticTracking
+        #expect(read == document)
+        #expect(line.clusters.map(\.level) == [1, 1, 0])
+        #expect(abs(line.width - line.clusters.map(\.advance).reduce(0, +) - wide * 2) < 1e-9)
+        #expect(error?.description.contains("line 0's pen positions do not follow its clusters' advances") == true)
+    }
+
+    @Test("a title's direction other than `ltr` or `rtl` stops when read, as `auto` is resolved before it is written")
+    func refusesUnresolvedDirection() throws {
+        // Given
+        let text = try written(
+            #"""
+            { "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4", "in": 0, "out": 3 } ],
+              "clips": [ { "title": "ab", "style": "title", "at": [0, 1], "position": [0, 0] } ] }
+            """#
+        )
+        let changed = try replacingTitle(ofClip: 0, in: text) { title in
+            title.setting("direction", to: .string("auto"))
+        }
+
+        // When
+        let error = #expect(throws: ModelError.self) { try sut.read(changed) }
+
+        // Then
+        #expect(error?.description.contains("auto") == true)
+        #expect(error?.description.contains("ltr") == true)
+    }
+
     @Test(
         "a title's cluster, line or word range past its text, or clusters that do not go up along a line, stop when read",
         arguments: [
-            ("cluster", "expected [run, first, count, start, end, advance] within the text's 5 scalars"),
+            ("cluster", "expected [run, first, count, start, end, advance, level] within the text's 5 scalars"),
+            ("level", "expected [run, first, count, start, end, advance, level] within the text's 5 scalars"),
             ("line", "expected [start, end] within the text's 5 scalars"),
             ("word", "expected [start, end] within the text's 5 scalars"),
             ("order", "line 0's clusters do not go up along the text")
@@ -901,6 +998,12 @@ struct ResolvedDocumentReaderTests {
                 var numbers = try #require(clusters[4].arrayValue)
                 numbers[4] = .number(99)
                 clusters[4] = .array(numbers)
+                lines[0] = .object(line.setting("clusters", to: .array(clusters)))
+
+            case "level":
+                var numbers = try #require(clusters[0].arrayValue)
+                numbers[6] = .number(-1)
+                clusters[0] = .array(numbers)
                 lines[0] = .object(line.setting("clusters", to: .array(clusters)))
 
             case "line":

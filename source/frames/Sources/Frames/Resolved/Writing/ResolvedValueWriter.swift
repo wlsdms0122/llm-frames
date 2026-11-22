@@ -390,6 +390,7 @@ struct ResolvedValueWriter: Sendable {
             JSONMember(key: "textBox", value: rectangle(text.textBox)),
             JSONMember(key: "width", value: text.width.map(JSONValue.number) ?? .null),
             JSONMember(key: "background", value: background ?? .null),
+            JSONMember(key: "direction", value: .string(text.direction.rawValue)),
             JSONMember(key: "align", value: .string(text.align.rawValue)),
             JSONMember(key: "lineHeight", value: timed(text.lineHeight)),
             JSONMember(key: "text", value: .string(text.text)),
@@ -515,7 +516,8 @@ struct ResolvedValueWriter: Sendable {
         bands.map { bands in .array(bands.map { numbers([$0.lowerBound, $0.upperBound]) }) } ?? .null
     }
 
-    // A line's cluster is `[run, first, count, start, end, advance]`: its glyphs, its range and its advance.
+    // A line's cluster is `[run, first, count, start, end, advance, level]`: its glyphs, its range, its advance and its
+    // embedding level on the line.
     private func cluster(_ cluster: PlacedCluster) -> JSONValue {
         let glyphs = cluster.glyphs
 
@@ -525,7 +527,8 @@ struct ResolvedValueWriter: Sendable {
             Double(glyphs.count),
             Double(cluster.range.lowerBound),
             Double(cluster.range.upperBound),
-            cluster.advance
+            cluster.advance,
+            Double(cluster.level)
         ])
     }
 

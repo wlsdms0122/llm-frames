@@ -127,8 +127,8 @@ struct ResolvedSequenceWriterTests {
         // Then
         let run = try #require(title["runs"]?.arrayValue?.first?.objectValue)
         #expect(title.keys == [
-            "size", "textBox", "width", "background", "align", "lineHeight", "text", "words", "lines", "units",
-            "runs"
+            "size", "textBox", "width", "background", "direction", "align", "lineHeight", "text", "words", "lines",
+            "units", "runs"
         ])
         #expect(run.keys == [
             "source", "file", "sha256", "face", "size", "color", "stroke", "baselineShift", "staticTracking", "tracking",
@@ -138,6 +138,28 @@ struct ResolvedSequenceWriterTests {
         #expect(run["sha256"] == .string("sha256-of-" + (run["file"]?.stringValue ?? "")))
         #expect(run["glyphs"]?.arrayValue?.compactMap { $0.arrayValue?.first } == [.number(72), .number(105)])
         #expect(run["glyphs"]?.arrayValue?.allSatisfy { $0.arrayValue?.count == 5 } == true)
+    }
+
+    @Test("a title writes the paragraph direction it was laid out in and each cluster's level after its advance")
+    func writesDirectionAndLevels() throws {
+        // Given
+        let document = #"""
+            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "in": 0, "out": 3 } ],
+              "clips": [ { "title": "אב c ", "style": "title", "placement": "top", "at": [0, 1] } ] }
+            """#
+
+        // When
+        let title = try #require(try write(document)["clips"]?.arrayValue?.first?.objectValue?["title"]?.objectValue)
+
+        // Then
+        // `auto` resolves to `rtl` from `א`. `c` lies at level 2 by I2, the space before it at level 1 by N2, and the
+        // space that ends the line hangs at the paragraph's level 1 by L1.
+        let line = try #require(title["lines"]?.arrayValue?.first?.objectValue)
+        let levels = { (key: String) in line[key]?.arrayValue?.compactMap { $0.arrayValue?.last } }
+        #expect(title["direction"] == .string("rtl"))
+        #expect(line["clusters"]?.arrayValue?.allSatisfy { $0.arrayValue?.count == 7 } == true)
+        #expect(levels("clusters") == [.number(1), .number(1), .number(1), .number(2)])
+        #expect(levels("hanging") == [.number(1)])
     }
 
     @Test("a clip keeps its place, id, visible window, lane, storyline and parent, and its properties in sequence time")

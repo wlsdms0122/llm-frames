@@ -484,8 +484,10 @@ struct ResolvedValueReader: Sendable {
 
     func text(_ value: PlacedJSONValue) throws -> ResolvedText {
         let text = try value.object(keys: [
-            "size", "textBox", "width", "background", "align", "lineHeight", "text", "words", "lines", "units", "runs"
+            "size", "textBox", "width", "background", "direction", "align", "lineHeight", "text", "words", "lines", "units",
+            "runs"
         ])
+        let directions = TextDirection.allCases.map(\.rawValue)
         let alignments = [TextAlignment.left, .center, .right].map(\.rawValue)
         let length = ValueStructure.leaf(.length(.any))
         let written = try text.member("text").string()
@@ -535,6 +537,7 @@ struct ResolvedValueReader: Sendable {
                     radius: try timed(background.member("radius"), as: length)
                 )
             },
+            direction: try text.member("direction").name(among: directions, TextDirection.init(rawValue:)),
             align: try text.member("align").name(among: alignments, TextAlignment.init(rawValue:)),
             lineHeight: try timed(text.member("lineHeight"), as: length),
             text: written,
@@ -816,61 +819,62 @@ struct ResolvedValueReader: Sendable {
         return UnitPart(run: run, piece: piece, span: numbers[2]...numbers[3])
     }
 
-    // A line's cluster is `[run, first, count, start, end, advance]`, its glyphs a range of one of `runs` and its
-    // scalars a range of at least one of the text's `scalarCount`.
+    // A line's cluster is `[run, first, count, start, end, advance, level]`, its glyphs a range of one of `runs`, its
+    // scalars a range of at least one of the text's `scalarCount` and its level an embedding level.
     private func cluster(
         _ value: PlacedJSONValue,
         in runs: [ResolvedGlyphRun],
         scalarCount: Int
     ) throws -> PlacedCluster {
-        let numbers = try value.numbers(count: 6)
+        let numbers = try value.numbers(count: 7)
         guard
             let run = Int(exactly: numbers[0]),
             let first = Int(exactly: numbers[1]),
             let count = Int(exactly: numbers[2]),
             let start = Int(exactly: numbers[3]),
             let end = Int(exactly: numbers[4]),
+            let level = Int(exactly: numbers[6]),
             runs.indices.contains(run),
             first >= 0,
             count >= 0,
             first + count <= runs[run].glyphs.count,
             start >= 0,
             start < end,
-            end <= scalarCount
+            end <= scalarCount,
+            level >= 0
         else {
-            throw value.wrongType("[run, first, count, start, end, advance] within the text's \(scalarCount) scalars")
+            throw value.wrongType("[run, first, count, start, end, advance, level] within the text's \(scalarCount) scalars")
         }
 
         let glyphs = GlyphRange(run: run, first: first, count: count)
 
-        return PlacedCluster(glyphs: glyphs, range: start..<end, advance: numbers[5])
+        return PlacedCluster(glyphs: glyphs, range: start..<end, advance: numbers[5], level: level)
     }
 
-    // A line's clusters and then its hanging spaces, those with no glyph of their own left out, each start at the pen
-    // start of the one before plus its advance, plus its run's static tracking when it is a character other than the
-    // last character taken. The last character ends at the first one's pen start plus the line's width, and a line with
-    // no character taken has a width of 0.
+    // A line's clusters and its hanging spaces, taken in the order they are placed in with those with no glyph of their
+    // own left out, each start at the pen start of the one before plus its advance, plus, when both are characters, the
+    // static tracking of the run of whichever of the two comes first in the text. The rightmost character ends at the
+    // leftmost one's pen start plus the line's width, and a line with no character taken has a width of 0.
     private func pensFollow(
         on line: PlacedLine,
         runs: [ResolvedGlyphRun]
     ) -> Bool {
         let tolerance = 1e-6
-        let characters = line.clusters.filter { $0.glyphs.count > 0 }
-        let taken = characters.map { (cluster: $0, isCharacter: true) }
-            + line.hanging.filter { $0.glyphs.count > 0 }.map { (cluster: $0, isCharacter: false) }
-        let pens = taken.map { runs[$0.cluster.glyphs.run].glyphs[$0.cluster.glyphs.first].x }
+        let placed = line.clusters + line.hanging
+        let taken = line.placedOrder.filter { placed[$0].glyphs.count > 0 }
+        let pen = { (index: Int) in runs[placed[index].glyphs.run].glyphs[placed[index].glyphs.first].x }
 
-        for index in taken.indices.dropFirst() {
-            let previous = taken[index - 1]
-            let tracking = previous.isCharacter && index - 1 != characters.count - 1
-                ? runs[previous.cluster.glyphs.run].staticTracking
+        for (previous, index) in zip(taken, taken.dropFirst()) {
+            let tracking = previous < line.clusters.count && index < line.clusters.count
+                ? runs[placed[min(previous, index)].glyphs.run].staticTracking
                 : 0
-            guard abs(pens[index - 1] + previous.cluster.advance + tracking - pens[index]) <= tolerance else { return false }
+            guard abs(pen(previous) + placed[previous].advance + tracking - pen(index)) <= tolerance else { return false }
         }
 
-        guard let last = characters.last else { return abs(line.width) <= tolerance }
+        let characters = taken.filter { $0 < line.clusters.count }
+        guard let first = characters.first, let last = characters.last else { return abs(line.width) <= tolerance }
 
-        return abs(pens[0] + line.width - pens[characters.count - 1] - last.advance) <= tolerance
+        return abs(pen(first) + line.width - pen(last) - placed[last].advance) <= tolerance
     }
 
     // A range is `[start, end]`, counted in Unicode scalars, within the text's `scalarCount`.

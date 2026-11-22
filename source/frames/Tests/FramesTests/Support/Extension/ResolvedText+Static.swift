@@ -35,6 +35,7 @@ extension ResolvedText {
                     radius: .held(.number(background.radius))
                 )
             },
+            direction: .ltr,
             align: .left,
             lineHeight: .off,
             text: "",
