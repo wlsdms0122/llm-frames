@@ -6,7 +6,7 @@
 //
 
 // The decoder's checks of one page of a PDF: the first fault that refuses every reading of it, content it draws that
-// another file holds or content the View event shows otherwise than Core Graphics draws it, the first font it sets
+// another file holds, the first font it sets
 // drawn text in that its file does not embed, the first colour space it draws in that this decoder does not convert by
 // the fixed formulas, each nil where there is none, and whether it draws in no colour space but its untagged colour.
 struct PageCheck: Equatable, Sendable {

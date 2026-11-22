@@ -59,11 +59,10 @@ final class PageReader: @unchecked Sendable {
         return ProbedPage(size: geometry.size, pageCount: pageCount)
     }
 
-    // Refuses a page that draws content another file holds or content the View event shows otherwise than Core
-    // Graphics draws it, and where `reading` is not a `platform` one, a page that sets drawn text in a font its file
-    // does not embed or draws in a colour space this decoder does not convert by the fixed formulas. A reading that
-    // names a colour space other than `srgb` reads the page's untagged colour in it, which this decoder does only on a
-    // page that draws in no other colour space.
+    // Refuses a page that draws content another file holds, and where `reading` is not a `platform` one, a page that
+    // sets drawn text in a font its file does not embed or draws in a colour space this decoder does not convert by the
+    // fixed formulas. A reading that names a colour space other than `srgb` reads the page's untagged colour in it,
+    // which this decoder does only on a page that draws in no other colour space.
     func check(
         _ number: Int,
         reading: PictureReading?
@@ -143,7 +142,7 @@ final class PageReader: @unchecked Sendable {
         if let result = checks.withLock({ $0[number] }) { return result }
         let (page, _) = try self.page(number)
 
-        let content = PageContentWalker(document: document).content(of: page)
+        let content = PageContentWalker().content(of: page)
         let spaces = content.colorSpaces.map { ($0, PageColorSpace($0)) }
         var colorFault = content.faults.first { if case .colorSpace = $0 { true } else { false } }
         for (written, space) in spaces where colorFault == nil {
@@ -152,7 +151,7 @@ final class PageReader: @unchecked Sendable {
         let result = PageCheck(
             drawing: content.faults.first { fault in
                 switch fault {
-                case .externalContent, .viewEvent:
+                case .externalContent:
                     true
 
                 default:

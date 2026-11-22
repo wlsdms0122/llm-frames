@@ -11,8 +11,8 @@ import Foundation
 // Reads what a page of a PDF draws with Core Graphics' own parser, the one the page is drawn with (FRAMES-3 PDF pages):
 // its content streams and those of every form XObject, tiling pattern, soft mask group and Type 3 glyph they draw,
 // inline images included, against the resources each is drawn with, the page's own or those it inherits. What is drawn
-// is decided by operators and their state, not by geometry: text in rendering mode 3 sets no glyph, content the default
-// optional content configuration turns off is not drawn, and annotations are not read. A colour space counts where
+// is decided by operators and their state, not by what is shown: text in rendering mode 3 sets no glyph, content
+// optional content hides is read, and annotations are not read. A colour space counts where
 // drawn content paints in it, or blends in it as a transparency group's or a soft mask group's `/CS`. A Core Graphics
 // operator callback is a C function, told nothing of its operator, so each operator has its own.
 final class PageContentWalker {
@@ -20,12 +20,8 @@ final class PageContentWalker {
     private static let deviceSpaces = ["DeviceGray": "DefaultGray", "DeviceRGB": "DefaultRGB", "DeviceCMYK": "DefaultCMYK"]
     private static let abbreviatedSpaces = ["G": "DeviceGray", "RGB": "DeviceRGB", "CMYK": "DeviceCMYK", "I": "Indexed"]
 
-    private let optionalContent: OptionalContentConfiguration
-    // The state Core Graphics draws, without the View event.
-    private let drawnOptionalContent: OptionalContentConfiguration
     private var states = [PageGraphicsState()]
     private var resources: [CGPDFDictionaryRef] = []
-    private var markedContent: [Bool] = []
     private var faults: [PageFault] = []
     private var colorSpaces: [PDFValue] = []
     private var seenColorSpaces: Set<PDFValue> = []
@@ -42,17 +38,7 @@ final class PageContentWalker {
         set { states[states.count - 1] = newValue }
     }
 
-    // Whether marked content the default configuration turns off holds the operator read now.
-    private var isHidden: Bool {
-        markedContent.contains(true)
-    }
-
     // MARK: - Initializer
-    init(document: CGPDFDocument) {
-        self.optionalContent = OptionalContentConfiguration(document: document)
-        self.drawnOptionalContent = OptionalContentConfiguration(document: document, isApplyingViewEvent: false)
-    }
-
     // MARK: - Public
     func content(of page: CGPDFPage) -> PageContent {
         guard let dictionary = page.dictionary else { return PageContent(faults: [], colorSpaces: []) }
@@ -114,9 +100,6 @@ final class PageContentWalker {
         set("Do") { scanner, info in PageContentWalker.walker(info)?.drawObject(scanner) }
         set("EI") { scanner, info in PageContentWalker.walker(info)?.drawInlineImage(scanner) }
         set("gs") { scanner, info in PageContentWalker.walker(info)?.setGraphicsState(scanner) }
-        set("BMC") { _, info in PageContentWalker.walker(info)?.markedContent.append(false) }
-        set("BDC") { scanner, info in PageContentWalker.walker(info)?.beginMarkedContent(scanner) }
-        set("EMC") { _, info in _ = PageContentWalker.walker(info)?.markedContent.popLast() }
 
         return table
     }
@@ -148,7 +131,6 @@ final class PageContentWalker {
             stream: dictionary,
             resources: streamResources,
             state: current,
-            isHidden: isHidden,
             isUncolored: uncoloredPatternDepth > 0
         )
         guard scannedStreams.insert(context).inserted else { return }
@@ -158,11 +140,9 @@ final class PageContentWalker {
         states.append(current)
         stateBase = states.count
         resources.append(streamResources)
-        let depth = markedContent.count
         let content = CGPDFContentStreamCreateWithStream(stream, streamResources, parent)
         scan(content)
         CGPDFContentStreamRelease(content)
-        markedContent = Array(markedContent.prefix(depth))
         resources.removeLast()
         states.removeSubrange(base...)
         stateBase = outerBase
@@ -198,7 +178,7 @@ final class PageContentWalker {
     }
 
     private func showText() {
-        guard !isHidden, state.setsGlyphs else { return }
+        guard state.setsGlyphs else { return }
         if let font = state.font {
             checkFont(font, named: state.fontName)
         } else {
@@ -293,7 +273,6 @@ final class PageContentWalker {
         fills: Bool,
         strokes: Bool
     ) {
-        guard !isHidden else { return }
         if fills { paint(in: state.fill, pattern: state.fillPattern) }
         if strokes { paint(in: state.stroke, pattern: state.strokePattern) }
     }
@@ -329,7 +308,7 @@ final class PageContentWalker {
 
     private func paintShading(_ scanner: CGPDFScannerRef) {
         var name: UnsafePointer<CChar>?
-        guard !isHidden, CGPDFScannerPopName(scanner, &name), let name else { return }
+        guard CGPDFScannerPopName(scanner, &name), let name else { return }
         guard
             let shading = resource("Shading", String(cString: name)),
             let dictionary = Self.dictionary(shading) ?? Self.stream(shading).flatMap(CGPDFStreamGetDictionary),
@@ -343,7 +322,7 @@ final class PageContentWalker {
 
     private func drawObject(_ scanner: CGPDFScannerRef) {
         var name: UnsafePointer<CChar>?
-        guard !isHidden, CGPDFScannerPopName(scanner, &name), let name else { return }
+        guard CGPDFScannerPopName(scanner, &name), let name else { return }
         guard
             let object = resource("XObject", String(cString: name)),
             let stream = Self.stream(object),
@@ -351,7 +330,6 @@ final class PageContentWalker {
         else {
             return
         }
-        if let membership = Self.dictionary(dictionary, "OC"), !shows(membership) { return }
         if Self.object(dictionary, "F") != nil { faults.append(.externalContent("an XObject's stream")) }
 
         if Self.name(dictionary, "Subtype") == "Form" {
@@ -368,7 +346,7 @@ final class PageContentWalker {
     // An inline image's dictionary may abbreviate its keys and its spaces' names, and its `/F` is its filter.
     private func drawInlineImage(_ scanner: CGPDFScannerRef) {
         var stream: CGPDFStreamRef?
-        guard !isHidden, CGPDFScannerPopStream(scanner, &stream), let stream,
+        guard CGPDFScannerPopStream(scanner, &stream), let stream,
             let dictionary = CGPDFStreamGetDictionary(stream)
         else {
             return
@@ -425,7 +403,7 @@ final class PageContentWalker {
             return
         }
 
-        if !isHidden, let groupEntry = Self.dictionary(groupDictionary, "Group"),
+        if let groupEntry = Self.dictionary(groupDictionary, "Group"),
             let space = Self.object(groupEntry, "CS")
         {
             record(resolved(PDFValue(space)))
@@ -433,36 +411,8 @@ final class PageContentWalker {
         scan(group, resources: Self.dictionary(groupDictionary, "Resources"))
     }
 
-    // `/OC` marked content the default configuration turns off hides what it holds.
-    private func beginMarkedContent(_ scanner: CGPDFScannerRef) {
-        var properties: CGPDFObjectRef?
-        var tag: UnsafePointer<CChar>?
-        _ = CGPDFScannerPopObject(scanner, &properties)
-        guard CGPDFScannerPopName(scanner, &tag), let tag, String(cString: tag) == "OC", let properties else {
-            markedContent.append(false)
-            return
-        }
-
-        var propertyName: UnsafePointer<CChar>?
-        let membership = CGPDFObjectGetValue(properties, .name, &propertyName)
-            ? propertyName.flatMap { resource("Properties", String(cString: $0)) }.flatMap(Self.dictionary)
-            : Self.dictionary(properties)
-        markedContent.append(membership.map { !shows($0) } ?? false)
-    }
-
-    // Whether content `membership` marks is shown for viewing. Content the View event shows or hides otherwise than
-    // Core Graphics draws it is a fault, since no call hides or shows a group as Core Graphics draws.
-    private func shows(_ membership: CGPDFDictionaryRef) -> Bool {
-        let shows = optionalContent.shows(membership)
-        if shows != drawnOptionalContent.shows(membership), !faults.contains(.viewEvent) {
-            faults.append(.viewEvent)
-        }
-
-        return shows
-    }
-
     private func record(_ space: PDFValue) {
-        guard !isHidden, uncoloredPatternDepth == 0, seenColorSpaces.insert(space).inserted else { return }
+        guard uncoloredPatternDepth == 0, seenColorSpaces.insert(space).inserted else { return }
 
         colorSpaces.append(space)
     }

@@ -159,50 +159,6 @@ struct PageReaderTests {
         #expect(pixels[(10 * 100 + 75) * 4 + 3] == 0)
     }
 
-    @Test("a page whose View event shows or hides content otherwise than its default state is refused for every reading, since Core Graphics draws without it")
-    func refusesViewEventState() throws {
-        // Given
-        let path = directory.file("layers.pdf")
-        var writer = PDFFileWriter()
-        let hidden = writer.add(.dictionary([
-            "Type": .name("OCG"),
-            "Name": .string(Data("hidden".utf8)),
-            "Usage": .dictionary(["View": .dictionary(["ViewState": .name("OFF")])])
-        ]))
-        let shown = writer.add(.dictionary([
-            "Type": .name("OCG"),
-            "Name": .string(Data("shown".utf8)),
-            "Usage": .dictionary(["View": .dictionary(["ViewState": .name("ON")])])
-        ]))
-        let page = PageFile.page(
-            "/OC /Hidden BDC 1 0 0 rg 0 90 10 10 re f EMC /OC /Shown BDC 0 0 1 rg 50 90 10 10 re f EMC",
-            resources: ["Properties": .dictionary(["Hidden": hidden, "Shown": shown])],
-            mediaBox: [0, 0, 100, 100]
-        )
-        let catalog: [String: PDFValue] = ["OCProperties": .dictionary([
-            "OCGs": .array([hidden, shown]),
-            "D": .dictionary([
-                "OFF": .array([shown]),
-                "AS": .array([.dictionary([
-                    "Event": .name("View"),
-                    "OCGs": .array([hidden, shown]),
-                    "Category": .array([.name("View")])
-                ])])
-            ])
-        ])]
-        try PageFile.write([page], to: path, catalog: catalog, writer: writer)
-        let file = MediaFile(path: path, page: 1)
-
-        // When
-        let error = #expect(throws: DecoderError.self) {
-            try sut.picture(of: file, region: PageRegion(x: 0, y: 0, width: 100, height: 100), scale: 1, reading: .tagged)
-        }
-
-        // Then
-        #expect(error == .unreadablePage(file: path, page: 1, fault: .viewEvent))
-        #expect(throws: DecoderError.self) { try sut.check(file, reading: .platform(colorSpace: .srgb)) }
-    }
-
     @Test("a region under 1 pixel, a scale of 0, a region larger than the decoder holds and a frame of a page stop")
     func refusesRequests() throws {
         // Given
