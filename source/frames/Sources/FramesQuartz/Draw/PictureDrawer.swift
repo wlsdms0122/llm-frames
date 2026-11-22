@@ -121,10 +121,9 @@ struct PictureDrawer {
     ) -> CGFloat {
         let shown = shownScale(in: context)
         let margin = 2 * reach * shown
-        let area = (CGFloat(context.width) + margin) * (CGFloat(context.height) + margin)
-        let limit = (Raster.pixelLimit * area / (region.width * region.height)).squareRoot()
+        let area = CGSize(width: CGFloat(context.width) + margin, height: CGFloat(context.height) + margin)
 
-        return min(shown, limit)
+        return PixelLimit().scale(CGSize(width: shown, height: shown), covering: region.size, within: area).width
     }
 
     // The larger axis scale the context shows the item's coordinates at, so no direction is drawn coarser than the
