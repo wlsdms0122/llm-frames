@@ -368,6 +368,7 @@ struct Typesetter: Sendable {
 
         return try shaper.shape(
             run.text,
+            direction: .ltr,
             faces: run.faces,
             size: style.size,
             features: features,

@@ -22,13 +22,17 @@ package protocol ShapingProvider: Sendable {
     // The faces of `family` installed on the machine.
     func installedFaces(family: String) -> [FontFace]
 
-    // `text` set at `size` with `features` over the font's defaults, its glyphs in glyph order, each with its advance,
-    // its placement offset from the pen and the index of the scalar it was set from. Each grapheme cluster is set
-    // whole in the first of `faces` that has every scalar of it but its default ignorable ones, and one none of them
-    // has whole in a face the provider finds on the machine for `weight` and `italic`, each run with the face it was
-    // set in. A face its file does not hold stops.
+    // `text`, a shaping run of one run's text at one embedding level, set in `direction` at `size` with `features` over
+    // the font's defaults, and reordered by nothing else. Its glyphs are given in the order they lie along the line
+    // from left to right, for a right-to-left run the reverse of the order it is read in, each with its advance, its
+    // placement offset from the pen and the index of the scalar it was set from, and a character with the
+    // `Bidi_Mirrored` property is set in its mirrored glyph in a right-to-left run. Each grapheme cluster is set whole
+    // in the first of `faces` that has every scalar of it but its default ignorable ones, and one none of them has
+    // whole in a face the provider finds on the machine for `weight` and `italic`, each run with the face it was set
+    // in, the runs in the order they lie on the line. A face its file does not hold stops.
     func shape(
         _ text: String,
+        direction: TextDirection,
         faces: [FontFace],
         size: Double,
         features: [FontFeature],

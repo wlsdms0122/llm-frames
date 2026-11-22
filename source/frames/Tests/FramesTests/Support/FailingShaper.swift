@@ -39,6 +39,7 @@ struct FailingShaper: ShapingProvider {
 
     func shape(
         _ text: String,
+        direction: TextDirection,
         faces: [FontFace],
         size: Double,
         features: [FontFeature],

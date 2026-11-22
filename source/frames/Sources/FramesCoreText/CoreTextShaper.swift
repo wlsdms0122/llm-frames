@@ -13,7 +13,9 @@ import Frames
 // style are read from its OS/2 table. Each grapheme cluster is set in the first face given that maps every scalar of
 // it but its default ignorable ones, else in the face CoreText finds on the machine for it from the first face, which
 // follows its weight and slant. Each stretch of clusters in one face is set as a CoreText line sets it, in that face
-// alone, with the feature settings given over the font's defaults.
+// alone, with the feature settings given over the font's defaults, and in the run's direction, which overrides every
+// character's, so CoreText reorders nothing by a bidirectional pass of its own. A right-to-left run's stretches are
+// given from right to left, the order they lie in on the line.
 package struct CoreTextShaper: Sendable {
     // MARK: - Property
     // Offsets into the OS/2 table: `usWeightClass`, `usWidthClass` and `fsSelection`, whose bit 0 is italic and bit 9
@@ -217,18 +219,27 @@ package struct CoreTextShaper: Sendable {
         .map { scalars[$0] }
     }
 
-    // Glyphs of one stretch in glyph order. `CTRunGetAdvances` is the distance from one glyph's drawn position to the
-    // next one's, a mark's attachment included. Base advances leave out what the font's tables place relative to
-    // another glyph, so the pen moves by them and a glyph's placement offset is its drawn position less the pen, with
-    // CoreText's y, which points up, turned down. A run CoreText sets in another face from default ignorable scalars
-    // alone, a non-joiner the font does not map, is set as nothing.
+    // Glyphs of one stretch in the order they lie on the line from left to right, as CoreText gives its runs and their
+    // glyphs. `CTRunGetAdvances` is the distance from one glyph's drawn position to the next one's, a mark's attachment
+    // included. Base advances leave out what the font's tables place relative to another glyph, so the pen moves by them
+    // and a glyph's placement offset is its drawn position less the pen, with CoreText's y, which points up, turned
+    // down. A run CoreText sets in another face from default ignorable scalars alone, a non-joiner the font does not
+    // map, is set as nothing. An override in the run's direction keeps CoreText from resolving levels of its own, and at
+    // a right-to-left level it mirrors a `Bidi_Mirrored` character as rule L4 of UAX #9 asks.
     private func shape(
         _ scalars: [(index: Int, scalar: Unicode.Scalar)],
+        direction: TextDirection,
         in font: CTFont,
         asked faces: [FontFace],
         features: [FontFeature]
     ) throws -> [ShapedRun] {
-        var attributes: [NSAttributedString.Key: Any] = [NSAttributedString.Key(kCTFontAttributeName as String): font]
+        let writing = direction == .rtl ? CTWritingDirection.rightToLeft : .leftToRight
+        var attributes: [NSAttributedString.Key: Any] = [
+            NSAttributedString.Key(kCTFontAttributeName as String): font,
+            NSAttributedString.Key(kCTWritingDirectionAttributeName as String): [
+                NSNumber(value: Int(writing.rawValue) | kCTWritingDirectionOverride)
+            ]
+        ]
         // CoreText kerns by the font's `kern` table whatever the feature settings say, and a kern of 0 turns that off.
         if features.contains(FontFeature(tag: "kern", value: 0)) {
             attributes[NSAttributedString.Key(kCTKernAttributeName as String)] = 0
@@ -311,6 +322,7 @@ extension CoreTextShaper: ShapingProvider {
 
     package func shape(
         _ text: String,
+        direction: TextDirection,
         faces: [FontFace],
         size: Double,
         features: [FontFeature],
@@ -319,10 +331,12 @@ extension CoreTextShaper: ShapingProvider {
     ) throws -> [ShapedRun] {
         let fonts = try faces.map { try font(of: $0, size: size, features: features) }
 
+        let stretches = stretches(of: text, in: fonts, features: features)
+
         var runs: [ShapedRun] = []
-        for stretch in stretches(of: text, in: fonts, features: features) {
+        for stretch in direction == .rtl ? Array(stretches.reversed()) : stretches {
             let scalars = settable(stretch.scalars, in: stretch.font)
-            for run in try shape(scalars, in: stretch.font, asked: faces, features: features) {
+            for run in try shape(scalars, direction: direction, in: stretch.font, asked: faces, features: features) {
                 if let last = runs.last, last.face == run.face {
                     runs[runs.count - 1] = ShapedRun(face: run.face, glyphs: last.glyphs + run.glyphs)
                 } else {
