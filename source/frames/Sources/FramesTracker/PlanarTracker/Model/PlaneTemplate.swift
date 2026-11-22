@@ -21,6 +21,11 @@ struct PlaneTemplate: Sendable {
     let values: [Double]
     // Eight rows, one for each parameter of the homography, of one value for each pixel.
     let steepestDescent: [[Double]]
+    // The standard deviation of the noise in the level's values over the template: the median absolute response of
+    // its pixels to Immerkaer's mask, the product of two second differences, which is 0 on any cubic, divided by 6,
+    // the response's standard deviation under noise of 1, and by 0.6745, the median absolute value of a standard
+    // Gaussian. 0 where no pixel has its whole neighbourhood in the picture.
+    let noise: Double
 
     var count: Int {
         values.count
@@ -58,6 +63,7 @@ struct PlaneTemplate: Sendable {
         var ys: [Double] = []
         var values: [Double] = []
         var steepestDescent = [[Double]](repeating: [], count: 8)
+        var responses: [Double] = []
         for (x, y) in pixels {
             let value = image.value(x: x, y: y)
             let left = image.value(x: x - 1, y: y)
@@ -83,16 +89,40 @@ struct PlaneTemplate: Sendable {
             steepestDescent[5].append(gradientY)
             steepestDescent[6].append(-normalisedX * radial)
             steepestDescent[7].append(-normalisedY * radial)
+
+            let response = Self.maskResponse(of: image, x: x, y: y)
+            if !response.isNaN {
+                responses.append(abs(response))
+            }
         }
+        responses.sort()
 
         self.xs = xs
         self.ys = ys
         self.values = values
         self.steepestDescent = steepestDescent
+        self.noise = responses.isEmpty ? 0 : responses[responses.count / 2] / (0.6745 * 6)
     }
 
     // MARK: - Public
     // MARK: - Private
+    // The sum of the 3 by 3 pixels about (`x`, `y`) weighted by the mask (1 -2 1, -2 4 -2, 1 -2 1).
+    private static func maskResponse(
+        of image: GreyImage,
+        x: Int,
+        y: Int
+    ) -> Double {
+        let weights: [Float] = [1, -2, 1]
+        var sum: Float = 0
+        for row in 0..<3 {
+            for column in 0..<3 {
+                sum += weights[row] * weights[column] * image.value(x: x + column - 1, y: y + row - 1)
+            }
+        }
+
+        return Double(sum)
+    }
+
     // Whether `point` lies strictly inside the convex quad, on the same side of each of its edges.
     private static func isInside(
         _ quad: [CGPoint],

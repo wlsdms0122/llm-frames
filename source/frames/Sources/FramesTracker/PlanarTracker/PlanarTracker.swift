@@ -13,15 +13,15 @@ import simd
 // template, taken on its own frame, run from that frame forwards and, from it again, backwards over the analysis
 // pictures the decoder reads by index. Each frame is aligned to the target's own frame, so errors do not build up
 // from frame to frame, and the quad reported is the target's corners carried by the homography. The target is lost on
-// the first frame where the correlation over the template's inliers falls below `lostCorrelation` or its inliers fall
-// below `minimumInlierRatio` of its pixels, which ends that direction.
+// the first frame where the template's correlation falls below `lostCorrelation` or its inliers fall below
+// `minimumInlierRatio` of its pixels, which ends that direction.
 package struct PlanarTracker: Sendable {
     // MARK: - Property
     package static let lostCorrelation = 0.8
-    // The residuals' scale grows with the share of the target covered, and so does the band of residuals the robust
-    // weights keep. Past about a third covered the band takes in the cover, and a wrong alignment then keeps more
-    // pixels and correlates above `lostCorrelation` on them. Below this share the target is lost before that.
-    package static let minimumInlierRatio = 0.7
+    // Inliers are counted against the template's noise, so their share falls with the share of the target covered,
+    // and a wrong alignment, whose residuals lie far outside that noise, keeps few. At this share the target is lost
+    // at about a third covered.
+    package static let minimumInlierRatio = 0.65
 
     private let decoder: any MediaDecoder
 

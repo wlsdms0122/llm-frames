@@ -15,7 +15,9 @@ import simd
 // image pyramids. Each iteration fits a gain and a bias of the frame against the template by weighted least squares,
 // so a change of brightness or contrast does not move the fit, and weighs each pixel by iteratively reweighted least
 // squares: Huber's weights until the update settles, then Tukey's biweights from there, which give 0 to the pixels
-// that do not match, such as those of something in front of the target.
+// that do not match, such as those of something in front of the target. Both weigh against the scale of the
+// iteration's residuals, which grows as the fit gets worse. The alignment found counts its inliers against a fixed
+// scale instead, the noise of the template and of the frame, so a worse fit does not widen what counts as a match.
 struct TemplateAligner: Sendable {
     // MARK: - Property
     // The top level keeps at least `minimumSide` of its pixels along the target's short side.
@@ -26,8 +28,9 @@ struct TemplateAligner: Sendable {
     // or after `maximumIterations`.
     private static let maximumIterations = 30
     private static let settled = 0.02
-    // The residuals' scale is 1.4826 times their median absolute value, which estimates their standard deviation under
-    // Gaussian noise, and at least `noiseFloor`, one step of 8 bits.
+    // The iteration's residual scale is 1.4826 times their median absolute value, which estimates their standard
+    // deviation under Gaussian noise. It and the fixed scale of the inliers are at least `noiseFloor`, one step of 8
+    // bits.
     private static let noiseFloor = 1.0 / 255
 
     // The highest level of the pyramid a frame is aligned on.
@@ -119,11 +122,13 @@ struct TemplateAligner: Sendable {
         var warp = toImage * homography * normalisation
         var weights = [Double](repeating: 1, count: template.count)
         var warped: [Double] = []
+        var residuals: [Double] = []
+        var isInside: [Bool] = []
         var estimator = MEstimator.huber
         var iterations = 0
         while true {
             warped = values(of: image, under: warp, at: template)
-            let isInside = warped.map { !$0.isNaN }
+            isInside = warped.map { !$0.isNaN }
             guard isInside.filter({ $0 }).count * 2 >= template.count else { return nil }
             for index in warped.indices where !isInside[index] {
                 warped[index] = 0
@@ -131,7 +136,7 @@ struct TemplateAligner: Sendable {
             }
 
             let (gain, bias) = photometricFit(of: warped, to: template.values, weights: weights)
-            let residuals = vDSP.add(-bias, vDSP.subtract(warped, vDSP.multiply(gain, template.values)))
+            residuals = vDSP.add(-bias, vDSP.subtract(warped, vDSP.multiply(gain, template.values)))
             var magnitudes = residuals.indices.filter { isInside[$0] }.map { abs(residuals[$0]) }
             vDSP.sort(&magnitudes, sortOrder: .ascending)
             let scale = max(1.4826 * magnitudes[magnitudes.count / 2], Self.noiseFloor)
@@ -152,10 +157,16 @@ struct TemplateAligner: Sendable {
             }
         }
 
-        let inliers = weights.indices.filter { weights[$0] > 0 }
+        let kept = weights.indices.filter { weights[$0] > 0 }
+        // A residual holds the noise of the frame and of the template, the frame's taken as that of the template's
+        // frame at `imageLevel`.
+        let fixedScale = max(hypot(templates[imageLevel].noise, template.noise), Self.noiseFloor)
+        let inliers = residuals.indices.filter { index in
+            isInside[index] && MEstimator.tukey.weight(of: residuals[index], scale: fixedScale) > 0
+        }
         return PlaneAlignment(
             homography: normalised(toImage.inverse * warp * normalisation.inverse),
-            correlation: correlation(inliers.map { template.values[$0] }, inliers.map { warped[$0] }),
+            correlation: correlation(kept.map { template.values[$0] }, kept.map { warped[$0] }),
             inlierRatio: Double(inliers.count) / Double(template.count)
         )
     }

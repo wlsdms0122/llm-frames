@@ -114,22 +114,19 @@ struct PlanarTrackerTests {
         }
     }
 
-    @Test("a bar growing over the target is held while it covers a quarter, and the target lost before it covers two fifths")
-    func losesCoveredTarget() async throws {
+    @Test(
+        "a bar growing over the target is held while it covers a quarter, and the target lost before it covers two fifths",
+        arguments: zip([PlaneMotion.nod, .swing], [BarEdge.left, .top])
+    )
+    func losesCoveredTarget(motion: PlaneMotion, edge: BarEdge) async throws {
         // Given
         let directory = try TemporaryDirectory()
-        let placement = { index in PlaneMotion.nod.pose(at: index, of: frameCount).corners(of: posterSize, focal: focal, on: size) }
+        let placement = { index in motion.pose(at: index, of: frameCount).corners(of: posterSize, focal: focal, on: size) }
         let truth = try (0..<frameCount).map { try corners(of: target, at: placement($0)) }
-        // The share of the target's width the bar covers on each frame, from its left.
+        // The share of the target's bounds the bar covers on each frame, from `edge`.
         let cover = (0..<frameCount).map { index in max(0, Double(index - 4) * 0.02) }
         let media = try await video(in: directory, poster: poster, placement: placement) { index in
-            let xs = truth[index].corners.map(\.x)
-            let ys = truth[index].corners.map(\.y)
-            let left = xs.min() ?? 0
-            let top = ys.min() ?? 0
-            let width = (xs.max() ?? 0) - left
-            let height = (ys.max() ?? 0) - top
-            return Rectangle(x: left - 40, y: top - 40, width: 40 + cover[index] * width, height: height + 80)
+            edge.bar(covering: cover[index], of: truth[index])
         }
         let sut = PlanarTracker(decoder: decoder)
 

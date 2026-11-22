@@ -8,8 +8,9 @@
 import simd
 
 // Where a template lies on a frame: the homography from the target's frame to this one in media pixels, the
-// zero-mean normalised cross-correlation of the template with the frame over its inliers, from -1 to 1, and the share
-// of the template's pixels that are inliers, from 0 to 1.
+// zero-mean normalised cross-correlation of the template with the frame over the pixels the robust weights keep, from
+// -1 to 1, and the share of the template's pixels that are inliers, whose residuals lie within Tukey's band of the
+// template's noise, from 0 to 1.
 struct PlaneAlignment: Sendable {
     // MARK: - Property
     let homography: simd_double3x3
