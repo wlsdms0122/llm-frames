@@ -8,7 +8,7 @@
 // Checks what a resolved document pins before any role opens it: every pinned file's hash, each file once at the
 // first place that pins it, then the decoder on each media once, and again for each other colour space its pictures
 // are read in, so a changed file, or a picture no fixed formula converts read with no colour space written, stops
-// before a frame is drawn.
+// before the role reads anything.
 struct PinnedReferenceChecker: Sendable {
     // A media file or a page of one whose pictures the decoder checked, and the colour space they are read in.
     private struct CheckedPictures: Hashable {
@@ -74,9 +74,9 @@ struct PinnedReferenceChecker: Sendable {
         do {
             digest = try hasher.sha256(ofFile: file.path)
         } catch {
-            throw RenderError.unreadableFile(path: file.path, place: place)
+            throw PinnedReferenceError.unreadableFile(path: file.path, place: place)
         }
 
-        guard digest == file.sha256 else { throw RenderError.changedFile(path: file.path, place: place) }
+        guard digest == file.sha256 else { throw PinnedReferenceError.changedFile(path: file.path, place: place) }
     }
 }

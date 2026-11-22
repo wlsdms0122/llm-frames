@@ -34,7 +34,7 @@ struct LoudnessReporterTests {
         )
 
         // When
-        #expect(throws: RenderError.changedFile(path: path, place: "audio[0]")) {
+        #expect(throws: PinnedReferenceError.changedFile(path: path, place: "audio[0]")) {
             try sut.loudness(of: sequence(playing: pinned), from: nil, to: nil)
         }
 
