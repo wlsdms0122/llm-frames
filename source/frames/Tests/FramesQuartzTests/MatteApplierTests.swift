@@ -100,6 +100,41 @@ struct MatteApplierTests {
         }
     }
 
+    @Test("a transition matte stretched over the picture keeps its value out to the destination's edge off the pixel grid")
+    func stretchesToEdge() throws {
+        // Given
+        let sut = QuartzRenderer(decoder: AVFoundationDecoder())
+        let path = directory.file("opaque.png")
+        try ImageWriter(size: Size(width: 10, height: 5)).write(to: path) { canvas in
+            canvas.fill(red: 255, green: 255, blue: 255)
+        }
+        // At a softness of 1 and a progress of 0.5 the alpha is 1 - L. The destination's right and bottom edges lie
+        // inside a pixel, so the matte's stretched edge does too.
+        let picture = PictureItem(
+            source: .media(try white()),
+            rectangle: nil,
+            destination: Rectangle(x: 0, y: 0, width: 38.5, height: 18.5),
+            matte: PictureMatte(frame: frame(at: path), progress: 0.5, softness: 1, isInverted: false)
+        )
+        let list = DisplayList(
+            size: Size(width: 40, height: 20),
+            background: Color(written: "#00000000"),
+            seed: 0,
+            items: [DisplayItem(content: .picture(picture))]
+        )
+
+        // When
+        let bitmap = try sut.frame(of: list)
+
+        // Then
+        // The outermost pixels the destination covers whole.
+        let edge = (0 ..< 38).flatMap { [($0, 0), ($0, 17)] } + (0 ..< 18).flatMap { [(0, $0), (37, $0)] }
+        for (x, y) in edge {
+            let alpha = bitmap.pixel(x: x, y: y)[3]
+            #expect(alpha <= 1.0 / 255, "(\(x), \(y)): L is \(1 - alpha), not 1")
+        }
+    }
+
     @Test("a transition matte is read as an analysis picture in its source's colour space")
     func readsAnalysisPicture() throws {
         // Given
