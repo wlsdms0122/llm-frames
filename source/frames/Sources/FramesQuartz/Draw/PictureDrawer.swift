@@ -12,19 +12,14 @@ import Frames
 // Draws a picture item in its item's own coordinates: the source region scaled into the destination, filtered,
 // masked by its matte, its corners rounded and its border inside the destination's edge. A picture with no filter or
 // matte is drawn straight from its source, so it is resampled once on its way to the output. A filtered picture is
-// filtered at the scale the context shows its destination at, its filter's lengths scaled with it, so it is as sharp
-// as the source it is drawn from. A page of a PDF is filtered at that scale over the part of its destination that
+// filtered at the scale the context shows its destination at, held to the pixel limit, its filter's lengths scaled
+// with it, so it is as sharp as the source it is drawn from. It is filtered over the part of its destination that
 // reaches the context, grown by how far its filter reads, on the pixel grid of the whole destination, so its filter's
-// grids and its matte lie where they lie on the whole (FRAMES-20 Pictures). Any other picture is filtered over its
-// whole destination, at a scale held to the pixel limit. `transform` carries the item's coordinates to output pixels,
-// which the border's width is in. Its bitmaps are in the form `compositing` names, its list's, so the picture is
-// resampled, filtered and cut in that form.
+// grids and its matte lie where they lie on the whole (FRAMES-20 Pictures). `transform` carries the item's
+// coordinates to output pixels, which the border's width is in. Its bitmaps are in the form `compositing` names, its
+// list's, so the picture is resampled, filtered and cut in that form.
 struct PictureDrawer {
     // MARK: - Property
-    // The filtered destination's bitmap of a picture other than a page holds at most this many times the context's
-    // pixels, past its own size.
-    private static let pixelLimit = 2.0
-
     private let tables: LookUpTableCache
 
     // MARK: - Initializer
@@ -63,14 +58,17 @@ struct PictureDrawer {
             return
         }
 
-        let isPage = if case let .media(frame) = item.source { frame.picture == .page } else { false }
-        let scale = isPage ? shownScale(in: context) : scale(of: destination, in: context)
+        let reach = CGFloat(FilterChain(tables: tables).reach(of: item.filter))
+        let region = context.boundingBoxOfClipPath.insetBy(dx: -reach, dy: -reach).intersection(destination)
+        guard !region.isNull, !region.isEmpty else { return }
+
+        let scale = scale(of: region, reaching: reach, in: context)
         guard scale > 0 else { return }
 
         // The whole destination's pixels and the part of them drawn, y pointing down from its top left.
         let size = CGSize(width: destination.width * scale, height: destination.height * scale)
         let whole = CGRect(x: 0, y: 0, width: size.width.rounded(.up), height: size.height.rounded(.up))
-        let part = isPage ? shownPart(of: item, at: scale, within: whole, in: context) : whole
+        let part = pixels(of: region, in: destination, at: scale, within: whole)
         guard !part.isEmpty else { return }
 
         let partSize = Size(width: part.width, height: part.height)
@@ -114,16 +112,19 @@ struct PictureDrawer {
     }
 
     // MARK: - Private
-    // Pixels per unit of the item's coordinates in the filtered bitmap of a picture other than a page: the shown
-    // scale, held to the pixel limit when that is larger than the destination at its own size.
+    // Pixels per unit of the item's coordinates in the filtered bitmap of `region`, the part of the destination drawn:
+    // the shown scale, held to the pixel limit against the context grown by `reach`, how far the filter reads.
     private func scale(
-        of destination: CGRect,
+        of region: CGRect,
+        reaching reach: CGFloat,
         in context: CGContext
     ) -> CGFloat {
-        let limit = (Self.pixelLimit * CGFloat(context.width * context.height) / (destination.width * destination.height))
-            .squareRoot()
+        let shown = shownScale(in: context)
+        let margin = 2 * reach * shown
+        let area = (CGFloat(context.width) + margin) * (CGFloat(context.height) + margin)
+        let limit = (Raster.pixelLimit * area / (region.width * region.height)).squareRoot()
 
-        return min(shownScale(in: context), max(1, limit))
+        return min(shown, limit)
     }
 
     // The larger axis scale the context shows the item's coordinates at, so no direction is drawn coarser than the
@@ -134,23 +135,17 @@ struct PictureDrawer {
         return max(shown.width, shown.height)
     }
 
-    // The pixels of `whole`, the destination at `scale`, that the context's clip reaches or the filter reads from
-    // there, each side moved out to a whole pixel. It is empty where none of the destination reaches the context.
-    private func shownPart(
-        of item: PictureItem,
+    // The pixels of `whole`, the destination at `scale`, that `region` covers, each side moved out to a whole pixel.
+    private func pixels(
+        of region: CGRect,
+        in destination: CGRect,
         at scale: CGFloat,
-        within whole: CGRect,
-        in context: CGContext
+        within whole: CGRect
     ) -> CGRect {
-        let destination = CGRect(item.destination)
-        let reach = CGFloat(FilterChain(tables: tables).reach(of: item.filter))
-        let shown = context.boundingBoxOfClipPath.insetBy(dx: -reach, dy: -reach).intersection(destination)
-        guard !shown.isNull, !shown.isEmpty else { return .null }
-
-        let left = ((shown.minX - destination.minX) * scale).rounded(.down)
-        let top = ((shown.minY - destination.minY) * scale).rounded(.down)
-        let right = ((shown.maxX - destination.minX) * scale).rounded(.up)
-        let bottom = ((shown.maxY - destination.minY) * scale).rounded(.up)
+        let left = ((region.minX - destination.minX) * scale).rounded(.down)
+        let top = ((region.minY - destination.minY) * scale).rounded(.down)
+        let right = ((region.maxX - destination.minX) * scale).rounded(.up)
+        let bottom = ((region.maxY - destination.minY) * scale).rounded(.up)
 
         return CGRect(x: left, y: top, width: right - left, height: bottom - top).intersection(whole)
     }

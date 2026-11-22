@@ -222,6 +222,66 @@ struct PictureDrawerTests {
         }
     }
 
+    @Test("a filtered picture larger than the frame and shown larger than its destination is filtered at its shown scale")
+    func filtersShownPartAtShownScale() throws {
+        // Given
+        // The destination holds two source pixels per unit and is shown at two pixels per unit, so the shown part is
+        // filtered pixel for pixel.
+        let sut = QuartzRenderer(decoder: AVFoundationDecoder())
+        let picture = PictureItem(
+            source: .media(try checker(size: 128)),
+            rectangle: nil,
+            destination: Rectangle(x: 0, y: 0, width: 64, height: 64),
+            filter: [FilterEntry(operations: [.lut(file: try darkenedMiddle(), amount: 1)])]
+        )
+        let item = DisplayItem(
+            transform: Frames.AffineTransform(a: 2, b: 0, c: 0, d: 2, tx: 0, ty: 0),
+            content: .picture(picture)
+        )
+
+        // When
+        let bitmap = try sut.frame(of: list(size: Size(width: 16, height: 16), items: [item]))
+
+        // Then
+        for y in 0..<16 {
+            for x in 0..<16 {
+                let expected = (x + y) % 2 == 0 ? 0.0 : 1
+                let pixel = bitmap.pixel(x: x, y: y)
+                #expect(abs(pixel[0] - expected) < 0.02, "(\(x), \(y)): \(pixel[0]) is not \(expected)")
+            }
+        }
+    }
+
+    @Test("a filtered picture whose shown part needs more than the pixel limit is filtered at the largest scale it allows")
+    func holdsFilteredPictureToPixelLimit() throws {
+        // Given
+        // Shown at 2 across and 0.25 down, the 16 x 16 frame shows 8 x 64 units of the destination, which need 2048
+        // pixels at the larger axis scale and twice the frame's 256 allows 512, so it is filtered at one pixel a unit:
+        // each pixel averages two black and two white source pixels to 0.5, which the table maps to 0.1.
+        let sut = QuartzRenderer(decoder: AVFoundationDecoder())
+        let picture = PictureItem(
+            source: .media(try checker(size: 128)),
+            rectangle: nil,
+            destination: Rectangle(x: 0, y: 0, width: 64, height: 64),
+            filter: [FilterEntry(operations: [.lut(file: try darkenedMiddle(), amount: 1)])]
+        )
+        let item = DisplayItem(
+            transform: Frames.AffineTransform(a: 2, b: 0, c: 0, d: 0.25, tx: 0, ty: 0),
+            content: .picture(picture)
+        )
+
+        // When
+        let bitmap = try sut.frame(of: list(size: Size(width: 16, height: 16), items: [item]))
+
+        // Then
+        for y in 1..<15 {
+            for x in 1..<15 {
+                let pixel = bitmap.pixel(x: x, y: y)
+                #expect(abs(pixel[0] - 0.1) < 0.02, "(\(x), \(y)): \(pixel[0]) is not 0.1")
+            }
+        }
+    }
+
     // MARK: - Private
     // One sharp `add` mask of the rectangle in output pixels.
     private func mask(_ rectangle: Rectangle) -> [ItemMask] {

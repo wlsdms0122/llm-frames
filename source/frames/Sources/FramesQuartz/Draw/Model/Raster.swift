@@ -15,9 +15,11 @@ import Frames
 // holds it, at the scale it is shown at, so its items come out as sharp as they would drawn in place.
 struct Raster: Equatable {
     // MARK: - Property
-    // A nested list's bitmap holds at most this many times the pixels of the area it is shown in. A list turned by an
-    // eighth turn needs twice the pixels of its frame to keep its scale, and a larger one is drawn at a smaller scale.
-    private static let pixelLimit = 2.0
+    // The pixel limit: a bitmap drawn at the scale a picture is shown at, a nested list's raster or a picture's filtered
+    // bitmap, holds at most this many times the pixels of the area it is shown in (FRAMES-20 Pictures). A list turned
+    // by an eighth turn needs twice the pixels of its frame to keep its scale, and a larger one is drawn at a smaller
+    // scale.
+    static let pixelLimit = 2.0
     // The grid a homography's stretch is sampled on has this many steps along each side.
     private static let stretchSamples = 32
 
@@ -64,8 +66,8 @@ struct Raster: Equatable {
     // any direction, at the points it carries into the area, sampled on a grid over that part and at its corners, where
     // that factor is above 1, and 1 where it is not, so a picture of pixels the list holds is resampled once, in the
     // warp. Where the pixel limit does not allow the whole factor, a list that `holdsPixels` is drawn at its own size
-    // for the same reason, and any other, one holding a page of a PDF included, at the largest scale the limit allows. Either is held to the limit. Nil when
-    // none of the list lands in the area.
+    // for the same reason, and any other, one holding a page of a PDF included, at the largest scale the limit allows.
+    // Either is held to the limit. Nil when none of the list lands in the area.
     init?(
         showing size: Size,
         through map: Homography,
