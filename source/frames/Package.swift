@@ -65,6 +65,9 @@ let package = Package(
                 "FramesCoreText",
                 "FramesTracker",
                 "FramesTestMedia"
+            ],
+            resources: [
+                .copy("Text/Resources")
             ]
         ),
         .testTarget(
