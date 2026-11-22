@@ -86,7 +86,8 @@ struct PlanarTrackerTests {
             PlaneCase(motion: .swing, start: 0, tolerance: 0.25),
             PlaneCase(motion: .zoomIn, start: 0, tolerance: 0.25),
             PlaneCase(motion: .zoomOut, start: 0, tolerance: 0.45),
-            PlaneCase(motion: .rotation, start: 0, tolerance: 0.25)
+            PlaneCase(motion: .rotation, start: 0, tolerance: 0.25),
+            PlaneCase(motion: .offAxisTurn, start: 0, tolerance: 0.25)
         ]
     )
     func followsPlane(plane: PlaneCase) async throws {

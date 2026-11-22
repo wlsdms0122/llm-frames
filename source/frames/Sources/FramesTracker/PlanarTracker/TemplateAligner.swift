@@ -93,7 +93,7 @@ struct TemplateAligner: Sendable {
         from guess: simd_double3x3
     ) -> PlaneAlignment? {
         let shift = finerLevels(under: guess)
-        var alignment = PlaneAlignment(homography: guess, correlation: 0, inlierRatio: 0)
+        var alignment = PlaneAlignment(homography: normalised(guess), correlation: 0, inlierRatio: 0)
         for level in stride(from: levels, through: shift, by: -1) {
             let imageLevel = level - shift
             guard
@@ -325,8 +325,8 @@ struct TemplateAligner: Sendable {
         simd_double3x3(diagonal: simd_double3(factor, factor, 1))
     }
 
-    // `homography` scaled to 1 at its bottom right.
+    // `homography` scaled to w = 1 at the target's centroid.
     private func normalised(_ homography: simd_double3x3) -> simd_double3x3 {
-        homography * (1 / homography[2][2])
+        homography * (1 / (homography * normalisation[2]).z)
     }
 }

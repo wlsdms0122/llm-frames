@@ -17,6 +17,7 @@ enum PlaneMotion: String, Sendable {
     case zoomOut
     case rotation
     case nod
+    case offAxisTurn
 
     // MARK: - Property
     // MARK: - Initializer
@@ -51,6 +52,9 @@ enum PlaneMotion: String, Sendable {
 
         case .nod:
             return PlanePose(x: 30 * sin(5 * progress), distance: 800, yaw: -10 + 20 * progress)
+
+        case .offAxisTurn:
+            return PlanePose(x: 200, distance: 700, yaw: 45 - 90 * progress)
         }
     }
 

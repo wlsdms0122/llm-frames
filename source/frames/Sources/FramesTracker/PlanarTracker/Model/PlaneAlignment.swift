@@ -13,6 +13,7 @@ import simd
 // template's noise, from 0 to 1.
 struct PlaneAlignment: Sendable {
     // MARK: - Property
+    // Scaled to w = 1 at the target's centroid, so the target's centroid lies in front of the horizon.
     let homography: simd_double3x3
     let correlation: Double
     let inlierRatio: Double
