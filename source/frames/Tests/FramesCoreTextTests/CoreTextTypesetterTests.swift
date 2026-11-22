@@ -62,9 +62,17 @@ struct CoreTextTypesetterTests {
         let style = CharacterStyle(families: ["Geeza Pro"], weight: .regular, size: 48, tracking: 200)
         let word = "\u{645}\u{631}\u{62D}\u{628}\u{627}"
         let optionalLigaturesOff = ["liga", "clig", "dlig"].map { FontFeature(tag: $0, value: 0) }
-        let shaped = try shaper
-            .shape(word, direction: .rtl, faces: [face], size: 48, features: optionalLigaturesOff, weight: .regular, italic: false)
-            .flatMap(\.glyphs)
+        let shaped = try shaper.shape(
+            word,
+            direction: .rtl,
+            upright: false,
+            faces: [face],
+            size: 48,
+            features: optionalLigaturesOff,
+            weight: .regular,
+            italic: false
+        )
+        .flatMap(\.glyphs)
 
         // When
         let layout = try sut.layout(
@@ -157,8 +165,17 @@ struct CoreTextTypesetterTests {
         _ text: String,
         _ face: FontFace
     ) throws -> [ShapedGlyph] {
-        try shaper.shape(text, direction: .rtl, faces: [face], size: 48, features: [], weight: .regular, italic: false)
-            .flatMap(\.glyphs)
+        try shaper.shape(
+            text,
+            direction: .rtl,
+            upright: false,
+            faces: [face],
+            size: 48,
+            features: [],
+            weight: .regular,
+            italic: false
+        )
+        .flatMap(\.glyphs)
     }
 
     private func cluster(

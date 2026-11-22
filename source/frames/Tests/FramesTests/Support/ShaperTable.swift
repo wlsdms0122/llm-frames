@@ -12,10 +12,12 @@
 // wide in ems, `fi` is one ligature glyph an em wide unless `liga` is 0, and `AV` kerns by a tenth of an em unless
 // `kern` is 0. A grapheme cluster with a scalar `lacks` names for a family is set whole in the next face, and one with
 // a scalar in `missing` or that no face has whole in `fallback`, default ignorable scalars left out of both. A scalar
-// in `placements` is placed that far from the pen, in ems, and one in `prebase` is set before the glyph before it in its
-// face, as a pre-base matra is. A scalar in `ignored` is set as nothing, as a shaper leaves out a default ignorable
+// in `placements` is placed that far from the pen, in ems, and one in `prebase` is set before the glyph before it in
+// its face, as a pre-base matra is. A scalar in `ignored` is set as nothing, as a shaper leaves out a default ignorable
 // scalar its face does not map. A right-to-left run is set as a left-to-right one, its runs and their glyphs then given
-// from right to left, and a bracket in it is set in the glyph of the bracket that mirrors it.
+// from right to left, and a bracket in it is set in the glyph of the bracket that mirrors it. An upright glyph is set
+// as FRAMES-5 sets one of a face without vertical metrics: its advance is its face's ascent plus its descent, and its
+// placement offset holds its face's ascent along the line and half its horizontal advance across it.
 struct ShaperTable: ShapingProvider {
     // MARK: - Property
     static let fallback = face("Fallback", .regular, file: "/System/Fallback.ttc")
@@ -112,6 +114,7 @@ struct ShaperTable: ShapingProvider {
     func shape(
         _ text: String,
         direction: TextDirection,
+        upright: Bool,
         faces: [FontFace],
         size: Double,
         features: [FontFeature],
@@ -140,11 +143,15 @@ struct ShaperTable: ShapingProvider {
             let kern = isKerned && scalar == "A" && next == "V" ? Self.kerning : 0
             let advance = isLigature ? 1 : (advances[scalar] ?? 0.5) - kern
             let mirrored = direction == .rtl ? Self.mirrors[scalar] ?? scalar : scalar
+            let placement = placements[scalar] ?? Point(x: 0, y: 0)
             let glyph = ShapedGlyph(
                 id: isLigature ? Self.ligature : Int(mirrored.value),
-                advance: advance * size,
+                advance: (upright ? runFace.ascent + runFace.descent : advance) * size,
                 offset: offset,
-                placementOffset: placements[scalar].map { Point(x: $0.x * size, y: $0.y * size) } ?? Point(x: 0, y: 0)
+                placementOffset: Point(
+                    x: (placement.x + (upright ? runFace.ascent : 0)) * size,
+                    y: (placement.y + (upright ? advance / 2 : 0)) * size
+                )
             )
 
             if let last = runs.last, last.face == runFace {

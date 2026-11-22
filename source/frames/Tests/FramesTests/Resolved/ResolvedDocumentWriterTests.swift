@@ -262,6 +262,7 @@ struct ResolvedDocumentWriterTests {
                         "ease": "linear"
                       }
                     ],
+                    "sideways": false,
                     "staticTracking": 0,
                     "tracking": null,
                     "highlight": null,

@@ -666,8 +666,8 @@ struct ResolvedValueReader: Sendable {
 
     private func run(_ value: PlacedJSONValue) throws -> ResolvedGlyphRun {
         let run = try value.object(keys: [
-            "source", "file", "sha256", "face", "size", "color", "stroke", "baselineShift", "staticTracking", "tracking",
-            "highlight", "underline", "glyphs"
+            "source", "file", "sha256", "face", "size", "color", "stroke", "baselineShift", "sideways", "staticTracking",
+            "tracking", "highlight", "underline", "glyphs"
         ])
         let length = ValueStructure.leaf(.length(.any))
 
@@ -683,6 +683,7 @@ struct ResolvedValueReader: Sendable {
             color: try timed(run.member("color"), as: .leaf(.color)),
             stroke: try timed(run.member("stroke"), as: LookStructureTable.textStroke, kind: "stroke"),
             baselineShift: try timed(run.member("baselineShift"), as: length),
+            isSideways: try run.member("sideways").bool(),
             staticTracking: try run.member("staticTracking").number(),
             tracking: try timed(run.member("tracking"), as: length),
             highlight: try run.member("highlight").optional { value in

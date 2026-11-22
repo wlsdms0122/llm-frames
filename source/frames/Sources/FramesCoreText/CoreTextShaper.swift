@@ -10,13 +10,14 @@ import Foundation
 import Frames
 
 // The `coretext` shaping provider. A face is named by its PostScript name within its file, and its weight, width and
-// style are read from its OS/2 table. Each grapheme cluster is set in the first face given that maps every scalar of
-// it but its default ignorable ones, else in the face CoreText finds on the machine for it from the first face, which
+// style are read from its OS/2 table. Each grapheme cluster is set in the first face given that maps every scalar of it
+// but its default ignorable ones, else in the face CoreText finds on the machine for it from the first face, which
 // follows its weight and slant. Each stretch of clusters in one face is set as a CoreText line sets it, in that face
 // alone, with the feature settings given over the font's defaults, and in the run's direction, which overrides every
 // character's and is the line's base direction, so CoreText reorders nothing by a bidirectional pass of its own and
 // sets trailing whitespace on the run's side. A right-to-left run's stretches are given from right to left, the order
-// they lie in on the line.
+// they lie in on the line. An upright run is set as a CoreText line sets vertical forms, which applies the font's
+// `vert` and `vrt2` features together.
 package struct CoreTextShaper: Sendable {
     // MARK: - Property
     // Offsets into the OS/2 table: `usWeightClass`, `usWidthClass` and `fsSelection`, whose bit 0 is italic and bit 9
@@ -69,20 +70,21 @@ package struct CoreTextShaper: Sendable {
     }
 
     // The face a run was set in: one of those asked for, or the one CoreText fell back to, which a renderer must find
-    // by its file.
+    // by its file. A fallback face is read from its file, since the font of a run CoreText set vertically has made-up
+    // ascent and descent.
     private func face(
         of run: CTRun,
         asked faces: [FontFace]
     ) throws -> FontFace {
-        guard let value = (CTRunGetAttributes(run) as NSDictionary)[kCTFontAttributeName] else { return faces[0] }
-        let font = value as! CTFont
+        guard let font = font(of: run) else { return faces[0] }
         let name = CTFontCopyPostScriptName(font) as String
         if let asked = faces.first(where: { $0.name == name }) {
             return asked
         }
         guard let file = file(of: font) else { throw ShapingError.fallbackWithoutFile(name: name) }
+        let named = descriptor(named: name, in: file).map { CTFontCreateWithFontDescriptor($0, 1, nil) }
 
-        return self.face(of: font, file: file)
+        return self.face(of: named ?? font, file: file)
     }
 
     private func descriptors(in file: String) -> [CTFontDescriptor] {
@@ -186,14 +188,53 @@ package struct CoreTextShaper: Sendable {
         CTFontCopyPostScriptName(font) as String
     }
 
+    private func font(of run: CTRun) -> CTFont? {
+        (CTRunGetAttributes(run) as NSDictionary)[kCTFontAttributeName].map { $0 as! CTFont }
+    }
+
     // Whether CoreText set `run` in `font`.
     private func isSet(
         _ run: CTRun,
         in font: CTFont
     ) -> Bool {
-        guard let value = (CTRunGetAttributes(run) as NSDictionary)[kCTFontAttributeName] else { return true }
+        guard let set = self.font(of: run) else { return true }
 
-        return name(of: value as! CTFont) == name(of: font)
+        return name(of: set) == name(of: font)
+    }
+
+    private func hasVerticalMetrics(_ font: CTFont) -> Bool {
+        CTFontCopyTable(font, CTFontTableTag(kCTFontTableVmtx), []) != nil
+    }
+
+    // An upright glyph of a face without a `vmtx` table in the vertical metrics FRAMES-5 makes from the face's ascent
+    // and descent. CoreText sets such a glyph in metrics it makes up, which differ from face to face, so its vertical
+    // advance and its move to the vertical origin are taken out of `glyph` and the made ones put in. The ascent and
+    // descent are `face`'s, since those of a font CoreText set vertically are made up too.
+    private func madeVertical(
+        _ glyph: ShapedGlyph,
+        id: CGGlyph,
+        in font: CTFont,
+        face: FontFace
+    ) -> ShapedGlyph {
+        var id = id
+        var vertical = CGSize.zero
+        var horizontal = CGSize.zero
+        var translation = CGSize.zero
+        CTFontGetAdvancesForGlyphs(font, .vertical, &id, &vertical, 1)
+        CTFontGetAdvancesForGlyphs(font, .horizontal, &id, &horizontal, 1)
+        CTFontGetVerticalTranslationsForGlyphs(font, &id, &translation, 1)
+        let ascent = face.ascent * Double(CTFontGetSize(font))
+        let descent = face.descent * Double(CTFontGetSize(font))
+
+        return ShapedGlyph(
+            id: glyph.id,
+            advance: glyph.advance - Double(vertical.width) + ascent + descent,
+            offset: glyph.offset,
+            placementOffset: Point(
+                x: glyph.placementOffset.x + Double(translation.height) + ascent,
+                y: glyph.placementOffset.y + Double(translation.width) + Double(horizontal.width) / 2
+            )
+        )
     }
 
     // The scalars a stretch is set from: a default ignorable scalar the font maps neither as a character nor, for a
@@ -222,16 +263,20 @@ package struct CoreTextShaper: Sendable {
 
     // Glyphs of one stretch in the order they lie on the line from left to right, as CoreText gives its runs and their
     // glyphs. `CTRunGetAdvances` is the distance from one glyph's drawn position to the next one's, a mark's attachment
-    // included. Base advances leave out what the font's tables place relative to another glyph, so the pen moves by them
-    // and a glyph's placement offset is its drawn position less the pen, with CoreText's y, which points up, turned
-    // down. A run CoreText sets in another face from default ignorable scalars alone, a non-joiner the font does not
-    // map, is set as nothing. An override in the run's direction keeps CoreText from resolving levels of its own, and at
-    // a right-to-left level it mirrors a `Bidi_Mirrored` character as rule L4 of UAX #9 asks. The line's base direction
-    // is the run's too, since CoreText applies rule L1 to the line and would otherwise set its trailing whitespace at
-    // the level its first strong character gives, or 0 without one, and place it on the wrong side.
+    // included. Base advances leave out what the font's tables place relative to another glyph, so the pen moves by
+    // them and a glyph's placement offset is its drawn position less the pen, with CoreText's y, which points up,
+    // turned down. An upright run's advances are vertical, and its positions are its glyphs' origins in their upright
+    // frame, y up, with the line running down from the vertical origin of its first glyph, so its pen runs along -y and
+    // the line-under side is -x. A run CoreText sets in another face from default ignorable scalars alone, a non-joiner
+    // the font does not map, is set as nothing. An override in the run's direction keeps CoreText from resolving levels
+    // of its own, and at a right-to-left level it mirrors a `Bidi_Mirrored` character as rule L4 of UAX #9 asks. The
+    // line's base direction is the run's too, since CoreText applies rule L1 to the line and would otherwise set its
+    // trailing whitespace at the level its first strong character gives, or 0 without one, and place it on the wrong
+    // side.
     private func shape(
         _ scalars: [(index: Int, scalar: Unicode.Scalar)],
         direction: TextDirection,
+        upright: Bool,
         in font: CTFont,
         asked faces: [FontFace],
         features: [FontFeature]
@@ -257,12 +302,15 @@ package struct CoreTextShaper: Sendable {
         if features.contains(FontFeature(tag: "kern", value: 0)) {
             attributes[NSAttributedString.Key(kCTKernAttributeName as String)] = 0
         }
+        if upright {
+            attributes[NSAttributedString.Key(kCTVerticalFormsAttributeName as String)] = true
+        }
         let text = String(String.UnicodeScalarView(scalars.map(\.scalar)))
         let line = CTLineCreateWithAttributedString(NSAttributedString(string: text, attributes: attributes))
         let units = scalars.flatMap { Array(repeating: $0, count: UTF16.width($0.scalar)) }
 
         var runs: [ShapedRun] = []
-        // CoreText hangs a line's trailing whitespace past its end, which at a right-to-left base lies left of its
+        // CoreText hangs a line's trailing whitespace past its end, which at a right-to-left base lies before its
         // origin, so the pen starts there.
         var pen = direction == .rtl ? -CTLineGetTrailingWhitespaceWidth(line) : 0
         for run in CTLineGetGlyphRuns(line) as? [CTRun] ?? [] {
@@ -280,23 +328,27 @@ package struct CoreTextShaper: Sendable {
             if isIgnorable && !isSet(run, in: font) {
                 continue
             }
+            let runFont = self.font(of: run) ?? font
+            let runFace = try face(of: run, asked: faces)
+            let isMadeVertical = upright && !hasVerticalMetrics(runFont)
 
             var shaped: [ShapedGlyph] = []
             for index in 0..<count {
+                let position = positions[index]
+                let glyph = ShapedGlyph(
+                    id: Int(glyphs[index]),
+                    advance: Double(advances[index].width),
+                    offset: units[offsets[index]].index,
+                    placementOffset: upright
+                        ? Point(x: -Double(position.y) - pen, y: -Double(position.x))
+                        : Point(x: Double(position.x) - pen, y: -Double(position.y))
+                )
                 shaped.append(
-                    ShapedGlyph(
-                        id: Int(glyphs[index]),
-                        advance: Double(advances[index].width),
-                        offset: units[offsets[index]].index,
-                        placementOffset: Point(
-                            x: Double(positions[index].x) - pen,
-                            y: -Double(positions[index].y)
-                        )
-                    )
+                    isMadeVertical ? madeVertical(glyph, id: glyphs[index], in: runFont, face: runFace) : glyph
                 )
                 pen += Double(advances[index].width)
             }
-            runs.append(ShapedRun(face: try face(of: run, asked: faces), glyphs: shaped))
+            runs.append(ShapedRun(face: runFace, glyphs: shaped))
         }
 
         return runs
@@ -338,6 +390,7 @@ extension CoreTextShaper: ShapingProvider {
     package func shape(
         _ text: String,
         direction: TextDirection,
+        upright: Bool,
         faces: [FontFace],
         size: Double,
         features: [FontFeature],
@@ -351,7 +404,15 @@ extension CoreTextShaper: ShapingProvider {
         var runs: [ShapedRun] = []
         for stretch in direction == .rtl ? Array(stretches.reversed()) : stretches {
             let scalars = settable(stretch.scalars, in: stretch.font)
-            for run in try shape(scalars, direction: direction, in: stretch.font, asked: faces, features: features) {
+            let shaped = try shape(
+                scalars,
+                direction: direction,
+                upright: upright,
+                in: stretch.font,
+                asked: faces,
+                features: features
+            )
+            for run in shaped {
                 if let last = runs.last, last.face == run.face {
                     runs[runs.count - 1] = ShapedRun(face: run.face, glyphs: last.glyphs + run.glyphs)
                 } else {

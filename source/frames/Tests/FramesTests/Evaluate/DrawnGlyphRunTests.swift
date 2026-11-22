@@ -25,6 +25,7 @@ struct DrawnGlyphRunTests {
             color: .track([Keyframe(at: 0, value: .color(Color(written: "#FFFFFF")))]),
             stroke: .off,
             baselineShift: .off,
+            isSideways: false,
             staticTracking: 0,
             tracking: .off,
             highlight: nil,
