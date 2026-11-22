@@ -360,10 +360,11 @@ An area is a rectangle in the coordinate space of the clip that writes it. A poi
 
 A title clip's `title` is a string or a list of runs `{text, style}`, and its `style` names a theme text style and is required.
 
-- A run's `style` gives that run its character attributes (`size`, `weight`, `color`, `stroke`). The clip's style gives the paragraph its attributes (`placement`, `offset`, `align`, `lineHeight`, `lines`, `background`). A run without `style` is in the clip's style.
+- A run's `style` gives that run its character attributes (`size`, `weight`, `color`, `stroke`). The clip's style gives the paragraph its attributes (`placement`, `offset`, `direction`, `align`, `lineHeight`, `lines`, `background`). A run without `style` is in the clip's style.
 - Without `width` a title is point text: it does not wrap, its lines break only at `\n`, and its box is as wide as its widest line, so a background hugs the text.
 - With `width` (output pixels) a title is paragraph text: it wraps at that width, its box is `width` wide, each line sits in it by the style's `align`, and a background fills it. Lines break by Unicode line breaking and keep words whole, so Korean breaks at spaces.
 - Text that needs more lines than its style's `lines` stops, with `width` or without, so a `lines: 1` title wider than its `width` stops rather than shrink or cut.
+- Right-to-left and mixed-direction text is laid out by the Unicode Bidirectional Algorithm. A style's `direction` is `auto` (from the text's first strong character, the default), `ltr` or `rtl`, and `align` names a side of the box, `left` by default for left-to-right text and `right` for right-to-left. Characters, words, lines and units stay in the order they are read, so a reveal by character starts an Arabic word at its first letter.
 - Fonts come from the theme `font` list, the first family the pack or the machine has. Text is laid out by resolve, so line breaks and boxes are the same on every renderer.
 
 [FRAMES-5](spec/FRAMES-5/SPEC.md), [FRAMES-11](spec/FRAMES-11/SPEC.md)
@@ -564,7 +565,7 @@ A theme holds a look: sizes, colours, text styles, shape styles and default pres
 | `baseWidth` | the frame width theme lengths are written for, 1920 |
 | `font` | font families in the order they are tried |
 | `colors` | named colours, an open map. `text` is the default text colour and `background` the default format background |
-| `styles` | text styles by name, an open map: `size` (required), `weight` (`regular` or `bold`), `color`, `stroke` (`{width, color}`), `lineHeight`, `background` (`{color, padding, radius}`), `placement`, `offset`, `align` (`left`, `center`, `right`), `lines` |
+| `styles` | text styles by name, an open map: `size` (required), `weight` (`regular` or `bold`), `color`, `stroke` (`{width, color}`), `lineHeight`, `background` (`{color, padding, radius}`), `placement`, `offset`, `direction` (`auto`, `ltr`, `rtl`), `align` (`left`, `center`, `right`), `lines` |
 | `shapes` | shape styles by name, an open map: `fill`, `stroke`, `radius`, `outset`, `shadow` |
 | `placement` | `padding`, the title safe margin |
 | `border`, `shadow` | `{width, color}` and `{radius, offset, color}`, drawn by `border: true` and `shadow: true` |
@@ -662,7 +663,7 @@ With `--json`, and always for `evaluate`, `locate` and `track`, a command prints
 | `ocr` | `{ocr, size, languages, frames}`, each frame `{time, lines}` and each line `{text, rect}` |
 | `track` | `{track, time, target, frames}`, each frame `{time, quad, motion}` |
 | `timeline` | `{timeline, duration, storyline, clips}`. A storyline entry has `place, id, media, edit, drawn, clip, speed, timeRemap, transition`, `media` for a page of a PDF the `{file, page}` object, and a clips entry `place, id, kind, visible, lane, storyline, parent, animation`. A compound clip or template instance adds `nested` |
-| `evaluate` | `{evaluate, time, size, items, texts}`, `items` bottom first, each `{place, id, kind, item, bounds, opacity, transform, rect, cornerPins, characters}`, `transform` and `rect` where an item lies with the corner pins that carry it left out and `cornerPins` those corner pins, innermost first, each `{dest, cornerPin}` as four points, or `null` where none carries it, each character `{text, range, rect, baseline}`, and `texts` one entry for each title drawn, `{place, id, text, size, box, transform, cornerPins, lines, words}`, each line `{text, range, baseline, ascent, descent}` and each word `{text, range}`, ranges in Unicode scalars and places in the title's text box |
+| `evaluate` | `{evaluate, time, size, items, texts}`, `items` bottom first, each `{place, id, kind, item, bounds, opacity, transform, rect, cornerPins, characters}`, `transform` and `rect` where an item lies with the corner pins that carry it left out and `cornerPins` those corner pins, innermost first, each `{dest, cornerPin}` as four points, or `null` where none carries it, each character `{text, range, level, rect, baseline}`, `level` its bidirectional embedding level, and `texts` one entry for each title drawn, `{place, id, text, direction, size, box, transform, cornerPins, lines, words}`, each line `{text, range, baseline, ascent, descent}` and each word `{text, range}`, ranges in Unicode scalars and places in the title's text box |
 | `locate` | `{locate, hits}`, topmost first, each `{place, id, kind, item}`, and for a picture of a media file `{media, mediaTime, point, page}`, `page` the page of a PDF or `null` |
 
 Times are rounded to the microsecond and positions, sizes, opacities and the numbers of a `transform` to the millionth. A new field is an addition within a version, and a removed or changed one a new major version ([FRAMES-18](spec/FRAMES-18/SPEC.md)). [FRAMES-23](spec/FRAMES-23/SPEC.md)
