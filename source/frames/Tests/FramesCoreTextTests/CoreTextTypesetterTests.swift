@@ -55,7 +55,51 @@ struct CoreTextTypesetterTests {
         ])
     }
 
+    @Test("a comma and the space after it in Hebrew text set in a fallback face are each a group, the comma beside its word")
+    func placesCommaAndSpaceInHebrew() throws {
+        // Given
+        let face = try #require(shaper.installedFaces(family: "Helvetica Neue").first { $0.name == "HelveticaNeue" })
+        let style = CharacterStyle(families: ["Helvetica Neue"], weight: .regular, size: 36)
+        let text = "\u{5E7}\u{5D1}\u{5D5}\u{5E2}, \u{5DB}\u{5D3}\u{5D9}"
+
+        // When
+        let layout = try sut.layout(
+            [TextRun(text: text, style: style, faces: [face])],
+            paragraph: ParagraphStyle(lineHeight: 44, background: nil, align: nil, lines: nil),
+            width: nil,
+            place: place,
+            kind: "title"
+        )
+
+        // Then
+        // Every character lies at level 1, the comma and the space by rule N1 between two Hebrew letters, so L2 places
+        // `כ`, the space, the comma and `ע` from left to right side by side. The letters are set in a face found on the
+        // machine and the comma and the space in Helvetica Neue, each with a glyph of its own, and no glyph is placed
+        // against another, so each is drawn in its box.
+        let clusters = layout.lines.flatMap(\.clusters)
+        let ayin = try #require(clusters.first { $0.range == 3..<4 })
+        let comma = try #require(clusters.first { $0.range == 4..<5 })
+        let space = try #require(clusters.first { $0.range == 5..<6 })
+        let kaf = try #require(clusters.first { $0.range == 6..<7 })
+        #expect(clusters.allSatisfy { $0.level == 1 })
+        try #require([ayin, comma, space, kaf].allSatisfy { $0.glyphs.count == 1 })
+        #expect([comma, space].allSatisfy { layout.runs[$0.glyphs.run].face == face })
+        #expect(comma.glyphs != space.glyphs)
+        #expect(start(of: kaf, in: layout) + kaf.advance == start(of: space, in: layout))
+        #expect(start(of: space, in: layout) + space.advance == start(of: comma, in: layout))
+        #expect(start(of: comma, in: layout) + comma.advance == start(of: ayin, in: layout))
+        #expect(layout.runs.flatMap(\.glyphs).allSatisfy { $0.placementOffset == Point(x: 0, y: 0) })
+    }
+
     // MARK: - Private
+    // Where a cluster's glyph box starts on its line: the pen at its first glyph.
+    private func start(
+        of cluster: PlacedCluster,
+        in layout: TextLayout
+    ) -> Double {
+        layout.runs[cluster.glyphs.run].glyphs[cluster.glyphs.first].x
+    }
+
     private func shape(
         _ text: String,
         _ face: FontFace

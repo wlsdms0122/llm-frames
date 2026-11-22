@@ -225,7 +225,9 @@ package struct CoreTextShaper: Sendable {
     // and a glyph's placement offset is its drawn position less the pen, with CoreText's y, which points up, turned
     // down. A run CoreText sets in another face from default ignorable scalars alone, a non-joiner the font does not
     // map, is set as nothing. An override in the run's direction keeps CoreText from resolving levels of its own, and at
-    // a right-to-left level it mirrors a `Bidi_Mirrored` character as rule L4 of UAX #9 asks.
+    // a right-to-left level it mirrors a `Bidi_Mirrored` character as rule L4 of UAX #9 asks. The line's base direction
+    // is the run's too, since CoreText applies rule L1 to the line and would otherwise set its trailing whitespace at
+    // the level its first strong character gives, or 0 without one, and place it on the wrong side.
     private func shape(
         _ scalars: [(index: Int, scalar: Unicode.Scalar)],
         direction: TextDirection,
@@ -233,9 +235,19 @@ package struct CoreTextShaper: Sendable {
         asked faces: [FontFace],
         features: [FontFeature]
     ) throws -> [ShapedRun] {
-        let writing = direction == .rtl ? CTWritingDirection.rightToLeft : .leftToRight
+        var writing = direction == .rtl ? CTWritingDirection.rightToLeft : .leftToRight
+        let paragraph = withUnsafeMutablePointer(to: &writing) { pointer in
+            var setting = CTParagraphStyleSetting(
+                spec: .baseWritingDirection,
+                valueSize: MemoryLayout<CTWritingDirection>.size,
+                value: pointer
+            )
+
+            return CTParagraphStyleCreate(&setting, 1)
+        }
         var attributes: [NSAttributedString.Key: Any] = [
             NSAttributedString.Key(kCTFontAttributeName as String): font,
+            NSAttributedString.Key(kCTParagraphStyleAttributeName as String): paragraph,
             NSAttributedString.Key(kCTWritingDirectionAttributeName as String): [
                 NSNumber(value: Int(writing.rawValue) | kCTWritingDirectionOverride)
             ]
@@ -249,7 +261,9 @@ package struct CoreTextShaper: Sendable {
         let units = scalars.flatMap { Array(repeating: $0, count: UTF16.width($0.scalar)) }
 
         var runs: [ShapedRun] = []
-        var pen = 0.0
+        // CoreText hangs a line's trailing whitespace past its end, which at a right-to-left base lies left of its
+        // origin, so the pen starts there.
+        var pen = direction == .rtl ? -CTLineGetTrailingWhitespaceWidth(line) : 0
         for run in CTLineGetGlyphRuns(line) as? [CTRun] ?? [] {
             let count = CTRunGetGlyphCount(run)
             var glyphs = [CGGlyph](repeating: 0, count: count)

@@ -346,6 +346,36 @@ struct CoreTextShaperTests {
         #expect(kept.flatMap(\.glyphs).first.map { [$0.id] } == opening)
     }
 
+    @Test(
+        "a run's glyphs lie in its direction whatever its text's first strong character says, a space at its end too",
+        arguments: [
+            (", ", "Helvetica", "Helvetica", TextDirection.rtl, [1, 0]),
+            ("1 ", "Helvetica", "Helvetica", .rtl, [1, 0]),
+            ("\u{5D0}\u{5D1} ", "Arial Hebrew", "ArialHebrew", .ltr, [0, 1, 2])
+        ]
+    )
+    func keepsTrailingSpaceInRunDirection(
+        text: String,
+        family: String,
+        name: String,
+        direction: TextDirection,
+        offsets: [Int]
+    ) throws {
+        // Given
+        let face = try face(family, name)
+
+        // When
+        let runs = try shape(text, [face], direction: direction)
+
+        // Then
+        // Every scalar of the run lies at its one level, so the space at its end lies on the side the run ends on, left
+        // in a right-to-left run and right in a left-to-right one. No glyph is placed against another, so each is drawn
+        // at its pen.
+        #expect(runs.map(\.face) == [face])
+        #expect(runs.flatMap(\.glyphs).map(\.offset) == offsets)
+        #expect(runs.flatMap(\.glyphs).allSatisfy { $0.placementOffset == Point(x: 0, y: 0) })
+    }
+
     @Test("an Arabic word set right to left keeps its letters joined, and `lam` with `alef` is one glyph")
     func joinsArabic() throws {
         // Given
