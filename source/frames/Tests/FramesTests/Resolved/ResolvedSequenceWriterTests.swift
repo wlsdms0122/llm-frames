@@ -270,7 +270,7 @@ struct ResolvedSequenceWriterTests {
         #expect(colors == [held(.string("color(srgb 0.06274509803921569 0.0784313725490196 0.09411764705882353 / 1)")), held(.string("color(srgb 1 0 0 / 1)"))])
     }
 
-    @Test("a solid storyline clip carries its colour as color(srgb r g b / a), a theme colour by its value")
+    @Test("a solid storyline clip carries its colour as a keyframe list of color(srgb r g b / a), a theme colour by its value")
     func writesSolidColor() throws {
         // Given
         let document = #"""
@@ -281,7 +281,7 @@ struct ResolvedSequenceWriterTests {
         let storyline = try #require(try write(document)["storyline"]?.arrayValue)
 
         // Then
-        #expect(storyline.first?.objectValue?["solid"] == .string("color(srgb 0 0 0 / 0.5019607843137255)"))
+        #expect(storyline.first?.objectValue?["solid"] == held(.string("color(srgb 0 0 0 / 0.5019607843137255)")))
         #expect(storyline.first?.objectValue?["media"] == .null)
     }
 

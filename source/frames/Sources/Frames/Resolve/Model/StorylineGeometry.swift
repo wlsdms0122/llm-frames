@@ -17,7 +17,7 @@ struct StorylineGeometry: Equatable, Sendable {
     let isCropOnTrackFrame: Bool
     let nested: SequencePlan?
     let filter: TimedValue
-    let color: Color?
+    let color: [Keyframe<Color>]?
     let appearance: StorylineAppearance
 
     // MARK: - Initializer
@@ -28,7 +28,7 @@ struct StorylineGeometry: Equatable, Sendable {
         isCropOnTrackFrame: Bool = false,
         nested: SequencePlan?,
         filter: TimedValue = .off,
-        color: Color? = nil,
+        color: [Keyframe<Color>]? = nil,
         appearance: StorylineAppearance
     ) {
         self.crop = crop

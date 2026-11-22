@@ -15,7 +15,7 @@ extension ResolvedStorylineClip {
         place: String,
         id: String?,
         media: ResolvedMediaContent?,
-        solid: Color?,
+        solid: [Keyframe<Color>]?,
         colorSpace: ColorSpace? = nil,
         in: Double,
         out: Double,

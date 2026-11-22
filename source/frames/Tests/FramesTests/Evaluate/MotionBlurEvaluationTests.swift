@@ -851,7 +851,7 @@ struct MotionBlurEvaluationTests {
                 place: place,
                 id: nil,
                 media: nil,
-                solid: Color(written: "#000000"),
+                solid: [Keyframe(at: start, value: Color(written: "#000000"))],
                 in: 0,
                 out: end - start,
                 speed: 1,

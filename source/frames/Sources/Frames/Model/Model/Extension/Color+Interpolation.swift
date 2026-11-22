@@ -7,7 +7,7 @@
 
 // How colours are mixed by a weight, on the encoded form: a keyframed colour straight, a gradient's stops
 // premultiplied.
-extension Color {
+extension Color: Interpolable {
     // MARK: - Property
     // Red, green and blue of the encoded form premultiplied by alpha, and alpha.
     var premultiplied: [Double] {
