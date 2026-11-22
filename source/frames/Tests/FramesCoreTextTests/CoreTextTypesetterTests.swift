@@ -194,6 +194,88 @@ struct CoreTextTypesetterTests {
         #expect(abs(layout.textBox.height - pen) < 1e-9)
     }
 
+    @Test("a vertical line of styled runs in Hiragino Sans keeps each run's orientation, advances and baselines at its boundaries")
+    func setsVerticalLineOfStyledRuns() throws {
+        // Given
+        let faces = shaper.installedFaces(family: "Hiragino Sans")
+        let regular = try #require(faces.first { $0.name == "HiraginoSans-W4" })
+        let bold = try #require(faces.first { $0.name == "HiraginoSans-W7" })
+        let body = CharacterStyle(families: ["Hiragino Sans"], weight: .regular, size: 64)
+        let mark = CharacterStyle(families: ["Hiragino Sans"], weight: .regular, size: 64, isHighlighted: true)
+        let line = CharacterStyle(families: ["Hiragino Sans"], weight: .regular, size: 64, isUnderlined: true)
+        let big = CharacterStyle(families: ["Hiragino Sans"], weight: .bold, size: 112)
+        let runs = [
+            TextRun(text: "縦書きの", style: body, faces: [regular]),
+            TextRun(text: "見出し", style: mark, faces: [regular]),
+            TextRun(text: "と", style: body, faces: [regular]),
+            TextRun(text: "Underline", style: line, faces: [regular]),
+            TextRun(text: "、", style: body, faces: [regular]),
+            TextRun(text: "大", style: big, faces: [bold]),
+            TextRun(text: "きな", style: body, faces: [regular]),
+            TextRun(text: "字。", style: body, faces: [regular])
+        ]
+
+        // When
+        let layout = try sut.layout(
+            runs,
+            paragraph: ParagraphStyle(lineHeight: 150, background: nil, writingMode: .verticalRightToLeft, align: .left, lines: nil),
+            width: nil,
+            place: place,
+            kind: "title"
+        )
+
+        // Then
+        // Each text run is a glyph run of its own, `と` upright between the upright `見出し` and the sideways
+        // `Underline` of the same face. The line's baseline lies the largest extent, `大`'s, inside the text box, and
+        // every glyph is placed by its own face at its own size: the pen moves by Core Text's vertical advance of an
+        // upright glyph and horizontal advance of a sideways one, an upright glyph is set from its vertical origin and
+        // a sideways one from its face's alphabetic baseline.
+        let baseline = (bold.ascent + bold.descent) * 112 / 2
+        #expect(layout.runs.map(\.source) == Array(runs.indices))
+        #expect(layout.runs.map(\.isSideways) == [false, false, false, true, false, false, false, false])
+        #expect(layout.runs.map(\.glyphs.count) == runs.map(\.text.count))
+        #expect(layout.lines.count == 1)
+        #expect(abs((layout.lines.first?.baseline ?? 0) - baseline) < 1e-9)
+        var pen = 0.0
+        var starts: [Double] = []
+        for run in layout.runs {
+            let font = CTFontCreateWithName(run.face.name as CFString, run.size, nil)
+            let alphabetic = (run.face.ascent - run.face.descent) * run.size / 2
+            starts.append(pen)
+            for glyph in run.glyphs {
+                var id = CGGlyph(glyph.id)
+                var advance = CGSize.zero
+                CTFontGetAdvancesForGlyphs(font, run.isSideways ? .horizontal : .vertical, &id, &advance, 1)
+                #expect(abs(glyph.x - baseline) < 1e-9, "glyph \(glyph.id)")
+                #expect(abs(glyph.y - pen) < 1e-9, "glyph \(glyph.id) at \(glyph.y), not \(pen)")
+                if run.isSideways {
+                    #expect(abs(glyph.placementOffset.x + alphabetic) < 1e-9, "glyph \(glyph.id)")
+                    #expect(glyph.placementOffset.y == 0, "glyph \(glyph.id)")
+                } else {
+                    var translation = CGSize.zero
+                    CTFontGetVerticalTranslationsForGlyphs(font, &id, &translation, 1)
+                    #expect(abs(glyph.placementOffset.x - translation.width) < 1e-9, "glyph \(glyph.id)")
+                    #expect(abs(glyph.placementOffset.y + translation.height) < 1e-9, "glyph \(glyph.id)")
+                }
+                pen += hypot(advance.width, advance.height)
+            }
+        }
+        // The highlight of `見出し` and the underline of `Underline` read their own run's face at size 64.
+        let extent = (regular.ascent + regular.descent) * 64 / 2
+        let alphabetic = (regular.ascent - regular.descent) * 64 / 2
+        let highlight = try #require(layout.runs[1].highlights.first)
+        let underline = try #require(layout.runs[3].underlines.first)
+        #expect(layout.runs.map(\.highlights.count) == [0, 1, 0, 0, 0, 0, 0, 0])
+        #expect(layout.runs.map(\.underlines.count) == [0, 0, 0, 1, 0, 0, 0, 0])
+        #expect(abs(highlight.x - (baseline - extent)) < 1e-9)
+        #expect(abs(highlight.width - 2 * extent) < 1e-9)
+        #expect(abs(highlight.y - starts[1]) < 1e-9)
+        #expect(abs(highlight.maxY - starts[2]) < 1e-9)
+        #expect(abs(underline.x - (baseline - alphabetic)) < 1e-9)
+        #expect(abs(underline.y - starts[3]) < 1e-9)
+        #expect(abs(underline.width - (starts[4] - starts[3])) < 1e-9)
+    }
+
     // MARK: - Private
     // Where a cluster's glyph box starts on its line: the pen at its first glyph.
     private func start(

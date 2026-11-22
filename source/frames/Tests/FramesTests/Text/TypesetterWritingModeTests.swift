@@ -99,6 +99,62 @@ struct TypesetterWritingModeTests {
         #expect(layout.runs.map(\.glyphs.count) == [2, 2, 1])
     }
 
+    @Test("an upright text run of one character and the sideways text run after it in the same face keep their own glyph runs")
+    func keepsUprightRunBeforeSidewaysRun() throws {
+        // Given
+        let runs = [run("漢", isHighlighted: true), run("ab", isUnderlined: true)]
+
+        // When
+        let layout = try sut.layout(
+            runs,
+            paragraph: paragraph(.verticalRightToLeft),
+            width: nil,
+            place: place,
+            kind: "title"
+        )
+
+        // Then
+        #expect(layout.runs.map(\.source) == [0, 1])
+        #expect(layout.runs.map(\.face) == [face, face])
+        #expect(layout.runs.map(\.isSideways) == [false, true])
+        #expect(layout.runs.map { $0.glyphs.map(\.id) } == [[0x6F22], [0x61, 0x62]])
+        #expect(layout.runs.map { $0.glyphs.map(\.y) } == [[0], [40, 60]])
+        #expect(layout.runs.map { $0.glyphs.map(\.placementOffset) } == [
+            [Point(x: -10, y: 32)],
+            [Point(x: -12, y: 0), Point(x: -12, y: 0)]
+        ])
+        #expect(layout.runs.map(\.highlights) == [[Rectangle(x: 0, y: 0, width: 40, height: 40)], []])
+        #expect(layout.runs.map(\.underlines) == [[], [UnderlinePiece(x: 8, y: 40, width: 40)]])
+    }
+
+    @Test("a sideways text run and the upright text run of one character after it in the same face keep their own glyph runs")
+    func keepsSidewaysRunBeforeUprightRun() throws {
+        // Given
+        let runs = [run("ab", isUnderlined: true), run("漢", isHighlighted: true)]
+
+        // When
+        let layout = try sut.layout(
+            runs,
+            paragraph: paragraph(.verticalRightToLeft),
+            width: nil,
+            place: place,
+            kind: "title"
+        )
+
+        // Then
+        #expect(layout.runs.map(\.source) == [0, 1])
+        #expect(layout.runs.map(\.face) == [face, face])
+        #expect(layout.runs.map(\.isSideways) == [true, false])
+        #expect(layout.runs.map { $0.glyphs.map(\.id) } == [[0x61, 0x62], [0x6F22]])
+        #expect(layout.runs.map { $0.glyphs.map(\.y) } == [[0, 20], [40]])
+        #expect(layout.runs.map { $0.glyphs.map(\.placementOffset) } == [
+            [Point(x: -12, y: 0), Point(x: -12, y: 0)],
+            [Point(x: -10, y: 32)]
+        ])
+        #expect(layout.runs.map(\.highlights) == [[], [Rectangle(x: 0, y: 40, width: 40, height: 40)]])
+        #expect(layout.runs.map(\.underlines) == [[UnderlinePiece(x: 8, y: 0, width: 40)], []])
+    }
+
     @Test(
         "vertical lines stack from the block-start edge, each on its central baseline, and the text box turns",
         arguments: [
