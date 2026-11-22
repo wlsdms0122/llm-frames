@@ -78,7 +78,7 @@ The interview opens with a slow push in and a lower third, a name and a role in 
 | audio clip of a video's, a compound clip's or a template instance's sound (`"picture": false`) | every audio clip's, `picture` ([FRAMES-13](../FRAMES-13/SPEC.md)) |
 | title clip | every clip with a picture's, `title, style, character, paragraph, width, placement, position, anchor, scale, rotation, cornerPin` |
 | run (an item of a `title` list) | `text, style` |
-| character (a title's `character`) | `font, size, weight, italic, tracking, kerning, features, baselineShift, color, stroke, highlight, underline`, each as a text style takes it ([FRAMES-22](../FRAMES-22/SPEC.md)) |
+| character (a title's `character`) | `font, size, weight, italic, tracking, kerning, features, baselineShift, color, stroke, highlight, underline, textOrientation, textCombineUpright`, each as a text style takes it ([FRAMES-22](../FRAMES-22/SPEC.md)) |
 | paragraph (a title's `paragraph`) | `writingMode, direction, align, lineHeight, background`, each as a text style takes it ([FRAMES-22](../FRAMES-22/SPEC.md)) |
 | shape clip | every clip with a picture's, `shape, style, area, width, height, placement, position, anchor, points, closed, radius, outset, fill, stroke, trim, shadow, scale, rotation`, and `cornerPin` on a rect or ellipse given by `width` and `height` ([FRAMES-27](../FRAMES-27/SPEC.md)) |
 | split (on a storyline clip or a visual media clip) | `before, after` ([FRAMES-13](../FRAMES-13/SPEC.md)) |
