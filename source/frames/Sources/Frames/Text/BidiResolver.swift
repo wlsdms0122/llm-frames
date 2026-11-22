@@ -96,7 +96,7 @@ struct BidiResolver: Sendable {
     }
 
     // L2: the indices of a line's characters from left to right, given their levels in logical order.
-    func visualOrder(of levels: [Int]) -> [Int] {
+    static func visualOrder(of levels: [Int]) -> [Int] {
         var order = Array(levels.indices)
         guard let highest = levels.max(), let lowestOdd = levels.filter({ $0 % 2 == 1 }).min() else { return order }
 

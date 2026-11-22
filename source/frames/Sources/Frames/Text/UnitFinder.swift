@@ -18,7 +18,8 @@ struct UnitFinder: Sendable {
     // MARK: - Public
     // `text` is the text every range counts, `words` its words in reading order, each its range, `spans` the glyph box
     // span across its line of each character of each line, and `runs` the text's glyph runs, which hold the highlight
-    // and underline pieces. A unit's glyph box runs from the leftmost character it holds to the rightmost, and a piece
+    // and underline pieces, each piece of a run that of the characters `PlacedLine.pieces(of:sources:)` gives at its
+    // index. A unit's glyph box runs from the leftmost character it holds to the rightmost, and a piece
     // is cut into parts wherever two of its characters that are neighbours as placed go with different units, at the
     // glyph box of the right one, so a unit carries one part of a piece or several where its characters lie apart.
     func units(
@@ -53,9 +54,11 @@ struct UnitFinder: Sendable {
         }
 
         var parts = stretches.map { _ in [UnitPart]() }
+        let sources = runs.map(\.source)
         for (index, run) in runs.enumerated() {
-            let held = lines[run.line].pieces(of: run.source, sources: runs.map(\.source))
-            for (piece, (span, characters)) in zip(pieces(of: run), held).enumerated() {
+            let held = lines[run.line].pieces(of: run.source, sources: sources)
+            for (piece, span) in pieces(of: run).enumerated() {
+                let characters = held[piece]
                 var cuts: [(unit: Int, start: Double)] = []
                 for character in characters where cuts.last?.unit != unitAt[run.line][character] {
                     let start = cuts.isEmpty ? span.lowerBound : spans[run.line][character].lowerBound
@@ -95,8 +98,9 @@ struct UnitFinder: Sendable {
     // MARK: - Private
     // The stretches of a line's characters that go with its units, in order. Each unit holds the characters `held`
     // gives it, and the characters after its first up to the next unit's first go with it, the line's first unit also
-    // taking those before it. A unit whose first character is a later character of a group of glyphs joins the unit
-    // before it, which the group's first character goes with. `spaces` says which of the line's characters are spaces.
+    // taking those before it. A unit whose first character is drawn with the character the one before it is drawn
+    // with, as `PlacedLine.owner(of:)` gives it, joins the unit before it, since the group of glyphs they are of is
+    // drawn by one unit. `spaces` says which of the line's characters are spaces.
     private func stretches(
         of line: PlacedLine,
         spaces: [Bool],
@@ -105,9 +109,8 @@ struct UnitFinder: Sendable {
     ) -> [Range<Int>] {
         let starts = held(of: line, spaces: spaces, words: words, by: unit).compactMap(\.first)
             .reduce(into: [Int]()) { starts, start in
-                let isLater = line.clusters[start].glyphs.count == 0
-                    && line.clusters[..<start].contains { $0.glyphs.count > 0 }
-                if starts.isEmpty || !isLater {
+                let owner = line.owner(of: start)
+                if starts.isEmpty || owner == nil || owner != line.owner(of: start - 1) {
                     starts.append(start)
                 }
             }

@@ -24,7 +24,7 @@ struct PlacedLine: Equatable, Sendable {
     var placedOrder: [Int] {
         let placed = clusters + hanging
 
-        return Self.placedOrder(levels: placed.map(\.level), owners: placed.map { $0.glyphs.count > 0 })
+        return Self.placedOrder(levels: placed.map(\.level), hasGlyphs: placed.map { $0.glyphs.count > 0 })
     }
 
     // Its clusters and hanging spaces with glyphs of their own, by their index among them, in the order they are placed
@@ -62,33 +62,56 @@ struct PlacedLine: Equatable, Sendable {
     }
 
     // MARK: - Public
-    // The order a line's characters are placed in from left to right, by their index: each group of glyphs where rule
-    // L2 of UAX #9 puts its first character among `levels`, the characters' levels on the line, followed by its later
-    // characters in text order, the first group of the line holding the characters before it. `owners` says which
-    // characters have glyphs of their own, and a line with none has its characters in text order.
-    static func placedOrder(
-        levels: [Int],
-        owners: [Bool]
-    ) -> [Int] {
-        let firsts = owners.indices.filter { owners[$0] }
-        guard let leading = firsts.first else { return Array(owners.indices) }
-        let ends = Dictionary(uniqueKeysWithValues: zip(firsts, Array(firsts.dropFirst()) + [owners.count]))
+    // The character whose glyphs each of a line's characters is drawn with, by index, `hasGlyphs` saying which have
+    // glyphs of their own. A line is cut into groups only at the first character of each group after its first, so a
+    // group holds its first character and those after it up to the next group's, and the line's first group those
+    // before it too. A character with glyphs of its own is drawn with them, every other with its group's first
+    // character's, and on a line with no glyph each is nil.
+    static func owners(hasGlyphs: [Bool]) -> [Int?] {
+        var owner = hasGlyphs.firstIndex(of: true)
 
-        return BidiResolver().visualOrder(of: levels).filter { owners[$0] }.flatMap { first in
-            Array((first == leading ? 0 : first)..<ends[first, default: owners.count])
+        return hasGlyphs.indices.map { index in
+            owner = hasGlyphs[index] ? index : owner
+
+            return owner
         }
     }
 
-    // The index of the character whose glyphs the character at `index` is drawn with: itself when it has glyphs of its
-    // own, and otherwise its group's first character, the nearest before it with glyphs, or nil when none is before it.
+    // The order a line's characters are placed in from left to right, by their index: each group of glyphs, as
+    // `owners(hasGlyphs:)` cuts them, where rule L2 of UAX #9 puts its first character among `levels`, the characters'
+    // levels on the line, with its characters in text order. A line with no glyph has its characters in text order.
+    static func placedOrder(
+        levels: [Int],
+        hasGlyphs: [Bool]
+    ) -> [Int] {
+        guard hasGlyphs.contains(true) else { return Array(hasGlyphs.indices) }
+        let owners = Self.owners(hasGlyphs: hasGlyphs)
+        let groups = Dictionary(grouping: hasGlyphs.indices) { owners[$0] ?? 0 }
+
+        return BidiResolver.visualOrder(of: levels).filter { hasGlyphs[$0] }.flatMap { groups[$0] ?? [] }
+    }
+
+    // The index of the character whose glyphs the character at `index` is drawn with, as `owners(hasGlyphs:)` gives it
+    // among the line's characters.
     func owner(of index: Int) -> Int? {
-        clusters[...index].lastIndex { $0.glyphs.count > 0 }
+        Self.owners(hasGlyphs: clusters.map { $0.glyphs.count > 0 })[index]
+    }
+
+    // The index of the glyph run that holds the highlight and underline pieces of the text run at `source` on the
+    // line: the first of the glyph runs its characters are drawn from, `sources` giving the text run of each glyph run,
+    // so a space that hangs past the line's end holds none. A text run with no character on the line has none.
+    func holder(
+        of source: Int,
+        sources: [Int]
+    ) -> Int? {
+        clusters.map(\.glyphs.run).filter { sources[$0] == source }.min()
     }
 
     // The characters of each piece of the highlight and underline of the text run at `source` on the line, by their
     // index among its clusters, as they are placed from left to right: each stretch of its characters that lie side by
     // side, the stretches in the text order of their first characters, as the pieces are. A character is of the text
-    // run of the glyph run its glyphs name, and `sources` gives the text run of each glyph run.
+    // run of the glyph run its glyphs name, a character with no glyph of its own its group's first character's, and
+    // `sources` gives the text run of each glyph run.
     func pieces(
         of source: Int,
         sources: [Int]

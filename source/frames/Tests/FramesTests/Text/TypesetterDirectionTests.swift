@@ -294,6 +294,106 @@ struct TypesetterDirectionTests {
         #expect(layout.runs.map { $0.glyphs.map(\.y) } == [[32, 32, 32, 32, 32, 32], [82, 82]])
     }
 
+    @Test(
+        "a word an isolate sets apart, the isolate drawn as nothing, is placed with its letters in order",
+        arguments: [
+            (
+                "\u{2066}Apple\u{2069} היא חברה",
+                "הרבח איה Apple",
+                [0.0, 20, 40, 60, 80, 90, 110, 130, 150, 160, 180, 200, 220, 240]
+            ),
+            (
+                "\u{2067}שלום\u{2069} is here",
+                "םולש is here",
+                [0.0, 20, 40, 60, 80, 90, 110, 130, 140, 160, 180, 200]
+            )
+        ]
+    )
+    func placesIsolatedWord(text: String, placed: String, xs: [Double]) throws {
+        // Given
+        let sut = Typesetter(shaper: ShaperTable(ignored: ["\u{2066}", "\u{2067}", "\u{2069}"]))
+        let runs = [run(text)]
+
+        // When
+        let layout = try sut.layout(runs, paragraph: paragraph(), width: nil, place: place, kind: "title")
+
+        // Then
+        // The isolated word's first letter owns its glyph, so it lies where L2 puts that letter, first in the word,
+        // and the initiator before it, drawn as nothing, goes with that letter's group, after its one glyph.
+        let line = try #require(layout.lines.first)
+        #expect(layout.runs.map { $0.glyphs.map(\.id) } == [ids(placed)])
+        #expect(layout.runs.map { $0.glyphs.map(\.x) } == [xs])
+        #expect(line.clusters.prefix(2).map(\.glyphs.count) == [0, 1])
+        #expect(line.clusters[0].glyphs.first == line.clusters[1].glyphs.first + 1)
+    }
+
+    @Test("an isolate initiator before a line's first group goes with that group's unit and lies in its glyph box")
+    func unitsIsolateWithFirstGroup() throws {
+        // Given
+        let sut = Typesetter(shaper: ShaperTable(ignored: ["\u{2066}", "\u{2069}"]))
+        let runs = [run("\u{2066}Apple\u{2069} היא חברה")]
+
+        // When
+        let layout = try sut.layout(
+            runs,
+            paragraph: paragraph(),
+            width: nil,
+            unit: .character,
+            place: place,
+            kind: "title"
+        )
+
+        // Then
+        // `A` lies at 160, 20 wide, and the initiator before it is drawn with it, so they are one unit.
+        #expect(layout.units?.prefix(2).map(\.characters) == [
+            CharacterRange(line: 0, first: 0, count: 2),
+            CharacterRange(line: 0, first: 2, count: 1)
+        ])
+        #expect(layout.units?.first?.glyphBox == Rectangle(x: 160, y: 0, width: 20, height: 40))
+    }
+
+    @Test("a run's pieces on a right-to-left line are held by a glyph run of its characters, not by a hanging space")
+    func holdsPiecesByCharacters() throws {
+        // Given
+        let sut = Typesetter(shaper: ShaperTable(lacks: ["Apple SD Gothic Neo": Set("Aple".unicodeScalars)]))
+        let runs = [run("مرحبا Apple مرحبا", style: character(isHighlighted: true))]
+
+        // When
+        let layout = try sut.layout(runs, paragraph: paragraph(), width: 220, place: place, kind: "title")
+
+        // Then
+        // The first line, 210 wide, lies at 10, its last space hanging from 0 to 10 in the run's own face and `Apple`
+        // in the fallback face from 10. The second, 100 wide, lies at 120. The space's glyph run holds no character.
+        #expect(layout.runs.map(\.face.name) == [
+            "Apple SD Gothic Neo-bold",
+            "Fallback-regular",
+            "Apple SD Gothic Neo-bold",
+            "Apple SD Gothic Neo-bold"
+        ])
+        #expect(layout.runs.map(\.highlights) == [
+            [],
+            [Rectangle(x: 10, y: 0, width: 210, height: 40)],
+            [],
+            [Rectangle(x: 120, y: 50, width: 100, height: 40)]
+        ])
+    }
+
+    @Test("a character with no glyph is in the piece of the glyph run its group's glyphs lie in")
+    func splitsPiecesByGlyphRun() throws {
+        // Given
+        let sut = Typesetter(shaper: ShaperTable(ignored: ["\u{2066}", "\u{2069}"]))
+        let runs = [run("مرحبا "), run("\u{2066}John\u{2069}", style: character(isHighlighted: true))]
+
+        // When
+        let layout = try sut.layout(runs, paragraph: paragraph(), width: nil, place: place, kind: "title")
+
+        // Then
+        // Placed `John` from 0 to 80, the space at 80 and the Arabic word from 90. The initiator goes with the space,
+        // the first run's, and the closing isolate with `n`, so the second run is one piece over `John`.
+        #expect(layout.runs.map(\.source) == [1, 0])
+        #expect(layout.runs.map(\.highlights) == [[Rectangle(x: 0, y: 0, width: 80, height: 40)], []])
+    }
+
     // MARK: - Private
     private func paragraph(
         direction: TextDirection? = nil,

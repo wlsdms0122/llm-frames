@@ -10,7 +10,7 @@
 // placed again by `align` on its width then. Its box is its text box then grown by its background's padding then. A
 // glyph box is a character's or a hanging space's: from the pen where its glyphs begin, as wide as its advance, and
 // down its line from the baseline less the line's ascent to the baseline plus its descent. A character with no glyph of
-// its own has its group's first character's glyph box, and one with no character with glyphs before it on its line a
+// its own has the glyph box of the character `PlacedLine.owner(of:)` draws it with, and one on a line with no glyph a
 // box as wide as nothing where the line starts.
 extension ResolvedText {
     // MARK: - Property
@@ -115,8 +115,9 @@ extension ResolvedText {
     }
 
     // The glyph box at `time` of each character at `indices` on the line at `line`, in the text box then. A character
-    // with no glyph of its own has the box of its group's first character, and one with none before it a box as wide as
-    // nothing where the line starts then, on its line's baseline then raised by its run's baseline shift then.
+    // with no glyph of its own has the box of the character `PlacedLine.owner(of:)` draws it with, and one on a line
+    // with no glyph a box as wide as nothing where the line starts then, on its line's baseline then raised by its
+    // run's baseline shift then.
     func glyphBoxes(
         ofCharacters indices: Range<Int>,
         on line: Int,
@@ -136,14 +137,15 @@ extension ResolvedText {
     }
 
     // How far each piece of each run moves with the glyph moves `moves`, by run and piece: its start with its leftmost
-    // character and its end with its rightmost, as they are placed. A run holds the pieces of its text run on its line,
-    // in the order `PlacedLine.pieces(of:sources:)` gives them.
+    // character and its end with its rightmost, as they are placed. The run `PlacedLine.holder(of:sources:)` names
+    // holds the pieces of its text run on its line, in the order `PlacedLine.pieces(of:sources:)` gives them.
     func pieceMoves(of moves: [[Point]]) -> [[PieceMove]] {
         var pieces = runs.map { _ in [PieceMove]() }
         let sources = runs.map(\.source)
         for line in lines {
-            for run in Set(line.clusters.map(\.glyphs.run)) {
-                pieces[run] = line.pieces(of: runs[run].source, sources: sources).compactMap { characters in
+            for run in Set(line.clusters.map(\.glyphs.run))
+            where line.holder(of: sources[run], sources: sources) == run {
+                pieces[run] = line.pieces(of: sources[run], sources: sources).compactMap { characters in
                     guard let first = characters.first, let last = characters.last else { return nil }
 
                     return PieceMove(
@@ -157,8 +159,8 @@ extension ResolvedText {
         return pieces
     }
 
-    // How far the glyphs of the character at `index` on `line` move with the glyph moves `moves`: its group's first
-    // character's, and not at all on a line with no glyph.
+    // How far the glyphs of the character at `index` on `line` move with the glyph moves `moves`: those of the
+    // character `PlacedLine.owner(of:)` draws it with, and not at all on a line with no glyph.
     func move(
         of index: Int,
         on line: PlacedLine,

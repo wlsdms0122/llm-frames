@@ -7,10 +7,11 @@
 
 // Each run is shaped on its own, in shaping runs of one embedding level each, and lines break by UAX #14 over the text
 // of all runs together, in logical order. A line's glyphs are cut into groups by the characters they are set from, and
-// a group's glyphs belong to its first character. Each line is then ordered by UAX #9: its groups lie from left to
-// right in the visual order of their first characters, and tracking lies between every two neighbouring characters as
-// placed, the tracking of whichever comes first in the text, so it widens no line past its outermost characters and
-// moves no centred or right-aligned line off its place.
+// a group's glyphs belong to the first character they are set from. Each line is then ordered by UAX #9: its groups lie
+// from left to right in the visual order of their first characters, and tracking lies between every two neighbouring
+// characters as placed, the tracking of whichever comes first in the text, so it widens no line past its outermost
+// characters and moves no centred or right-aligned line off its place. Which character a character is drawn with,
+// where a highlight or underline piece is cut and which glyph run holds it are those `PlacedLine` gives.
 struct Typesetter: Sendable {
     // MARK: - Property
     private let shaper: any ShapingProvider
@@ -92,6 +93,7 @@ struct Typesetter: Sendable {
             placedLines.append(placed.line)
             spans.append(placed.spans)
         }
+        placedRuns = decorated(placedRuns, lines: placedLines, spans: spans, styles: runs)
         let textHeight = Double(max(lines.count - 1, 0)) * style.lineHeight
             + (lines.first?.ascent ?? 0)
             + (lines.last?.descent ?? 0)
@@ -360,8 +362,8 @@ struct Typesetter: Sendable {
 
     // The glyphs each character owns, by index. Each glyph is taken with the character its scalar is in, the glyphs
     // are cut into groups where that character changes, and neighbouring groups merge until every character of a
-    // group comes before every character of the next. A group's glyphs belong to its first character, the first
-    // group's to the first character of all, and the characters after it up to the next group's first own none.
+    // group comes before every character of the next. A group's glyphs belong to the first character they are set
+    // from, and every other character owns none.
     private func owners(
         ofGlyphsAt offsets: [Int],
         in ranges: [Range<Int>]
@@ -390,8 +392,8 @@ struct Typesetter: Sendable {
         }
 
         var owned = ranges.map { _ in [Int]() }
-        for (index, group) in groups.enumerated() {
-            owned[index == 0 ? 0 : group.first] = group.glyphs
+        for group in groups {
+            owned[group.first] = group.glyphs
         }
 
         return owned
@@ -459,7 +461,7 @@ struct Typesetter: Sendable {
     ) -> [Int] {
         PlacedLine.placedOrder(
             levels: lineLevels(of: characters, paragraphLevel: paragraphLevel),
-            owners: characters.map { !$0.glyphs.isEmpty }
+            hasGlyphs: characters.map { !$0.glyphs.isEmpty }
         )
     }
 
@@ -490,15 +492,13 @@ struct Typesetter: Sendable {
     // placement offset, and the pen moves from left to right by advances and by the tracking between neighbouring
     // characters, so the spaces that hang lie past the line's end untracked: after its right end, or before its left
     // end at an odd paragraph level, where L2 places them first, on a line with no character too. A character with no
-    // glyph of its own is a range of count 0 after its group's glyphs and spans its group's first character, and on a
-    // line with no glyph it is a range of count 0 at glyph 0 of the line's first run, written for it with no glyphs,
-    // spanning nothing at the line's start. A text run's highlight and underline make one piece for each stretch of its
-    // characters that lie side by side, from the start of the leftmost one's span to the end of the rightmost one's,
-    // the spaces that end the line excluded, the pieces in the text order of their first characters and held by the
-    // first glyph run of the text run on the line. A character's span is its glyph box across the line, from the pen
-    // where its glyphs begin, as wide as their advances, and the spans of the line's characters are given in text
-    // order. The line's clusters name glyphs by the index of their run among the text's, the first of this line's runs
-    // being `firstRun`, and carry their levels after rule L1. `index` is the line's among the text's.
+    // glyph of its own is a range of count 0 after the glyphs of the character `PlacedLine.owners(hasGlyphs:)` draws
+    // it with and spans that character, and on a line with no glyph it is a range of count 0 at glyph 0 of the line's
+    // first run, written for it with no glyphs, spanning nothing at the line's start. The hanging spaces, which are no
+    // characters, are cut into groups among themselves. A character's span is its glyph box across the line, from the
+    // pen where its glyphs begin, as wide as their advances, and the spans of the line's characters are given in text
+    // order. The line's clusters name glyphs by the index of their run among the text's, the first of
+    // this line's runs being `firstRun`, and carry their levels after rule L1. `index` is the line's among the text's.
     private func placed(
         _ line: TextLine,
         index lineIndex: Int,
@@ -513,7 +513,11 @@ struct Typesetter: Sendable {
         let characters = line.characters
         let visibleCount = visibleCharacters(of: characters).count
         let levels = lineLevels(of: characters, paragraphLevel: paragraphLevel)
-        let order = PlacedLine.placedOrder(levels: levels, owners: characters.map { !$0.glyphs.isEmpty })
+        let hasGlyphs = characters.map { !$0.glyphs.isEmpty }
+        let order = PlacedLine.placedOrder(levels: levels, hasGlyphs: hasGlyphs)
+        let hangingOwners = PlacedLine.owners(hasGlyphs: Array(hasGlyphs.dropFirst(visibleCount)))
+        let owners = PlacedLine.owners(hasGlyphs: Array(hasGlyphs.prefix(visibleCount)))
+            + hangingOwners.map { $0.map { visibleCount + $0 } }
         let leading = TextDirection(level: paragraphLevel) == .rtl ? order.filter { $0 >= visibleCount } : []
 
         var runs: [GlyphRun] = []
@@ -573,12 +577,10 @@ struct Typesetter: Sendable {
                 staticTracking: character.style.tracking * character.style.size / 1000
             ))
         }
-        var owner = characters.indices.first { groups[$0] != nil }
         let placed = characters.enumerated().map { index, character in
-            owner = groups[index] == nil ? owner : index
-            let held = owner.flatMap { groups[$0] }
+            let held = owners[index].flatMap { groups[$0] }
                 ?? (GlyphRange(run: firstRun, first: 0, count: 0), origin.x...origin.x)
-            let isOwner = owner == index
+            let isOwner = owners[index] == index
             let glyphs = isOwner
                 ? held.glyphs
                 : GlyphRange(run: held.glyphs.run, first: held.glyphs.first + held.glyphs.count, count: 0)
@@ -590,52 +592,6 @@ struct Typesetter: Sendable {
             )
 
             return (cluster: cluster, span: held.span)
-        }
-
-        var stretches: [(source: Int, style: CharacterStyle, face: FontFace, first: Int, from: Double, to: Double)] = []
-        for index in order where index < visibleCount {
-            let character = characters[index]
-            let span = placed[index].span
-            if let last = stretches.last, last.source == character.source {
-                stretches[stretches.count - 1].first = min(last.first, character.range.lowerBound)
-                stretches[stretches.count - 1].to = span.upperBound
-            } else {
-                stretches.append((
-                    character.source,
-                    character.style,
-                    character.runFace,
-                    character.range.lowerBound,
-                    span.lowerBound,
-                    span.upperBound
-                ))
-            }
-        }
-        for source in Set(stretches.map(\.source)) {
-            guard let holder = runs.firstIndex(where: { $0.source == source }) else { continue }
-
-            let run = runs[holder]
-            let pieces = stretches.filter { $0.source == source }.sorted { $0.first < $1.first }
-            runs[holder] = GlyphRun(
-                source: run.source,
-                line: run.line,
-                face: run.face,
-                size: run.size,
-                glyphs: run.glyphs,
-                staticTracking: run.staticTracking,
-                highlights: pieces.filter { $0.style.isHighlighted }.map { piece in
-                    let extent = TextExtent(face: piece.face, size: piece.style.size)
-
-                    return Rectangle(
-                        x: piece.from,
-                        y: origin.y - extent.ascent,
-                        width: piece.to - piece.from,
-                        height: extent.ascent + extent.descent
-                    )
-                },
-                underlines: pieces.filter { $0.style.isUnderlined }.map { piece in
-                    UnderlinePiece(x: piece.from, y: origin.y, width: piece.to - piece.from)
-                }
-            )
         }
 
         return (
@@ -651,5 +607,56 @@ struct Typesetter: Sendable {
             ),
             placed.prefix(visibleCount).map(\.span)
         )
+    }
+
+    // `runs` with the highlight and underline pieces of the text runs `styles` gives, by index: on each of `lines`, one
+    // piece for each stretch of a text run's characters `PlacedLine.pieces(of:sources:)` gives, from the start of the
+    // span among `spans` of its leftmost character to the end of its rightmost one's, held by the glyph run
+    // `PlacedLine.holder(of:sources:)` names. A highlight piece runs from the text run's ascent above the line's
+    // baseline to its descent below it, in its first face at its size, and an underline piece lies on the baseline.
+    private func decorated(
+        _ runs: [GlyphRun],
+        lines: [PlacedLine],
+        spans: [[ClosedRange<Double>]],
+        styles: [TextRun]
+    ) -> [GlyphRun] {
+        let sources = runs.map(\.source)
+        var decorated = runs
+        for (index, line) in lines.enumerated() {
+            for holder in Set(line.clusters.map(\.glyphs.run))
+            where line.holder(of: runs[holder].source, sources: sources) == holder {
+                let run = runs[holder]
+                let style = styles[run.source].style
+                let extent = TextExtent(face: styles[run.source].faces[0], size: style.size)
+                let pieces = line.pieces(of: run.source, sources: sources).map { characters in
+                    spans[index][characters[0]].lowerBound...spans[index][characters[characters.count - 1]].upperBound
+                }
+                decorated[holder] = GlyphRun(
+                    source: run.source,
+                    line: run.line,
+                    face: run.face,
+                    size: run.size,
+                    glyphs: run.glyphs,
+                    staticTracking: run.staticTracking,
+                    highlights: style.isHighlighted ? pieces.map { piece in
+                        Rectangle(
+                            x: piece.lowerBound,
+                            y: line.baseline - extent.ascent,
+                            width: piece.upperBound - piece.lowerBound,
+                            height: extent.ascent + extent.descent
+                        )
+                    } : [],
+                    underlines: style.isUnderlined ? pieces.map { piece in
+                        UnderlinePiece(
+                            x: piece.lowerBound,
+                            y: line.baseline,
+                            width: piece.upperBound - piece.lowerBound
+                        )
+                    } : []
+                )
+            }
+        }
+
+        return decorated
     }
 }

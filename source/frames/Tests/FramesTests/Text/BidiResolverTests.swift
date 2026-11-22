@@ -117,7 +117,7 @@ struct BidiResolverTests {
     ) {
         // Given
         // When
-        let visualOrder = sut.visualOrder(of: levels)
+        let visualOrder = BidiResolver.visualOrder(of: levels)
 
         // Then
         #expect(visualOrder == order)
@@ -160,7 +160,7 @@ struct BidiResolverTests {
             lines: [0..<scalars.count],
             paragraphLevel: paragraphLevel
         )
-        let order = sut.visualOrder(of: lineLevels).filter { conformanceCase.levels[$0] != nil }
+        let order = BidiResolver.visualOrder(of: lineLevels).filter { conformanceCase.levels[$0] != nil }
         let isLevelsEqual = zip(lineLevels, conformanceCase.levels).allSatisfy { level, expected in
             expected.map { $0 == level } ?? true
         }

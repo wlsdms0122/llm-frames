@@ -615,6 +615,30 @@ struct TitleKeyframeTests {
         ])
     }
 
+    @Test("evaluation moves a right-to-left line's piece with its glyphs when a space in another face hangs left of it")
+    func movesPieceBesideHangingSpace() throws {
+        // Given
+        let shaper = ShaperTable(lacks: ["Apple SD Gothic Neo": Set("Aple".unicodeScalars)])
+        let text = try resolvedText(#"""
+            { "title": "مرحبا Apple \nمرحبا", "style": "marked", "position": [400, 225],
+              "keyframes": [ { "at": 0, "character": { "tracking": 0 } }, { "at": 1, "character": { "tracking": 100 } } ] }
+            """#, shaper: shaper)
+
+        // When
+        let sut = GlyphsItem(text: text, factor: 1, at: SampleTime(0.5))
+
+        // Then
+        // The first line is placed the hanging space, `Apple` in the fallback face, a space and the Arabic word, 210
+        // wide. At 0.5 its ten gaps add 2 each, so in the text box then, 230 wide, `Apple` lies from 0 and the line
+        // ends at 230, and the piece, held by the glyph run of `Apple`, runs from 0 to 230.
+        #expect(sut.runs[1].glyphs.map(\.x) == [0, 22, 44, 66, 88])
+        #expect(sut.runs.prefix(3).map { $0.highlight?.rects ?? [] } == [
+            [],
+            [Rectangle(x: 0, y: 0, width: 230, height: 40)],
+            []
+        ])
+    }
+
     @Test("a ligature kept under keyframed tracking takes one step after it, and none when it ends its line")
     func stepsOnceAfterLigature() throws {
         // Given
@@ -751,8 +775,20 @@ struct TitleKeyframeTests {
         return try #require(try ResolvedSequence(plan: plan, hashes: FileHashTable()).clips.first)
     }
 
-    private func resolvedText(_ clip: String) throws -> ResolvedText {
-        let plan = try Fixture.documentPlanner.plan(try Fixture.json(document(clip)))
+    private func resolvedText(
+        _ clip: String,
+        shaper: ShaperTable = Fixture.shaper
+    ) throws -> ResolvedText {
+        let planner = DocumentPlanner(
+            mediaFacts: Fixture.mediaFacts,
+            presets: Fixture.presets,
+            ocr: Fixture.ocr,
+            languages: nil,
+            tracker: Fixture.tracker,
+            shaper: shaper,
+            library: Fixture.library
+        )
+        let plan = try planner.plan(try Fixture.json(document(clip)))
         let clips = try ResolvedSequence(plan: plan, hashes: FileHashTable()).clips
         guard case let .title(text) = clips.first?.content else {
             Issue.record("the clip is a title")

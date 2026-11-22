@@ -41,9 +41,10 @@ package struct DrawnGlyphRun: Equatable, Sendable {
 
     // A resolved run at `time`, its glyphs and pieces raised by its baseline shift then, its glyphs drawn at their pen
     // with their placement offset and moved by `moves`, one for each glyph, and each piece's ends by its move among
-    // `pieceMoves`, one for each piece, a piece with none staying. A highlight rectangle is its piece grown by the
-    // padding then, and an underline rectangle a band across its piece the width then thick, its top edge the offset
-    // then below the baseline. The stroke is its width then times `factor`.
+    // `pieceMoves`, one for each piece its line's clusters give. A piece with none stays, since a resolved document
+    // read back holds the rects it writes, which no rule ties to its clusters. A highlight rectangle is its piece
+    // grown by the padding then, and an underline rectangle a band across its piece the width then thick, its top edge
+    // the offset then below the baseline. The stroke is its width then times `factor`.
     init(
         run: ResolvedGlyphRun,
         factor: Double,
