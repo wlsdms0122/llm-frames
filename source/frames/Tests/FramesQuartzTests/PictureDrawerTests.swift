@@ -194,6 +194,34 @@ struct PictureDrawerTests {
         #expect(bitmap.pixel(x: 50, y: 50) == [1, 1, 1, 1])
     }
 
+    @Test("a filtered picture shown at half its size is filtered at that scale, so a nonlinear op sees its detail averaged")
+    func filtersAtShownScale() throws {
+        // Given
+        let sut = QuartzRenderer(decoder: AVFoundationDecoder())
+        let picture = PictureItem(
+            source: .media(try checker(size: 16)),
+            rectangle: nil,
+            destination: Rectangle(x: 0, y: 0, width: 16, height: 16),
+            filter: [FilterEntry(operations: [.lut(file: try darkenedMiddle(), amount: 1)])]
+        )
+        let item = DisplayItem(
+            transform: Frames.AffineTransform(a: 0.5, b: 0, c: 0, d: 0.5, tx: 0, ty: 0),
+            content: .picture(picture)
+        )
+
+        // When
+        let bitmap = try sut.frame(of: list(size: Size(width: 8, height: 8), items: [item]))
+
+        // Then
+        // Each output pixel averages two black and two white source pixels to 0.5, which the table maps to 0.1.
+        for y in 1..<7 {
+            for x in 1..<7 {
+                let pixel = bitmap.pixel(x: x, y: y)
+                #expect(abs(pixel[0] - 0.1) < 0.02, "(\(x), \(y)): \(pixel[0]) is not 0.1")
+            }
+        }
+    }
+
     // MARK: - Private
     // One sharp `add` mask of the rectangle in output pixels.
     private func mask(_ rectangle: Rectangle) -> [ItemMask] {
@@ -229,6 +257,33 @@ struct PictureDrawerTests {
         }
 
         return frame(at: path)
+    }
+
+    // A `size` x `size` checker of single black and white pixels, black at the top left.
+    private func checker(size: Int) throws -> MediaFrame {
+        let path = directory.file("checker-\(size).png")
+        try ImageWriter(size: Size(width: Double(size), height: Double(size))).write(to: path) { canvas in
+            canvas.fill(red: 255, green: 255, blue: 255)
+            for y in 0..<size {
+                for x in 0..<size where (x + y) % 2 == 0 {
+                    canvas.fill(Rectangle(x: Double(x), y: Double(y), width: 1, height: 1), red: 0, green: 0, blue: 0)
+                }
+            }
+        }
+
+        return frame(at: path)
+    }
+
+    // A 3 x 3 x 3 cube that keeps 0 and 1 on each channel and maps 0.5 to 0.1.
+    private func darkenedMiddle() throws -> PinnedFile {
+        let levels = [0.0, 0.1, 1]
+        let path = directory.file("darkened-middle.cube")
+        let entries = (0..<27).map { index in
+            "\(levels[index % 3]) \(levels[index / 3 % 3]) \(levels[index / 9])"
+        }
+        try ("LUT_3D_SIZE 3\n" + entries.joined(separator: "\n")).write(toFile: path, atomically: true, encoding: .utf8)
+
+        return PinnedFile(path: path, sha256: UUID().uuidString)
     }
 
     private func frame(at path: String) -> MediaFrame {

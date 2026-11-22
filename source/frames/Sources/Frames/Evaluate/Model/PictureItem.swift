@@ -7,9 +7,10 @@
 
 // A region of a picture scaled into a rectangle, filtered, masked by its matte, then carried onto its corner pin.
 // `rectangle` is the region of the source, in its media pixels or in a nested list's output pixels, or nil for the
-// whole source, and `filter` is applied at the destination's size. `cornerPin` is nil, or the strictly convex quad the
-// destination's corners go to in the item's own coordinates, by the homography from the destination to it; only a
-// clip's group carries one, and it shows its whole nested list, the part outside `rectangle` included (FRAMES-20).
+// whole source, and `filter` is written for the destination and applied at the scale the picture is shown at.
+// `cornerPin` is nil, or the strictly convex quad the destination's corners go to in the item's own coordinates, by
+// the homography from the destination to it; only a clip's group carries one, and it shows its whole nested list, the
+// part outside `rectangle` included (FRAMES-20).
 package struct PictureItem: Equatable, Sendable {
     // MARK: - Property
     package let source: PictureItemSource
