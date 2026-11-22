@@ -16,7 +16,7 @@ import Foundation
 // A Core Graphics operator callback is a C function, told nothing of its operator, so each operator has its own.
 final class PageContentWalker {
     // MARK: - Property
-    // How deep a colour space is followed through its base spaces; one deeper is no untagged colour.
+    // How deep a colour space is followed through its base spaces and resource names; one deeper is no untagged colour.
     private static let depthLimit = 8
 
     private var states = [PageGraphicsState()]

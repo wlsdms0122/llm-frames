@@ -10,11 +10,11 @@ import Foundation
 import Frames
 import os
 
-// A PDF opened with Core Graphics, whose pages the decoder checks and draws (FRAMES-3 PDF pages). A page is drawn on its
-// pixel grid at a scale, a region of it in one draw, clipped to its crop box, with Core Graphics' parser and renderer,
-// into an extended sRGB context of floats, where DeviceRGB and DeviceGray are taken as `srgb` and Core Graphics
-// converts every tagged space. What a page draws is read once, by `PageContentWalker`. Core Graphics draws one
-// document from several threads at once.
+// A PDF opened with Core Graphics, whose pages the decoder checks and draws (FRAMES-3 PDF pages). A page is drawn on
+// its pixel grid at a scale, a region of it in one draw, clipped to its crop box, with Core Graphics' parser and
+// renderer, into an extended sRGB context of floats, where DeviceRGB and DeviceGray are taken as `srgb` and Core
+// Graphics converts every tagged space. What a page draws is read once, by `PageContentWalker`. Core Graphics draws
+// one document from several threads at once.
 final class PageReader: @unchecked Sendable {
     // MARK: - Property
     let path: String

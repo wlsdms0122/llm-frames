@@ -137,8 +137,8 @@ package struct Transcoder: Sendable {
     }
 
     // A page is drawn whole at `--scale` pixels per point, or at the scale a provider reads it at (FRAMES-23). The
-    // decoder's fixed formulas read it where they can, and the platform's colour management and fonts read a page they
-    // refuse for its colour or its fonts; a page the platform reading refuses too stops.
+    // decoder's reading reads it where it can, and the platform's fonts and colour management read a page that reading
+    // refuses for its fonts; a page the platform reading refuses too stops.
     private func transcodePage(
         _ number: Int,
         for request: TranscodeRequest
