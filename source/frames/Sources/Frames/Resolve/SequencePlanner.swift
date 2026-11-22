@@ -163,7 +163,7 @@ struct SequencePlanner: Sendable {
                     scale: lengthScale,
                     theme: time.theme
                 ),
-                color: try appearances.color(
+                solid: try appearances.solid(
                     of: time.sequence.storyline[index],
                     plan: time.storyline[index],
                     theme: time.theme

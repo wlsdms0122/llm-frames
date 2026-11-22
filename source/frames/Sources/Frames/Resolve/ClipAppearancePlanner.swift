@@ -385,7 +385,7 @@ struct ClipAppearancePlanner: Sendable {
     }
 
     // A solid's colour, timed over its static value, which a keyframe's `null` points at.
-    func color(
+    func solid(
         of written: StorylineClip,
         plan: StorylinePlan,
         theme: MergedTheme

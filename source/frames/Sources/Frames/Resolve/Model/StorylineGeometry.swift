@@ -7,8 +7,8 @@
 
 // What resolve found for a storyline clip's picture, with keyframes in sequence time. `crop` and `mask` are found in
 // its media, nil for the whole picture and for no mask. `filter` is timed, `off` for none, its lengths in output
-// pixels, and `color` is a solid's. `isCropOnTrackFrame` says a tracked clip's crop is written without keyframes and
-// true on the track's frame.
+// pixels, and `solid` is a solid's colour. `isCropOnTrackFrame` says a tracked clip's crop is written without
+// keyframes and true on the track's frame.
 struct StorylineGeometry: Equatable, Sendable {
     // MARK: - Property
     let crop: PropertyValue<FoundArea>?
@@ -17,7 +17,7 @@ struct StorylineGeometry: Equatable, Sendable {
     let isCropOnTrackFrame: Bool
     let nested: SequencePlan?
     let filter: TimedValue
-    let color: [Keyframe<Color>]?
+    let solid: [Keyframe<Color>]?
     let appearance: StorylineAppearance
 
     // MARK: - Initializer
@@ -28,7 +28,7 @@ struct StorylineGeometry: Equatable, Sendable {
         isCropOnTrackFrame: Bool = false,
         nested: SequencePlan?,
         filter: TimedValue = .off,
-        color: [Keyframe<Color>]? = nil,
+        solid: [Keyframe<Color>]? = nil,
         appearance: StorylineAppearance
     ) {
         self.crop = crop
@@ -37,7 +37,7 @@ struct StorylineGeometry: Equatable, Sendable {
         self.isCropOnTrackFrame = isCropOnTrackFrame
         self.nested = nested
         self.filter = filter
-        self.color = color
+        self.solid = solid
         self.appearance = appearance
     }
 
