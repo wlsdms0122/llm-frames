@@ -44,7 +44,7 @@ extension ItemCoverage {
 
         case .path:
             let outline = PathOutline(path.geometry)
-            let fill = path.fill == nil ? [] : [ConvexPolygon(hullOf: outline.segments.flatMap(Self.points(holding:)))]
+            let fill = path.fill == nil ? [] : [ConvexPolygon(hullOf: outline.segments.flatMap(\.hullPoints))]
             let line = Self.pieces(of: outline, path: path, width: width)
             self.init(pieces: fill + line + overhangs)
         }
@@ -115,29 +115,11 @@ extension ItemCoverage {
         case .cubic:
             let step = segment.length / Double(curvePieces)
             return (0..<curvePieces).map { index in
-                grown(points(holding: segment.piece(from: Double(index) * step, to: Double(index + 1) * step)))
+                grown(segment.piece(from: Double(index) * step, to: Double(index + 1) * step).hullPoints)
             }
 
         case .arc:
-            return [grown(points(holding: segment))]
-        }
-    }
-
-    // Points whose convex hull holds a segment: a line's ends and a cubic's control points. A path's outline has no
-    // arc, and the corners of the whole ellipse's box hold any part of it.
-    private static func points(holding segment: OutlineSegment) -> [Point] {
-        switch segment {
-        case let .line(from, to):
-            return [from, to]
-
-        case let .cubic(from, first, second, to):
-            return [from, first, second, to]
-
-        case let .arc(center, xAxis, yAxis, _, _):
-            let reach = Point(x: abs(xAxis.x) + abs(yAxis.x), y: abs(xAxis.y) + abs(yAxis.y))
-            return [(-1.0, -1.0), (1, -1), (1, 1), (-1, 1)].map { x, y in
-                Point(x: center.x + x * reach.x, y: center.y + y * reach.y)
-            }
+            return [grown(segment.hullPoints)]
         }
     }
 }
