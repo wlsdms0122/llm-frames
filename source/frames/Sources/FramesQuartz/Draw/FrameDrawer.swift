@@ -23,7 +23,7 @@ import Frames
 final class FrameDrawer {
     // MARK: - Property
     private let pictures: MediaPictureCache
-    private let tables: LookUpTableCache
+    private let chain: FilterChain
     private let glyphDrawer: GlyphDrawer
 
     // A page's whole picture is read where it holds at most this many pixels, a 4096 by 4096 square.
@@ -43,7 +43,7 @@ final class FrameDrawer {
         fonts: FontLibrary
     ) {
         self.pictures = pictures
-        self.tables = tables
+        self.chain = FilterChain(tables: tables, pictures: pictures)
         self.glyphDrawer = GlyphDrawer(fonts: fonts)
     }
 
@@ -309,8 +309,8 @@ final class FrameDrawer {
             let matte = try picture.matte.flatMap { try image(of: $0, in: picture, shownBy: matrix, on: raster) }
             if picture.matte != nil, matte == nil { return { _ in } }
 
-            return { [tables] context in
-                try PictureDrawer(tables: tables).draw(
+            return { [chain] context in
+                try PictureDrawer(chain: chain).draw(
                     picture,
                     source: source,
                     matte: matte,
@@ -516,7 +516,7 @@ final class FrameDrawer {
         rasterScale: CGFloat
     ) -> CGFloat {
         let scale = matrix.axisScale
-        let filter = FilterChain(tables: tables).reach(of: picture.filter) * max(scale.width, scale.height)
+        let filter = chain.reach(of: picture.filter) * max(scale.width, scale.height)
         let shadow = picture.shadow.map { CGFloat(CastShadow($0, through: matrix, rasterScale: rasterScale).margin) } ?? 0
         var items = 0.0
         if
@@ -545,7 +545,6 @@ final class FrameDrawer {
     }
 
     private func reach(of items: [DisplayItem]) -> CGFloat {
-        let chain = FilterChain(tables: tables)
         var adjustments = 0.0
         var mattes = 0.0
         for item in items {
@@ -632,7 +631,7 @@ final class FrameDrawer {
             width: raster.frame.width,
             height: raster.frame.height
         )
-        let filtered = try FilterChain(tables: tables)
+        let filtered = try chain
             .apply(
                 adjust.filter,
                 to: backdrop,

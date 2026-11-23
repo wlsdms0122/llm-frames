@@ -12,7 +12,6 @@ package enum QuartzError: Error, Equatable, CustomStringConvertible, Sendable {
     case unsupportedBlend(name: String, place: String)
     case unreadableTable(place: String, error: FilterError)
     case unsupportedCornerPin(place: String)
-    case unsupportedFilterOperation(name: String, place: String)
     case nonConvexCornerPin(place: String)
     case kernelFailed(name: String)
     case faceNotInFile(file: String, face: String)
@@ -34,9 +33,6 @@ package enum QuartzError: Error, Equatable, CustomStringConvertible, Sendable {
         case let .unsupportedCornerPin(place):
             "the quartz renderer draws a corner pin only on a picture of a nested display list with no filter, matte, "
                 + "radius, border, shadow or reveal, as a clip's group is, found one at \(place)"
-
-        case let .unsupportedFilterOperation(name, place):
-            "the quartz renderer has no filter operation \(name) at \(place)"
 
         case let .nonConvexCornerPin(place):
             "the quartz renderer draws a corner pin that is a strictly convex quadrilateral, or in a sample list four "

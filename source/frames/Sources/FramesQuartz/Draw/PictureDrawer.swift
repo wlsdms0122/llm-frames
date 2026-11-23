@@ -20,11 +20,11 @@ import Frames
 // list's, so the picture is resampled, filtered and cut in that form.
 struct PictureDrawer {
     // MARK: - Property
-    private let tables: LookUpTableCache
+    private let chain: FilterChain
 
     // MARK: - Initializer
-    init(tables: LookUpTableCache) {
-        self.tables = tables
+    init(chain: FilterChain) {
+        self.chain = chain
     }
 
     // MARK: - Public
@@ -58,7 +58,7 @@ struct PictureDrawer {
             return
         }
 
-        let reach = CGFloat(FilterChain(tables: tables).reach(of: item.filter))
+        let reach = CGFloat(chain.reach(of: item.filter))
         let region = context.boundingBoxOfClipPath.insetBy(dx: -reach, dy: -reach).intersection(destination)
         guard !region.isNull, !region.isEmpty else { return }
 
@@ -83,15 +83,16 @@ struct PictureDrawer {
             source.draw(in: scaled.context)
         }
 
-        // Core Image counts rows from the bottom, so the part lies at its place in the whole destination's image.
+        // Core Image counts rows from the bottom, so the part lies at its place in the whole destination's image, and
+        // the destination at `shown`.
         var picture = try scaled.ciImage()
             .transformed(by: CGAffineTransform(translationX: part.minX, y: whole.height - part.maxY))
         let extent = picture.extent
-        picture = try FilterChain(tables: tables)
-            .apply(item.filter, to: picture, seed: seed, scale: scale, frame: whole, compositing: compositing)
+        let shown = CGRect(x: 0, y: whole.height - size.height, width: size.width, height: size.height)
+        picture = try chain
+            .apply(item.filter, to: picture, seed: seed, scale: scale, frame: shown, compositing: compositing)
             .cropped(to: extent)
         if let pictureMatte = item.matte, let matte {
-            let shown = CGRect(x: 0, y: whole.height - size.height, width: size.width, height: size.height)
             picture = try MatteApplier()
                 .apply(pictureMatte, frame: matte, to: picture, over: shown)
         }

@@ -9,8 +9,8 @@
 // argument names (`FormKernelSource`). A colour operation unpremultiplies, takes v to its home, computes, takes its
 // result back and premultiplies by the alpha it was given, and clamps nothing: `contrast`, `saturation`, `hue`,
 // `sepia`, `levels`, `lut`'s lookup in `srgb` and `grain` on the encoded form, `exposure` and `temperature` on the
-// linear form, and `vignette`, `mix` and `lut`'s `amount` in the samples' form. Blur, sharpen, bloom and pixelate work
-// in the samples' form and clamp their alpha only.
+// linear form, and `vignette`, `mix` and `lut`'s `amount` in the samples' form. Blur, sharpen, bloom, pixelate and
+// displace work in the samples' form and clamp their alpha only; displace takes its map's values as they are.
 enum FilterKernelSource {
     static let text = """
         static inline float4 filterFinish(float3 v, float alpha) {
@@ -218,6 +218,75 @@ enum FilterKernelSource {
             float luma = clamp(dot(encoded, float3(0.2126, 0.7152, 0.0722)), 0.0, 1.0);
 
             return filterFinish(formFromEncoded(encoded + amount * 4.0 * luma * (1.0 - luma) * noise, linear), v.a);
+        }
+
+        // The premultiplied value of `map`'s pixel at (column, row), rows counted from the top, read at its centre.
+        static inline float4 filterMapPixel(sampler map, float2 pixel, float2 size) {
+            return map.sample(map.transform(float2(pixel.x + 0.5, size.y - pixel.y - 0.5)));
+        }
+
+        // The premultiplied value of `image`'s pixel at (column, row) of `extent`, rows counted from the bottom, the
+        // edge pixels extended outward, read at its centre.
+        static inline float4 filterImagePixel(sampler image, float2 pixel, float4 extent) {
+            float2 inside = clamp(pixel, float2(0.0), extent.zw - 1.0);
+
+            return image.sample(image.transform(extent.xy + inside + 0.5));
+        }
+
+        // `map`, `mapSize` pixels, is laid over `box`, its left, top, width and height in the image's coordinates, moved
+        // by `offset` and repeated beyond its edges, and m is its red and green bilinear between its pixels' centres,
+        // the pixels across an edge being those of its other side. The pixel reads `image`, whose extent is `extent`,
+        // `amount` × (2m - 1) away, bilinear between its pixels' centres. `offset` and the move have y pointing down,
+        // as the box does, and both samplers read the nearest pixel, so the kernel interpolates in 32-bit floats.
+        [[stitchable]] float4 filterDisplace(
+            sampler image,
+            sampler map,
+            float2 mapSize,
+            float4 box,
+            float2 offset,
+            float amount,
+            float4 extent,
+            destination dest
+        ) {
+            float2 coord = dest.coord();
+            float2 place = float2(coord.x - box.x, box.y - coord.y) - offset;
+            float2 texel = fract(place / box.zw) * mapSize - 0.5;
+            float2 lower = floor(texel);
+            float2 fraction = texel - lower;
+            float2 first = select(lower, lower + mapSize, lower < 0.0);
+            float2 second = select(first + 1.0, float2(0.0), first + 1.0 >= mapSize);
+            float2 m = mix(
+                mix(
+                    filterMapPixel(map, first, mapSize),
+                    filterMapPixel(map, float2(second.x, first.y), mapSize),
+                    fraction.x
+                ),
+                mix(
+                    filterMapPixel(map, float2(first.x, second.y), mapSize),
+                    filterMapPixel(map, second, mapSize),
+                    fraction.x
+                ),
+                fraction.y
+            ).rg;
+            float2 move = amount * (2.0 * m - 1.0);
+            float2 point = coord + float2(move.x, -move.y) - extent.xy - 0.5;
+            float2 low = floor(point);
+            float2 weight = point - low;
+            float4 value = mix(
+                mix(
+                    filterImagePixel(image, low, extent),
+                    filterImagePixel(image, low + float2(1.0, 0.0), extent),
+                    weight.x
+                ),
+                mix(
+                    filterImagePixel(image, low + float2(0.0, 1.0), extent),
+                    filterImagePixel(image, low + 1.0, extent),
+                    weight.x
+                ),
+                weight.y
+            );
+
+            return filterClampedAlpha(value);
         }
 
         // One output pixel per block, block (column, row) counted from the top left: the mean of the image's pixels
