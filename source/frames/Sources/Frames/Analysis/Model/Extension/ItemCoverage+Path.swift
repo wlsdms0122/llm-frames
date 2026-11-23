@@ -76,12 +76,10 @@ extension ItemCoverage {
         let lineEnd = drawn.lineEnd(along: outline.length)
         guard lineEnd > lineStart else { return [] }
 
-        var travelled = 0.0
         var parts: [ConvexPolygon] = []
-        for segment in outline.segments {
-            defer { travelled += segment.length }
-            let lower = max(lineStart - travelled, 0)
-            let upper = min(lineEnd - travelled, segment.length)
+        for (index, segment) in outline.segments.enumerated() {
+            let lower = max(lineStart - outline.offsets[index], 0)
+            let upper = min(lineEnd - outline.offsets[index], outline.lengths[index])
             guard upper > lower else { continue }
 
             parts += bands(along: segment.piece(from: lower, to: upper), width: width)
