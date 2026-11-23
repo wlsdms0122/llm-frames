@@ -318,6 +318,179 @@ struct TypesetterWritingModeTests {
         #expect(layout.units?.map(\.glyphBox.height) == [40, 20, 20, 40])
     }
 
+    @Test(
+        "a run's text orientation sets its characters in a vertical line, `mixed` by their Vertical_Orientation",
+        arguments: [WritingMode.verticalRightToLeft, .verticalLeftToRight]
+    )
+    func setsCharactersByTextOrientation(writingMode: WritingMode) throws {
+        // Given
+        let runs = [run("AB", textOrientation: .upright), run("漢字", textOrientation: .sideways), run("A漢")]
+
+        // When
+        let layout = try sut.layout(runs, paragraph: paragraph(writingMode), width: nil, place: place, kind: "title")
+
+        // Then
+        #expect(layout.runs.map(\.source) == [0, 1, 2, 2])
+        #expect(layout.runs.map(\.isSideways) == [false, true, true, false])
+        #expect(layout.runs.map { $0.glyphs.map(\.id) } == [[0x41, 0x42], [0x6F22, 0x5B57], [0x41], [0x6F22]])
+        #expect(layout.lines.flatMap(\.clusters).map(\.advance) == [40, 40, 20, 20, 20, 40])
+        #expect(layout.runs.flatMap(\.glyphs).map(\.placementOffset) == [
+            Point(x: -10, y: 32),
+            Point(x: -10, y: 32),
+            Point(x: -12, y: 0),
+            Point(x: -12, y: 0),
+            Point(x: -12, y: 0),
+            Point(x: -10, y: 32)
+        ])
+    }
+
+    @Test("under `upright` and `sideways` a grapheme cluster takes its run's orientation, an enclosing mark's included")
+    func orientsClustersByTextOrientation() throws {
+        // Given
+        let runs = [run("A\u{301}", textOrientation: .upright), run("漢\u{20DD}", textOrientation: .sideways)]
+
+        // When
+        let layout = try sut.layout(
+            runs,
+            paragraph: paragraph(.verticalRightToLeft),
+            width: nil,
+            place: place,
+            kind: "title"
+        )
+
+        // Then
+        #expect(layout.runs.map(\.isSideways) == [false, true])
+        #expect(layout.runs.map { $0.glyphs.map(\.id) } == [[0x41, 0x301], [0x6F22, 0x20DD]])
+        #expect(layout.lines.flatMap(\.clusters).map(\.advance) == [80, 40])
+    }
+
+    @Test("a horizontal line turns no character and reads every one by its own class, whatever its run's attributes")
+    func ignoresTextOrientationInHorizontalLine() throws {
+        // Given
+        let runs = [run("\u{5D0}\u{5D1}", textOrientation: .upright), run("12", textCombineUpright: .all)]
+
+        // When
+        let layout = try sut.layout(
+            runs,
+            paragraph: paragraph(.horizontalTopToBottom),
+            width: nil,
+            place: place,
+            kind: "title"
+        )
+
+        // Then
+        #expect(layout.direction == .rtl)
+        #expect(layout.runs.map(\.isSideways) == [false, false])
+        #expect(layout.lines.flatMap(\.clusters).map(\.level) == [1, 1, 2, 2])
+        #expect(layout.lines.flatMap(\.clusters).map(\.advance) == [20, 20, 20, 20])
+    }
+
+    @Test("an upright run of Hebrew in a vertical line is read left to right, so its letters are placed from the top down")
+    func readsUprightRunLeftToRight() throws {
+        // Given
+        let runs = [run("漢"), run("\u{5D0}\u{5D1}", textOrientation: .upright), run("字")]
+
+        // When
+        let layout = try sut.layout(
+            runs,
+            paragraph: paragraph(.verticalRightToLeft),
+            width: nil,
+            place: place,
+            kind: "title"
+        )
+
+        // Then
+        let line = try #require(layout.lines.first)
+        #expect(line.clusters.map(\.level) == [0, 0, 0, 0])
+        #expect(line.placedOrder == [0, 1, 2, 3])
+        #expect(layout.runs.map(\.isSideways) == [false, false, false])
+        #expect(layout.runs.map { $0.glyphs.map(\.id) } == [[0x6F22], [0x5D0, 0x5D1], [0x5B57]])
+        #expect(layout.runs.map { $0.glyphs.map(\.y) } == [[0], [40, 80], [120]])
+    }
+
+    @Test(
+        "an explicit formatting character of an upright run is read as left to right in a vertical line alone",
+        arguments: [(WritingMode.verticalRightToLeft, [0, 0, 0]), (.horizontalTopToBottom, [0, 1, 1])]
+    )
+    func readsFormattingCharacterOfUprightRun(writingMode: WritingMode, levels: [Int]) throws {
+        // Given
+        let runs = [run("\u{202E}AB", textOrientation: .upright)]
+
+        // When
+        let layout = try sut.layout(runs, paragraph: paragraph(writingMode), width: nil, place: place, kind: "title")
+
+        // Then
+        #expect(layout.lines.flatMap(\.clusters).map(\.level) == levels)
+    }
+
+    @Test("the characters of a combined run in a vertical line are read left to right")
+    func readsCombinedRunLeftToRight() throws {
+        // Given
+        let runs = [run("\u{5D0}\u{5D1}", textCombineUpright: .all), run("\u{5D2}")]
+
+        // When
+        let layout = try sut.layout(
+            runs,
+            paragraph: paragraph(.verticalRightToLeft),
+            width: nil,
+            place: place,
+            kind: "title"
+        )
+
+        // Then
+        #expect(layout.direction == .ltr)
+        #expect(layout.lines.flatMap(\.clusters).map(\.level) == [0, 0, 1])
+    }
+
+    @Test(
+        "`auto` takes a vertical title's direction from the classes its characters are read as",
+        arguments: [(TextOrientation.upright, TextDirection.ltr, [0, 1]), (.mixed, .rtl, [1, 1])]
+    )
+    func takesDirectionFromClassesReadAs(
+        textOrientation: TextOrientation,
+        direction: TextDirection,
+        levels: [Int]
+    ) throws {
+        // Given
+        let runs = [run("\u{5D0}", textOrientation: textOrientation), run("\u{5D1}")]
+
+        // When
+        let layout = try sut.layout(
+            runs,
+            paragraph: paragraph(.verticalRightToLeft),
+            width: nil,
+            place: place,
+            kind: "title"
+        )
+
+        // Then
+        #expect(layout.direction == direction)
+        #expect(layout.lines.flatMap(\.clusters).map(\.level) == levels)
+    }
+
+    @Test("an upright run in a right-to-left vertical line lies where its level places it, its letters in reading order")
+    func placesUprightRunInRightToLeftLine() throws {
+        // Given
+        let runs = [run("\u{5D0}"), run("\u{5D1}\u{5D2}", textOrientation: .upright)]
+
+        // When
+        let layout = try sut.layout(
+            runs,
+            paragraph: paragraph(.verticalRightToLeft),
+            width: nil,
+            place: place,
+            kind: "title"
+        )
+
+        // Then
+        let line = try #require(layout.lines.first)
+        #expect(layout.direction == .rtl)
+        #expect(line.clusters.map(\.level) == [1, 2, 2])
+        #expect(line.placedOrder == [1, 2, 0])
+        #expect(layout.runs.map { $0.glyphs.map(\.id) } == [[0x5D1, 0x5D2], [0x5D0]])
+        #expect(layout.runs.map { $0.glyphs.map(\.y) } == [[0, 40], [80]])
+    }
+
     @Test("a background's first padding value pads a vertical text box on its block axis and its second down its lines")
     func padsVerticalTextBox() throws {
         // Given
@@ -350,7 +523,9 @@ struct TypesetterWritingModeTests {
         _ text: String,
         size: Double = 40,
         isHighlighted: Bool = false,
-        isUnderlined: Bool = false
+        isUnderlined: Bool = false,
+        textOrientation: TextOrientation = .mixed,
+        textCombineUpright: TextCombineUpright = .none
     ) -> TextRun {
         TextRun(
             text: text,
@@ -359,7 +534,9 @@ struct TypesetterWritingModeTests {
                 weight: .bold,
                 size: size,
                 isHighlighted: isHighlighted,
-                isUnderlined: isUnderlined
+                isUnderlined: isUnderlined,
+                textOrientation: textOrientation,
+                textCombineUpright: textCombineUpright
             ),
             faces: [face]
         )

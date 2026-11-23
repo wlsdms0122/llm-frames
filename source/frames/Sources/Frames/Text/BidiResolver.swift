@@ -6,8 +6,9 @@
 //
 
 // Resolves the embedding levels of UAX #9 over text in logical order, and orders the characters of a line visually.
-// Every paragraph separator ends a paragraph (P1), and every paragraph is resolved at the one paragraph embedding level
-// it is given. A character that rule X9 removes takes the level of the character before it in its paragraph, or the
+// Every rule reads each scalar as of the class it is given, which a higher-level protocol may set apart from its own
+// Bidi_Class, and the scalars themselves only to pair brackets. Every paragraph separator ends a paragraph (P1), and
+// every paragraph is resolved at the one paragraph embedding level it is given. A character that rule X9 removes takes the level of the character before it in its paragraph, or the
 // paragraph embedding level when none is, so every scalar has a level and the removed ones break no run of levels.
 struct BidiResolver: Sendable {
     // An entry of the directional status stack of X1.
@@ -46,35 +47,37 @@ struct BidiResolver: Sendable {
     // MARK: - Public
     // P2 and P3: the level of the first strong character outside an isolate in the first paragraph that holds one, or
     // nil when none does.
-    func paragraphLevel(of scalars: [Unicode.Scalar]) -> Int? {
-        let classes = scalars.map(BidiClass.init)
-
-        return paragraphs(of: classes).lazy.compactMap { paragraph in
+    func paragraphLevel(of classes: [BidiClass]) -> Int? {
+        paragraphs(of: classes).lazy.compactMap { paragraph in
             self.firstStrongLevel(in: classes[paragraph], isIsolate: false)
         }
         .first
     }
 
-    // X1 to I2 over every paragraph at `paragraphLevel`, the level of each scalar before the lines are broken.
+    // X1 to I2 over every paragraph at `paragraphLevel`, the level of each scalar before the lines are broken, each
+    // scalar of `scalars` read as of its class among `classes`.
     func levels(
         of scalars: [Unicode.Scalar],
+        classes: [BidiClass],
         paragraphLevel: Int
     ) -> [Int] {
-        let classes = scalars.map(BidiClass.init)
-
-        return paragraphs(of: classes).flatMap { paragraph in
-            levels(of: Array(scalars[paragraph]), classes: Array(classes[paragraph]), paragraphLevel: paragraphLevel)
+        paragraphs(of: classes).flatMap { paragraph in
+            levels(
+                ofParagraph: Array(scalars[paragraph]),
+                classes: Array(classes[paragraph]),
+                paragraphLevel: paragraphLevel
+            )
         }
     }
 
-    // L1 over each of `lines`, ranges of `scalars` in logical order, on the levels `levels(of:paragraphLevel:)` gave.
+    // L1 over each of `lines`, ranges of scalars in logical order, each read as of its class among `classes`, on the
+    // levels `levels(of:classes:paragraphLevel:)` gave.
     func lineLevels(
-        of scalars: [Unicode.Scalar],
+        of classes: [BidiClass],
         levels: [Int],
         lines: [Range<Int>],
         paragraphLevel: Int
     ) -> [Int] {
-        let classes = scalars.map(BidiClass.init)
         var lineLevels = levels
         for line in lines {
             var isTrailing = true
@@ -161,7 +164,7 @@ struct BidiResolver: Sendable {
     }
 
     private func levels(
-        of scalars: [Unicode.Scalar],
+        ofParagraph scalars: [Unicode.Scalar],
         classes: [BidiClass],
         paragraphLevel: Int
     ) -> [Int] {

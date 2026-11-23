@@ -15,5 +15,24 @@ enum TextOrientation: String, CaseIterable, Equatable, Sendable {
     // MARK: - Property
     // MARK: - Initializer
     // MARK: - Public
+    // Whether `character` stands upright in a vertical line. Under `mixed` it is the Vertical_Orientation of its first
+    // scalar, as UAX #50 orients a grapheme cluster, and always upright when it holds an enclosing mark, which a turned
+    // base would leave.
+    func isUpright(_ character: Character) -> Bool {
+        switch self {
+        case .mixed:
+            guard let first = character.unicodeScalars.first else { return false }
+            let isEnclosed = character.unicodeScalars.contains { $0.properties.generalCategory == .enclosingMark }
+
+            return isEnclosed || VerticalOrientation(first).isUpright
+
+        case .upright:
+            return true
+
+        case .sideways:
+            return false
+        }
+    }
+
     // MARK: - Private
 }

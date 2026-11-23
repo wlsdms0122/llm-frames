@@ -49,8 +49,9 @@ struct Typesetter: Sendable {
         let runs = clustered(runs)
         let text = runs.map(\.text).joined()
         let scalars = Array(text.unicodeScalars)
-        let paragraphLevel = style.direction?.paragraphLevel ?? resolver.paragraphLevel(of: scalars) ?? 0
-        let levels = resolver.levels(of: scalars, paragraphLevel: paragraphLevel)
+        let classes = bidiClasses(of: runs, writingMode: style.writingMode)
+        let paragraphLevel = style.direction?.paragraphLevel ?? resolver.paragraphLevel(of: classes) ?? 0
+        let levels = resolver.levels(of: scalars, classes: classes, paragraphLevel: paragraphLevel)
         let direction = TextDirection(level: paragraphLevel)
         let align = style.align ?? direction.start
         let isOneLine = style.lines == 1
@@ -59,6 +60,7 @@ struct Typesetter: Sendable {
                 of: paragraph.pieces,
                 from: paragraph.start,
                 levels: levels,
+                classes: classes,
                 paragraphLevel: paragraphLevel,
                 writingMode: style.writingMode,
                 width: isOneLine ? nil : width,
@@ -165,6 +167,24 @@ struct Typesetter: Sendable {
         }
     }
 
+    // The bidirectional class each scalar of the text of `runs` is read as. In a vertical line every scalar of a run
+    // whose characters stand upright, by its `upright` text orientation or as a horizontal-in-vertical composition, is
+    // read as L, since a glyph that stands reads in no direction, but `\n`, which ends a paragraph in any run. Every
+    // other scalar is read as of its own Bidi_Class.
+    private func bidiClasses(
+        of runs: [TextRun],
+        writingMode: WritingMode
+    ) -> [BidiClass] {
+        runs.flatMap { run in
+            let isUpright = run.style.textOrientation == .upright || run.style.textCombineUpright == .all
+            let isLeftToRight = writingMode.isVertical && isUpright
+
+            return run.text.unicodeScalars.map { scalar in
+                isLeftToRight && scalar != "\n" ? BidiClass.leftToRight : BidiClass(scalar)
+            }
+        }
+    }
+
     // `\n` ends a paragraph, whichever run it is in. Each paragraph begins with a piece of the run its first scalar or
     // the `\n` before it lies in, empty or not, so a line with no glyphs takes that run's extent. Each piece keeps
     // the index of its run, and each paragraph the index of its first scalar in the text of all runs.
@@ -197,12 +217,14 @@ struct Typesetter: Sendable {
     // wider than the width starts a line of its own and breaks inside where UAX #14 allows, and a piece of it still
     // wider overflows alone. Without a width only a mandatory break ends a line. A line breaks only before a character
     // with glyphs of its own, so a group of glyphs stays on one line. `start` is the index of the paragraph's first
-    // scalar in the text of all runs, and `levels` the embedding level of each scalar of that text. A line is measured
-    // as it is placed, its characters ordered at `paragraphLevel`, and shaped as `writingMode` sets it.
+    // scalar in the text of all runs, `levels` the embedding level of each scalar of that text and `classes` the
+    // bidirectional class it is read as. A line is measured as it is placed, its characters ordered at
+    // `paragraphLevel`, and shaped as `writingMode` sets it.
     private func lines(
         of paragraph: [(source: Int, run: TextRun)],
         from start: Int,
         levels: [Int],
+        classes: [BidiClass],
         paragraphLevel: Int,
         writingMode: WritingMode,
         width: Double?,
@@ -214,6 +236,7 @@ struct Typesetter: Sendable {
             paragraph,
             from: start,
             levels: levels,
+            classes: classes,
             writingMode: writingMode,
             place: place,
             kind: kind
@@ -297,14 +320,16 @@ struct Typesetter: Sendable {
     // Each run is shaped on its own in shaping runs, stretches of its characters at one embedding level and one
     // orientation, since a run boundary, a change of level and, in a vertical `writingMode`, a change between upright
     // and sideways each end a shaping run, and its glyphs are told by the scalar they start at in the whole paragraph.
-    // In a horizontal line no character is upright or sideways. Each character is a grapheme cluster of its run, its
-    // range counted from `start`, its level that of its first scalar among `levels`, and owns the glyphs of the group
-    // it is the first character of, in the order the provider gave them. A shaping run's glyphs are grouped in the
-    // order it is read, from its right end at an odd level.
+    // In a vertical line each character is upright or sideways by its run's text orientation, and in a horizontal one
+    // none is either. Each character is a grapheme cluster of its run, its range counted from `start`, its level that
+    // of its first scalar among `levels`, its scalars read as of their classes among `classes`, and owns the glyphs of
+    // the group it is the first character of, in the order the provider gave them. A shaping run's glyphs are grouped
+    // in the order it is read, from its right end at an odd level.
     private func shaped(
         _ paragraph: [(source: Int, run: TextRun)],
         from start: Int,
         levels: [Int],
+        classes: [BidiClass],
         writingMode: WritingMode,
         place: Place,
         kind: String
@@ -319,7 +344,9 @@ struct Typesetter: Sendable {
                 runCharacters.append((character, offset..<(offset + count), levels[start + offset], source, run))
                 offset += count
             }
-            let uprights = runCharacters.map { writingMode.isVertical && isUpright($0.character) }
+            let uprights = runCharacters.map { character in
+                writingMode.isVertical && run.style.textOrientation.isUpright(character.character)
+            }
 
             for stretch in stretches(levels: runCharacters.map(\.level), uprights: uprights) {
                 let direction = TextDirection(level: runCharacters[stretch.lowerBound].level)
@@ -371,6 +398,7 @@ struct Typesetter: Sendable {
                 character: character,
                 range: (range.lowerBound + start)..<(range.upperBound + start),
                 level: level,
+                bidiClasses: Array(classes[(range.lowerBound + start)..<(range.upperBound + start)]),
                 source: source,
                 style: run.style,
                 runFace: run.faces[0],
@@ -478,31 +506,22 @@ struct Typesetter: Sendable {
         of characters: [StyledCharacter],
         paragraphLevel: Int
     ) -> [Int] {
-        let scalars = characters.flatMap { Array($0.character.unicodeScalars) }
-        let levels = characters.flatMap { Array(repeating: $0.level, count: $0.character.unicodeScalars.count) }
+        let classes = characters.flatMap(\.bidiClasses)
+        let levels = characters.flatMap { Array(repeating: $0.level, count: $0.bidiClasses.count) }
         let lineLevels = resolver.lineLevels(
-            of: scalars,
+            of: classes,
             levels: levels,
-            lines: [scalars.indices],
+            lines: [classes.indices],
             paragraphLevel: paragraphLevel
         )
         let visibleCount = visibleCharacters(of: characters).count
         var first = 0
 
         return characters.enumerated().map { index, character in
-            defer { first += character.character.unicodeScalars.count }
+            defer { first += character.bidiClasses.count }
 
             return index < visibleCount ? lineLevels[first] : paragraphLevel
         }
-    }
-
-    // Whether a character stands upright in a vertical line: by the Vertical_Orientation of its first scalar, as
-    // UAX #50 orients a grapheme cluster, and always when it holds an enclosing mark, which a turned base would leave.
-    private func isUpright(_ character: Character) -> Bool {
-        guard let first = character.unicodeScalars.first else { return false }
-        let isEnclosed = character.unicodeScalars.contains { $0.properties.generalCategory == .enclosingMark }
-
-        return isEnclosed || VerticalOrientation(first).isUpright
     }
 
     // The cursive scripts a character is a letter of: those of its first scalar when it is a letter or a number, as CSS
