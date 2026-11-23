@@ -113,7 +113,11 @@ enum ClipKeyTable {
             KeyRule("ease", .ease)
         ] + properties.map { property in
             let type = type(of: property, for: kind, in: place)
-            return KeyRule(property, lookKeys.contains(property) ? keyframed(type) : type)
+            if lookKeys.contains(property) {
+                return KeyRule(property, keyframed(type))
+            }
+
+            return KeyRule(property, leafKeys.contains(property) ? loosened(type) : type)
         }
 
         return ObjectTable(
@@ -161,6 +165,10 @@ enum ClipKeyTable {
     static let lookKeys = [
         "radius", "outset", "fill", "stroke", "shadow", "border", "filter", "adjust", "mask", "audioFilter", "solid"
     ] + titleLookKeys
+
+    // Keys outside the look timed leaf by leaf, over the clip's static value and no style: a path's `points`, each
+    // vertex's point and tangents a leaf of its own (FRAMES-11 Paths).
+    static let leafKeys = ["points"]
 
     // A title's character and paragraph attributes, merged over its styles' as every look key is.
     static let titleLookKeys = ["character", "paragraph"]
@@ -290,7 +298,7 @@ enum ClipKeyTable {
             .numbers(2, .range(0...1))
 
         case "points":
-            .points
+            .points(isKeyframed: false)
 
         case "cornerPin":
             .quad
@@ -406,6 +414,9 @@ enum ClipKeyTable {
 
         case .dash:
             .dash(isKeyframed: true)
+
+        case .points:
+            .points(isKeyframed: true)
 
         default:
             type

@@ -225,11 +225,11 @@ struct ValueTypeStructureTests {
         #expect(tables == [
             ObjectTable(kind: "rect mask", rules: [shape] + box + [radius] + look, groups: groups),
             ObjectTable(kind: "ellipse mask", rules: [shape] + box + look, groups: groups),
-            ObjectTable(kind: "path mask", rules: [shape, KeyRule("points", .points)] + look)
+            ObjectTable(kind: "path mask", rules: [shape, KeyRule("points", .points(isKeyframed: false))] + look)
         ])
         #expect(MaskKeyTable.keyframe == ObjectTable(
             kind: "mask",
-            rules: [shape] + box + [KeyRule("points", .points), radius] + look
+            rules: [shape] + box + [KeyRule("points", .points(isKeyframed: false)), radius] + look
         ))
     }
 

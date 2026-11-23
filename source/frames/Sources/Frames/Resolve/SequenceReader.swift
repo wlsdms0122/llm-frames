@@ -169,7 +169,12 @@ struct SequenceReader: Sendable {
             width: property("width", of: clip, read: \.numberValue),
             height: property("height", of: clip, read: \.numberValue),
             points: property("points", of: clip) { value in
-                value.arrayValue.map { elements in elements.compactMap(PositionForm.init(value:)) }
+                value.arrayValue.map { elements in
+                    elements.compactMap { vertex in
+                        let point = PathKeyTable.isVertexObject(vertex) ? vertex.objectValue?["vertex"] : vertex
+                        return point.flatMap(PositionForm.init(value:))
+                    }
+                }
             },
             isClosed: clip["closed"]?.boolValue ?? false,
             radius: look("radius", of: clip),

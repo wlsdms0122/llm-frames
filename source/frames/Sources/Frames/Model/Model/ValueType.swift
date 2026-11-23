@@ -24,8 +24,9 @@ indirect enum ValueType: Equatable, Sendable {
     case literal([String])
     // A list of that many numbers, each in the domain.
     case numbers(Int, NumberDomain)
-    // A list of at least two points, each as `position` takes it.
-    case points
+    // A path's vertices: a list of at least two, each a point as `position` takes it or a vertex object, whose
+    // `vertex` a keyframe may leave out (`PathKeyTable`).
+    case points(isKeyframed: Bool)
     // A list of four points, each as `position` takes it: a quadrilateral's corners, top left, top right, bottom right
     // and bottom left.
     case quad

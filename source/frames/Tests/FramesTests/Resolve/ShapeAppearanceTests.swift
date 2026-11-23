@@ -51,7 +51,7 @@ struct ShapeAppearanceTests {
                 #"clips[0] (path): missing key "points""#
             ),
             (
-                #"{ "shape": "path", "fill": "accent", "keyframes": [ { "at": 0, "points": [[0, 0], [1, 1]] }, { "at": 1, "points": [[0, 0], [1, 1], [2, 2]] } ] }"#,
+                #"{ "shape": "path", "fill": "accent", "keyframes": [ { "at": 0, "points": [[0, 0], [1, 1]] }, { "at": 0.5, "points": [[0, 0], [1, 1], [2, 2]] } ] }"#,
                 #"clips[0].keyframes[1].points (path): the keyframes of "points" hold 2 and 3 points, and points interpolate one by one, so every value has the same number"#
             ),
             (

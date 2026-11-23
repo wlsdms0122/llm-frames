@@ -265,9 +265,9 @@ struct TemplateCheckTests {
                 #"clips[0].mask (path mask): unknown key "area""#
             ),
             (
-                #"{ "shape": { "param": "s" }, "points": [[0, 0], [10, 0]] }"#,
+                #"{ "shape": { "param": "s" }, "points": [[0, 0]] }"#,
                 #"["path", "rect"]"#,
-                "clips[0].mask.points (path mask): a path mask is closed, so it runs through at least three points, found 2"
+                "clips[0].mask.points (path mask): expected a list of at least two vertices, each a point or {vertex, inTangent, outTangent}"
             ),
             (
                 #"{ "shape": { "param": "s" }, "feather": 2 }"#,

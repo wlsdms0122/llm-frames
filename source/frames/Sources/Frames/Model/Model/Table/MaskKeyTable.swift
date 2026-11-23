@@ -44,7 +44,7 @@ enum MaskKeyTable {
         }
 
         let table = ObjectTable(structure: structure, kind: "mask")
-        let written: [String: ValueType] = ["area": .area, "position": AreaKeyTable.point, "points": .points]
+        let written: [String: ValueType] = ["area": .area, "position": AreaKeyTable.point, "points": .points(isKeyframed: false)]
         return ObjectTable(
             kind: table.kind,
             rules: table.rules.map { rule in written[rule.name].map { KeyRule(rule.name, $0) } ?? rule },
