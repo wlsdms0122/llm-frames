@@ -98,9 +98,10 @@ extension ItemCoverage {
         width: Double
     ) -> [ConvexPolygon] {
         let half = width / 2
+        let corners = [(-half, -half), (half, -half), (half, half), (-half, half)]
         let grown = { (points: [Point]) in
             ConvexPolygon(hullOf: points.flatMap { point in
-                [(-half, -half), (half, -half), (half, half), (-half, half)].map { Point(x: point.x + $0, y: point.y + $1) }
+                corners.map { Point(x: point.x + $0, y: point.y + $1) }
             })
         }
 
