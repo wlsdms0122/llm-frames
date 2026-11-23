@@ -311,7 +311,7 @@ struct PresetReaderTests {
 
         // Then
         #expect(preset.operations == [.displace(file: "/abs/ripple.png", amount: 6, offset: Point(x: -3, y: 0))])
-        #expect("\(error.map { "\($0)" } ?? "")" == "ops[0].file (displace): expected a name, found an object")
+        #expect("\(error.map { "\($0)" } ?? "")" == "ops[0].file (displace): expected a string, found an object")
     }
 
     @Test("a preset with parameters is read with each parameter at its default")

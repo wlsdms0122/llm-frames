@@ -332,6 +332,29 @@ struct ColorKeyTests {
         #expect(error?.description == #"storyline[0].connected[0] (clip): "/abs/card.png" is read as "srgb" here and as "rec709" at storyline[0], and every place that names a file reads it in one colour space"#)
     }
 
+    @Test("a file a clip reads in the colour space it writes is read by its tags as a displacement map, and the two readings pass")
+    func acceptsDisplacementMapOfFileInWrittenSpace() throws {
+        // Given
+        let document = #"""
+            { "kind": "sequence", "storyline": [ { "media": "/abs/card.png", "duration": 1, "colorSpace": "rec709",
+              "filter": { "op": "displace", "file": "/abs/card.png", "amount": 4 } } ] }
+            """#
+
+        // When
+        let resolved = try resolved(document)
+
+        // Then
+        #expect(throws: Never.self) { try checkMediaColorSpaces(of: document) }
+        guard case let .pinned(card)? = resolved.storyline.first?.media else {
+            Issue.record("the storyline entry pins no media")
+            return
+        }
+        #expect(resolved.pinnedReferences == [
+            .media(card, place: "storyline[0]", colorSpace: .rec709),
+            .media(PinnedMedia(source: card.source), place: "storyline[0]", colorSpace: nil)
+        ])
+    }
+
     // MARK: - Private
     private func resolved(_ document: String) throws -> ResolvedSequence {
         try ResolvedSequence(plan: Fixture.documentPlanner.plan(Fixture.json(document)), hashes: hashes)

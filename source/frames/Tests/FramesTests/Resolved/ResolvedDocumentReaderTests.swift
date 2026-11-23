@@ -118,16 +118,6 @@ struct ResolvedDocumentReaderTests {
               "points": [{ "vertex": [0, 0], "outTangent": [0, 40] }, [100, 0]],
               "keyframes": [ { "at": 0, "points": [{}, { "inTangent": [0, 40] }] }, { "at": 2, "points": [{}, { "inTangent": [0, 80] }] } ] } ] }
         """##,
-        // A displace written in place, its amount and offset keyframed, and a displace preset whose argument moves the x of
-        // its offset.
-        #"""
-        { "kind": "sequence", "storyline": [
-            { "media": "/abs/run.mp4", "in": 0, "out": 3, "filter": { "op": "displace", "file": "/abs/matte.png", "amount": 6 },
-              "keyframes": [ { "at": 0, "filter": { "amount": 0, "offset": [0, 0] } },
-                             { "at": 2, "filter": { "amount": 6, "offset": [12, -8] } } ] },
-            { "media": "/abs/run.mp4", "in": 0, "out": 3, "filter": "ripple",
-              "keyframes": [ { "at": 0, "filter": { "args": { "drift": 0 } } }, { "at": 2, "filter": { "args": { "drift": 30 } } } ] } ] }
-        """#,
         // Masks of each geometry form on a storyline clip, an adjustment, a shape and a title: an area found by text, a
         // box, an area and a path, inverted, feathered, in each mode, static and keyframed.
         #"""
@@ -192,6 +182,16 @@ struct ResolvedDocumentReaderTests {
           "audioFilter": [ { "op": "gate", "threshold": -60 }, { "op": "limiter", "ceiling": -1 } ],
           "keyframes": [ { "at": 0, "audioFilter": [ { "mix": 0 }, { "gain": 0 } ], "ease": "ease-in" },
                          { "at": 2, "audioFilter": [ { "mix": 1 }, { "gain": 2 } ] } ] }
+        """#,
+        // A displace written in place whose keyframes give its amount and move its offset, and a displace preset whose
+        // argument moves the x of its offset.
+        #"""
+        { "kind": "sequence", "storyline": [
+            { "media": "/abs/run.mp4", "in": 0, "out": 3, "filter": { "op": "displace", "file": "/abs/matte.png" },
+              "keyframes": [ { "at": 0, "filter": { "amount": 0, "offset": [0, 0] } },
+                             { "at": 2, "filter": { "amount": 6, "offset": [12, -8] } } ] },
+            { "media": "/abs/run.mp4", "in": 0, "out": 3, "filter": "ripple",
+              "keyframes": [ { "at": 0, "filter": { "args": { "drift": 0 } } }, { "at": 2, "filter": { "args": { "drift": 30 } } } ] } ] }
         """#,
         // A title of runs over two lines with a background, one run in the stroked subtitle style.
         #"""

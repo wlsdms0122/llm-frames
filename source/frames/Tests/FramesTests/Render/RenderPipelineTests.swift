@@ -154,6 +154,28 @@ struct RenderPipelineTests {
         #expect(log.calls.contains(.finish(path: master)))
     }
 
+    @Test("a still read in the colour space its place writes and as a displacement map by its tags is checked in each reading and rendered")
+    func rendersStillAsMediaAndDisplacementMap() throws {
+        // Given
+        let log = RoleCallLog()
+        let sut = pipeline(log: log)
+        let card = PinnedFile(path: "/abs/card.png", sha256: "sha256-of-/abs/card.png")
+        let sequence = sequence(
+            fps: 2,
+            duration: 1,
+            media: PinnedMedia(source: .file(card)),
+            mediaColorSpace: .rec709,
+            filter: .filter([.displace(file: card, amount: 4, offset: Point(x: 0, y: 0))])
+        )
+
+        // When
+        try sut.render(sequence, to: master, at: nil, delivery: nil)
+
+        // Then
+        #expect(log.calls.prefix(2) == [.checkMedia(path: "/abs/card.png"), .checkMedia(path: "/abs/card.png")])
+        #expect(log.calls.contains(.finish(path: master)))
+    }
+
     @Test("a file changed on disk since it was resolved is refused")
     func refusesChangedFile() throws {
         // Given
@@ -427,6 +449,7 @@ struct RenderPipelineTests {
         background: Color = Color(written: "#000000"),
         media: PinnedMedia? = nil,
         mediaColorSpace: ColorSpace? = nil,
+        filter: TimedValue = .off,
         audio: [ResolvedSound] = [],
         colorSpace: ColorSpace = .srgb,
         peak: Double? = nil
@@ -444,7 +467,7 @@ struct RenderPipelineTests {
             end: duration,
             crop: .keyframes([Keyframe(at: 0, value: Crop(whole))]),
             track: nil,
-            filter: .off,
+            filter: filter,
             transition: nil,
             filling: size
         )

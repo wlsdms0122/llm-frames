@@ -159,11 +159,11 @@ struct FilterKeyframeTests {
         ])
     }
 
-    @Test("a displace written in place moves its amount from 0 and its offset as two numbers, each length scaled, its map held")
+    @Test("a displace written in place takes its amount from its keyframes and moves its offset as one point, each length scaled, its map held")
     func movesDisplaceInPlace() throws {
         // When
         let plan = try plan(#"""
-            { "media": "/abs/run.mp4", "in": 0, "out": 3, "filter": { "op": "displace", "file": "/abs/matte.png", "amount": 8 },
+            { "media": "/abs/run.mp4", "in": 0, "out": 3, "filter": { "op": "displace", "file": "/abs/matte.png" },
               "keyframes": [ { "at": 0, "filter": { "amount": 0, "offset": [0, 0] } },
                              { "at": 2, "filter": { "amount": 8, "offset": [40, -20] } } ] }
             """#)

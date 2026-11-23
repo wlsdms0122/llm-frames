@@ -227,6 +227,25 @@ struct QuartzRendererTests {
         }
     }
 
+    @Test("check refuses a displace op, naming its place in the filter")
+    func refusesDisplace() throws {
+        // Given
+        let sut = QuartzRenderer(decoder: AVFoundationDecoder())
+        let map = PinnedFile(path: "/abs/ripple.png", sha256: String(repeating: "a", count: 64))
+        let adjust = AdjustItem(filter: [FilterEntry(operations: [
+            .exposure(ev: 1),
+            .displace(file: map, amount: 4, offset: Point(x: 0, y: 0))
+        ])])
+
+        // When
+        let checking = { try sut.check(list(size: 1, items: [DisplayItem(content: .adjust(adjust))])) }
+
+        // Then
+        #expect(throws: QuartzError.unsupportedFilterOperation(name: "displace", place: "items[0].filter[0].ops[1]")) {
+            try checking()
+        }
+    }
+
     @Test("check accepts a corner pin on a picture of a nested list, as a clip's group carries it")
     func acceptsCornerPinGroup() throws {
         // Given
