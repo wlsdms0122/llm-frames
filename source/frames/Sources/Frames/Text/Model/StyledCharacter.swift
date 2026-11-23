@@ -9,10 +9,11 @@
 // before the lines are broken, the bidirectional classes its scalars are read as, the run it is set in, its index among
 // the text's runs, that run's character style and the style's own face, and the glyphs it owns, those of its group of
 // glyphs when it is the group's first character and none otherwise, in the order they lie on the line. `isSpace` says
-// its first scalar is white space, so it hangs at a line's end. `tracking` is the space between it and a neighbour as
-// placed that comes after it in the text, at the run's static tracking, in output pixels, and `widestTracking` at the
-// widest tracking the run takes, both 0 for a character with no glyph of its own. `cursiveScripts` are the ISO 15924
-// codes of the cursive scripts it is a letter of.
+// it hangs at a line's end: its first scalar is white space, and it is no character of a horizontal-in-vertical
+// composition, whose spaces are set in it. `tracking` is the space between it and a neighbour as placed that comes
+// after it in the text, at the run's static tracking, in output pixels, and `widestTracking` at the widest tracking the
+// run takes, both 0 for a character with no glyph of its own. `cursiveScripts` are the ISO 15924 codes of the cursive
+// scripts it is a letter of.
 struct StyledCharacter: Equatable, Sendable {
     // MARK: - Property
     let character: Character
