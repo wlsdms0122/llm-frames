@@ -378,7 +378,7 @@ A title clip's `title` is a string or a list of runs `{text, style}`, and its `s
 | --- | --- | --- |
 | `rect` | `area`, or `width` and `height` placed as a box | `radius`, `outset` |
 | `ellipse` | as a rect: the ellipse inscribed in its box | `outset` |
-| `path` | `points`, at least two, joined by straight segments | `closed` |
+| `path` | `points`, at least two vertices, each a point or `{vertex, inTangent, outTangent}`, joined by cubic Bézier segments, straight where both tangents are 0 | `closed` |
 
 | Key | Form |
 | --- | --- |

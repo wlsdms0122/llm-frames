@@ -88,6 +88,7 @@ The interview opens with a slow push in and a lower third, a name and a role in 
 | radial gradient | `center, radius, stops` |
 | adjustment clip | every clip with a picture's, `adjust` |
 | mask | `shape, area, points, width, height, position, radius, feather, invert, mode` |
+| path vertex (an object in the `points` of a path shape or a path mask, [FRAMES-11](../FRAMES-11/SPEC.md#shapes)) | `vertex, inTangent, outTangent`, `vertex` required outside a keyframe |
 | track matte | `clip, mode, invert` |
 | `track` as an object ([FRAMES-12](../FRAMES-12/SPEC.md#the-track)) | `time`, required, and at most one of `area` and `frames`: `{time}`, `{time, area}`, or track data `{time, frames}` ([FRAMES-12](../FRAMES-12/SPEC.md#track-data)) |
 | track data frame | `time, quad` |
