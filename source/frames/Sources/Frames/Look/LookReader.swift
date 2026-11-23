@@ -77,13 +77,16 @@ struct LookReader: Sendable {
         case .array:
             return point(json, as: structure) ?? .leaf(json)
 
+        // An object that writes keys, none of them the structure's, is a named point where the structure takes one.
         case let .object(object):
-            if !PathKeyTable.isVertexObject(json), let point = point(json, as: structure) {
+            let isPoint = !object.keys.isEmpty && !object.keys.contains { structure.structure(of: $0) != nil }
+            if isPoint, let point = point(json, as: structure) {
                 return point
             }
 
             return .object(object.members.map { member in
-                LookMember(key: member.key, value: value(of: member.value, as: structure.structure(of: member.key) ?? .anyValue))
+                let child = structure.structure(of: member.key) ?? .anyValue
+                return LookMember(key: member.key, value: value(of: member.value, as: child))
             })
 
         default:

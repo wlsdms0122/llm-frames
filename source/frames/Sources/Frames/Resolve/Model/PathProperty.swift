@@ -55,7 +55,7 @@ struct PathProperty: Equatable, Sendable {
         let place = list.appending(index: index)
         guard let vertex = vertices.flatMap({ $0.indices.contains(index) ? $0[index] : nil }) else { return place }
 
-        return PathKeyTable.isVertexObject(vertex) ? place.appending(key: "vertex") : place
+        return PathKeyTable.place(ofPointOf: vertex, at: place)
     }
 
     // Every vertex's point written, statically and in keyframes, with where it is written.
@@ -92,8 +92,7 @@ struct PathProperty: Equatable, Sendable {
     }
 
     private static func point(of vertex: JSONValue) -> PositionForm? {
-        let point = PathKeyTable.isVertexObject(vertex) ? vertex.objectValue?["vertex"] : vertex
-        return point.flatMap(PositionForm.init(value:))
+        PathKeyTable.point(of: vertex).flatMap(PositionForm.init(value:))
     }
 
     // A vertex written as a point writes no tangent.

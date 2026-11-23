@@ -15,7 +15,8 @@ enum PathKeyTable {
 
     // MARK: - Initializer
     // MARK: - Public
-    // A vertex object outside a keyframe writes its `vertex`, and one in a keyframe may leave it out for the value below.
+    // A vertex object outside a keyframe writes its `vertex`, and one in a keyframe may leave it out for the value
+    // below.
     static func vertex(isKeyframed: Bool) -> ValueType {
         .oneOf([
             .numbers(2, .any),
@@ -34,6 +35,19 @@ enum PathKeyTable {
     // Whether a vertex is written as a vertex object and not as a point.
     static func isVertexObject(_ vertex: JSONValue) -> Bool {
         vertex.objectValue.map { object in leafKeys.contains(where: object.contains) || object.keys.isEmpty } ?? false
+    }
+
+    // The point a vertex writes, and where it is written from where the vertex is: the vertex itself where it is a
+    // point, and its `vertex` where it is a vertex object.
+    static func point(of vertex: JSONValue) -> JSONValue? {
+        isVertexObject(vertex) ? vertex.objectValue?["vertex"] : vertex
+    }
+
+    static func place(
+        ofPointOf vertex: JSONValue,
+        at place: Place
+    ) -> Place {
+        isVertexObject(vertex) ? place.appending(key: "vertex") : place
     }
 
     // The leaves a vertex writes, by their keys.
