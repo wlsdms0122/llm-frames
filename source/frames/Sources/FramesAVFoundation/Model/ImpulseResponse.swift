@@ -5,10 +5,10 @@
 //  Created by JSilver on 11/23/26.
 //
 
-// A `convolve` op's impulse response h of `frameCount` taps a channel, left and right, at the mix plan's sample rate,
-// laid out for a convolution that adds no delay: its first `headLength` taps are summed directly, and the taps after
-// them in stages of uniform partitions. Each stage's first tap is at least one of its blocks from tap 0, so a block of
-// input is transformed before any of its output is due.
+// A `convolve` op's impulse response h, left and right, at the mix plan's sample rate, laid out for a convolution that
+// adds no delay: its first `headLength` taps are summed directly, and the taps after them in stages of uniform
+// partitions. Each stage's first tap is at least one of its blocks from tap 0, so a block of input is transformed
+// before any of its output is due.
 struct ImpulseResponse: Sendable {
     // MARK: - Property
     static let headLength = 128
@@ -16,8 +16,7 @@ struct ImpulseResponse: Sendable {
     // Each stage's block size and first tap. A stage runs to the next one's first tap, and the last to the end of h.
     private static let layout = [(128, 128), (1024, 2048), (8192, 16_384), (65_536, 131_072)]
 
-    let frameCount: Int
-    // Per channel, the taps [0, min(`headLength`, `frameCount`)).
+    // Per channel, the first `headLength` taps, or every tap of a shorter h.
     let head: [[Double]]
     let stages: [ImpulseResponseStage]
 
@@ -41,7 +40,6 @@ struct ImpulseResponse: Sendable {
             ))
         }
 
-        self.frameCount = frameCount
         self.head = taps.map { Array($0.prefix(Self.headLength)) }
         self.stages = stages
     }
