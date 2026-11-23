@@ -10,7 +10,7 @@
 // result back and premultiplies by the alpha it was given, and clamps nothing: `contrast`, `saturation`, `hue`,
 // `sepia`, `levels`, `lut`'s lookup in `srgb` and `grain` on the encoded form, `exposure` and `temperature` on the
 // linear form, and `vignette`, `mix` and `lut`'s `amount` in the samples' form. Blur, sharpen, bloom, pixelate and
-// displace work in the samples' form and clamp their alpha only; displace takes its map's values as they are.
+// displace work in the samples' form and clamp their alpha only; displace takes its map's values clamped to 0 to 1.
 enum FilterKernelSource {
     static let text = """
         static inline float4 filterFinish(float3 v, float alpha) {
@@ -220,9 +220,10 @@ enum FilterKernelSource {
             return filterFinish(formFromEncoded(encoded + amount * 4.0 * luma * (1.0 - luma) * noise, linear), v.a);
         }
 
-        // The premultiplied value of `map`'s pixel at (column, row), rows counted from the top, read at its centre.
+        // The premultiplied value of `map`'s pixel at (column, row), rows counted from the top, read at its centre and
+        // clamped to 0 to 1.
         static inline float4 filterMapPixel(sampler map, float2 pixel, float2 size) {
-            return map.sample(map.transform(float2(pixel.x + 0.5, size.y - pixel.y - 0.5)));
+            return clamp(map.sample(map.transform(float2(pixel.x + 0.5, size.y - pixel.y - 0.5))), 0.0, 1.0);
         }
 
         // The premultiplied value of `image`'s pixel at (column, row) of `extent`, rows counted from the bottom, the

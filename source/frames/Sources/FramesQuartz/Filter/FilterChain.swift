@@ -79,8 +79,8 @@ struct FilterChain: Sendable {
             case let .blur(radius), let .sharpen(_, radius), let .bloom(_, radius, _):
                 reach + Self.blurReach * radius
 
-            // Where the map's values lie in 0 to 1 a pixel reads at most `amount` from its centre on each axis, so its
-            // bilinear read takes only pixels that begin less than `amount` past its edge.
+            // A pixel reads at most `amount` from its centre on each axis, so its bilinear read takes only pixels that
+            // begin less than `amount` past its edge.
             case let .displace(_, amount, _):
                 reach + amount
 
