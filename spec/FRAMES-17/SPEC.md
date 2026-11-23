@@ -22,7 +22,7 @@ A pack is a bundle of data that frames reads: presets, themes, templates, LUTs, 
 | `themes/` | themes ([FRAMES-22](../FRAMES-22/SPEC.md)) | `<pack>/<name>` in `--theme` or a document `theme` |
 | `templates/` | templates ([Templates](#templates)) | `<pack>/<name>` in a template instance |
 | `luts/` | `.cube` LUTs | `<pack>/<name>` in a `lut` op |
-| `media/` | mattes, overlays, stingers, logos, music and other media, with image sequences as folders and sequence documents as `.json` files used by file (without `params`) | `<pack>/<name.ext>` for a file and `<pack>/<dir>` for an image sequence, wherever media is taken |
+| `media/` | mattes, displacement maps (named in a `displace` op), overlays, stingers, logos, music and other media, with image sequences as folders and sequence documents as `.json` files used by file (without `params`) | `<pack>/<name.ext>` for a file and `<pack>/<dir>` for an image sequence, wherever media is taken |
 | `fonts/` | font files | by family, in the `font` list of the pack's themes |
 | `guide.md`, `examples/` | a guide and example documents ([FRAMES-25](../FRAMES-25/SPEC.md)) | read by people and agents, not by frames |
 

@@ -617,6 +617,12 @@ struct ResolvedValueWriter: Sendable {
         case let .vignette(amount, radius):
             return [kind("vignette"), value("amount", amount), value("radius", radius)]
 
+        case let .displace(file, amount, offset):
+            return [kind("displace")] + pinned(file) + [
+                value("amount", amount),
+                JSONMember(key: "offset", value: point(offset))
+            ]
+
         case let .pixelate(size):
             return [kind("pixelate"), value("size", size)]
 

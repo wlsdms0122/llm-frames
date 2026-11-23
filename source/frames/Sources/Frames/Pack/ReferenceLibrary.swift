@@ -15,7 +15,7 @@ import Foundation
 package struct ReferenceLibrary: MediaKindProvider {
     // MARK: - Property
     private let packs: PackLibrary
-    private let mediaFacts: any MediaFactProvider
+    let mediaFacts: any MediaFactProvider
     private let reading: [ReadingEntry]
 
     let pack: String?

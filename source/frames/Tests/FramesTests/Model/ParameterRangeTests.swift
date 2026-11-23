@@ -25,6 +25,7 @@ struct ParameterRangeTests {
             ("sharpen", ["radius: above 0"]),
             ("bloom", ["radius: above 0"]),
             ("vignette", ["radius: within 0 to 1"]),
+            ("displace", ["amount: above 0"]),
             ("pixelate", ["size: above 0"]),
             ("grain", ["amount: within 0 to 1", "size: above 0"])
         ]

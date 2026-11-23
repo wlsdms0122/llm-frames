@@ -9,8 +9,8 @@
 // entry of the choice, the ops of its preset or the one op written in place, and its `mix`. Each preset is read with
 // the arguments the choice writes, and again with each keyframe's over them, and an op in place is checked by the same
 // rules, so a stop names the choice or the keyframe. A preset's op parameter that an argument fills takes that argument's keyframes, and the rest of its
-// parameters are one keyframe at the clip's instant. Lengths are output pixels at the planner's scale, a LUT is its
-// absolute path, and colours are values in `theme`.
+// parameters are one keyframe at the clip's instant. Lengths are output pixels at the planner's scale, a LUT and a
+// displacement map are their absolute paths, and colours are values in `theme`.
 struct FilterResolver: Sendable {
     // MARK: - Property
     private let presets: any PresetProvider
@@ -73,7 +73,7 @@ struct FilterResolver: Sendable {
     }
 
     // MARK: - Private
-    // A preset is checked with the arguments the choice writes, a colour and a LUT it names included.
+    // A preset is checked with the arguments the choice writes, a colour, a LUT and a displacement map it names included.
     private func preset(
         _ instance: PresetInstance,
         theme: MergedTheme,
@@ -156,7 +156,7 @@ struct FilterResolver: Sendable {
         if name.hasPrefix("op:") {
             let parameters = members.filter { $0.key != "mix" }
             operations = [.form(name, .object(try parameters.map { member in
-                try lutFile(member, operation: name, place: place, kind: kind)
+                try file(member, operation: name, place: place, kind: kind)
             }))]
         } else if let preset = published[String(name.dropFirst("preset:".count))] {
             operations = try self.operations(of: preset, arguments: body["args"], place: place, looks: looks, kind: kind)
@@ -199,7 +199,7 @@ struct FilterResolver: Sendable {
                     place: place,
                     looks: looks
                 )
-                return try lutFile(TimedMember(key: parameter.name, value: timed), operation: form, place: place, kind: kind)
+                return try file(TimedMember(key: parameter.name, value: timed), operation: form, place: place, kind: kind)
             }
             return .form(form, .object(parameters))
         }
@@ -236,18 +236,26 @@ struct FilterResolver: Sendable {
         })
     }
 
-    // A LUT named by its pack or its path is its absolute path.
-    private func lutFile(
+    // A LUT or a displacement map named by its pack or its path is its absolute path.
+    private func file(
         _ member: TimedMember,
         operation: String,
         place: Place,
         kind: PlaceKind
     ) throws -> TimedMember {
-        guard operation == "op:lut", member.key == "file", case let .fixed(.string(name)) = member.value else {
-            return member
-        }
+        guard member.key == "file", case let .fixed(.string(name)) = member.value else { return member }
 
-        return TimedMember(key: "file", value: .fixed(.string(try values.lutFile(name, place: place, kind: kind))))
+        let path = switch operation {
+        case "op:lut":
+            try values.lutFile(name, place: place, kind: kind)
+
+        case "op:displace":
+            try values.displacementMap(name, place: place, kind: kind)
+
+        default:
+            name
+        }
+        return TimedMember(key: "file", value: .fixed(.string(path)))
     }
 
     private func scaled(

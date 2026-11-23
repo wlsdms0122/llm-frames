@@ -204,11 +204,12 @@ A filter is a chain of operations from a fixed table, applied in order. Each ope
 | `sharpen` | `amount`, `radius` |
 | `bloom` | `amount`, `radius`, `color` optional |
 | `vignette` | `amount`, `radius` (0 to 1 of half the diagonal) |
+| `displace` | `file` (a displacement map, a raster still: `<pack>/<name.ext>` for a file in a pack's `media/`, or an absolute path), `amount`, `offset: [x, y]` (`[0, 0]` by default) |
 | `pixelate` | `size` |
 | `grain` | `amount` (0 to 1), `size` |
 
 - Order matters: a sharpen after a blur sharpens the blurred picture, and a blur after a sharpen softens the sharpened one.
-- `radius` and `size` are theme lengths, so a blur of 8 looks the same on a 1080 and a 2160 wide output.
+- `radius`, `size` and a `displace`'s `amount` and `offset` are theme lengths, so a blur of 8 looks the same on a 1080 and a 2160 wide output.
 - An unknown op or a value out of range stops when the preset is read.
 - A look made of colour alone is usually one `lut` op. Put the `.cube` file in the pack's `luts/`, and give `space` when the LUT was not built for sRGB: `srgb-linear` for one built on linear sRGB, or the HDR or wide gamut space it was made in ([FRAMES-26](../spec/FRAMES-26/SPEC.md#colour-spaces)).
 

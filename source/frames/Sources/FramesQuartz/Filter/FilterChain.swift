@@ -11,27 +11,34 @@ import Frames
 // Applies a picture's filter entries in order to an image of working values, each entry its operations in order, each
 // result cropped to the image's extent and clamped nowhere but in alpha. The image is computed in the form its
 // `compositing` names, which every form-free formula takes, and each operation with a home converts to it
-// (`FilterKernelSource`). Colour operations work on the unpremultiplied colour and keep alpha. Blur, sharpen, bloom and
-// pixelate work on the premultiplied image, so a transparent pixel weighs nothing in a neighbour's mean, and blur,
-// sharpen and bloom read the edge pixels extended outward. An entry's result is its input mixed with its operations'
-// result by its `mix`, premultiplied, and the next entry takes the mixed image.
+// (`FilterKernelSource`). Colour operations work on the unpremultiplied colour and keep alpha. Blur, sharpen, bloom,
+// pixelate and displace work on the premultiplied image, so a transparent pixel weighs nothing in a neighbour's mean,
+// and blur, sharpen, bloom and displace read the edge pixels extended outward. A displacement map is read through the
+// decoder as its file's tags say, frame 0 of the still, and its values go to the kernel as the decoder gives them, in
+// neither form. An entry's result is its input mixed with its operations' result by its `mix`, premultiplied, and the
+// next entry takes the mixed image.
 struct FilterChain: Sendable {
     // MARK: - Property
     // Past four standard deviations a Gaussian holds less than a ten-thousandth of its weight.
     private static let blurReach = 4.0
 
     private let tables: LookUpTableCache
+    private let pictures: MediaPictureCache
 
     // MARK: - Initializer
-    init(tables: LookUpTableCache) {
+    init(
+        tables: LookUpTableCache,
+        pictures: MediaPictureCache
+    ) {
         self.tables = tables
+        self.pictures = pictures
     }
 
     // MARK: - Public
     // `seed` is the display list's, which every `grain` operation draws its noise from. `scale` is the image's pixels
     // per unit of the operations' lengths. `frame` is the picture the operations stand for, in the image's
-    // coordinates, which a vignette centres on and grains and pixelate blocks lie on a grid from, the image's extent
-    // when nil; it differs when the image holds part of the picture at another scale. The result is computed in the
+    // coordinates, which a vignette centres on, grains and pixelate blocks lie on a grid from and a displacement map is
+    // laid over, the image's extent when nil; it differs when the image holds part of the picture at another scale. The result is computed in the
     // form `compositing` names, by the context of that form.
     func apply(
         _ entries: [FilterEntry],
@@ -71,6 +78,11 @@ struct FilterChain: Sendable {
             switch operation {
             case let .blur(radius), let .sharpen(_, radius), let .bloom(_, radius, _):
                 reach + Self.blurReach * radius
+
+            // A pixel reads at most `amount` from its centre on each axis, so its bilinear read takes only pixels that
+            // begin less than `amount` past its edge.
+            case let .displace(_, amount, _):
+                reach + amount
 
             case let .pixelate(size):
                 reach + size
@@ -144,6 +156,14 @@ struct FilterChain: Sendable {
             let halfDiagonal = (frame.width * frame.width + frame.height * frame.height).squareRoot() / 2
 
             return try color("filterVignette", image, [amount, radius, centre, halfDiagonal], library)
+
+        case let .displace(file, amount, offset):
+            guard amount > 0 else { return image }
+
+            let map = try pictures.image(of: MediaFrame(media: PinnedMedia(source: .file(file)), index: 0))
+            let move = Point(x: offset.x * scale, y: offset.y * scale)
+
+            return try displaced(image, by: map, amount: amount * scale, offset: move, frame: frame, library: library)
 
         case let .pixelate(size):
             let pixelated = try pixelated(image, size: size * scale, frame: frame, library: library)
@@ -263,6 +283,44 @@ struct FilterChain: Sendable {
             colorSpace: target
         )
         .transformed(by: CGAffineTransform(translationX: extent.minX, y: extent.minY))
+    }
+
+    // The image displaced by `map` laid over `frame`, `amount` and `offset` in the image's pixels, `offset` with y
+    // pointing down. A pixel reads the image at most `amount` from its centre on each axis and the map anywhere.
+    private func displaced(
+        _ image: CIImage,
+        by map: CGImage,
+        amount: Double,
+        offset: Point,
+        frame: CGRect,
+        library: KernelLibrary
+    ) throws -> CIImage {
+        let name = "filterDisplace"
+        let kernel = try library.kernel(named: name)
+        let values = CIImage(cgImage: map, options: [.colorSpace: NSNull()]).samplingNearest()
+        let extent = image.extent
+        let mapExtent = values.extent
+        let arguments: [Any] = [
+            image.samplingNearest(),
+            values,
+            CIVector(x: mapExtent.width, y: mapExtent.height),
+            CIVector(x: frame.minX, y: frame.maxY, z: frame.width, w: frame.height),
+            CIVector(x: offset.x, y: offset.y),
+            amount,
+            CIVector(x: extent.minX, y: extent.minY, z: extent.width, w: extent.height)
+        ]
+        guard let result = kernel.apply(
+            extent: extent,
+            roiCallback: { index, rect in
+                index == 0 ? rect.insetBy(dx: -(amount + 1), dy: -(amount + 1)).intersection(extent) : mapExtent
+            },
+            arguments: arguments
+        )
+        else {
+            throw QuartzError.kernelFailed(name: name)
+        }
+
+        return result
     }
 
     // Square blocks `size` pixels across on a grid from the frame's top left corner, each the mean of the pixels

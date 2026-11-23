@@ -31,6 +31,7 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
     case unknownPreset(place: Place, kind: PlaceKind, presetKind: String, name: String)
     case unknownPresetFile(place: Place, kind: PlaceKind, name: String)
     case unknownPresetColor(place: Place, kind: PlaceKind, name: String)
+    case unusableDisplacementMap(place: Place, kind: PlaceKind, reference: String, refusal: DisplacementMapRefusal)
     case emptyWindow(place: Place, kind: PlaceKind, start: Double, end: Double)
     case neverVisible(place: Place, kind: PlaceKind, window: TimeRange, range: TimeRange)
     case cropOutsideMedia(place: Place, kind: PlaceKind, crop: Rectangle, size: Size)
@@ -187,6 +188,9 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
 
         case let .unknownPresetColor(place, kind, name):
             "\(place) (\(kind.label)): the preset names the colour \(quoted(name)), which is not in the theme's colors"
+
+        case let .unusableDisplacementMap(place, kind, reference, refusal):
+            "\(place) (\(kind.label)): the displacement map \(quoted(reference)) \(words(of: refusal))"
 
         case let .emptyWindow(place, kind, start, end):
             "\(place) (\(kind.label)): the window [\(number(start)), \(number(end))] ends before it starts"
@@ -449,6 +453,29 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
 
         case .noTarget:
             "\"time\" names no frame of \"frames\", so the data gives no target"
+        }
+    }
+
+    private func words(of refusal: DisplacementMapRefusal) -> String {
+        switch refusal {
+        case .video:
+            "is a video, and a displacement map is a raster still"
+
+        case .imageSequence:
+            "is an image sequence, and a displacement map is a raster still"
+
+        case .page:
+            "is a PDF, and a displacement map is a raster still"
+
+        case .sequence:
+            "is a sequence document, and a displacement map is a raster still"
+
+        case .sound:
+            "is sound, and a displacement map is a raster still"
+
+        case .unconvertibleColor:
+            "is tagged with a LUT-based ICC profile or a code point H.273 reserves, which no fixed formula converts, "
+                + "and a displacement map is read as its tags say. Convert it with transcode"
         }
     }
 

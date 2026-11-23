@@ -220,12 +220,14 @@ struct DisplayListReaderTests {
         .bloom(amount: 0.5, radius: 4, color: Color(written: "#FFEEDD")),
         .bloom(amount: 0.5, radius: 4, color: nil),
         .vignette(amount: 0.6, radius: 0.8),
+        .displace(file: PinnedFile(path: "/abs/ripple.png", sha256: hash), amount: 16, offset: Point(x: -8, y: 2.5)),
         .pixelate(size: 12),
         .grain(amount: 0.2, size: 1.5)
     ]
 
-    // `items` with a picture of a nested list under a track matte, at 12, a grain, at 13, and a LUT, a bloom with a
-    // colour and levels, at 14, so a sample list holds every field of the Moves columns.
+    // `items` with a picture of a nested list under a track matte, at 13, a grain, at 14, a LUT, a bloom with a colour,
+    // levels and a displace, at 15, and a page cut by a matte of itself, at 16, so a sample list holds every field of the
+    // Moves columns.
     private static let sampleItems = items + [
         DisplayItem(
             trackMatte: ItemTrackMatte(
@@ -243,7 +245,8 @@ struct DisplayListReaderTests {
         DisplayItem(content: .adjust(AdjustItem(filter: [FilterEntry(operations: [
             .lut(file: PinnedFile(path: "/abs/film.cube", sha256: hash), amount: 0.5),
             .bloom(amount: 0.5, radius: 4, color: Color(written: "#FFEEDD")),
-            .levels(input: [0.05, 0.95], output: [0, 1])
+            .levels(input: [0.05, 0.95], output: [0, 1]),
+            .displace(file: PinnedFile(path: "/abs/ripple.png", sha256: hash), amount: 16, offset: Point(x: -8, y: 2.5))
         ])]))),
         DisplayItem(content: .picture(PictureItem(
             source: .media(MediaFrame(media: page, index: 0)),
@@ -319,6 +322,12 @@ struct DisplayListReaderTests {
             "samples[1][15].filter[0].ops[0].sha256 (adjust)"
         ),
         (["1", "15", "filter", "0", "ops", "0", "space"], #""srgb-linear""#, "samples[1][15].filter[0].ops[0].space (adjust)"),
+        (["1", "15", "filter", "0", "ops", "3", "file"], #""/abs/other.png""#, "samples[1][15].filter[0].ops[3].file (adjust)"),
+        (
+            ["1", "15", "filter", "0", "ops", "3", "sha256"],
+            "\"\(String(repeating: "b", count: 64))\"",
+            "samples[1][15].filter[0].ops[3].sha256 (adjust)"
+        ),
         (["1", "15"], nil, "samples[1] (display list)"),
         (["1", "16", "source", "media", "file"], #""/abs/other.pdf""#, "samples[1][16].source.media.file (picture)"),
         (["1", "16", "source", "media", "page"], "1", "samples[1][16].source.media.page (picture)"),
@@ -371,6 +380,8 @@ struct DisplayListReaderTests {
         (["15", "filter", "0", "ops", "1", "color"], #""color(srgb 1 0 0 / 1)""#),
         (["15", "filter", "0", "ops", "2", "input"], "[0, 1]"),
         (["15", "filter", "0", "ops", "2", "output"], "[0.1, 0.9]"),
+        (["15", "filter", "0", "ops", "3", "amount"], "4"),
+        (["15", "filter", "0", "ops", "3", "offset"], "[0, 0]"),
         (["16", "rect"], "[10, 5, 50, 25]"),
         (["16", "dest"], "[0, 0, 440, 220]")
     ]

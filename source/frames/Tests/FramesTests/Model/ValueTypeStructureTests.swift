@@ -190,6 +190,7 @@ struct ValueTypeStructureTests {
             "sharpen": [number("amount"), number("radius")],
             "bloom": [number("amount"), number("radius"), KeyRule("color", .color)],
             "vignette": [number("amount"), number("radius")],
+            "displace": [KeyRule("file", .name), number("amount"), KeyRule("offset", .numbers(2, .any))],
             "pixelate": [number("size")],
             "grain": [number("amount"), number("size")]
         ]

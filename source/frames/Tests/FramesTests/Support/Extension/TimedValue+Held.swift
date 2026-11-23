@@ -120,6 +120,16 @@ extension TimedValue: ExpressibleByIntegerLiteral, ExpressibleByFloatLiteral {
                 [TimedMember(key: "color", value: .held(.color(color)))]
             } ?? []))
         case let .vignette(amount, radius): ("vignette", [number("amount", amount), number("radius", radius)])
+        case let .displace(file, amount, offset):
+            (
+                "displace",
+                [
+                    TimedMember(key: "file", value: .fixed(.string(file.path))),
+                    TimedMember(key: "sha256", value: .fixed(.string(file.sha256))),
+                    number("amount", amount),
+                    TimedMember(key: "offset", value: .held(.numbers([offset.x, offset.y])))
+                ]
+            )
         case let .pixelate(size): ("pixelate", [number("size", size)])
         case let .grain(amount, size): ("grain", [number("amount", amount), number("size", size)])
         }

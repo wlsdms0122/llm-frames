@@ -12,7 +12,8 @@ import Testing
 // The theme's default filter is `grade`. `soften` blurs by its `blur` argument, a theme length, `vignette` darkens to
 // its `soft` argument, a radius within 0 to 1, and `fade` lifts black and lowers white by its `black` and `white`
 // arguments, the elements of a `levels` input. `crisp` blurs by its `blur` argument and pixelates by its `size`, both
-// theme lengths, and `glow` blooms in its `tint` colour. The output is 1080 wide, so a theme length is scaled by 1080 / 1920.
+// theme lengths, `ripple` displaces by `/abs/matte.png` by its `strength` argument with its `drift` argument as the x of
+// its offset, and `glow` blooms in its `tint` colour. The output is 1080 wide, so a theme length is scaled by 1080 / 1920.
 @Suite("FilterKeyframe Tests")
 struct FilterKeyframeTests {
     // MARK: - Property
@@ -41,6 +42,13 @@ struct FilterKeyframeTests {
                   "params": { "blur": { "type": "number", "default": 4, "description": "the blur" },
                               "size": { "type": "number", "default": 8, "description": "the size" } },
                   "ops": [ { "op": "blur", "radius": { "param": "blur" } }, { "op": "pixelate", "size": { "param": "size" } } ] }
+                """#,
+            "ripple": #"""
+                { "description": "",
+                  "params": { "strength": { "type": "number", "default": 8, "description": "the strength" },
+                              "drift": { "type": "number", "default": 0, "description": "the drift" } },
+                  "ops": [ { "op": "displace", "file": "/abs/matte.png", "amount": { "param": "strength" },
+                             "offset": [{ "param": "drift" }, 0] } ] }
                 """#,
             "glow": #"""
                 { "description": "", "params": { "tint": { "type": "color", "default": "#FFFFFF", "description": "the tint" } },
@@ -151,6 +159,51 @@ struct FilterKeyframeTests {
         ])
     }
 
+    @Test("a displace written in place takes its amount from its keyframes and moves its offset as one point, each length scaled, its map held")
+    func movesDisplaceInPlace() throws {
+        // When
+        let plan = try plan(#"""
+            { "media": "/abs/run.mp4", "in": 0, "out": 3, "filter": { "op": "displace", "file": "/abs/matte.png" },
+              "keyframes": [ { "at": 0, "filter": { "amount": 0, "offset": [0, 0] } },
+                             { "at": 2, "filter": { "amount": 8, "offset": [40, -20] } } ] }
+            """#)
+
+        // Then
+        let map = PinnedFile(path: "/abs/matte.png", sha256: "")
+        #expect(plan.storyline[0].filter.filter(at: 0) == [
+            FilterEntry(operations: [.displace(file: map, amount: 0, offset: Point(x: 0, y: 0))])
+        ])
+        #expect(plan.storyline[0].filter.filter(at: 1) == [
+            FilterEntry(operations: [.displace(file: map, amount: 4 * scale, offset: Point(x: 20 * scale, y: -10 * scale))])
+        ])
+    }
+
+    @Test("a displace preset's amount and offset number move by the arguments that fill them, each scaled")
+    func movesDisplaceArguments() throws {
+        // When
+        let plan = try plan(#"""
+            { "media": "/abs/run.mp4", "in": 0, "out": 3, "filter": "ripple",
+              "keyframes": [ { "at": 0, "filter": { "args": { "strength": 0, "drift": 0 } } },
+                             { "at": 2, "filter": { "args": { "strength": 8, "drift": -100 } } } ] }
+            """#)
+
+        // Then
+        let offset = try #require(operation(of: plan.storyline[0].filter)?["offset"])
+        #expect(offset == .list([
+            .track([Keyframe(at: 0, value: .number(0)), Keyframe(at: 2, value: .number(-100 * scale))]),
+            .held(.number(0))
+        ]))
+        #expect(plan.storyline[0].filter.filter(at: 1) == [
+            FilterEntry(operations: [
+                .displace(
+                    file: PinnedFile(path: "/abs/matte.png", sha256: ""),
+                    amount: 4 * scale,
+                    offset: Point(x: -50 * scale, y: 0)
+                )
+            ])
+        ])
+    }
+
     @Test(
         "a keyframe's preset arguments are checked by the preset's rules, argument by argument, naming the keyframe",
         arguments: [
@@ -206,6 +259,16 @@ struct FilterKeyframeTests {
                 #"{ "op": "blur", "radius": 4 }"#,
                 #"[ { "at": 1, "filter": { "radius": 0 } } ]"#,
                 "storyline[0].keyframes[0].filter.radius (blur): 0 is not above 0"
+            ),
+            (
+                #"{ "op": "displace", "file": "/abs/matte.png", "amount": 0 }"#,
+                "[]",
+                "storyline[0].filter.amount (displace): 0 is not above 0"
+            ),
+            (
+                #"{ "op": "displace", "file": "/abs/matte.png", "amount": 4 }"#,
+                #"[ { "at": 1, "filter": { "amount": 0 } } ]"#,
+                "storyline[0].keyframes[0].filter.amount (displace): 0 is not above 0"
             )
         ]
     )
@@ -286,13 +349,18 @@ struct FilterKeyframeTests {
     }
 
     @Test(
-        "a keyframe that writes a preset, an op, a LUT, none or a list of another length stops, naming the keyframe",
+        "a keyframe that writes a preset, an op, a LUT, a displacement map, none or a list of another length stops, naming the keyframe",
         arguments: [
             (#""mine/grade""#, #""soften""#, "storyline[0].keyframes[0].filter (keyframe): a name, a boolean, a form or a static number is static and is written on the clip or the sequence, not in a keyframe"),
             (#""mine/grade""#, #"{ "op": "blur", "radius": 2 }"#, "storyline[0].keyframes[0].filter (keyframe): a name, a boolean, a form or a static number is static and is written on the clip or the sequence, not in a keyframe"),
             (
                 #"{ "op": "lut", "file": "/abs/look.cube", "amount": 1 }"#,
                 #"{ "file": "/abs/other.cube" }"#,
+                "storyline[0].keyframes[0].filter.file (keyframe): a name, a boolean, a form or a static number is static and is written on the clip or the sequence, not in a keyframe"
+            ),
+            (
+                #"{ "op": "displace", "file": "/abs/matte.png", "amount": 4 }"#,
+                #"{ "file": "/abs/page.png" }"#,
                 "storyline[0].keyframes[0].filter.file (keyframe): a name, a boolean, a form or a static number is static and is written on the clip or the sequence, not in a keyframe"
             ),
             (

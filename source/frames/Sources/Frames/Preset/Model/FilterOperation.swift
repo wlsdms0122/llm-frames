@@ -18,6 +18,7 @@ enum FilterOperation: Equatable, Sendable {
     case sharpen(amount: Double, radius: Double)
     case bloom(amount: Double, radius: Double, color: String?)
     case vignette(amount: Double, radius: Double)
+    case displace(file: String, amount: Double, offset: Point)
     case pixelate(size: Double)
     case grain(amount: Double, size: Double)
 }

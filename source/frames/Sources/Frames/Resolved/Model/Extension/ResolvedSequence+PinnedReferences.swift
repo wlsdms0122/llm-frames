@@ -83,15 +83,24 @@ extension ResolvedSequence {
         }
     }
 
-    // A filter's structure is static, so its LUTs are those it holds at any time.
+    // A filter's structure is static, so its LUTs and displacement maps are those it holds at any time. A map's picture
+    // is read as its tags say.
     private func references(
         of filter: TimedValue,
         place: String
     ) -> [PinnedReference] {
         FilterEntry.entries(of: filter, at: SampleTime(0)).flatMap(\.operations).compactMap { operation in
-            guard case let .lut(file, _, _) = operation else { return nil }
+            switch operation {
+            case let .lut(file, _, _):
+                .file(file, place: place)
 
-            return .file(file, place: place)
+            case let .displace(file, _, _):
+                .media(PinnedMedia(source: .file(file)), place: place, colorSpace: nil)
+
+            case .exposure, .contrast, .saturation, .temperature, .hue, .sepia, .levels, .blur, .sharpen, .bloom,
+                .vignette, .pixelate, .grain:
+                nil
+            }
         }
     }
 

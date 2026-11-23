@@ -172,12 +172,15 @@ enum LookStructureTable {
     static let filter = ValueStructure.choice(offNames: ["none"])
 
     // A filter as resolve gives it: its entries in order, each the ops of a preset or the one op written in place, and
-    // the `mix` it is drawn with. A LUT's file is pinned, its SHA-256 beside it.
+    // the `mix` it is drawn with. A LUT's and a displacement map's file is pinned, its SHA-256 beside it.
     static let resolvedFilter = ValueStructure.list(.object(ObjectStructure([
         ("ops", .list(.choice(offNames: [], forms: FilterKeyTable.operations.map { name in
-            guard name == "lut", case let .object(lut) = filterOperation(name) else { return ("op:" + name, filterOperation(name)) }
+            guard case let .object(operation) = filterOperation(name), operation.keys.contains(where: { $0.name == "file" })
+            else {
+                return ("op:" + name, filterOperation(name))
+            }
 
-            let keys = lut.keys.flatMap { key in key.name == "file" ? [key, ("sha256", .leaf(.name))] : [key] }
+            let keys = operation.keys.flatMap { key in key.name == "file" ? [key, ("sha256", .leaf(.name))] : [key] }
             return ("op:" + name, .object(ObjectStructure(keys)))
         }))),
         ("mix", mix)
@@ -277,10 +280,11 @@ enum LookStructureTable {
         return .choice(offNames: ["none"], forms: presetForms + operationForms)
     }
 
-    // An op's parameters, in the order of the op table, a length a theme length, each required but a bloom's `color`
-    // and a LUT's `space`, which is `srgb` where none is written. Each leaf's domain is its parameter's range: `PresetReader.checkRanges` stops on a value outside it and a sample
-    // is clamped to it. A length is above 0 where it holds and 0 or more once it moves, since a sampled length at 0
-    // leaves the picture as it is. An entry written in place also takes `mix`.
+    // An op's parameters, in the order of the op table, a length a theme length, each required but a bloom's `color`,
+    // a LUT's `space`, which is `srgb` where none is written, and a displace's `offset`, `[0, 0]` where none is
+    // written. Each leaf's domain is its parameter's range: `PresetReader.checkRanges` stops on a value outside it and
+    // a sample is clamped to it. A length is above 0 where it holds and 0 or more once it moves, since a sampled length
+    // at 0 leaves the picture as it is. An `offset` takes any real number. An entry written in place also takes `mix`.
     static func filterOperation(
         _ name: String,
         mixed: Bool = false
@@ -305,12 +309,22 @@ enum LookStructureTable {
         case "sharpen": [("amount", .leaf(.number())), ("radius", .leaf(length))]
         case "bloom": [("amount", .leaf(.number())), ("radius", .leaf(length)), ("color", .leaf(.color))]
         case "vignette": [("amount", .leaf(.number())), ("radius", .leaf(unit))]
+        case "displace":
+            [
+                ("file", .leaf(LeafKind(form: .file))),
+                ("amount", .leaf(length)),
+                ("offset", .leaf(.lengths(count: 2)))
+            ]
         case "pixelate": [("size", .leaf(length))]
         default: [("amount", .leaf(unit)), ("size", .leaf(length))]
         }
 
-        let required = parameters.map(\.name).filter { $0 != "color" && $0 != "space" }
-        let plain: [String: JSONValue] = name == "lut" ? ["space": .string(ColorSpace.srgb.rawValue)] : [:]
+        let required = parameters.map(\.name).filter { $0 != "color" && $0 != "space" && $0 != "offset" }
+        let plain: [String: JSONValue] = switch name {
+        case "lut": ["space": .string(ColorSpace.srgb.rawValue)]
+        case "displace": ["offset": .array([.number(0), .number(0)])]
+        default: [:]
+        }
 
         return mixed
             ? .object(ObjectStructure(

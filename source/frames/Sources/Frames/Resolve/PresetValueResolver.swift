@@ -5,9 +5,9 @@
 //  Created by JSilver on 11/16/26.
 //
 
-// Resolves the names a preset holds to the values a resolved document carries: a LUT, matte or cover file to its
-// absolute path, and a theme colour to its value in the theme where the preset is chosen. A preset names files as
-// anything outside it does, so a pack's preset finds its pack's files by `<pack>/<name>` wherever the pack is
+// Resolves the names a preset holds to the values a resolved document carries: a LUT, displacement map, matte or cover
+// file to its absolute path, and a theme colour to its value in the theme where the preset is chosen. A preset names
+// files as anything outside it does, so a pack's preset finds its pack's files by `<pack>/<name>` wherever the pack is
 // installed, and an absolute path stays as it is.
 struct PresetValueResolver: Sendable {
     // MARK: - Property
@@ -30,6 +30,9 @@ struct PresetValueResolver: Sendable {
         case let .lut(file, amount, space):
             .lut(file: try lutFile(file, place: place, kind: kind), amount: amount, space: space)
 
+        case let .displace(file, amount, offset):
+            .displace(file: try displacementMap(file, place: place, kind: kind), amount: amount, offset: offset)
+
         case let .bloom(amount, radius, color):
             .bloom(
                 amount: amount,
@@ -49,6 +52,20 @@ struct PresetValueResolver: Sendable {
         kind: PlaceKind
     ) throws -> String {
         try file(name, found: library.lutFile(named: name), place: place, kind: kind)
+    }
+
+    // A displacement map is named as media is, and is a raster still read as its tags say.
+    func displacementMap(
+        _ name: String,
+        place: Place,
+        kind: PlaceKind
+    ) throws -> String {
+        let path = try mediaFile(name, place: place, kind: kind)
+        if let refusal = try refusal(ofDisplacementMap: path, reference: name, place: place, kind: kind) {
+            throw ResolveError.unusableDisplacementMap(place: place, kind: kind, reference: name, refusal: refusal)
+        }
+
+        return path
     }
 
     func transition(
@@ -107,6 +124,48 @@ struct PresetValueResolver: Sendable {
         kind: PlaceKind
     ) throws -> String {
         try file(name, found: library.mediaFile(named: name), place: place, kind: kind)
+    }
+
+    // A document is a sequence whatever it holds. A directory is no media file, so where the probe finds none there, an
+    // image sequence's probe tells it.
+    private func refusal(
+        ofDisplacementMap path: String,
+        reference: String,
+        place: Place,
+        kind: PlaceKind
+    ) throws -> DisplacementMapRefusal? {
+        guard !library.isDocument(reference) else { return .sequence }
+
+        let probed = Result { try library.mediaFacts.probedMedium(of: path) }
+        guard case let .success(medium?) = probed else {
+            if (try? library.mediaFacts.probedImageSequence(at: path)) != nil { return .imageSequence }
+            if case let .failure(error) = probed {
+                throw ResolveError.unreadableMedia(place: place, kind: kind, reference: reference, reason: "\(error)")
+            }
+
+            throw ResolveError.missingMedia(place: place, kind: kind, reference: reference)
+        }
+
+        guard case let .media(media) = medium else { return .page }
+
+        switch media.kind {
+        case .image:
+            guard let reading = media.colorSpace?.reading, !reading.converts(in: nil) else { return nil }
+
+            return .unconvertibleColor
+
+        case .video:
+            return .video
+
+        case .page:
+            return .page
+
+        case .sequence:
+            return .sequence
+
+        case .audio:
+            return .sound
+        }
     }
 
     // A bare name, an unknown pack or another spelling names no file, and stops.
