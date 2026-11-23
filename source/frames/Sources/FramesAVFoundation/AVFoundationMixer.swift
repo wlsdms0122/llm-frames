@@ -42,7 +42,7 @@ package final class AVFoundationMixer: Sendable {
             try check(segment.filter, place: "\(place).")
             let (path, sound) = try sound(of: segment, place: place, from: segment.mediaStart, to: segment.mediaStart)
             guard StereoDownmixer(layout: sound.layout) != nil else {
-                throw MixerError.unmixableChannels(place: place, file: path)
+                throw MixerError(undownmixable: sound.layout, place: place, file: path)
             }
             guard segment.speed == 1 || TimeStretcher.speeds.contains(segment.speed) else {
                 throw MixerError.unstretchable(place: place, file: path, speed: segment.speed)
@@ -104,7 +104,7 @@ package final class AVFoundationMixer: Sendable {
             to: segment.mediaStart + (segment.end - segment.start) * segment.speed
         )
         guard let downmixer = StereoDownmixer(layout: sound.layout) else {
-            throw MixerError.unmixableChannels(place: place, file: path)
+            throw MixerError(undownmixable: sound.layout, place: place, file: path)
         }
         var buffer = try downmixer.stereo(from: sound, path: path)
         buffer = try Resampler().resampled(buffer, to: Self.sampleRate, path: path)

@@ -6,7 +6,8 @@
 //
 
 // The speaker a channel of sound feeds. Side surrounds are `leftSurround` and `rightSurround`, and the surrounds behind
-// them in 7.1 are the rear ones. `discrete` is a channel named for no speaker here.
+// them in 7.1 are the rear ones. `discrete` is a channel named for no speaker here, and `unknown` is a channel of a
+// sound of more than two channels whose file names no layout.
 package enum ChannelLabel: Equatable, Sendable {
     case mono
     case left
@@ -19,4 +20,5 @@ package enum ChannelLabel: Equatable, Sendable {
     case leftRearSurround
     case rightRearSurround
     case discrete
+    case unknown
 }

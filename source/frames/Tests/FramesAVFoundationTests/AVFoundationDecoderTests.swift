@@ -479,6 +479,28 @@ struct AVFoundationDecoderTests {
         #expect(deviation < 1.0 / 32_768, "\(deviation)")
     }
 
+    @Test("a file of two sound tracks has the first one's sound, and the other is not read")
+    func readsFirstSoundTrack() async throws {
+        // Given
+        let directory = try TemporaryDirectory()
+        let file = directory.file("tracks.mov")
+        let first = SoundWriter(end: 0.5, levels: [0.25])
+        let second = SoundWriter(end: 0.5, signal: .noise(seed: 1), levels: [0.5, 0.5])
+        try await MultitrackSoundWriter(end: 0.5, tracks: [first, second]).write(to: file)
+        let sut = AVFoundationDecoder()
+
+        // When
+        let sound = try sut.sound(of: MediaFile(path: file), from: 0, to: 0.5)
+
+        // Then
+        #expect(sound.channels == 1 && sound.layout.labels == [.mono])
+        #expect(sound.frameCount == 24_000)
+        let deviation = (0..<sound.frameCount).map { frame in
+            abs(Double(sound.samples[frame]) - first.sample(channel: 0, at: frame))
+        }.max()!
+        #expect(deviation < 1.0 / 32_768, "\(deviation)")
+    }
+
     @Test("an AAC file's sound has its rate, channel count and frames over a sub-range, the tone at its level")
     func readsAACSound() async throws {
         // Given
@@ -527,6 +549,39 @@ struct AVFoundationDecoderTests {
         // Then
         #expect(sound.channels == 6)
         #expect(sound.layout.labels == [.left, .right, .center, .lowFrequencyEffects, .leftSurround, .rightSurround])
+    }
+
+    @Test(
+        "a WAV file's channels are named by its channel mask, and those of one that names no layout are mono, stereo or unknown",
+        arguments: [
+            (1, nil, [ChannelLabel.mono]),
+            (2, nil, [.left, .right]),
+            (3, nil, Array(repeating: .unknown, count: 3)),
+            (8, nil, Array(repeating: .unknown, count: 8)),
+            (8, 0, Array(repeating: .unknown, count: 8)),
+            // A WAVE mask's back left and right, 0x10 and 0x20, are Core Audio's rear surrounds.
+            (6, 0x3F, [.left, .right, .center, .lowFrequencyEffects, .leftRearSurround, .rightRearSurround])
+        ] as [(Int, UInt32?, [ChannelLabel])]
+    )
+    func readsWaveLayout(
+        channels: Int,
+        channelMask: UInt32?,
+        labels: [ChannelLabel]
+    ) throws {
+        // Given
+        let directory = try TemporaryDirectory()
+        let file = directory.file("poly.wav")
+        let samples = (0..<channels).map { [Float](repeating: Float($0 + 1) / 10, count: 4800) }
+        try WaveFileWriter(channels: samples, channelMask: channelMask).write(to: file)
+        let sut = AVFoundationDecoder()
+
+        // When
+        let sound = try sut.sound(of: MediaFile(path: file), from: 0, to: 0.1)
+
+        // Then
+        #expect(sound.channels == channels)
+        #expect(sound.layout.labels == labels)
+        #expect(Array(sound.samples.prefix(channels)) == samples.map { $0[0] })
     }
 
     @Test("sound is read on the presentation timeline, so a video delayed by its edit list has silence first")

@@ -64,7 +64,6 @@ every media file is read through the decoder
 - Stabilisation.
 - Blur of the motion inside media: optical-flow motion blur and frame blending of retimed footage. Motion blur blurs the motion frames gives a clip, and its media frames are held over each frame's exposure ([FRAMES-29](FRAMES-29/SPEC.md)).
 - A loudness target. frames measures loudness with `loudness` and limits with the `limiter` op, and an extension writes the gain that reaches a target ([FRAMES-28](FRAMES-28/SPEC.md)).
-- A built-in tracker that follows perspective. The `point` tracker reports each quad as a similarity image of the target, and a perspective track made outside frames comes in as track data ([FRAMES-12](FRAMES-12/SPEC.md#track-data)), which a corner pin rides ([FRAMES-27](FRAMES-27/SPEC.md)).
 - Ink bounds of text. `evaluate` reports where text lies by its characters' glyph boxes, made of advances, ascents and descents ([FRAMES-5](FRAMES-5/SPEC.md#units)), and a program that needs the outlines as drawn measures a frame from `extract`.
 - GIF and WebM output. Rendering makes MOV, MP4 and PNG.
 - Speech synthesis, recording and transcription. Sound arrives as files.
