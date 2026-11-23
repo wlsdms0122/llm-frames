@@ -94,7 +94,7 @@ An audio preset is `{description, params, ops}`, `ops` a list of operations. Its
 | `compressor` | `threshold` (dBFS), `ratio` (1 or more), `knee` (dB, 0 or more, default 0), `attack` (seconds above 0, default 0.01), `release` (seconds above 0, default 0.1), `makeup` (dB, default 0) | a feed-forward compressor with a hard knee at `knee` 0 and a soft one above it |
 | `gate` | `threshold` (dBFS), `range` (dB, 0 or less, default -80), `attack` (seconds above 0, default 0.001), `hold` (seconds, 0 or more, default 0.05), `release` (seconds above 0, default 0.1) | a noise gate that turns the sound down by `range` while its level stays below `threshold` |
 | `limiter` | `gain` (dB, default 0), `ceiling` (dBTP, 0 or less, default -1), `lookahead` (seconds from 0.0015 to 0.05, static, default 0.005), `release` (seconds above 0, default 0.1) | a look-ahead limiter that raises the sound by `gain` and holds its true peak at `ceiling`, its formula given in [FRAMES-28](../FRAMES-28/SPEC.md#limiter) |
-| `convolve` | `file` (an impulse response, a media file with sound), `gain` (dB, default 0) | convolves the sound with the impulse response and raises the result by `gain`: a room's reverb, a plate, a speaker or a telephone, as a convolution reverb takes a recorded space ([Convolution](#convolution)) |
+| `convolve` | `file` (an impulse response, a media file with sound), `gain` (dB, default 0) | convolves the sound with the impulse response and raises the result by `gain`: a room's reverb, a plate, a speaker or a telephone, as a convolution reverb takes a recorded space |
 
 | Band key | Form | Default |
 | --- | --- | --- |
