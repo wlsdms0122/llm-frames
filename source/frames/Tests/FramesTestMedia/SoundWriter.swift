@@ -175,9 +175,9 @@ package struct SoundWriter {
         return sample
     }
 
-    // MARK: - Private
-    // AAC stores 5.1 in its own channel order, which the writer maps the written layout onto.
-    private func settings(linear: Bool) -> [String: Any] {
+    // The writer's settings for 16 bit linear PCM, or for AAC, which stores 5.1 in its own channel order that the
+    // writer maps the written layout onto.
+    func settings(linear: Bool) -> [String: Any] {
         let stored = !linear && levels.count == 6 ? layout(tag: kAudioChannelLayoutTag_AAC_5_1) : layout
         let layout = withUnsafeBytes(of: stored) { Data($0) }
         guard linear else {
@@ -202,6 +202,7 @@ package struct SoundWriter {
         ]
     }
 
+    // MARK: - Private
     private func layout(tag: AudioChannelLayoutTag) -> AudioChannelLayout {
         AudioChannelLayout(
             mChannelLayoutTag: tag,

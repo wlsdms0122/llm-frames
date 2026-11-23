@@ -479,6 +479,28 @@ struct AVFoundationDecoderTests {
         #expect(deviation < 1.0 / 32_768, "\(deviation)")
     }
 
+    @Test("a file of two sound tracks has the first one's sound, and the other is not read")
+    func readsFirstSoundTrack() async throws {
+        // Given
+        let directory = try TemporaryDirectory()
+        let file = directory.file("tracks.mov")
+        let first = SoundWriter(end: 0.5, levels: [0.25])
+        let second = SoundWriter(end: 0.5, signal: .noise(seed: 1), levels: [0.5, 0.5])
+        try await MultitrackSoundWriter(end: 0.5, tracks: [first, second]).write(to: file)
+        let sut = AVFoundationDecoder()
+
+        // When
+        let sound = try sut.sound(of: MediaFile(path: file), from: 0, to: 0.5)
+
+        // Then
+        #expect(sound.channels == 1 && sound.layout.labels == [.mono])
+        #expect(sound.frameCount == 24_000)
+        let deviation = (0..<sound.frameCount).map { frame in
+            abs(Double(sound.samples[frame]) - first.sample(channel: 0, at: frame))
+        }.max()!
+        #expect(deviation < 1.0 / 32_768, "\(deviation)")
+    }
+
     @Test("an AAC file's sound has its rate, channel count and frames over a sub-range, the tone at its level")
     func readsAACSound() async throws {
         // Given
