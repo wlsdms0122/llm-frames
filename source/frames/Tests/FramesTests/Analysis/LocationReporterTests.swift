@@ -26,6 +26,14 @@ struct LocationReporterTests {
     private let rect = ItemOrigin(place: "clips[0]", id: nil, kind: "rect")
 
     // Masks over a fill of the whole frame, a point, and whether the point is under the masked fill.
+    private static let lens = PathGeometry.path(
+        [
+            PathVertex(vertex: Point(x: 0, y: 50), inTangent: Point(x: 0, y: 40), outTangent: Point(x: 0, y: -40)),
+            PathVertex(vertex: Point(x: 100, y: 50), inTangent: Point(x: 0, y: -40), outTangent: Point(x: 0, y: 40))
+        ],
+        isClosed: true
+    )
+
     private static let maskCases: [([ItemMask], Point, Bool)] = [
         ([itemMask(.rect(Rectangle(x: 10, y: 10, width: 20, height: 20), radius: 4))], Point(x: 20, y: 20), true),
         ([itemMask(.rect(Rectangle(x: 10, y: 10, width: 20, height: 20), radius: 4))], Point(x: 100, y: 50), false),
@@ -33,6 +41,9 @@ struct LocationReporterTests {
         ([itemMask(.ellipse(Rectangle(x: 0, y: 0, width: 10, height: 10)), transform: doubled)], Point(x: 40, y: 10), false),
         ([itemMask(.polyline([Point(x: 0, y: 0), Point(x: 100, y: 0), Point(x: 0, y: 100)], isClosed: true))], Point(x: 10, y: 10), true),
         ([itemMask(.polyline([Point(x: 0, y: 0), Point(x: 100, y: 0), Point(x: 0, y: 100)], isClosed: true))], Point(x: 90, y: 90), false),
+        // A lens whose curves bulge to y = 20 and 80 lies in the hull of its control points, from y = 10 to 90.
+        ([itemMask(lens)], Point(x: 50, y: 50), true),
+        ([itemMask(lens)], Point(x: 50, y: 5), false),
         ([itemMask(square), itemMask(.rect(Rectangle(x: 100, y: 10, width: 20, height: 20), radius: 0))], Point(x: 60, y: 20), true),
         ([itemMask(square), itemMask(.rect(Rectangle(x: 100, y: 10, width: 20, height: 20), radius: 0))], Point(x: 60, y: 80), false),
         ([itemMask(square), itemMask(.rect(Rectangle(x: 0, y: 0, width: 5, height: 5), radius: 0), feather: 1)], Point(x: 100, y: 50), true),

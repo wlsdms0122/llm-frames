@@ -309,7 +309,7 @@ struct EvaluationReporterTests {
         #expect(isClose(try #require(reported.bounds), Rectangle(x: 90, y: 30, width: 10, height: 40)))
     }
 
-    @Test("a path's rect is the box of its geometry without its stroke, a polyline's the box of its points")
+    @Test("a path's rect is the box of its geometry without its stroke, a curved path's the box of its curve")
     func reportsPathRect() throws {
         // Given
         let stroke = PathStroke(width: 4, paint: .color(red), join: .miter, cap: .butt, start: .none, end: .arrow)
@@ -324,13 +324,28 @@ struct EvaluationReporterTests {
             stroke: stroke
         )))
 
+        // The segment from (200, 0) to (300, 0), both its tangents (0, 100), bulges to y = 75, short of its control
+        // points at y = 100.
+        let curve = DisplayItem(content: .path(PathItem(
+            geometry: .path(
+                [
+                    PathVertex(vertex: Point(x: 200, y: 0), inTangent: Point(x: 0, y: 0), outTangent: Point(x: 0, y: 100)),
+                    PathVertex(vertex: Point(x: 300, y: 0), inTangent: Point(x: 0, y: 100), outTangent: Point(x: 0, y: 0))
+                ],
+                isClosed: false
+            ),
+            fill: nil,
+            stroke: stroke
+        )))
+
         // When
-        let report = try sut.report(of: list([ellipse, polyline]), at: 0)
+        let report = try sut.report(of: list([ellipse, polyline, curve]), at: 0)
 
         // Then
         #expect(report.items.map(\.rect) == [
             Rectangle(x: 20, y: 20, width: 40, height: 30),
-            Rectangle(x: 100, y: 10, width: 60, height: 40)
+            Rectangle(x: 100, y: 10, width: 60, height: 40),
+            Rectangle(x: 200, y: 0, width: 100, height: 75)
         ])
     }
 
