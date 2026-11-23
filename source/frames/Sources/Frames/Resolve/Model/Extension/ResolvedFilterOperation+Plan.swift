@@ -5,7 +5,8 @@
 //  Created by JSilver on 11/16/26.
 //
 
-// A filter operation as resolve leaves it, a LUT's file pinned and a bloom's colour, already a value, read as one.
+// A filter operation as resolve leaves it, a LUT's and a displacement map's file pinned and a bloom's colour, already a
+// value, read as one.
 extension ResolvedFilterOperation {
     // MARK: - Property
     // MARK: - Initializer
@@ -49,6 +50,9 @@ extension ResolvedFilterOperation {
 
         case let .vignette(amount, radius):
             self = .vignette(amount: amount, radius: radius)
+
+        case let .displace(file, amount, offset):
+            self = .displace(file: try PinnedFile(path: file, hashes: hashes), amount: amount, offset: offset)
 
         case let .pixelate(size):
             self = .pixelate(size: size)

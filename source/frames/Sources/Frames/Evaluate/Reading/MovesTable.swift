@@ -11,7 +11,8 @@
 struct MovesTable: Sendable {
     // MARK: - Property
     // A filter moves in its entries' `mix` and its ops' numeric parameters, the members a preset's `param` may stand
-    // for. An op's name, a `lut` op's `file`, `sha256` and `space`, and a `grain` op's `seed` are equal in every sample.
+    // for. An op's name, a `lut` op's `file`, `sha256` and `space`, a `displace` op's `file` and `sha256`, and a `grain`
+    // op's `seed` are equal in every sample.
     private static let filter = MovesMark.elements(.members(
         [
             "ops": .elements(.members(
@@ -23,7 +24,9 @@ struct MovesTable: Sendable {
         other: .fixed
     ))
     // Every numeric parameter a filter op is written with.
-    private static let parameters = ["ev", "amount", "kelvin", "degrees", "input", "output", "radius", "color", "size"]
+    private static let parameters = [
+        "ev", "amount", "kelvin", "degrees", "input", "output", "radius", "color", "offset", "size"
+    ]
     // A source is a media frame or a page of a PDF, its media (a page's `page` included), `frame`, `colorSpace` and
     // `targetPeak` equal in every sample, or `{list}`, whose items take their marks and whose own `size`, `background`
     // and `compositing` are equal in every sample. A matte's `source` and `frame` are equal in every sample too.

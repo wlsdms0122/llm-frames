@@ -72,6 +72,9 @@ struct FilterChain: Sendable {
             case let .blur(radius), let .sharpen(_, radius), let .bloom(_, radius, _):
                 reach + Self.blurReach * radius
 
+            case let .displace(_, amount, _):
+                reach + amount
+
             case let .pixelate(size):
                 reach + size
 
@@ -144,6 +147,10 @@ struct FilterChain: Sendable {
             let halfDiagonal = (frame.width * frame.width + frame.height * frame.height).squareRoot() / 2
 
             return try color("filterVignette", image, [amount, radius, centre, halfDiagonal], library)
+
+        // `DisplayListChecker` refuses a `displace` op, so none is drawn.
+        case .displace:
+            return image
 
         case let .pixelate(size):
             let pixelated = try pixelated(image, size: size * scale, frame: frame, library: library)

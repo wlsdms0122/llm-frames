@@ -6,7 +6,7 @@
 //
 
 // A filter operation as resolved: its lengths scaled into the pixels it is drawn in, a LUT's file pinned with the
-// colour space it is built for, and a bloom's colour as a value.
+// colour space it is built for, a displacement map's file pinned, a raster still, and a bloom's colour as a value.
 package enum ResolvedFilterOperation: Equatable, Sendable {
     case exposure(ev: Double)
     case contrast(amount: Double)
@@ -20,6 +20,7 @@ package enum ResolvedFilterOperation: Equatable, Sendable {
     case sharpen(amount: Double, radius: Double)
     case bloom(amount: Double, radius: Double, color: Color?)
     case vignette(amount: Double, radius: Double)
+    case displace(file: PinnedFile, amount: Double, offset: Point)
     case pixelate(size: Double)
     case grain(amount: Double, size: Double)
 }

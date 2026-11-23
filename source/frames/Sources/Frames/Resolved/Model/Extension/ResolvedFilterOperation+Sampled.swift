@@ -6,7 +6,7 @@
 //
 
 // A filter op of a timed filter at one instant, its parameters sampled and clamped to their ranges, nil for a form
-// that is no op. A bloom without a colour takes none.
+// that is no op. A bloom without a colour takes none, and a displace without an offset `[0, 0]`.
 extension ResolvedFilterOperation {
     // MARK: - Property
     // MARK: - Initializer
@@ -56,6 +56,14 @@ extension ResolvedFilterOperation {
 
         case "vignette":
             self = .vignette(amount: number("amount"), radius: number("radius"))
+
+        case "displace":
+            let offset = body["offset"]?.numbers ?? [0, 0]
+            self = .displace(
+                file: PinnedFile(path: body["file"]?.name ?? "", sha256: body["sha256"]?.name ?? ""),
+                amount: number("amount"),
+                offset: Point(x: offset[0], y: offset[1])
+            )
 
         case "pixelate":
             self = .pixelate(size: number("size"))

@@ -435,6 +435,14 @@ struct PresetReader: Sendable {
         case "vignette":
             return .vignette(amount: number("amount"), radius: number("radius"))
 
+        case "displace":
+            let offset = numbers("offset")
+            return .displace(
+                file: object["file"]?.stringValue ?? "",
+                amount: number("amount"),
+                offset: offset.count == 2 ? Point(x: offset[0], y: offset[1]) : Point(x: 0, y: 0)
+            )
+
         case "pixelate":
             return .pixelate(size: number("size"))
 

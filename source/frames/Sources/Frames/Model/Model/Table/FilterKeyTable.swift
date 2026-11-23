@@ -11,7 +11,7 @@
 enum FilterKeyTable {
     static let operations = [
         "exposure", "contrast", "saturation", "temperature", "hue", "sepia", "levels", "lut",
-        "blur", "sharpen", "bloom", "vignette", "pixelate", "grain"
+        "blur", "sharpen", "bloom", "vignette", "displace", "pixelate", "grain"
     ]
 
     static func table(for operation: String) -> ObjectTable {

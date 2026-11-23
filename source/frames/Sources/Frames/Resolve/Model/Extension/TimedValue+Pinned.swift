@@ -5,7 +5,8 @@
 //  Created by JSilver on 11/19/26.
 //
 
-// A timed filter with each LUT's file pinned: its absolute path with the SHA-256 of what it holds beside it.
+// A timed filter with each LUT's and displacement map's file pinned: its absolute path with the SHA-256 of what it
+// holds beside it.
 extension TimedValue {
     // MARK: - Property
     // MARK: - Initializer
@@ -21,7 +22,7 @@ extension TimedValue {
         case let .list(elements):
             return .list(try elements.map { try $0.pinningFiles(hashes: hashes) })
 
-        case let .form(name, .object(members)) where name == "op:lut":
+        case let .form(name, .object(members)) where name == "op:lut" || name == "op:displace":
             return .form(name, .object(try members.flatMap { member -> [TimedMember] in
                 guard member.key == "file", case let .fixed(.string(path)) = member.value else { return [member] }
 

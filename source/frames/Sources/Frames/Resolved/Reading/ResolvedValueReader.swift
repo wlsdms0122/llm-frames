@@ -1022,12 +1022,9 @@ struct ResolvedValueReader: Sendable {
         _ value: PlacedJSONValue,
         grainKeys: [String]
     ) throws -> ResolvedFilterOperation {
-        let names = [
-            "exposure", "contrast", "saturation", "temperature", "hue", "sepia", "levels", "lut", "blur", "sharpen",
-            "bloom", "vignette", "pixelate", "grain"
-        ]
+        let names = FilterKeyTable.operations
         let name = try value.object(keys: ["op", "ev", "amount", "kelvin", "degrees", "input", "output", "file", "sha256",
-                                            "space", "radius", "color", "size"] + grainKeys)
+                                            "space", "radius", "color", "offset", "size"] + grainKeys)
             .member("op")
             .name(among: names) { names.contains($0) ? $0 : nil }
         let keys = { (keys: [String]) in try value.object(keys: ["op"] + keys) }
@@ -1093,6 +1090,14 @@ struct ResolvedValueReader: Sendable {
         case "vignette":
             let operation = try keys(["amount", "radius"])
             return .vignette(amount: try number(operation, "amount"), radius: try number(operation, "radius"))
+
+        case "displace":
+            let operation = try keys(["file", "sha256", "amount", "offset"])
+            return .displace(
+                file: try pinned(operation),
+                amount: try number(operation, "amount"),
+                offset: try point(operation.member("offset"))
+            )
 
         case "pixelate":
             let operation = try keys(["size"])
