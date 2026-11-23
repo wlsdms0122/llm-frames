@@ -54,20 +54,18 @@ package final class AVFoundationMixer: Sendable {
         }
     }
 
-    // Reads the impulse response of each `convolve` op, refusing one that cannot be mixed. `place` is the place in the
-    // plan of the filter's owner, as in `check(segments:buses:place:)`, with a segment's followed by a dot.
+    // Makes the filter's chain, which reads the impulse response of each `convolve` op, refusing one that cannot be
+    // mixed. `place` is the place in the plan of the filter's owner, as in `AudioFilterChain`.
     private func check(
         _ filter: [MixFilterEntry],
         place: String
     ) throws {
-        for (entryIndex, entry) in filter.enumerated() {
-            for (index, operation) in entry.operations.enumerated() {
-                guard case let .convolve(convolution) = operation else { continue }
-
-                let operationPlace = "\(place)filter[\(entryIndex)].ops[\(index)]"
-                _ = try impulseResponses.impulseResponse(of: convolution.file, place: operationPlace)
-            }
-        }
+        _ = try AudioFilterChain(
+            filter: filter,
+            place: place,
+            sampleRate: Self.sampleRate,
+            impulseResponses: impulseResponses
+        )
     }
 
     // The sum of `segments` and `buses` over the sequence samples `span`, planar: the left channel's `span.count`
