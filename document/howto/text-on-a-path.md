@@ -43,7 +43,7 @@ The output is shortened here. `size` 96 is a theme length, 64 pixels on a frame 
 
 ## 3. Set it on the path
 
-`on-path.py` replaces the title with one title per character. It calls `frames evaluate` twice: once on the title, for where the characters lie along the line, and once on the new titles at the origin, for each one's own baseline. Spaces take their distance along the path and draw nothing, so they get no title. `--guide` also draws the path as a thin line, to check against.
+`on-path.py` replaces the title with one title per character. It calls `frames evaluate` twice: once on the title, for where the characters lie along the line, and once on the new titles at the origin, for each one's own baseline. Spaces take their distance along the path and draw nothing, so they get no title. `--guide` also draws the path as one curved `path` shape, a thin line to check against: its vertices and tangents are the curve's own ([FRAMES-11](../../spec/FRAMES-11/SPEC.md#shapes)), so frames draws the curve itself and not the script's samples.
 
 ```python
 # on-path.py: replaces a title with one title per character, set along a path.
@@ -67,6 +67,14 @@ def bezier(p0, p1, p2, p3, count=2000):
 PATHS = {
     "arc": arc((640, 520), 300, 180, 360),
     "bezier": bezier((140, 520), (420, 120), (860, 760), (1140, 300)),
+}
+
+# The same paths as a path shape's vertices: the arc as two quarter circles, each tangent 4/3 (√2 - 1) of the radius.
+GUIDES = {
+    "arc": [{"vertex": [340, 520], "outTangent": [0, -165.69]},
+            {"vertex": [640, 220], "inTangent": [-165.69, 0], "outTangent": [165.69, 0]},
+            {"vertex": [940, 520], "inTangent": [0, -165.69]}],
+    "bezier": [{"vertex": [140, 520], "outTangent": [280, -400]}, {"vertex": [1140, 300], "inTangent": [-280, 460]}],
 }
 
 # The point at a distance along the path, and the angle of the path's tangent there.
@@ -137,7 +145,7 @@ for clip, group in zip(clips, groups):
     clip["rotation"] = round(rotation, 3)
 
 if "--guide" in sys.argv:
-    document["clips"].insert(index, {"id": f"{title_id}-path", "shape": "path", "points": [[round(v, 2) for v in point] for point in points[::40]],
+    document["clips"].insert(index, {"id": f"{title_id}-path", "shape": "path", "points": GUIDES[path_name],
                                      "stroke": {"color": "#F59E0B", "width": 2}, "fill": False, "animation": "none"})
 json.dump(document, sys.stdout, ensure_ascii=False, indent=1)
 ```
@@ -148,7 +156,7 @@ python3 on-path.py /path/to/work/word.json word bezier --guide > /path/to/work/b
 frames timeline /path/to/work/arc.json
 ```
 
-The arc is the upper half of a circle of radius 300 about (640, 520), run from left to right, and the Bézier an S curve across the frame. Change `PATHS` for your own: any list of points close enough together works. The text is centred on the path. Text longer than the path runs off its ends along the tangent of its first or last segment.
+The arc is the upper half of a circle of radius 300 about (640, 520), run from left to right, and the Bézier an S curve across the frame. Change `PATHS` for your own: any list of points close enough together works, and `GUIDES` for its guide. The text is centred on the path. Text longer than the path runs off its ends along the tangent of its first or last segment.
 
 Each character becomes a title like this one, the first `A` on the arc:
 
