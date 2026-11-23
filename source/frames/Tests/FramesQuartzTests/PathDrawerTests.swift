@@ -218,6 +218,27 @@ struct PathDrawerTests {
         expect(bitmap, at: [(15, 50), (35, 50), (50, 65), (50, 85)], inked: inked)
     }
 
+    @Test("a curved segment is stroked along its curve, and a trim to its first half stops at its middle")
+    func strokesCurve() throws {
+        // Given
+        // From (10, 20) to (90, 20), both tangents (0, 80), the curve bulges to y = 80 at x = 50, its middle.
+        let geometry = PathGeometry.path(
+            [
+                PathVertex(vertex: Point(x: 10, y: 20), inTangent: Point(x: 0, y: 0), outTangent: Point(x: 0, y: 80)),
+                PathVertex(vertex: Point(x: 90, y: 20), inTangent: Point(x: 0, y: 80), outTangent: Point(x: 0, y: 0))
+            ],
+            isClosed: false
+        )
+
+        // When
+        let whole = try sut.frame(of: list([stroked(geometry, width: 4)]))
+        let half = try sut.frame(of: list([stroked(geometry, width: 4, trim: Trim(start: 0, end: 0.5))]))
+
+        // Then
+        expect(whole, at: [(50, 80), (50, 20), (50, 50)], inked: [true, false, false])
+        expect(half, at: [(46, 79), (54, 79), (10, 22), (90, 22)], inked: [true, false, true, false])
+    }
+
     @Test("an arrowhead is 4 times the stroke's width long and wide, its tip at the end, the line stopping at its base")
     func drawsArrowhead() throws {
         // Given
