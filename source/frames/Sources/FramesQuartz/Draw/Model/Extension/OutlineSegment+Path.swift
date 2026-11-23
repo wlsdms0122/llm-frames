@@ -36,13 +36,18 @@ extension OutlineSegment {
             )
 
         case .cubic:
-            guard case let .cubic(_, first, second, last) = piece(from: start, to: end) else { return }
+            // Core Graphics joins the elements of a path and not the turns inside one, so a cubic is added in pieces
+            // split at its cusps, each of which then takes the stroke's join (FRAMES-20 Direction at a point).
+            let cusps = cusps.map(\.distance).filter { $0 > start && $0 < end }
+            for (lower, upper) in zip([start] + cusps, cusps + [end]) {
+                guard case let .cubic(_, first, second, last) = piece(from: lower, to: upper) else { return }
 
-            path.addCurve(
-                to: CGPoint(x: last.x, y: last.y),
-                control1: CGPoint(x: first.x, y: first.y),
-                control2: CGPoint(x: second.x, y: second.y)
-            )
+                path.addCurve(
+                    to: CGPoint(x: last.x, y: last.y),
+                    control1: CGPoint(x: first.x, y: first.y),
+                    control2: CGPoint(x: second.x, y: second.y)
+                )
+            }
         }
     }
 
