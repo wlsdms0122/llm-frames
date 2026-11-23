@@ -13,8 +13,7 @@ struct ResolvedValueReader: Sendable {
     // The keys of pinned media, which an object holding it carries beside its own.
     static let mediaKeys = ["file", "sha256", "page", "imageSequence", "frames"]
     static let spanKeys = ["ease", "revealFrom", "keys"]
-    static let geometryForms = ["rect", "ellipse", "polyline"]
-    static let maskGeometryForms = ["rect", "ellipse", "path"]
+    static let geometryForms = ["rect", "ellipse", "path"]
 
     // MARK: - Initializer
     init() { }
@@ -168,8 +167,8 @@ struct ResolvedValueReader: Sendable {
         return .gradient(Gradient(shape: shape, stops: stops))
     }
 
-    // A path item's or a mask's geometry, one member named by its form: `rect`, `ellipse` or `polyline`, which runs
-    // through at least two points.
+    // A path item's or a mask's geometry, one member named by its form: `rect`, `ellipse` or `path`, which runs
+    // through at least two vertices, with an in and an out tangent for each.
     func geometry(_ value: PlacedJSONValue) throws -> PathGeometry {
         let geometry = try value.object(keys: Self.geometryForms)
         let written = Self.geometryForms.filter(geometry.contains)
@@ -191,33 +190,47 @@ struct ResolvedValueReader: Sendable {
             return .ellipse(try rectangle(form.object(keys: ["rect"]).member("rect")))
 
         default:
-            let polyline = try form.object(keys: ["points", "closed"])
-            let written = try polyline.member("points")
-            let points = try written.elements().map(point)
-            guard points.count >= 2 else {
+            let path = try form.object(keys: ["vertices", "inTangents", "outTangents", "closed"])
+            let written = try path.member("vertices")
+            let vertices = try written.elements().map(point)
+            guard vertices.count >= 2 else {
                 throw ModelError.invalidValue(
                     place: written.place,
                     kind: written.kind,
-                    reason: "a polyline runs through at least two points, found \(points.count)"
+                    reason: "a path runs through at least two vertices, found \(vertices.count)"
                 )
             }
 
-            return .polyline(points, isClosed: try polyline.member("closed").bool())
+            let tangents = { (key: String) throws -> [Point] in
+                let written = try path.member(key)
+                let tangents = try written.elements().map(self.point)
+                guard tangents.count == vertices.count else {
+                    throw ModelError.invalidValue(
+                        place: written.place,
+                        kind: written.kind,
+                        reason: "a path has a tangent for each of its \(vertices.count) vertices, found \(tangents.count)"
+                    )
+                }
+
+                return tangents
+            }
+            let inTangents = try tangents("inTangents")
+            let outTangents = try tangents("outTangents")
+
+            return .path(
+                vertices.indices.map { index in
+                    PathVertex(vertex: vertices[index], inTangent: inTangents[index], outTangent: outTangents[index])
+                },
+                isClosed: try path.member("closed").bool()
+            )
         }
     }
 
-    // A mask's geometry, in a resolved document and a display list: a path mask is a closed polyline through at least
-    // three points.
+    // A mask's geometry, in a resolved document and a display list: a path mask is a closed path.
     func maskGeometry(_ value: PlacedJSONValue) throws -> PathGeometry {
         let geometry = try geometry(value)
-        if case let .polyline(points, isClosed) = geometry {
-            guard isClosed, points.count >= 3 else {
-                throw ModelError.invalidValue(
-                    place: value.place,
-                    kind: value.kind,
-                    reason: "a path mask is a closed polyline through at least three points"
-                )
-            }
+        if case let .path(_, isClosed) = geometry, !isClosed {
+            throw ModelError.invalidValue(place: value.place, kind: value.kind, reason: "a path mask is a closed path")
         }
 
         return geometry
@@ -630,13 +643,13 @@ struct ResolvedValueReader: Sendable {
     }
 
     // A resolved mask's geometry, one member named by its form, each number a keyframe list: a rect or an ellipse by
-    // its `rect` or its box `width`, `height` and `position`, and a path as a closed polyline through at least three
-    // points.
+    // its `rect` or its box `width`, `height` and `position`, and a path as a closed path through at least two
+    // vertices, with an in and an out tangent for each.
     private func timedMaskGeometry(_ value: PlacedJSONValue) throws -> ResolvedMaskGeometry {
-        let geometry = try value.object(keys: Self.maskGeometryForms)
-        let written = Self.maskGeometryForms.filter(geometry.contains)
+        let geometry = try value.object(keys: Self.geometryForms)
+        let written = Self.geometryForms.filter(geometry.contains)
         guard let name = written.first else {
-            throw ModelError.missingKey(place: value.place, kind: value.kind, keys: Self.maskGeometryForms)
+            throw ModelError.missingKey(place: value.place, kind: value.kind, keys: Self.geometryForms)
         }
         guard written.count == 1 else {
             throw ModelError.conflictingKeys(place: value.place, kind: value.kind, keys: written)

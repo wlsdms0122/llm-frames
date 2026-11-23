@@ -347,7 +347,7 @@ struct CornerPinEvaluationTests {
                 return []
             }
 
-            return try #require(picture.cornerPin).corners.map(item.transform.apply)
+            return try #require(picture.cornerPin).corners.map(item.transform.apply(to:))
         }
         let tracked = try drawn("tracked")
         let still = try drawn("still")

@@ -64,8 +64,8 @@ package struct AdjustItem: Equatable, Sendable {
         case let .rect(rectangle, _), let .ellipse(rectangle):
             relative == .identity ? rectangle : Rectangle(bounding: relative.apply(toCornersOf: rectangle))
 
-        case let .polyline(points, _):
-            Rectangle(bounding: points.map { relative.apply(to: $0) })
+        case .path:
+            mask.geometry.bounds(carriedBy: relative)
         }
         guard mask.feather > 0 else { return box }
 

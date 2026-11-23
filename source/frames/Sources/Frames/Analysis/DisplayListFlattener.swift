@@ -147,14 +147,14 @@ struct DisplayListFlattener: Sendable {
         }
     }
 
-    // The box of a path's geometry as the list gives it, without its stroke.
+    // The box of a path's geometry as the list gives it, without its stroke, a path's the box of its curve.
     private func box(of geometry: PathGeometry) -> Rectangle {
         switch geometry {
         case let .rect(rectangle, _), let .ellipse(rectangle):
             rectangle
 
-        case let .polyline(points, _):
-            Rectangle(bounding: points)
+        case .path:
+            geometry.bounds()
         }
     }
 

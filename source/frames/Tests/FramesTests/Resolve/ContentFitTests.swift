@@ -334,13 +334,16 @@ struct ContentFitTests {
             // Ending at the bottom right corner, the head points down from (500, 50), its base corners at (480, 10) and
             // (520, 10), so nothing of it lies above the stroked outline.
             (#"{ "shape": "rect", "area": [400, 0, 100, 50], "stroke": { "width": 64, "end": "arrow" }, "trim": [0, 0.5], "at": [0, 1] }"#, Size(width: 520, height: 206)),
-            // Ending 1 below the top right corner, the head points down from (500, 1), its base 40 above that, at -39.
-            (#"{ "shape": "rect", "area": [400, 0, 100, 50], "stroke": { "width": 64, "end": "arrow" }, "trim": [0, 0.3366666666666667], "at": [0, 1] }"#, Size(width: 520, height: 240)),
-            // A fifth of the way round from its top, the ellipse's head lies along its curve, a base corner at
-            // (482.0, -28.5).
-            (#"{ "shape": "ellipse", "area": [400, 0, 100, 50], "stroke": { "width": 64, "end": "arrow" }, "trim": [0, 0.2], "at": [0, 1] }"#, Size(width: 506, height: 230)),
+            // Ending 1 below the top right corner at the tip (500, 1), the head's base lies 40 back along the stroke at
+            // (461, 0), so the head runs along the chord between them, a base corner at (461.5, -20.0).
+            (#"{ "shape": "rect", "area": [400, 0, 100, 50], "stroke": { "width": 64, "end": "arrow" }, "trim": [0, 0.3366666666666667], "at": [0, 1] }"#, Size(width: 506, height: 220)),
+            // A fifth of the way round from its top, the ellipse's head runs along the chord from its base 40 back
+            // along the curve, at (458.4, 0.4), to its tip at (495.1, 14.2), a base corner at (465.5, -18.3).
+            (#"{ "shape": "ellipse", "area": [400, 0, 100, 50], "stroke": { "width": 64, "end": "arrow" }, "trim": [0, 0.2], "at": [0, 1] }"#, Size(width: 506, height: 220)),
             (#"{ "shape": "path", "points": [[400, 0], [400, 100]], "stroke": { "width": 64 }, "at": [0, 1] }"#, Size(width: 406, height: 206)),
             (#"{ "shape": "path", "points": [[400, 0], [400, 100]], "stroke": { "width": 64, "end": "arrow" }, "at": [0, 1] }"#, Size(width: 420, height: 206)),
+            // Both tangents (100, 0) bulge the segment right to x = 475 at its middle, where the stroke reaches 480.
+            (#"{ "shape": "path", "points": [{ "vertex": [400, 0], "outTangent": [100, 0] }, { "vertex": [400, 100], "inTangent": [100, 0] }], "stroke": { "width": 64 }, "at": [0, 1] }"#, Size(width: 480, height: 206)),
             (#"{ "shape": "rect", "area": [400, 0, 100, 50], "fill": "accent", "scale": 2, "at": [0, 1] }"#, Size(width: 550, height: 226)),
             (#"{ "shape": "ellipse", "width": 100, "height": 50, "position": [400, 250], "fill": "accent", "at": [0, 1] }"#, Size(width: 450, height: 276))
         ]

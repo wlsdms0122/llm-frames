@@ -326,10 +326,11 @@ struct PathDrawerTests {
         #expect(bitmap.pixel(x: 50, y: 50) == [1, 0, 0, 1])
     }
 
-    // A rect at (20, 40) 60 by 40 is 200 long round, so a trim to 61 / 200 ends 1 below its top right corner, where
-    // the head points down with its base 16 above the tip, above the rect. An ellipse 60 by 30 trimmed to 0.15 ends
-    // where its curve has turned the head's base out past its top. Neither base lies within the outline grown by half
-    // a head's base.
+    // A rect at (20, 40) 60 by 40 is 200 long round, so a trim to 61 / 200 ends 1 below its top right corner, at the
+    // head's tip, and its base lies 16 back along the stroke on the top edge, so the head runs along the chord between
+    // them and its upper base corner lies 8 above the rect. An ellipse 60 by 30 trimmed to 0.15 ends where its curve
+    // has turned, so the chord from its base to its tip lies inside it and the head's outer base corner past its top.
+    // Both heads reach past the stroked outline.
     @Test(
         "a trimmed rect ending just past a corner and a trimmed ellipse draw their whole arrowhead inside the box of what they draw",
         arguments: [
@@ -351,7 +352,7 @@ struct PathDrawerTests {
         let whole = try sut.frame(of: list([path]))
 
         // Then
-        let above = Int(outline.y - 2 * width)
+        let above = Int(outline.y - width / 2)
         let pixels = (0..<100).flatMap { y in (0..<100).map { x in (x, y) } }
         #expect(pixels.contains { x, y in y < above && alpha(whole, x, y) > 0.99 }, "the head is drawn above \(above)")
         try expectDrawnInsideBounds(of: path)

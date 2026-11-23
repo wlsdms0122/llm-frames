@@ -9,14 +9,14 @@
 // point is in. The segment from one vertex to the next is the cubic Bézier curve whose control points are the first's
 // point plus its out tangent and the next's point plus its in tangent. Each stage of resolve and evaluation holds the
 // three in its own form: as written, as found, timed or sampled.
-struct PathVertex<Location: Equatable & Sendable, Offset: Equatable & Sendable>: Equatable, Sendable {
+package struct PathVertex<Location: Equatable & Sendable, Offset: Equatable & Sendable>: Equatable, Sendable {
     // MARK: - Property
-    let vertex: Location
-    let inTangent: Offset
-    let outTangent: Offset
+    package let vertex: Location
+    package let inTangent: Offset
+    package let outTangent: Offset
 
     // MARK: - Initializer
-    init(
+    package init(
         vertex: Location,
         inTangent: Offset,
         outTangent: Offset

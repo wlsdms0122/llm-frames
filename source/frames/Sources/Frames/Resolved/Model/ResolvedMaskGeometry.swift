@@ -24,7 +24,12 @@ enum ResolvedMaskGeometry: Equatable, Sendable {
             .ellipse(rectangle.sampled(at: time))
 
         case let .path(vertices):
-            .polyline(vertices.map { $0.vertex.mapValues(\.fixed).value(at: time) }, isClosed: true)
+            .path(
+                vertices.map { vertex in
+                    vertex.map(vertex: { $0.mapValues(\.fixed).value(at: time) }, tangent: { $0.value(at: time) })
+                },
+                isClosed: true
+            )
         }
     }
 

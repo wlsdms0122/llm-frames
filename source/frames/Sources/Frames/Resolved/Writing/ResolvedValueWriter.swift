@@ -131,17 +131,19 @@ struct ResolvedValueWriter: Sendable {
         case let .ellipse(rectangle):
             return form("ellipse", [JSONMember(key: "rect", value: self.rectangle(rectangle))])
 
-        case let .polyline(points, isClosed):
-            return form("polyline", [
-                JSONMember(key: "points", value: .array(points.map(self.point))),
+        case let .path(vertices, isClosed):
+            return form("path", [
+                JSONMember(key: "vertices", value: .array(vertices.map { self.point($0.vertex) })),
+                JSONMember(key: "inTangents", value: .array(vertices.map { self.point($0.inTangent) })),
+                JSONMember(key: "outTangents", value: .array(vertices.map { self.point($0.outTangent) })),
                 JSONMember(key: "closed", value: .bool(isClosed))
             ])
         }
     }
 
     // A clip's masks in order, or `null` for none. Each number of a mask's geometry and its feather is a keyframe list:
-    // a rect's or an ellipse's `rect`, or its box `width`, `height` and `position`, a rect's `radius`, and each point of
-    // a path, a closed polyline.
+    // a rect's or an ellipse's `rect`, or its box `width`, `height` and `position`, a rect's `radius`, and each vertex
+    // and tangent of a path, a closed `path`.
     func masks(_ masks: [ResolvedMask]?) -> JSONValue {
         guard let masks else { return .null }
 

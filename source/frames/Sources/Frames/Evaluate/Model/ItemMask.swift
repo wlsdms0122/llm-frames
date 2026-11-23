@@ -5,7 +5,7 @@
 //  Created by JSilver on 11/18/26.
 //
 
-// One mask of a display item. `geometry` is a path outline, a polyline always closed, `transform` the map from its
+// One mask of a display item. `geometry` is a path outline, a path always closed, `transform` the map from its
 // coordinates to output pixels of the list that holds the item, and `feather` the standard deviation in output pixels
 // of the Gaussian blur of its coverage. Its value is that blurred coverage, 1 minus it when `isInverted`, and `mode`
 // says how it combines with the masks before it.

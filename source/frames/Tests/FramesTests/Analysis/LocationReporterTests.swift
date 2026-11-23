@@ -292,8 +292,9 @@ struct LocationReporterTests {
     @Test("a trimmed rect's arrowhead past its outline is under the point, and nothing beside the head is")
     func hitsTrimmedRectArrowhead() throws {
         // Given
-        // The rect is 200 round, so a trim to 61 ends 1 below its top right corner, where the head points down with
-        // its tip at (80, 41) and its base 16 above it, from x = 72 to 88 at y = 25, above the stroked rect's top at 38.
+        // The rect is 200 round, so a trim to 61 ends 1 below its top right corner, at the head's tip (80, 41). The
+        // middle of its base lies 16 back along the stroke, at (65, 40) on the top edge, so the head runs along the
+        // chord between them, its upper base corner at (65.5, 32.0), above the stroked rect's top at 38.
         let arrow = DisplayItem(content: .path(PathItem(
             geometry: .rect(Rectangle(x: 20, y: 40, width: 60, height: 40), radius: 0),
             fill: nil,
@@ -302,12 +303,37 @@ struct LocationReporterTests {
         )))
 
         // When
-        let hits = try [Point(x: 84, y: 30), Point(x: 86, y: 36)].map { point in
+        let hits = try [Point(x: 68, y: 36), Point(x: 75, y: 34)].map { point in
             try sut.report(of: list([arrow]), point: point).hits.count
         }
 
         // Then
         #expect(hits == [1, 0])
+    }
+
+    @Test("a curved path's stroke is under the point on its curve, and not at the middle of its chord")
+    func hitsCurvedStroke() throws {
+        // Given
+        // The segment from (0, 0) to (100, 0), both its tangents (0, 100), bulges down to y = 75 at its middle.
+        let curve = DisplayItem(content: .path(PathItem(
+            geometry: .path(
+                [
+                    PathVertex(vertex: Point(x: 0, y: 0), inTangent: Point(x: 0, y: 0), outTangent: Point(x: 0, y: 100)),
+                    PathVertex(vertex: Point(x: 100, y: 0), inTangent: Point(x: 0, y: 100), outTangent: Point(x: 0, y: 0))
+                ],
+                isClosed: false
+            ),
+            fill: nil,
+            stroke: PathStroke(width: 4, paint: .color(red), join: .round, cap: .butt, start: .none, end: .none)
+        )))
+
+        // When
+        let hits = try [Point(x: 50, y: 74), Point(x: 50, y: 0), Point(x: 50, y: 110)].map { point in
+            try sut.report(of: list([curve]), point: point).hits.count
+        }
+
+        // Then
+        #expect(hits == [1, 0, 0])
     }
 
     @Test(

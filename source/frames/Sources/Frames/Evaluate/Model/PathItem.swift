@@ -5,7 +5,7 @@
 //  Created by JSilver on 11/18/26.
 //
 
-// A rectangle, an ellipse or a polyline, filled and stroked: `fill` paints its inside, `stroke` draws the part of its
+// A rectangle, an ellipse or a path of cubic Bézier segments, filled and stroked: `fill` paints its inside, `stroke` draws the part of its
 // outline `trim` leaves, and `shadow` is cast below both.
 package struct PathItem: Equatable, Sendable {
     // MARK: - Property
@@ -44,7 +44,7 @@ package struct PathItem: Equatable, Sendable {
         case .rect, .ellipse:
             true
 
-        case let .polyline(_, isClosed):
+        case let .path(_, isClosed):
             isClosed
         }
     }
@@ -86,25 +86,18 @@ package struct PathItem: Equatable, Sendable {
 
     // The axis-aligned box of what the item draws without its shadow, after `transform`, its stroke drawn in output
     // pixels on the outline `item` carries: its outline grown by half its stroke width, united with its overhangs. The
-    // outline lies within the hull of its rectangle's corners or its points, and the stroke within a disc half its
-    // width about every point of the carried outline.
+    // outline lies within the box of its geometry, and the stroke within a disc half its width about every point of
+    // the carried outline.
     package func drawnBounds(
         carriedBy item: AffineTransform,
         under transform: AffineTransform = .identity
     ) -> Rectangle {
-        let hull = switch geometry {
-        case let .rect(rectangle, _), let .ellipse(rectangle):
-            transform.apply(toCornersOf: rectangle)
-
-        case let .polyline(points, _):
-            points.map(transform.apply(to:))
-        }
         // The disc is carried back by the item's inverse and on by `transform`, onto an ellipse reaching this far each
         // way along each axis.
         let half = item.inverse == nil ? 0 : (stroke?.width ?? 0) / 2
         let disc = item.inverse.map { $0.concatenating(transform) } ?? transform
         let reach = disc.reach(ofDisc: half)
-        let outline = Rectangle(bounding: hull)
+        let outline = geometry.bounds(carriedBy: transform)
         let stroked = Rectangle(
             x: outline.x - reach.width,
             y: outline.y - reach.height,

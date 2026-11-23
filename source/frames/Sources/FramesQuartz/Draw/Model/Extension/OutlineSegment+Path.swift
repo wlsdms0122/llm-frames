@@ -34,6 +34,15 @@ extension OutlineSegment {
                 clockwise: false,
                 transform: CGAffineTransform(a: xAxis.x, b: xAxis.y, c: yAxis.x, d: yAxis.y, tx: center.x, ty: center.y)
             )
+
+        case .cubic:
+            guard case let .cubic(_, first, second, last) = piece(from: start, to: end) else { return }
+
+            path.addCurve(
+                to: CGPoint(x: last.x, y: last.y),
+                control1: CGPoint(x: first.x, y: first.y),
+                control2: CGPoint(x: second.x, y: second.y)
+            )
         }
     }
 

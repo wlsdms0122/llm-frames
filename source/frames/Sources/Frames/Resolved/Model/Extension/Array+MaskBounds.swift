@@ -5,7 +5,7 @@
 //  Created by JSilver on 11/18/26.
 //
 
-// The bounding box of a clip's masks: the union of each mask's rectangle, or of the box of its points for a path, in
+// The bounding box of a clip's masks: the union of each mask's rectangle, or of the box of its curve for a path, in
 // the clip's own coordinate space and without feather. Nil for no masks.
 extension Array where Element == MaskSample {
     // MARK: - Property
@@ -15,8 +15,8 @@ extension Array where Element == MaskSample {
             case let .rect(rectangle, _), let .ellipse(rectangle):
                 rectangle
 
-            case let .polyline(points, _):
-                Rectangle(bounding: points)
+            case .path:
+                mask.geometry.bounds()
             }
         }
         guard let first = boxes.first else { return nil }
