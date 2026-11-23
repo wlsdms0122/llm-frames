@@ -14,17 +14,18 @@ import Frames
 // adds it into the bus that holds it from its start sample. A bus sums its segments and buses over its span, runs its
 // chain over the sum, at rest at the span's first sample, and multiplies the result by its level envelope before it is
 // added to the bus that holds it. The plan is the outermost bus: its chain runs over the whole sum of its `length`
-// samples, and that is the mix, interleaved in place, so the mix is held once. The sum is not clipped. It runs every
-// audio op but `convolve`, which its check refuses.
+// samples, and that is the mix, interleaved in place, so the mix is held once. The sum is not clipped.
 package final class AVFoundationMixer: Sendable {
     // MARK: - Property
     private static let sampleRate = Double(MixPlan.sampleRate)
 
     private let decoder: any MediaDecoder
+    private let impulseResponses: ImpulseResponseCache
 
     // MARK: - Initializer
     package init(decoder: any MediaDecoder) {
         self.decoder = decoder
+        self.impulseResponses = ImpulseResponseCache(decoder: decoder, sampleRate: Self.sampleRate)
     }
 
     // MARK: - Public
@@ -40,10 +41,10 @@ package final class AVFoundationMixer: Sendable {
             try check(segment.filter, place: "\(place).")
             let (path, sound) = try sound(of: segment, place: place, from: segment.mediaStart, to: segment.mediaStart)
             guard StereoDownmixer(layout: sound.layout) != nil else {
-                throw MixerError.unmixableChannels(segment: place, file: path)
+                throw MixerError.unmixableChannels(place: place, file: path)
             }
             guard segment.speed == 1 || TimeStretcher.speeds.contains(segment.speed) else {
-                throw MixerError.unstretchable(segment: place, file: path, speed: segment.speed)
+                throw MixerError.unstretchable(place: place, file: path, speed: segment.speed)
             }
         }
         for (index, bus) in buses.enumerated() {
@@ -52,18 +53,18 @@ package final class AVFoundationMixer: Sendable {
         }
     }
 
-    // A `convolve` op is not mixed. `place` is the place in the plan of the filter's owner, as in
-    // `check(segments:buses:place:)`, with a segment's followed by a dot.
+    // Reads the impulse response of each `convolve` op, refusing one that cannot be mixed. `place` is the place in the
+    // plan of the filter's owner, as in `check(segments:buses:place:)`, with a segment's followed by a dot.
     private func check(
         _ filter: [MixFilterEntry],
         place: String
     ) throws {
         for (entryIndex, entry) in filter.enumerated() {
             for (index, operation) in entry.operations.enumerated() {
-                guard case .convolve = operation else { continue }
+                guard case let .convolve(convolution) = operation else { continue }
 
                 let operationPlace = "\(place)filter[\(entryIndex)].ops[\(index)]"
-                throw MixerError.unsupportedOperation(name: operation.name, place: operationPlace)
+                _ = try impulseResponses.impulseResponse(of: convolution.file, place: operationPlace)
             }
         }
     }
@@ -104,13 +105,13 @@ package final class AVFoundationMixer: Sendable {
             to: segment.mediaStart + (segment.end - segment.start) * segment.speed
         )
         guard let downmixer = StereoDownmixer(layout: sound.layout) else {
-            throw MixerError.unmixableChannels(segment: place, file: path)
+            throw MixerError.unmixableChannels(place: place, file: path)
         }
         var buffer = try downmixer.stereo(from: sound, path: path)
         buffer = try Resampler().resampled(buffer, to: Self.sampleRate, path: path)
         if segment.speed != 1 {
             guard TimeStretcher.speeds.contains(segment.speed) else {
-                throw MixerError.unstretchable(segment: place, file: path, speed: segment.speed)
+                throw MixerError.unstretchable(place: place, file: path, speed: segment.speed)
             }
             buffer = try TimeStretcher().stretched(buffer, speed: segment.speed, path: path)
         }
@@ -121,8 +122,13 @@ package final class AVFoundationMixer: Sendable {
         let heard = min(last - first, Int(buffer.frameLength))
         let from = max(span.lowerBound - first, 0)
         guard from < heard, let channels = buffer.floatChannelData else { return }
-        AudioFilterChain(filter: segment.filter, sampleRate: Self.sampleRate)
-            .process(buffer, frames: heard, first: first)
+        try AudioFilterChain(
+            filter: segment.filter,
+            place: "\(place).",
+            sampleRate: Self.sampleRate,
+            impulseResponses: impulseResponses
+        )
+        .process(buffer, frames: heard, first: first)
         let offset = first - span.lowerBound
         for frame in from..<heard {
             let gain = gains[frame]
@@ -144,7 +150,7 @@ package final class AVFoundationMixer: Sendable {
 
         let count = last - first
         var bused = try self.sum(segments: bus.segments, buses: bus.buses, over: first..<last, place: place)
-        filter(&bused, frames: count, by: bus.filter, first: first)
+        try filter(&bused, frames: count, by: bus.filter, place: place, first: first)
         let gains = bus.gains(atSamples: first..<last, sampleRate: Self.sampleRate)
         let offset = first - span.lowerBound
         for frame in 0..<count {
@@ -154,19 +160,26 @@ package final class AVFoundationMixer: Sendable {
     }
 
     // Runs `filter` in place over a planar sum of `frames` samples per channel, at rest at sequence sample `first`.
+    // `place` is the place in the plan of the filter's owner, as in `AudioFilterChain`.
     private func filter(
         _ sum: inout [Float],
         frames: Int,
         by filter: [MixFilterEntry],
+        place: String,
         first: Int
-    ) {
+    ) throws {
         guard !filter.isEmpty, frames > 0 else { return }
 
+        let chain = try AudioFilterChain(
+            filter: filter,
+            place: place,
+            sampleRate: Self.sampleRate,
+            impulseResponses: impulseResponses
+        )
         sum.withUnsafeMutableBufferPointer { samples in
             guard let left = samples.baseAddress else { return }
 
-            AudioFilterChain(filter: filter, sampleRate: Self.sampleRate)
-                .process([left, left + frames], frames: frames, first: first)
+            chain.process([left, left + frames], frames: frames, first: first)
         }
     }
 
@@ -210,7 +223,7 @@ package final class AVFoundationMixer: Sendable {
         switch segment.media {
         case let .pinned(media):
             file = MediaFile(media: media)
-            guard case .file = media.source else { throw MixerError.noSound(segment: place, file: file.path) }
+            guard case .file = media.source else { throw MixerError.noSound(place: place, file: file.path) }
 
         case let .unpinned(path):
             file = MediaFile(path: path)
@@ -219,9 +232,9 @@ package final class AVFoundationMixer: Sendable {
         do {
             return (file.path, try decoder.sound(of: file, from: start, to: end))
         } catch DecoderError.noSound {
-            throw MixerError.noSound(segment: place, file: file.path)
+            throw MixerError.noSound(place: place, file: file.path)
         } catch {
-            throw MixerError.unreadable(segment: place, reason: "\(error)")
+            throw MixerError.unreadable(place: place, reason: "\(error)")
         }
     }
 }
@@ -236,7 +249,7 @@ extension AVFoundationMixer: Mixer {
     package func mix(_ plan: MixPlan) throws -> SoundBuffer {
         let length = plan.length
         var samples = try sum(segments: plan.segments, buses: plan.buses, over: 0..<length, place: "")
-        filter(&samples, frames: length, by: plan.filter, first: 0)
+        try filter(&samples, frames: length, by: plan.filter, place: "", first: 0)
         interleave(&samples, frames: length)
 
         return SoundBuffer(sampleRate: Self.sampleRate, channels: 2, samples: samples)

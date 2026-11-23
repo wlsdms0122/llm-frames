@@ -18,11 +18,21 @@ final class AudioFilterChain {
     private let entries: [FilterEntryProcessor]
 
     // MARK: - Initializer
+    // `place` is the place in the plan of the filter's owner, as `segments[0].`, `buses[1].` or empty for the plan's.
     init(
         filter: [MixFilterEntry],
-        sampleRate: Double
-    ) {
-        self.entries = filter.map { FilterEntryProcessor(entry: $0, sampleRate: sampleRate) }
+        place: String,
+        sampleRate: Double,
+        impulseResponses: ImpulseResponseCache
+    ) throws {
+        self.entries = try filter.enumerated().map { index, entry in
+            try FilterEntryProcessor(
+                entry: entry,
+                place: "\(place)filter[\(index)].",
+                sampleRate: sampleRate,
+                impulseResponses: impulseResponses
+            )
+        }
     }
 
     // MARK: - Public

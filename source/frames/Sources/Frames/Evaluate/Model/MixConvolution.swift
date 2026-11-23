@@ -9,6 +9,9 @@
 // in dB.
 package struct MixConvolution: Equatable, Sendable {
     // MARK: - Property
+    // The longest impulse response resolve takes, in seconds.
+    package static let longestDuration: Double = 30
+
     package let file: PinnedFile
     package let gain: MixValue
 

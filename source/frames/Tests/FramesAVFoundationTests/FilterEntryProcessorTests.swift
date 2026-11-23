@@ -31,15 +31,18 @@ struct FilterEntryProcessorTests {
     // The high pass with the compressor after it.
     private let operations: [MixFilterOperation] = [.eq(bands: Self.highPass), .compressor(Self.compressor)]
 
+    // No entry here convolves, so it reads no impulse response.
+    private let impulseResponses = ImpulseResponseCache(decoder: AVFoundationDecoder(), sampleRate: Self.sampleRate)
+
     // A limiter at its defaults.
     private static let limiter = MixLimiter(gain: .constant(0), ceiling: .constant(-1), lookahead: 0.005, release: .constant(0.1))
 
     // MARK: - Initializer
     // MARK: - Test
     @Test("an entry at `mix` 0 is its dry input, sample for sample")
-    func passesDryAtZero() {
+    func passesDryAtZero() throws {
         // Given
-        let sut = FilterEntryProcessor(entry: MixFilterEntry(operations: operations, mix: .constant(0)), sampleRate: Self.sampleRate)
+        let sut = try entryProcessor(MixFilterEntry(operations: operations, mix: .constant(0)))
         let inputs = rounded(signal(count: 9600))
 
         // When
@@ -50,11 +53,11 @@ struct FilterEntryProcessorTests {
     }
 
     @Test("an `eq` with a `highPass` band fades in by `mix`, dry × (1 - mix) + wet × mix on each channel")
-    func fadesInByMix() {
+    func fadesInByMix() throws {
         // Given
         let mix = MixValue.envelope([EnvelopePoint(time: 0, value: 0), EnvelopePoint(time: 0.2, value: 1)])
-        let sut = FilterEntryProcessor(entry: MixFilterEntry(operations: operations, mix: mix), sampleRate: Self.sampleRate)
-        let wet = FilterEntryProcessor(entry: MixFilterEntry(operations: operations, mix: .constant(1)), sampleRate: Self.sampleRate)
+        let sut = try entryProcessor(MixFilterEntry(operations: operations, mix: mix))
+        let wet = try entryProcessor(MixFilterEntry(operations: operations, mix: .constant(1)))
         let inputs = rounded(signal(count: 14_400))
 
         // When
@@ -71,10 +74,10 @@ struct FilterEntryProcessorTests {
     }
 
     @Test("a segment's entries run in order, each on the sound the one before it gives, rounded to the buffer's samples")
-    func runsEntriesInOrder() {
+    func runsEntriesInOrder() throws {
         // Given
         let entries = operations.map { MixFilterEntry(operations: [$0], mix: .constant(1)) }
-        let sut = AudioFilterChain(filter: entries, sampleRate: Self.sampleRate)
+        let sut = try chain(entries)
         let processors: [any AudioOperationProcessor] = [
             EqualizerProcessor(bands: Self.highPass, sampleRate: Self.sampleRate),
             CompressorProcessor(compressor: Self.compressor, sampleRate: Self.sampleRate)
@@ -92,11 +95,11 @@ struct FilterEntryProcessorTests {
     }
 
     @Test("an entry with a limiter at `mix` 0.5 is half its dry input and half its limited sound")
-    func mixesLimitedEntry() {
+    func mixesLimitedEntry() throws {
         // Given
         let limited = operations + [.limiter(Self.limiter)]
-        let sut = AudioFilterChain(filter: [MixFilterEntry(operations: limited, mix: .constant(0.5))], sampleRate: Self.sampleRate)
-        let wet = AudioFilterChain(filter: [MixFilterEntry(operations: limited, mix: .constant(1))], sampleRate: Self.sampleRate)
+        let sut = try chain([MixFilterEntry(operations: limited, mix: .constant(0.5))])
+        let wet = try chain([MixFilterEntry(operations: limited, mix: .constant(1))])
         let inputs = signal(count: 9600).map { $0.scaled(by: 4) }
 
         // When
@@ -114,27 +117,35 @@ struct FilterEntryProcessorTests {
     }
 
     @Test("an entry with a limiter between two others takes the sound the one before it gives and gives the next its own")
-    func runsLimiterInChain() {
+    func runsLimiterInChain() throws {
         // Given
         let entries = [
             MixFilterEntry(operations: [operations[0]], mix: .constant(1)),
             MixFilterEntry(operations: [.limiter(Self.limiter)], mix: .constant(1)),
             MixFilterEntry(operations: [operations[1]], mix: .constant(1))
         ]
-        let sut = AudioFilterChain(filter: entries, sampleRate: Self.sampleRate)
+        let sut = try chain(entries)
         let inputs = signal(count: 9600).map { $0.scaled(by: 4) }
 
         // When
         let outputs = filtered(inputs, by: sut)
 
         // Then
-        let separate = entries.reduce(inputs) { sound, entry in
-            filtered(sound, by: AudioFilterChain(filter: [entry], sampleRate: Self.sampleRate))
+        let separate = try entries.reduce(inputs) { sound, entry in
+            filtered(sound, by: try chain([entry]))
         }
         #expect(outputs == separate)
     }
 
     // MARK: - Private
+    private func entryProcessor(_ entry: MixFilterEntry) throws -> FilterEntryProcessor {
+        try FilterEntryProcessor(entry: entry, place: "", sampleRate: Self.sampleRate, impulseResponses: impulseResponses)
+    }
+
+    private func chain(_ filter: [MixFilterEntry]) throws -> AudioFilterChain {
+        try AudioFilterChain(filter: filter, place: "", sampleRate: Self.sampleRate, impulseResponses: impulseResponses)
+    }
+
     // `inputs` through `filter` as one sound from sequence sample 0.
     private func filtered(
         _ inputs: [StereoSample],

@@ -17,12 +17,20 @@ final class FilterEntryProcessor {
     private var mix: EnvelopeCursor
 
     // MARK: - Initializer
+    // `place` is the entry's place in the plan followed by a dot, as in `FilterStage.stages`.
     init(
         entry: MixFilterEntry,
-        sampleRate: Double
-    ) {
+        place: String,
+        sampleRate: Double,
+        impulseResponses: ImpulseResponseCache
+    ) throws {
         self.sampleRate = sampleRate
-        self.stages = FilterStage.stages(of: entry.operations, sampleRate: sampleRate)
+        self.stages = try FilterStage.stages(
+            of: entry.operations,
+            place: place,
+            sampleRate: sampleRate,
+            impulseResponses: impulseResponses
+        )
         self.isWholeWet = if case let .constant(mix) = entry.mix { mix >= 1 } else { false }
         self.mix = EnvelopeCursor(value: entry.mix)
     }

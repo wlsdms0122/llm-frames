@@ -191,7 +191,7 @@ struct PresetValueResolver: Sendable {
         case .image, .video, .audio:
             guard media.hasSound else { return .noSound }
             guard media.duration > 0 else { return .noSamples }
-            guard media.duration <= 30 else { return .tooLong(duration: media.duration) }
+            guard media.duration <= MixConvolution.longestDuration else { return .tooLong(duration: media.duration) }
 
             return nil
 
