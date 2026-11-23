@@ -416,6 +416,46 @@ struct CoreTextTypesetterTests {
         #expect(mixedStarts == mixedStarts.sorted(by: >))
     }
 
+    @Test("an upright Arabic run in a vertical line stands each letter in its isolated form, where a sideways one joins them")
+    func setsUprightArabicInIsolatedForms() throws {
+        // Given
+        let face = try hiraginoSans()
+        let letter = "\u{628}"
+        let text = letter + letter + letter
+        let paragraph = vertical()
+
+        // When
+        let upright = try sut.layout(
+            [TextRun(text: text, style: style(100, textOrientation: .upright), faces: [face])],
+            paragraph: paragraph,
+            width: nil,
+            place: place,
+            kind: "title"
+        )
+        let isolated = try sut.layout(
+            [TextRun(text: letter, style: style(100, textOrientation: .upright), faces: [face])],
+            paragraph: paragraph,
+            width: nil,
+            place: place,
+            kind: "title"
+        )
+        let sideways = try sut.layout(
+            [TextRun(text: text, style: style(100), faces: [face])],
+            paragraph: paragraph,
+            width: nil,
+            place: place,
+            kind: "title"
+        )
+
+        // Then
+        let form = try #require(isolated.runs.first?.glyphs.first?.id)
+        #expect(isolated.runs.flatMap(\.glyphs).count == 1)
+        #expect(upright.runs.flatMap(\.glyphs).map(\.id) == [form, form, form])
+        #expect(upright.runs.allSatisfy { !$0.isSideways })
+        #expect(Set(sideways.runs.flatMap(\.glyphs).map(\.id)).count == 3)
+        #expect(!sideways.runs.flatMap(\.glyphs).map(\.id).contains(form))
+    }
+
     @Test("a sideways run of ideographs in Hiragino Sans is turned onto its alphabetic baseline and advances by its horizontal advances")
     func setsSidewaysIdeographs() throws {
         // Given
