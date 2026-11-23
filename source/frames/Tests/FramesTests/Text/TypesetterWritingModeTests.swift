@@ -500,6 +500,29 @@ struct TypesetterWritingModeTests {
         #expect(layout.lines.flatMap(\.clusters).map(\.level) == levels)
     }
 
+    @Test("an upright letter of a cursive script stands apart from its neighbours, so tracking lies between two of them")
+    func tracksUprightCursiveLetters() throws {
+        // Given
+        // A tracking of 100 is 4 at size 40.
+        let text = "\u{628}\u{628}"
+        let upright = [run("漢"), run(text, tracking: 100, textOrientation: .upright), run("字")]
+        let mixed = [run("漢"), run(text, tracking: 100), run("字")]
+
+        // When
+        let paragraph = paragraph(.verticalRightToLeft)
+        let layout = try sut.layout(upright, paragraph: paragraph, width: nil, place: place, kind: "title")
+        let mixedLayout = try sut.layout(mixed, paragraph: paragraph, width: nil, place: place, kind: "title")
+
+        // Then
+        let line = try #require(layout.lines.first)
+        let mixedLine = try #require(mixedLayout.lines.first)
+        #expect(line.clusters.map(\.cursiveScripts) == [[], [], [], []])
+        #expect(layout.runs.map { $0.glyphs.map(\.y) } == [[0], [40, 84], [128]])
+        #expect(line.width == 168)
+        #expect(mixedLine.clusters.map(\.cursiveScripts) == [[], ["Arab"], ["Arab"], []])
+        #expect(mixedLine.width == 124)
+    }
+
     @Test("an upright run in a right-to-left vertical line lies where its level places it, its letters in reading order")
     func placesUprightRunInRightToLeftLine() throws {
         // Given

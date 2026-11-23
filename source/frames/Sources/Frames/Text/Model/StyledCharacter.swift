@@ -13,7 +13,7 @@
 // composition, whose spaces are set in it. `tracking` is the space between it and a neighbour as placed that comes
 // after it in the text, at the run's static tracking, in output pixels, and `widestTracking` at the widest tracking the
 // run takes, both 0 for a character with no glyph of its own. `cursiveScripts` are the ISO 15924 codes of the cursive
-// scripts it is a letter of.
+// scripts it is a letter of, none for a letter that stands upright in its isolated form.
 struct StyledCharacter: Equatable, Sendable {
     // MARK: - Property
     let character: Character

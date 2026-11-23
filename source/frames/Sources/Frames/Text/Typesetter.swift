@@ -322,10 +322,12 @@ struct Typesetter: Sendable {
     // Each run is shaped on its own in shaping runs, stretches of its characters at one embedding level, one
     // orientation and one kind of forms, since a run boundary, a change of level and, in a vertical `writingMode`, a
     // change between upright and sideways and one between vertical and horizontal forms each end a shaping run, and
-    // its glyphs are told by the scalar they start at in the whole paragraph. In a vertical line each character is
-    // upright or sideways, and in vertical forms or not, by its run's text orientation, but those of a combined run,
-    // which are one horizontal-in-vertical composition, shaped as horizontal text and turned by nothing, and in a
-    // horizontal line none is upright or sideways. Each character is a grapheme cluster of its run, its range counted
+    // its glyphs are told by the scalar they start at in the whole paragraph. An upright letter of a cursive script in
+    // horizontal forms is a shaping run of its own, so it stands in its isolated form, joined to no neighbour, and is
+    // a letter of no cursive script where tracking is placed. In a vertical line each character is upright or sideways,
+    // and in vertical forms or not, by its run's text orientation, but those of a combined run, which are one
+    // horizontal-in-vertical composition, shaped as horizontal text and turned by nothing, and in a horizontal line
+    // none is upright or sideways. Each character is a grapheme cluster of its run, its range counted
     // from `start`, its level that of its first scalar among `levels`, its scalars read as of their classes among
     // `classes`, and owns the glyphs of the group it is the first character of, in the order the provider gave them. A
     // shaping run's glyphs are grouped in the order it is read, from its right end at an odd level, and a
@@ -342,6 +344,7 @@ struct Typesetter: Sendable {
         var offset = 0
         var glyphs: [(glyph: StyledGlyph, isReversed: Bool)] = []
         var characters: [(character: Character, range: Range<Int>, level: Int, source: Int, run: TextRun)] = []
+        var cursiveScripts: [[String]] = []
         var compositions: [Range<Int>] = []
         for (source, run) in paragraph {
             var runCharacters: [(character: Character, range: Range<Int>, level: Int, source: Int, run: TextRun)] = []
@@ -355,10 +358,20 @@ struct Typesetter: Sendable {
             let orientation = run.style.textOrientation
             let uprights = runCharacters.map { isOriented && orientation.isUpright($0.character) }
             let verticalForms = runCharacters.map { isOriented && orientation.isInVerticalForms($0.character) }
+            let joinedScripts = runCharacters.map { self.cursiveScripts(of: $0.character) }
+            let isolated = runCharacters.indices.map {
+                uprights[$0] && !verticalForms[$0] && !joinedScripts[$0].isEmpty
+            }
 
             var runGlyphs: [(glyph: StyledGlyph, isReversed: Bool)] = []
             let runLevels = runCharacters.map(\.level)
-            for stretch in stretches(levels: runLevels, uprights: uprights, verticalForms: verticalForms) {
+            let stretches = stretches(
+                levels: runLevels,
+                uprights: uprights,
+                verticalForms: verticalForms,
+                isolated: isolated
+            )
+            for stretch in stretches {
                 let direction = TextDirection(level: runCharacters[stretch.lowerBound].level)
                 let isUpright = uprights[stretch.lowerBound]
                 let isInVerticalForms = verticalForms[stretch.lowerBound]
@@ -412,6 +425,7 @@ struct Typesetter: Sendable {
             }
             glyphs += runGlyphs
             characters += runCharacters
+            cursiveScripts += zip(joinedScripts, isolated).map { $1 ? [] : $0 }
         }
 
         let owned = owners(
@@ -419,8 +433,8 @@ struct Typesetter: Sendable {
             in: characters.map(\.range),
             compositions: compositions
         )
-        return zip(characters, owned).map { element, indices in
-            let (character, range, level, source, run) = element
+        return zip(zip(characters, cursiveScripts), owned).map { element, indices in
+            let ((character, range, level, source, run), cursiveScripts) = element
             let em = run.style.size / 1000
             let isOwner = !indices.isEmpty
             let given = indices.first.map { glyphs[$0].isReversed } == true ? Array(indices.reversed()) : indices
@@ -437,20 +451,23 @@ struct Typesetter: Sendable {
                 hangs: !isCombined(run.style, in: writingMode) && character.unicodeScalars.isSpace,
                 tracking: isOwner ? run.style.tracking * em : 0,
                 widestTracking: isOwner ? run.widestTracking * em : 0,
-                cursiveScripts: cursiveScripts(of: character)
+                cursiveScripts: cursiveScripts
             )
         }
     }
 
     // The stretches of characters at one level, among `levels`, one orientation, among `uprights`, and one kind of
-    // forms, among `verticalForms`, as ranges of their indices.
+    // forms, among `verticalForms`, as ranges of their indices. A character among `isolated` is a stretch of its own.
     private func stretches(
         levels: [Int],
         uprights: [Bool],
-        verticalForms: [Bool]
+        verticalForms: [Bool],
+        isolated: [Bool]
     ) -> [Range<Int>] {
         levels.indices.reduce(into: [Range<Int>]()) { stretches, index in
             if let last = stretches.last,
+                !isolated[last.lowerBound],
+                !isolated[index],
                 levels[last.lowerBound] == levels[index],
                 uprights[last.lowerBound] == uprights[index],
                 verticalForms[last.lowerBound] == verticalForms[index] {
