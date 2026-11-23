@@ -47,8 +47,8 @@ package enum OutlineSegment: Equatable, Sendable {
 
         // A cusp is a root of both coordinates' derivatives. Where one has a double root there, rounding moves it by
         // about the square root of the precision, so a root of either counts where the velocity is that close to 0.
-        let roots = (Self.roots(ofDerivative: from.x, first.x, second.x, to.x) ?? [])
-            + (Self.roots(ofDerivative: from.y, first.y, second.y, to.y) ?? [])
+        let roots = (CubicCoordinate(from.x, first.x, second.x, to.x).turns ?? [])
+            + (CubicCoordinate(from.y, first.y, second.y, to.y).turns ?? [])
         let scale = [first, second, to].map { abs($0.x - from.x) + abs($0.y - from.y) }.max() ?? 0
         let isStill = { (parameter: Double) in
             let velocity = Self.velocity(at: parameter, from, first, second, to)
@@ -297,11 +297,9 @@ package enum OutlineSegment: Equatable, Sendable {
         _ second: Point,
         _ to: Point
     ) -> Point {
-        let rest = 1 - t
-        let weights = (rest * rest * rest, 3 * rest * rest * t, 3 * rest * t * t, t * t * t)
-        return Point(
-            x: weights.0 * from.x + weights.1 * first.x + weights.2 * second.x + weights.3 * to.x,
-            y: weights.0 * from.y + weights.1 * first.y + weights.2 * second.y + weights.3 * to.y
+        Point(
+            x: CubicCoordinate(from.x, first.x, second.x, to.x).value(at: t),
+            y: CubicCoordinate(from.y, first.y, second.y, to.y).value(at: t)
         )
     }
 
@@ -351,29 +349,6 @@ package enum OutlineSegment: Equatable, Sendable {
         let middle = between(d, e)
 
         return ((from, a, d, middle), (middle, e, c, to))
-    }
-
-    // The parameters where the derivative of the cubic of these coordinates is 0, which is 3 times a t² + b t + c, and
-    // nil where it is 0 everywhere, a coordinate that holds still.
-    private static func roots(
-        ofDerivative start: Double,
-        _ first: Double,
-        _ second: Double,
-        _ end: Double
-    ) -> [Double]? {
-        let a = -start + 3 * first - 3 * second + end
-        let b = 2 * (start - 2 * first + second)
-        let c = first - start
-        let scale = max(abs(a), abs(b), abs(c))
-        guard scale > 0 else { return nil }
-        guard abs(a) > 1e-12 * scale else { return abs(b) > 1e-12 * scale ? [-c / b] : [] }
-
-        let discriminant = b * b - 4 * a * c
-        // A double root, where a cusp's coordinate turns, may come out a little below 0.
-        guard discriminant >= -1e-12 * b * b else { return [] }
-
-        let root = max(discriminant, 0).squareRoot()
-        return [(-b + root) / (2 * a), (-b - root) / (2 * a)]
     }
 
     // The radius of an arc of a circle, whose axes are as long as each other and at right angles, and nil otherwise.
