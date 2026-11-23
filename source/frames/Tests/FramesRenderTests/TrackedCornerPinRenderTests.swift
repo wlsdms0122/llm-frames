@@ -148,7 +148,7 @@ struct TrackedCornerPinRenderTests {
             return []
         }
 
-        return try #require(picture.cornerPin).corners.map(item.transform.apply)
+        return try #require(picture.cornerPin).corners.map(item.transform.apply(to:))
     }
 
     private func isRed(

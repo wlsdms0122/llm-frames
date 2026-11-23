@@ -21,7 +21,7 @@ extension ResolvedShape {
             geometry: ShapeGeometry(
                 plan: shape.geometry,
                 area: found.area?.followed(at: instant, isOnTrackFrame: found.onTrackFrame.contains(.area)) { $0.geometry },
-                points: found.points?.followed(at: instant, isOnTrackFrame: found.onTrackFrame.contains(.points)) { $0 },
+                points: found.points,
                 position: found.position?
                     .followed(at: instant, isOnTrackFrame: found.onTrackFrame.contains(.position)) { $0 },
                 instant: instant,

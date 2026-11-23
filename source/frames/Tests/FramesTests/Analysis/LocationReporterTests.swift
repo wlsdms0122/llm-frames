@@ -26,6 +26,21 @@ struct LocationReporterTests {
     private let rect = ItemOrigin(place: "clips[0]", id: nil, kind: "rect")
 
     // Masks over a fill of the whole frame, a point, and whether the point is under the masked fill.
+    private static let lens = PathGeometry.path(
+        [
+            PathVertex(vertex: Point(x: 0, y: 50), inTangent: Point(x: 0, y: 40), outTangent: Point(x: 0, y: -40)),
+            PathVertex(vertex: Point(x: 100, y: 50), inTangent: Point(x: 0, y: -40), outTangent: Point(x: 0, y: 40))
+        ],
+        isClosed: true
+    )
+
+    // A triangle whose first vertex has a long in tangent, which an open path does not draw.
+    private static let triangle = [
+        PathVertex(vertex: Point(x: 100, y: 10), inTangent: Point(x: -400, y: 0), outTangent: Point(x: 0, y: 0)),
+        PathVertex(vertex: Point(x: 190, y: 10), inTangent: Point(x: 0, y: 0), outTangent: Point(x: 0, y: 0)),
+        PathVertex(vertex: Point(x: 140, y: 90), inTangent: Point(x: 0, y: 0), outTangent: Point(x: 0, y: 0))
+    ]
+
     private static let maskCases: [([ItemMask], Point, Bool)] = [
         ([itemMask(.rect(Rectangle(x: 10, y: 10, width: 20, height: 20), radius: 4))], Point(x: 20, y: 20), true),
         ([itemMask(.rect(Rectangle(x: 10, y: 10, width: 20, height: 20), radius: 4))], Point(x: 100, y: 50), false),
@@ -33,6 +48,9 @@ struct LocationReporterTests {
         ([itemMask(.ellipse(Rectangle(x: 0, y: 0, width: 10, height: 10)), transform: doubled)], Point(x: 40, y: 10), false),
         ([itemMask(.polyline([Point(x: 0, y: 0), Point(x: 100, y: 0), Point(x: 0, y: 100)], isClosed: true))], Point(x: 10, y: 10), true),
         ([itemMask(.polyline([Point(x: 0, y: 0), Point(x: 100, y: 0), Point(x: 0, y: 100)], isClosed: true))], Point(x: 90, y: 90), false),
+        // A lens whose curves bulge to y = 20 and 80 lies in the hull of its control points, from y = 10 to 90.
+        ([itemMask(lens)], Point(x: 50, y: 50), true),
+        ([itemMask(lens)], Point(x: 50, y: 5), false),
         ([itemMask(square), itemMask(.rect(Rectangle(x: 100, y: 10, width: 20, height: 20), radius: 0))], Point(x: 60, y: 20), true),
         ([itemMask(square), itemMask(.rect(Rectangle(x: 100, y: 10, width: 20, height: 20), radius: 0))], Point(x: 60, y: 80), false),
         ([itemMask(square), itemMask(.rect(Rectangle(x: 0, y: 0, width: 5, height: 5), radius: 0), feather: 1)], Point(x: 100, y: 50), true),
@@ -292,8 +310,9 @@ struct LocationReporterTests {
     @Test("a trimmed rect's arrowhead past its outline is under the point, and nothing beside the head is")
     func hitsTrimmedRectArrowhead() throws {
         // Given
-        // The rect is 200 round, so a trim to 61 ends 1 below its top right corner, where the head points down with
-        // its tip at (80, 41) and its base 16 above it, from x = 72 to 88 at y = 25, above the stroked rect's top at 38.
+        // The rect is 200 round, so a trim to 61 ends 1 below its top right corner, at the head's tip (80, 41). The
+        // middle of its base lies 16 back along the stroke, at (65, 40) on the top edge, so the head runs along the
+        // chord between them, its upper base corner at (65.5, 32.0), above the stroked rect's top at 38.
         let arrow = DisplayItem(content: .path(PathItem(
             geometry: .rect(Rectangle(x: 20, y: 40, width: 60, height: 40), radius: 0),
             fill: nil,
@@ -302,12 +321,76 @@ struct LocationReporterTests {
         )))
 
         // When
-        let hits = try [Point(x: 84, y: 30), Point(x: 86, y: 36)].map { point in
+        let hits = try [Point(x: 68, y: 36), Point(x: 75, y: 34)].map { point in
             try sut.report(of: list([arrow]), point: point).hits.count
         }
 
         // Then
         #expect(hits == [1, 0])
+    }
+
+    @Test("a curved path's stroke is under the point on its curve, and not at the middle of its chord")
+    func hitsCurvedStroke() throws {
+        // Given
+        // The segment from (0, 0) to (100, 0), both its tangents (0, 100), bulges down to y = 75 at its middle.
+        let curve = DisplayItem(content: .path(PathItem(
+            geometry: .path(
+                [
+                    PathVertex(vertex: Point(x: 0, y: 0), inTangent: Point(x: 0, y: 0), outTangent: Point(x: 0, y: 100)),
+                    PathVertex(vertex: Point(x: 100, y: 0), inTangent: Point(x: 0, y: 100), outTangent: Point(x: 0, y: 0))
+                ],
+                isClosed: false
+            ),
+            fill: nil,
+            stroke: PathStroke(width: 4, paint: .color(red), join: .round, cap: .butt, start: .none, end: .none)
+        )))
+
+        // When
+        let hits = try [Point(x: 50, y: 74), Point(x: 50, y: 0), Point(x: 50, y: 110)].map { point in
+            try sut.report(of: list([curve]), point: point).hits.count
+        }
+
+        // Then
+        #expect(hits == [1, 0, 0])
+    }
+
+    @Test("an open path's fill covers what its segments draw, without the in tangent of its first vertex")
+    func leavesOpenPathEndTangentOut() throws {
+        // Given
+        // The triangle (100, 10), (190, 10), (140, 90) is drawn. The first vertex's in tangent reaches (-300, 10), and
+        // the hull with it would hold (50, 40).
+        let open = DisplayItem(content: .path(PathItem(
+            geometry: .path(Self.triangle, isClosed: false),
+            fill: .color(red),
+            stroke: nil
+        )))
+
+        // When
+        let hits = try [Point(x: 50, y: 40), Point(x: 140, y: 40)].map { point in
+            try sut.report(of: list([open]), point: point).hits.count
+        }
+
+        // Then
+        #expect(hits == [0, 1])
+    }
+
+    @Test("a closed path's fill covers its closing segment, curved by its first vertex's in tangent")
+    func coversClosedPathClosingTangent() throws {
+        // Given
+        // The closing segment from (140, 90) curves into (100, 10) from (-300, 10), passing (-30, 50) at its middle.
+        let closed = DisplayItem(content: .path(PathItem(
+            geometry: .path(Self.triangle, isClosed: true),
+            fill: .color(red),
+            stroke: nil
+        )))
+
+        // When
+        let hits = try [Point(x: 50, y: 40), Point(x: 140, y: 40)].map { point in
+            try sut.report(of: list([closed]), point: point).hits.count
+        }
+
+        // Then
+        #expect(hits == [1, 1])
     }
 
     @Test(

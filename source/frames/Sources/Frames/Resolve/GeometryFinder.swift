@@ -98,8 +98,58 @@ struct GeometryFinder: Sendable {
         }
     }
 
-    // A list of points under `key`, a path's points or a corner pin, each found as a position is, at the place of its
-    // index in the list.
+    // A path's vertices, each vertex's point found as a position is, at the place `place` gives for the keyframe that
+    // writes it or nil for the static value, and its tangents as written.
+    func vertices(
+        _ vertices: [PathVertex<PropertyValue<PositionForm>, PropertyValue<Point>>],
+        in picture: Picture,
+        pictureClock: PictureClock,
+        clock: TimeMap,
+        instant: Double,
+        lengthScale: Double,
+        place: (_ index: Int, _ keyframe: Int?) -> Place,
+        kind: String
+    ) throws -> [PathVertex<PropertyValue<GeometryPoint>, PropertyValue<Point>>] {
+        try vertices.enumerated().map { index, vertex in
+            let found: PropertyValue<GeometryPoint> = switch vertex.vertex {
+            case let .value(form):
+                .value(try point(
+                    form,
+                    in: picture,
+                    at: pictureClock.mediaTime(atSequenceTime: instant),
+                    lengthScale: lengthScale,
+                    place: place(index, nil),
+                    kind: kind
+                ))
+
+            case let .keyframes(keyframes):
+                .keyframes(try keyframes.map { keyframe in
+                    let time = clock.sequenceTime(ofClipTime: keyframe.at)
+                    return PropertyKeyframe(
+                        index: keyframe.index,
+                        at: time,
+                        value: try point(
+                            keyframe.value,
+                            in: picture,
+                            at: pictureClock.mediaTime(atSequenceTime: time),
+                            lengthScale: lengthScale,
+                            place: place(index, keyframe.index),
+                            kind: kind
+                        ),
+                        ease: keyframe.ease
+                    )
+                })
+            }
+
+            return PathVertex(
+                vertex: found,
+                inTangent: vertex.inTangent.inSequenceTime(on: clock),
+                outTangent: vertex.outTangent.inSequenceTime(on: clock)
+            )
+        }
+    }
+
+    // A list of points under `key`, a corner pin's, each found as a position is, at the place of its index in the list.
     func points(
         _ property: PropertyValue<[PositionForm]>,
         key: String,

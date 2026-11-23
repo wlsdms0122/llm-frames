@@ -6,13 +6,14 @@
 //
 
 // What resolve finds of a connected or sequence clip's geometry before tracks and parents' spaces are planned, every
-// text form searched. `area`, a path's `points`, `position` and `cornerPin` are in the space the clip's parent gives, `crop` in its
-// own media and `mask` in the space its geometry is searched in. Under content fit output pixels are the measuring
-// space, so a clip with `isInOutputPixels` moves with the content.
+// text form searched. `area`, a path's `points`, `position` and `cornerPin` are in the space the clip's parent gives,
+// `crop` in its own media and `mask` in the space its geometry is searched in. A path's vertices have their points and
+// tangents timed apart. Under content fit output pixels are the measuring space, so a clip with `isInOutputPixels`
+// moves with the content.
 struct FoundGeometry: Equatable, Sendable {
     // MARK: - Property
     let area: PropertyValue<AreaValue>?
-    let points: PropertyValue<[GeometryPoint]>?
+    let points: [PathVertex<PropertyValue<GeometryPoint>, PropertyValue<Point>>]?
     let position: PropertyValue<GeometryPoint>?
     let cornerPin: PropertyValue<[GeometryPoint]>?
     let crop: PropertyValue<FoundArea>?
@@ -22,7 +23,7 @@ struct FoundGeometry: Equatable, Sendable {
     // MARK: - Initializer
     init(
         area: PropertyValue<AreaValue>?,
-        points: PropertyValue<[GeometryPoint]>?,
+        points: [PathVertex<PropertyValue<GeometryPoint>, PropertyValue<Point>>]?,
         position: PropertyValue<GeometryPoint>?,
         cornerPin: PropertyValue<[GeometryPoint]>?,
         crop: PropertyValue<FoundArea>?,

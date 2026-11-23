@@ -14,6 +14,8 @@ enum MaskLeaf: Hashable, Sendable {
     case position
     case radius
     case point(Int)
+    case inTangent(Int)
+    case outTangent(Int)
 
     // MARK: - Property
     // MARK: - Initializer

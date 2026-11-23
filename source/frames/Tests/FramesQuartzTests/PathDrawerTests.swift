@@ -18,6 +18,15 @@ import Testing
 struct PathDrawerTests {
     // MARK: - Property
     private static let black = Color(written: "#000000")
+    // From (10, 20) to (90, 20), both tangents (0, 80): the curve bulges to y = 80 at x = 50, its middle, where it
+    // heads along x. Its points are (10 + 240 (1 - t) t² + 80 t³, 20 + 240 t (1 - t)).
+    private static let bulge = PathGeometry.path(
+        [
+            PathVertex(vertex: Point(x: 10, y: 20), inTangent: Point(x: 0, y: 0), outTangent: Point(x: 0, y: 80)),
+            PathVertex(vertex: Point(x: 90, y: 20), inTangent: Point(x: 0, y: 80), outTangent: Point(x: 0, y: 0))
+        ],
+        isClosed: false
+    )
 
     private let sut = QuartzRenderer(decoder: AVFoundationDecoder())
 
@@ -218,6 +227,113 @@ struct PathDrawerTests {
         expect(bitmap, at: [(15, 50), (35, 50), (50, 65), (50, 85)], inked: inked)
     }
 
+    @Test("a curved segment is stroked along its curve, and a trim to its first half stops at its middle")
+    func strokesCurve() throws {
+        // Given
+        let geometry = Self.bulge
+
+        // When
+        let whole = try sut.frame(of: list([stroked(geometry, width: 4)]))
+        let half = try sut.frame(of: list([stroked(geometry, width: 4, trim: Trim(start: 0, end: 0.5))]))
+
+        // Then
+        expect(whole, at: [(50, 80), (50, 20), (50, 50)], inked: [true, false, false])
+        expect(half, at: [(46, 79), (54, 79), (10, 22), (90, 22)], inked: [true, false, true, false])
+    }
+
+    // From (25, 25) to (75, 25) with control points (75, 75) and (25, 75): the curve runs down into a cusp at
+    // (50, 62.5) and turns back up. A 10 wide stroke reaches 62.5 there, and a round join rounds it to 67.5; the turn
+    // is half a circle, past the miter limit, so a miter is bevelled flat at the cusp as a bevel is.
+    @Test(
+        "a cusp inside one curved segment takes the stroke's join",
+        arguments: [
+            (StrokeJoin.miter, [true, false, false]),
+            (StrokeJoin.round, [true, true, true]),
+            (StrokeJoin.bevel, [true, false, false])
+        ]
+    )
+    func joinsAtCusp(
+        join: StrokeJoin,
+        inked: [Bool]
+    ) throws {
+        // Given
+        let geometry = PathGeometry.path(
+            [
+                PathVertex(vertex: Point(x: 25, y: 25), inTangent: Point(x: 0, y: 0), outTangent: Point(x: 50, y: 50)),
+                PathVertex(vertex: Point(x: 75, y: 25), inTangent: Point(x: -50, y: 50), outTangent: Point(x: 0, y: 0))
+            ],
+            isClosed: false
+        )
+
+        // When
+        let bitmap = try sut.frame(of: list([stroked(geometry, width: 10, join: join)]))
+
+        // Then
+        expect(bitmap, at: [(49, 58), (49, 65), (50, 65)], inked: inked)
+    }
+
+    // The curve of `strokesCurve` trimmed to its first half ends at its middle (50, 80), heading along x. A 10 wide
+    // round cap reaches 5 past it as a half circle, a square cap as a half square to x = 55, y = 75 and y = 85.
+    @Test(
+        "a trim end inside a curve takes the stroke's cap along the curve's direction there",
+        arguments: [
+            (StrokeCap.butt, [true, false, false]),
+            (StrokeCap.round, [true, true, false]),
+            (StrokeCap.square, [true, true, true])
+        ]
+    )
+    func capsTrimEndInsideCurve(
+        cap: StrokeCap,
+        inked: [Bool]
+    ) throws {
+        // Given
+        let path = stroked(Self.bulge, width: 10, cap: cap, trim: Trim(start: 0, end: 0.5))
+
+        // When
+        let bitmap = try sut.frame(of: list([path]))
+
+        // Then
+        expect(bitmap, at: [(47, 79), (52, 79), (54, 75)], inked: inked)
+    }
+
+    // Dashes and gaps of an eighth of the curve's arc length each, measured independently by a polyline of 20000
+    // chords. A pixel holding the point 3 back from where an eighth ends lies in that eighth and one holding the point
+    // 3 on in the next, so each dash's ends are drawn within 1.5 of where the arc length puts them.
+    @Test("dashes along a curve are laid by its arc length")
+    func laysDashesByArcLength() throws {
+        // Given
+        let samples = (0...20_000).map { index in
+            let t = Double(index) / 20_000
+            return Point(x: 10 + 240 * (1 - t) * t * t + 80 * t * t * t, y: 20 + 240 * t * (1 - t))
+        }
+        var lengths = [0.0]
+        for (point, next) in zip(samples, samples.dropFirst()) {
+            lengths.append(lengths[lengths.count - 1] + hypot(next.x - point.x, next.y - point.y))
+        }
+        let eighth = lengths[lengths.count - 1] / 8
+        let pixel = { (distance: Double) -> (Int, Int) in
+            let index = lengths.firstIndex { $0 >= distance } ?? lengths.count - 1
+            return (Int(samples[index].x), Int(samples[index].y))
+        }
+        let stroke = PathStroke(
+            width: 8,
+            paint: .color(Self.black),
+            join: .miter,
+            cap: .butt,
+            start: .none,
+            end: .none,
+            dash: [eighth, eighth]
+        )
+
+        // When
+        let bitmap = try sut.frame(of: list([PathItem(geometry: Self.bulge, fill: nil, stroke: stroke)]))
+
+        // Then
+        let ends = (1..<8).map { Double($0) * eighth }
+        expect(bitmap, at: ends.map { pixel($0 - 3) }, inked: (0..<7).map { $0.isMultiple(of: 2) })
+        expect(bitmap, at: ends.map { pixel($0 + 3) }, inked: (1..<8).map { $0.isMultiple(of: 2) })
+    }
+
     @Test("an arrowhead is 4 times the stroke's width long and wide, its tip at the end, the line stopping at its base")
     func drawsArrowhead() throws {
         // Given
@@ -326,10 +442,11 @@ struct PathDrawerTests {
         #expect(bitmap.pixel(x: 50, y: 50) == [1, 0, 0, 1])
     }
 
-    // A rect at (20, 40) 60 by 40 is 200 long round, so a trim to 61 / 200 ends 1 below its top right corner, where
-    // the head points down with its base 16 above the tip, above the rect. An ellipse 60 by 30 trimmed to 0.15 ends
-    // where its curve has turned the head's base out past its top. Neither base lies within the outline grown by half
-    // a head's base.
+    // A rect at (20, 40) 60 by 40 is 200 long round, so a trim to 61 / 200 ends 1 below its top right corner, at the
+    // head's tip, and its base lies 16 back along the stroke on the top edge, so the head runs along the chord between
+    // them and its upper base corner lies 8 above the rect. An ellipse 60 by 30 trimmed to 0.15 ends where its curve
+    // has turned, so the chord from its base to its tip lies inside it and the head's outer base corner past its top.
+    // Both heads reach past the stroked outline.
     @Test(
         "a trimmed rect ending just past a corner and a trimmed ellipse draw their whole arrowhead inside the box of what they draw",
         arguments: [
@@ -351,7 +468,7 @@ struct PathDrawerTests {
         let whole = try sut.frame(of: list([path]))
 
         // Then
-        let above = Int(outline.y - 2 * width)
+        let above = Int(outline.y - width / 2)
         let pixels = (0..<100).flatMap { y in (0..<100).map { x in (x, y) } }
         #expect(pixels.contains { x, y in y < above && alpha(whole, x, y) > 0.99 }, "the head is drawn above \(above)")
         try expectDrawnInsideBounds(of: path)

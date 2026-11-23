@@ -54,8 +54,8 @@ struct ParentTransformPlan: Equatable, Sendable {
         case let .area(area, _, _):
             (track?.area(area) ?? area).mapValues(\.fixed).value(at: time)
 
-        case let .points(points, _, _):
-            Rectangle(bounding: (track?.points(points) ?? points).mapValues { $0.map(\.fixed) }.value(at: time))
+        case let .points(points, isClosed, _):
+            ShapeGeometry.bounds(of: track?.vertices(points) ?? points, isClosed: isClosed, at: time)
         }
     }
 }

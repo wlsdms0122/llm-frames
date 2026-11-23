@@ -196,7 +196,7 @@ struct ClipAppearancePlanner: Sendable {
     }
 
     // How a shape clip is drawn, nil for any other clip. Its geometry is checked first: a rect or an ellipse takes
-    // `area` or both of `width` and `height`, a path takes `points`, and every `points` keyframe holds as many points.
+    // `area` or both of `width` and `height`, a path takes `points`, and every `points` value holds as many vertices.
     // Its `radius`, `outset`, `fill`, `stroke` and `shadow` are timed over its style's by `ClipLookPlanner`, and without
     // a style nothing but colour names and the theme `shadow` come from the theme. A shape with neither a fill nor a
     // stroke after its style stops.
@@ -720,7 +720,8 @@ struct ClipAppearancePlanner: Sendable {
     }
 
     // A rect or an ellipse takes exactly one of `area` and the pair `width` and `height`, and only with the pair a
-    // `placement`, and a path its points, every keyframe of them as many.
+    // `placement`, and a path its points, its static value and every keyframe of them as many vertices, each vertex's
+    // point written statically or in a keyframe.
     private func checkGeometry(
         of shape: ClipShape,
         written: Clip,
@@ -730,16 +731,24 @@ struct ClipAppearancePlanner: Sendable {
             guard let points = shape.points else {
                 throw ResolveError.missingKey(place: written.place, kind: kind, key: "points")
             }
-            guard case let .keyframes(keyframes) = points else { return }
 
-            let counts = keyframes.map(\.value.count)
-            guard let other = keyframes.first(where: { $0.value.count != counts[0] }) else { return }
-
-            throw ResolveError.pointCountsDiffer(
-                place: written.place.appending(key: "keyframes").appending(index: other.index).appending(key: "points"),
-                kind: kind,
-                counts: [counts[0], other.value.count]
-            )
+            let count = points.written?.count ?? points.keyframes[0].value.count
+            if let other = points.keyframes.first(where: { $0.value.count != count }) {
+                throw ResolveError.pointCountsDiffer(
+                    place: written.place.appending(key: "keyframes").appending(index: other.index).appending(key: "points"),
+                    kind: kind,
+                    counts: [count, other.value.count]
+                )
+            }
+            if let index = points.vertices.firstIndex(where: { $0.vertex == .keyframes([]) }) {
+                throw ResolveError.missingKey(
+                    place: written.place.appending(key: "keyframes").appending(index: points.keyframes[0].index)
+                        .appending(key: "points").appending(index: index),
+                    kind: kind,
+                    key: "vertex"
+                )
+            }
+            return
         }
 
         switch (written.area, shape.width, shape.height) {

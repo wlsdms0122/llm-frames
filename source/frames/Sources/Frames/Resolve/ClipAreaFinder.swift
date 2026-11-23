@@ -137,8 +137,10 @@ struct ClipAreaFinder: Sendable {
                 form.clip.map { ClipAreaReference(place: place, clip: $0) }
             }
         } ?? []
-        let points: [ClipAreaReference] = if case let .shape(shape) = clip.content {
-            references(points: shape.points, key: "points", place: clip.place)
+        let points: [ClipAreaReference] = if case let .shape(shape) = clip.content, let points = shape.points {
+            points.points(in: clip.place).compactMap { form, place in
+                form.clip.map { ClipAreaReference(place: place.appending(key: "area"), clip: $0) }
+            }
         } else {
             []
         }
@@ -206,12 +208,12 @@ struct ClipAreaFinder: Sendable {
         let position = object["position"].flatMap(PositionForm.init(value:))?.clip.map {
             ClipAreaReference(place: place.appending(key: "position").appending(key: "area"), clip: $0)
         }
-        let points = (object["points"]?.arrayValue ?? []).enumerated().compactMap { index, point in
-            PositionForm(value: point)?.clip.map {
-                ClipAreaReference(
-                    place: place.appending(key: "points").appending(index: index).appending(key: "area"),
-                    clip: $0
-                )
+        let points = (object["points"]?.arrayValue ?? []).enumerated().compactMap { index, vertex in
+            let vertexPlace = place.appending(key: "points").appending(index: index)
+            let pointPlace = PathKeyTable.place(ofPointOf: vertex, at: vertexPlace)
+
+            return PathKeyTable.point(of: vertex).flatMap(PositionForm.init(value:))?.clip.map {
+                ClipAreaReference(place: pointPlace.appending(key: "area"), clip: $0)
             }
         }
 

@@ -57,15 +57,23 @@ struct ClipSpace: Sendable {
         return track.point(of: keyframes, on: clock, at: time)
     }
 
-    func points(
-        of points: FollowedValue<[GeometryPoint]>,
+    // A path's vertices at a time, each point as a point is, and each tangent as written or brought back by the
+    // track as an offset.
+    func vertices(
+        of vertices: [PathVertex<FollowedValue<GeometryPoint>, FollowedValue<Point>>],
         track: ResolvedTrack?,
         at time: SampleTime
-    ) -> [Point] {
-        let keyframes = areas?.points(of: points, at: time) ?? points.mapValues { $0.map(\.fixed) }
-        guard let track, let clock else { return keyframes.value(at: time) }
+    ) -> [PathVertex<Point, Point>] {
+        vertices.map { vertex in
+            vertex.map(
+                vertex: { point(of: $0, track: track, at: time) },
+                tangent: { tangent in
+                    guard let track, let clock else { return tangent.value(at: time) }
 
-        return track.points(of: keyframes, on: clock, at: time)
+                    return track.offset(of: tangent, on: clock, at: time)
+                }
+            )
+        }
     }
 
     func masks(

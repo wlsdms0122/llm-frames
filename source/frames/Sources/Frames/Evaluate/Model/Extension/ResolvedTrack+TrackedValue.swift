@@ -30,12 +30,13 @@ extension ResolvedTrack {
         broughtBack(keyframes, on: clock) { $0.bringBack($1) }.value(at: time)
     }
 
-    func points(
-        of keyframes: FollowedValue<[Point]>,
+    // A path's tangent is an offset, brought back by the motion's linear part alone (FRAMES-12 The track).
+    func offset(
+        of keyframes: FollowedValue<Point>,
         on clock: MediaClock,
         at time: SampleTime
-    ) -> [Point] {
-        broughtBack(keyframes, on: clock) { motion, points in points.map { motion.bringBack($0) } }.value(at: time)
+    ) -> Point {
+        broughtBack(keyframes, on: clock) { $0.bringBack(offset: $1) }.value(at: time)
     }
 
     // A mask's box size and radius are divided by the motion's scale, and its feather is in output pixels and is not
@@ -51,6 +52,7 @@ extension ResolvedTrack {
             mask.carried(
                 area: { area, time, _ in time.map { motion($0).bringBack(area) } ?? area },
                 point: { point, time, _ in time.map { motion($0).bringBack(point) } ?? point },
+                tangent: { tangent, time in time.map { motion($0).bringBack(offset: tangent) } ?? tangent },
                 scale: { time in time.map { 1 / motion($0).scale } ?? 1 }
             ).sampled(at: time)
         }

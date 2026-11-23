@@ -270,7 +270,12 @@ struct ShapeEvaluatorTests {
         arguments: [
             (Trim.whole, Rectangle(x: 38, y: 18, width: 44, height: 24)),
             (Trim(start: 0, end: 0.5), Rectangle(x: 38, y: 18, width: 50, height: 24)),
-            (Trim(start: 0, end: 41.0 / 120), Rectangle(x: 38, y: 5, width: 50, height: 37))
+            // Ending 1 below the top right corner at (80, 21), the head runs along the chord from its base 16 back
+            // along the stroke at (65, 20), its upper base corner 8 across the chord, 120 / √226 above the top edge.
+            (
+                Trim(start: 0, end: 41.0 / 120),
+                Rectangle(x: 38, y: 20 - 120 / 226.0.squareRoot(), width: 44, height: 22 + 120 / 226.0.squareRoot())
+            )
         ]
     )
     func growsReceiverBoxByDrawnArrowheads(
@@ -387,6 +392,62 @@ struct ShapeEvaluatorTests {
         #expect(children == transform)
     }
 
+    @Test("a curved path shape draws its vertices with their tangents, its box the curve's")
+    func drawsCurvedPath() throws {
+        // Given
+        // The segment from (0, 0) to (100, 0), both tangents (0, 100), bulges down to y = 75 at its middle.
+        let tangent = { (x: Double, y: Double) in FollowedValue<Point>.keyframes([Keyframe(at: 0, value: Point(x: x, y: y))]) }
+        let shape = ResolvedShape(
+            kind: .path,
+            geometry: .points(
+                [
+                    PathVertex(
+                        vertex: .keyframes([Keyframe(at: 0, value: .point(Point(x: 0, y: 0)))]),
+                        inTangent: tangent(0, 0),
+                        outTangent: tangent(0, 100)
+                    ),
+                    PathVertex(
+                        vertex: .keyframes([Keyframe(at: 0, value: .point(Point(x: 100, y: 0)))]),
+                        inTangent: tangent(0, 100),
+                        outTangent: tangent(0, 0)
+                    )
+                ],
+                isClosed: false,
+                placement: GeometryPlacement()
+            ),
+            radius: 0,
+            trim: [Keyframe(at: 0, value: .whole)],
+            fill: .off,
+            stroke: .stroke(Self.stroke),
+            shadow: .off
+        )
+        let clip = clip(shape, box: nil)
+
+        // When
+        let items = sut.items(
+            of: shape,
+            clip: clip,
+            sample: ClipSample(clip: clip, at: SampleTime(1)),
+            in: ClipSpace(frame: Self.frame),
+            at: SampleTime(1)
+        )
+
+        // Then
+        let item = try #require(items.first)
+        guard case let .path(path) = item.content else {
+            Issue.record("a path draws one path item")
+            return
+        }
+        #expect(path.geometry == .path(
+            [
+                PathVertex(vertex: Point(x: 0, y: 0), inTangent: Point(x: 0, y: 0), outTangent: Point(x: 0, y: 100)),
+                PathVertex(vertex: Point(x: 100, y: 0), inTangent: Point(x: 0, y: 100), outTangent: Point(x: 0, y: 0))
+            ],
+            isClosed: false
+        ))
+        #expect(path.geometry.bounds() == Rectangle(x: 0, y: 0, width: 100, height: 75))
+    }
+
     // MARK: - Private
     private func expect(
         _ point: Point,
@@ -429,7 +490,13 @@ struct ShapeEvaluatorTests {
             ResolvedShape(
                 kind: .path,
                 geometry: .points(
-                    .keyframes([Keyframe(at: 0, value: [.point(Point(x: 40, y: 20)), .point(Point(x: 80, y: 40))])]),
+                    [Point(x: 40, y: 20), Point(x: 80, y: 40)].map { point in
+                        PathVertex(
+                            vertex: .keyframes([Keyframe(at: 0, value: .point(point))]),
+                            inTangent: .keyframes([Keyframe(at: 0, value: Point(x: 0, y: 0))]),
+                            outTangent: .keyframes([Keyframe(at: 0, value: Point(x: 0, y: 0))])
+                        )
+                    },
                     isClosed: false,
                     placement: GeometryPlacement()
                 ),

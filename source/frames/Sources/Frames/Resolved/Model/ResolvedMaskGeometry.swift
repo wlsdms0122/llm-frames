@@ -5,12 +5,12 @@
 //  Created by JSilver on 11/19/26.
 //
 
-// A mask's geometry with each of its numbers timed: a rect with its corner radius, an ellipse, or a closed polyline
-// with a keyframe list per point, a point of which may be a clip area's.
+// A mask's geometry with each of its numbers timed: a rect with its corner radius, an ellipse, or a closed path with a
+// keyframe list for each vertex's point, which may be a clip area's, and for each of its tangents.
 enum ResolvedMaskGeometry: Equatable, Sendable {
     case rect(ResolvedMaskRectangle, radius: FollowedValue<Double>)
     case ellipse(ResolvedMaskRectangle)
-    case polyline([FollowedValue<GeometryPoint>])
+    case path([PathVertex<FollowedValue<GeometryPoint>, FollowedValue<Point>>])
 
     // MARK: - Property
     // MARK: - Initializer
@@ -23,8 +23,13 @@ enum ResolvedMaskGeometry: Equatable, Sendable {
         case let .ellipse(rectangle):
             .ellipse(rectangle.sampled(at: time))
 
-        case let .polyline(points):
-            .polyline(points.map { $0.mapValues(\.fixed).value(at: time) }, isClosed: true)
+        case let .path(vertices):
+            .path(
+                vertices.map { vertex in
+                    vertex.map(vertex: { $0.mapValues(\.fixed).value(at: time) }, tangent: { $0.value(at: time) })
+                },
+                isClosed: true
+            )
         }
     }
 

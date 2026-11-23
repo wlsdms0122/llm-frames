@@ -209,13 +209,14 @@ struct KeyChecker: Sendable {
         case let .stops(isKeyframed):
             try checkStops(value, isKeyframed: isKeyframed, place: place, kind: kind)
 
-        case .points:
+        case let .points(isKeyframed):
             guard let elements = value.arrayValue, elements.count >= 2 else {
                 throw wrongType(value, type, place, kind)
             }
 
+            let vertex = PathKeyTable.vertex(isKeyframed: isKeyframed)
             for (index, element) in elements.enumerated() {
-                try check(element, as: AreaKeyTable.point, place: place.appending(index: index), kind: kind, scope: &scope)
+                try check(element, as: vertex, place: place.appending(index: index), kind: kind, scope: &scope)
             }
 
         case .quad:
@@ -648,8 +649,7 @@ struct KeyChecker: Sendable {
         }
     }
 
-    // A mask takes the keys of its shape, and a path at least three points, since its path is closed. Whether its
-    // geometry is given is checked with its keyframes.
+    // A mask takes the keys of its shape. Whether its geometry is given is checked with its keyframes.
     private func checkMask(
         _ object: JSONObject,
         as shape: ShapeKind,
@@ -657,19 +657,12 @@ struct KeyChecker: Sendable {
         scope: inout DocumentScope
     ) throws {
         let table = MaskKeyTable.table(for: shape)
-        if shape == .path, let points = object["points"]?.arrayValue, points.count < 3 {
-            throw ModelError.invalidValue(
-                place: place.appending(key: "points"),
-                kind: table.kind,
-                reason: "a path mask is closed, so it runs through at least three points, found \(points.count)"
-            )
-        }
         try checkObject(object, as: table, place: place, skipping: ["shape"], scope: &scope)
     }
 
     // A mask's geometry is given by the clip's `mask` and its keyframes together: a rect or an ellipse takes `area`
     // or every key of the box from one or the other, and a path its `points`. A keyframe's mask takes the keys of its
-    // static mask's shape, a path's points at least three. A mask written alone is the first of a list of one.
+    // static mask's shape. A mask written alone is the first of a list of one.
     private func checkMaskGeometry(
         _ object: JSONObject,
         place: Place,
@@ -707,13 +700,6 @@ struct KeyChecker: Sendable {
                 for keyframe in moved {
                     if let key = keyframe.mask.keys.first(where: { table.rule(named: $0) == nil }) {
                         throw ModelError.unknownKey(place: keyframe.place, kind: table.kind, key: key, allowed: table.keys)
-                    }
-                    if shape == .path, let points = keyframe.mask["points"]?.arrayValue, points.count < 3 {
-                        throw ModelError.invalidValue(
-                            place: keyframe.place.appending(key: "points"),
-                            kind: table.kind,
-                            reason: "a path mask is closed, so it runs through at least three points, found \(points.count)"
-                        )
                     }
                 }
 
@@ -1150,10 +1136,36 @@ struct KeyChecker: Sendable {
     ) throws {
         guard let keyframes = object["keyframes"]?.arrayValue else { return }
 
-        let properties = ClipKeyTable.keyframable(for: kind, in: clipPlace).filter { !ClipKeyTable.lookKeys.contains($0) }
+        let keyframable = ClipKeyTable.keyframable(for: kind, in: clipPlace)
+        let properties = keyframable.filter { !ClipKeyTable.lookKeys.contains($0) && !ClipKeyTable.leafKeys.contains($0) }
         for keyframe in keyframes.compactMap(\.objectValue) {
             for property in properties where keyframe.contains(property) && object.contains(property) {
                 throw ModelError.staticAndKeyframed(place: place, kind: kind.label, property: property)
+            }
+        }
+        if keyframable.contains("points"), let written = object["points"]?.arrayValue {
+            try checkStaticAndKeyframed(points: written, keyframes: keyframes, kind: kind, place: place)
+        }
+    }
+
+    // A path's vertex leaf written statically and in a keyframe never shows its static value, since a keyframe's
+    // vertex writes no `null`.
+    private func checkStaticAndKeyframed(
+        points written: [JSONValue],
+        keyframes: [JSONValue],
+        kind: ClipKind,
+        place: Place
+    ) throws {
+        for points in keyframes.compactMap({ $0.objectValue?["points"]?.arrayValue }) {
+            for (index, vertex) in zip(written, points).enumerated() {
+                let keyframed = PathKeyTable.leaves(of: vertex.1)
+                guard let leaf = PathKeyTable.leaves(of: vertex.0).first(where: keyframed.contains) else { continue }
+
+                throw ModelError.staticAndKeyframed(
+                    place: place.appending(key: "points").appending(index: index),
+                    kind: kind.label,
+                    property: leaf
+                )
             }
         }
     }
@@ -1662,7 +1674,7 @@ struct KeyChecker: Sendable {
                 : "a list of at least two [offset, colour], each offset from 0 to 1 and at least the one before it"
 
         case .points:
-            "a list of at least two points"
+            "a list of at least two vertices, each a point or {vertex, inTangent, outTangent}"
 
         case .quad:
             "a list of four points"

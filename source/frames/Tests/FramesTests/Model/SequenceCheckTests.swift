@@ -357,7 +357,7 @@ struct SequenceCheckTests {
             (#"{ "shape": "rect", "area": [0, 0, 10, 10], "fill": "accent", "trim": [0.5] }"#, #"clips[0].trim (rect): expected a list of 2 numbers, each within 0 to 1"#),
             (#"{ "shape": "rect", "area": [0, 0, 10, 10], "fill": "accent", "shadow": "soft" }"#, #"clips[0].shadow (rect): expected "#),
             (#"{ "shape": "rect", "area": [0, 0, 10, 10], "fill": "accent", "shadow": { "blur": 4 } }"#, #"clips[0].shadow (shadow): unknown key "blur""#),
-            (#"{ "shape": "path", "points": [[0, 0]], "fill": "accent" }"#, #"clips[0].points (path): expected a list of at least two points"#),
+            (#"{ "shape": "path", "points": [[0, 0]], "fill": "accent" }"#, #"clips[0].points (path): expected a list of at least two vertices, each a point or {vertex, inTangent, outTangent}"#),
             (#"{ "shape": "path", "points": [[0, 0], "top"], "fill": "accent" }"#, #"clips[0].points[1] (path): expected "#),
             (#"{ "shape": "path", "points": [[0, 0], [1, 1]], "closed": 1, "fill": "accent" }"#, #"clips[0].closed (path): expected "#)
         ]
@@ -1153,7 +1153,7 @@ struct SequenceCheckTests {
             (#"{ "shape": "rect", "width": 10, "position": [5, 5] }"#, #"clips[0].mask (rect mask): missing key "height""#),
             (#"{ "shape": "ellipse", "width": 10, "height": 10 }"#, #"clips[0].mask (ellipse mask): missing key "position""#),
             (#"{ "shape": "path" }"#, #"clips[0].mask (path mask): missing key "points""#),
-            (#"{ "shape": "path", "points": [[0, 0], [10, 0]] }"#, "clips[0].mask.points (path mask): a path mask is closed, so it runs through at least three points, found 2"),
+            (#"{ "shape": "path", "points": [[0, 0]] }"#, "clips[0].mask.points (path mask): expected a list of at least two vertices, each a point or {vertex, inTangent, outTangent}"),
             (#"{ "area": [0, 0, 10, 10] }"#, #"clips[0].mask (mask): missing key "shape""#),
             (#"{ "shape": "star", "area": [0, 0, 10, 10] }"#, #"clips[0].mask.shape (mask): unknown value "star". Allowed: rect, ellipse, path"#),
             (#"{ "shape": "rect", "area": [0, 0, 10, 10], "mode": "multiply" }"#, #"clips[0].mask.mode (rect mask): unknown value "multiply". Allowed: add, subtract, intersect"#),
@@ -1218,8 +1218,8 @@ struct SequenceCheckTests {
             ),
             (
                 #"{ "shape": "path" }"#,
-                #"[ { "at": 0, "mask": { "points": [[0, 0], [10, 0]] } } ]"#,
-                "clips[0].keyframes[0].mask.points (path mask): a path mask is closed, so it runs through at least three points, found 2"
+                #"[ { "at": 0, "mask": { "points": [[0, 0]] } } ]"#,
+                "clips[0].keyframes[0].mask.points (mask): expected a list of at least two vertices, each a point or {vertex, inTangent, outTangent}"
             )
         ]
     )

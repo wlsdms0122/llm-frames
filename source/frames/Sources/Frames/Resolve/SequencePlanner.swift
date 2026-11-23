@@ -604,16 +604,32 @@ struct SequencePlanner: Sendable {
                 kind: plan.kind.label
             )
         }
-        let points = { (points: PropertyValue<[PositionForm]>, value: FollowedKey, key: String) in
-            if space.isOutputPixels, let text = byText(points, key: key, place: written.place) {
+        let vertices = try shapePoints(of: written).map { points in
+            if space.isOutputPixels, let text = points.points(in: written.place).first(where: \.form.isFoundByText) {
+                throw ResolveError.textAreaInOutputPixels(place: text.place, kind: .clip(plan.kind))
+            }
+
+            return try finder.vertices(
+                points.vertices,
+                in: space.picture,
+                pictureClock: plan.clock(of: .points, on: space.clock, track: written.track),
+                clock: plan.clock,
+                instant: plan.instant,
+                lengthScale: lengthScale,
+                place: { index, keyframe in points.place(ofPoint: index, keyframe: keyframe, in: written.place) },
+                kind: plan.kind.label
+            )
+        }
+        let cornerPin = try written.cornerPin.map { cornerPin in
+            if space.isOutputPixels, let text = byText(cornerPin, key: "cornerPin", place: written.place) {
                 throw ResolveError.textAreaInOutputPixels(place: text, kind: .clip(plan.kind))
             }
 
             return try finder.points(
-                points,
-                key: key,
+                cornerPin,
+                key: "cornerPin",
                 in: space.picture,
-                pictureClock: plan.clock(of: value, on: space.clock, track: written.track),
+                pictureClock: plan.clock(of: .cornerPin, on: space.clock, track: written.track),
                 clock: plan.clock,
                 instant: plan.instant,
                 lengthScale: lengthScale,
@@ -683,9 +699,9 @@ struct SequencePlanner: Sendable {
 
         return FoundGeometry(
             area: area,
-            points: try shapePoints(of: written).map { try points($0, .points, "points") },
+            points: vertices,
             position: position,
-            cornerPin: try written.cornerPin.map { try points($0, .cornerPin, "cornerPin") },
+            cornerPin: cornerPin,
             crop: crop,
             mask: mask,
             isInOutputPixels: space.isOutputPixels
@@ -734,7 +750,7 @@ struct SequencePlanner: Sendable {
         }
     }
 
-    private func shapePoints(of clip: Clip) -> PropertyValue<[PositionForm]>? {
+    private func shapePoints(of clip: Clip) -> PathProperty? {
         guard case let .shape(shape) = clip.content else { return nil }
 
         return shape.points

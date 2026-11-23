@@ -43,12 +43,10 @@ extension PathOutline {
         // the one at its start are joined as every other.
         let isWhole = closing && isClosed && start == 0 && end == length
         let drawn = isWhole && segments.last?.isLine == true ? segments.dropLast() : segments[...]
-        var offset = 0.0
-        for segment in drawn {
-            let lower = max(start - offset, 0)
-            let upper = min(end - offset, segment.length)
-            if upper > lower { segment.append(from: lower, to: upper, to: path) }
-            offset += segment.length
+        for index in drawn.indices {
+            let lower = max(start - offsets[index], 0)
+            let upper = min(end - offsets[index], lengths[index])
+            if upper > lower { segments[index].append(from: lower, to: upper, to: path) }
         }
         if closing { path.closeSubpath() }
 

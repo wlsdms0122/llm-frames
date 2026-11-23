@@ -45,8 +45,16 @@ struct TrackedMedia: Equatable, Sendable {
         broughtBack(keyframes) { motion, point in point.map { motion.bringBack($0) } }
     }
 
-    func points(_ keyframes: FollowedValue<[GeometryPoint]>) -> FollowedValue<[GeometryPoint]> {
-        broughtBack(keyframes) { motion, points in points.map { point in point.map { motion.bringBack($0) } } }
+    // A path's tangents are offsets, brought back by the motion's linear part (FRAMES-12 The track).
+    func vertices(
+        _ vertices: [PathVertex<FollowedValue<GeometryPoint>, FollowedValue<Point>>]
+    ) -> [PathVertex<FollowedValue<GeometryPoint>, FollowedValue<Point>>] {
+        vertices.map { vertex in
+            vertex.map(
+                vertex: position,
+                tangent: { tangent in broughtBack(tangent) { motion, offset in motion.bringBack(offset: offset) } }
+            )
+        }
     }
 
     // MARK: - Private

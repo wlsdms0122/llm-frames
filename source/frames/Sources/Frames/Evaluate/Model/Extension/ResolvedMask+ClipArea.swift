@@ -34,8 +34,10 @@ extension ResolvedMask {
         case let .ellipse(box):
             .ellipse(rectangle(box))
 
-        case let .polyline(points):
-            .polyline(points.map { $0.mapValues(point) })
+        case let .path(vertices):
+            .path(vertices.map { vertex in
+                PathVertex(vertex: vertex.vertex.mapValues(point), inTangent: vertex.inTangent, outTangent: vertex.outTangent)
+            })
         }
 
         return ResolvedMask(geometry: geometry, feather: feather, isInverted: isInverted, mode: mode)

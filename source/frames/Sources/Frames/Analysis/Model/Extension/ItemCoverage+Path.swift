@@ -5,16 +5,22 @@
 //  Created by JSilver on 11/18/26.
 //
 
-// What a `path` item covers in its own coordinates. A rect or an ellipse covers its rectangle grown by half its
-// stroke, less the rectangle shrunk by half its stroke when it is not filled. A filled polyline covers the convex hull
-// of its points, and its stroke as drawn after `trim` covers a band the stroke wide along each segment, the line
-// stopping at its arrowheads' bases. Each adds what its stroke draws past its outline grown by half its width
-// (`PathItem.overhangs`): its arrowheads, miter joins and square caps. Bevels, round joins and caps, rounded corners,
-// the curve of an ellipse and the trim of a rect or an ellipse are left out. The stroke is drawn in output pixels on the
-// outline `transform` carries, so its band is taken at its width over the transform's length factor, exact where the
-// transform scales both axes alike.
+// What a `path` item covers in its own coordinates. A rect or an ellipse covers its rectangle grown by half its stroke,
+// less the rectangle shrunk by half its stroke when it is not filled. A filled path covers the convex hull of the
+// control points of its outline's segments, which holds its curve and the straight segment its fill closes an open path
+// with, and leaves out the tangents of an open path's ends, which shape nothing it draws. Its stroke as drawn after
+// `trim` covers, the line stopping at its arrowheads' bases, a band the stroke wide along each straight segment, and
+// along each curved one, cut into pieces of equal length, the hull of each piece's control points grown by half the
+// stroke along both axes, which holds the stroke since a cubic lies in the hull of its control points. Each adds what
+// its stroke draws past its outline grown by half its width (`PathItem.overhangs`): its arrowheads, miter joins and
+// square caps. Bevels, round joins and caps, rounded corners, the curve of an ellipse and the trim of a rect or an
+// ellipse are left out. The stroke is drawn in output pixels on the outline `transform` carries, so its band is taken
+// at its width over the transform's length factor, exact where the transform scales both axes alike.
 extension ItemCoverage {
     // MARK: - Property
+    // The pieces a curved segment is cut into, whose control points lie closer to the curve the more there are.
+    private static let curvePieces = 16
+
     // MARK: - Initializer
     init(
         path: PathItem,
@@ -36,9 +42,10 @@ extension ItemCoverage {
                 holes: isHollow ? [ConvexPolygon(rectangle: inner)] : []
             )
 
-        case let .polyline(points, isClosed):
-            let fill = path.fill == nil ? [] : [ConvexPolygon(hullOf: points)]
-            let line = Self.pieces(of: points, isClosed: isClosed, path: path, width: width)
+        case .path:
+            let outline = PathOutline(path.geometry)
+            let fill = path.fill == nil ? [] : [ConvexPolygon(hullOf: outline.segments.flatMap(\.hullPoints))]
+            let line = Self.pieces(of: outline, path: path, width: width)
             self.init(pieces: fill + line + overhangs)
         }
     }
@@ -59,69 +66,60 @@ extension ItemCoverage {
 
     // The stroke's segments between its arrowheads, as `DrawnStroke` lays them along the outline.
     private static func pieces(
-        of points: [Point],
-        isClosed: Bool,
+        of outline: PathOutline,
         path: PathItem,
         width: Double
     ) -> [ConvexPolygon] {
-        let vertices = isClosed ? points + [points[0]] : points
-        let segments = zip(vertices, vertices.dropFirst()).filter { distance(from: $0.0, to: $0.1) > 0 }
-        let length = segments.map { distance(from: $0.0, to: $0.1) }.reduce(0, +)
-        guard let drawn = path.drawnStroke, drawn.isDrawn, length > 0 else { return [] }
+        guard let drawn = path.drawnStroke, drawn.isDrawn, outline.length > 0 else { return [] }
 
-        let lineStart = drawn.lineStart(along: length)
-        let lineEnd = drawn.lineEnd(along: length)
+        let lineStart = drawn.lineStart(along: outline.length)
+        let lineEnd = drawn.lineEnd(along: outline.length)
         guard lineEnd > lineStart else { return [] }
 
-        return piece(of: segments, from: lineStart, to: lineEnd).map { start, end in
-            band(from: start, to: end, width: width)
-        }
-    }
-
-    // The parts of the segments between two distances along them.
-    private static func piece(
-        of segments: [(Point, Point)],
-        from start: Double,
-        to end: Double
-    ) -> [(Point, Point)] {
-        var travelled = 0.0
-        var parts: [(Point, Point)] = []
-        for (from, to) in segments {
-            let length = distance(from: from, to: to)
-            defer { travelled += length }
-            let lower = max(start - travelled, 0)
-            let upper = min(end - travelled, length)
+        var parts: [ConvexPolygon] = []
+        for (index, segment) in outline.segments.enumerated() {
+            let lower = max(lineStart - outline.offsets[index], 0)
+            let upper = min(lineEnd - outline.offsets[index], outline.lengths[index])
             guard upper > lower else { continue }
 
-            parts.append((
-                .interpolate(from: from, to: to, progress: lower / length),
-                .interpolate(from: from, to: to, progress: upper / length)
-            ))
+            parts += bands(along: segment.piece(from: lower, to: upper), width: width)
         }
 
         return parts
     }
 
-    private static func band(
-        from start: Point,
-        to end: Point,
+    private static func bands(
+        along segment: OutlineSegment,
         width: Double
-    ) -> ConvexPolygon {
-        let length = distance(from: start, to: end)
-        let across = Point(x: -(end.y - start.y) / length * width / 2, y: (end.x - start.x) / length * width / 2)
+    ) -> [ConvexPolygon] {
+        let half = width / 2
+        let corners = [(-half, -half), (half, -half), (half, half), (-half, half)]
+        let grown = { (points: [Point]) in
+            ConvexPolygon(hullOf: points.flatMap { point in
+                corners.map { Point(x: point.x + $0, y: point.y + $1) }
+            })
+        }
 
-        return ConvexPolygon(corners: [
-            Point(x: start.x + across.x, y: start.y + across.y),
-            Point(x: end.x + across.x, y: end.y + across.y),
-            Point(x: end.x - across.x, y: end.y - across.y),
-            Point(x: start.x - across.x, y: start.y - across.y)
-        ])
-    }
+        switch segment {
+        case let .line(start, end):
+            let length = ((end.x - start.x) * (end.x - start.x) + (end.y - start.y) * (end.y - start.y)).squareRoot()
+            let across = Point(x: -(end.y - start.y) / length * half, y: (end.x - start.x) / length * half)
 
-    private static func distance(
-        from start: Point,
-        to end: Point
-    ) -> Double {
-        ((end.x - start.x) * (end.x - start.x) + (end.y - start.y) * (end.y - start.y)).squareRoot()
+            return [ConvexPolygon(corners: [
+                Point(x: start.x + across.x, y: start.y + across.y),
+                Point(x: end.x + across.x, y: end.y + across.y),
+                Point(x: end.x - across.x, y: end.y - across.y),
+                Point(x: start.x - across.x, y: start.y - across.y)
+            ])]
+
+        case .cubic:
+            let step = segment.length / Double(curvePieces)
+            return (0..<curvePieces).map { index in
+                grown(segment.piece(from: Double(index) * step, to: Double(index + 1) * step).hullPoints)
+            }
+
+        case .arc:
+            return [grown(segment.hullPoints)]
+        }
     }
 }

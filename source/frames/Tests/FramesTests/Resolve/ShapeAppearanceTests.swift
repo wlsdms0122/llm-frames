@@ -51,8 +51,16 @@ struct ShapeAppearanceTests {
                 #"clips[0] (path): missing key "points""#
             ),
             (
-                #"{ "shape": "path", "fill": "accent", "keyframes": [ { "at": 0, "points": [[0, 0], [1, 1]] }, { "at": 1, "points": [[0, 0], [1, 1], [2, 2]] } ] }"#,
-                #"clips[0].keyframes[1].points (path): the keyframes of "points" hold 2 and 3 points, and points interpolate one by one, so every value has the same number"#
+                #"{ "shape": "path", "fill": "accent", "keyframes": [ { "at": 0, "points": [[0, 0], [1, 1]] }, { "at": 0.5, "points": [[0, 0], [1, 1], [2, 2]] } ] }"#,
+                #"clips[0].keyframes[1].points (path): the values of "points" hold 2 and 3 vertices, and a path interpolates vertex by vertex, so every value has the same number"#
+            ),
+            (
+                #"{ "shape": "path", "fill": "accent", "points": [[0, 0], [1, 1]], "keyframes": [ { "at": 0.5, "points": [{ "inTangent": [1, 0] }, {}, {}] } ] }"#,
+                #"clips[0].keyframes[0].points (path): the values of "points" hold 2 and 3 vertices, and a path interpolates vertex by vertex, so every value has the same number"#
+            ),
+            (
+                #"{ "shape": "path", "fill": "accent", "keyframes": [ { "at": 0, "points": [[0, 0], { "inTangent": [1, 0] }] }, { "at": 0.5, "points": [[0, 0], {}] } ] }"#,
+                #"clips[0].keyframes[0].points[1] (path): missing key "vertex""#
             ),
             (
                 #"{ "shape": "rect", "area": [0, 0, 10, 10] }"#,
@@ -309,7 +317,7 @@ struct ShapeAppearanceTests {
             return
         }
         let total = try #require(area.values.first?.fixed)
-        #expect(points.values == [[.point(Point(x: 10, y: 20)), .point(total.point(named: "left"))]])
+        #expect(points.map(\.vertex.values) == [[.point(Point(x: 10, y: 20))], [.point(total.point(named: "left"))]])
         #expect(isClosed)
         #expect(placement.anchor == nil)
         #expect(clips[1].box == nil)

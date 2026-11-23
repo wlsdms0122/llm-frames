@@ -41,12 +41,17 @@ struct KeyframeReader: Sendable {
 
     // The leaves a keyframe writes, each by its path below the keyframe. A look key, which is timed leaf by leaf, is
     // walked into through its objects and lists of objects, and any other value is one leaf, so a point, a colour,
-    // `true` and `null` are each one. Every other key is timed as one value, a crop or a list of points too, so it is
-    // one leaf.
+    // `true` and `null` are each one. A path's `points`, a shape's or a mask's, is walked into vertex by vertex, each
+    // vertex's leaves named by their keys, a point by `vertex`. Every other key is timed as one value, a crop or a
+    // corner pin too, so it is one leaf.
     func leaves(of keyframe: JSONObject) -> [Place] {
         keyframe.members.filter { !Self.keyframeKeys.contains($0.key) }.flatMap { member in
             let place = Place.root.appending(key: member.key)
-            return ClipKeyTable.lookKeys.contains(member.key) ? leaves(of: member.value, at: place) : [place]
+            if ClipKeyTable.lookKeys.contains(member.key) || ClipKeyTable.leafKeys.contains(member.key) {
+                return leaves(of: member.value, at: place)
+            }
+
+            return [place]
         }
     }
 
@@ -71,6 +76,12 @@ struct KeyframeReader: Sendable {
         of value: JSONValue,
         at place: Place
     ) -> [Place] {
+        if case let .array(vertices) = value, place.components.last == .key("points") {
+            return vertices.enumerated().flatMap { index, vertex in
+                PathKeyTable.leaves(of: vertex).map { place.appending(index: index).appending(key: $0) }
+            }
+        }
+
         switch value {
         case let .object(object):
             return object.members.flatMap { member in leaves(of: member.value, at: place.appending(key: member.key)) }

@@ -131,17 +131,19 @@ struct ResolvedValueWriter: Sendable {
         case let .ellipse(rectangle):
             return form("ellipse", [JSONMember(key: "rect", value: self.rectangle(rectangle))])
 
-        case let .polyline(points, isClosed):
-            return form("polyline", [
-                JSONMember(key: "points", value: .array(points.map(self.point))),
+        case let .path(vertices, isClosed):
+            return form("path", [
+                JSONMember(key: "vertices", value: .array(vertices.map { self.point($0.vertex) })),
+                JSONMember(key: "inTangents", value: .array(vertices.map { self.point($0.inTangent) })),
+                JSONMember(key: "outTangents", value: .array(vertices.map { self.point($0.outTangent) })),
                 JSONMember(key: "closed", value: .bool(isClosed))
             ])
         }
     }
 
     // A clip's masks in order, or `null` for none. Each number of a mask's geometry and its feather is a keyframe list:
-    // a rect's or an ellipse's `rect`, or its box `width`, `height` and `position`, a rect's `radius`, and each point of
-    // a path, a closed polyline.
+    // a rect's or an ellipse's `rect`, or its box `width`, `height` and `position`, a rect's `radius`, and each vertex
+    // and tangent of a path, a closed `path`.
     func masks(_ masks: [ResolvedMask]?) -> JSONValue {
         guard let masks else { return .null }
 
@@ -231,6 +233,15 @@ struct ResolvedValueWriter: Sendable {
         case let .keyframes(keyframes):
             self.keyframes(keyframes, value: value)
         }
+    }
+
+    // A path shape's vertex, `{vertex, inTangent, outTangent}`, each a value a track can carry.
+    func vertex(_ vertex: PathVertex<FollowedValue<GeometryPoint>, FollowedValue<Point>>) -> JSONValue {
+        .object(JSONObject(members: [
+            JSONMember(key: "vertex", value: followed(vertex.vertex, value: geometryPoint)),
+            JSONMember(key: "inTangent", value: followed(vertex.inTangent, value: point)),
+            JSONMember(key: "outTangent", value: followed(vertex.outTangent, value: point))
+        ]))
     }
 
     func followedNumbers(_ followed: FollowedValue<Double>) -> JSONValue {
@@ -495,9 +506,11 @@ struct ResolvedValueWriter: Sendable {
         case let .ellipse(rectangle):
             return form("ellipse", members(of: rectangle))
 
-        case let .polyline(points):
-            return form("polyline", [
-                JSONMember(key: "points", value: .array(points.map { followed($0, value: geometryPoint) })),
+        case let .path(vertices):
+            return form("path", [
+                JSONMember(key: "vertices", value: .array(vertices.map { followed($0.vertex, value: geometryPoint) })),
+                JSONMember(key: "inTangents", value: .array(vertices.map { followed($0.inTangent, value: point) })),
+                JSONMember(key: "outTangents", value: .array(vertices.map { followed($0.outTangent, value: point) })),
                 JSONMember(key: "closed", value: .bool(true))
             ])
         }

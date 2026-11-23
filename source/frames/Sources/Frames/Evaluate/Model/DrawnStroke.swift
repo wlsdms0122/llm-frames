@@ -50,7 +50,8 @@ package struct DrawnStroke: Equatable, Sendable {
         high * length
     }
 
-    // The length of each head along an outline `length` long, after shrinking.
+    // How far along an outline `length` long each head's base lies back from its tip, after shrinking, which is also
+    // the width of its base.
     package func headLength(along length: Double) -> Double {
         let count = Double([hasStartHead, hasEndHead].filter { $0 }.count)
         guard count > 0 else { return 0 }

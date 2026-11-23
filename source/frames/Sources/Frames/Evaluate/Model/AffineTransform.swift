@@ -157,6 +157,11 @@ package struct AffineTransform: Equatable, Sendable {
         Point(x: a * point.x + c * point.y + tx, y: b * point.x + d * point.y + ty)
     }
 
+    // An offset between two points is carried by the linear part alone.
+    func apply(toOffset offset: Point) -> Point {
+        Point(x: a * offset.x + c * offset.y, y: b * offset.x + d * offset.y)
+    }
+
     // The rectangle's corners carried by the transform, clockwise from its top left.
     func apply(toCornersOf rectangle: Rectangle) -> [Point] {
         Quad(rectangle).applying(self).corners

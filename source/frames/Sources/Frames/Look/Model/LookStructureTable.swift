@@ -187,9 +187,22 @@ enum LookStructureTable {
 
     static let animation = ValueStructure.choice(offNames: ["none"])
 
+    // A path's vertex (FRAMES-11 Paths): its point and each of its tangents move as one leaf, and a vertex written as a
+    // point names its point alone, its tangents `[0, 0]` where nothing writes them.
+    static let pathVertex = ValueStructure.object(ObjectStructure(
+        [
+            ("vertex", .leaf(.numbers(count: 2))),
+            ("inTangent", .leaf(.numbers(count: 2))),
+            ("outTangent", .leaf(.numbers(count: 2)))
+        ],
+        required: ["vertex"],
+        shorthands: [.point(key: "vertex")],
+        plain: ["inTangent": .array([.number(0), .number(0)]), "outTangent": .array([.number(0), .number(0)])]
+    ))
+
     // A clip's masks in order. Each mask's geometry is one form, `area`, the box `width`, `height` and `position`, or
-    // `points`, which a keyframe may not change; an area, a position and each point move as one leaf. Its `shape`,
-    // `invert` and `mode` are static.
+    // `points`, which a keyframe may not change; an area and a position move as one leaf, and a path's vertices as
+    // `pathVertex` says. Its `shape`, `invert` and `mode` are static.
     static let mask = ValueStructure.list(.object(ObjectStructure(
         [
             ("shape", .leaf(.name(among: VocabularyTable.shapes))),
@@ -197,7 +210,7 @@ enum LookStructureTable {
             ("width", .leaf(.number(.positive))),
             ("height", .leaf(.number(.positive))),
             ("position", .leaf(.numbers(count: 2))),
-            ("points", .list(.leaf(.numbers(count: 2)))),
+            ("points", .list(pathVertex)),
             ("radius", .leaf(.number(.nonNegative))),
             ("feather", .leaf(.length())),
             ("invert", .leaf(.boolean)),

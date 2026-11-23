@@ -115,6 +115,14 @@ package struct TrackMotion: Equatable, Sendable {
         )
     }
 
+    // An offset, a path's tangent, is brought back by the inverse's linear part alone, its scale and rotation.
+    func bringBack(offset: Point) -> Point {
+        let center = transform.apply(to: origin)
+        let point = bringBack(Point(x: center.x + offset.x, y: center.y + offset.y))
+
+        return Point(x: point.x - origin.x, y: point.y - origin.y)
+    }
+
     // A rectangle keeps its shape: its centre is carried and its size scaled. A motion that turns turns the space it
     // is carried in, not the rectangle within it.
     func carry(_ rectangle: Rectangle) -> Rectangle {

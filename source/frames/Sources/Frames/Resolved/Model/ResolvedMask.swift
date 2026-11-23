@@ -34,8 +34,8 @@ struct ResolvedMask: Equatable, Sendable {
         case let .ellipse(box):
             rectangle(box)
 
-        case let .polyline(points):
-            points.flatMap(\.keyframeTimes)
+        case let .path(vertices):
+            vertices.flatMap { $0.vertex.keyframeTimes + $0.inTangent.keyframeTimes + $0.outTangent.keyframeTimes }
         }
     }
 
@@ -64,12 +64,14 @@ struct ResolvedMask: Equatable, Sendable {
     }
 
     // The same mask with each keyframe of its geometry carried to another space at its own time: an area, a box's
-    // centre and each point by `area` and `point`, and a box's size and a rect's radius by the factor `scale` gives.
+    // centre and each vertex's point by `area` and `point`, each tangent, an offset, by `tangent`, and a box's size
+    // and a rect's radius by the factor `scale` gives.
     // The time is nil for a static value true on the track's frame. A clip area is in the space the clip is drawn in,
     // so it stays, and the feather is in output pixels and stays.
     func carried(
         area: (Rectangle, Double?, MaskLeaf) throws -> Rectangle,
         point: (Point, Double?, MaskLeaf) throws -> Point,
+        tangent: (Point, Double?) throws -> Point,
         scale: (Double?) throws -> Double
     ) rethrows -> ResolvedMask {
         let geometry: ResolvedMaskGeometry = switch self.geometry {
@@ -82,9 +84,15 @@ struct ResolvedMask: Equatable, Sendable {
         case let .ellipse(box):
             .ellipse(try Self.carried(box, area: area, point: point, scale: scale))
 
-        case let .polyline(points):
-            .polyline(try points.enumerated().map { index, leaf in
-                try Self.carried(leaf) { value, time in try value.map { try point($0, time, .point(index)) } }
+        case let .path(vertices):
+            .path(try vertices.enumerated().map { index, vertex in
+                PathVertex(
+                    vertex: try Self.carried(vertex.vertex) { value, time in
+                        try value.map { try point($0, time, .point(index)) }
+                    },
+                    inTangent: try Self.carried(vertex.inTangent, by: tangent),
+                    outTangent: try Self.carried(vertex.outTangent, by: tangent)
+                )
             })
         }
 
@@ -100,9 +108,13 @@ struct ResolvedMask: Equatable, Sendable {
         case let .ellipse(box):
             .ellipse(Self.onTrackFrame(box, where: isOnTrackFrame))
 
-        case let .polyline(points):
-            .polyline(points.enumerated().map { index, leaf in
-                Self.onTrackFrame(leaf, isOnTrackFrame(.point(index)))
+        case let .path(vertices):
+            .path(vertices.enumerated().map { index, vertex in
+                PathVertex(
+                    vertex: Self.onTrackFrame(vertex.vertex, isOnTrackFrame(.point(index))),
+                    inTangent: Self.onTrackFrame(vertex.inTangent, isOnTrackFrame(.inTangent(index))),
+                    outTangent: Self.onTrackFrame(vertex.outTangent, isOnTrackFrame(.outTangent(index)))
+                )
             })
         }
 

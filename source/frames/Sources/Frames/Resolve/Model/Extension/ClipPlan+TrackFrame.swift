@@ -7,8 +7,9 @@
 
 // The values a tracked clip's track carries, as its placement decides them (FRAMES-12 What is tracked), the clock each
 // of its values is searched on, and those followed values it writes without keyframes that are true on the track's
-// frame, which the resolved document writes as values. Which of a mask's leaves are written without keyframes, and
-// which of them a text form found, is decided where its masks are found, so a followed mask is taken whole here.
+// frame, which the resolved document writes as values. Which of a mask's or a path's leaves are written without
+// keyframes, and which of them a text form found, is decided where its masks are found and where its vertices are
+// brought into its parent's space, so a followed mask and a path's `points` are taken whole here.
 extension ClipPlan {
     // MARK: - Property
     var followedKeys: Set<FollowedKey> {
@@ -58,9 +59,9 @@ extension ClipPlan {
             isFoundByText = area.isFoundByText
 
         case .points:
-            guard case let .shape(shape) = written.content, case let .value(points) = shape.points else { return false }
+            guard case let .shape(shape) = written.content else { return false }
 
-            isFoundByText = points.contains(where: \.isFoundByText)
+            return shape.points != nil
 
         case .position:
             guard case let .value(position) = written.position else { return false }

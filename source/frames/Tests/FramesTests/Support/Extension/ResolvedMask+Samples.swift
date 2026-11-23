@@ -32,7 +32,7 @@ extension ResolvedMask {
             case let .rect(rectangle, _), let .ellipse(rectangle):
                 Keyframe(at: sample.at, value: rectangle)
 
-            case .polyline:
+            case .path:
                 Keyframe(at: sample.at, value: Rectangle(x: 0, y: 0, width: 0, height: 0))
             }
         }
@@ -50,15 +50,22 @@ extension ResolvedMask {
         case .ellipse:
             .ellipse(.area(.keyframes(rectangles.map { $0.map(GeometryArea.rectangle) })))
 
-        case let .polyline(points, _):
-            .polyline(points.indices.map { index in
-                .keyframes(samples.map { sample in
-                    if case let .polyline(points, _) = sample.geometry {
-                        Keyframe(at: sample.at, value: GeometryPoint.point(points[index]))
-                    } else {
-                        Keyframe(at: sample.at, value: GeometryPoint.point(Point(x: 0, y: 0)))
+        case let .path(vertices, _):
+            .path(vertices.indices.map { index in
+                let leaf = { (value: (PathVertex<Point, Point>) -> Point) in
+                    samples.map { sample in
+                        if case let .path(vertices, _) = sample.geometry {
+                            Keyframe(at: sample.at, value: value(vertices[index]))
+                        } else {
+                            Keyframe(at: sample.at, value: Point(x: 0, y: 0))
+                        }
                     }
-                })
+                }
+                return PathVertex(
+                    vertex: .keyframes(leaf(\.vertex).map { $0.map(GeometryPoint.point) }),
+                    inTangent: .keyframes(leaf(\.inTangent)),
+                    outTangent: .keyframes(leaf(\.outTangent))
+                )
             })
         }
 

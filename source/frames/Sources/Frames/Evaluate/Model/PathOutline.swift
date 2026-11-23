@@ -5,9 +5,11 @@
 //  Created by JSilver on 11/18/26.
 //
 
+import Foundation
+
 // The outline of a path's geometry in y-down coordinates, clockwise in them from a fixed start, which trim fractions
 // count from: a rect from the start of its top edge after the top left corner's arc, an ellipse from its
-// top, a polyline from its first point along its points, the closing segment last. Segments of no length are left out,
+// top, a path from its first vertex along its vertices, the closing segment last. Segments of no length are left out,
 // so every segment has a direction.
 package struct PathOutline: Equatable, Sendable {
     // MARK: - Property
@@ -15,6 +17,9 @@ package struct PathOutline: Equatable, Sendable {
     package let length: Double
     package let start: Point
     package let segments: [OutlineSegment]
+    // Each segment's length and the distance along the outline to its start, in the order of `segments`.
+    package let lengths: [Double]
+    package let offsets: [Double]
 
     // MARK: - Initializer
     package init(_ geometry: PathGeometry) {
@@ -36,35 +41,48 @@ package struct PathOutline: Equatable, Sendable {
             start = Point(x: frame.center.x, y: frame.y)
             isClosed = true
 
-        case let .polyline(points, closed):
-            let ends = closed ? points + points.prefix(1) : points
-            segments = zip(ends, ends.dropFirst()).map { OutlineSegment.line(from: $0.0, to: $0.1) }
-            start = points.first ?? Point(x: 0, y: 0)
+        case let .path(vertices, closed):
+            let ends = closed ? vertices + vertices.prefix(1) : vertices
+            segments = zip(ends, ends.dropFirst()).map { OutlineSegment.joining($0.0, $0.1) }
+            start = vertices.first?.vertex ?? Point(x: 0, y: 0)
             isClosed = closed
         }
 
-        self.init(isClosed: isClosed, start: start, segments: segments.filter { $0.length > 0 })
+        let measured = segments.map { segment in (segment, segment.length) }.filter { _, length in length > 0 }
+        self.init(isClosed: isClosed, start: start, segments: measured.map(\.0), lengths: measured.map(\.1))
     }
 
     private init(
         isClosed: Bool,
         start: Point,
-        segments: [OutlineSegment]
+        segments: [OutlineSegment],
+        lengths: [Double]
     ) {
+        var offsets: [Double] = []
+        var length = 0.0
+        for segmentLength in lengths {
+            offsets.append(length)
+            length += segmentLength
+        }
+
         self.isClosed = isClosed
         self.start = start
         self.segments = segments
-        self.length = segments.map(\.length).reduce(0, +)
+        self.lengths = lengths
+        self.offsets = offsets
+        self.length = length
     }
 
     // MARK: - Public
     // The outline carried by a map that does not flatten the plane, segment by segment, so its distances correspond
     // to this one's through `distance(_:onto:)`. A mirroring map turns its direction on the output.
     package func carried(by transform: AffineTransform) -> PathOutline {
-        PathOutline(
+        let carried = segments.map { $0.carried(by: transform) }
+        return PathOutline(
             isClosed: isClosed,
             start: transform.apply(to: start),
-            segments: segments.map { $0.carried(by: transform) }
+            segments: carried,
+            lengths: carried.map(\.length)
         )
     }
 
@@ -76,14 +94,11 @@ package struct PathOutline: Equatable, Sendable {
     ) -> Double {
         guard distance < length else { return other.length }
 
-        var offset = 0.0
-        var otherOffset = 0.0
-        for (segment, otherSegment) in zip(segments, other.segments) {
-            if distance < offset + segment.length {
-                return otherOffset + otherSegment.distance(distance - offset, from: segment)
+        for index in segments.indices where index < other.segments.count {
+            if distance < offsets[index] + lengths[index] {
+                let along = other.segments[index].distance(distance - offsets[index], from: segments[index])
+                return other.offsets[index] + along
             }
-            offset += segment.length
-            otherOffset += otherSegment.length
         }
 
         return other.length
@@ -106,8 +121,9 @@ package struct PathOutline: Equatable, Sendable {
         return found.segment.direction(at: distance - found.offset)
     }
 
-    // The arrowheads of a stroke drawn along the outline, the start's first. The start's head points back along the
-    // outline, the end's forward, each along the segment on the drawn side of its tip.
+    // The arrowheads of a stroke drawn along the outline, the start's first (FRAMES-20 Arrowheads). Each has its tip at
+    // its end of the stroke and the middle of its base on the stroke its length back along it, its axis the chord
+    // between them, or where they are one point the direction at the tip, back along the outline for the start's.
     package func arrowheads(of drawn: DrawnStroke) -> [Arrowhead] {
         guard length > 0 else { return [] }
 
@@ -134,6 +150,7 @@ package struct PathOutline: Equatable, Sendable {
         guard drawn.isWhole || lineEnd > lineStart else { return heads }
 
         let half = stroke.width / 2
+        // A cusp turns back by half a circle, past the miter limit, so it is bevelled and adds nothing here.
         let joins = stroke.join == .miter
             ? corners(drawnBy: drawn).compactMap { corner in miter(at: corner, half: half) }
             : []
@@ -146,6 +163,39 @@ package struct PathOutline: Equatable, Sendable {
             : []
 
         return heads + joins + caps
+    }
+
+    // The corners the drawn line turns at (FRAMES-20 Direction at a point), in order along it, each with the directions
+    // it arrives and leaves by: the joints between segments whose directions there differ and the cusps inside
+    // segments. A whole closed outline has every one, the joint at its start included, and a drawn piece those strictly
+    // between its line's ends.
+    package func corners(drawnBy drawn: DrawnStroke) -> [(point: Point, arriving: Point, leaving: Point)] {
+        let lineStart = drawn.lineStart(along: length)
+        let lineEnd = drawn.lineEnd(along: length)
+        var corners: [(distance: Double, point: Point, arriving: Point, leaving: Point)] = []
+        for (index, segment) in segments.enumerated() {
+            for cusp in segment.cusps {
+                let leaving = cusp.leaving
+                let arriving = Point(x: -leaving.x, y: -leaving.y)
+                corners.append((offsets[index] + cusp.distance, cusp.point, arriving, leaving))
+            }
+            let end = offsets[index] + lengths[index]
+
+            let isLast = index == segments.count - 1
+            guard !isLast || isClosed else { continue }
+
+            let next = segments[isLast ? 0 : index + 1]
+            let arriving = segment.direction(at: lengths[index])
+            let leaving = next.direction(at: 0)
+            // A rounded corner's arc meets its edges in directions that differ only by rounding, and is smooth.
+            guard arriving.x * leaving.x + arriving.y * leaving.y < 1 - 1e-9 else { continue }
+
+            corners.append((end, next.point(at: 0), arriving, leaving))
+        }
+
+        return corners
+            .filter { corner in drawn.isWhole || (corner.distance > lineStart && corner.distance < lineEnd) }
+            .map { corner in (corner.point, corner.arriving, corner.leaving) }
     }
 
     // MARK: - Private
@@ -195,40 +245,12 @@ package struct PathOutline: Equatable, Sendable {
         at distance: Double,
         leaving: Bool
     ) -> (segment: OutlineSegment, offset: Double)? {
-        var offset = 0.0
-        for segment in segments {
-            let end = offset + segment.length
-            if leaving ? distance < end : distance <= end { return (segment, offset) }
-            offset = end
+        for index in segments.indices {
+            let end = offsets[index] + lengths[index]
+            if leaving ? distance < end : distance <= end { return (segments[index], offsets[index]) }
         }
 
-        return segments.last.map { ($0, offset - $0.length) }
-    }
-
-    // The joints the drawn line turns at, each with the directions it arrives and leaves by: every joint of a whole
-    // closed outline, the one at its start included, and of a drawn piece those strictly between its line's ends.
-    private func corners(drawnBy drawn: DrawnStroke) -> [(point: Point, arriving: Point, leaving: Point)] {
-        let lineStart = drawn.lineStart(along: length)
-        let lineEnd = drawn.lineEnd(along: length)
-        var offset = 0.0
-        var joints: [(distance: Double, arriving: OutlineSegment, leaving: OutlineSegment)] = []
-        for (arriving, leaving) in zip(segments, segments.dropFirst()) {
-            offset += arriving.length
-            joints.append((offset, arriving, leaving))
-        }
-        if isClosed, let last = segments.last, let first = segments.first {
-            joints.append((length, last, first))
-        }
-
-        return joints
-            .filter { joint in drawn.isWhole || (joint.distance > lineStart && joint.distance < lineEnd) }
-            .map { joint in
-                (
-                    joint.leaving.point(at: 0),
-                    joint.arriving.direction(at: joint.arriving.length),
-                    joint.leaving.direction(at: 0)
-                )
-            }
+        return segments.indices.last.map { index in (segments[index], offsets[index]) }
     }
 
     // A miter join outside its corner, from the corner by the ends of both segments' stroke edges to the miter's point,
@@ -243,8 +265,7 @@ package struct PathOutline: Equatable, Sendable {
         let sine = ((1 + turn) / 2).squareRoot()
         let outside = Point(x: arriving.x - leaving.x, y: arriving.y - leaving.y)
         let size = (outside.x * outside.x + outside.y * outside.y).squareRoot()
-        // A rounded corner's arc meets its edges in directions that differ only by rounding, and is not a corner.
-        guard turn < 1 - 1e-9, sine * StrokeJoin.miterLimit >= 1, size > 0 else { return nil }
+        guard sine * StrokeJoin.miterLimit >= 1, size > 0 else { return nil }
 
         let reach = half / sine
         let tip = Point(x: point.x + outside.x / size * reach, y: point.y + outside.y / size * reach)
@@ -281,12 +302,16 @@ package struct PathOutline: Equatable, Sendable {
         isStart: Bool,
         length: Double
     ) -> Arrowhead {
-        let direction = direction(at: distance, leaving: isStart)
-        let sign = isStart ? -1.0 : 1.0
-        return Arrowhead(
-            tip: point(at: distance),
-            axis: Point(x: direction.x * sign, y: direction.y * sign),
-            length: length
-        )
+        let tip = point(at: distance)
+        let base = point(at: isStart ? distance + length : distance - length)
+        let chord = Point(x: tip.x - base.x, y: tip.y - base.y)
+        let size = hypot(chord.x, chord.y)
+        guard size > 0 else {
+            let direction = direction(at: distance, leaving: isStart)
+            let sign = isStart ? -1.0 : 1.0
+            return Arrowhead(tip: tip, axis: Point(x: direction.x * sign, y: direction.y * sign), length: 0, width: length)
+        }
+
+        return Arrowhead(tip: tip, axis: Point(x: chord.x / size, y: chord.y / size), length: size, width: length)
     }
 }

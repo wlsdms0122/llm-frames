@@ -521,8 +521,8 @@ struct ClipAreaEndToEndTests {
         case let .rect(rectangle, _), let .ellipse(rectangle):
             return Rectangle(bounding: mask.transform.apply(toCornersOf: rectangle))
 
-        case let .polyline(points, _):
-            return Rectangle(bounding: points.map { mask.transform.apply(to: $0) })
+        case .path:
+            return mask.geometry.bounds(carriedBy: mask.transform)
         }
     }
 

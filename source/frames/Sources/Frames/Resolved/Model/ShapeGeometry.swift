@@ -6,13 +6,13 @@
 //
 
 // How a shape entry is placed, its keyframes in sequence time: a rect or an ellipse by its box, `width` by `height` in
-// output pixels, or by its `area` in its coordinate space, or a path by its `points`, joined back to the first when
-// `isClosed`. A rect's or an ellipse's `outset`, timed and in output pixels, grows only the outline it draws on every
+// output pixels, or by its `area` in its coordinate space, or a path by its vertices, each vertex's point and tangents
+// timed apart, joined back to the first when `isClosed`. A rect's or an ellipse's `outset`, timed and in output pixels, grows only the outline it draws on every
 // side, and its box is as written. A shape placed by its area or its points carries where it goes.
 enum ShapeGeometry: Equatable, Sendable {
     case box(width: [Keyframe<Double>], height: [Keyframe<Double>], outset: TimedValue)
     case area(FollowedValue<GeometryArea>, outset: TimedValue, placement: GeometryPlacement)
-    case points(FollowedValue<[GeometryPoint]>, isClosed: Bool, placement: GeometryPlacement)
+    case points([PathVertex<FollowedValue<GeometryPoint>, FollowedValue<Point>>], isClosed: Bool, placement: GeometryPlacement)
 
     // MARK: - Property
     // Where a shape placed by its geometry goes, nil for one placed by its box.
@@ -42,7 +42,7 @@ enum ShapeGeometry: Equatable, Sendable {
             area.values.contains { $0.clipArea != nil }
 
         case let .points(points, _, _):
-            points.values.contains { $0.contains { $0.clipArea != nil } }
+            points.contains { $0.vertex.values.contains { $0.clipArea != nil } }
         }
     }
 

@@ -116,7 +116,13 @@ struct DisplayListReaderTests {
             ))
         ),
         DisplayItem(content: .path(PathItem(
-            geometry: .polyline([Point(x: 240, y: 175), Point(x: 300, y: 175)], isClosed: false),
+            geometry: .path(
+                [
+                    PathVertex(vertex: Point(x: 240, y: 175), inTangent: Point(x: 0, y: 0), outTangent: Point(x: 20, y: -30)),
+                    PathVertex(vertex: Point(x: 300, y: 175), inTangent: Point(x: -10, y: -15.5), outTangent: Point(x: 0, y: 0))
+                ],
+                isClosed: false
+            ),
             fill: nil,
             stroke: PathStroke(width: 6, paint: .color(Color(written: "#FF3B30")), join: .round, cap: .round, start: .none, end: .arrow),
             trim: Trim(start: 0, end: 0.6)
@@ -684,16 +690,12 @@ struct DisplayListReaderTests {
     }
 
     @Test(
-        "a mask list that is empty, or a mask that is not a closed polyline through three points, has a missing key, a negative feather or an unknown mode stops",
+        "a mask list that is empty, or a mask that is not a closed path, has a missing key, a negative feather or an unknown mode stops",
         arguments: [
             ("[]", "items[0].mask (path): a mask list holds at least one mask, and an item without one has null"),
             (
-                #"[{ "geometry": { "polyline": { "points": [[0, 0], [4, 0], [2, 4]], "closed": false } }, "transform": [1, 0, 0, 1, 0, 0], "feather": 0, "invert": false, "mode": "add" }]"#,
-                "items[0].mask[0].geometry (path): a path mask is a closed polyline through at least three points"
-            ),
-            (
-                #"[{ "geometry": { "polyline": { "points": [[0, 0], [4, 0]], "closed": true } }, "transform": [1, 0, 0, 1, 0, 0], "feather": 0, "invert": false, "mode": "add" }]"#,
-                "items[0].mask[0].geometry (path): a path mask is a closed polyline through at least three points"
+                #"[{ "geometry": { "path": { "vertices": [[0, 0], [4, 0], [2, 4]], "inTangents": [[0, 0], [0, 0], [0, 0]], "outTangents": [[0, 0], [0, 0], [0, 0]], "closed": false } }, "transform": [1, 0, 0, 1, 0, 0], "feather": 0, "invert": false, "mode": "add" }]"#,
+                "items[0].mask[0].geometry (path): a path mask is a closed path"
             ),
             (
                 #"[{ "geometry": { "ellipse": { "rect": [0, 0, 4, 4] } }, "transform": [1, 0, 0, 1, 0, 0], "feather": 0, "invert": false }]"#,
@@ -833,7 +835,10 @@ struct DisplayListReaderTests {
         #expect(item["shadow"] == .null)
         #expect(item["trim"] == .array([.number(0), .number(0.6)]))
         #expect(item["stroke"]?.objectValue?.keys == ["width", "paint", "join", "cap", "start", "end", "dash", "dashOffset"])
-        #expect(item["geometry"] == (try Fixture.json(#"{ "polyline": { "points": [[240, 175], [300, 175]], "closed": false } }"#)))
+        #expect(item["geometry"] == (try Fixture.json(#"""
+            { "path": { "vertices": [[240, 175], [300, 175]], "inTangents": [[0, 0], [-10, -15.5]],
+                        "outTangents": [[20, -30], [0, 0]], "closed": false } }
+            """#)))
     }
 
     @Test("a unit's item writes its unit beside its unit box, and its origin names only the clip that drew it")
@@ -958,20 +963,25 @@ struct DisplayListReaderTests {
         "a path whose geometry, stroke literal or trim is not of the JSON form stops, naming its place",
         arguments: [
             (
-                #"{ "polyline": { "points": [[1, 2]], "closed": false } }"#,
+                #"{ "path": { "vertices": [[1, 2]], "inTangents": [[0, 0]], "outTangents": [[0, 0]], "closed": false } }"#,
                 "geometry",
-                "items[0].geometry.polyline.points (path): a polyline runs through at least two points, found 1"
+                "items[0].geometry.path.vertices (path): a path runs through at least two vertices, found 1"
+            ),
+            (
+                #"{ "path": { "vertices": [[1, 2], [3, 4]], "inTangents": [[0, 0], [0, 0]], "outTangents": [[0, 0]], "closed": false } }"#,
+                "geometry",
+                "items[0].geometry.path.outTangents (path): a path has a tangent for each of its 2 vertices, found 1"
             ),
             (
                 #"{ "rect": { "rect": [0, 0, 1, 1], "radius": 0 }, "ellipse": { "rect": [0, 0, 1, 1] } }"#,
                 "geometry",
                 #"items[0].geometry (path): takes only one of "rect", "ellipse""#
             ),
-            ("{}", "geometry", "items[0].geometry (path): needs one of rect, ellipse, polyline"),
+            ("{}", "geometry", "items[0].geometry (path): needs one of rect, ellipse, path"),
             (
                 #"{ "spline": { "points": [[0, 0], [1, 1]] } }"#,
                 "geometry",
-                #"items[0].geometry (path): unknown key "spline". Allowed: rect, ellipse, polyline"#
+                #"items[0].geometry (path): unknown key "spline". Allowed: rect, ellipse, path"#
             ),
             (
                 #"{ "ellipse": { "rect": [0, 0, 1, 1], "radius": 2 } }"#,

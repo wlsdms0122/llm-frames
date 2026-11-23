@@ -14,7 +14,7 @@ struct ClipShape: Equatable, Sendable {
     let style: String?
     let width: PropertyValue<Double>?
     let height: PropertyValue<Double>?
-    let points: PropertyValue<[PositionForm]>?
+    let points: PathProperty?
     let isClosed: Bool
     let radius: LookProperty?
     let outset: LookProperty?
@@ -33,7 +33,7 @@ struct ClipShape: Equatable, Sendable {
         style: String? = nil,
         width: PropertyValue<Double>? = nil,
         height: PropertyValue<Double>? = nil,
-        points: PropertyValue<[PositionForm]>? = nil,
+        points: PathProperty? = nil,
         isClosed: Bool = false,
         radius: LookProperty? = nil,
         outset: LookProperty? = nil,

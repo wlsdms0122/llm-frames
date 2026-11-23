@@ -61,7 +61,10 @@ struct MaskPlanner: Sendable {
             ?? property.keyframes.allSatisfy { $0.value.objectValue != nil }
         let aloneKeyframes = Set(property.keyframes.filter { $0.value.objectValue != nil }.map(\.index))
         let placed = { (place: Place) in
-            self.placed(place, isWrittenAlone: isWrittenAlone, aloneKeyframes: aloneKeyframes)
+            self.pointPlaced(
+                self.placed(place, isWrittenAlone: isWrittenAlone, aloneKeyframes: aloneKeyframes),
+                in: property
+            )
         }
 
         let written = property.written.map { reader.value(of: listed($0), as: structure) }
@@ -81,8 +84,8 @@ struct MaskPlanner: Sendable {
             let own = try builder.ownLayer(written: written, keyframes: keyframes, as: structure, place: lookPlace)
             guard let merged = own else { return nil }
 
-            // `shape`, the one key a mask requires, is static, so no keyframe can give it.
-            try merger.checkRequired(in: merged, as: structure, place: lookPlace.written)
+            // A mask's `shape` is static, and a path's vertex may take its point from its keyframes.
+            try merger.checkRequired(in: merged, keyframes: keyframes, as: structure, place: lookPlace)
 
             timed = try builder.timed(
                 merged,
@@ -149,9 +152,23 @@ struct MaskPlanner: Sendable {
             return (index, .radius)
 
         case "points":
-            guard path.count >= 3, case let .index(point, _) = path[2] else { return nil }
+            guard path.count >= 4, case let .index(vertex, _) = path[2], case let .key(leaf) = path[3] else {
+                return nil
+            }
 
-            return (index, .point(point))
+            switch leaf {
+            case "vertex":
+                return (index, .point(vertex))
+
+            case "inTangent":
+                return (index, .inTangent(vertex))
+
+            case "outTangent":
+                return (index, .outTangent(vertex))
+
+            default:
+                return nil
+            }
 
         default:
             return nil
@@ -199,12 +216,12 @@ struct MaskPlanner: Sendable {
             maskLeaf = .position
 
         case "points":
-            guard path.count >= 3, case let .index(point, _) = path[2] else {
+            guard path.count >= 4, case let .index(vertex, _) = path[2], path[3] == .key("vertex") else {
                 return (number(json, kind: leafKind), index, nil)
             }
 
             position = PositionForm(value: json)
-            maskLeaf = .point(point)
+            maskLeaf = .point(vertex)
 
         default:
             return (number(json, kind: leafKind), index, nil)
@@ -238,6 +255,49 @@ struct MaskPlanner: Sendable {
 
     private func listed(_ json: JSONValue) -> JSONValue {
         json.objectValue == nil ? json : .array([json])
+    }
+
+    // The place of a vertex's point as the document writes it, which `PathKeyTable` gives from the vertex its layer
+    // writes at `mask.points[i]` or `mask[m].points[i]`, statically or in a keyframe. The look's structure names every
+    // point at its vertex's `vertex`.
+    private func pointPlaced(
+        _ written: Place,
+        in property: LookProperty
+    ) -> Place {
+        let below = Array(written.components.dropFirst(place.components.count))
+        let layer: JSONValue?
+        let path: ArraySlice<PlaceComponent>
+        switch (below.first, below.dropFirst().first) {
+        case (.key("mask"), _):
+            layer = property.written
+            path = below.dropFirst()
+
+        case let (.key("keyframes"), .index(index, _)):
+            layer = property.keyframes.first { $0.index == index }?.value
+            path = below.dropFirst(3)
+
+        default:
+            return written
+        }
+        let mask: Int? = if case let .index(index, _) = path.first { index } else { nil }
+        let leaf = Array(path.dropFirst(mask == nil ? 0 : 1))
+        guard
+            leaf.count == 3,
+            leaf[0] == .key("points"),
+            case let .index(index, _) = leaf[1],
+            leaf[2] == .key("vertex"),
+            let masks = layer.map(listed)?.arrayValue,
+            masks.indices.contains(mask ?? 0),
+            let vertices = masks[mask ?? 0].objectValue?["points"]?.arrayValue,
+            vertices.indices.contains(index)
+        else {
+            return written
+        }
+
+        return PathKeyTable.place(
+            ofPointOf: vertices[index],
+            at: Place(file: written.file, components: Array(written.components.dropLast()))
+        )
     }
 
     // The place as the document writes it: the index of a mask written alone, statically or in a keyframe, is left out.

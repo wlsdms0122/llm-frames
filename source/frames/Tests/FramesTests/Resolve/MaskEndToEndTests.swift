@@ -56,6 +56,31 @@ struct MaskEndToEndTests {
         #expect(between.map(\.mode) == [.add, .subtract])
     }
 
+    @Test("a path mask of two vertices with tangents is drawn as the lens its curves enclose, its box the curves'")
+    func drawsCurvedMask() throws {
+        // Given
+        // Each segment's control points lie 40 above or below its ends at y = 50, so its middle lies 30 past them.
+        let sut = try resolved(#"""
+            { "kind": "sequence", "format": { "size": [1920, 1080] }, "storyline": [ { "solid": "#202020", "duration": 4 } ],
+              "clips": [ { "adjust": "frames/warm", "at": [0, 4], "mask": { "shape": "path", "points": [
+                { "vertex": [0, 50], "inTangent": [0, 40], "outTangent": [0, -40] },
+                { "vertex": [100, 50], "inTangent": [0, -40], "outTangent": [0, 40] } ] } } ] }
+            """#)
+
+        // When
+        let mask = try #require(try masks(of: sut, at: 1).first)
+
+        // Then
+        #expect(mask.geometry == .path(
+            [
+                PathVertex(vertex: Point(x: 0, y: 50), inTangent: Point(x: 0, y: 40), outTangent: Point(x: 0, y: -40)),
+                PathVertex(vertex: Point(x: 100, y: 50), inTangent: Point(x: 0, y: -40), outTangent: Point(x: 0, y: 40))
+            ],
+            isClosed: true
+        ))
+        #expect(mask.geometry.bounds(carriedBy: mask.transform) == Rectangle(x: 0, y: 20, width: 100, height: 60))
+    }
+
     @Test("a box mask whose width alone is keyframed eases its width by its own keyframes, its height and centre held")
     func easesBoxWidthAlone() throws {
         // Given

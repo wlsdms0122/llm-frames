@@ -91,6 +91,33 @@ struct TrackFrameTests {
         #expect(radius.keyframeTimes.count == 1)
     }
 
+    @Test("a tracked path keeps each vertex leaf written without keyframes true on the track's frame, a point found by text at the instant and a keyframed tangent at its keyframes")
+    func keepsStaticPathLeavesOnTrackFrame() throws {
+        // Given
+        let sequence = try resolved(#"""
+            { "id": "tracked", "shape": "path", "stroke": { "width": 4 }, "parent": "screen", "at": [1, 3], "track": { "time": 1.5, "area": [100, 100, 200, 40] },
+              "points": [[100, 100], { "vertex": [300, 100], "inTangent": [0, 20] }, { "vertex": { "area": { "text": "Total" }, "point": "left" } }],
+              "keyframes": [ { "at": 1, "points": [{ "outTangent": [10, 0] }, {}, {}] }, { "at": 2, "points": [{ "outTangent": [20, 0] }, {}, {}] } ] }
+            """#)
+
+        // When
+        let read = try ResolvedDocumentReader().read(ResolvedDocumentWriter().write(sequence))
+
+        // Then
+        let clip = try #require(read.clips.first { $0.id == "tracked" })
+        guard case let .shape(shape) = clip.content, case let .points(vertices, _, _) = shape.geometry else {
+            Issue.record("the tracked clip is a path")
+            return
+        }
+        #expect(read == sequence)
+        #expect(vertices[0].vertex == .onTrackFrame(.point(Point(x: 100, y: 100))))
+        #expect(vertices[0].inTangent == .onTrackFrame(Point(x: 0, y: 0)))
+        #expect(vertices[0].outTangent.keyframeTimes.count == 2)
+        #expect(vertices[1].inTangent == .onTrackFrame(Point(x: 0, y: 20)))
+        #expect(vertices[2].vertex.keyframeTimes.count == 1)
+        #expect(vertices[2].outTangent == .onTrackFrame(Point(x: 0, y: 0)))
+    }
+
     @Test("a corner pin tracked where every quad is a similarity image of the target is drawn as written, inside the track's motion")
     func drawsTrackedCornerPinAsWritten() throws {
         // Given

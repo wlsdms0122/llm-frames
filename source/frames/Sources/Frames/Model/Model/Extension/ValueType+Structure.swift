@@ -94,7 +94,7 @@ extension ValueType {
 
     // MARK: - Public
     // MARK: - Private
-    // `true` for the value below, and a colour for its colour.
+    // `true` for the value below, a colour for its colour, and a point for its point.
     private static func type(of shorthand: ObjectShorthand) -> ValueType {
         switch shorthand {
         case .on:
@@ -102,6 +102,9 @@ extension ValueType {
 
         case .color:
             .color
+
+        case .point:
+            AreaKeyTable.point
         }
     }
 
