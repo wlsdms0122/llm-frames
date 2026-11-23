@@ -6,15 +6,16 @@
 //
 
 // What a `path` item covers in its own coordinates. A rect or an ellipse covers its rectangle grown by half its stroke,
-// less the rectangle shrunk by half its stroke when it is not filled. A filled path covers the convex hull of its
-// vertices and their tangents' control points, which holds its curve. Its stroke as drawn after `trim` covers, the line
-// stopping at its arrowheads' bases, a band the stroke wide along each straight segment, and along each curved one, cut
-// into pieces of equal length, the hull of each piece's control points grown by half the stroke along both axes, which
-// holds the stroke since a cubic lies in the hull of its control points. Each adds what its stroke draws past its
-// outline grown by half its width (`PathItem.overhangs`): its arrowheads, miter joins and square caps. Bevels, round
-// joins and caps, rounded corners, the curve of an ellipse and the trim of a rect or an ellipse are left out. The
-// stroke is drawn in output pixels on the outline `transform` carries, so its band is taken at its width over the
-// transform's length factor, exact where the transform scales both axes alike.
+// less the rectangle shrunk by half its stroke when it is not filled. A filled path covers the convex hull of the
+// control points of its outline's segments, which holds its curve and the straight segment its fill closes an open path
+// with, and leaves out the tangents of an open path's ends, which shape nothing it draws. Its stroke as drawn after
+// `trim` covers, the line stopping at its arrowheads' bases, a band the stroke wide along each straight segment, and
+// along each curved one, cut into pieces of equal length, the hull of each piece's control points grown by half the
+// stroke along both axes, which holds the stroke since a cubic lies in the hull of its control points. Each adds what
+// its stroke draws past its outline grown by half its width (`PathItem.overhangs`): its arrowheads, miter joins and
+// square caps. Bevels, round joins and caps, rounded corners, the curve of an ellipse and the trim of a rect or an
+// ellipse are left out. The stroke is drawn in output pixels on the outline `transform` carries, so its band is taken
+// at its width over the transform's length factor, exact where the transform scales both axes alike.
 extension ItemCoverage {
     // MARK: - Property
     // The pieces a curved segment is cut into, whose control points lie closer to the curve the more there are.
@@ -41,14 +42,10 @@ extension ItemCoverage {
                 holes: isHollow ? [ConvexPolygon(rectangle: inner)] : []
             )
 
-        case let .path(vertices, _):
-            let controls = vertices.flatMap { vertex in
-                [vertex.inTangent, Point(x: 0, y: 0), vertex.outTangent].map { tangent in
-                    Point(x: vertex.vertex.x + tangent.x, y: vertex.vertex.y + tangent.y)
-                }
-            }
-            let fill = path.fill == nil ? [] : [ConvexPolygon(hullOf: controls)]
-            let line = Self.pieces(of: PathOutline(path.geometry), path: path, width: width)
+        case .path:
+            let outline = PathOutline(path.geometry)
+            let fill = path.fill == nil ? [] : [ConvexPolygon(hullOf: outline.segments.flatMap(Self.points(holding:)))]
+            let line = Self.pieces(of: outline, path: path, width: width)
             self.init(pieces: fill + line + overhangs)
         }
     }
@@ -119,23 +116,30 @@ extension ItemCoverage {
 
         case .cubic:
             let step = segment.length / Double(curvePieces)
-            return (0..<curvePieces).compactMap { index in
-                guard
-                    case let .cubic(from, first, second, to) = segment.piece(
-                        from: Double(index) * step,
-                        to: Double(index + 1) * step
-                    )
-                else { return nil }
-
-                return grown([from, first, second, to])
+            return (0..<curvePieces).map { index in
+                grown(points(holding: segment.piece(from: Double(index) * step, to: Double(index + 1) * step)))
             }
 
-        // A path's outline has no arc. The whole ellipse's box holds any part of it.
+        case .arc:
+            return [grown(points(holding: segment))]
+        }
+    }
+
+    // Points whose convex hull holds a segment: a line's ends and a cubic's control points. A path's outline has no
+    // arc, and the corners of the whole ellipse's box hold any part of it.
+    private static func points(holding segment: OutlineSegment) -> [Point] {
+        switch segment {
+        case let .line(from, to):
+            return [from, to]
+
+        case let .cubic(from, first, second, to):
+            return [from, first, second, to]
+
         case let .arc(center, xAxis, yAxis, _, _):
             let reach = Point(x: abs(xAxis.x) + abs(yAxis.x), y: abs(xAxis.y) + abs(yAxis.y))
-            return [grown([(-1.0, -1.0), (1, -1), (1, 1), (-1, 1)].map { x, y in
+            return [(-1.0, -1.0), (1, -1), (1, 1), (-1, 1)].map { x, y in
                 Point(x: center.x + x * reach.x, y: center.y + y * reach.y)
-            })]
+            }
         }
     }
 }

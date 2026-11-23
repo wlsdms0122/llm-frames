@@ -34,6 +34,13 @@ struct LocationReporterTests {
         isClosed: true
     )
 
+    // A triangle whose first vertex has a long in tangent, which an open path does not draw.
+    private static let triangle = [
+        PathVertex(vertex: Point(x: 100, y: 10), inTangent: Point(x: -400, y: 0), outTangent: Point(x: 0, y: 0)),
+        PathVertex(vertex: Point(x: 190, y: 10), inTangent: Point(x: 0, y: 0), outTangent: Point(x: 0, y: 0)),
+        PathVertex(vertex: Point(x: 140, y: 90), inTangent: Point(x: 0, y: 0), outTangent: Point(x: 0, y: 0))
+    ]
+
     private static let maskCases: [([ItemMask], Point, Bool)] = [
         ([itemMask(.rect(Rectangle(x: 10, y: 10, width: 20, height: 20), radius: 4))], Point(x: 20, y: 20), true),
         ([itemMask(.rect(Rectangle(x: 10, y: 10, width: 20, height: 20), radius: 4))], Point(x: 100, y: 50), false),
@@ -345,6 +352,45 @@ struct LocationReporterTests {
 
         // Then
         #expect(hits == [1, 0, 0])
+    }
+
+    @Test("an open path's fill covers what its segments draw, without the in tangent of its first vertex")
+    func leavesOpenPathEndTangentOut() throws {
+        // Given
+        // The triangle (100, 10), (190, 10), (140, 90) is drawn. The first vertex's in tangent reaches (-300, 10), and
+        // the hull with it would hold (50, 40).
+        let open = DisplayItem(content: .path(PathItem(
+            geometry: .path(Self.triangle, isClosed: false),
+            fill: .color(red),
+            stroke: nil
+        )))
+
+        // When
+        let hits = try [Point(x: 50, y: 40), Point(x: 140, y: 40)].map { point in
+            try sut.report(of: list([open]), point: point).hits.count
+        }
+
+        // Then
+        #expect(hits == [0, 1])
+    }
+
+    @Test("a closed path's fill covers its closing segment, curved by its first vertex's in tangent")
+    func coversClosedPathClosingTangent() throws {
+        // Given
+        // The closing segment from (140, 90) curves into (100, 10) from (-300, 10), passing (-30, 50) at its middle.
+        let closed = DisplayItem(content: .path(PathItem(
+            geometry: .path(Self.triangle, isClosed: true),
+            fill: .color(red),
+            stroke: nil
+        )))
+
+        // When
+        let hits = try [Point(x: 50, y: 40), Point(x: 140, y: 40)].map { point in
+            try sut.report(of: list([closed]), point: point).hits.count
+        }
+
+        // Then
+        #expect(hits == [1, 1])
     }
 
     @Test(
