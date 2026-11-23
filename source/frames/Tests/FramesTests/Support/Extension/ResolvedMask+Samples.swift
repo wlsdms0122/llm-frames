@@ -51,14 +51,18 @@ extension ResolvedMask {
             .ellipse(.area(.keyframes(rectangles.map { $0.map(GeometryArea.rectangle) })))
 
         case let .polyline(points, _):
-            .polyline(points.indices.map { index in
-                .keyframes(samples.map { sample in
-                    if case let .polyline(points, _) = sample.geometry {
-                        Keyframe(at: sample.at, value: GeometryPoint.point(points[index]))
-                    } else {
-                        Keyframe(at: sample.at, value: GeometryPoint.point(Point(x: 0, y: 0)))
-                    }
-                })
+            .path(points.indices.map { index in
+                PathVertex(
+                    vertex: .keyframes(samples.map { sample in
+                        if case let .polyline(points, _) = sample.geometry {
+                            Keyframe(at: sample.at, value: GeometryPoint.point(points[index]))
+                        } else {
+                            Keyframe(at: sample.at, value: GeometryPoint.point(Point(x: 0, y: 0)))
+                        }
+                    }),
+                    inTangent: .keyframes(samples.map { Keyframe(at: $0.at, value: Point(x: 0, y: 0)) }),
+                    outTangent: .keyframes(samples.map { Keyframe(at: $0.at, value: Point(x: 0, y: 0)) })
+                )
             })
         }
 

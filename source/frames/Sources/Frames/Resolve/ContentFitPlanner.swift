@@ -283,6 +283,7 @@ struct ContentFitPlanner: Sendable {
                     mask.carried(
                         area: { area, _, _ in moved(area, by: offset) },
                         point: { point, _, _ in moved(point, by: offset) },
+                        tangent: { tangent, _ in tangent },
                         scale: { _ in 1 }
                     )
                 }

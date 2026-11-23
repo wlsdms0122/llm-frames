@@ -206,10 +206,14 @@ struct ClipAreaFinder: Sendable {
         let position = object["position"].flatMap(PositionForm.init(value:))?.clip.map {
             ClipAreaReference(place: place.appending(key: "position").appending(key: "area"), clip: $0)
         }
-        let points = (object["points"]?.arrayValue ?? []).enumerated().compactMap { index, point in
-            PositionForm(value: point)?.clip.map {
+        let points = (object["points"]?.arrayValue ?? []).enumerated().compactMap { index, vertex in
+            let vertexPlace = place.appending(key: "points").appending(index: index)
+            let isObject = PathKeyTable.isVertexObject(vertex)
+            let point = isObject ? vertex.objectValue?["vertex"] : vertex
+
+            return point.flatMap(PositionForm.init(value:))?.clip.map {
                 ClipAreaReference(
-                    place: place.appending(key: "points").appending(index: index).appending(key: "area"),
+                    place: (isObject ? vertexPlace.appending(key: "vertex") : vertexPlace).appending(key: "area"),
                     clip: $0
                 )
             }

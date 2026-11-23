@@ -578,8 +578,9 @@ struct ResolvedSequenceWriterTests {
             [ { "geometry": { "rect": { "width": [ { "at": 0, "value": 100, "ease": "linear" } ], "height": [ { "at": 0, "value": 40, "ease": "linear" } ],
                   "position": [ { "at": 0, "value": [200, 300], "ease": "linear" } ], "radius": [ { "at": 0, "value": 4, "ease": "linear" } ] } },
                 "feather": [ { "at": 0, "value": 0, "ease": "linear" } ], "invert": true, "mode": "intersect" },
-              { "geometry": { "polyline": { "points": [ [ { "at": 0, "value": [0, 0], "ease": "linear" } ], [ { "at": 0, "value": [10, 0], "ease": "linear" } ],
-                  [ { "at": 0, "value": [5, 10], "ease": "linear" } ] ], "closed": true } },
+              { "geometry": { "path": { "vertices": [ [ { "at": 0, "value": [0, 0], "ease": "linear" } ], [ { "at": 0, "value": [10, 0], "ease": "linear" } ],
+                  [ { "at": 0, "value": [5, 10], "ease": "linear" } ] ],
+                  "inTangents": [ [ { "at": 0, "value": [0, 0], "ease": "linear" } ], [ { "at": 0, "value": [0, 0], "ease": "linear" } ], [ { "at": 0, "value": [0, 0], "ease": "linear" } ] ], "outTangents": [ [ { "at": 0, "value": [0, 0], "ease": "linear" } ], [ { "at": 0, "value": [0, 0], "ease": "linear" } ], [ { "at": 0, "value": [0, 0], "ease": "linear" } ] ], "closed": true } },
                 "feather": [ { "at": 0, "value": 0, "ease": "linear" } ], "invert": false, "mode": "add" } ]
             """#)))
         #expect(clips[1]["mask"] == (try Fixture.json(#"""

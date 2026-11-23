@@ -543,15 +543,19 @@ struct ResolvedDocumentReaderTests {
     private static let rect = #"[ { "at": 0, "value": [0, 0, 10, 10], "ease": "linear" } ]"#
 
     @Test(
-        "a mask that is not a closed polyline through three points, has a negative feather, an unknown mode or both a rect and a box stops",
+        "a mask that is not a closed path through two vertices with a tangent of each kind for each, has a negative feather, an unknown mode or both a rect and a box stops",
         arguments: [
             (
-                #"{ "polyline": { "points": [\#(Self.point), \#(Self.point), \#(Self.point)], "closed": false } }"#, "0", #""add""#,
-                "clips[0].mask[0].geometry (mask): a path mask is a closed polyline through at least three points"
+                #"{ "path": { "vertices": [\#(Self.point), \#(Self.point)], "inTangents": [\#(Self.point), \#(Self.point)], "outTangents": [\#(Self.point), \#(Self.point)], "closed": false } }"#, "0", #""add""#,
+                "clips[0].mask[0].geometry (mask): a path mask is a closed path through at least two vertices, with an in and an out tangent for each"
             ),
             (
-                #"{ "polyline": { "points": [\#(Self.point), \#(Self.point)], "closed": true } }"#, "0", #""add""#,
-                "clips[0].mask[0].geometry (mask): a path mask is a closed polyline through at least three points"
+                #"{ "path": { "vertices": [\#(Self.point)], "inTangents": [\#(Self.point)], "outTangents": [\#(Self.point)], "closed": true } }"#, "0", #""add""#,
+                "clips[0].mask[0].geometry (mask): a path mask is a closed path through at least two vertices, with an in and an out tangent for each"
+            ),
+            (
+                #"{ "path": { "vertices": [\#(Self.point), \#(Self.point)], "inTangents": [\#(Self.point)], "outTangents": [\#(Self.point), \#(Self.point)], "closed": true } }"#, "0", #""add""#,
+                "clips[0].mask[0].geometry (mask): a path mask is a closed path through at least two vertices, with an in and an out tangent for each"
             ),
             (
                 #"{ "rect": { "rect": \#(Self.rect), "radius": [ { "at": 0, "value": 0, "ease": "linear" } ] } }"#, "-1", #""add""#,

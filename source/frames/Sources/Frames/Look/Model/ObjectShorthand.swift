@@ -10,4 +10,6 @@
 enum ObjectShorthand: Equatable, Sendable {
     case on
     case color(key: String)
+    // A point for the object that names it under `key`, as a path's vertex written as a point.
+    case point(key: String)
 }

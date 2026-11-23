@@ -105,11 +105,15 @@ struct MaskTimingTests {
         #expect(timed.count == 2)
         let path = try #require(timed.last)
         #expect(path["mode"] == .fixed(.string("subtract")))
-        #expect(path["points"] == .list([
+        guard case let .list(vertices) = path["points"] else {
+            Issue.record("expected a list of vertices")
+            return
+        }
+        #expect(vertices.map { $0["vertex"] } == [
             .track([Keyframe(at: 0, value: .numbers([0, 0])), Keyframe(at: 2, value: .numbers([0, 10]))]),
             .track([Keyframe(at: 0, value: .numbers([10, 0])), Keyframe(at: 2, value: .numbers([10, 10]))]),
             .track([Keyframe(at: 0, value: .numbers([5, 10])), Keyframe(at: 2, value: .numbers([5, 20]))])
-        ]))
+        ])
     }
 
     @Test("a geometry leaf written on the clip and in every keyframe that writes it stops")

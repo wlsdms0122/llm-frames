@@ -51,6 +51,7 @@ extension ResolvedTrack {
             mask.carried(
                 area: { area, time, _ in time.map { motion($0).bringBack(area) } ?? area },
                 point: { point, time, _ in time.map { motion($0).bringBack(point) } ?? point },
+                tangent: { tangent, time in time.map { motion($0).bringBack(offset: tangent) } ?? tangent },
                 scale: { time in time.map { 1 / motion($0).scale } ?? 1 }
             ).sampled(at: time)
         }

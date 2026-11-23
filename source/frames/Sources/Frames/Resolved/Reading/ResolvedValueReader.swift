@@ -14,6 +14,7 @@ struct ResolvedValueReader: Sendable {
     static let mediaKeys = ["file", "sha256", "page", "imageSequence", "frames"]
     static let spanKeys = ["ease", "revealFrom", "keys"]
     static let geometryForms = ["rect", "ellipse", "polyline"]
+    static let maskGeometryForms = ["rect", "ellipse", "path"]
 
     // MARK: - Initializer
     init() { }
@@ -621,10 +622,10 @@ struct ResolvedValueReader: Sendable {
     // its `rect` or its box `width`, `height` and `position`, and a path as a closed polyline through at least three
     // points.
     private func timedMaskGeometry(_ value: PlacedJSONValue) throws -> ResolvedMaskGeometry {
-        let geometry = try value.object(keys: Self.geometryForms)
-        let written = Self.geometryForms.filter(geometry.contains)
+        let geometry = try value.object(keys: Self.maskGeometryForms)
+        let written = Self.maskGeometryForms.filter(geometry.contains)
         guard let name = written.first else {
-            throw ModelError.missingKey(place: value.place, kind: value.kind, keys: Self.geometryForms)
+            throw ModelError.missingKey(place: value.place, kind: value.kind, keys: Self.maskGeometryForms)
         }
         guard written.count == 1 else {
             throw ModelError.conflictingKeys(place: value.place, kind: value.kind, keys: written)
@@ -640,18 +641,27 @@ struct ResolvedValueReader: Sendable {
             return .ellipse(try maskRectangle(form.object(keys: ["rect", "width", "height", "position"])))
 
         default:
-            let polyline = try form.object(keys: ["points", "closed"])
-            let written = try polyline.member("points")
-            let points = try written.elements().map { try followedKeyframes($0, read: geometryPoint) }
-            guard try polyline.member("closed").bool(), points.count >= 3 else {
+            let path = try form.object(keys: ["vertices", "inTangents", "outTangents", "closed"])
+            let vertices = try path.member("vertices").elements().map { try followedKeyframes($0, read: geometryPoint) }
+            let inTangents = try path.member("inTangents").elements().map { try followedKeyframes($0, read: point) }
+            let outTangents = try path.member("outTangents").elements().map { try followedKeyframes($0, read: point) }
+            guard
+                try path.member("closed").bool(),
+                vertices.count >= 2,
+                inTangents.count == vertices.count,
+                outTangents.count == vertices.count
+            else {
                 throw ModelError.invalidValue(
                     place: value.place,
                     kind: value.kind,
-                    reason: "a path mask is a closed polyline through at least three points"
+                    reason: "a path mask is a closed path through at least two vertices, with an in and an out tangent "
+                        + "for each"
                 )
             }
 
-            return .polyline(points)
+            return .path(vertices.indices.map { index in
+                PathVertex(vertex: vertices[index], inTangent: inTangents[index], outTangent: outTangents[index])
+            })
         }
     }
 

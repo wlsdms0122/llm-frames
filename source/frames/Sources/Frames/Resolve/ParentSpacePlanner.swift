@@ -142,6 +142,7 @@ struct ParentSpacePlanner: Sendable {
 
                 return bringBack(point, through: try inverseLinks(under: parent, at: time, of: index, key: "mask"))
             },
+            tangent: { tangent, _ in tangent },
             scale: { _ in 1 }
         )
     }

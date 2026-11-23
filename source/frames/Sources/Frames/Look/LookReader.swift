@@ -74,7 +74,14 @@ struct LookReader: Sendable {
             }
             return .leaf(json)
 
+        case .array:
+            return point(json, as: structure) ?? .leaf(json)
+
         case let .object(object):
+            if !PathKeyTable.isVertexObject(json), let point = point(json, as: structure) {
+                return point
+            }
+
             return .object(object.members.map { member in
                 LookMember(key: member.key, value: value(of: member.value, as: structure.structure(of: member.key) ?? .anyValue))
             })
@@ -82,6 +89,18 @@ struct LookReader: Sendable {
         default:
             return .leaf(json)
         }
+    }
+
+    // A point written for an object that takes one names that object's point alone.
+    private func point(
+        _ json: JSONValue,
+        as structure: ObjectStructure
+    ) -> LookValue? {
+        for case let .point(key) in structure.shorthands {
+            return .object([LookMember(key: key, value: .leaf(json))])
+        }
+
+        return nil
     }
 
     private func forms(

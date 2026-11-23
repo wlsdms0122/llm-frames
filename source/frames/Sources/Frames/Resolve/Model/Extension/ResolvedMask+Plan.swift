@@ -7,7 +7,7 @@
 
 // A mask as resolve times it, from the timed value of one mask the key tables and timing have checked: its `shape`
 // names its geometry, given by `area`, by the box `width`, `height` and `position`, or by `points`, and a path is
-// a closed polyline. An area or a point the planner kept as a clip area stays one.
+// closed, each vertex's point and tangents timed apart. An area or a point the planner kept as a clip area stays one.
 extension ResolvedMask {
     // MARK: - Property
     // MARK: - Initializer
@@ -25,7 +25,21 @@ extension ResolvedMask {
         if shape == .path {
             guard case let .list(elements) = timed["points"] else { return nil }
 
-            geometry = .polyline(elements.compactMap { Self.points($0) }.map { .keyframes($0) })
+            geometry = .path(elements.compactMap { vertex in
+                guard
+                    let point = Self.points(vertex["vertex"]),
+                    let inTangent = Self.points(vertex["inTangent"]),
+                    let outTangent = Self.points(vertex["outTangent"])
+                else {
+                    return nil
+                }
+
+                return PathVertex(
+                    vertex: .keyframes(point),
+                    inTangent: .keyframes(inTangent.map { Keyframe(at: $0.at, value: $0.value.fixed, ease: $0.ease) }),
+                    outTangent: .keyframes(outTangent.map { Keyframe(at: $0.at, value: $0.value.fixed, ease: $0.ease) })
+                )
+            })
         } else {
             guard let rectangle = Self.rectangle(of: timed) else { return nil }
 

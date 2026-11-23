@@ -495,9 +495,11 @@ struct ResolvedValueWriter: Sendable {
         case let .ellipse(rectangle):
             return form("ellipse", members(of: rectangle))
 
-        case let .polyline(points):
-            return form("polyline", [
-                JSONMember(key: "points", value: .array(points.map { followed($0, value: geometryPoint) })),
+        case let .path(vertices):
+            return form("path", [
+                JSONMember(key: "vertices", value: .array(vertices.map { followed($0.vertex, value: geometryPoint) })),
+                JSONMember(key: "inTangents", value: .array(vertices.map { followed($0.inTangent, value: point) })),
+                JSONMember(key: "outTangents", value: .array(vertices.map { followed($0.outTangent, value: point) })),
                 JSONMember(key: "closed", value: .bool(true))
             ])
         }
