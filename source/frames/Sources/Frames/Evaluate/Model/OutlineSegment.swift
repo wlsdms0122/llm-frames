@@ -7,11 +7,11 @@
 
 import Foundation
 
-// A piece of an outline: a straight edge, a part of the ellipse about `center` whose points are
-// `center + xAxis × cos θ + yAxis × sin θ` for θ from `start` through `sweep`, the unit circle carried by the linear map
-// that takes its axes to `xAxis` and `yAxis`, or the cubic Bézier curve from `from` to `to` with the control points
-// `first` and `second`, whose parameter t runs from 0 to 1. With the axes along x and y a growing θ turns clockwise in
-// y-down coordinates. Distances are measured along the piece from its start, along a curve by its arc length.
+// A piece of an outline: a straight edge, a part of the ellipse about `center` whose points are `center + xAxis × cos θ
+// + yAxis × sin θ` for θ from `start` through `sweep`, the unit circle carried by the linear map that takes its axes to
+// `xAxis` and `yAxis`, or the cubic Bézier curve from `from` to `to` with the control points `first` and `second`,
+// whose parameter t runs from 0 to 1. With the axes along x and y a growing θ turns clockwise in y-down coordinates.
+// Distances are measured along the piece from its start, along a curve by its arc length.
 package enum OutlineSegment: Equatable, Sendable {
     case line(from: Point, to: Point)
     case arc(center: Point, xAxis: Point, yAxis: Point, start: Double, sweep: Double)
@@ -188,8 +188,8 @@ package enum OutlineSegment: Equatable, Sendable {
 
     // The unit direction of travel at a distance. At a cubic's ends it is the limit (FRAMES-20 Direction at a point):
     // from its start to the first later control point that differs from it, and into its end from the last earlier one
-    // that differs. Where its velocity is 0 inside it, at a cusp, it is that of its acceleration, the direction it leaves
-    // by.
+    // that differs. Where its velocity is 0 inside it, at a cusp, it is that of its acceleration, the direction it
+    // leaves by.
     package func direction(at distance: Double) -> Point {
         let vector: Point
         switch self {

@@ -5,8 +5,8 @@
 //  Created by JSilver on 11/18/26.
 //
 
-// A rectangle, an ellipse or a path of cubic Bézier segments, filled and stroked: `fill` paints its inside, `stroke` draws the part of its
-// outline `trim` leaves, and `shadow` is cast below both.
+// A rectangle, an ellipse or a path of cubic Bézier segments, filled and stroked: `fill` paints its inside, `stroke`
+// draws the part of its outline `trim` leaves, and `shadow` is cast below both.
 package struct PathItem: Equatable, Sendable {
     // MARK: - Property
     package let geometry: PathGeometry

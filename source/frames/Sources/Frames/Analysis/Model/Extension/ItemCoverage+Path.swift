@@ -5,16 +5,16 @@
 //  Created by JSilver on 11/18/26.
 //
 
-// What a `path` item covers in its own coordinates. A rect or an ellipse covers its rectangle grown by half its
-// stroke, less the rectangle shrunk by half its stroke when it is not filled. A filled path covers the convex hull of
-// its vertices and their tangents' control points, which holds its curve. Its stroke as drawn after `trim` covers, the
-// line stopping at its arrowheads' bases, a band the stroke wide along each straight segment, and along each curved one,
-// cut into pieces of equal length, the hull of each piece's control points grown by half the stroke along both axes,
-// which holds the stroke since a cubic lies in the hull of its control points. Each adds what its stroke draws past its outline grown by half its width (`PathItem.overhangs`): its
-// arrowheads, miter joins and square caps. Bevels, round joins and caps, rounded corners, the curve of an ellipse and
-// the trim of a rect or an ellipse are left out. The stroke is drawn in output pixels on the outline `transform`
-// carries, so its band is taken at its width over the transform's length factor, exact where the transform scales both
-// axes alike.
+// What a `path` item covers in its own coordinates. A rect or an ellipse covers its rectangle grown by half its stroke,
+// less the rectangle shrunk by half its stroke when it is not filled. A filled path covers the convex hull of its
+// vertices and their tangents' control points, which holds its curve. Its stroke as drawn after `trim` covers, the line
+// stopping at its arrowheads' bases, a band the stroke wide along each straight segment, and along each curved one, cut
+// into pieces of equal length, the hull of each piece's control points grown by half the stroke along both axes, which
+// holds the stroke since a cubic lies in the hull of its control points. Each adds what its stroke draws past its
+// outline grown by half its width (`PathItem.overhangs`): its arrowheads, miter joins and square caps. Bevels, round
+// joins and caps, rounded corners, the curve of an ellipse and the trim of a rect or an ellipse are left out. The
+// stroke is drawn in output pixels on the outline `transform` carries, so its band is taken at its width over the
+// transform's length factor, exact where the transform scales both axes alike.
 extension ItemCoverage {
     // MARK: - Property
     // The pieces a curved segment is cut into, whose control points lie closer to the curve the more there are.

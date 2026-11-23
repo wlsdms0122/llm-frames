@@ -50,8 +50,8 @@ package enum PathGeometry: Interpolable {
         }
     }
 
-    // The box of the outline carried by `transform`: a rectangle's or an ellipse's carried corners, which hold it, and a
-    // path's curve, its tight box (FRAMES-11 Shapes).
+    // The box of the outline carried by `transform`: a rectangle's or an ellipse's carried corners, which hold it, and
+    // a path's curve, its tight box (FRAMES-11 Shapes).
     func bounds(carriedBy transform: AffineTransform = .identity) -> Rectangle {
         switch self {
         case let .rect(rectangle, _), let .ellipse(rectangle):
