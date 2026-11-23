@@ -276,7 +276,7 @@ struct CoreTextTypesetterTests {
         #expect(abs(underline.width - (starts[4] - starts[3])) < 1e-9)
     }
 
-    @Test("an upright Latin run in Hiragino Sans is set unturned, letter under letter, each on its vertical origin at the line's baseline")
+    @Test("an upright Latin run in Hiragino Sans stands letter under letter in its horizontal forms, each on its vertical origin at the line's baseline")
     func setsUprightLatinRun() throws {
         // Given
         let face = try hiraginoSans()
@@ -300,13 +300,15 @@ struct CoreTextTypesetterTests {
         let upright = try #require(layout.runs.first { $0.source == 1 })
         let clusters = try #require(layout.lines.first?.clusters)
         #expect(layout.runs.map(\.isSideways) == [false, false, false])
-        #expect(upright.glyphs.count == 3)
+        #expect(upright.glyphs.map(\.id) == letters.map(\.id))
         for (index, glyph) in upright.glyphs.enumerated() {
             var id = CGGlyph(glyph.id)
             var advance = CGSize.zero
+            var horizontal = CGSize.zero
             var translation = CGSize.zero
             var ink = CGRect.zero
             CTFontGetAdvancesForGlyphs(font, .vertical, &id, &advance, 1)
+            CTFontGetAdvancesForGlyphs(font, .horizontal, &id, &horizontal, 1)
             CTFontGetVerticalTranslationsForGlyphs(font, &id, &translation, 1)
             CTFontGetBoundingRectsForGlyphs(font, .horizontal, &id, &ink, 1)
             let cluster = clusters[3 + index]
@@ -315,17 +317,69 @@ struct CoreTextTypesetterTests {
             #expect(abs(cluster.advance - hypot(advance.width, advance.height)) < 1e-9, "glyph \(glyph.id)")
             #expect(abs(glyph.placementOffset.x - translation.width) < 1e-9, "glyph \(glyph.id)")
             #expect(abs(glyph.placementOffset.y + translation.height) < 1e-9, "glyph \(glyph.id)")
-            #expect(abs(glyph.placementOffset.x + ink.midX) < 0.02 * size, "glyph \(glyph.id) stands off the line")
+            // Core Text takes half the horizontal advance in whole font units, so the advance is centred on the line
+            // to within half a unit, and the ink as the letter's side bearings place it.
+            #expect(abs(glyph.placementOffset.x + horizontal.width / 2) < 0.001 * size, "glyph \(glyph.id)")
+            #expect(ink.height > ink.width, "glyph \(glyph.id) is \(ink.size), not standing")
         }
-        // Each letter is drawn standing: its outline is as tall and as wide as the letter's set horizontally.
-        withKnownIssue("Core Text applies Hiragino's vrt2 with vert, whose forms of proportional Latin are turned") {
-            for (glyph, letter) in zip(upright.glyphs, letters) {
-                var ids = [CGGlyph(glyph.id), CGGlyph(letter.id)]
-                var ink = [CGRect](repeating: .zero, count: 2)
-                CTFontGetBoundingRectsForGlyphs(font, .horizontal, &ids, &ink, 2)
-                #expect(abs(ink[0].height - ink[1].height) < 1e-9, "glyph \(glyph.id) is \(ink[0].size), not \(ink[1].size)")
-            }
+    }
+
+    @Test("an upright Latin run in Helvetica Neue, which has no vmtx, stands in its horizontal forms in the metrics made from its ascent and descent")
+    func setsUprightLatinRunWithoutVerticalMetrics() throws {
+        // Given
+        let face = try #require(shaper.installedFaces(family: "Helvetica Neue").first { $0.name == "HelveticaNeue" })
+        let size = 100.0
+        let font = CTFontCreateWithName(face.name as CFString, size, nil)
+        let style = CharacterStyle(families: ["Helvetica Neue"], weight: .regular, size: size, textOrientation: .upright)
+        let runs = [TextRun(text: "NHK12", style: style, faces: [face])]
+        let letters = try shaper.shape("NHK12", direction: .ltr, upright: false, faces: [face], size: size, features: [], weight: .regular, italic: false)
+            .flatMap(\.glyphs)
+
+        // When
+        let layout = try sut.layout(runs, paragraph: vertical(), width: nil, place: place, kind: "title")
+
+        // Then
+        // FRAMES-5: in a face without `vmtx` an upright glyph advances by its face's ascent plus its descent, and its
+        // vertical origin lies its ascent above its horizontal origin and half its horizontal advance across.
+        let glyphs = try #require(layout.runs.first?.glyphs)
+        let clusters = try #require(layout.lines.first?.clusters)
+        #expect(layout.runs.map(\.isSideways) == [false])
+        #expect(glyphs.map(\.id) == letters.map(\.id))
+        #expect(clusters.allSatisfy { abs($0.advance - (face.ascent + face.descent) * size) < 1e-9 })
+        for glyph in glyphs {
+            var id = CGGlyph(glyph.id)
+            var advance = CGSize.zero
+            var ink = CGRect.zero
+            CTFontGetAdvancesForGlyphs(font, .horizontal, &id, &advance, 1)
+            CTFontGetBoundingRectsForGlyphs(font, .horizontal, &id, &ink, 1)
+            #expect(abs(glyph.placementOffset.x + advance.width / 2) < 1e-9, "glyph \(glyph.id)")
+            #expect(abs(glyph.placementOffset.y - face.ascent * size) < 1e-9, "glyph \(glyph.id)")
+            #expect(ink.height > ink.width, "glyph \(glyph.id) is \(ink.size), not standing")
         }
+    }
+
+    @Test("an upright run of kana, an ideographic comma and Latin in Hiragino Sans keeps the comma's vertical form and stands `fi` as two letters")
+    func setsUprightRunOfKanaCommaAndLatin() throws {
+        // Given
+        let face = try hiraginoSans()
+        let size = 100.0
+        let runs = [TextRun(text: "あ、fi", style: style(size, textOrientation: .upright), faces: [face])]
+        let horizontal = try shaper.shape("あ、fi", direction: .ltr, upright: false, faces: [face], size: size, features: [FontFeature(tag: "liga", value: 0)], weight: .regular, italic: false)
+            .flatMap(\.glyphs)
+        let verticalForms = try shaper.shape("あ、", direction: .ltr, upright: true, faces: [face], size: size, features: [], weight: .regular, italic: false)
+            .flatMap(\.glyphs)
+
+        // When
+        let layout = try sut.layout(runs, paragraph: vertical(), width: nil, place: place, kind: "title")
+
+        // Then
+        // `、` is Tu and is set in Hiragino's vertical form of it, and `f` and `i`, both R, in their own horizontal
+        // glyphs, though Hiragino ligates them in horizontal text.
+        let ids = layout.runs.flatMap { $0.glyphs.map(\.id) }
+        #expect(layout.runs.allSatisfy { !$0.isSideways })
+        #expect(verticalForms[1].id != horizontal[1].id)
+        #expect(ids == verticalForms.map(\.id) + horizontal[2...].map(\.id))
+        #expect(layout.lines.first?.clusters.count == 4)
     }
 
     @Test("an upright Hebrew run in a vertical right-to-left title is placed from the top down in the order it is read")

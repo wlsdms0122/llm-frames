@@ -319,11 +319,12 @@ struct Typesetter: Sendable {
         }
     }
 
-    // Each run is shaped on its own in shaping runs, stretches of its characters at one embedding level and one
-    // orientation, since a run boundary, a change of level and, in a vertical `writingMode`, a change between upright
-    // and sideways each end a shaping run, and its glyphs are told by the scalar they start at in the whole paragraph.
-    // In a vertical line each character is upright or sideways by its run's text orientation, but those of a combined
-    // run, which are one horizontal-in-vertical composition, shaped as horizontal text and turned by nothing, and in a
+    // Each run is shaped on its own in shaping runs, stretches of its characters at one embedding level, one
+    // orientation and one kind of forms, since a run boundary, a change of level and, in a vertical `writingMode`, a
+    // change between upright and sideways and one between vertical and horizontal forms each end a shaping run, and
+    // its glyphs are told by the scalar they start at in the whole paragraph. In a vertical line each character is
+    // upright or sideways, and in vertical forms or not, by its run's text orientation, but those of a combined run,
+    // which are one horizontal-in-vertical composition, shaped as horizontal text and turned by nothing, and in a
     // horizontal line none is upright or sideways. Each character is a grapheme cluster of its run, its range counted
     // from `start`, its level that of its first scalar among `levels`, its scalars read as of their classes among
     // `classes`, and owns the glyphs of the group it is the first character of, in the order the provider gave them. A
@@ -350,17 +351,28 @@ struct Typesetter: Sendable {
                 offset += count
             }
             let isCombined = isCombined(run.style, in: writingMode)
-            let uprights = runCharacters.map { character in
-                writingMode.isVertical && !isCombined && run.style.textOrientation.isUpright(character.character)
-            }
+            let isOriented = writingMode.isVertical && !isCombined
+            let orientation = run.style.textOrientation
+            let uprights = runCharacters.map { isOriented && orientation.isUpright($0.character) }
+            let verticalForms = runCharacters.map { isOriented && orientation.isInVerticalForms($0.character) }
 
             var runGlyphs: [(glyph: StyledGlyph, isReversed: Bool)] = []
-            for stretch in stretches(levels: runCharacters.map(\.level), uprights: uprights) {
+            let levels = runCharacters.map(\.level)
+            for stretch in stretches(levels: levels, uprights: uprights, verticalForms: verticalForms) {
                 let direction = TextDirection(level: runCharacters[stretch.lowerBound].level)
                 let isUpright = uprights[stretch.lowerBound]
+                let isInVerticalForms = verticalForms[stretch.lowerBound]
                 let text = String(runCharacters[stretch].map(\.character))
                 let shapingStart = runCharacters[stretch.lowerBound].range.lowerBound
-                let shapedRuns = try Result { try shape(text, direction: direction, upright: isUpright, run: run) }
+                let shapedRuns = try Result {
+                    try shape(
+                        text,
+                        direction: direction,
+                        upright: isUpright,
+                        verticalForms: isInVerticalForms,
+                        run: run
+                    )
+                }
                     .mapError { error in
                         ProviderError.failed(
                             provider: .shaping,
@@ -430,15 +442,18 @@ struct Typesetter: Sendable {
         }
     }
 
-    // The stretches of characters at one level, among `levels`, and one orientation, among `uprights`, as ranges of
-    // their indices.
+    // The stretches of characters at one level, among `levels`, one orientation, among `uprights`, and one kind of
+    // forms, among `verticalForms`, as ranges of their indices.
     private func stretches(
         levels: [Int],
-        uprights: [Bool]
+        uprights: [Bool],
+        verticalForms: [Bool]
     ) -> [Range<Int>] {
         levels.indices.reduce(into: [Range<Int>]()) { stretches, index in
             if let last = stretches.last,
-                levels[last.lowerBound] == levels[index], uprights[last.lowerBound] == uprights[index] {
+                levels[last.lowerBound] == levels[index],
+                uprights[last.lowerBound] == uprights[index],
+                verticalForms[last.lowerBound] == verticalForms[index] {
                 stretches[stretches.count - 1] = last.lowerBound..<(index + 1)
             } else {
                 stretches.append(index..<(index + 1))
@@ -540,17 +555,25 @@ struct Typesetter: Sendable {
     }
 
     // `text` of `run` set in `direction`, `upright` in a vertical line or as horizontal text, with the style's features
-    // over `kern`, which `kerning` sets, and over the optional ligatures, off in a run spaced apart. A later setting of
-    // a tag replaces an earlier one.
+    // over `kern`, which `kerning` sets, and over the optional ligatures, off in a run spaced apart. An upright run not
+    // set in `verticalForms` is set in its faces' horizontal forms, each character in glyphs of its own, so `vert`,
+    // `vrt2` and the optional ligatures are off over the style's features. A later setting of a tag replaces an
+    // earlier one.
     private func shape(
         _ text: String,
         direction: TextDirection,
         upright: Bool,
+        verticalForms: Bool,
         run: TextRun
     ) throws -> [ShapedRun] {
         let style = run.style
-        let ligatures = run.isSpacedApart ? ["liga", "clig", "dlig"].map { FontFeature(tag: $0, value: 0) } : []
+        let optionalLigatures = ["liga", "clig", "dlig"].map { FontFeature(tag: $0, value: 0) }
+        let ligatures = run.isSpacedApart ? optionalLigatures : []
+        let horizontalForms = upright && !verticalForms
+            ? ["vert", "vrt2"].map { FontFeature(tag: $0, value: 0) } + optionalLigatures
+            : []
         let settings = [FontFeature(tag: "kern", value: style.isKerned ? 1 : 0)] + ligatures + style.features
+            + horizontalForms
         let features = settings.reduce(into: [FontFeature]()) { features, feature in
             features.removeAll { $0.tag == feature.tag }
             features.append(feature)

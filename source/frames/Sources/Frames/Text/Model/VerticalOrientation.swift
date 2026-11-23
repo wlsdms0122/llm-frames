@@ -100,6 +100,15 @@ enum VerticalOrientation: Equatable, Sendable {
         self = Self.orientations[low]
     }
 
+    // The orientation of a grapheme cluster, as UAX #50 orients one: its first scalar's, and upright where it holds an
+    // enclosing mark, which a turned base would leave.
+    init(_ character: Character) {
+        let scalars = character.unicodeScalars
+        let isEnclosed = scalars.contains { $0.properties.generalCategory == .enclosingMark }
+
+        self = isEnclosed ? .upright : VerticalOrientation(scalars[scalars.startIndex])
+    }
+
     // MARK: - Public
     // MARK: - Private
 }

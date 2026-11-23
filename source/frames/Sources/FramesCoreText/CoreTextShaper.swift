@@ -17,7 +17,7 @@ import Frames
 // character's and is the line's base direction, so CoreText reorders nothing by a bidirectional pass of its own and
 // sets trailing whitespace on the run's side. A right-to-left run's stretches are given from right to left, the order
 // they lie in on the line. An upright run is set as a CoreText line sets vertical forms, which applies the font's
-// `vert` and `vrt2` features together.
+// `vert` and `vrt2` features together, and neither where both are 0, in its vertical metrics either way.
 package struct CoreTextShaper: Sendable {
     // MARK: - Property
     // Offsets into the OS/2 table: `usWeightClass`, `usWidthClass` and `fsSelection`, whose bit 0 is italic and bit 9

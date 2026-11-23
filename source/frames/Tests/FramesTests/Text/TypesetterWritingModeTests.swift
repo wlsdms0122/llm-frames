@@ -364,6 +364,38 @@ struct TypesetterWritingModeTests {
         #expect(layout.lines.flatMap(\.clusters).map(\.advance) == [80, 40])
     }
 
+    @Test(
+        "under `upright` a character whose Vertical_Orientation is R is shaped apart in its horizontal form, each in glyphs of its own",
+        arguments: [[FontFeature](), [FontFeature(tag: "vert", value: 1), FontFeature(tag: "liga", value: 1)]]
+    )
+    func setsRotatedCharactersUprightInHorizontalForms(features: [FontFeature]) throws {
+        // Given
+        let shaper = ShaperTable(verticalForms: ["、": 0xFE11, "f": 0xE066, "N": 0xE04E, "A": 0xE041])
+        let sut = Typesetter(shaper: shaper)
+        let runs = [
+            run("、fiNA\u{20DD}", textOrientation: .upright, features: features),
+            run("、fiN", features: features)
+        ]
+
+        // When
+        let layout = try sut.layout(
+            runs,
+            paragraph: paragraph(.verticalRightToLeft),
+            width: nil,
+            place: place,
+            kind: "title"
+        )
+
+        // Then
+        // In the `upright` run `、` and the cluster `A⃝`, whose Vertical_Orientation is U, keep their vertical forms,
+        // and `f`, `i` and `N`, whose value is R, stand unligated in their horizontal forms. Under `mixed` `、` stands
+        // in its vertical form and `fiN` is sideways, ligated as horizontal text.
+        let glyphs = layout.runs.flatMap { run in run.glyphs.map { (id: $0.id, isSideways: run.isSideways) } }
+        #expect(glyphs.map(\.id) == [0xFE11, 0x66, 0x69, 0x4E, 0xE041, 0x20DD, 0xFE11, ShaperTable.ligature, 0x4E])
+        #expect(glyphs.map(\.isSideways) == [false, false, false, false, false, false, false, true, true])
+        #expect(layout.lines.flatMap(\.clusters).map(\.advance) == [40, 40, 40, 40, 80, 40, 40, 0, 20])
+    }
+
     @Test("a horizontal line turns no character and reads every one by its own class, whatever its run's attributes")
     func ignoresTextOrientationInHorizontalLine() throws {
         // Given
@@ -723,7 +755,8 @@ struct TypesetterWritingModeTests {
         isHighlighted: Bool = false,
         isUnderlined: Bool = false,
         textOrientation: TextOrientation = .mixed,
-        textCombineUpright: TextCombineUpright = .none
+        textCombineUpright: TextCombineUpright = .none,
+        features: [FontFeature] = []
     ) -> TextRun {
         TextRun(
             text: text,
@@ -732,6 +765,7 @@ struct TypesetterWritingModeTests {
                 weight: .bold,
                 size: size,
                 tracking: tracking,
+                features: features,
                 isHighlighted: isHighlighted,
                 isUnderlined: isUnderlined,
                 textOrientation: textOrientation,
