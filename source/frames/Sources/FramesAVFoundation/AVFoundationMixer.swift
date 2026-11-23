@@ -10,20 +10,23 @@ import Frames
 
 // The `avfoundation` mixer: reads each segment's media time through the decoder, maps its channels onto stereo,
 // resamples it to the plan's sample rate, stretches it in time with the pitch kept when its speed is not 1, runs its
-// audio filter, multiplies it by its envelope, pans it by its pan envelope with the pan law of its channel count, and
-// adds it into the bus that holds it from its start sample. A bus sums its segments and buses over its span, runs its
-// chain over the sum, at rest at the span's first sample, and multiplies the result by its level envelope before it is
-// added to the bus that holds it. The plan is the outermost bus: its chain runs over the whole sum of its `length`
-// samples, and that is the mix, interleaved in place, so the mix is held once. The sum is not clipped.
+// audio filter over the segment's span, silence after the sound the decoder gives, multiplies it by its envelope, pans
+// it by its pan envelope with the pan law of its channel count, and adds it into the bus that holds it from its start
+// sample. A bus sums its segments and buses over its span, runs its chain over the sum, at rest at the span's first
+// sample, and multiplies the result by its level envelope before it is added to the bus that holds it. The plan is the
+// outermost bus: its chain runs over the whole sum of its `length` samples, and that is the mix, interleaved in place,
+// so the mix is held once. The sum is not clipped.
 package final class AVFoundationMixer: Sendable {
     // MARK: - Property
     private static let sampleRate = Double(MixPlan.sampleRate)
 
     private let decoder: any MediaDecoder
+    private let impulseResponses: ImpulseResponseCache
 
     // MARK: - Initializer
     package init(decoder: any MediaDecoder) {
         self.decoder = decoder
+        self.impulseResponses = ImpulseResponseCache(decoder: decoder, sampleRate: Self.sampleRate)
     }
 
     // MARK: - Public
@@ -36,17 +39,33 @@ package final class AVFoundationMixer: Sendable {
     ) throws {
         for (index, segment) in segments.enumerated() {
             let place = "\(place)segments[\(index)]"
+            try check(segment.filter, place: "\(place).")
             let (path, sound) = try sound(of: segment, place: place, from: segment.mediaStart, to: segment.mediaStart)
             guard StereoDownmixer(layout: sound.layout) != nil else {
-                throw MixerError.unmixableChannels(segment: place, file: path)
+                throw MixerError.unmixableChannels(place: place, file: path)
             }
             guard segment.speed == 1 || TimeStretcher.speeds.contains(segment.speed) else {
-                throw MixerError.unstretchable(segment: place, file: path, speed: segment.speed)
+                throw MixerError.unstretchable(place: place, file: path, speed: segment.speed)
             }
         }
         for (index, bus) in buses.enumerated() {
+            try check(bus.filter, place: "\(place)buses[\(index)].")
             try check(segments: bus.segments, buses: bus.buses, place: "\(place)buses[\(index)].")
         }
+    }
+
+    // Makes the filter's chain, which reads the impulse response of each `convolve` op, refusing one that cannot be
+    // mixed. `place` is the place in the plan of the filter's owner, as in `AudioFilterChain`.
+    private func check(
+        _ filter: [MixFilterEntry],
+        place: String
+    ) throws {
+        _ = try AudioFilterChain(
+            filter: filter,
+            place: place,
+            sampleRate: Self.sampleRate,
+            impulseResponses: impulseResponses
+        )
     }
 
     // The sum of `segments` and `buses` over the sequence samples `span`, planar: the left channel's `span.count`
@@ -85,27 +104,35 @@ package final class AVFoundationMixer: Sendable {
             to: segment.mediaStart + (segment.end - segment.start) * segment.speed
         )
         guard let downmixer = StereoDownmixer(layout: sound.layout) else {
-            throw MixerError.unmixableChannels(segment: place, file: path)
+            throw MixerError.unmixableChannels(place: place, file: path)
         }
         var buffer = try downmixer.stereo(from: sound, path: path)
         buffer = try Resampler().resampled(buffer, to: Self.sampleRate, path: path)
         if segment.speed != 1 {
             guard TimeStretcher.speeds.contains(segment.speed) else {
-                throw MixerError.unstretchable(segment: place, file: path, speed: segment.speed)
+                throw MixerError.unstretchable(place: place, file: path, speed: segment.speed)
             }
             buffer = try TimeStretcher().stretched(buffer, speed: segment.speed, path: path)
         }
 
+        let count = last - first
+        let from = max(span.lowerBound - first, 0)
+        guard from < count else { return }
+        buffer = try padded(buffer, to: count, path: path)
+        guard let channels = buffer.floatChannelData else { return }
+
         let law = PanLaw(layout: sound.layout)
         let gains = segment.gains(atSamples: first..<last, sampleRate: Self.sampleRate)
         let pans = segment.pans(atSamples: first..<last, sampleRate: Self.sampleRate)
-        let heard = min(last - first, Int(buffer.frameLength))
-        let from = max(span.lowerBound - first, 0)
-        guard from < heard, let channels = buffer.floatChannelData else { return }
-        AudioFilterChain(filter: segment.filter, sampleRate: Self.sampleRate)
-            .process(buffer, frames: heard, first: first)
+        try AudioFilterChain(
+            filter: segment.filter,
+            place: "\(place).",
+            sampleRate: Self.sampleRate,
+            impulseResponses: impulseResponses
+        )
+        .process(buffer, frames: count, first: first)
         let offset = first - span.lowerBound
-        for frame in from..<heard {
+        for frame in from..<count {
             let gain = gains[frame]
             let panned = law.gains(at: pans[frame])
             sum[offset + frame] += channels[0][frame] * gain * panned.left
@@ -125,7 +152,7 @@ package final class AVFoundationMixer: Sendable {
 
         let count = last - first
         var bused = try self.sum(segments: bus.segments, buses: bus.buses, over: first..<last, place: place)
-        filter(&bused, frames: count, by: bus.filter, first: first)
+        try filter(&bused, frames: count, by: bus.filter, place: place, first: first)
         let gains = bus.gains(atSamples: first..<last, sampleRate: Self.sampleRate)
         let offset = first - span.lowerBound
         for frame in 0..<count {
@@ -135,19 +162,26 @@ package final class AVFoundationMixer: Sendable {
     }
 
     // Runs `filter` in place over a planar sum of `frames` samples per channel, at rest at sequence sample `first`.
+    // `place` is the place in the plan of the filter's owner, as in `AudioFilterChain`.
     private func filter(
         _ sum: inout [Float],
         frames: Int,
         by filter: [MixFilterEntry],
+        place: String,
         first: Int
-    ) {
+    ) throws {
         guard !filter.isEmpty, frames > 0 else { return }
 
+        let chain = try AudioFilterChain(
+            filter: filter,
+            place: place,
+            sampleRate: Self.sampleRate,
+            impulseResponses: impulseResponses
+        )
         sum.withUnsafeMutableBufferPointer { samples in
             guard let left = samples.baseAddress else { return }
 
-            AudioFilterChain(filter: filter, sampleRate: Self.sampleRate)
-                .process([left, left + frames], frames: frames, first: first)
+            chain.process([left, left + frames], frames: frames, first: first)
         }
     }
 
@@ -175,6 +209,31 @@ package final class AVFoundationMixer: Sendable {
         }
     }
 
+    // `buffer` followed by silence up to `frames` frames, or `buffer` itself when it holds that many.
+    private func padded(
+        _ buffer: AVAudioPCMBuffer,
+        to frames: Int,
+        path: String
+    ) throws -> AVAudioPCMBuffer {
+        let length = Int(buffer.frameLength)
+        guard length < frames else { return buffer }
+        guard
+            let padded = AVAudioPCMBuffer(pcmFormat: buffer.format, frameCapacity: AVAudioFrameCount(frames)),
+            let source = buffer.floatChannelData,
+            let target = padded.floatChannelData
+        else {
+            throw MixerError.unrenderable(file: path, reason: "no buffer of \(frames) frames")
+        }
+
+        padded.frameLength = AVAudioFrameCount(frames)
+        for channel in 0..<Int(buffer.format.channelCount) {
+            target[channel].update(from: source[channel], count: length)
+            (target[channel] + length).update(repeating: 0, count: frames - length)
+        }
+
+        return padded
+    }
+
     // The first sample of a span edge at `time`, by the span rule: round(sample rate × time), halves up.
     private func sample(at time: Double) -> Int {
         Int((time * Self.sampleRate).rounded())
@@ -191,7 +250,7 @@ package final class AVFoundationMixer: Sendable {
         switch segment.media {
         case let .pinned(media):
             file = MediaFile(media: media)
-            guard case .file = media.source else { throw MixerError.noSound(segment: place, file: file.path) }
+            guard case .file = media.source else { throw MixerError.noSound(place: place, file: file.path) }
 
         case let .unpinned(path):
             file = MediaFile(path: path)
@@ -200,9 +259,9 @@ package final class AVFoundationMixer: Sendable {
         do {
             return (file.path, try decoder.sound(of: file, from: start, to: end))
         } catch DecoderError.noSound {
-            throw MixerError.noSound(segment: place, file: file.path)
+            throw MixerError.noSound(place: place, file: file.path)
         } catch {
-            throw MixerError.unreadable(segment: place, reason: "\(error)")
+            throw MixerError.unreadable(place: place, reason: "\(error)")
         }
     }
 }
@@ -210,13 +269,14 @@ package final class AVFoundationMixer: Sendable {
 extension AVFoundationMixer: Mixer {
     // MARK: - Lifecycle
     package func check(_ plan: MixPlan) throws {
+        try check(plan.filter, place: "")
         try check(segments: plan.segments, buses: plan.buses, place: "")
     }
 
     package func mix(_ plan: MixPlan) throws -> SoundBuffer {
         let length = plan.length
         var samples = try sum(segments: plan.segments, buses: plan.buses, over: 0..<length, place: "")
-        filter(&samples, frames: length, by: plan.filter, first: 0)
+        try filter(&samples, frames: length, by: plan.filter, place: "", first: 0)
         interleave(&samples, frames: length)
 
         return SoundBuffer(sampleRate: Self.sampleRate, channels: 2, samples: samples)

@@ -12,8 +12,11 @@ struct SoundPlanner: Sendable {
     private let audioFilters: AudioFilterResolver
 
     // MARK: - Initializer
-    init(presets: any PresetProvider) {
-        self.audioFilters = AudioFilterResolver(presets: presets)
+    init(
+        presets: any PresetProvider,
+        library: ReferenceLibrary
+    ) {
+        self.audioFilters = AudioFilterResolver(presets: presets, library: library)
     }
 
     // MARK: - Public

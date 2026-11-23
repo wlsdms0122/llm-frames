@@ -6,19 +6,24 @@
 //
 
 // Resolves a clip's audio filter to the timed list of entries `{ops, mix}` its sound is processed with: a preset's ops
-// with its arguments in place, or the one op written in place, each op with its defaults written. A static op
-// parameter is checked against its range where the clip writes it, and a keyframed one by timing. A preset is read
-// with the arguments the choice writes, and again with each keyframe's over them, so a stop names the choice or the
-// keyframe.
+// with its arguments in place, or the one op written in place, each op with its defaults written and an impulse
+// response its absolute path. A static op parameter is checked against its range where the clip writes it, and a
+// keyframed one by timing. A preset is read with the arguments the choice writes, and again with each keyframe's over
+// them, so a stop names the choice or the keyframe.
 struct AudioFilterResolver: Sendable {
     // MARK: - Property
     static let key = "audioFilter"
 
     private let presets: any PresetProvider
+    private let values: PresetValueResolver
 
     // MARK: - Initializer
-    init(presets: any PresetProvider) {
+    init(
+        presets: any PresetProvider,
+        library: ReferenceLibrary
+    ) {
         self.presets = presets
+        self.values = PresetValueResolver(library: library)
     }
 
     // MARK: - Public
@@ -51,7 +56,10 @@ struct AudioFilterResolver: Sendable {
         let timed = try looks.timed(property, key: Self.key, as: structure)
         let elements = if case let .list(elements) = timed { elements } else { [timed] }
 
-        return .list(try elements.map { element in try entry(element, published: published, looks: looks) })
+        return .list(try elements.enumerated().map { index, element in
+            let entryPlace = isList ? place.appending(index: index) : place
+            return try entry(element, published: published, place: entryPlace, looks: looks)
+        })
     }
 
     // MARK: - Private
@@ -118,10 +126,12 @@ struct AudioFilterResolver: Sendable {
         }
     }
 
-    // An op's `mix` belongs to its entry, so the entry is its ops and the `mix` they are heard with.
+    // An op's `mix` belongs to its entry, so the entry is its ops and the `mix` they are heard with. `place` is where
+    // the entry is written.
     private func entry(
         _ value: TimedValue,
         published: [String: PublishedPreset<AudioPreset>],
+        place: Place,
         looks: ClipLookPlanner
     ) throws -> TimedValue {
         guard case let .form(name, .object(members)) = value else { return value }
@@ -136,8 +146,10 @@ struct AudioFilterResolver: Sendable {
             operations = []
         }
 
+        let resolved = try operations.map { try file(of: $0, place: place, kind: looks.kind) }
+
         return .object([
-            TimedMember(key: "ops", value: .list(operations)),
+            TimedMember(key: "ops", value: .list(resolved)),
             TimedMember(key: "mix", value: members.first { $0.key == "mix" }?.value ?? .off)
         ])
     }
@@ -161,6 +173,22 @@ struct AudioFilterResolver: Sendable {
             )
             return .form("op:" + name, body)
         }
+    }
+
+    // A `convolve`'s impulse response named by its pack or its path is its absolute path.
+    private func file(
+        of operation: TimedValue,
+        place: Place,
+        kind: PlaceKind
+    ) throws -> TimedValue {
+        guard case let .form(name, .object(members)) = operation, name == "op:convolve" else { return operation }
+
+        return .form(name, .object(try members.map { member in
+            guard member.key == "file", case let .fixed(.string(reference)) = member.value else { return member }
+
+            let path = try values.impulseResponse(reference, place: place, kind: kind)
+            return TimedMember(key: "file", value: .fixed(.string(path)))
+        }))
     }
 
     // A preset's op with its arguments in place: a parameter an argument fills takes the argument's keyframes, and

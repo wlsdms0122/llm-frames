@@ -98,7 +98,7 @@ The interview opens with a slow push in and a lower third, a name and a role in 
 | filter choice | a preset as `<pack>/<name>` or an absolute path, `{preset, args, mix}` with at least one of `args` and `mix`, `preset` left out to merge over the theme's default ([FRAMES-22](../FRAMES-22/SPEC.md)), a filter op, a list of those, or `"none"` ([FRAMES-15](../FRAMES-15/SPEC.md)) |
 | filter op | `op`, the parameters the op table of [FRAMES-15](../FRAMES-15/SPEC.md) gives that op, and `mix` where a choice writes it (not in a preset's `ops`) |
 | audio filter choice (`audioFilter`) | an audio preset as `<pack>/<name>` or an absolute path, `{preset, args, mix}` with at least one of `args` and `mix`, an audio op, or a list of those ([FRAMES-13](../FRAMES-13/SPEC.md)) |
-| audio op | `op`, `mix` where a choice writes it (not in a preset's `ops`), and its parameters: `bands` for `eq`; `threshold, ratio, knee, attack, release, makeup` for `compressor`; `threshold, range, attack, hold, release` for `gate`; `gain, ceiling, lookahead, release` for `limiter` |
+| audio op | `op`, `mix` where a choice writes it (not in a preset's `ops`), and its parameters: `bands` for `eq`; `threshold, ratio, knee, attack, release, makeup` for `compressor`; `threshold, range, attack, hold, release` for `gate`; `gain, ceiling, lookahead, release` for `limiter`; `file, gain` for `convolve` |
 | EQ band | `type, frequency, gain, q`, `gain` for `lowShelf`, `highShelf` and `peak` only |
 | arguments (`args` of a preset choice or a template instance) | the names of the parameters the preset or template publishes ([FRAMES-17](../FRAMES-17/SPEC.md)) |
 | template instance | `template, args` |

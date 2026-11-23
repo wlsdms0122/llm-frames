@@ -30,7 +30,7 @@ struct SequencePlanner: Sendable {
         self.finder = GeometryFinder(ocr: ocr, languages: languages)
         self.tracker = TrackPlanner(tracker: tracker, ocr: ocr, languages: languages)
         self.titles = TitlePlanner(shaper: shaper, library: library)
-        self.sound = SoundPlanner(presets: presets)
+        self.sound = SoundPlanner(presets: presets, library: library)
         self.appearances = ClipAppearancePlanner(presets: presets, library: library)
     }
 

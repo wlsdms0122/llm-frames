@@ -363,17 +363,27 @@ enum LookStructureTable {
         return .choice(offNames: [], forms: presetForms + operationForms)
     }
 
-    // An audio filter as resolve gives it: its entries in order, each its ops and the `mix` it is heard with.
+    // An audio filter as resolve gives it: its entries in order, each its ops and the `mix` it is heard with. An
+    // impulse response's file is pinned, its SHA-256 beside it.
     static let resolvedAudioFilter = ValueStructure.list(.object(ObjectStructure([
         ("ops", .list(.choice(offNames: [], forms: AudioFilterKeyTable.operations.map { name in
-            ("op:" + name, audioOperation(name))
+            guard
+                case let .object(operation) = audioOperation(name),
+                operation.keys.contains(where: { $0.name == "file" })
+            else {
+                return ("op:" + name, audioOperation(name))
+            }
+
+            let keys = operation.keys.flatMap { key in key.name == "file" ? [key, ("sha256", .leaf(.name))] : [key] }
+            return ("op:" + name, .object(ObjectStructure(keys)))
         }))),
         ("mix", mix)
     ])))
 
     // An audio op's parameters in the order of the op table, each in its range with its default written, and those
     // with no default required. A band's `frequency` and `q` are heard by their ratio, so they move geometrically. A
-    // limiter's `lookahead` sets the one window its hold and its ramp share, so it is static.
+    // limiter's `lookahead` sets the one window its hold and its ramp share, so it is static, and a `convolve`'s `file`
+    // is a file, static too.
     static func audioOperation(
         _ name: String,
         mixed: Bool = false
@@ -406,6 +416,9 @@ enum LookStructureTable {
                 ],
                 ["gain": .number(0), "ceiling": .number(-1), "lookahead": .number(0.005), "release": .number(0.1)]
             )
+
+        case "convolve":
+            ([("file", .leaf(LeafKind(form: .file))), ("gain", .leaf(.number()))], ["gain": .number(0)])
 
         default:
             (

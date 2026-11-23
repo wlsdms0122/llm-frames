@@ -710,6 +710,379 @@ struct AVFoundationMixerTests {
         #expect(error?.description == "mix plan buses[0].buses[0].segments[1]: media \(video) has no sound track")
     }
 
+    @Test("a `convolve` whose impulse response is 1 and then zeros leaves a stereo sound as it is at `gain` 0")
+    func passesIdentityImpulse() async throws {
+        // Given
+        let directory = try TemporaryDirectory()
+        let input = try writeNoise(to: directory.file("input.wav"))
+        let response = directory.file("identity.wav")
+        try WaveFileWriter(channels: [[1] + zeros(47_999), [1] + zeros(47_999)]).write(to: response)
+        let sut = AVFoundationMixer(decoder: AVFoundationDecoder())
+
+        // When
+        let convolved = try sut.mix(MixPlan(length: 48_000, segments: [
+            segment(of: input, from: 0, to: 1, filter: convolution(response))
+        ]))
+        let plain = try sut.mix(MixPlan(length: 48_000, segments: [segment(of: input, from: 0, to: 1)]))
+
+        // Then
+        #expect(convolved.samples == plain.samples)
+    }
+
+    @Test("an impulse response of 300 zeros and a 1 delays the sound by 300 samples, silence before them")
+    func delaysByImpulse() async throws {
+        // Given
+        let directory = try TemporaryDirectory()
+        let input = try writeNoise(to: directory.file("input.wav"))
+        let response = directory.file("delayed.wav")
+        try WaveFileWriter(channels: [zeros(300) + [1]]).write(to: response)
+        let sut = AVFoundationMixer(decoder: AVFoundationDecoder())
+
+        // When
+        let convolved = try sut.mix(MixPlan(length: 48_000, segments: [
+            segment(of: input, from: 0, to: 1, filter: convolution(response))
+        ]))
+        let plain = try sut.mix(MixPlan(length: 48_000, segments: [segment(of: input, from: 0, to: 1)]))
+
+        // Then
+        for channel in 0..<2 {
+            let output = self.channel(channel, of: convolved)
+            let dry = self.channel(channel, of: plain)
+            let largest = (0..<48_000).map { abs(output[$0] - ($0 < 300 ? 0 : dry[$0 - 300])) }.max()!
+            #expect(largest <= 1e-6, "channel \(channel): \(largest)")
+        }
+    }
+
+    @Test("an impulse response of one sample 0.25 scales the sound by 0.25 exactly")
+    func scalesByImpulse() async throws {
+        // Given
+        let directory = try TemporaryDirectory()
+        let input = try writeNoise(to: directory.file("input.wav"))
+        let response = directory.file("quarter.wav")
+        try WaveFileWriter(channels: [[0.25], [0.25]]).write(to: response)
+        let sut = AVFoundationMixer(decoder: AVFoundationDecoder())
+
+        // When
+        let convolved = try sut.mix(MixPlan(length: 48_000, segments: [
+            segment(of: input, from: 0, to: 1, filter: convolution(response))
+        ]))
+        let plain = try sut.mix(MixPlan(length: 48_000, segments: [segment(of: input, from: 0, to: 1)]))
+
+        // Then
+        #expect(convolved.samples == plain.samples.map { $0 * 0.25 })
+    }
+
+    @Test(
+        "`gain` raises the convolved sound by 10^(G / 20), as a number and as an envelope read at each sample",
+        arguments: [
+            MixValue.constant(-6),
+            MixValue.envelope([EnvelopePoint(time: 0.25, value: -20), EnvelopePoint(time: 0.75, value: 6)])
+        ]
+    )
+    func raisesByGain(gain: MixValue) async throws {
+        // Given
+        let directory = try TemporaryDirectory()
+        let input = try writeNoise(to: directory.file("input.wav"))
+        let response = directory.file("identity.wav")
+        try WaveFileWriter(channels: [[1]]).write(to: response)
+        let sut = AVFoundationMixer(decoder: AVFoundationDecoder())
+
+        // When
+        let convolved = try sut.mix(MixPlan(length: 48_000, segments: [
+            segment(of: input, from: 0, to: 1, filter: convolution(response, gain: gain))
+        ]))
+        let plain = try sut.mix(MixPlan(length: 48_000, segments: [segment(of: input, from: 0, to: 1)]))
+
+        // Then
+        var cursor = EnvelopeCursor(value: gain)
+        let largest = (0..<48_000).map { frame in
+            let scale = pow(10, cursor.value(at: Double(frame) / 48_000) / 20)
+            return (0..<2).map { channel in
+                abs(Double(convolved.samples[frame * 2 + channel]) - scale * Double(plain.samples[frame * 2 + channel]))
+            }.max()!
+        }.max()!
+        #expect(largest <= 2 * Double(Float.ulpOfOne), "\(largest)")
+    }
+
+    @Test("an impulse response of one channel is the h of both channels at its own level: its only sample 1 changes nothing")
+    func usesMonoResponseOnBoth() async throws {
+        // Given
+        let directory = try TemporaryDirectory()
+        let input = try writeNoise(to: directory.file("input.wav"))
+        let unit = directory.file("unit.wav")
+        try WaveFileWriter(channels: [[1]]).write(to: unit)
+        let taps: [Float] = [0.5, 0, 0.25]
+        let shaped = directory.file("shaped.wav")
+        try WaveFileWriter(channels: [taps]).write(to: shaped)
+        let sut = AVFoundationMixer(decoder: AVFoundationDecoder())
+
+        // When
+        let passed = try sut.mix(MixPlan(length: 48_000, segments: [
+            segment(of: input, from: 0, to: 1, filter: convolution(unit))
+        ]))
+        let convolved = try sut.mix(MixPlan(length: 48_000, segments: [
+            segment(of: input, from: 0, to: 1, filter: convolution(shaped))
+        ]))
+        let plain = try sut.mix(MixPlan(length: 48_000, segments: [segment(of: input, from: 0, to: 1)]))
+
+        // Then
+        #expect(passed.samples == plain.samples)
+        for channel in 0..<2 {
+            let reference = directSum(of: self.channel(channel, of: plain), by: taps, at: Array(0..<48_000))
+            let largest = deviation(of: self.channel(channel, of: convolved), from: reference)
+            #expect(largest <= 1e-6, "channel \(channel): \(largest)")
+        }
+    }
+
+    @Test("an impulse response of two channels gives the left channel its left and the right its right, with no cross terms")
+    func keepsStereoResponseApart() async throws {
+        // Given
+        let directory = try TemporaryDirectory()
+        let input = try writeNoise(to: directory.file("input.wav"))
+        let response = directory.file("stereo.wav")
+        try WaveFileWriter(channels: [[1, 0], [0, 0.5]]).write(to: response)
+        let sut = AVFoundationMixer(decoder: AVFoundationDecoder())
+
+        // When
+        let convolved = try sut.mix(MixPlan(length: 48_000, segments: [
+            segment(of: input, from: 0, to: 1, filter: convolution(response))
+        ]))
+        let plain = try sut.mix(MixPlan(length: 48_000, segments: [segment(of: input, from: 0, to: 1)]))
+
+        // Then
+        let left = channel(0, of: plain)
+        let right = channel(1, of: plain)
+        #expect(channel(0, of: convolved) == left)
+        #expect(channel(1, of: convolved) == [0] + right.dropLast().map { $0 * 0.5 })
+    }
+
+    @Test("an impulse response at 44.1 kHz is resampled to 48 kHz as a segment's sound is")
+    func resamplesResponse() async throws {
+        // Given
+        let directory = try TemporaryDirectory()
+        let click = directory.file("click.wav")
+        try WaveFileWriter(channels: [[1] + zeros(47_999), [1] + zeros(47_999)]).write(to: click)
+        let response = directory.file("response.wav")
+        try WaveFileWriter(sampleRate: 44_100, channels: noises(count: 2000, seeds: [21, 22], level: 0.5)).write(to: response)
+        let sut = AVFoundationMixer(decoder: AVFoundationDecoder())
+
+        // When
+        let convolved = try sut.mix(MixPlan(length: 48_000, segments: [
+            segment(of: click, from: 0, to: 1, filter: convolution(response))
+        ]))
+        let played = try sut.mix(MixPlan(length: 48_000, segments: [segment(of: response, from: 0, to: 1)]))
+
+        // Then
+        let largest = zip(convolved.samples, played.samples).map { abs($0 - $1) }.max()!
+        #expect(largest <= 1e-6, "\(largest)")
+        #expect(peak(of: played, channel: 0, frames: 2100..<2177) > 0)
+    }
+
+    @Test("the convolved sound ends where its segment ends, its tail cut there")
+    func cutsTailAtSpanEnd() async throws {
+        // Given
+        let directory = try TemporaryDirectory()
+        let input = try writeNoise(to: directory.file("input.wav"))
+        let response = directory.file("delayed.wav")
+        try WaveFileWriter(channels: [zeros(1000) + [1]]).write(to: response)
+        let sut = AVFoundationMixer(decoder: AVFoundationDecoder())
+
+        // When
+        let convolved = try sut.mix(MixPlan(length: 48_000, segments: [
+            segment(of: input, from: 0, to: 0.25, filter: convolution(response))
+        ]))
+
+        // Then
+        #expect(peak(of: convolved, channel: 0, frames: 11_000..<12_000) > 0.1)
+        #expect(peak(of: convolved, channel: 0, frames: 12_000..<48_000) == 0)
+        #expect(peak(of: convolved, channel: 1, frames: 12_000..<48_000) == 0)
+    }
+
+    @Test("a `convolve` on a sound that ends before its span rings on to the span's end, the direct sum of silence past it")
+    func ringsPastSoundEnd() async throws {
+        // Given
+        let directory = try TemporaryDirectory()
+        let input = directory.file("half.wav")
+        try WaveFileWriter(channels: noises(count: 24_000, seeds: [1, 2], level: 0.5)).write(to: input)
+        let taps = noises(count: 3000, seeds: [29, 30], level: 0.05)
+        let response = directory.file("room.wav")
+        try WaveFileWriter(channels: taps).write(to: response)
+        let filter = convolution(response)
+        let sut = AVFoundationMixer(decoder: AVFoundationDecoder())
+
+        // When
+        let convolved = try sut.mix(MixPlan(length: 48_000, segments: [
+            segment(of: input, from: 0, to: 1, filter: filter)
+        ]))
+        let cut = try sut.mix(MixPlan(length: 48_000, segments: [
+            segment(of: input, from: 0, to: 0.5, filter: filter)
+        ]))
+        let plain = try sut.mix(MixPlan(length: 48_000, segments: [segment(of: input, from: 0, to: 1)]))
+
+        // Then
+        #expect(Array(convolved.samples[0..<48_000]) == Array(cut.samples[0..<48_000]))
+        let frames = Array(24_000..<27_100) + Array(stride(from: 27_100, to: 48_000, by: 97))
+        for channel in 0..<2 {
+            let reference = directSum(of: self.channel(channel, of: plain), by: taps[channel], at: frames)
+            let output = self.channel(channel, of: convolved)
+            let largest = deviation(of: frames.map { output[$0] }, from: reference)
+            #expect(largest <= 1e-6, "channel \(channel): \(largest)")
+        }
+    }
+
+    @Test("a segment without a filter whose sound ends before its span adds silence there, as one whose span ends with it")
+    func addsSilencePastSoundEnd() async throws {
+        // Given
+        let directory = try TemporaryDirectory()
+        let input = directory.file("half.wav")
+        try WaveFileWriter(channels: noises(count: 24_000, seeds: [1, 2], level: 0.5)).write(to: input)
+        let sut = AVFoundationMixer(decoder: AVFoundationDecoder())
+
+        // When
+        let long = try sut.mix(MixPlan(length: 48_000, segments: [segment(of: input, from: 0, to: 1)]))
+        let short = try sut.mix(MixPlan(length: 48_000, segments: [segment(of: input, from: 0, to: 0.5)]))
+
+        // Then
+        #expect(long.samples == short.samples)
+        #expect(peak(of: short, channel: 0, frames: 0..<24_000) > 0.1)
+    }
+
+    @Test(
+        "a `convolve` starts at rest at each segment and each bus span, so the repeats of a loop sound the same",
+        arguments: [false, true]
+    )
+    func startsConvolutionAtRest(onBus: Bool) async throws {
+        // Given
+        let directory = try TemporaryDirectory()
+        let input = try writeNoise(to: directory.file("input.wav"))
+        let response = directory.file("room.wav")
+        try WaveFileWriter(channels: noises(count: 6000, seeds: [23, 24], level: 0.05)).write(to: response)
+        let filter = convolution(response)
+        let plan = onBus
+            ? MixPlan(length: 48_000, segments: [], buses: [
+                bus(from: 0, to: 0.5, segments: [segment(of: input, from: 0, to: 0.5)], filter: filter),
+                bus(from: 0.5, to: 1, segments: [segment(of: input, from: 0.5, to: 1)], filter: filter)
+            ])
+            : MixPlan(length: 48_000, segments: [
+                segment(of: input, from: 0, to: 0.5, filter: filter),
+                segment(of: input, from: 0.5, to: 1, filter: filter)
+            ])
+        let sut = AVFoundationMixer(decoder: AVFoundationDecoder())
+
+        // When
+        let mixed = try sut.mix(plan)
+
+        // Then
+        #expect(Array(mixed.samples[0..<48_000]) == Array(mixed.samples[48_000..<96_000]))
+    }
+
+    @Test("a `convolve` on a segment, on a bus and on the plan's filter gives the direct sum", arguments: 0..<3)
+    func convolvesWherever(place: Int) async throws {
+        // Given
+        let directory = try TemporaryDirectory()
+        let input = try writeNoise(to: directory.file("input.wav"))
+        let taps = noises(count: 3000, seeds: [25, 26], level: 0.05)
+        let response = directory.file("room.wav")
+        try WaveFileWriter(channels: taps).write(to: response)
+        let filter = convolution(response)
+        let plan = switch place {
+        case 0:
+            MixPlan(length: 48_000, segments: [segment(of: input, from: 0, to: 1, filter: filter)])
+
+        case 1:
+            MixPlan(length: 48_000, segments: [], buses: [
+                bus(from: 0, to: 1, segments: [segment(of: input, from: 0, to: 1)], filter: filter)
+            ])
+
+        default:
+            MixPlan(length: 48_000, segments: [segment(of: input, from: 0, to: 1)], filter: filter)
+        }
+        let sut = AVFoundationMixer(decoder: AVFoundationDecoder())
+
+        // When
+        let convolved = try sut.mix(plan)
+        let plain = try sut.mix(MixPlan(length: 48_000, segments: [segment(of: input, from: 0, to: 1)]))
+
+        // Then
+        let frames = Array(stride(from: 0, to: 48_000, by: 97)) + Array(2990..<3010)
+        for channel in 0..<2 {
+            let reference = directSum(of: self.channel(channel, of: plain), by: taps[channel], at: frames)
+            let output = self.channel(channel, of: convolved)
+            let largest = deviation(of: frames.map { output[$0] }, from: reference)
+            #expect(largest <= 1e-6, "channel \(channel): \(largest)")
+        }
+    }
+
+    @Test("a `convolve` in an entry at `mix` 0.5 is half the dry sound and half the wet, aligned sample for sample")
+    func mixesConvolutionByHalf() async throws {
+        // Given
+        let directory = try TemporaryDirectory()
+        let input = try writeNoise(to: directory.file("input.wav"))
+        let taps = noises(count: 500, seeds: [27, 28], level: 0.1)
+        let response = directory.file("room.wav")
+        try WaveFileWriter(channels: taps).write(to: response)
+        let sut = AVFoundationMixer(decoder: AVFoundationDecoder())
+
+        // When
+        let mixed = try sut.mix(MixPlan(length: 48_000, segments: [
+            segment(of: input, from: 0, to: 1, filter: convolution(response, mix: .constant(0.5)))
+        ]))
+        let plain = try sut.mix(MixPlan(length: 48_000, segments: [segment(of: input, from: 0, to: 1)]))
+
+        // Then
+        let frames = Array(0..<2000) + Array(stride(from: 2000, to: 48_000, by: 31))
+        for channel in 0..<2 {
+            let dry = self.channel(channel, of: plain)
+            let wet = directSum(of: dry, by: taps[channel], at: frames)
+            let reference = zip(frames, wet).map { 0.5 * Double(dry[$0]) + 0.5 * $1 }
+            let output = self.channel(channel, of: mixed)
+            let largest = deviation(of: frames.map { output[$0] }, from: reference)
+            #expect(largest <= 1e-6, "channel \(channel): \(largest)")
+        }
+    }
+
+    @Test(
+        "checking and mixing a plan refuse an impulse response that decodes to no samples, naming the op's place",
+        arguments: [
+            (0, "segments[0].filter[0].ops[0]"),
+            (1, "buses[0].filter[0].ops[0]"),
+            (2, "filter[0].ops[0]")
+        ]
+    )
+    func refusesEmptyResponse(
+        place: Int,
+        name: String
+    ) async throws {
+        // Given
+        let directory = try TemporaryDirectory()
+        let input = try writeNoise(to: directory.file("input.wav"))
+        let response = directory.file("empty.wav")
+        try WaveFileWriter(channels: [[1]]).write(to: response)
+        let filter = convolution(response)
+        let plan = switch place {
+        case 0:
+            MixPlan(length: 48_000, segments: [segment(of: input, from: 0, to: 1, filter: filter)])
+
+        case 1:
+            MixPlan(length: 48_000, segments: [], buses: [
+                bus(from: 0, to: 1, segments: [segment(of: input, from: 0, to: 1)], filter: filter)
+            ])
+
+        default:
+            MixPlan(length: 48_000, segments: [segment(of: input, from: 0, to: 1)], filter: filter)
+        }
+        let sut = AVFoundationMixer(decoder: EmptySoundDecoder(emptyFile: response))
+
+        // When
+        let checked = #expect(throws: MixerError.self) { try sut.check(plan) }
+        let mixed = #expect(throws: MixerError.self) { try sut.mix(plan) }
+
+        // Then
+        #expect(checked == .emptyImpulseResponse(place: name, file: response))
+        #expect(mixed == .emptyImpulseResponse(place: name, file: response))
+        #expect(checked?.description == "mix plan \(name): the impulse response \(response) has no samples")
+    }
+
     // MARK: - Private
     private func bus(
         from start: Double,
@@ -793,6 +1166,60 @@ struct AVFoundationMixerTests {
             clips: [],
             audio: audio
         )
+    }
+
+    // One entry of one `convolve` op of the impulse response at `file`.
+    private func convolution(
+        _ file: String,
+        gain: MixValue = .constant(0),
+        mix: MixValue = .constant(1)
+    ) -> [MixFilterEntry] {
+        [
+            MixFilterEntry(
+                operations: [.convolve(MixConvolution(file: PinnedFile(path: file, sha256: ""), gain: gain))],
+                mix: mix
+            )
+        ]
+    }
+
+    // Writes a second of stereo noise at 48 kHz to `file`, which it returns.
+    private func writeNoise(to file: String) throws -> String {
+        try WaveFileWriter(channels: noises(count: rate, seeds: [1, 2], level: 0.5)).write(to: file)
+
+        return file
+    }
+
+    // Channels of `count` samples of noise in [-`level`, `level`], one seed each.
+    private func noises(
+        count: Int,
+        seeds: [UInt64],
+        level: Float
+    ) -> [[Float]] {
+        seeds.map { seed in
+            (0..<count).map { level * Float(SoundSignal.noise(seed: seed).value(channel: 0, at: $0, sampleRate: rate)) }
+        }
+    }
+
+    private func zeros(_ count: Int) -> [Float] {
+        [Float](repeating: 0, count: count)
+    }
+
+    // Σ h[k] x[n - k] in double precision at each n of `frames`, x 0 before 0.
+    private func directSum(
+        of input: [Float],
+        by taps: [Float],
+        at frames: [Int]
+    ) -> [Double] {
+        frames.map { frame in
+            (0...min(frame, taps.count - 1)).reduce(0.0) { $0 + Double(taps[$1]) * Double(input[frame - $1]) }
+        }
+    }
+
+    private func deviation(
+        of output: [Float],
+        from reference: [Double]
+    ) -> Double {
+        zip(output, reference).map { abs(Double($0) - $1) }.max() ?? 0
     }
 
     // The first second of a file's sound as the decoder reads it.

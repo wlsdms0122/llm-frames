@@ -193,6 +193,17 @@ struct ResolvedDocumentReaderTests {
             { "media": "/abs/run.mp4", "in": 0, "out": 3, "filter": "ripple",
               "keyframes": [ { "at": 0, "filter": { "args": { "drift": 0 } } }, { "at": 2, "filter": { "args": { "drift": 30 } } } ] } ] }
         """#,
+        // Convolutions, each impulse response pinned: a storyline clip's in an entry of its own `mix`, a compound clip's
+        // whose gain moves beside its nested sequence's, and the sequence's before a limiter.
+        #"""
+        { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "in": 0, "out": 3,
+            "audioFilter": { "op": "convolve", "file": "/abs/ding.wav", "mix": 0.4 } } ],
+          "clips": [ { "media": { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "out": 2 } ],
+                                  "audioFilter": { "op": "convolve", "file": "/abs/bgm.m4a" } },
+                       "picture": false, "at": 1, "audioFilter": { "op": "convolve", "file": "/abs/ding.wav" },
+                       "keyframes": [ { "at": 0, "audioFilter": { "gain": -12 } }, { "at": 1, "audioFilter": { "gain": 0 } } ] } ],
+          "audioFilter": [ { "op": "convolve", "file": "/abs/ding.wav", "gain": -6 }, { "op": "limiter" } ] }
+        """#,
         // A title of runs over two lines with a background, one run in the stroked subtitle style.
         #"""
         { "kind": "sequence", "format": { "size": [1920, 1080] },

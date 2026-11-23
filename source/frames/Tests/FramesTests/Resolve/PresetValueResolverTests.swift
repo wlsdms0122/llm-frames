@@ -33,6 +33,15 @@ struct PresetValueResolverTests {
             at: "presets/filter/ripple.json"
         )
         try directory.write(
+            #"""
+            { "description": "room", "params": { "wet": { "type": "number", "default": -6, "description": "the level" } },
+              "ops": [ { "op": "convolve", "file": "shorts/hall.wav", "gain": { "param": "wet" } },
+                       { "op": "convolve", "file": "/abs/ding.wav" } ] }
+            """#,
+            in: "shorts",
+            at: "presets/audio/room.json"
+        )
+        try directory.write(
             #"{ "description": "wipe", "seconds": 1, "matte": { "media": "shorts/wipe.png" } }"#,
             in: "shorts",
             at: "presets/transition/wipe.json"
@@ -164,6 +173,89 @@ struct PresetValueResolverTests {
         #expect(bare == .unknownPresetFile(place: .root, kind: .clip(.media(.video)), name: "ripple.png"))
     }
 
+    @Test("a pack preset's impulse responses, by <pack>/<name.ext> in the pack's media and by an absolute path, are pinned with their SHA-256")
+    func pinsImpulseResponses() throws {
+        // Given
+        let document = try Fixture.json(#"""
+            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "in": 0, "out": 2 } ],
+              "clips": [ { "media": "/abs/bgm.m4a", "audioFilter": "shorts/room" } ] }
+            """#)
+        let hall = directory.installed.appendingPathComponent("shorts/media/hall.wav").standardizedFileURL.path
+
+        // When
+        let resolved = ResolvedDocumentWriter().document(
+            try ResolvedSequence(plan: planner().plan(document), hashes: FileHashTable([hall: "hall-digest"]))
+        )
+
+        // Then
+        let sound = resolved.objectValue?["audio"]?.arrayValue?.last?.objectValue
+        let entry = sound?["audioFilter"]?.arrayValue?.first?.objectValue
+        let operations = (entry?["ops"]?.arrayValue ?? []).compactMap(\.objectValue)
+        #expect(operations.map { $0["op"] } == [.string("convolve"), .string("convolve")])
+        #expect(operations.map { $0["file"] } == [.string(hall), .string("/abs/ding.wav")])
+        #expect(operations.map { $0["sha256"] } == [.string("hall-digest"), .string("sha256-of-/abs/ding.wav")])
+        #expect(operations.allSatisfy { $0["gain"] != nil })
+    }
+
+    @Test(
+        "an impulse response that is no sound an impulse response can be stops, naming where it is chosen",
+        arguments: [
+            ("/abs/card.png", ImpulseResponseRefusal.noSound),
+            ("/abs/short.mp4", .noSound),
+            ("/abs/frames", .imageSequence),
+            ("/abs/logo.pdf", .page),
+            ("/abs/edit.json", .sequence),
+            ("/abs/silence.wav", .noSamples),
+            ("/abs/long.wav", .tooLong(duration: 31))
+        ]
+    )
+    func refusesImpulseResponse(
+        reference: String,
+        refusal: ImpulseResponseRefusal
+    ) throws {
+        // Given
+        let sut = PresetValueResolver(library: directory.library(mediaFacts: impulseResponseFacts()))
+        let place = Place.root.appending(key: "audioFilter")
+
+        // When
+        let error = #expect(throws: ResolveError.self) {
+            try sut.impulseResponse(reference, place: place, kind: .clip(.media(.audio)))
+        }
+
+        // Then
+        #expect(error == .unusableImpulseResponse(place: place, kind: .clip(.media(.audio)), reference: reference, refusal: refusal))
+    }
+
+    @Test("an impulse response of exactly 30 seconds is taken as its path")
+    func takesLongestImpulseResponse() throws {
+        // Given
+        let sut = PresetValueResolver(library: directory.library(mediaFacts: impulseResponseFacts()))
+
+        // When
+        let path = try sut.impulseResponse("/abs/hall.wav", place: .root, kind: .clip(.media(.audio)))
+
+        // Then
+        #expect(path == "/abs/hall.wav")
+    }
+
+    @Test("an impulse response that is not there, or in a pack that is not installed, stops")
+    func refusesMissingImpulseResponse() throws {
+        // Given
+        let sut = PresetValueResolver(library: directory.library())
+
+        // When
+        let missing = #expect(throws: ResolveError.self) {
+            try sut.impulseResponse("/abs/none.wav", place: .root, kind: .clip(.media(.audio)))
+        }
+        let unknownPack = #expect(throws: ResolveError.self) {
+            try sut.impulseResponse("nopack/hall.wav", place: .root, kind: .clip(.media(.audio)))
+        }
+
+        // Then
+        #expect(missing == .missingMedia(place: .root, kind: .clip(.media(.audio)), reference: "/abs/none.wav"))
+        #expect(unknownPack == .unknownPresetFile(place: .root, kind: .clip(.media(.audio)), name: "nopack/hall.wav"))
+    }
+
     @Test("a cover named by an absolute path in a pack preset keeps that path")
     func keepsAbsolutePath() throws {
         // Given
@@ -285,13 +377,32 @@ struct PresetValueResolverTests {
         PresetLibrary(packs: directory.packs)
     }
 
-    // The pack's matte and displacement map are probed as any other media.
+    // `/abs/silence.wav` is sound of no length, `/abs/long.wav` of 31 seconds and `/abs/hall.wav` of 30.
+    private func impulseResponseFacts() -> MediaFactTable {
+        let sound = { (duration: Double) in
+            ProbedMedia(kind: .audio, duration: duration, sound: ProbedSound(channels: 2, sampleRate: 48000))
+        }
+
+        return MediaFactTable(
+            files: Fixture.mediaFacts.files.merging([
+                "/abs/silence.wav": sound(0),
+                "/abs/long.wav": sound(31),
+                "/abs/hall.wav": sound(30)
+            ]) { $1 },
+            imageSequences: Fixture.mediaFacts.imageSequences,
+            pages: Fixture.pages
+        )
+    }
+
+    // The pack's matte, displacement map and impulse response are probed as any other media.
     private func planner() -> DocumentPlanner {
         let wipe = directory.installed.appendingPathComponent("shorts/media/wipe.png").standardizedFileURL.path
         let ripple = directory.installed.appendingPathComponent("shorts/media/ripple.png").standardizedFileURL.path
+        let hall = directory.installed.appendingPathComponent("shorts/media/hall.wav").standardizedFileURL.path
         let still = ProbedMedia(kind: .image, size: Size(width: 1080, height: 1920))
+        let room = ProbedMedia(kind: .audio, duration: 2, sound: ProbedSound(channels: 2, sampleRate: 48000))
         let mediaFacts = MediaFactTable(
-            files: Fixture.mediaFacts.files.merging([wipe: still, ripple: still]) { $1 },
+            files: Fixture.mediaFacts.files.merging([wipe: still, ripple: still, hall: room]) { $1 },
             imageSequences: Fixture.mediaFacts.imageSequences
         )
         let library = directory.library(mediaFacts: mediaFacts)

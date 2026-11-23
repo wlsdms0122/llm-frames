@@ -24,7 +24,7 @@ extension ResolvedSound {
             place: plan.place.description,
             media: media,
             nested: try plan.nested.map { try ResolvedSound(plan: $0, hashes: hashes) },
-            nestedAudioFilter: plan.nestedAudioFilter,
+            nestedAudioFilter: try plan.nestedAudioFilter.pinningFiles(hashes: hashes),
             played: plan.played,
             start: plan.range.start,
             end: plan.range.end,
@@ -35,7 +35,7 @@ extension ResolvedSound {
             fadeOut: plan.fadeOut,
             incoming: plan.incoming,
             outgoing: plan.outgoing,
-            audioFilter: plan.audioFilter
+            audioFilter: try plan.audioFilter.pinningFiles(hashes: hashes)
         )
     }
 

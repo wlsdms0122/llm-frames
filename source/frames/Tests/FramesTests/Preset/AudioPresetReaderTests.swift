@@ -87,6 +87,27 @@ struct AudioPresetReaderTests {
         }
     }
 
+    @Test("a preset's convolve takes its gain from a parameter, and a parameter for its file stops")
+    func readsConvolution() throws {
+        // Given
+        let preset = #"""
+            { "description": "", "params": { "wet": { "type": "number", "default": -6, "description": "level" } },
+              "ops": [ { "op": "convolve", "file": "/abs/ding.wav", "gain": { "param": "wet" } } ] }
+            """#
+        let file = #"""
+            { "description": "", "params": { "room": { "type": "number", "default": 1, "description": "room" } },
+              "ops": [ { "op": "convolve", "file": { "param": "room" } } ] }
+            """#
+
+        // When
+        let published = try sut.publishedAudio(from: json(preset), place: self.file)
+
+        // Then
+        #expect(published.defaults.operations.first?["gain"] == .number(-6))
+        #expect(published.defaults.operations.first?["file"] == .string("/abs/ding.wav"))
+        #expect(throws: ModelError.self) { try sut.publishedAudio(from: json(file), place: self.file) }
+    }
+
     @Test(
         "a colour or choice parameter, an op's mix and an unknown op stop",
         arguments: [

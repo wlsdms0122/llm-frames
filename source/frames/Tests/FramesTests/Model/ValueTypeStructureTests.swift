@@ -157,7 +157,8 @@ struct ValueTypeStructureTests {
                     KeyRule("lookahead", .number(.any)),
                     KeyRule("release", .number(.any))
                 ]
-            )
+            ),
+            ObjectTable(kind: "convolve", rules: [operation, KeyRule("file", .name), KeyRule("gain", .number(.any))])
         ])
         let type = KeyRule("type", .literal(AudioFilterKeyTable.bandTypes), isRequired: true)
         #expect(bands == MixBandType.allCases.map { band in

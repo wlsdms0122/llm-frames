@@ -11,9 +11,10 @@ package enum MixFilterOperation: Equatable, Sendable {
     case compressor(MixCompressor)
     case gate(MixGate)
     case limiter(MixLimiter)
+    case convolve(MixConvolution)
 
     // MARK: - Property
-    package static let names = ["eq", "compressor", "gate", "limiter"]
+    package static let names = ["eq", "compressor", "gate", "limiter", "convolve"]
 
     package var name: String {
         switch self {
@@ -28,6 +29,9 @@ package enum MixFilterOperation: Equatable, Sendable {
 
         case .limiter:
             "limiter"
+
+        case .convolve:
+            "convolve"
         }
     }
 

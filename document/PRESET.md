@@ -231,7 +231,7 @@ Inside the preset, `{"param": "<name>"}` stands for a value of the parameter's t
 | `color` | a cover `color`, a `bloom` `color` |
 | `choice` | a span's or a transition's `ease` |
 
-It never stands for a key, for a name (`revealFrom`, `over`, `audio`, an `op`, a `colorSpace`, a `lut` `space`) or for a file (`media`, a `lut` file). frames checks a preset when it reads it: every `{"param"}` names one of its parameters and stands where its type is taken, every parameter is used somewhere, and every value is in range with each parameter at its default. When a document passes arguments, the values are checked again with them, and the stop names the place in the document.
+It never stands for a key, for a name (`revealFrom`, `over`, `audio`, an `op`, a `colorSpace`, a `lut` `space`) or for a file (`media`, a `lut`, `displace` or `convolve` file). frames checks a preset when it reads it: every `{"param"}` names one of its parameters and stands where its type is taken, every parameter is used somewhere, and every value is in range with each parameter at its default. When a document passes arguments, the values are checked again with them, and the stop names the place in the document.
 
 ## Passing arguments
 
