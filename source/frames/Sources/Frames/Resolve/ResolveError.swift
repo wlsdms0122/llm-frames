@@ -501,7 +501,7 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
             "holds no samples, and an impulse response holds at least one"
 
         case let .tooLong(duration):
-            "is \(number(duration)) seconds long, and an impulse response is at most 30 seconds"
+            "is \(number(duration)) seconds long, and an impulse response is at most \(number(MixConvolution.longestDuration)) seconds"
         }
     }
 
