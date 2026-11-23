@@ -155,6 +155,54 @@ struct OutlineSegmentTests {
         #expect(whole == sut)
     }
 
+    // The arc length is measured independently by a polyline of 200000 chords, each under 0.003 long, and the point
+    // at a distance found between the two samples around it.
+    @Test(
+        "the point at a distance along a cubic is where that much of its arc length runs out, its cusp's kink included",
+        arguments: [
+            OutlineSegment.cubic(
+                from: Point(x: 0, y: 0),
+                first: Point(x: 30, y: 120),
+                second: Point(x: 200, y: -40),
+                to: Point(x: 240, y: 80)
+            ),
+            Self.cusp
+        ]
+    )
+    func walksByArcLength(sut: OutlineSegment) {
+        // Given
+        guard case let .cubic(from, first, second, to) = sut else { Issue.record("not a cubic"); return }
+        let count = 200_000
+        let samples = (0...count).map { index in
+            let t = Double(index) / Double(count)
+            let rest = 1 - t
+            let weights = (rest * rest * rest, 3 * rest * rest * t, 3 * rest * t * t, t * t * t)
+            return Point(
+                x: weights.0 * from.x + weights.1 * first.x + weights.2 * second.x + weights.3 * to.x,
+                y: weights.0 * from.y + weights.1 * first.y + weights.2 * second.y + weights.3 * to.y
+            )
+        }
+        var lengths = [0.0]
+        for (point, next) in zip(samples, samples.dropFirst()) {
+            lengths.append(lengths[lengths.count - 1] + hypot(next.x - point.x, next.y - point.y))
+        }
+        let total = lengths[count]
+
+        // When
+        let length = sut.length
+        let points = (1..<10).map { tenth in sut.point(at: total * Double(tenth) / 10) }
+
+        // Then
+        #expect(abs(length - total) < 1e-4, "\(length) against \(total)")
+        for (tenth, point) in zip(1..., points) {
+            let distance = total * Double(tenth) / 10
+            let index = max(lengths.firstIndex { $0 >= distance } ?? count, 1)
+            let part = (distance - lengths[index - 1]) / (lengths[index] - lengths[index - 1])
+            let expected = Point.interpolate(from: samples[index - 1], to: samples[index], progress: part)
+            #expect(close(point, expected, within: 1e-3), "\(point) against \(expected) at \(tenth) tenths")
+        }
+    }
+
     @Test("a cubic carried by an affine map keeps its parameter, so a length on it maps to the carried one's")
     func carriesCubic() {
         // Given

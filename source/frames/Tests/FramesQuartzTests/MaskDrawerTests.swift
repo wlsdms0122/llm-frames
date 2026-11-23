@@ -17,6 +17,13 @@ struct MaskDrawerTests {
     // A 16-bit output reproduces a mask value to well within one 8-bit step.
     private static let tolerance = 1.0 / 255
     private static let size = 40.0
+    private static let lens = PathGeometry.path(
+        [
+            PathVertex(vertex: Point(x: 4, y: 20), inTangent: Point(x: 10, y: 20), outTangent: Point(x: 10, y: -20)),
+            PathVertex(vertex: Point(x: 36, y: 20), inTangent: Point(x: -10, y: -20), outTangent: Point(x: -10, y: 20))
+        ],
+        isClosed: true
+    )
 
     private let sut = QuartzRenderer(decoder: AVFoundationDecoder())
 
@@ -164,6 +171,47 @@ struct MaskDrawerTests {
         expect(alpha(of: round, x: 2, y: 2), equals: 0)
     }
 
+    // Two vertices at (4, 20) and (36, 20) whose tangents bend the segment there up to y = 5 at x = 20 and the
+    // closing segment back down to y = 35, a lens. Its chord alone would enclose nothing.
+    @Test("a path mask of two vertices covers the lens its curves enclose, and inverted everything outside it")
+    func coversCurvedLens() throws {
+        // Given
+        let lens = mask(Self.lens)
+        let inverted = mask(Self.lens, isInverted: true)
+
+        // When
+        let bitmap = try sut.frame(of: list(masks: [lens]))
+        let outside = try sut.frame(of: list(masks: [inverted]))
+
+        // Then
+        for (x, y) in [(20, 20), (20, 7), (20, 33), (8, 20)] {
+            expect(alpha(of: bitmap, x: x, y: y), equals: 1)
+            expect(alpha(of: outside, x: x, y: y), equals: 0)
+        }
+        for (x, y) in [(20, 2), (20, 37), (1, 20), (38, 20), (6, 12)] {
+            expect(alpha(of: bitmap, x: x, y: y), equals: 0)
+            expect(alpha(of: outside, x: x, y: y), equals: 1)
+        }
+    }
+
+    // Down the lens's middle column its top edge lies at y = 5. The curve is convex there, so a feather of 3 leaves
+    // less than a straight edge would outside it: under 0.0668 at pixel 0, 4.5 out, and about a half at pixel 5.
+    @Test("a feather blurs a curved mask's edge, falling off across it")
+    func feathersCurvedLens() throws {
+        // Given
+        let lens = mask(Self.lens, feather: 3)
+
+        // When
+        let bitmap = try sut.frame(of: list(masks: [lens]))
+
+        // Then
+        let values = (0...20).map { alpha(of: bitmap, x: 20, y: $0) }
+        #expect(zip(values, values.dropFirst()).allSatisfy { $0 <= $1 + Self.tolerance }, "\(values)")
+        expect(values[20], equals: 1, within: 0.01)
+        #expect(values[0] > 0.005 && values[0] < 0.0668, "\(values[0])")
+        #expect(values[5] > 0.3 && values[5] < 0.6, "\(values[5])")
+    }
+
     // MARK: - Private
     // A white fill over the whole frame on a transparent background, so each pixel's alpha is the masks' result.
     private func list(masks: [ItemMask]) -> DisplayList {
@@ -186,8 +234,17 @@ struct MaskDrawerTests {
         isInverted: Bool = false,
         mode: MaskMode = .add
     ) -> ItemMask {
+        mask(.rect(rectangle, radius: 0), feather: feather, isInverted: isInverted, mode: mode)
+    }
+
+    private func mask(
+        _ geometry: PathGeometry,
+        feather: Double = 0,
+        isInverted: Bool = false,
+        mode: MaskMode = .add
+    ) -> ItemMask {
         ItemMask(
-            geometry: .rect(rectangle, radius: 0),
+            geometry: geometry,
             transform: .identity,
             feather: feather,
             isInverted: isInverted,
