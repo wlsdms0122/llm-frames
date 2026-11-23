@@ -89,6 +89,42 @@ struct ResolvedSequencePinnedReferencesTests {
         #expect(files == [pinned("/abs/frames/1.png"), pinned("/abs/frames/2.png")])
     }
 
+    @Test("each impulse response is pinned with its hash as a sound, where its clip, its compound clip or the sequence names it")
+    func listsImpulseResponses() throws {
+        // Given
+        let plan = try Fixture.documentPlanner.plan(Fixture.json(#"""
+            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "out": 4 } ],
+              "clips": [ { "media": "/abs/bgm.m4a", "audioFilter": { "op": "convolve", "file": "/abs/ding.wav" } },
+                         { "media": { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "out": 2 } ],
+                                      "audioFilter": { "op": "convolve", "file": "/abs/bgm.m4a" } },
+                           "picture": false, "audioFilter": [ { "op": "gate", "threshold": -50 }, { "op": "convolve", "file": "/abs/run.mp4" } ] } ],
+              "audioFilter": { "op": "convolve", "file": "/abs/ding.wav", "gain": -3 } }
+            """#))
+        let sut = try ResolvedSequence(plan: plan, hashes: FileHashTable(["/abs/ding.wav": "ding-digest"]))
+
+        // When
+        let references = sut.pinnedReferences
+
+        // Then
+        let sounds = references.compactMap { reference -> String? in
+            guard case .sound = reference, let file = reference.files.first else { return nil }
+
+            return "\(reference.place): \(file.path) \(file.sha256)"
+        }
+        #expect(sounds == [
+            "storyline[0]: /abs/run.mp4 sha256-of-/abs/run.mp4",
+            "clips[0]: /abs/bgm.m4a sha256-of-/abs/bgm.m4a",
+            "clips[0]: /abs/ding.wav ding-digest",
+            "clips[1].media.storyline[0]: /abs/run.mp4 sha256-of-/abs/run.mp4",
+            "clips[1]: /abs/bgm.m4a sha256-of-/abs/bgm.m4a",
+            "clips[1]: /abs/run.mp4 sha256-of-/abs/run.mp4",
+            "audioFilter: /abs/ding.wav ding-digest"
+        ])
+        #expect(references.filter { $0.files.map(\.path) == ["/abs/ding.wav"] }.allSatisfy { reference in
+            if case .sound = reference { true } else { false }
+        })
+    }
+
     // MARK: - Private
     private static func pinned(_ path: String) -> PinnedFile {
         PinnedFile(path: path, sha256: String(repeating: "0", count: 64))

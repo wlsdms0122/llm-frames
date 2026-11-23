@@ -10,7 +10,8 @@ import Testing
 
 @testable import Frames
 
-// `/abs/run.mp4` (30 seconds) holds picture and sound, `/abs/short.mp4` only a picture, `/abs/bgm.m4a` only sound.
+// `/abs/run.mp4` (30 seconds) holds picture and sound, `/abs/short.mp4` only a picture, `/abs/bgm.m4a` and `/abs/ding.wav`
+// only sound.
 @Suite("SequenceAudioFilter Tests")
 struct SequenceAudioFilterTests {
     // MARK: - Property
@@ -169,6 +170,41 @@ struct SequenceAudioFilterTests {
         let ceiling = nested?["ops"]?.arrayValue?.first?.objectValue?["ceiling"]?.arrayValue?.first?.objectValue
         #expect(ceiling?["value"] == .number(-6))
         #expect(audio.last?.objectValue?["audioFilter"] == .null)
+    }
+
+    @Test("a sequence's convolve resolves to its absolute file in sequence time, and one whose file has no sound stops at the sequence's audio filter")
+    func resolvesSequenceConvolution() throws {
+        // When
+        let plan = try plan(#"""
+            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "out": 4 } ],
+              "audioFilter": { "op": "convolve", "file": "/abs/ding.wav", "mix": 0.4 },
+              "keyframes": [ { "at": 1, "audioFilter": { "gain": 0 } }, { "at": 3, "audioFilter": { "gain": -8 } } ] }
+            """#)
+        let error = #expect(throws: ResolveError.self) {
+            try self.plan(#"""
+                { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "out": 4 } ], "audioFilter": { "op": "convolve", "file": "/abs/short.mp4" } }
+                """#)
+        }
+
+        // Then
+        guard
+            case let .list(entries) = plan.audioFilter.sampled(at: 2, as: LookStructureTable.resolvedAudioFilter),
+            case let .list(operations)? = entries.first?["ops"],
+            case let .form("op:convolve", body)? = operations.first
+        else {
+            Issue.record("expected a convolve, got \(plan.audioFilter)")
+            return
+        }
+        #expect(body["gain"]?.number == -4)
+        #expect(entries.first?["mix"]?.number == 0.4)
+        guard case let .list(timed) = plan.audioFilter, case let .list(timedOperations)? = timed.first?["ops"],
+            case let .form(_, timedBody)? = timedOperations.first
+        else {
+            Issue.record("expected one op, got \(plan.audioFilter)")
+            return
+        }
+        #expect(timedBody["file"] == .fixed(.string("/abs/ding.wav")))
+        #expect(error == .unusableImpulseResponse(place: Place.root.appending(key: "audioFilter"), kind: .sequence, reference: "/abs/short.mp4", refusal: .noSound))
     }
 
     // MARK: - Private

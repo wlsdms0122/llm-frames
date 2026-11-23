@@ -10,7 +10,8 @@ import Testing
 
 @testable import Frames
 
-// `/abs/run.mp4` (30 seconds) holds picture and sound, `/abs/short.mp4` only a picture, `/abs/bgm.m4a` only sound.
+// `/abs/run.mp4` (30 seconds) holds picture and sound, `/abs/short.mp4` only a picture, `/abs/bgm.m4a` and `/abs/ding.wav`
+// only sound, and `/abs/card.png` is a still.
 @Suite("AudioFilter Tests")
 struct AudioFilterTests {
     // MARK: - Property
@@ -568,6 +569,191 @@ struct AudioFilterTests {
         try checker.check(document: document)
     }
 
+    @Test("the key tables take a convolve with its file, gain and mix, and keyframes that write its gain and mix")
+    func acceptsConvolution() throws {
+        // Given
+        let document = try Fixture.json(#"""
+            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4" } ],
+              "clips": [ { "media": "/abs/bgm.m4a", "audioFilter": { "op": "convolve", "file": "/abs/ding.wav", "gain": -6, "mix": 0 },
+                "keyframes": [ { "at": 0, "audioFilter": { "gain": -12, "mix": 0 } }, { "at": 1, "audioFilter": { "gain": 0, "mix": 1 } } ] } ] }
+            """#)
+
+        // When, Then
+        try checker.check(document: document)
+    }
+
+    @Test("a convolve whose file neither the clip nor its keyframes write passes the key tables and stops")
+    func refusesConvolutionWithoutFile() throws {
+        // Given
+        let document = #"""
+            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "out": 4 } ],
+              "clips": [ { "media": "/abs/bgm.m4a", "audioFilter": { "op": "convolve", "gain": -6 } } ] }
+            """#
+        try checker.check(document: Fixture.json(document))
+
+        // When, Then
+        #expect(throws: ResolveError.missingLookLeaf(place: clip.appending(key: "audioFilter"), kind: .clip(.media(.audio)), key: "file", layer: nil)) {
+            try plan(document)
+        }
+    }
+
+    @Test(
+        "the key tables refuse a convolve's unknown key, a file that is no name and a gain that is no number",
+        arguments: [
+            #"{ "op": "convolve", "file": "/abs/ding.wav", "decay": 2 }"#,
+            #"{ "op": "convolve", "file": 3 }"#,
+            #"{ "op": "convolve", "file": "/abs/ding.wav", "gain": "loud" }"#
+        ]
+    )
+    func refusesConvolutionKeys(filter: String) throws {
+        // Given
+        let document = try Fixture.json(#"""
+            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4" } ], "clips": [ { "media": "/abs/bgm.m4a", "audioFilter": \#(filter) } ] }
+            """#)
+
+        // When, Then
+        #expect(throws: ModelError.self) { try checker.check(document: document) }
+    }
+
+    @Test("a convolve's mix outside 0 to 1 stops where the clip writes it")
+    func refusesConvolutionMixOutOfRange() throws {
+        // When, Then
+        #expect(throws: LookError.outsideDomain(place: clip.appending(key: "audioFilter").appending(key: "mix"), value: 1.5, domain: .range(0...1))) {
+            try plan(#"""
+                { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "out": 4 } ],
+                  "clips": [ { "media": "/abs/bgm.m4a", "audioFilter": { "op": "convolve", "file": "/abs/ding.wav", "mix": 1.5 } } ] }
+                """#)
+        }
+    }
+
+    @Test("a convolve written in place resolves to its absolute file and its gain at 0, its entry's mix beside it")
+    func resolvesConvolutionInPlace() throws {
+        // When
+        let plan = try plan(#"""
+            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "out": 4 } ],
+              "clips": [ { "media": "/abs/bgm.m4a", "audioFilter": { "op": "convolve", "file": "/abs/ding.wav", "mix": 0.3 } } ] }
+            """#)
+
+        // Then
+        let filter = plan.sound[1].audioFilter.sampled(at: 0, as: LookStructureTable.resolvedAudioFilter)
+        guard case let .list(entries) = filter, let entry = entries.first else {
+            Issue.record("expected an entry, got \(filter)")
+            return
+        }
+        let convolution = try #require(operation(of: entry))
+        #expect(convolution.name == "op:convolve")
+        #expect(convolution.body["gain"]?.number == 0)
+        #expect(convolution.body["mix"] == nil)
+        #expect(entry["mix"]?.number == 0.3)
+        guard case let .list(entries) = plan.sound[1].audioFilter, case let .list(operations)? = entries.first?["ops"],
+            case let .form(_, body)? = operations.first
+        else {
+            Issue.record("expected one op, got \(plan.sound[1].audioFilter)")
+            return
+        }
+        #expect(body["file"] == .fixed(.string("/abs/ding.wav")))
+    }
+
+    @Test("a compound clip's convolve resolves on its sound, and its nested sequence's beside it")
+    func resolvesCompoundConvolution() throws {
+        // When
+        let plan = try plan(#"""
+            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "out": 4 } ],
+              "clips": [ { "media": { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "out": 2 } ],
+                                      "audioFilter": { "op": "convolve", "file": "/abs/bgm.m4a" } },
+                           "picture": false, "audioFilter": { "op": "convolve", "file": "/abs/ding.wav", "gain": -3 } } ] }
+            """#)
+
+        // Then
+        #expect(file(of: plan.sound[1].audioFilter) == "/abs/ding.wav")
+        #expect(file(of: plan.sound[1].nestedAudioFilter) == "/abs/bgm.m4a")
+    }
+
+    @Test(
+        "an impulse response that is no sound an impulse response can be stops, naming the entry that writes it",
+        arguments: [
+            (#"{ "op": "convolve", "file": "/abs/card.png" }"#, "/abs/card.png", ImpulseResponseRefusal.noSound, false),
+            (#"[ { "op": "gate", "threshold": -50 }, { "op": "convolve", "file": "/abs/short.mp4" } ]"#, "/abs/short.mp4", .noSound, true)
+        ]
+    )
+    func refusesImpulseResponse(
+        filter: String,
+        reference: String,
+        refusal: ImpulseResponseRefusal,
+        isList: Bool
+    ) throws {
+        // Given
+        let place = isList ? clip.appending(key: "audioFilter").appending(index: 1) : clip.appending(key: "audioFilter")
+
+        // When
+        let error = #expect(throws: ResolveError.self) {
+            try plan(#"""
+                { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "out": 4 } ],
+                  "clips": [ { "media": "/abs/bgm.m4a", "audioFilter": \#(filter) } ] }
+                """#)
+        }
+
+        // Then
+        #expect(error == .unusableImpulseResponse(place: place, kind: .clip(.media(.audio)), reference: reference, refusal: refusal))
+    }
+
+    @Test("an impulse response of exactly 30 seconds, the sound of a video, is taken")
+    func takesLongestImpulseResponse() throws {
+        // When
+        let plan = try plan(#"""
+            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "out": 4 } ],
+              "clips": [ { "media": "/abs/bgm.m4a", "audioFilter": { "op": "convolve", "file": "/abs/run.mp4" } } ] }
+            """#)
+
+        // Then
+        #expect(file(of: plan.sound[1].audioFilter) == "/abs/run.mp4")
+    }
+
+    @Test("a convolve's gain moves under two keyframes and holds as a number under none, in the mix plan")
+    func plansConvolution() throws {
+        // Given
+        let moving = try plan(#"""
+            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "out": 4 } ],
+              "clips": [ { "media": "/abs/bgm.m4a", "at": 0, "audioFilter": { "op": "convolve", "file": "/abs/ding.wav" },
+                "keyframes": [ { "at": 0, "audioFilter": { "gain": -12 } }, { "at": 2, "audioFilter": { "gain": 0 } } ] } ] }
+            """#)
+        let held = try plan(#"""
+            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "out": 4 } ],
+              "clips": [ { "media": "/abs/bgm.m4a", "at": 0, "audioFilter": { "op": "convolve", "file": "/abs/ding.wav", "gain": -6 } } ] }
+            """#)
+
+        // When
+        let hashes = FileHashTable(["/abs/ding.wav": "ding-digest"])
+        let movingFilter = MixPlanner().mix(of: try ResolvedSequence(plan: moving, hashes: hashes)).segments.first { !$0.filter.isEmpty }?.filter
+        let heldFilter = MixPlanner().mix(of: try ResolvedSequence(plan: held, hashes: hashes)).segments.first { !$0.filter.isEmpty }?.filter
+
+        // Then
+        guard case let .convolve(convolution)? = movingFilter?.first?.operations.first, case let .envelope(gain) = convolution.gain else {
+            Issue.record("expected a convolve whose gain moves, got \(String(describing: movingFilter))")
+            return
+        }
+        #expect(convolution.file == PinnedFile(path: "/abs/ding.wav", sha256: "ding-digest"))
+        #expect(gain.first == EnvelopePoint(time: 0, value: -12))
+        #expect(gain.first { $0.time == 1 }?.value == -6)
+        #expect(gain.last?.value == 0)
+        #expect(movingFilter?.first?.mix == .constant(1))
+        #expect(heldFilter?.first?.operations == [
+            .convolve(MixConvolution(file: PinnedFile(path: "/abs/ding.wav", sha256: "ding-digest"), gain: .constant(-6)))
+        ])
+    }
+
+    @Test("a keyframe that writes a convolve's file stops, naming the keyframe")
+    func refusesKeyframedImpulseResponse() throws {
+        // When, Then
+        #expect(throws: LookError.keyframedStatic(place: clip.appending(key: "keyframes").appending(index: 0).appending(key: "audioFilter").appending(key: "file"))) {
+            try plan(#"""
+                { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "out": 4 } ],
+                  "clips": [ { "media": "/abs/bgm.m4a", "at": 0, "audioFilter": { "op": "convolve", "file": "/abs/ding.wav" },
+                    "keyframes": [ { "at": 0, "audioFilter": { "file": "/abs/bgm.m4a" } } ] } ] }
+                """#)
+        }
+    }
+
     // MARK: - Private
     @discardableResult
     private func plan(_ document: String) throws -> SequencePlan {
@@ -601,6 +787,20 @@ struct AudioFilterTests {
         guard case let .list(operations) = entry["ops"], case let .form(name, body) = operations.first else { return nil }
 
         return (name, body)
+    }
+
+    // The file of the first op of a resolved audio filter's first entry.
+    private func file(of filter: TimedValue) -> String? {
+        guard
+            case let .list(entries) = filter,
+            case let .list(operations)? = entries.first?["ops"],
+            case let .form(_, body)? = operations.first,
+            case let .fixed(.string(path))? = body["file"]
+        else {
+            return nil
+        }
+
+        return path
     }
 
     private func band(

@@ -16,6 +16,7 @@ struct MixPlanReaderTests {
     private let writer = MixPlanWriter()
 
     private static let hash = String(repeating: "b", count: 64)
+    private static let impulseResponseHash = String(repeating: "c", count: 64)
     private static let video = PinnedMedia(
         source: .file(PinnedFile(path: "/abs/run.mp4", sha256: hash)),
         frameTimes: [0, 0.033367, 0.066733]
@@ -23,7 +24,7 @@ struct MixPlanReaderTests {
     private static let music = PinnedMedia(source: .file(PinnedFile(path: "/abs/bgm.m4a", sha256: hash)))
 
     // An audio filter of every op: an `eq` with a band of each kind, its high pass sweeping up, a compressor, a gate
-    // fading in by its `mix`, and a limiter whose `gain` moves.
+    // fading in by its `mix`, and a limiter whose `gain` moves followed by a convolution whose `gain` holds.
     private static let filter = [
         MixFilterEntry(
             operations: [
@@ -69,7 +70,8 @@ struct MixPlanReaderTests {
                     ceiling: .constant(-1),
                     lookahead: 0.005,
                     release: .constant(0.1)
-                ))
+                )),
+                .convolve(MixConvolution(file: PinnedFile(path: "/abs/hall.wav", sha256: impulseResponseHash), gain: .constant(-6)))
             ],
             mix: .constant(1)
         )
@@ -263,6 +265,23 @@ struct MixPlanReaderTests {
         #expect(limiter?["ceiling"] == .number(-1) && limiter?["lookahead"] == .number(0.005))
     }
 
+    @Test("a convolution is written with its pinned impulse response and its gain")
+    func writesConvolution() throws {
+        // Given
+        let plan = Self.plans[1]
+
+        // When
+        let segment = writer.document(plan).objectValue?["segments"]?.arrayValue?.first?.objectValue
+        let convolution = segment?["filter"]?.arrayValue?.last?.objectValue?["ops"]?.arrayValue?.last?.objectValue
+
+        // Then
+        #expect(convolution?.keys == ["op", "file", "sha256", "gain"])
+        #expect(convolution?["op"] == .string("convolve"))
+        #expect(convolution?["file"] == .string("/abs/hall.wav"))
+        #expect(convolution?["sha256"] == .string(Self.impulseResponseHash))
+        #expect(convolution?["gain"] == .number(-6))
+    }
+
     @Test(
         "a filter entry, op or band written in a form the writer never writes stops, naming its place",
         arguments: [
@@ -290,6 +309,21 @@ struct MixPlanReaderTests {
                 #""op": "limiter","#,
                 #""op": "limiter", "threshold": -1,"#,
                 #"segments[0].filter[2].ops[0] (limiter): unknown key "threshold". Allowed: op, gain, ceiling, lookahead, release"#
+            ),
+            (
+                #""op": "convolve","#,
+                #""op": "convolve", "threshold": -1,"#,
+                #"segments[0].filter[2].ops[1] (convolve): unknown key "threshold". Allowed: op, file, sha256, gain"#
+            ),
+            (
+                #""sha256": "\#(impulseResponseHash)","#,
+                "",
+                #"segments[0].filter[2].ops[1] (convolve): missing key "sha256""#
+            ),
+            (
+                #""gain": -6"#,
+                #""gain": "loud""#,
+                #"segments[0].filter[2].ops[1].gain (convolve): expected a number or a list of [time, value] points, found "loud""#
             ),
             (
                 #""op": "compressor","#,
