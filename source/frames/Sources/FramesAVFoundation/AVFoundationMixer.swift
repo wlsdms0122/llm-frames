@@ -14,7 +14,8 @@ import Frames
 // adds it into the bus that holds it from its start sample. A bus sums its segments and buses over its span, runs its
 // chain over the sum, at rest at the span's first sample, and multiplies the result by its level envelope before it is
 // added to the bus that holds it. The plan is the outermost bus: its chain runs over the whole sum of its `length`
-// samples, and that is the mix, interleaved in place, so the mix is held once. The sum is not clipped.
+// samples, and that is the mix, interleaved in place, so the mix is held once. The sum is not clipped. It runs every
+// audio op but `convolve`, which its check refuses.
 package final class AVFoundationMixer: Sendable {
     // MARK: - Property
     private static let sampleRate = Double(MixPlan.sampleRate)
@@ -36,6 +37,7 @@ package final class AVFoundationMixer: Sendable {
     ) throws {
         for (index, segment) in segments.enumerated() {
             let place = "\(place)segments[\(index)]"
+            try check(segment.filter, place: "\(place).")
             let (path, sound) = try sound(of: segment, place: place, from: segment.mediaStart, to: segment.mediaStart)
             guard StereoDownmixer(layout: sound.layout) != nil else {
                 throw MixerError.unmixableChannels(segment: place, file: path)
@@ -45,7 +47,24 @@ package final class AVFoundationMixer: Sendable {
             }
         }
         for (index, bus) in buses.enumerated() {
+            try check(bus.filter, place: "\(place)buses[\(index)].")
             try check(segments: bus.segments, buses: bus.buses, place: "\(place)buses[\(index)].")
+        }
+    }
+
+    // A `convolve` op is not mixed. `place` is the place in the plan of the filter's owner, as in
+    // `check(segments:buses:place:)`, with a segment's followed by a dot.
+    private func check(
+        _ filter: [MixFilterEntry],
+        place: String
+    ) throws {
+        for (entryIndex, entry) in filter.enumerated() {
+            for (index, operation) in entry.operations.enumerated() {
+                guard case .convolve = operation else { continue }
+
+                let operationPlace = "\(place)filter[\(entryIndex)].ops[\(index)]"
+                throw MixerError.unsupportedOperation(name: operation.name, place: operationPlace)
+            }
         }
     }
 
@@ -210,6 +229,7 @@ package final class AVFoundationMixer: Sendable {
 extension AVFoundationMixer: Mixer {
     // MARK: - Lifecycle
     package func check(_ plan: MixPlan) throws {
+        try check(plan.filter, place: "")
         try check(segments: plan.segments, buses: plan.buses, place: "")
     }
 

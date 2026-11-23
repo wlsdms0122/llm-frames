@@ -5,12 +5,12 @@
 //  Created by JSilver on 11/17/26.
 //
 
-// Everything a resolved sequence pins, nested sequences included, in document order. A file named in several places
-// is listed at each.
+// Everything a resolved sequence pins, nested sequences included, in document order, its own audio filter's last. A
+// file named in several places is listed at each.
 extension ResolvedSequence {
     // MARK: - Property
     var pinnedReferences: [PinnedReference] {
-        references(of: self)
+        references(of: self) + references(ofAudioFilter: audioFilter, place: AudioFilterResolver.key)
     }
 
     // MARK: - Initializer
@@ -63,10 +63,14 @@ extension ResolvedSequence {
         }
     }
 
+    // A nested sequence's own audio filter is its sound's `nestedAudioFilter`.
     private func references(of sound: ResolvedSound) -> [PinnedReference] {
         let media = sound.media.map { [PinnedReference.sound($0, place: sound.place)] } ?? []
 
-        return media + sound.nested.flatMap(references(of:))
+        return media
+            + sound.nested.flatMap(references(of:))
+            + references(ofAudioFilter: sound.nestedAudioFilter, place: sound.place)
+            + references(ofAudioFilter: sound.audioFilter, place: sound.place)
     }
 
     private func references(
@@ -100,6 +104,32 @@ extension ResolvedSequence {
             case .exposure, .contrast, .saturation, .temperature, .hue, .sepia, .levels, .blur, .sharpen, .bloom,
                 .vignette, .pixelate, .grain:
                 nil
+            }
+        }
+    }
+
+    // An audio filter's structure is static, so its impulse responses are those it holds at any time. Only the sound
+    // of an impulse response is read.
+    private func references(
+        ofAudioFilter filter: TimedValue,
+        place: String
+    ) -> [PinnedReference] {
+        guard case let .list(entries) = filter else { return [] }
+
+        return entries.flatMap { entry -> [PinnedReference] in
+            guard case let .list(operations)? = entry["ops"] else { return [] }
+
+            return operations.compactMap { operation in
+                guard
+                    case let .form(name, body) = operation,
+                    name == "op:convolve",
+                    case let .fixed(.string(path))? = body["file"],
+                    case let .fixed(.string(sha256))? = body["sha256"]
+                else {
+                    return nil
+                }
+
+                return .sound(PinnedMedia(source: .file(PinnedFile(path: path, sha256: sha256))), place: place)
             }
         }
     }

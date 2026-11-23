@@ -5,10 +5,10 @@
 //  Created by JSilver on 11/16/26.
 //
 
-// Resolves the names a preset holds to the values a resolved document carries: a LUT, displacement map, matte or cover
-// file to its absolute path, and a theme colour to its value in the theme where the preset is chosen. A preset names
-// files as anything outside it does, so a pack's preset finds its pack's files by `<pack>/<name>` wherever the pack is
-// installed, and an absolute path stays as it is.
+// Resolves the names a preset holds to the values a resolved document carries: a LUT, displacement map, impulse
+// response, matte or cover file to its absolute path, and a theme colour to its value in the theme where the preset is
+// chosen. A preset names files as anything outside it does, so a pack's preset finds its pack's files by
+// `<pack>/<name>` wherever the pack is installed, and an absolute path stays as it is.
 struct PresetValueResolver: Sendable {
     // MARK: - Property
     private let library: ReferenceLibrary
@@ -63,6 +63,20 @@ struct PresetValueResolver: Sendable {
         let path = try mediaFile(name, place: place, kind: kind)
         if let refusal = try refusal(ofDisplacementMap: path, reference: name, place: place, kind: kind) {
             throw ResolveError.unusableDisplacementMap(place: place, kind: kind, reference: name, refusal: refusal)
+        }
+
+        return path
+    }
+
+    // An impulse response is named as media is, and is sound of at least one sample and at most 30 seconds.
+    func impulseResponse(
+        _ name: String,
+        place: Place,
+        kind: PlaceKind
+    ) throws -> String {
+        let path = try mediaFile(name, place: place, kind: kind)
+        if let refusal = try refusal(ofImpulseResponse: path, reference: name, place: place, kind: kind) {
+            throw ResolveError.unusableImpulseResponse(place: place, kind: kind, reference: name, refusal: refusal)
         }
 
         return path
@@ -126,8 +140,7 @@ struct PresetValueResolver: Sendable {
         try file(name, found: library.mediaFile(named: name), place: place, kind: kind)
     }
 
-    // A document is a sequence whatever it holds. A directory is no media file, so where the probe finds none there, an
-    // image sequence's probe tells it.
+    // A document is a sequence whatever it holds.
     private func refusal(
         ofDisplacementMap path: String,
         reference: String,
@@ -135,17 +148,9 @@ struct PresetValueResolver: Sendable {
         kind: PlaceKind
     ) throws -> DisplacementMapRefusal? {
         guard !library.isDocument(reference) else { return .sequence }
-
-        let probed = Result { try library.mediaFacts.probedMedium(of: path) }
-        guard case let .success(medium?) = probed else {
-            if (try? library.mediaFacts.probedImageSequence(at: path)) != nil { return .imageSequence }
-            if case let .failure(error) = probed {
-                throw ResolveError.unreadableMedia(place: place, kind: kind, reference: reference, reason: "\(error)")
-            }
-
-            throw ResolveError.missingMedia(place: place, kind: kind, reference: reference)
+        guard let medium = try probedMedium(of: path, reference: reference, place: place, kind: kind) else {
+            return .imageSequence
         }
-
         guard case let .media(media) = medium else { return .page }
 
         switch media.kind {
@@ -166,6 +171,57 @@ struct PresetValueResolver: Sendable {
         case .audio:
             return .sound
         }
+    }
+
+    // A document is a sequence whatever it holds. The sound's length is the duration its probe gives, which for a
+    // video is the file's.
+    private func refusal(
+        ofImpulseResponse path: String,
+        reference: String,
+        place: Place,
+        kind: PlaceKind
+    ) throws -> ImpulseResponseRefusal? {
+        guard !library.isDocument(reference) else { return .sequence }
+        guard let medium = try probedMedium(of: path, reference: reference, place: place, kind: kind) else {
+            return .imageSequence
+        }
+        guard case let .media(media) = medium else { return .page }
+
+        switch media.kind {
+        case .image, .video, .audio:
+            guard media.hasSound else { return .noSound }
+            guard media.duration > 0 else { return .noSamples }
+            guard media.duration <= 30 else { return .tooLong(duration: media.duration) }
+
+            return nil
+
+        case .page:
+            return .page
+
+        case .sequence:
+            return .sequence
+        }
+    }
+
+    // What the probe finds at a path named as media, nil for an image sequence's directory: a directory is no media
+    // file, so where the probe finds none there, an image sequence's probe tells it.
+    private func probedMedium(
+        of path: String,
+        reference: String,
+        place: Place,
+        kind: PlaceKind
+    ) throws -> ProbedMedium? {
+        let probed = Result { try library.mediaFacts.probedMedium(of: path) }
+        guard case let .success(medium?) = probed else {
+            if (try? library.mediaFacts.probedImageSequence(at: path)) != nil { return nil }
+            if case let .failure(error) = probed {
+                throw ResolveError.unreadableMedia(place: place, kind: kind, reference: reference, reason: "\(error)")
+            }
+
+            throw ResolveError.missingMedia(place: place, kind: kind, reference: reference)
+        }
+
+        return medium
     }
 
     // A bare name, an unknown pack or another spelling names no file, and stops.

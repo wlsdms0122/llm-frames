@@ -7,7 +7,8 @@
 
 // Something a resolved document pins for a role to open: media whose pictures the decoder reads, a displacement map
 // among them, in the `colorSpace` written where it is named or as its tags say where that is nil, media only its sound
-// is read from, or a single file, a font or a LUT. `place` is the entry that names it.
+// is read from, an impulse response among them, or a single file, a font or a LUT. `place` is the entry that names
+// it.
 enum PinnedReference: Equatable, Sendable {
     case media(PinnedMedia, place: String, colorSpace: ColorSpace?)
     case sound(PinnedMedia, place: String)

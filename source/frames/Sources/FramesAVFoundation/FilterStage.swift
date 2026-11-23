@@ -36,6 +36,10 @@ enum FilterStage {
             case let .limiter(limiter):
                 stages.append(.limiter(LimiterProcessor(limiter: limiter, sampleRate: sampleRate)))
                 return
+
+            // `AVFoundationMixer.check` refuses a `convolve` op, so none is run.
+            case .convolve:
+                return
             }
 
             if case let .samples(processors) = stages.last {

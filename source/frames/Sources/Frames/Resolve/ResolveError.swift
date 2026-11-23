@@ -32,6 +32,7 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
     case unknownPresetFile(place: Place, kind: PlaceKind, name: String)
     case unknownPresetColor(place: Place, kind: PlaceKind, name: String)
     case unusableDisplacementMap(place: Place, kind: PlaceKind, reference: String, refusal: DisplacementMapRefusal)
+    case unusableImpulseResponse(place: Place, kind: PlaceKind, reference: String, refusal: ImpulseResponseRefusal)
     case emptyWindow(place: Place, kind: PlaceKind, start: Double, end: Double)
     case neverVisible(place: Place, kind: PlaceKind, window: TimeRange, range: TimeRange)
     case cropOutsideMedia(place: Place, kind: PlaceKind, crop: Rectangle, size: Size)
@@ -191,6 +192,9 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
 
         case let .unusableDisplacementMap(place, kind, reference, refusal):
             "\(place) (\(kind.label)): the displacement map \(quoted(reference)) \(words(of: refusal))"
+
+        case let .unusableImpulseResponse(place, kind, reference, refusal):
+            "\(place) (\(kind.label)): the impulse response \(quoted(reference)) \(words(of: refusal))"
 
         case let .emptyWindow(place, kind, start, end):
             "\(place) (\(kind.label)): the window [\(number(start)), \(number(end))] ends before it starts"
@@ -476,6 +480,28 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
         case .unconvertibleColor:
             "is tagged with a LUT-based ICC profile or a code point H.273 reserves, which no fixed formula converts, "
                 + "and a displacement map is read as its tags say. Convert it with transcode"
+        }
+    }
+
+    private func words(of refusal: ImpulseResponseRefusal) -> String {
+        switch refusal {
+        case .noSound:
+            "has no sound, and an impulse response is sound"
+
+        case .imageSequence:
+            "is an image sequence, and an impulse response is sound"
+
+        case .page:
+            "is a PDF, and an impulse response is sound"
+
+        case .sequence:
+            "is a sequence document, and an impulse response is sound"
+
+        case .noSamples:
+            "holds no samples, and an impulse response holds at least one"
+
+        case let .tooLong(duration):
+            "is \(number(duration)) seconds long, and an impulse response is at most 30 seconds"
         }
     }
 

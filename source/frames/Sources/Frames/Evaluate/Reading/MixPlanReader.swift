@@ -15,8 +15,10 @@ package struct MixPlanReader: Sendable {
     private static let compressorKeys = ["op", "threshold", "ratio", "knee", "attack", "release", "makeup"]
     private static let gateKeys = ["op", "threshold", "range", "attack", "hold", "release"]
     private static let limiterKeys = ["op", "gain", "ceiling", "lookahead", "release"]
+    private static let convolutionKeys = ["op", "file", "sha256", "gain"]
     private static let operationKeys = [
-        "op", "bands", "threshold", "ratio", "knee", "range", "attack", "hold", "release", "makeup", "gain", "ceiling", "lookahead"
+        "op", "bands", "threshold", "ratio", "knee", "range", "attack", "hold", "release", "makeup", "gain", "ceiling",
+        "lookahead", "file", "sha256"
     ]
 
     private let checker: ResolvedDocumentChecker
@@ -129,13 +131,20 @@ package struct MixPlanReader: Sendable {
                 release: try mixValue(gate.member("release"))
             ))
 
-        default:
+        case "limiter":
             let limiter = try value.object(kind: "limiter", keys: Self.limiterKeys)
             return .limiter(MixLimiter(
                 gain: try mixValue(limiter.member("gain")),
                 ceiling: try mixValue(limiter.member("ceiling")),
                 lookahead: try limiter.member("lookahead").number(),
                 release: try mixValue(limiter.member("release"))
+            ))
+
+        default:
+            let convolution = try value.object(kind: "convolve", keys: Self.convolutionKeys)
+            return .convolve(MixConvolution(
+                file: try values.pinned(convolution),
+                gain: try mixValue(convolution.member("gain"))
             ))
         }
     }

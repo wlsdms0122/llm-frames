@@ -5,8 +5,8 @@
 //  Created by JSilver on 11/19/26.
 //
 
-// An entry of a resolved audio filter, `{ops, mix}`, as a segment's filter or a bus's chain carries it, each leaf
-// written by `sampler`.
+// An entry of a resolved audio filter, `{ops, mix}`, as a segment's filter or a bus's chain carries it, each number
+// written by `sampler` and an impulse response's file as resolve pinned it.
 // Resolve writes every parameter, its default included, so an op or a band missing one is left out.
 extension MixFilterEntry {
     // MARK: - Property
@@ -93,6 +93,17 @@ extension MixFilterEntry {
             }
 
             return .limiter(MixLimiter(gain: gain, ceiling: ceiling, lookahead: lookahead, release: release))
+
+        case "op:convolve":
+            guard
+                case let .fixed(.string(path))? = body["file"],
+                case let .fixed(.string(sha256))? = body["sha256"],
+                let gain = number("gain")
+            else {
+                return nil
+            }
+
+            return .convolve(MixConvolution(file: PinnedFile(path: path, sha256: sha256), gain: gain))
 
         default:
             guard

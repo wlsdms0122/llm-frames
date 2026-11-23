@@ -11,7 +11,7 @@
 // which lets a leaf a sampled argument fills take any value its samples take, so every number here is any number.
 enum AudioFilterKeyTable {
     static let kind = "audio filter choice"
-    static let operations = ["eq", "compressor", "gate", "limiter"]
+    static let operations = ["eq", "compressor", "gate", "limiter", "convolve"]
     static let bandTypes = MixBandType.allCases.map(\.rawValue)
 
     static func table(for operation: String) -> ObjectTable {

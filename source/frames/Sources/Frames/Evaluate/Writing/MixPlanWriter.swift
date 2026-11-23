@@ -104,6 +104,9 @@ package struct MixPlanWriter: Sendable {
                 JSONMember(key: "lookahead", value: .number(limiter.lookahead)),
                 JSONMember(key: "release", value: value(limiter.release))
             ]
+
+        case let .convolve(convolution):
+            values.pinned(convolution.file) + [JSONMember(key: "gain", value: value(convolution.gain))]
         }
 
         return .object(JSONObject(members: [name] + members))
