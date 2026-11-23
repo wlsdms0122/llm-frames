@@ -279,7 +279,7 @@ struct MixPlanReaderTests {
             (
                 #""op": "compressor","#,
                 #""op": "saturator","#,
-                #"segments[0].filter[0].ops[1].op (audio op): unknown value "saturator". Allowed: eq, compressor, gate, limiter"#
+                #"segments[0].filter[0].ops[1].op (audio op): unknown value "saturator". Allowed: eq, compressor, gate, limiter, convolve"#
             ),
             (
                 #""lookahead": 0.005"#,
