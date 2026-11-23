@@ -8,8 +8,9 @@
 // Resolves the embedding levels of UAX #9 over text in logical order, and orders the characters of a line visually.
 // Every rule reads each scalar as of the class it is given, which a higher-level protocol may set apart from its own
 // Bidi_Class, and the scalars themselves only to pair brackets. Every paragraph separator ends a paragraph (P1), and
-// every paragraph is resolved at the one paragraph embedding level it is given. A character that rule X9 removes takes the level of the character before it in its paragraph, or the
-// paragraph embedding level when none is, so every scalar has a level and the removed ones break no run of levels.
+// every paragraph is resolved at the one paragraph embedding level it is given. A character that rule X9 removes takes
+// the level of the character before it in its paragraph, or the paragraph embedding level when none is, so every scalar
+// has a level and the removed ones break no run of levels.
 struct BidiResolver: Sendable {
     // An entry of the directional status stack of X1.
     private struct Status {

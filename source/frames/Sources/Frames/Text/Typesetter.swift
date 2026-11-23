@@ -218,10 +218,10 @@ struct Typesetter: Sendable {
     // those of a horizontal-in-vertical composition. A word wider than the width starts a line of its own and breaks
     // inside where UAX #14 allows, and a piece of it still wider overflows alone. Without a width only a mandatory
     // break ends a line. A line breaks only before a character with glyphs of its own, so a group of glyphs, a
-    // composition's among them, stays on one line. `start` is the index of the paragraph's first
-    // scalar in the text of all runs, `levels` the embedding level of each scalar of that text and `classes` the
-    // bidirectional class it is read as. A line is measured as it is placed, its characters ordered at
-    // `paragraphLevel`, and shaped as `writingMode` sets it.
+    // composition's among them, stays on one line. `start` is the index of the paragraph's first scalar in the text of
+    // all runs, `levels` the embedding level of each scalar of that text and `classes` the bidirectional class it is
+    // read as. A line is measured as it is placed, its characters ordered at `paragraphLevel`, and shaped as
+    // `writingMode` sets it.
     private func lines(
         of paragraph: [(source: Int, run: TextRun)],
         from start: Int,
@@ -357,8 +357,8 @@ struct Typesetter: Sendable {
             let verticalForms = runCharacters.map { isOriented && orientation.isInVerticalForms($0.character) }
 
             var runGlyphs: [(glyph: StyledGlyph, isReversed: Bool)] = []
-            let levels = runCharacters.map(\.level)
-            for stretch in stretches(levels: levels, uprights: uprights, verticalForms: verticalForms) {
+            let runLevels = runCharacters.map(\.level)
+            for stretch in stretches(levels: runLevels, uprights: uprights, verticalForms: verticalForms) {
                 let direction = TextDirection(level: runCharacters[stretch.lowerBound].level)
                 let isUpright = uprights[stretch.lowerBound]
                 let isInVerticalForms = verticalForms[stretch.lowerBound]
@@ -393,7 +393,7 @@ struct Typesetter: Sendable {
                                 placementOffset: glyph.placementOffset
                             ),
                             face: shaped.face,
-                            isSideways: writingMode.isVertical && !isCombined && !isUpright,
+                            isSideways: isOriented && !isUpright,
                             horizontalScale: 1,
                             source: source,
                             style: run.style,
@@ -434,7 +434,7 @@ struct Typesetter: Sendable {
                 style: run.style,
                 runFace: run.faces[0],
                 glyphs: given.map { glyphs[$0].glyph },
-                isSpace: !isCombined(run.style, in: writingMode) && character.unicodeScalars.isSpace,
+                hangs: !isCombined(run.style, in: writingMode) && character.unicodeScalars.isSpace,
                 tracking: isOwner ? run.style.tracking * em : 0,
                 widestTracking: isOwner ? run.widestTracking * em : 0,
                 cursiveScripts: cursiveScripts(of: character)
@@ -593,7 +593,7 @@ struct Typesetter: Sendable {
 
     // A line's characters before the spaces that end it, which hang outside it.
     private func visibleCharacters(of characters: [StyledCharacter]) -> ArraySlice<StyledCharacter> {
-        characters.dropLast(characters.reversed().prefix(while: \.isSpace).count)
+        characters.dropLast(characters.reversed().prefix(while: \.hangs).count)
     }
 
     // The levels of a line's characters after rule L1 of UAX #9, each its first scalar's, the spaces that hang at
