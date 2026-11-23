@@ -5,6 +5,7 @@
 //  Created by JSilver on 11/17/26.
 //
 
+import Foundation
 import Frames
 
 // The `quartz` renderer: draws display lists with Core Graphics and Core Image on the working values of FRAMES-26, each
@@ -33,6 +34,8 @@ extension QuartzRenderer: Renderer {
     }
 
     package func frame(of list: DisplayList) throws -> Bitmap {
-        try FrameDrawer(pictures: pictures, tables: tables, fonts: fonts).draw(list).bitmap()
+        try autoreleasepool {
+            try FrameDrawer(pictures: pictures, tables: tables, fonts: fonts).draw(list).bitmap()
+        }
     }
 }
