@@ -516,6 +516,48 @@ struct TypesetterWritingModeTests {
         #expect(line.width == 120)
     }
 
+    @Test(
+        "a composition one of whose characters falls back to another face is one group, its glyphs one range from its first face's glyph run on into the fallback face's"
+    )
+    func setsCompositionInTwoFaces() throws {
+        // Given
+        let sut = Typesetter(shaper: ShaperTable(missing: ["2"]))
+        let runs = [run("漢"), run("12", textCombineUpright: .all), run("字")]
+
+        // When
+        let layout = try sut.layout(
+            runs,
+            paragraph: paragraph(.verticalRightToLeft),
+            width: nil,
+            unit: .character,
+            place: place,
+            kind: "title"
+        )
+
+        // Then
+        let line = try #require(layout.lines.first)
+        #expect(layout.runs.map(\.face) == [face, face, ShaperTable.fallback, face])
+        #expect(layout.runs.map { $0.glyphs.map(\.id) } == [[0x6F22], [0x31], [0x32], [0x5B57]])
+        #expect(layout.runs.map { $0.glyphs.map(\.y) } == [[0], [40], [40], [80]])
+        #expect(line.clusters.map(\.glyphs) == [
+            GlyphRange(run: 0, first: 0, count: 1),
+            GlyphRange(run: 1, first: 0, count: 2),
+            GlyphRange(run: 2, first: 1, count: 0),
+            GlyphRange(run: 3, first: 0, count: 1)
+        ])
+        #expect(line.clusters.map(\.advance) == [40, 40, 0, 40])
+        #expect(layout.units?.map(\.glyphs) == [
+            [GlyphRange(run: 0, first: 0, count: 1)],
+            [GlyphRange(run: 1, first: 0, count: 1), GlyphRange(run: 2, first: 0, count: 1)],
+            [GlyphRange(run: 3, first: 0, count: 1)]
+        ])
+        #expect(layout.units?.map(\.glyphBox) == [
+            Rectangle(x: 0, y: 0, width: 40, height: 40),
+            Rectangle(x: 0, y: 40, width: 40, height: 40),
+            Rectangle(x: 0, y: 80, width: 40, height: 40)
+        ])
+    }
+
     @Test("a composition wider than 1 em is narrowed to it with its placement offsets, and a narrower one is not widened")
     func narrowsWideComposition() throws {
         // Given

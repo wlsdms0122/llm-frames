@@ -85,6 +85,7 @@ extension ResolvedText {
     // line with no character.
     func glyphMoves(at time: SampleTime) -> [[Point]] {
         var moves = runs.map { run in Array(repeating: Point(x: 0, y: 0), count: run.glyphs.count) }
+        let glyphCounts = runs.map(\.glyphs.count)
         let steps = trackingSteps(at: time)
         let inlineSize = writingMode.turned(textBox).width
         for (line, drop) in zip(lines, lineDrops(at: time)) {
@@ -93,9 +94,10 @@ extension ResolvedText {
             let shift = align.offset(of: line.width + along.added, in: inlineSize)
                 - align.offset(of: line.width, in: inlineSize)
             for (index, move) in along.moves {
-                let glyphs = placed[index].glyphs
-                for glyph in glyphs.glyphs {
-                    moves[glyphs.run][glyph] = writingMode.turned(Point(x: move + shift, y: drop))
+                for glyphs in placed[index].glyphs.ranges(within: glyphCounts) {
+                    for glyph in glyphs.glyphs {
+                        moves[glyphs.run][glyph] = writingMode.turned(Point(x: move + shift, y: drop))
+                    }
                 }
             }
         }

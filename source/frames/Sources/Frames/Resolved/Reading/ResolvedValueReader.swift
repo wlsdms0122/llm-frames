@@ -495,6 +495,7 @@ struct ResolvedValueReader: Sendable {
         let written = try text.member("text").string()
         let scalarCount = written.unicodeScalars.count
         let runs = try runs(text.member("runs"))
+        let glyphCounts = runs.map(\.glyphs.count)
         let lines = try text.member("lines").elements().map { element in
             let line = try element.object(keys: ["width", "baseline", "ascent", "descent", "range", "clusters", "hanging"])
 
@@ -504,8 +505,12 @@ struct ResolvedValueReader: Sendable {
                 ascent: try line.member("ascent").number(),
                 descent: try line.member("descent").number(),
                 range: try scalarRange(line.member("range"), in: scalarCount),
-                clusters: try line.member("clusters").elements().map { try cluster($0, in: runs, scalarCount: scalarCount) },
-                hanging: try line.member("hanging").elements().map { try cluster($0, in: runs, scalarCount: scalarCount) }
+                clusters: try line.member("clusters").elements().map {
+                    try cluster($0, glyphCounts: glyphCounts, scalarCount: scalarCount)
+                },
+                hanging: try line.member("hanging").elements().map {
+                    try cluster($0, glyphCounts: glyphCounts, scalarCount: scalarCount)
+                }
             )
         }
         for (index, line) in lines.enumerated() {
@@ -560,6 +565,7 @@ struct ResolvedValueReader: Sendable {
                             return line
                         },
                         lines: lines,
+                        glyphCounts: glyphCounts,
                         glyphBox: try rectangle(unit.member("glyphBox")),
                         box: try rectangle(unit.member("box")),
                         parts: try unit.member("parts").elements().map { try unitPart($0, in: runs) }
@@ -827,13 +833,14 @@ struct ResolvedValueReader: Sendable {
         return UnitPart(run: run, piece: piece, span: numbers[2]...numbers[3])
     }
 
-    // A line's cluster is `[run, first, count, start, end, advance, level, cursive]`, its glyphs a range of one of
-    // `runs`, its scalars a range of at least one of the text's `scalarCount`, its level an embedding level UAX #9 can
-    // give and `cursive` the cursive scripts it is a letter of, ISO 15924 codes separated by single spaces, none twice,
-    // or empty for none.
+    // A line's cluster is `[run, first, count, start, end, advance, level, cursive]`, its glyphs a range that starts at
+    // a glyph of one of the glyph runs `glyphCounts` counts, or at a run's end for a range of count 0, and lies in that
+    // run and the runs after it, its scalars a range of at least one of the text's `scalarCount`, its level an embedding
+    // level UAX #9 can give and `cursive` the cursive scripts it is a letter of, ISO 15924 codes separated by single
+    // spaces, none twice, or empty for none.
     private func cluster(
         _ value: PlacedJSONValue,
-        in runs: [ResolvedGlyphRun],
+        glyphCounts: [Int],
         scalarCount: Int
     ) throws -> PlacedCluster {
         let form = "[run, first, count, start, end, advance, level, cursive]"
@@ -857,10 +864,10 @@ struct ResolvedValueReader: Sendable {
             let start = Int(exactly: numbers[3]),
             let end = Int(exactly: numbers[4]),
             let level = Int(exactly: numbers[6]),
-            runs.indices.contains(run),
+            glyphCounts.indices.contains(run),
             first >= 0,
             count >= 0,
-            first + count <= runs[run].glyphs.count,
+            first <= glyphCounts[run],
             start >= 0,
             start < end,
             end <= scalarCount,
@@ -871,6 +878,9 @@ struct ResolvedValueReader: Sendable {
         }
 
         let glyphs = GlyphRange(run: run, first: first, count: count)
+        guard glyphs.ranges(within: glyphCounts).map(\.count).reduce(0, +) == count else {
+            throw value.wrongType("\(form) whose glyphs lie in its run and the runs after it")
+        }
 
         return PlacedCluster(
             glyphs: glyphs,

@@ -652,8 +652,10 @@ struct Typesetter: Sendable {
     // box's coordinates by `writingMode`, and the pen moves from left to right by advances and by the tracking
     // `PlacedLine.placedOwners` puts between neighbouring characters, so the spaces that hang lie past the line's end
     // untracked: after its right end, or before its left end at an odd paragraph level, where L2 places them first, on
-    // a line with no character too. A character with no glyph of its own is a range of count 0 after the glyphs of the
-    // character `PlacedLine.owners(hasGlyphs:)` draws it with and spans that character, and on a line with no glyph it
+    // a line with no character too. A character's glyphs are one range from the run its first glyph lies in, on into
+    // the runs after it where its glyphs are set in several faces. A character with no glyph of its own is a range of
+    // count 0 after the last glyph of the character `PlacedLine.owners(hasGlyphs:)` draws it with, in that glyph's
+    // run, and spans that character, and on a line with no glyph it
     // is a range of count 0 at glyph 0 of the line's first run, written for it with no glyphs, spanning nothing at the
     // line's start. The hanging spaces, which are no characters, are cut into groups among themselves. A character's
     // span is its glyph box along the line, from the pen where its glyphs begin, as long as their advances, and the
@@ -689,13 +691,14 @@ struct Typesetter: Sendable {
         let leading = TextDirection(level: paragraphLevel) == .rtl ? order.filter { $0 >= visibleCount } : []
 
         var runs: [GlyphRun] = []
-        var groups: [Int: (glyphs: GlyphRange, span: ClosedRange<Double>)] = [:]
+        var groups: [Int: (glyphs: GlyphRange, end: GlyphRange, span: ClosedRange<Double>)] = [:]
         var x = origin.x - leading.map { characters[$0].advance }.reduce(0, +)
         for (index, owner) in placedOwners {
             let character = characters[index]
             x += owner.map { characters[$0].tracking } ?? 0
 
             let start = x
+            var first: (run: Int, glyph: Int)?
             for glyph in character.glyphs {
                 let pen = writingMode.turned(Point(x: x, y: origin.y))
                 let offset = glyph.glyph.placementOffset
@@ -734,11 +737,16 @@ struct Typesetter: Sendable {
                         staticTracking: glyph.style.tracking * glyph.style.size / 1000
                     ))
                 }
+                first = first ?? (runs.count - 1, runs[runs.count - 1].glyphs.count - 1)
             }
 
-            let count = character.glyphs.count
-            let first = runs[runs.count - 1].glyphs.count - count
-            groups[index] = (GlyphRange(run: firstRun + runs.count - 1, first: first, count: count), start...x)
+            if let first {
+                groups[index] = (
+                    glyphs: GlyphRange(run: firstRun + first.run, first: first.glyph, count: character.glyphs.count),
+                    end: GlyphRange(run: firstRun + runs.count - 1, first: runs[runs.count - 1].glyphs.count, count: 0),
+                    span: start...x
+                )
+            }
         }
 
         if let character = characters.first, groups.isEmpty {
@@ -752,12 +760,10 @@ struct Typesetter: Sendable {
             ))
         }
         let placed = characters.enumerated().map { index, character in
-            let held = owners[index].flatMap { groups[$0] }
-                ?? (GlyphRange(run: firstRun, first: 0, count: 0), origin.x...origin.x)
+            let none = GlyphRange(run: firstRun, first: 0, count: 0)
+            let held = owners[index].flatMap { groups[$0] } ?? (none, none, origin.x...origin.x)
             let isOwner = owners[index] == index
-            let glyphs = isOwner
-                ? held.glyphs
-                : GlyphRange(run: held.glyphs.run, first: held.glyphs.first + held.glyphs.count, count: 0)
+            let glyphs = isOwner ? held.glyphs : held.end
             let cluster = PlacedCluster(
                 glyphs: glyphs,
                 range: character.range,

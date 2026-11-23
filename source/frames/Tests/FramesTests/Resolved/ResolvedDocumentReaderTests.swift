@@ -215,6 +215,18 @@ struct ResolvedDocumentReaderTests {
             { "media": "/abs/short.mp4", "parent": "screen", "position": [0, 0], "at": [0, 2], "track": { "text": "Send" } } ] } ] }
         """#
 
+    // A vertical title whose combined run "12" is set as a composition, "2" falling back to another face where the
+    // shaper is told it is missing, animated by character over a tracking keyframed from 0 to 100.
+    private static let compositionInTwoFaces = #"""
+        { "kind": "sequence", "format": { "size": [1920, 1080] },
+          "theme": { "styles": { "caption": { "size": 40 }, "date": { "size": 40, "textCombineUpright": "all" } } },
+          "storyline": [ { "media": "/abs/screen.mp4", "in": 0, "out": 3 } ],
+          "clips": [ { "title": [ { "text": "漢" }, { "text": "12", "style": "date" }, { "text": "字" } ], "style": "caption",
+                       "paragraph": { "writingMode": "vertical-rl" }, "at": [0, 2], "position": [0, 0],
+                       "animation": { "preset": "frames/fade", "by": "character" },
+                       "keyframes": [ { "at": 0, "character": { "tracking": 0 } }, { "at": 1, "character": { "tracking": 100 } } ] } ] }
+        """#
+
     // The title `name` of the example of the resolved document, written whole with its hashes in full.
     private static let nameTitle = #"""
         { "size": [216.2, 55.9], "textBox": [0, 0, 216.2, 55.9], "width": null, "background": null,
@@ -1068,6 +1080,95 @@ struct ResolvedDocumentReaderTests {
         #expect(narrowedTitle.runs.map(\.horizontalScale) == [0.5])
         #expect(rewrittenTitle.runs.map(\.horizontalScale) == [0.5])
         #expect(error?.description.contains("horizontalScale") == true)
+    }
+
+    @Test(
+        "a composition set in two faces reads back as one group whose glyphs run on into the next glyph run, its characters sharing one box and its unit carrying and moving all its glyphs"
+    )
+    func readsCompositionInTwoFaces() throws {
+        // Given
+        // At size 40 every character is 40 down the line, and a tracking of 100 adds 4 between two of them.
+        let document = try resolved(Self.compositionInTwoFaces, shaper: ShaperTable(missing: ["2"]))
+        let text = writer.write(document)
+        let time = SampleTime(1)
+
+        // When
+        let read = try sut.read(text)
+
+        // Then
+        #expect(read == document)
+        #expect(writer.write(read) == text)
+        guard case let .title(title) = read.clips.first?.content else {
+            Issue.record("the first clip is not a title")
+            return
+        }
+        let face = title.runs[0].face
+        #expect(title.runs.map(\.face) == [face, face, ShaperTable.fallback.name, face])
+        #expect(title.lines[0].clusters.map(\.glyphs) == [
+            GlyphRange(run: 0, first: 0, count: 1),
+            GlyphRange(run: 1, first: 0, count: 2),
+            GlyphRange(run: 2, first: 1, count: 0),
+            GlyphRange(run: 3, first: 0, count: 1)
+        ])
+        #expect(title.glyphMoves(at: time) == [[Point(x: 0, y: 0)], [Point(x: 0, y: 4)], [Point(x: 0, y: 4)], [Point(x: 0, y: 8)]])
+        #expect(title.characters(at: time).map(\.rect) == [
+            Rectangle(x: 0, y: 0, width: 40, height: 40),
+            Rectangle(x: 0, y: 44, width: 40, height: 40),
+            Rectangle(x: 0, y: 44, width: 40, height: 40),
+            Rectangle(x: 0, y: 88, width: 40, height: 40)
+        ])
+
+        let units = try #require(title.units)
+        let whole = GlyphsItem(text: title, factor: 1, at: time)
+        let sut = GlyphsItem(
+            drawing: UnitDrawing(layer: .fills, index: 1, box: title.unitBox(of: 1, at: time)),
+            carrying: units[1].glyphs,
+            parts: [],
+            extent: title.extent(of: 1, at: time),
+            of: whole,
+            factor: 1
+        )
+        #expect(units.map(\.glyphs) == [
+            [GlyphRange(run: 0, first: 0, count: 1)],
+            [GlyphRange(run: 1, first: 0, count: 1), GlyphRange(run: 2, first: 0, count: 1)],
+            [GlyphRange(run: 3, first: 0, count: 1)]
+        ])
+        #expect(sut.runs.map(\.glyphs) == [whole.runs[1].glyphs, whole.runs[2].glyphs])
+        #expect(title.unitBox(of: 1, at: time) == Rectangle(x: 0, y: 44, width: 40, height: 40))
+    }
+
+    @Test(
+        "a cluster's glyph range that starts past its glyph run's glyphs or runs on past the title's last glyph run stops when read",
+        arguments: [
+            (1, [1, 1, 1]),
+            (1, [1, 0, 4]),
+            (3, [3, 0, 2])
+        ]
+    )
+    func refusesGlyphRangePastRuns(
+        cluster index: Int,
+        glyphs: [Double]
+    ) throws {
+        // Given
+        let text = writer.write(try resolved(Self.compositionInTwoFaces, shaper: ShaperTable(missing: ["2"])))
+        let changed = try replacingTitle(ofClip: 0, in: text) { title in
+            var lines = try #require(title["lines"]?.arrayValue)
+            let line = try #require(lines[0].objectValue)
+            var clusters = try #require(line["clusters"]?.arrayValue)
+            let numbers = try #require(clusters[index].arrayValue)
+            clusters[index] = .array(glyphs.map(JSONValue.number) + numbers.dropFirst(3))
+            lines[0] = .object(line.setting("clusters", to: .array(clusters)))
+
+            return title.setting("lines", to: .array(lines))
+        }
+
+        // When
+        let error = #expect(throws: ModelError.self) { try sut.read(changed) }
+
+        // Then
+        #expect(error?.description.contains(
+            "lines[0].clusters[\(index)] (clip): expected [run, first, count, start, end, advance, level, cursive]"
+        ) == true)
     }
 
     @Test(

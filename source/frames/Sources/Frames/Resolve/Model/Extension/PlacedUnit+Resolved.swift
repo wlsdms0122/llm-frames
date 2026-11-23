@@ -36,6 +36,7 @@ extension PlacedUnit {
             characters: unit.characters,
             hangingLines: unit.hangingLines,
             lines: lines,
+            glyphCounts: runs.map(\.glyphs.count),
             glyphBox: unit.glyphBox,
             box: parts.reduce(unit.glyphBox.grown(by: stroke / 2)) { $0.union($1) },
             parts: unit.parts
