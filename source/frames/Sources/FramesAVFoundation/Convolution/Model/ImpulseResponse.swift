@@ -14,7 +14,12 @@ struct ImpulseResponse: Sendable {
     static let headLength = 128
 
     // Each stage's block size and first tap. A stage runs to the next one's first tap, and the last to the end of h.
-    private static let layout = [(128, 128), (1024, 2048), (8192, 16_384), (65_536, 131_072)]
+    private static let layout: [(blockSize: Int, offset: Int)] = [
+        (128, 128),
+        (1024, 2048),
+        (8192, 16_384),
+        (65_536, 131_072)
+    ]
 
     // Per channel, the first `headLength` taps, or every tap of a shorter h.
     let head: [[Double]]
@@ -29,7 +34,7 @@ struct ImpulseResponse: Sendable {
         let frameCount = taps[0].count
         var stages = [ImpulseResponseStage]()
         for (index, (blockSize, offset)) in Self.layout.enumerated() where offset < frameCount {
-            let end = index + 1 < Self.layout.count ? Self.layout[index + 1].1 : frameCount
+            let end = index + 1 < Self.layout.count ? Self.layout[index + 1].offset : frameCount
             let transform = try RealFourierTransform(size: 2 * blockSize, path: path)
             stages.append(ImpulseResponseStage(
                 blockSize: blockSize,
