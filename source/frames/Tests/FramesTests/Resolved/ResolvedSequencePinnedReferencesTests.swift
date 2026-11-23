@@ -16,6 +16,7 @@ struct ResolvedSequencePinnedReferencesTests {
     private let size = Size(width: 40, height: 30)
     private let video = Self.media("/abs/run.mp4")
     private let lut = Self.pinned("/abs/look.cube")
+    private let map = Self.pinned("/abs/ripple.png")
     private let stinger = Self.media("/abs/stinger.mov")
     private let wipe = Self.media("/abs/wipe.png")
     private let font = Self.pinned("/abs/font.ttf")
@@ -28,7 +29,7 @@ struct ResolvedSequencePinnedReferencesTests {
 
     // MARK: - Initializer
     // MARK: - Test
-    @Test("a sequence lists its media in their written colour spaces, LUTs, fonts and sounds, each where it is named")
+    @Test("a sequence lists its media in their written colour spaces, LUTs, displacement maps read as their tags say, fonts and sounds, each where it is named")
     func listsSequenceReferences() {
         // Given
         let nested = ResolvedSequence(
@@ -40,7 +41,10 @@ struct ResolvedSequencePinnedReferencesTests {
         let sut = ResolvedSequence(
             format: format(),
             storyline: [
-                entry("storyline[0]", media: .pinned(video), colorSpace: .rec709, filter: [.lut(file: lut, amount: 1)]),
+                entry("storyline[0]", media: .pinned(video), colorSpace: .rec709, filter: [
+                    .lut(file: lut, amount: 1),
+                    .displace(file: map, amount: 8, offset: Point(x: 0, y: 0))
+                ]),
                 entry("storyline[1]", media: .pinned(frames), transition: transition())
             ],
             clips: [
@@ -62,6 +66,7 @@ struct ResolvedSequencePinnedReferencesTests {
         #expect(references == [
             .media(video, place: "storyline[0]", colorSpace: .rec709),
             .file(lut, place: "storyline[0]"),
+            .media(PinnedMedia(source: .file(map)), place: "storyline[0]", colorSpace: nil),
             .media(frames, place: "storyline[1]", colorSpace: nil),
             .media(stinger, place: "storyline[1]", colorSpace: nil),
             .media(wipe, place: "storyline[1]", colorSpace: .displayP3),

@@ -220,12 +220,13 @@ struct DisplayListReaderTests {
         .bloom(amount: 0.5, radius: 4, color: Color(written: "#FFEEDD")),
         .bloom(amount: 0.5, radius: 4, color: nil),
         .vignette(amount: 0.6, radius: 0.8),
+        .displace(file: PinnedFile(path: "/abs/ripple.png", sha256: hash), amount: 16, offset: Point(x: -8, y: 2.5)),
         .pixelate(size: 12),
         .grain(amount: 0.2, size: 1.5)
     ]
 
     // `items` with a picture of a nested list under a track matte, at 12, a grain, at 13, and a LUT, a bloom with a
-    // colour and levels, at 14, so a sample list holds every field of the Moves columns.
+    // colour, levels and a displace, at 14, so a sample list holds every field of the Moves columns.
     private static let sampleItems = items + [
         DisplayItem(
             trackMatte: ItemTrackMatte(
@@ -243,7 +244,8 @@ struct DisplayListReaderTests {
         DisplayItem(content: .adjust(AdjustItem(filter: [FilterEntry(operations: [
             .lut(file: PinnedFile(path: "/abs/film.cube", sha256: hash), amount: 0.5),
             .bloom(amount: 0.5, radius: 4, color: Color(written: "#FFEEDD")),
-            .levels(input: [0.05, 0.95], output: [0, 1])
+            .levels(input: [0.05, 0.95], output: [0, 1]),
+            .displace(file: PinnedFile(path: "/abs/ripple.png", sha256: hash), amount: 16, offset: Point(x: -8, y: 2.5))
         ])]))),
         DisplayItem(content: .picture(PictureItem(
             source: .media(MediaFrame(media: page, index: 0)),

@@ -17,7 +17,7 @@ struct ResolvedDocumentReaderTests {
     private let writer = ResolvedDocumentWriter()
 
     // A transition with spans, a video cover and a still matte, one that crossfades at constant gain, springs among their
-    // eases, and a filter with a LUT.
+    // eases, a filter with a LUT, and one that displaces by a map with its argument as the x of its offset.
     private static let presets = PresetTable(
         transitions: Fixture.presets.transitions.merging([
             "reveal": TransitionPreset(
@@ -51,6 +51,10 @@ struct ResolvedDocumentReaderTests {
             "fade": #"""
                 { "description": "", "params": { "black": { "type": "number", "default": 0, "description": "the black" } },
                   "ops": [ { "op": "levels", "input": [ { "param": "black" }, 1 ], "output": [0, 1] } ] }
+                """#,
+            "ripple": #"""
+                { "description": "", "params": { "drift": { "type": "number", "default": 0, "description": "the drift" } },
+                  "ops": [ { "op": "displace", "file": "/abs/matte.png", "amount": 4, "offset": [ { "param": "drift" }, 0 ] } ] }
                 """#
         ]) { $1 }
     )
@@ -114,6 +118,16 @@ struct ResolvedDocumentReaderTests {
               "points": [{ "vertex": [0, 0], "outTangent": [0, 40] }, [100, 0]],
               "keyframes": [ { "at": 0, "points": [{}, { "inTangent": [0, 40] }] }, { "at": 2, "points": [{}, { "inTangent": [0, 80] }] } ] } ] }
         """##,
+        // A displace written in place, its amount and offset keyframed, and a displace preset whose argument moves the x of
+        // its offset.
+        #"""
+        { "kind": "sequence", "storyline": [
+            { "media": "/abs/run.mp4", "in": 0, "out": 3, "filter": { "op": "displace", "file": "/abs/matte.png", "amount": 6 },
+              "keyframes": [ { "at": 0, "filter": { "amount": 0, "offset": [0, 0] } },
+                             { "at": 2, "filter": { "amount": 6, "offset": [12, -8] } } ] },
+            { "media": "/abs/run.mp4", "in": 0, "out": 3, "filter": "ripple",
+              "keyframes": [ { "at": 0, "filter": { "args": { "drift": 0 } } }, { "at": 2, "filter": { "args": { "drift": 30 } } } ] } ] }
+        """#,
         // Masks of each geometry form on a storyline clip, an adjustment, a shape and a title: an area found by text, a
         // box, an area and a path, inverted, feathered, in each mode, static and keyframed.
         #"""

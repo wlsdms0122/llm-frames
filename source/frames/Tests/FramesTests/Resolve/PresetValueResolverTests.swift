@@ -25,6 +25,14 @@ struct PresetValueResolverTests {
             at: "presets/filter/film.json"
         )
         try directory.write(
+            #"""
+            { "description": "ripple", "ops": [ { "op": "displace", "file": "shorts/ripple.png", "amount": 8 },
+                                                { "op": "displace", "file": "/abs/matte.png", "amount": 4, "offset": [2, -2] } ] }
+            """#,
+            in: "shorts",
+            at: "presets/filter/ripple.json"
+        )
+        try directory.write(
             #"{ "description": "wipe", "seconds": 1, "matte": { "media": "shorts/wipe.png" } }"#,
             in: "shorts",
             at: "presets/transition/wipe.json"
@@ -75,6 +83,85 @@ struct PresetValueResolverTests {
         let matte = storyline.last?.objectValue?["transition"]?.objectValue?["matte"]?.objectValue
         #expect(lut?["file"] == .string(pack.appendingPathComponent("luts/film.cube").standardizedFileURL.path))
         #expect(matte?["file"] == .string(pack.appendingPathComponent("media/wipe.png").standardizedFileURL.path))
+    }
+
+    @Test("a pack preset's displacement maps, by <pack>/<name.ext> in the pack's media and by an absolute path, are pinned with their SHA-256")
+    func pinsDisplacementMaps() throws {
+        // Given
+        let document = try Fixture.json(#"""
+            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "in": 0, "out": 2, "filter": "shorts/ripple" } ] }
+            """#)
+        let ripple = directory.installed.appendingPathComponent("shorts/media/ripple.png").standardizedFileURL.path
+
+        // When
+        let resolved = ResolvedDocumentWriter().document(
+            try ResolvedSequence(plan: planner().plan(document), hashes: FileHashTable([ripple: "ripple-digest"]))
+        )
+
+        // Then
+        let entry = resolved.objectValue?["storyline"]?.arrayValue?.first?.objectValue?["filter"]?.arrayValue?.first?.objectValue
+        let operations = (entry?["ops"]?.arrayValue ?? []).compactMap(\.objectValue)
+        #expect(operations.map { $0["file"] } == [.string(ripple), .string("/abs/matte.png")])
+        #expect(operations.map { $0["sha256"] } == [.string("ripple-digest"), .string("sha256-of-/abs/matte.png")])
+    }
+
+    @Test(
+        "a displacement map that is no raster still read as its tags say stops, naming where it is chosen",
+        arguments: [
+            ("/abs/run.mp4", DisplacementMapRefusal.video),
+            ("/abs/frames", .imageSequence),
+            ("/abs/logo.pdf", .page),
+            ("/abs/edit.json", .sequence),
+            ("/abs/bgm.m4a", .sound),
+            ("/abs/icc.png", .unconvertibleColor)
+        ]
+    )
+    func refusesDisplacementMap(
+        reference: String,
+        refusal: DisplacementMapRefusal
+    ) throws {
+        // Given
+        let icc = ProbedColorSpace(
+            reading: .platform,
+            primaries: nil,
+            transfer: nil,
+            matrix: nil,
+            bitDepth: 8,
+            isHighDynamicRange: false
+        )
+        let mediaFacts = MediaFactTable(
+            files: Fixture.mediaFacts.files.merging(["/abs/icc.png": ProbedMedia(kind: .image, colorSpace: icc)]) { $1 },
+            imageSequences: Fixture.mediaFacts.imageSequences,
+            pages: Fixture.pages
+        )
+        let sut = PresetValueResolver(library: directory.library(mediaFacts: mediaFacts))
+        let place = Place.root.appending(key: "filter")
+
+        // When
+        let error = #expect(throws: ResolveError.self) {
+            try sut.displacementMap(reference, place: place, kind: .clip(.media(.video)))
+        }
+
+        // Then
+        #expect(error == .unusableDisplacementMap(place: place, kind: .clip(.media(.video)), reference: reference, refusal: refusal))
+    }
+
+    @Test("a displacement map that is not there, or named by a bare name, stops")
+    func refusesMissingDisplacementMap() throws {
+        // Given
+        let sut = PresetValueResolver(library: directory.library())
+
+        // When
+        let missing = #expect(throws: ResolveError.self) {
+            try sut.displacementMap("/abs/none.png", place: .root, kind: .clip(.media(.video)))
+        }
+        let bare = #expect(throws: ResolveError.self) {
+            try sut.displacementMap("ripple.png", place: .root, kind: .clip(.media(.video)))
+        }
+
+        // Then
+        #expect(missing == .missingMedia(place: .root, kind: .clip(.media(.video)), reference: "/abs/none.png"))
+        #expect(bare == .unknownPresetFile(place: .root, kind: .clip(.media(.video)), name: "ripple.png"))
     }
 
     @Test("a cover named by an absolute path in a pack preset keeps that path")
@@ -198,11 +285,13 @@ struct PresetValueResolverTests {
         PresetLibrary(packs: directory.packs)
     }
 
-    // The pack's matte is probed as any other media.
+    // The pack's matte and displacement map are probed as any other media.
     private func planner() -> DocumentPlanner {
         let wipe = directory.installed.appendingPathComponent("shorts/media/wipe.png").standardizedFileURL.path
+        let ripple = directory.installed.appendingPathComponent("shorts/media/ripple.png").standardizedFileURL.path
+        let still = ProbedMedia(kind: .image, size: Size(width: 1080, height: 1920))
         let mediaFacts = MediaFactTable(
-            files: Fixture.mediaFacts.files.merging([wipe: ProbedMedia(kind: .image, size: Size(width: 1080, height: 1920))]) { $1 },
+            files: Fixture.mediaFacts.files.merging([wipe: still, ripple: still]) { $1 },
             imageSequences: Fixture.mediaFacts.imageSequences
         )
         let library = directory.library(mediaFacts: mediaFacts)

@@ -374,6 +374,34 @@ struct ResolvedSequenceWriterTests {
         #expect(entry?["ops"]?.arrayValue?.first?.objectValue?.keys == ["op", "file", "sha256", "amount"])
     }
 
+    @Test("a displace op written in place writes its map pinned beside its file, then its amount and its offset, each a keyframe list")
+    func writesDisplace() throws {
+        // Given
+        let document = #"""
+            { "kind": "sequence", "format": { "size": [1080, 1920] },
+              "storyline": [ { "media": "/abs/run.mp4", "in": 0, "out": 3,
+                               "filter": { "op": "displace", "file": "/abs/matte.png", "amount": 8, "offset": [4, -2] } } ] }
+            """#
+
+        // When
+        let storyline = try #require(try write(document)["storyline"]?.arrayValue)
+
+        // Then
+        let entry = storyline[0].objectValue?["filter"]?.arrayValue?.first?.objectValue
+        let operation = try #require(entry?["ops"]?.arrayValue?.first?.objectValue)
+        let held = { (value: JSONValue) in JSONValue.array([.object(JSONObject(members: [
+            JSONMember(key: "at", value: .number(0)),
+            JSONMember(key: "value", value: value),
+            JSONMember(key: "ease", value: .string("linear"))
+        ]))]) }
+        let scale = 1080.0 / 1920
+        #expect(operation.keys == ["op", "file", "sha256", "amount", "offset"])
+        #expect(operation["file"] == .string("/abs/matte.png"))
+        #expect(operation["sha256"] == .string("sha256-of-/abs/matte.png"))
+        #expect(operation["amount"] == held(.number(8 * scale)))
+        #expect(operation["offset"] == held(.array([.number(4 * scale), .number(-2 * scale)])))
+    }
+
     @Test("a tracked clip writes its track as the media followed, the media time, the target and the frames followed")
     func writesTrack() throws {
         // Given

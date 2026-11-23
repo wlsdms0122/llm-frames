@@ -218,7 +218,7 @@ struct PresetReaderTests {
     @Test(
         "a filter preset with a broken rule stops",
         arguments: [
-            (#"{ "description": "x", "ops": [ { "op": "glow", "amount": 1 } ] }"#, #"ops[0].op (filter operation): unknown value "glow". Allowed: exposure, contrast, saturation, temperature, hue, sepia, levels, lut, blur, sharpen, bloom, vignette, pixelate, grain"#),
+            (#"{ "description": "x", "ops": [ { "op": "glow", "amount": 1 } ] }"#, #"ops[0].op (filter operation): unknown value "glow". Allowed: exposure, contrast, saturation, temperature, hue, sepia, levels, lut, blur, sharpen, bloom, vignette, displace, pixelate, grain"#),
             (#"{ "description": "x", "ops": [ { "amount": 1 } ] }"#, #"ops[0] (filter operation): missing key "op""#),
             (#"{ "description": "x", "ops": [ { "op": "blur", "radius": 2, "amount": 1 } ] }"#, #"ops[0] (blur): unknown key "amount". Allowed: op, radius"#),
             (#"{ "description": "x", "ops": [ { "op": "exposure" } ] }"#, #"ops[0] (exposure): missing key "ev""#),
@@ -235,7 +235,15 @@ struct PresetReaderTests {
             (#"{ "description": "x", "ops": [ { "op": "sharpen", "amount": 1, "radius": 0 } ] }"#, "ops[0].radius (sharpen): 0 is not above 0"),
             (#"{ "description": "x", "ops": [ { "op": "bloom", "amount": 1, "radius": 0 } ] }"#, "ops[0].radius (bloom): 0 is not above 0"),
             (#"{ "description": "x", "ops": [ { "op": "pixelate", "size": -1 } ] }"#, "ops[0].size (pixelate): -1 is not above 0"),
-            (#"{ "description": "x", "ops": [ { "op": "vignette", "amount": 0.5, "radius": 1.1 } ] }"#, "ops[0].radius (vignette): 1.1 is not within 0 to 1")
+            (#"{ "description": "x", "ops": [ { "op": "vignette", "amount": 0.5, "radius": 1.1 } ] }"#, "ops[0].radius (vignette): 1.1 is not within 0 to 1"),
+            (#"{ "description": "x", "ops": [ { "op": "displace", "file": "/abs/ripple.png", "amount": 0 } ] }"#, "ops[0].amount (displace): 0 is not above 0"),
+            (#"{ "description": "x", "ops": [ { "op": "displace", "file": "/abs/ripple.png", "amount": -4 } ] }"#, "ops[0].amount (displace): -4 is not above 0"),
+            (#"{ "description": "x", "ops": [ { "op": "displace", "file": "/abs/ripple.png", "amount": 4, "offset": [1] } ] }"#, "ops[0].offset (displace): expected a list of 2 numbers, found a list of 1"),
+            (#"{ "description": "x", "ops": [ { "op": "displace", "file": "/abs/ripple.png", "amount": 4, "offset": [1, 2, 3] } ] }"#, "ops[0].offset (displace): expected a list of 2 numbers, found a list of 3"),
+            (#"{ "description": "x", "ops": [ { "op": "displace", "file": "/abs/ripple.png", "amount": 4, "offset": 1 } ] }"#, "ops[0].offset (displace): expected a list of 2 numbers, found 1"),
+            (#"{ "description": "x", "ops": [ { "op": "displace", "file": "/abs/ripple.png", "amount": 4, "radius": 2 } ] }"#, #"ops[0] (displace): unknown key "radius". Allowed: op, file, amount, offset"#),
+            (#"{ "description": "x", "ops": [ { "op": "displace", "amount": 4 } ] }"#, #"ops[0] (displace): missing key "file""#),
+            (#"{ "description": "x", "ops": [ { "op": "displace", "file": "/abs/ripple.png" } ] }"#, #"ops[0] (displace): missing key "amount""#)
         ]
     )
     func refusesBrokenFilter(
@@ -248,6 +256,62 @@ struct PresetReaderTests {
         // When, Then
         let error = #expect(throws: (any Error).self) { try sut.filter(from: value) }
         #expect("\(error.map { "\($0)" } ?? "")" == message)
+    }
+
+    @Test("a displace op reads its map, its amount and its offset, which takes any real number and is [0, 0] where none is written")
+    func readsDisplace() throws {
+        // Given
+        let value = try Fixture.json(#"""
+            { "description": "x", "ops": [
+              { "op": "displace", "file": "pack/ripple.png", "amount": 12 },
+              { "op": "displace", "file": "/abs/ripple.png", "amount": 0.5, "offset": [-40, 2.5] }
+            ] }
+            """#)
+
+        // When
+        let preset = try sut.filter(from: value)
+
+        // Then
+        #expect(preset.operations == [
+            .displace(file: "pack/ripple.png", amount: 12, offset: Point(x: 0, y: 0)),
+            .displace(file: "/abs/ripple.png", amount: 0.5, offset: Point(x: -40, y: 2.5))
+        ])
+    }
+
+    @Test("a displace op's lengths, its amount and both numbers of its offset, are multiplied by the length scale")
+    func scalesDisplace() {
+        // Given
+        let sut = FilterOperation.displace(file: "/abs/ripple.png", amount: 8, offset: Point(x: -4, y: 2))
+
+        // When
+        let scaled = sut.scaled(by: 0.5)
+
+        // Then
+        #expect(scaled == .displace(file: "/abs/ripple.png", amount: 4, offset: Point(x: -2, y: 1)))
+    }
+
+    @Test("a number parameter stands for a displace amount and each number of its offset, never for its file")
+    func fillsDisplaceParameters() throws {
+        // Given
+        let value = try Fixture.json(#"""
+            { "description": "x",
+              "params": { "strength": { "type": "number", "default": 6, "description": "the strength" },
+                          "drift": { "type": "number", "default": -3, "description": "the drift" } },
+              "ops": [ { "op": "displace", "file": "/abs/ripple.png", "amount": { "param": "strength" },
+                         "offset": [{ "param": "drift" }, 0] } ] }
+            """#)
+        let file = try Fixture.json(#"""
+            { "description": "x", "params": { "n": { "type": "number", "default": 1, "description": "the n" } },
+              "ops": [ { "op": "displace", "file": { "param": "n" }, "amount": 4 } ] }
+            """#)
+
+        // When
+        let preset = try sut.filter(from: value)
+        let error = #expect(throws: (any Error).self) { try sut.filter(from: file) }
+
+        // Then
+        #expect(preset.operations == [.displace(file: "/abs/ripple.png", amount: 6, offset: Point(x: -3, y: 0))])
+        #expect("\(error.map { "\($0)" } ?? "")" == "ops[0].file (displace): expected a name, found an object")
     }
 
     @Test("a preset with parameters is read with each parameter at its default")
