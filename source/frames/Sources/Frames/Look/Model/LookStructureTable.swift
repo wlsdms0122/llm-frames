@@ -92,9 +92,11 @@ enum LookStructureTable {
         shorthands: [.on]
     ))
 
-    // A text style's `kerning`, `writingMode`, `direction` and `align`, which a title's `character` and `paragraph`
-    // write as well.
+    // A text style's `kerning`, `textOrientation`, `textCombineUpright`, `writingMode`, `direction` and `align`, which
+    // a title's `character` and `paragraph` write as well.
     static let kerning = ValueStructure.leaf(.name(among: ["metrics", "none"]))
+    static let textOrientation = ValueStructure.leaf(.name(among: TextOrientation.allCases.map(\.rawValue)))
+    static let textCombineUpright = ValueStructure.leaf(.name(among: TextCombineUpright.allCases.map(\.rawValue)))
     static let writingMode = ValueStructure.leaf(.name(among: WritingMode.allCases.map(\.rawValue)))
     static let direction = ValueStructure.leaf(.name(among: ["auto"] + TextDirection.allCases.map(\.rawValue)))
     static let align = ValueStructure.leaf(.name(among: TextAlignment.allCases.map(\.rawValue)))
@@ -115,6 +117,8 @@ enum LookStructureTable {
             ("background", background),
             ("highlight", highlight),
             ("underline", underline),
+            ("textOrientation", textOrientation),
+            ("textCombineUpright", textCombineUpright),
             ("placement", .leaf(.name(among: VocabularyTable.placementNames))),
             ("offset", .leaf(.length())),
             ("writingMode", writingMode),
@@ -139,7 +143,9 @@ enum LookStructureTable {
             ("color", .leaf(.color)),
             ("stroke", textStroke),
             ("highlight", highlight),
-            ("underline", underline)
+            ("underline", underline),
+            ("textOrientation", textOrientation),
+            ("textCombineUpright", textCombineUpright)
         ],
         checks: ["weight": .fontWeight, "features": .fontFeatures]
     ))

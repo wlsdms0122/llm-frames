@@ -131,10 +131,11 @@ struct ResolvedSequenceWriterTests {
             "lines", "units", "runs"
         ])
         #expect(run.keys == [
-            "source", "file", "sha256", "face", "size", "color", "stroke", "baselineShift", "sideways", "staticTracking",
-            "tracking", "highlight", "underline", "glyphs"
+            "source", "file", "sha256", "face", "size", "color", "stroke", "baselineShift", "sideways", "horizontalScale",
+            "staticTracking", "tracking", "highlight", "underline", "glyphs"
         ])
         #expect(run["sideways"] == .bool(false))
+        #expect(run["horizontalScale"] == .number(1))
         #expect(run["staticTracking"] == .number(0))
         #expect(run["sha256"] == .string("sha256-of-" + (run["file"]?.stringValue ?? "")))
         #expect(run["glyphs"]?.arrayValue?.compactMap { $0.arrayValue?.first } == [.number(72), .number(105)])

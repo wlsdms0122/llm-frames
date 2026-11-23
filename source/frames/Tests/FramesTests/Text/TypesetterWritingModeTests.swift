@@ -318,6 +318,408 @@ struct TypesetterWritingModeTests {
         #expect(layout.units?.map(\.glyphBox.height) == [40, 20, 20, 40])
     }
 
+    @Test(
+        "a run's text orientation sets its characters in a vertical line, `mixed` by their Vertical_Orientation",
+        arguments: [WritingMode.verticalRightToLeft, .verticalLeftToRight]
+    )
+    func setsCharactersByTextOrientation(writingMode: WritingMode) throws {
+        // Given
+        let runs = [run("AB", textOrientation: .upright), run("漢字", textOrientation: .sideways), run("A漢")]
+
+        // When
+        let layout = try sut.layout(runs, paragraph: paragraph(writingMode), width: nil, place: place, kind: "title")
+
+        // Then
+        #expect(layout.runs.map(\.source) == [0, 1, 2, 2])
+        #expect(layout.runs.map(\.isSideways) == [false, true, true, false])
+        #expect(layout.runs.map { $0.glyphs.map(\.id) } == [[0x41, 0x42], [0x6F22, 0x5B57], [0x41], [0x6F22]])
+        #expect(layout.lines.flatMap(\.clusters).map(\.advance) == [40, 40, 20, 20, 20, 40])
+        #expect(layout.runs.flatMap(\.glyphs).map(\.placementOffset) == [
+            Point(x: -10, y: 32),
+            Point(x: -10, y: 32),
+            Point(x: -12, y: 0),
+            Point(x: -12, y: 0),
+            Point(x: -12, y: 0),
+            Point(x: -10, y: 32)
+        ])
+    }
+
+    @Test("under `upright` and `sideways` a grapheme cluster takes its run's orientation, an enclosing mark's included")
+    func orientsClustersByTextOrientation() throws {
+        // Given
+        let runs = [run("A\u{301}", textOrientation: .upright), run("漢\u{20DD}", textOrientation: .sideways)]
+
+        // When
+        let layout = try sut.layout(
+            runs,
+            paragraph: paragraph(.verticalRightToLeft),
+            width: nil,
+            place: place,
+            kind: "title"
+        )
+
+        // Then
+        #expect(layout.runs.map(\.isSideways) == [false, true])
+        #expect(layout.runs.map { $0.glyphs.map(\.id) } == [[0x41, 0x301], [0x6F22, 0x20DD]])
+        #expect(layout.lines.flatMap(\.clusters).map(\.advance) == [80, 40])
+    }
+
+    @Test(
+        "under `upright` a character whose Vertical_Orientation is R is shaped apart in its horizontal form, each in glyphs of its own",
+        arguments: [[FontFeature](), [FontFeature(tag: "vert", value: 1), FontFeature(tag: "liga", value: 1)]]
+    )
+    func setsRotatedCharactersUprightInHorizontalForms(features: [FontFeature]) throws {
+        // Given
+        let shaper = ShaperTable(verticalForms: ["、": 0xFE11, "f": 0xE066, "N": 0xE04E, "A": 0xE041])
+        let sut = Typesetter(shaper: shaper)
+        let runs = [
+            run("、fiNA\u{20DD}", textOrientation: .upright, features: features),
+            run("、fiN", features: features)
+        ]
+
+        // When
+        let layout = try sut.layout(
+            runs,
+            paragraph: paragraph(.verticalRightToLeft),
+            width: nil,
+            place: place,
+            kind: "title"
+        )
+
+        // Then
+        // In the `upright` run `、` and the cluster `A⃝`, whose Vertical_Orientation is U, keep their vertical forms,
+        // and `f`, `i` and `N`, whose value is R, stand unligated in their horizontal forms. Under `mixed` `、` stands
+        // in its vertical form and `fiN` is sideways, ligated as horizontal text.
+        let glyphs = layout.runs.flatMap { run in run.glyphs.map { (id: $0.id, isSideways: run.isSideways) } }
+        #expect(glyphs.map(\.id) == [0xFE11, 0x66, 0x69, 0x4E, 0xE041, 0x20DD, 0xFE11, ShaperTable.ligature, 0x4E])
+        #expect(glyphs.map(\.isSideways) == [false, false, false, false, false, false, false, true, true])
+        #expect(layout.lines.flatMap(\.clusters).map(\.advance) == [40, 40, 40, 40, 80, 40, 40, 0, 20])
+    }
+
+    @Test("a horizontal line turns no character and reads every one by its own class, whatever its run's attributes")
+    func ignoresTextOrientationInHorizontalLine() throws {
+        // Given
+        let runs = [run("\u{5D0}\u{5D1}", textOrientation: .upright), run("12", textCombineUpright: .all)]
+
+        // When
+        let layout = try sut.layout(
+            runs,
+            paragraph: paragraph(.horizontalTopToBottom),
+            width: nil,
+            place: place,
+            kind: "title"
+        )
+
+        // Then
+        #expect(layout.direction == .rtl)
+        #expect(layout.runs.map(\.isSideways) == [false, false])
+        #expect(layout.lines.flatMap(\.clusters).map(\.level) == [1, 1, 2, 2])
+        #expect(layout.lines.flatMap(\.clusters).map(\.advance) == [20, 20, 20, 20])
+    }
+
+    @Test("an upright run of Hebrew in a vertical line is read left to right, so its letters are placed from the top down")
+    func readsUprightRunLeftToRight() throws {
+        // Given
+        let runs = [run("漢"), run("\u{5D0}\u{5D1}", textOrientation: .upright), run("字")]
+
+        // When
+        let layout = try sut.layout(
+            runs,
+            paragraph: paragraph(.verticalRightToLeft),
+            width: nil,
+            place: place,
+            kind: "title"
+        )
+
+        // Then
+        let line = try #require(layout.lines.first)
+        #expect(line.clusters.map(\.level) == [0, 0, 0, 0])
+        #expect(line.placedOrder == [0, 1, 2, 3])
+        #expect(layout.runs.map(\.isSideways) == [false, false, false])
+        #expect(layout.runs.map { $0.glyphs.map(\.id) } == [[0x6F22], [0x5D0, 0x5D1], [0x5B57]])
+        #expect(layout.runs.map { $0.glyphs.map(\.y) } == [[0], [40, 80], [120]])
+    }
+
+    @Test(
+        "an explicit formatting character of an upright run is read as left to right in a vertical line alone",
+        arguments: [(WritingMode.verticalRightToLeft, [0, 0, 0]), (.horizontalTopToBottom, [0, 1, 1])]
+    )
+    func readsFormattingCharacterOfUprightRun(writingMode: WritingMode, levels: [Int]) throws {
+        // Given
+        let runs = [run("\u{202E}AB", textOrientation: .upright)]
+
+        // When
+        let layout = try sut.layout(runs, paragraph: paragraph(writingMode), width: nil, place: place, kind: "title")
+
+        // Then
+        #expect(layout.lines.flatMap(\.clusters).map(\.level) == levels)
+    }
+
+    @Test("the characters of a combined run in a vertical line are read left to right")
+    func readsCombinedRunLeftToRight() throws {
+        // Given
+        let runs = [run("\u{5D0}\u{5D1}", textCombineUpright: .all), run("\u{5D2}")]
+
+        // When
+        let layout = try sut.layout(
+            runs,
+            paragraph: paragraph(.verticalRightToLeft),
+            width: nil,
+            place: place,
+            kind: "title"
+        )
+
+        // Then
+        #expect(layout.direction == .ltr)
+        #expect(layout.lines.flatMap(\.clusters).map(\.level) == [0, 0, 1])
+    }
+
+    @Test(
+        "`auto` takes a vertical title's direction from the classes its characters are read as",
+        arguments: [(TextOrientation.upright, TextDirection.ltr, [0, 1]), (.mixed, .rtl, [1, 1])]
+    )
+    func takesDirectionFromClassesReadAs(
+        textOrientation: TextOrientation,
+        direction: TextDirection,
+        levels: [Int]
+    ) throws {
+        // Given
+        let runs = [run("\u{5D0}", textOrientation: textOrientation), run("\u{5D1}")]
+
+        // When
+        let layout = try sut.layout(
+            runs,
+            paragraph: paragraph(.verticalRightToLeft),
+            width: nil,
+            place: place,
+            kind: "title"
+        )
+
+        // Then
+        #expect(layout.direction == direction)
+        #expect(layout.lines.flatMap(\.clusters).map(\.level) == levels)
+    }
+
+    @Test("an upright run in a right-to-left vertical line lies where its level places it, its letters in reading order")
+    func placesUprightRunInRightToLeftLine() throws {
+        // Given
+        let runs = [run("\u{5D0}"), run("\u{5D1}\u{5D2}", textOrientation: .upright)]
+
+        // When
+        let layout = try sut.layout(
+            runs,
+            paragraph: paragraph(.verticalRightToLeft),
+            width: nil,
+            place: place,
+            kind: "title"
+        )
+
+        // Then
+        let line = try #require(layout.lines.first)
+        #expect(layout.direction == .rtl)
+        #expect(line.clusters.map(\.level) == [1, 2, 2])
+        #expect(line.placedOrder == [1, 2, 0])
+        #expect(layout.runs.map { $0.glyphs.map(\.id) } == [[0x5D1, 0x5D2], [0x5D0]])
+        #expect(layout.runs.map { $0.glyphs.map(\.y) } == [[0, 40], [80]])
+    }
+
+    @Test(
+        "a combined run in a vertical line is one composition, its glyphs set side by side at one pen in a square 1 em long",
+        arguments: [WritingMode.verticalRightToLeft, .verticalLeftToRight]
+    )
+    func setsCompositionInOneSquare(writingMode: WritingMode) throws {
+        // Given
+        // "12" is 40 wide as horizontal text, 1 em at size 40, so it is not narrowed: its glyphs start 20 left of the
+        // baseline, and their alphabetic baseline lies 12 past the middle of the square, 32 down from its start.
+        let runs = [run("漢"), run("12", textCombineUpright: .all), run("字")]
+
+        // When
+        let layout = try sut.layout(runs, paragraph: paragraph(writingMode), width: nil, place: place, kind: "title")
+
+        // Then
+        let line = try #require(layout.lines.first)
+        #expect(layout.runs.map(\.isSideways) == [false, false, false])
+        #expect(layout.runs.map(\.horizontalScale) == [1, 1, 1])
+        #expect(layout.runs.map { $0.glyphs.map(\.id) } == [[0x6F22], [0x31, 0x32], [0x5B57]])
+        #expect(layout.runs.map { $0.glyphs.map(\.y) } == [[0], [40, 40], [80]])
+        #expect(layout.runs[1].glyphs.map(\.placementOffset) == [Point(x: -20, y: 32), Point(x: 0, y: 32)])
+        #expect(line.clusters.map(\.glyphs.count) == [1, 2, 0, 1])
+        #expect(line.clusters.map(\.advance) == [40, 40, 0, 40])
+        #expect(line.width == 120)
+    }
+
+    @Test(
+        "a composition one of whose characters falls back to another face is one group, its glyphs one range from its first face's glyph run on into the fallback face's"
+    )
+    func setsCompositionInTwoFaces() throws {
+        // Given
+        let sut = Typesetter(shaper: ShaperTable(missing: ["2"]))
+        let runs = [run("漢"), run("12", textCombineUpright: .all), run("字")]
+
+        // When
+        let layout = try sut.layout(
+            runs,
+            paragraph: paragraph(.verticalRightToLeft),
+            width: nil,
+            unit: .character,
+            place: place,
+            kind: "title"
+        )
+
+        // Then
+        let line = try #require(layout.lines.first)
+        #expect(layout.runs.map(\.face) == [face, face, ShaperTable.fallback, face])
+        #expect(layout.runs.map { $0.glyphs.map(\.id) } == [[0x6F22], [0x31], [0x32], [0x5B57]])
+        #expect(layout.runs.map { $0.glyphs.map(\.y) } == [[0], [40], [40], [80]])
+        #expect(line.clusters.map(\.glyphs) == [
+            GlyphRange(run: 0, first: 0, count: 1),
+            GlyphRange(run: 1, first: 0, count: 2),
+            GlyphRange(run: 2, first: 1, count: 0),
+            GlyphRange(run: 3, first: 0, count: 1)
+        ])
+        #expect(line.clusters.map(\.advance) == [40, 40, 0, 40])
+        #expect(layout.units?.map(\.glyphs) == [
+            [GlyphRange(run: 0, first: 0, count: 1)],
+            [GlyphRange(run: 1, first: 0, count: 1), GlyphRange(run: 2, first: 0, count: 1)],
+            [GlyphRange(run: 3, first: 0, count: 1)]
+        ])
+        #expect(layout.units?.map(\.glyphBox) == [
+            Rectangle(x: 0, y: 0, width: 40, height: 40),
+            Rectangle(x: 0, y: 40, width: 40, height: 40),
+            Rectangle(x: 0, y: 80, width: 40, height: 40)
+        ])
+    }
+
+    @Test("a composition wider than 1 em is narrowed to it with its placement offsets, and a narrower one is not widened")
+    func narrowsWideComposition() throws {
+        // Given
+        // "2026" is 80 wide, so it is narrowed by 0.5 to 40, and its "0" is placed 4 right and 2 down of its pen.
+        let sut = Typesetter(shaper: ShaperTable(placements: ["0": Point(x: 0.1, y: 0.05)]))
+        let runs = [run("2026", textCombineUpright: .all), run("1", textCombineUpright: .all)]
+
+        // When
+        let layout = try sut.layout(
+            runs,
+            paragraph: paragraph(.verticalRightToLeft),
+            width: nil,
+            place: place,
+            kind: "title"
+        )
+
+        // Then
+        #expect(layout.runs.map(\.source) == [0, 1])
+        #expect(layout.runs.map(\.horizontalScale) == [0.5, 1])
+        #expect(layout.runs.map { $0.glyphs.map(\.y) } == [[0, 0, 0, 0], [40]])
+        #expect(layout.runs.map { $0.glyphs.map(\.placementOffset) } == [
+            [Point(x: -20, y: 32), Point(x: -8, y: 34), Point(x: 0, y: 32), Point(x: 10, y: 32)],
+            [Point(x: -10, y: 32)]
+        ])
+        #expect(layout.lines.flatMap(\.clusters).map(\.advance) == [40, 0, 0, 0, 40])
+        #expect(layout.lines.map(\.width) == [80])
+    }
+
+    @Test("a combined run whose text holds `\\n` is a composition on each of its lines")
+    func composesEachLine() throws {
+        // Given
+        let runs = [run("12\n345", textCombineUpright: .all)]
+
+        // When
+        let layout = try sut.layout(
+            runs,
+            paragraph: paragraph(.verticalRightToLeft),
+            width: nil,
+            place: place,
+            kind: "title"
+        )
+
+        // Then
+        #expect(layout.lines.map { $0.clusters.map(\.advance) } == [[40, 0], [40, 0, 0]])
+        #expect(layout.runs.map(\.line) == [0, 1])
+        #expect(layout.runs.map(\.horizontalScale) == [1, 2.0 / 3.0])
+    }
+
+    @Test("no line breaks inside a composition, and its spaces are set in it and do not hang")
+    func keepsCompositionWhole() throws {
+        // Given
+        // "1 2 " is 60 wide as horizontal text, and its composition 40 long.
+        let runs = [run("漢 "), run("1 2 ", textCombineUpright: .all)]
+
+        // When
+        let layout = try sut.layout(
+            runs,
+            paragraph: paragraph(.verticalRightToLeft),
+            width: 40,
+            place: place,
+            kind: "title"
+        )
+
+        // Then
+        #expect(layout.lines.map(\.range) == [0..<1, 2..<6])
+        #expect(layout.lines.map(\.clusters.count) == [1, 4])
+        #expect(layout.lines.map(\.hanging.count) == [1, 0])
+        #expect(layout.lines.map(\.width) == [40, 40])
+    }
+
+    @Test("a composition is tracked from its neighbours, highlighted, underlined and moved by a unit as one character")
+    func spacesCompositionAsOneCharacter() throws {
+        // Given
+        // A tracking of 100 is 4 at size 40.
+        let runs = [
+            run("漢", tracking: 100),
+            run("12", tracking: 100, isHighlighted: true, isUnderlined: true, textCombineUpright: .all),
+            run("字")
+        ]
+
+        // When
+        let layout = try sut.layout(
+            runs,
+            paragraph: paragraph(.verticalRightToLeft),
+            width: nil,
+            unit: .character,
+            place: place,
+            kind: "title"
+        )
+
+        // Then
+        #expect(layout.runs.map { $0.glyphs.map(\.y) } == [[0], [44, 44], [88]])
+        #expect(layout.lines.map(\.width) == [128])
+        #expect(layout.runs[1].highlights == [Rectangle(x: 0, y: 44, width: 40, height: 40)])
+        #expect(layout.runs[1].underlines == [UnderlinePiece(x: 8, y: 44, width: 40)])
+        #expect(layout.units?.map(\.characters) == [
+            CharacterRange(line: 0, first: 0, count: 1),
+            CharacterRange(line: 0, first: 1, count: 2),
+            CharacterRange(line: 0, first: 3, count: 1)
+        ])
+        #expect(layout.units?.map(\.glyphBox) == [
+            Rectangle(x: 0, y: 0, width: 40, height: 40),
+            Rectangle(x: 0, y: 44, width: 40, height: 40),
+            Rectangle(x: 0, y: 88, width: 40, height: 40)
+        ])
+    }
+
+    @Test(
+        "a composition is shaped as horizontal text and turned by nothing, whatever its run's text orientation",
+        arguments: [TextOrientation.upright, .sideways]
+    )
+    func ignoresTextOrientationOfComposition(textOrientation: TextOrientation) throws {
+        // Given
+        let runs = [run("12", textOrientation: textOrientation, textCombineUpright: .all)]
+
+        // When
+        let layout = try sut.layout(
+            runs,
+            paragraph: paragraph(.verticalRightToLeft),
+            width: nil,
+            place: place,
+            kind: "title"
+        )
+
+        // Then
+        #expect(layout.runs.map(\.isSideways) == [false])
+        #expect(layout.runs.flatMap(\.glyphs).map(\.placementOffset) == [Point(x: -20, y: 32), Point(x: 0, y: 32)])
+        #expect(layout.lines.flatMap(\.clusters).map(\.advance) == [40, 0])
+    }
+
     @Test("a background's first padding value pads a vertical text box on its block axis and its second down its lines")
     func padsVerticalTextBox() throws {
         // Given
@@ -349,8 +751,12 @@ struct TypesetterWritingModeTests {
     private func run(
         _ text: String,
         size: Double = 40,
+        tracking: Double = 0,
         isHighlighted: Bool = false,
-        isUnderlined: Bool = false
+        isUnderlined: Bool = false,
+        textOrientation: TextOrientation = .mixed,
+        textCombineUpright: TextCombineUpright = .none,
+        features: [FontFeature] = []
     ) -> TextRun {
         TextRun(
             text: text,
@@ -358,8 +764,12 @@ struct TypesetterWritingModeTests {
                 families: ["Apple SD Gothic Neo"],
                 weight: .bold,
                 size: size,
+                tracking: tracking,
+                features: features,
                 isHighlighted: isHighlighted,
-                isUnderlined: isUnderlined
+                isUnderlined: isUnderlined,
+                textOrientation: textOrientation,
+                textCombineUpright: textCombineUpright
             ),
             faces: [face]
         )

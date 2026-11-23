@@ -9,8 +9,8 @@
 // sum of its glyphs' advances, which holds no tracking, and `level`, the embedding level it lies at on its line after
 // rule L1 of UAX #9, which orders it there, and `cursiveScripts`, the ISO 15924 codes of the cursive scripts it is a
 // letter of, which take no tracking between two of their letters. Its glyph box starts at its first glyph's pen. A
-// later character of a group of glyphs has no glyph of its own: a range of count 0 after its group's glyphs, `advance`
-// 0, lying where its group's first character lies.
+// later character of a group of glyphs has no glyph of its own: a range of count 0 after its group's last glyph,
+// `advance` 0, lying where its group's first character lies.
 struct PlacedCluster: Equatable, Sendable {
     // MARK: - Property
     let glyphs: GlyphRange

@@ -7,12 +7,13 @@
 
 // Each run is shaped on its own, in shaping runs of one embedding level and one orientation each, and lines break by
 // UAX #14 over the text of all runs together, in logical order. A line's glyphs are cut into groups by the characters
-// they are set from, and a group's glyphs belong to the first character they are set from. Each line is then ordered by
-// UAX #9: its groups lie from left to right in the visual order of their first characters, and tracking lies between
-// every two neighbouring characters as placed, the tracking of whichever comes first in the text, so it widens no line
-// past its outermost characters and moves no centred or right-aligned line off its place, but between two letters of
-// one cursive script, whose connection it would break. Which character a character is drawn with, where a highlight or
-// underline piece is cut and which glyph run holds it are those `PlacedLine` gives.
+// they are set from, the glyphs of a horizontal-in-vertical composition being one group, and a group's glyphs belong to
+// the first character they are set from. Each line is then ordered by UAX #9: its groups lie from left to right in the
+// visual order of their first characters, and tracking lies between every two neighbouring characters as placed, the
+// tracking of whichever comes first in the text, so it widens no line past its outermost characters and moves no
+// centred or right-aligned line off its place, but between two letters of one cursive script, whose connection it would
+// break. Which character a character is drawn with, where a highlight or underline piece is cut and which glyph run
+// holds it are those `PlacedLine` gives.
 struct Typesetter: Sendable {
     // MARK: - Property
     private let shaper: any ShapingProvider
@@ -49,8 +50,9 @@ struct Typesetter: Sendable {
         let runs = clustered(runs)
         let text = runs.map(\.text).joined()
         let scalars = Array(text.unicodeScalars)
-        let paragraphLevel = style.direction?.paragraphLevel ?? resolver.paragraphLevel(of: scalars) ?? 0
-        let levels = resolver.levels(of: scalars, paragraphLevel: paragraphLevel)
+        let classes = bidiClasses(of: runs, writingMode: style.writingMode)
+        let paragraphLevel = style.direction?.paragraphLevel ?? resolver.paragraphLevel(of: classes) ?? 0
+        let levels = resolver.levels(of: scalars, classes: classes, paragraphLevel: paragraphLevel)
         let direction = TextDirection(level: paragraphLevel)
         let align = style.align ?? direction.start
         let isOneLine = style.lines == 1
@@ -59,6 +61,7 @@ struct Typesetter: Sendable {
                 of: paragraph.pieces,
                 from: paragraph.start,
                 levels: levels,
+                classes: classes,
                 paragraphLevel: paragraphLevel,
                 writingMode: style.writingMode,
                 width: isOneLine ? nil : width,
@@ -165,6 +168,24 @@ struct Typesetter: Sendable {
         }
     }
 
+    // The bidirectional class each scalar of the text of `runs` is read as. In a vertical line every scalar of a run
+    // whose characters stand upright, by its `upright` text orientation or as a horizontal-in-vertical composition, is
+    // read as L, since a glyph that stands reads in no direction, but `\n`, which ends a paragraph in any run. Every
+    // other scalar is read as of its own Bidi_Class.
+    private func bidiClasses(
+        of runs: [TextRun],
+        writingMode: WritingMode
+    ) -> [BidiClass] {
+        runs.flatMap { run in
+            let isLeftToRight = writingMode.isVertical && run.style.textOrientation == .upright
+                || isCombined(run.style, in: writingMode)
+
+            return run.text.unicodeScalars.map { scalar in
+                isLeftToRight && scalar != "\n" ? BidiClass.leftToRight : BidiClass(scalar)
+            }
+        }
+    }
+
     // `\n` ends a paragraph, whichever run it is in. Each paragraph begins with a piece of the run its first scalar or
     // the `\n` before it lies in, empty or not, so a line with no glyphs takes that run's extent. Each piece keeps
     // the index of its run, and each paragraph the index of its first scalar in the text of all runs.
@@ -193,16 +214,19 @@ struct Typesetter: Sendable {
         return paragraphs
     }
 
-    // Lines fill up to the width, broken only between words, and spaces at the end of a line hang outside it. A word
-    // wider than the width starts a line of its own and breaks inside where UAX #14 allows, and a piece of it still
-    // wider overflows alone. Without a width only a mandatory break ends a line. A line breaks only before a character
-    // with glyphs of its own, so a group of glyphs stays on one line. `start` is the index of the paragraph's first
-    // scalar in the text of all runs, and `levels` the embedding level of each scalar of that text. A line is measured
-    // as it is placed, its characters ordered at `paragraphLevel`, and shaped as `writingMode` sets it.
+    // Lines fill up to the width, broken only between words, and spaces at the end of a line hang outside it, but for
+    // those of a horizontal-in-vertical composition. A word wider than the width starts a line of its own and breaks
+    // inside where UAX #14 allows, and a piece of it still wider overflows alone. Without a width only a mandatory
+    // break ends a line. A line breaks only before a character with glyphs of its own, so a group of glyphs, a
+    // composition's among them, stays on one line. `start` is the index of the paragraph's first scalar in the text of
+    // all runs, `levels` the embedding level of each scalar of that text and `classes` the bidirectional class it is
+    // read as. A line is measured as it is placed, its characters ordered at `paragraphLevel`, and shaped as
+    // `writingMode` sets it.
     private func lines(
         of paragraph: [(source: Int, run: TextRun)],
         from start: Int,
         levels: [Int],
+        classes: [BidiClass],
         paragraphLevel: Int,
         writingMode: WritingMode,
         width: Double?,
@@ -214,6 +238,7 @@ struct Typesetter: Sendable {
             paragraph,
             from: start,
             levels: levels,
+            classes: classes,
             writingMode: writingMode,
             place: place,
             kind: kind
@@ -294,17 +319,22 @@ struct Typesetter: Sendable {
         }
     }
 
-    // Each run is shaped on its own in shaping runs, stretches of its characters at one embedding level and one
-    // orientation, since a run boundary, a change of level and, in a vertical `writingMode`, a change between upright
-    // and sideways each end a shaping run, and its glyphs are told by the scalar they start at in the whole paragraph.
-    // In a horizontal line no character is upright or sideways. Each character is a grapheme cluster of its run, its
-    // range counted from `start`, its level that of its first scalar among `levels`, and owns the glyphs of the group
-    // it is the first character of, in the order the provider gave them. A shaping run's glyphs are grouped in the
-    // order it is read, from its right end at an odd level.
+    // Each run is shaped on its own in shaping runs, stretches of its characters at one embedding level, one
+    // orientation and one kind of forms, since a run boundary, a change of level and, in a vertical `writingMode`, a
+    // change between upright and sideways and one between vertical and horizontal forms each end a shaping run, and
+    // its glyphs are told by the scalar they start at in the whole paragraph. In a vertical line each character is
+    // upright or sideways, and in vertical forms or not, by its run's text orientation, but those of a combined run,
+    // which are one horizontal-in-vertical composition, shaped as horizontal text and turned by nothing, and in a
+    // horizontal line none is upright or sideways. Each character is a grapheme cluster of its run, its range counted
+    // from `start`, its level that of its first scalar among `levels`, its scalars read as of their classes among
+    // `classes`, and owns the glyphs of the group it is the first character of, in the order the provider gave them. A
+    // shaping run's glyphs are grouped in the order it is read, from its right end at an odd level, and a
+    // composition's glyphs are one group.
     private func shaped(
         _ paragraph: [(source: Int, run: TextRun)],
         from start: Int,
         levels: [Int],
+        classes: [BidiClass],
         writingMode: WritingMode,
         place: Place,
         kind: String
@@ -312,6 +342,7 @@ struct Typesetter: Sendable {
         var offset = 0
         var glyphs: [(glyph: StyledGlyph, isReversed: Bool)] = []
         var characters: [(character: Character, range: Range<Int>, level: Int, source: Int, run: TextRun)] = []
+        var compositions: [Range<Int>] = []
         for (source, run) in paragraph {
             var runCharacters: [(character: Character, range: Range<Int>, level: Int, source: Int, run: TextRun)] = []
             for character in run.text {
@@ -319,14 +350,29 @@ struct Typesetter: Sendable {
                 runCharacters.append((character, offset..<(offset + count), levels[start + offset], source, run))
                 offset += count
             }
-            let uprights = runCharacters.map { writingMode.isVertical && isUpright($0.character) }
+            let isCombined = isCombined(run.style, in: writingMode)
+            let isOriented = writingMode.isVertical && !isCombined
+            let orientation = run.style.textOrientation
+            let uprights = runCharacters.map { isOriented && orientation.isUpright($0.character) }
+            let verticalForms = runCharacters.map { isOriented && orientation.isInVerticalForms($0.character) }
 
-            for stretch in stretches(levels: runCharacters.map(\.level), uprights: uprights) {
+            var runGlyphs: [(glyph: StyledGlyph, isReversed: Bool)] = []
+            let runLevels = runCharacters.map(\.level)
+            for stretch in stretches(levels: runLevels, uprights: uprights, verticalForms: verticalForms) {
                 let direction = TextDirection(level: runCharacters[stretch.lowerBound].level)
                 let isUpright = uprights[stretch.lowerBound]
+                let isInVerticalForms = verticalForms[stretch.lowerBound]
                 let text = String(runCharacters[stretch].map(\.character))
                 let shapingStart = runCharacters[stretch.lowerBound].range.lowerBound
-                let shapedRuns = try Result { try shape(text, direction: direction, upright: isUpright, run: run) }
+                let shapedRuns = try Result {
+                    try shape(
+                        text,
+                        direction: direction,
+                        upright: isUpright,
+                        verticalForms: isInVerticalForms,
+                        run: run
+                    )
+                }
                     .mapError { error in
                         ProviderError.failed(
                             provider: .shaping,
@@ -347,7 +393,8 @@ struct Typesetter: Sendable {
                                 placementOffset: glyph.placementOffset
                             ),
                             face: shaped.face,
-                            isSideways: writingMode.isVertical && !isUpright,
+                            isSideways: isOriented && !isUpright,
+                            horizontalScale: 1,
                             source: source,
                             style: run.style,
                             runFace: run.faces[0]
@@ -355,12 +402,23 @@ struct Typesetter: Sendable {
                     }
                 }
                 let isReversed = direction == .rtl
-                glyphs += (isReversed ? Array(laid.reversed()) : laid).map { (glyph: $0, isReversed: isReversed) }
+                runGlyphs += (isReversed ? Array(laid.reversed()) : laid).map { (glyph: $0, isReversed: isReversed) }
             }
+            if isCombined {
+                let extent = TextExtent(face: run.faces[0], size: run.style.size, writingMode: writingMode)
+                runGlyphs = composed(runGlyphs.map(\.glyph), size: run.style.size, alphabetic: extent.alphabetic)
+                    .map { (glyph: $0, isReversed: false) }
+                compositions.append(characters.count..<(characters.count + runCharacters.count))
+            }
+            glyphs += runGlyphs
             characters += runCharacters
         }
 
-        let owned = owners(ofGlyphsAt: glyphs.map(\.glyph.glyph.offset), in: characters.map(\.range))
+        let owned = owners(
+            ofGlyphsAt: glyphs.map(\.glyph.glyph.offset),
+            in: characters.map(\.range),
+            compositions: compositions
+        )
         return zip(characters, owned).map { element, indices in
             let (character, range, level, source, run) = element
             let em = run.style.size / 1000
@@ -371,11 +429,12 @@ struct Typesetter: Sendable {
                 character: character,
                 range: (range.lowerBound + start)..<(range.upperBound + start),
                 level: level,
+                bidiClasses: Array(classes[(range.lowerBound + start)..<(range.upperBound + start)]),
                 source: source,
                 style: run.style,
                 runFace: run.faces[0],
                 glyphs: given.map { glyphs[$0].glyph },
-                isSpace: character.unicodeScalars.isSpace,
+                hangs: !isCombined(run.style, in: writingMode) && character.unicodeScalars.isSpace,
                 tracking: isOwner ? run.style.tracking * em : 0,
                 widestTracking: isOwner ? run.widestTracking * em : 0,
                 cursiveScripts: cursiveScripts(of: character)
@@ -383,15 +442,18 @@ struct Typesetter: Sendable {
         }
     }
 
-    // The stretches of characters at one level, among `levels`, and one orientation, among `uprights`, as ranges of
-    // their indices.
+    // The stretches of characters at one level, among `levels`, one orientation, among `uprights`, and one kind of
+    // forms, among `verticalForms`, as ranges of their indices.
     private func stretches(
         levels: [Int],
-        uprights: [Bool]
+        uprights: [Bool],
+        verticalForms: [Bool]
     ) -> [Range<Int>] {
         levels.indices.reduce(into: [Range<Int>]()) { stretches, index in
             if let last = stretches.last,
-                levels[last.lowerBound] == levels[index], uprights[last.lowerBound] == uprights[index] {
+                levels[last.lowerBound] == levels[index],
+                uprights[last.lowerBound] == uprights[index],
+                verticalForms[last.lowerBound] == verticalForms[index] {
                 stretches[stretches.count - 1] = last.lowerBound..<(index + 1)
             } else {
                 stretches.append(index..<(index + 1))
@@ -399,15 +461,21 @@ struct Typesetter: Sendable {
         }
     }
 
-    // The glyphs each character owns, by index. Each glyph is taken with the character its scalar is in, the glyphs
-    // are cut into groups where that character changes, and neighbouring groups merge until every character of a
-    // group comes before every character of the next. A group's glyphs belong to the first character they are set
+    // The glyphs each character owns, by index. Each glyph is taken with the character its scalar is in, or with the
+    // first character of the composition among `compositions`, ranges of character indices, that character is in, the
+    // glyphs are cut into groups where that character changes, and neighbouring groups merge until every character of
+    // a group comes before every character of the next. A group's glyphs belong to the first character they are set
     // from, and every other character owns none.
     private func owners(
         ofGlyphsAt offsets: [Int],
-        in ranges: [Range<Int>]
+        in ranges: [Range<Int>],
+        compositions: [Range<Int>]
     ) -> [[Int]] {
-        let characterAt = ranges.enumerated().flatMap { index, range in Array(repeating: index, count: range.count) }
+        let characterAt = ranges.enumerated().flatMap { index, range in
+            let character = compositions.first { $0.contains(index) }?.lowerBound ?? index
+
+            return Array(repeating: character, count: range.count)
+        }
         var groups: [(glyphs: [Int], first: Int, last: Int)] = []
         var previous: Int?
         for (glyph, offset) in offsets.enumerated() {
@@ -438,18 +506,74 @@ struct Typesetter: Sendable {
         return owned
     }
 
+    // Whether a run of `style` is set as horizontal-in-vertical compositions in a line of `writingMode`.
+    private func isCombined(
+        _ style: CharacterStyle,
+        in writingMode: WritingMode
+    ) -> Bool {
+        writingMode.isVertical && style.textCombineUpright == .all
+    }
+
+    // The glyphs of a horizontal-in-vertical composition of `size`, its run's size, set in its square from `glyphs`,
+    // its text shaped as horizontal text from left to right. Its width, the sum of their advances, is narrowed by a
+    // horizontal scale of 1 em over it when it is more than 1 em. Every glyph lies at the composition's pen, and its
+    // placement offset holds its place: across the line, its narrowed advances and placement offset from the start of
+    // the narrowed text, which is centred on the baseline and reads from left to right on the page, toward line-over;
+    // along the line, its own placement offset from the composition's alphabetic baseline, which lies `alphabetic`, its
+    // run's face's, past the middle of the square. The last glyph moves the pen by 1 em, the composition's advance.
+    private func composed(
+        _ glyphs: [StyledGlyph],
+        size: Double,
+        alphabetic: Double
+    ) -> [StyledGlyph] {
+        let width = glyphs.map(\.glyph.advance).reduce(0, +)
+        let scale = width > size ? size / width : 1
+        var across = -width * scale / 2
+
+        return glyphs.enumerated().map { index, styled in
+            let glyph = styled.glyph
+            defer { across += glyph.advance * scale }
+
+            return StyledGlyph(
+                glyph: ShapedGlyph(
+                    id: glyph.id,
+                    advance: index == glyphs.count - 1 ? size : 0,
+                    offset: glyph.offset,
+                    placementOffset: Point(
+                        x: size / 2 + alphabetic + glyph.placementOffset.y,
+                        y: -(across + glyph.placementOffset.x * scale)
+                    )
+                ),
+                face: styled.face,
+                isSideways: false,
+                horizontalScale: scale,
+                source: styled.source,
+                style: styled.style,
+                runFace: styled.runFace
+            )
+        }
+    }
+
     // `text` of `run` set in `direction`, `upright` in a vertical line or as horizontal text, with the style's features
-    // over `kern`, which `kerning` sets, and over the optional ligatures, off in a run spaced apart. A later setting of
-    // a tag replaces an earlier one.
+    // over `kern`, which `kerning` sets, and over the optional ligatures, off in a run spaced apart. An upright run not
+    // set in `verticalForms` is set in its faces' horizontal forms, each character in glyphs of its own, so `vert`,
+    // `vrt2` and the optional ligatures are off over the style's features. A later setting of a tag replaces an
+    // earlier one.
     private func shape(
         _ text: String,
         direction: TextDirection,
         upright: Bool,
+        verticalForms: Bool,
         run: TextRun
     ) throws -> [ShapedRun] {
         let style = run.style
-        let ligatures = run.isSpacedApart ? ["liga", "clig", "dlig"].map { FontFeature(tag: $0, value: 0) } : []
+        let optionalLigatures = ["liga", "clig", "dlig"].map { FontFeature(tag: $0, value: 0) }
+        let ligatures = run.isSpacedApart ? optionalLigatures : []
+        let horizontalForms = upright && !verticalForms
+            ? ["vert", "vrt2"].map { FontFeature(tag: $0, value: 0) } + optionalLigatures
+            : []
         let settings = [FontFeature(tag: "kern", value: style.isKerned ? 1 : 0)] + ligatures + style.features
+            + horizontalForms
         let features = settings.reduce(into: [FontFeature]()) { features, feature in
             features.removeAll { $0.tag == feature.tag }
             features.append(feature)
@@ -469,7 +593,7 @@ struct Typesetter: Sendable {
 
     // A line's characters before the spaces that end it, which hang outside it.
     private func visibleCharacters(of characters: [StyledCharacter]) -> ArraySlice<StyledCharacter> {
-        characters.dropLast(characters.reversed().prefix(while: \.isSpace).count)
+        characters.dropLast(characters.reversed().prefix(while: \.hangs).count)
     }
 
     // The levels of a line's characters after rule L1 of UAX #9, each its first scalar's, the spaces that hang at
@@ -478,31 +602,22 @@ struct Typesetter: Sendable {
         of characters: [StyledCharacter],
         paragraphLevel: Int
     ) -> [Int] {
-        let scalars = characters.flatMap { Array($0.character.unicodeScalars) }
-        let levels = characters.flatMap { Array(repeating: $0.level, count: $0.character.unicodeScalars.count) }
+        let classes = characters.flatMap(\.bidiClasses)
+        let levels = characters.flatMap { Array(repeating: $0.level, count: $0.bidiClasses.count) }
         let lineLevels = resolver.lineLevels(
-            of: scalars,
+            of: classes,
             levels: levels,
-            lines: [scalars.indices],
+            lines: [classes.indices],
             paragraphLevel: paragraphLevel
         )
         let visibleCount = visibleCharacters(of: characters).count
         var first = 0
 
         return characters.enumerated().map { index, character in
-            defer { first += character.character.unicodeScalars.count }
+            defer { first += character.bidiClasses.count }
 
             return index < visibleCount ? lineLevels[first] : paragraphLevel
         }
-    }
-
-    // Whether a character stands upright in a vertical line: by the Vertical_Orientation of its first scalar, as
-    // UAX #50 orients a grapheme cluster, and always when it holds an enclosing mark, which a turned base would leave.
-    private func isUpright(_ character: Character) -> Bool {
-        guard let first = character.unicodeScalars.first else { return false }
-        let isEnclosed = character.unicodeScalars.contains { $0.properties.generalCategory == .enclosingMark }
-
-        return isEnclosed || VerticalOrientation(first).isUpright
     }
 
     // The cursive scripts a character is a letter of: those of its first scalar when it is a letter or a number, as CSS
@@ -553,21 +668,23 @@ struct Typesetter: Sendable {
         visibleWidth(of: characters, tracking: \.widestTracking, paragraphLevel: paragraphLevel)
     }
 
-    // Glyphs of one line of one text run in one face and one orientation that lie side by side make one glyph run, and
-    // the runs of a line share its baseline, which `origin` gives with the line's start in line coordinates. The
-    // groups of glyphs lie in the order `placedOrder` gives, each glyph at the pen with its placement offset, a sideways
-    // glyph's moved toward line-under onto its face's alphabetic baseline, both turned into the box's coordinates by
-    // `writingMode`, and the pen moves from left to right by advances and by the tracking
+    // Glyphs of one line of one text run in one face, one orientation and one horizontal scale that lie side by side
+    // make one glyph run, and the runs of a line share its baseline, which `origin` gives with the line's start in line
+    // coordinates. The groups of glyphs lie in the order `placedOrder` gives, each glyph at the pen with its placement
+    // offset, a sideways glyph's moved toward line-under onto its face's alphabetic baseline, both turned into the
+    // box's coordinates by `writingMode`, and the pen moves from left to right by advances and by the tracking
     // `PlacedLine.placedOwners` puts between neighbouring characters, so the spaces that hang lie past the line's end
     // untracked: after its right end, or before its left end at an odd paragraph level, where L2 places them first, on
-    // a line with no character too. A character with no glyph of its own is a range of count 0 after the glyphs of the
-    // character `PlacedLine.owners(hasGlyphs:)` draws it with and spans that character, and on a line with no glyph it
+    // a line with no character too. A character's glyphs are one range from the run its first glyph lies in, on into
+    // the runs after it where its glyphs are set in several faces. A character with no glyph of its own is a range of
+    // count 0 after the last glyph of the character `PlacedLine.owners(hasGlyphs:)` draws it with, in that glyph's
+    // run, and spans that character, and on a line with no glyph it
     // is a range of count 0 at glyph 0 of the line's first run, written for it with no glyphs, spanning nothing at the
     // line's start. The hanging spaces, which are no characters, are cut into groups among themselves. A character's
     // span is its glyph box along the line, from the pen where its glyphs begin, as long as their advances, and the
-    // spans of the line's characters are given in text order, in line coordinates. The line's clusters name glyphs by the index of their run
-    // among the text's, the first of this line's runs being `firstRun`, and carry their levels after rule L1 and their
-    // cursive scripts. `index` is the line's among the text's.
+    // spans of the line's characters are given in text order, in line coordinates. The line's clusters name glyphs by
+    // the index of their run among the text's, the first of this line's runs being `firstRun`, and carry their levels
+    // after rule L1 and their cursive scripts. `index` is the line's among the text's.
     private func placed(
         _ line: TextLine,
         index lineIndex: Int,
@@ -597,13 +714,14 @@ struct Typesetter: Sendable {
         let leading = TextDirection(level: paragraphLevel) == .rtl ? order.filter { $0 >= visibleCount } : []
 
         var runs: [GlyphRun] = []
-        var groups: [Int: (glyphs: GlyphRange, span: ClosedRange<Double>)] = [:]
+        var groups: [Int: (glyphs: GlyphRange, end: GlyphRange, span: ClosedRange<Double>)] = [:]
         var x = origin.x - leading.map { characters[$0].advance }.reduce(0, +)
         for (index, owner) in placedOwners {
             let character = characters[index]
             x += owner.map { characters[$0].tracking } ?? 0
 
             let start = x
+            var first: (run: Int, glyph: Int)?
             for glyph in character.glyphs {
                 let pen = writingMode.turned(Point(x: x, y: origin.y))
                 let offset = glyph.glyph.placementOffset
@@ -619,7 +737,7 @@ struct Typesetter: Sendable {
                 x += glyph.glyph.advance
 
                 if let previous = runs.last, previous.source == glyph.source, previous.face == glyph.face,
-                    previous.isSideways == glyph.isSideways {
+                    previous.isSideways == glyph.isSideways, previous.horizontalScale == glyph.horizontalScale {
                     runs[runs.count - 1] = GlyphRun(
                         source: previous.source,
                         line: lineIndex,
@@ -627,6 +745,7 @@ struct Typesetter: Sendable {
                         size: previous.size,
                         glyphs: previous.glyphs + [positioned],
                         isSideways: previous.isSideways,
+                        horizontalScale: previous.horizontalScale,
                         staticTracking: previous.staticTracking
                     )
                 } else {
@@ -637,14 +756,20 @@ struct Typesetter: Sendable {
                         size: glyph.style.size,
                         glyphs: [positioned],
                         isSideways: glyph.isSideways,
+                        horizontalScale: glyph.horizontalScale,
                         staticTracking: glyph.style.tracking * glyph.style.size / 1000
                     ))
                 }
+                first = first ?? (runs.count - 1, runs[runs.count - 1].glyphs.count - 1)
             }
 
-            let count = character.glyphs.count
-            let first = runs[runs.count - 1].glyphs.count - count
-            groups[index] = (GlyphRange(run: firstRun + runs.count - 1, first: first, count: count), start...x)
+            if let first {
+                groups[index] = (
+                    glyphs: GlyphRange(run: firstRun + first.run, first: first.glyph, count: character.glyphs.count),
+                    end: GlyphRange(run: firstRun + runs.count - 1, first: runs[runs.count - 1].glyphs.count, count: 0),
+                    span: start...x
+                )
+            }
         }
 
         if let character = characters.first, groups.isEmpty {
@@ -658,12 +783,10 @@ struct Typesetter: Sendable {
             ))
         }
         let placed = characters.enumerated().map { index, character in
-            let held = owners[index].flatMap { groups[$0] }
-                ?? (GlyphRange(run: firstRun, first: 0, count: 0), origin.x...origin.x)
+            let none = GlyphRange(run: firstRun, first: 0, count: 0)
+            let held = owners[index].flatMap { groups[$0] } ?? (none, none, origin.x...origin.x)
             let isOwner = owners[index] == index
-            let glyphs = isOwner
-                ? held.glyphs
-                : GlyphRange(run: held.glyphs.run, first: held.glyphs.first + held.glyphs.count, count: 0)
+            let glyphs = isOwner ? held.glyphs : held.end
             let cluster = PlacedCluster(
                 glyphs: glyphs,
                 range: character.range,
@@ -721,6 +844,7 @@ struct Typesetter: Sendable {
                     size: run.size,
                     glyphs: run.glyphs,
                     isSideways: run.isSideways,
+                    horizontalScale: run.horizontalScale,
                     staticTracking: run.staticTracking,
                     highlights: style.isHighlighted ? pieces.map { piece in
                         writingMode.turned(Rectangle(

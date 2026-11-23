@@ -276,6 +276,349 @@ struct CoreTextTypesetterTests {
         #expect(abs(underline.width - (starts[4] - starts[3])) < 1e-9)
     }
 
+    @Test("an upright Latin run in Hiragino Sans stands letter under letter in its horizontal forms, each on its vertical origin at the line's baseline")
+    func setsUprightLatinRun() throws {
+        // Given
+        let face = try hiraginoSans()
+        let size = 100.0
+        let font = CTFontCreateWithName(face.name as CFString, size, nil)
+        let runs = [
+            TextRun(text: "日本の", style: style(size), faces: [face]),
+            TextRun(text: "NHK", style: style(size, textOrientation: .upright), faces: [face]),
+            TextRun(text: "放送", style: style(size), faces: [face])
+        ]
+        let letters = try shaper.shape("NHK", direction: .ltr, upright: false, faces: [face], size: size, features: [], weight: .regular, italic: false)
+            .flatMap(\.glyphs)
+
+        // When
+        let layout = try sut.layout(runs, paragraph: vertical(), width: nil, place: place, kind: "title")
+
+        // Then
+        // FRAMES-5: an upright glyph is set with its vertical origin at the pen, so it stands centred on the line, and
+        // the pen moves by its vertical advance.
+        let extent = (face.ascent + face.descent) * size / 2
+        let upright = try #require(layout.runs.first { $0.source == 1 })
+        let clusters = try #require(layout.lines.first?.clusters)
+        #expect(layout.runs.map(\.isSideways) == [false, false, false])
+        #expect(upright.glyphs.map(\.id) == letters.map(\.id))
+        for (index, glyph) in upright.glyphs.enumerated() {
+            var id = CGGlyph(glyph.id)
+            var advance = CGSize.zero
+            var horizontal = CGSize.zero
+            var translation = CGSize.zero
+            var ink = CGRect.zero
+            CTFontGetAdvancesForGlyphs(font, .vertical, &id, &advance, 1)
+            CTFontGetAdvancesForGlyphs(font, .horizontal, &id, &horizontal, 1)
+            CTFontGetVerticalTranslationsForGlyphs(font, &id, &translation, 1)
+            CTFontGetBoundingRectsForGlyphs(font, .horizontal, &id, &ink, 1)
+            let cluster = clusters[3 + index]
+            #expect(glyph.x == extent, "glyph \(glyph.id)")
+            #expect(abs(glyph.y - (3 * size + clusters[3..<(3 + index)].map(\.advance).reduce(0, +))) < 1e-9)
+            #expect(abs(cluster.advance - hypot(advance.width, advance.height)) < 1e-9, "glyph \(glyph.id)")
+            #expect(abs(glyph.placementOffset.x - translation.width) < 1e-9, "glyph \(glyph.id)")
+            #expect(abs(glyph.placementOffset.y + translation.height) < 1e-9, "glyph \(glyph.id)")
+            // Core Text takes half the horizontal advance in whole font units, so the advance is centred on the line
+            // to within half a unit, and the ink as the letter's side bearings place it.
+            #expect(abs(glyph.placementOffset.x + horizontal.width / 2) < 0.001 * size, "glyph \(glyph.id)")
+            #expect(ink.height > ink.width, "glyph \(glyph.id) is \(ink.size), not standing")
+        }
+    }
+
+    @Test("an upright Latin run in Helvetica Neue, which has no vmtx, stands in its horizontal forms in the metrics made from its ascent and descent")
+    func setsUprightLatinRunWithoutVerticalMetrics() throws {
+        // Given
+        let face = try #require(shaper.installedFaces(family: "Helvetica Neue").first { $0.name == "HelveticaNeue" })
+        let size = 100.0
+        let font = CTFontCreateWithName(face.name as CFString, size, nil)
+        let style = CharacterStyle(families: ["Helvetica Neue"], weight: .regular, size: size, textOrientation: .upright)
+        let runs = [TextRun(text: "NHK12", style: style, faces: [face])]
+        let letters = try shaper.shape("NHK12", direction: .ltr, upright: false, faces: [face], size: size, features: [], weight: .regular, italic: false)
+            .flatMap(\.glyphs)
+
+        // When
+        let layout = try sut.layout(runs, paragraph: vertical(), width: nil, place: place, kind: "title")
+
+        // Then
+        // FRAMES-5: in a face without `vmtx` an upright glyph advances by its face's ascent plus its descent, and its
+        // vertical origin lies its ascent above its horizontal origin and half its horizontal advance across.
+        let glyphs = try #require(layout.runs.first?.glyphs)
+        let clusters = try #require(layout.lines.first?.clusters)
+        #expect(layout.runs.map(\.isSideways) == [false])
+        #expect(glyphs.map(\.id) == letters.map(\.id))
+        #expect(clusters.allSatisfy { abs($0.advance - (face.ascent + face.descent) * size) < 1e-9 })
+        for glyph in glyphs {
+            var id = CGGlyph(glyph.id)
+            var advance = CGSize.zero
+            var ink = CGRect.zero
+            CTFontGetAdvancesForGlyphs(font, .horizontal, &id, &advance, 1)
+            CTFontGetBoundingRectsForGlyphs(font, .horizontal, &id, &ink, 1)
+            #expect(abs(glyph.placementOffset.x + advance.width / 2) < 1e-9, "glyph \(glyph.id)")
+            #expect(abs(glyph.placementOffset.y - face.ascent * size) < 1e-9, "glyph \(glyph.id)")
+            #expect(ink.height > ink.width, "glyph \(glyph.id) is \(ink.size), not standing")
+        }
+    }
+
+    @Test("an upright run of kana, an ideographic comma and Latin in Hiragino Sans keeps the comma's vertical form and stands `fi` as two letters")
+    func setsUprightRunOfKanaCommaAndLatin() throws {
+        // Given
+        let face = try hiraginoSans()
+        let size = 100.0
+        let runs = [TextRun(text: "あ、fi", style: style(size, textOrientation: .upright), faces: [face])]
+        let horizontal = try shaper.shape("あ、fi", direction: .ltr, upright: false, faces: [face], size: size, features: [FontFeature(tag: "liga", value: 0)], weight: .regular, italic: false)
+            .flatMap(\.glyphs)
+        let verticalForms = try shaper.shape("あ、", direction: .ltr, upright: true, faces: [face], size: size, features: [], weight: .regular, italic: false)
+            .flatMap(\.glyphs)
+
+        // When
+        let layout = try sut.layout(runs, paragraph: vertical(), width: nil, place: place, kind: "title")
+
+        // Then
+        // `、` is Tu and is set in Hiragino's vertical form of it, and `f` and `i`, both R, in their own horizontal
+        // glyphs, though Hiragino ligates them in horizontal text.
+        let ids = layout.runs.flatMap { $0.glyphs.map(\.id) }
+        #expect(layout.runs.allSatisfy { !$0.isSideways })
+        #expect(verticalForms[1].id != horizontal[1].id)
+        #expect(ids == verticalForms.map(\.id) + horizontal[2...].map(\.id))
+        #expect(layout.lines.first?.clusters.count == 4)
+    }
+
+    @Test("an upright Hebrew run in a vertical right-to-left title is placed from the top down in the order it is read")
+    func readsUprightHebrewTopDown() throws {
+        // Given
+        let face = try hiraginoSans()
+        let text = "\u{5E9}\u{5DC}\u{5D5}\u{5DD}"
+        let paragraph = vertical(direction: .rtl)
+        let upright = [
+            TextRun(text: "語", style: style(100), faces: [face]),
+            TextRun(text: text, style: style(100, textOrientation: .upright), faces: [face]),
+            TextRun(text: "だ", style: style(100), faces: [face])
+        ]
+        let mixed = [TextRun(text: "語" + text + "だ", style: style(100), faces: [face])]
+
+        // When
+        let layout = try sut.layout(upright, paragraph: paragraph, width: nil, place: place, kind: "title")
+        let mixedLayout = try sut.layout(mixed, paragraph: paragraph, width: nil, place: place, kind: "title")
+
+        // Then
+        // Read as L, the Hebrew letters lie at the even level of the ideographs around them, so they are placed in
+        // the order they are read, from the top down. Under `mixed` they keep class R, lie at level 1 and are placed
+        // from the bottom up.
+        let hebrew = 1..<5
+        let clusters = try #require(layout.lines.first?.clusters)
+        let mixedClusters = try #require(mixedLayout.lines.first?.clusters)
+        let starts = clusters[hebrew].map { verticalStart(of: $0, in: layout) }
+        let mixedStarts = mixedClusters[hebrew].map { verticalStart(of: $0, in: mixedLayout) }
+        #expect(layout.direction == .rtl)
+        #expect(clusters.map(\.level) == [2, 2, 2, 2, 2, 2])
+        #expect(starts == starts.sorted() && Set(starts).count == 4)
+        #expect(layout.runs.filter { $0.source == 1 }.allSatisfy { !$0.isSideways && $0.face != face })
+        #expect(mixedClusters[hebrew].map(\.level) == [1, 1, 1, 1])
+        #expect(mixedStarts == mixedStarts.sorted(by: >))
+    }
+
+    @Test("a sideways run of ideographs in Hiragino Sans is turned onto its alphabetic baseline and advances by its horizontal advances")
+    func setsSidewaysIdeographs() throws {
+        // Given
+        let face = try hiraginoSans()
+        let size = 100.0
+        let font = CTFontCreateWithName(face.name as CFString, size, nil)
+        let runs = [
+            TextRun(text: "これは", style: style(size), faces: [face]),
+            TextRun(text: "横倒し", style: style(size, textOrientation: .sideways), faces: [face]),
+            TextRun(text: "の字", style: style(size), faces: [face])
+        ]
+
+        // When
+        let layout = try sut.layout(runs, paragraph: vertical(), width: nil, place: place, kind: "title")
+
+        // Then
+        let alphabetic = (face.ascent - face.descent) * size / 2
+        let sideways = try #require(layout.runs.first { $0.source == 1 })
+        let clusters = try #require(layout.lines.first?.clusters)
+        #expect(layout.runs.map(\.isSideways) == [false, true, false])
+        #expect(sideways.glyphs.count == 3)
+        for (index, glyph) in sideways.glyphs.enumerated() {
+            var id = CGGlyph(glyph.id)
+            var advance = CGSize.zero
+            CTFontGetAdvancesForGlyphs(font, .horizontal, &id, &advance, 1)
+            #expect(abs(glyph.placementOffset.x + alphabetic) < 1e-9, "glyph \(glyph.id)")
+            #expect(glyph.placementOffset.y == 0, "glyph \(glyph.id)")
+            #expect(abs(clusters[3 + index].advance - advance.width) < 1e-9, "glyph \(glyph.id)")
+        }
+    }
+
+    @Test("a composition `12` of half-width forms in Hiragino Sans is one glyph box of 1 em, unturned and unnarrowed, centred in its square")
+    func setsCompositionInSquare() throws {
+        // Given
+        let face = try hiraginoSans()
+        let size = 100.0
+        let halfWidth = [FontFeature(tag: "hwid", value: 1)]
+        let runs = [
+            TextRun(text: "第", style: style(size), faces: [face]),
+            TextRun(text: "12", style: style(size, textCombineUpright: .all, features: halfWidth), faces: [face]),
+            TextRun(text: "回", style: style(size), faces: [face])
+        ]
+        let shaped = try shaper.shape("12", direction: .ltr, upright: false, faces: [face], size: size, features: halfWidth, weight: .regular, italic: false)
+            .flatMap(\.glyphs)
+
+        // When
+        let layout = try sut.layout(runs, paragraph: vertical(), width: nil, place: place, kind: "title")
+
+        // Then
+        // FRAMES-5: the half-width forms fill 1 em, so they are not narrowed. Both glyphs lie at the square's pen, the
+        // text centred across the line from its left end and its alphabetic baseline half the face's ascent less its
+        // descent past the middle of the square.
+        let extent = (face.ascent + face.descent) * size / 2
+        let alphabetic = (face.ascent - face.descent) * size / 2
+        let composition = try #require(layout.runs.first { $0.source == 1 })
+        let clusters = try #require(layout.lines.first?.clusters)
+        #expect(abs(shaped.map(\.advance).reduce(0, +) - size) < 1e-9)
+        #expect(layout.runs.map(\.isSideways) == [false, false, false])
+        #expect(composition.horizontalScale == 1)
+        #expect(composition.glyphs.map(\.id) == shaped.map(\.id))
+        #expect(composition.glyphs.map(\.x) == [extent, extent])
+        #expect(composition.glyphs.map(\.y) == [size, size])
+        #expect(composition.glyphs.map(\.placementOffset.y).allSatisfy { abs($0 - (size / 2 + alphabetic)) < 1e-9 })
+        #expect(abs(composition.glyphs[0].placementOffset.x + size / 2) < 1e-9)
+        #expect(abs(composition.glyphs[1].placementOffset.x - (shaped[0].advance - size / 2)) < 1e-9)
+        #expect(clusters.map(\.glyphs.count) == [1, 2, 0, 1])
+        #expect(clusters.map(\.advance) == [size, size, 0, size])
+        #expect(clusters[2].glyphs.run == clusters[1].glyphs.run)
+        #expect(layout.lines.map(\.width) == [3 * size])
+    }
+
+    @Test("a composition `2026` in Hiragino Sans is narrowed by 1 em over its shaped width, its ink inside its square")
+    func narrowsWideComposition() throws {
+        // Given
+        let face = try hiraginoSans()
+        let size = 100.0
+        let font = CTFontCreateWithName(face.name as CFString, size, nil)
+        let runs = [
+            TextRun(text: "西暦", style: style(size), faces: [face]),
+            TextRun(text: "2026", style: style(size, textCombineUpright: .all), faces: [face]),
+            TextRun(text: "年", style: style(size), faces: [face])
+        ]
+        let shaped = try shaper.shape("2026", direction: .ltr, upright: false, faces: [face], size: size, features: [], weight: .regular, italic: false)
+            .flatMap(\.glyphs)
+
+        // When
+        let layout = try sut.layout(runs, paragraph: vertical(), width: nil, place: place, kind: "title")
+
+        // Then
+        // A glyph is drawn from its pen plus its placement offset, narrowed across the line about that origin, and
+        // its outline rises toward the top of the page, so its ink lies across from its origin by its outline's
+        // horizontal extent narrowed, and along the line above its origin by its outline's vertical extent.
+        let width = shaped.map(\.advance).reduce(0, +)
+        let scale = size / width
+        let extent = (face.ascent + face.descent) * size / 2
+        let composition = try #require(layout.runs.first { $0.source == 1 })
+        let pen = 2 * size
+        #expect(width > size)
+        #expect(composition.isSideways == false)
+        #expect(abs(composition.horizontalScale - scale) < 1e-12)
+        #expect(composition.glyphs.map(\.y) == [pen, pen, pen, pen])
+        for glyph in composition.glyphs {
+            var id = CGGlyph(glyph.id)
+            var ink = CGRect.zero
+            CTFontGetBoundingRectsForGlyphs(font, .horizontal, &id, &ink, 1)
+            let origin = Point(x: glyph.x + glyph.placementOffset.x, y: glyph.y + glyph.placementOffset.y)
+            #expect(origin.x + ink.minX * scale >= extent - size / 2, "glyph \(glyph.id)")
+            #expect(origin.x + ink.maxX * scale <= extent + size / 2, "glyph \(glyph.id)")
+            #expect(origin.y - ink.maxY >= pen, "glyph \(glyph.id)")
+            #expect(origin.y - ink.minY <= pen + size, "glyph \(glyph.id)")
+        }
+    }
+
+    @Test("a combined run `12\\n34` is a composition on each of its two lines, and two neighbouring combined runs are two")
+    func composesEachLineAndEachRun() throws {
+        // Given
+        let face = try hiraginoSans()
+        let size = 100.0
+        let combined = style(size, textCombineUpright: .all)
+        let broken = [TextRun(text: "12\n34", style: combined, faces: [face])]
+        let neighbouring = [TextRun(text: "12", style: combined, faces: [face]), TextRun(text: "34", style: combined, faces: [face])]
+
+        // When
+        let brokenLayout = try sut.layout(broken, paragraph: vertical(), width: nil, place: place, kind: "title")
+        let neighbouringLayout = try sut.layout(neighbouring, paragraph: vertical(), width: nil, place: place, kind: "title")
+
+        // Then
+        let brokenGroups = brokenLayout.lines.map { line in line.clusters.filter { $0.glyphs.count > 0 }.map(\.glyphs.count) }
+        let neighbouringLine = try #require(neighbouringLayout.lines.first)
+        let compositions = neighbouringLine.clusters.filter { $0.glyphs.count > 0 }
+        #expect(brokenGroups == [[2], [2]])
+        #expect(brokenLayout.lines.map(\.width) == [size, size])
+        #expect(brokenLayout.runs.map(\.glyphs.count) == [2, 2])
+        #expect(neighbouringLayout.lines.count == 1)
+        #expect(compositions.map(\.glyphs.count) == [2, 2])
+        #expect(compositions.map { verticalStart(of: $0, in: neighbouringLayout) } == [0, size])
+        #expect(neighbouringLine.width == 2 * size)
+    }
+
+    @Test("a composition whose second character Hiragino Sans lacks is one group across a glyph run of each face, at one pen")
+    func setsCompositionInTwoFaces() throws {
+        // Given
+        let face = try hiraginoSans()
+        let size = 100.0
+        let runs = [
+            TextRun(text: "第", style: style(size), faces: [face]),
+            TextRun(text: "1\u{E52}", style: style(size, textCombineUpright: .all), faces: [face]),
+            TextRun(text: "回", style: style(size), faces: [face])
+        ]
+
+        // When
+        let layout = try sut.layout(runs, paragraph: vertical(), width: nil, place: place, kind: "title")
+
+        // Then
+        // The Thai digit two falls back to another face, so the composition's glyphs lie in a run of each face, and
+        // the composition's group names them as one range from the first run on into the next.
+        let clusters = try #require(layout.lines.first?.clusters)
+        let composition = layout.runs.filter { $0.source == 1 }
+        #expect(composition.count == 2)
+        #expect(composition[0].face == face && composition[1].face != face)
+        #expect(composition.map(\.horizontalScale) == [composition[0].horizontalScale, composition[0].horizontalScale])
+        #expect(composition.flatMap { $0.glyphs.map(\.y) } == [size, size])
+        #expect(clusters.map(\.glyphs.count) == [1, 2, 0, 1])
+        #expect(clusters[1].glyphs.ranges(within: layout.runs.map(\.glyphs.count)).map(\.count) == [1, 1])
+        #expect(clusters.map(\.advance) == [size, size, 0, size])
+    }
+
+    @Test("text orientation and text combine upright change nothing in a horizontal line")
+    func ignoresVerticalAttributesInHorizontalLine() throws {
+        // Given
+        let face = try hiraginoSans()
+        let texts = ["日本の", "NHK", "は", "12", "月", "横"]
+        let styles = [
+            style(64),
+            style(64, textOrientation: .upright),
+            style(64),
+            style(64, textCombineUpright: .all),
+            style(64),
+            style(64, textOrientation: .sideways)
+        ]
+        let paragraph = ParagraphStyle(lineHeight: 90, background: nil, align: .left, lines: nil)
+
+        // When
+        let layout = try sut.layout(
+            zip(texts, styles).map { TextRun(text: $0, style: $1, faces: [face]) },
+            paragraph: paragraph,
+            width: nil,
+            place: place,
+            kind: "title"
+        )
+        let plain = try sut.layout(
+            texts.map { TextRun(text: $0, style: style(64), faces: [face]) },
+            paragraph: paragraph,
+            width: nil,
+            place: place,
+            kind: "title"
+        )
+
+        // Then
+        #expect(layout == plain)
+        #expect(layout.runs.allSatisfy { !$0.isSideways && $0.horizontalScale == 1 })
+    }
+
     // MARK: - Private
     // Where a cluster's glyph box starts on its line: the pen at its first glyph.
     private func start(
@@ -283,6 +626,45 @@ struct CoreTextTypesetterTests {
         in layout: TextLayout
     ) -> Double {
         layout.runs[cluster.glyphs.run].glyphs[cluster.glyphs.first].x
+    }
+
+    // Where a cluster's glyph box starts down a vertical line: the pen at its first glyph.
+    private func verticalStart(
+        of cluster: PlacedCluster,
+        in layout: TextLayout
+    ) -> Double {
+        layout.runs[cluster.glyphs.run].glyphs[cluster.glyphs.first].y
+    }
+
+    private func hiraginoSans() throws -> FontFace {
+        try #require(shaper.installedFaces(family: "Hiragino Sans").first { $0.name == "HiraginoSans-W4" })
+    }
+
+    private func style(
+        _ size: Double,
+        textOrientation: TextOrientation = .mixed,
+        textCombineUpright: TextCombineUpright = .none,
+        features: [FontFeature] = []
+    ) -> CharacterStyle {
+        CharacterStyle(
+            families: ["Hiragino Sans"],
+            weight: .regular,
+            size: size,
+            features: features,
+            textOrientation: textOrientation,
+            textCombineUpright: textCombineUpright
+        )
+    }
+
+    private func vertical(direction: TextDirection? = nil) -> ParagraphStyle {
+        ParagraphStyle(
+            lineHeight: 150,
+            background: nil,
+            writingMode: .verticalRightToLeft,
+            direction: direction,
+            align: .left,
+            lines: nil
+        )
     }
 
     // The space between where `left`'s glyph box ends and `right`'s starts.

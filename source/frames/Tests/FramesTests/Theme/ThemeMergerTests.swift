@@ -136,7 +136,7 @@ struct ThemeMergerTests {
 
         // When, Then
         let error = #expect(throws: ModelError.self) { try sut.merge([ThemeLayer(value: file, place: .root)]) }
-        #expect(error?.description == #"styles.caption (style): unknown key "family". Allowed: font, size, weight, italic, tracking, kerning, features, baselineShift, color, lineHeight, stroke, background, highlight, underline, placement, offset, writingMode, direction, align, lines"#)
+        #expect(error?.description == #"styles.caption (style): unknown key "family". Allowed: font, size, weight, italic, tracking, kerning, features, baselineShift, color, lineHeight, stroke, background, highlight, underline, textOrientation, textCombineUpright, placement, offset, writingMode, direction, align, lines"#)
     }
 
     @Test(

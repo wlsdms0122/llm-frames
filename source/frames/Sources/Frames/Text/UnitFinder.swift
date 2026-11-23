@@ -90,6 +90,7 @@ struct UnitFinder: Sendable {
                 characters: stretch,
                 hangingLines: hangingLines[index],
                 lines: lines,
+                glyphCounts: runs.map(\.glyphs.count),
                 glyphBox: box,
                 box: box,
                 parts: parts[index]

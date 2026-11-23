@@ -270,6 +270,8 @@ struct ValueTypeStructureTests {
             KeyRule("baselineShift", .number(.any)),
             KeyRule("color", .color),
             KeyRule("lineHeight", .number(.positive)),
+            KeyRule("textOrientation", .literal(["mixed", "upright", "sideways"])),
+            KeyRule("textCombineUpright", .literal(["none", "all"])),
             KeyRule("placement", .literal(VocabularyTable.placementNames)),
             KeyRule("offset", .number(.nonNegative)),
             KeyRule("writingMode", .literal(["horizontal-tb", "vertical-rl", "vertical-lr"])),

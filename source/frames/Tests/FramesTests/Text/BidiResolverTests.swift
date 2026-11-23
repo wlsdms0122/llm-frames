@@ -57,7 +57,7 @@ struct BidiResolverTests {
         let scalars = Array(text.unicodeScalars)
 
         // When
-        let paragraphLevel = sut.paragraphLevel(of: scalars)
+        let paragraphLevel = sut.paragraphLevel(of: scalars.map(BidiClass.init))
 
         // Then
         #expect(paragraphLevel == level)
@@ -82,7 +82,7 @@ struct BidiResolverTests {
         let scalars = Array(text.unicodeScalars)
 
         // When
-        let resolved = sut.levels(of: scalars, paragraphLevel: paragraphLevel)
+        let resolved = sut.levels(of: scalars, classes: scalars.map(BidiClass.init), paragraphLevel: paragraphLevel)
 
         // Then
         #expect(resolved == levels)
@@ -91,15 +91,32 @@ struct BidiResolverTests {
     @Test("the spaces that end each line take the paragraph level")
     func lineLevels() {
         // Given
-        let scalars = Array("a b ".unicodeScalars)
-        let levels = sut.levels(of: scalars, paragraphLevel: 1)
+        let classes = Array("a b ".unicodeScalars).map(BidiClass.init)
+        let levels = sut.levels(of: Array("a b ".unicodeScalars), classes: classes, paragraphLevel: 1)
 
         // When
-        let lineLevels = sut.lineLevels(of: scalars, levels: levels, lines: [0..<2, 2..<4], paragraphLevel: 1)
+        let lineLevels = sut.lineLevels(of: classes, levels: levels, lines: [0..<2, 2..<4], paragraphLevel: 1)
 
         // Then
         #expect(levels == [2, 2, 2, 1])
         #expect(lineLevels == [2, 1, 2, 1])
+    }
+
+    @Test("every rule reads a scalar as of the class it is given, an explicit formatting character and a space among them")
+    func readsGivenClasses() {
+        // Given
+        let scalars = Array("\u{05D0}\u{202E}ab ".unicodeScalars)
+        let classes = scalars.map { _ in BidiClass.leftToRight }
+
+        // When
+        let paragraphLevel = sut.paragraphLevel(of: classes)
+        let levels = sut.levels(of: scalars, classes: classes, paragraphLevel: 1)
+        let lineLevels = sut.lineLevels(of: classes, levels: levels, lines: [scalars.indices], paragraphLevel: 1)
+
+        // Then
+        #expect(paragraphLevel == 0)
+        #expect(levels == [2, 2, 2, 2, 2])
+        #expect(lineLevels == [2, 2, 2, 2, 2])
     }
 
     @Test(
@@ -152,10 +169,11 @@ struct BidiResolverTests {
     // MARK: - Private
     private func passes(_ conformanceCase: ConformanceCase) -> Bool {
         let scalars = conformanceCase.scalars
-        let paragraphLevel = conformanceCase.paragraphLevel ?? sut.paragraphLevel(of: scalars) ?? 0
-        let levels = sut.levels(of: scalars, paragraphLevel: paragraphLevel)
+        let classes = scalars.map(BidiClass.init)
+        let paragraphLevel = conformanceCase.paragraphLevel ?? sut.paragraphLevel(of: classes) ?? 0
+        let levels = sut.levels(of: scalars, classes: classes, paragraphLevel: paragraphLevel)
         let lineLevels = sut.lineLevels(
-            of: scalars,
+            of: classes,
             levels: levels,
             lines: [0..<scalars.count],
             paragraphLevel: paragraphLevel

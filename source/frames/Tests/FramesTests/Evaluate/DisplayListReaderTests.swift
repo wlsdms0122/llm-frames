@@ -854,15 +854,16 @@ struct DisplayListReaderTests {
         #expect(items.map { $0["origin"]?.objectValue?.keys } == [["place", "id", "kind"], ["place", "id", "kind"]])
     }
 
-    @Test("a vertical glyphs item reads back as written, with its writing mode, its runs turned or not and its bands")
+    @Test("a vertical glyphs item reads back as written, with its writing mode, its runs turned or not, narrowed or not, and its bands")
     func roundTripsVerticalGlyphs() throws {
         // Given
-        let run = { (isSideways: Bool) in
+        let run = { (isSideways: Bool, horizontalScale: Double) in
             DrawnGlyphRun(
                 font: PinnedFile(path: "/abs/Inter.ttf", sha256: Self.hash),
                 face: "Inter-Regular",
                 size: 40,
                 isSideways: isSideways,
+                horizontalScale: horizontalScale,
                 color: Color(written: "#FF0000"),
                 stroke: nil,
                 highlight: DrawnHighlight(
@@ -882,7 +883,7 @@ struct DisplayListReaderTests {
         let item = DisplayItem(content: .glyphs(GlyphsItem(
             size: Size(width: 40, height: 80),
             writingMode: .verticalRightToLeft,
-            runs: [run(false), run(true)],
+            runs: [run(false, 0.5), run(true, 1)],
             unit: UnitDrawing(layer: .highlights, index: 0, box: Rectangle(x: 0, y: 20, width: 40, height: 25)),
             extent: Rectangle(x: 0, y: 20, width: 40, height: 25),
             background: nil
@@ -896,6 +897,7 @@ struct DisplayListReaderTests {
         // Then
         #expect(written?["writingMode"] == .string("vertical-rl"))
         #expect(written?["runs"]?.arrayValue?.map { $0.objectValue?["sideways"] } == [.bool(false), .bool(true)])
+        #expect(written?["runs"]?.arrayValue?.map { $0.objectValue?["horizontalScale"] } == [.number(0.5), .number(1)])
         #expect(read == list)
     }
 

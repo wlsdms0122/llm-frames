@@ -17,7 +17,8 @@
 // scalar its face does not map. A right-to-left run is set as a left-to-right one, its runs and their glyphs then given
 // from right to left, and a bracket in it is set in the glyph of the bracket that mirrors it. An upright glyph is set
 // as FRAMES-5 sets one of a face without vertical metrics: its advance is its face's ascent plus its descent, and its
-// placement offset holds its face's ascent along the line and half its horizontal advance across it.
+// placement offset holds its face's ascent along the line and half its horizontal advance across it. An upright scalar
+// in `verticalForms` is set in the glyph it names, as a face's `vert` and `vrt2` give it, unless `vert` or `vrt2` is 0.
 struct ShaperTable: ShapingProvider {
     // MARK: - Property
     static let fallback = face("Fallback", .regular, file: "/System/Fallback.ttc")
@@ -35,6 +36,7 @@ struct ShaperTable: ShapingProvider {
     let placements: [Unicode.Scalar: Point]
     let prebase: Set<Unicode.Scalar>
     let ignored: Set<Unicode.Scalar>
+    let verticalForms: [Unicode.Scalar: Int]
 
     // MARK: - Initializer
     init(
@@ -45,7 +47,8 @@ struct ShaperTable: ShapingProvider {
         styles: [String: [(weight: FontWeight, style: FontStyle, width: Int)]] = [:],
         placements: [Unicode.Scalar: Point] = [:],
         prebase: Set<Unicode.Scalar> = [],
-        ignored: Set<Unicode.Scalar> = []
+        ignored: Set<Unicode.Scalar> = [],
+        verticalForms: [Unicode.Scalar: Int] = [:]
     ) {
         self.installed = installed
         self.advances = advances
@@ -55,6 +58,7 @@ struct ShaperTable: ShapingProvider {
         self.placements = placements
         self.prebase = prebase
         self.ignored = ignored
+        self.verticalForms = verticalForms
     }
 
     // MARK: - Public
@@ -123,6 +127,9 @@ struct ShaperTable: ShapingProvider {
     ) -> [ShapedRun] {
         let isLigated = !features.contains(FontFeature(tag: "liga", value: 0))
         let isKerned = !features.contains(FontFeature(tag: "kern", value: 0))
+        let isInVerticalForms = upright
+            && !features.contains(FontFeature(tag: "vert", value: 0))
+            && !features.contains(FontFeature(tag: "vrt2", value: 0))
         let scalars = Array(text.unicodeScalars)
         let scalarFaces = text.flatMap { cluster in
             Array(repeating: face(for: cluster, among: faces), count: cluster.unicodeScalars.count)
@@ -145,7 +152,9 @@ struct ShaperTable: ShapingProvider {
             let mirrored = direction == .rtl ? Self.mirrors[scalar] ?? scalar : scalar
             let placement = placements[scalar] ?? Point(x: 0, y: 0)
             let glyph = ShapedGlyph(
-                id: isLigature ? Self.ligature : Int(mirrored.value),
+                id: isLigature
+                    ? Self.ligature
+                    : (isInVerticalForms ? verticalForms[scalar] : nil) ?? Int(mirrored.value),
                 advance: (upright ? runFace.ascent + runFace.descent : advance) * size,
                 offset: offset,
                 placementOffset: Point(

@@ -179,6 +179,45 @@ struct AnalysisCommandTests {
             """)
     }
 
+    @Test("a composition one of whose characters falls back to another face resolves, writes, reads and evaluates as one square")
+    func evaluatesCompositionInTwoFaces() throws {
+        // Given
+        // Hiragino Sans has no Thai digit, so the composition's `๒` is set in a fallback face.
+        let document = try sut.write(#"""
+            { "kind": "sequence", "format": { "size": [1920, 1080], "fps": 10 },
+              "theme": { "font": ["Hiragino Sans"],
+                         "styles": { "body": { "size": 100, "writingMode": "vertical-rl", "align": "left" },
+                                     "date": { "size": 100, "textCombineUpright": "all" } } },
+              "storyline": [ { "solid": "#000000", "duration": 1 } ],
+              "clips": [ { "title": [ { "text": "第" }, { "text": "1\#u{E52}", "style": "date" }, { "text": "回" } ],
+                           "style": "body", "anchor": "top-left", "position": [0, 0], "at": [0, 1] } ] }
+            """#, named: "composition.json")
+        let resolved = sut.directory.file("resolved.json")
+        let rewritten = sut.directory.file("rewritten.json")
+
+        // When
+        let resolveCode = sut.run(["resolve", document, "-o", resolved])
+        let rewriteCode = sut.run(["resolve", resolved, "-o", rewritten])
+        let evaluateCode = sut.run(["evaluate", resolved, "--at", "0.5"])
+
+        // Then
+        let evaluation = try #require(try JSONReader().read(Data(sut.standardOutput.utf8)).objectValue)
+        let items = try #require(evaluation["items"]?.arrayValue).compactMap(\.objectValue)
+        let title = try #require(items.first { $0["kind"]?.stringValue == "title" })
+        let characters = try #require(title["characters"]?.arrayValue).compactMap(\.objectValue)
+        let rects = characters.map { $0["rect"]?.arrayValue?.compactMap(\.numberValue) ?? [] }
+        let text = try #require(try JSONReader().read(Data(contentsOf: URL(fileURLWithPath: resolved))).objectValue)
+        let clip = try #require(text["clips"]?.arrayValue?.first?.objectValue)
+        let runs = try #require(clip["title"]?.objectValue?["runs"]?.arrayValue).compactMap(\.objectValue)
+        let faces = runs.filter { $0["source"]?.numberValue == 1 }.compactMap { $0["face"]?.stringValue }
+        #expect([resolveCode, rewriteCode, evaluateCode] == [0, 0, 0])
+        #expect(try Data(contentsOf: URL(fileURLWithPath: rewritten)) == Data(contentsOf: URL(fileURLWithPath: resolved)))
+        #expect(faces.count == 2 && faces[0].hasPrefix("HiraginoSans-") && faces[1] != faces[0])
+        #expect(characters.compactMap { $0["text"]?.stringValue } == ["第", "1", "\u{E52}", "回"])
+        #expect(rects[1] == rects[2])
+        #expect(rects[1].count == 4 && rects[1][1] == 100 && rects[1][3] == 100)
+    }
+
     // MARK: - Private
     private var sequence: String {
         #"""
