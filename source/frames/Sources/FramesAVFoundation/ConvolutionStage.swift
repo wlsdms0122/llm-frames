@@ -15,7 +15,6 @@ import Accelerate
 final class ConvolutionStage {
     // MARK: - Property
     private let stage: ImpulseResponseStage
-    private let transform: RealFourierTransform
     private let delay: Int
 
     // Per channel 2B samples: the last complete block, then the block being filled.
@@ -33,15 +32,11 @@ final class ConvolutionStage {
     private var position = 0
 
     // MARK: - Initializer
-    init(
-        stage: ImpulseResponseStage,
-        path: String
-    ) throws {
+    init(stage: ImpulseResponseStage) {
         let blockSize = stage.blockSize
         let delay = stage.offset / blockSize
 
         self.stage = stage
-        self.transform = try RealFourierTransform(size: 2 * blockSize, path: path)
         self.delay = delay
         self.window = .zeroed(2 * 2 * blockSize)
         self.spectraReal = .zeroed(2 * stage.partitionCount * blockSize)
@@ -93,7 +88,7 @@ final class ConvolutionStage {
         let spectraReal = self.spectraReal.baseAddress! + channel * partitionCount * blockSize
         let spectraImaginary = self.spectraImaginary.baseAddress! + channel * partitionCount * blockSize
         let newest = (block % partitionCount) * blockSize
-        transform.forward(window, real: spectraReal + newest, imaginary: spectraImaginary + newest)
+        stage.transform.forward(window, real: spectraReal + newest, imaginary: spectraImaginary + newest)
 
         let sumReal = self.sumReal.baseAddress!
         let sumImaginary = self.sumImaginary.baseAddress!
@@ -117,7 +112,7 @@ final class ConvolutionStage {
         }
 
         let product = self.product.baseAddress!
-        transform.inverse(real: sumReal, imaginary: sumImaginary, into: product)
+        stage.transform.inverse(real: sumReal, imaginary: sumImaginary, into: product)
         let played = delayed.baseAddress! + channel * delay * blockSize + (block % delay) * blockSize
         played.update(from: product + blockSize, count: blockSize)
         window.update(from: window + blockSize, count: blockSize)

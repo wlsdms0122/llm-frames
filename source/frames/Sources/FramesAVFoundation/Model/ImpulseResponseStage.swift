@@ -14,12 +14,14 @@ struct ImpulseResponseStage: Sendable {
     let blockSize: Int
     let offset: Int
     let partitionCount: Int
+    // The transform of 2 × `blockSize` samples the partitions are kept by, which a convolution runs the stage with.
+    let transform: RealFourierTransform
     // Per channel, the spectrum of partition p in [p × blockSize, (p + 1) × blockSize).
     let real: [[Double]]
     let imaginary: [[Double]]
 
     // MARK: - Initializer
-    // `transform` is of 2 × `blockSize` samples, and the stage ends at tap `end` or at the end of `taps`.
+    // The stage ends at tap `end` or at the end of `taps`.
     init(
         blockSize: Int,
         offset: Int,
@@ -58,6 +60,7 @@ struct ImpulseResponseStage: Sendable {
         self.blockSize = blockSize
         self.offset = offset
         self.partitionCount = partitionCount
+        self.transform = transform
         self.real = real
         self.imaginary = imaginary
     }

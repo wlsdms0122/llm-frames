@@ -43,13 +43,13 @@ final class ConvolutionProcessor {
         convolution: MixConvolution,
         impulseResponse: ImpulseResponse,
         sampleRate: Double
-    ) throws {
+    ) {
         let headLength = impulseResponse.head[0].count
 
         self.sampleRate = sampleRate
         self.head = impulseResponse.head
         self.headLength = headLength
-        self.stages = try impulseResponse.stages.map { try ConvolutionStage(stage: $0, path: convolution.file.path) }
+        self.stages = impulseResponse.stages.map(ConvolutionStage.init)
         self.constantScale = if case let .constant(gain) = convolution.gain { pow(10, gain / 20) } else { nil }
         self.gain = EnvelopeCursor(value: convolution.gain)
         self.history = .zeroed(2 * (headLength - 1 + Self.chunkSize))

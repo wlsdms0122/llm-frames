@@ -49,7 +49,7 @@ enum FilterStage {
                     of: convolution.file,
                     place: "\(place)ops[\(index)]"
                 )
-                stages.append(.convolution(try ConvolutionProcessor(
+                stages.append(.convolution(ConvolutionProcessor(
                     convolution: convolution,
                     impulseResponse: impulseResponse,
                     sampleRate: sampleRate

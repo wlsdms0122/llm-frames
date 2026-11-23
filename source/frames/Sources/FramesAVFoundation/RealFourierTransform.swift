@@ -10,8 +10,9 @@ import Accelerate
 // The discrete Fourier transform of `size` real samples, `size` a power of 2, by vDSP's radix 2 FFT in double precision.
 // A spectrum is packed in `size` / 2 complex values: bin k in place k for k from 1, and bin 0 and bin `size` / 2, both
 // real, as the real and imaginary parts of place 0. The forward transform gives 2 × the DFT, and the inverse of the
-// forward transform gives 2 × `size` × the samples.
-final class RealFourierTransform {
+// forward transform gives 2 × `size` × the samples. Nothing in it, its setup included, is written after it is made,
+// so threads share it.
+final class RealFourierTransform: @unchecked Sendable {
     // MARK: - Property
     let size: Int
 
