@@ -286,8 +286,7 @@ struct FilterChain: Sendable {
     }
 
     // The image displaced by `map` laid over `frame`, `amount` and `offset` in the image's pixels, `offset` with y
-    // pointing down. The kernel reads every pixel of the image and of the map, as a map whose values lie outside 0 to 1
-    // moves further than `amount`.
+    // pointing down. A pixel reads the image at most `amount` from its centre on each axis and the map anywhere.
     private func displaced(
         _ image: CIImage,
         by map: CGImage,
@@ -312,7 +311,9 @@ struct FilterChain: Sendable {
         ]
         guard let result = kernel.apply(
             extent: extent,
-            roiCallback: { index, _ in index == 0 ? extent : mapExtent },
+            roiCallback: { index, rect in
+                index == 0 ? rect.insetBy(dx: -(amount + 1), dy: -(amount + 1)).intersection(extent) : mapExtent
+            },
             arguments: arguments
         )
         else {
