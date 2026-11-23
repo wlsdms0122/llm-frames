@@ -23,6 +23,9 @@ struct AVFoundationEncoderTests {
     private static let halfRed: [UInt16] = [32_768, 0, 0, 32_768]
     private static let clear: [UInt16] = [0, 0, 0, 0]
     private static let grey: [UInt16] = [32_768, 32_768, 32_768, 65_535]
+    private static let fivePointOne = ChannelLayout(
+        labels: [.left, .right, .center, .lowFrequencyEffects, .leftSurround, .rightSurround]
+    )
 
     private let width = 64
     private let height = 48
@@ -249,7 +252,7 @@ struct AVFoundationEncoderTests {
             try targets.forEach(sut.check)
             try images.forEach(sut.check)
             try sut.check(
-                SoundTarget(path: "i.m4a", quality: .medium, layout: ChannelLayout(channels: 6), sampleRate: 48_000)
+                SoundTarget(path: "i.m4a", quality: .medium, layout: Self.fivePointOne, sampleRate: 48_000)
             )
         }
 
@@ -267,6 +270,25 @@ struct AVFoundationEncoderTests {
         #expect(throws: EncoderError.undownmixable(file: "i.m4a")) {
             try sut.check(SoundTarget(path: "i.m4a", quality: .medium, layout: layout, sampleRate: 48_000))
         }
+    }
+
+    @Test("the check of a sound target refuses one of more than two channels whose file names no layout")
+    func refusesUnknownLayout() {
+        // Given
+        let sut = AVFoundationEncoder()
+        let layout = ChannelLayout(channels: 8)
+
+        // When
+        let error = #expect(throws: EncoderError.self) {
+            try sut.check(SoundTarget(path: "i.m4a", quality: .medium, layout: layout, sampleRate: 48_000))
+        }
+
+        // Then
+        #expect(error == .noChannelLayout(file: "i.m4a", channels: 8))
+        #expect(
+            error?.description == "encoder avfoundation cannot write i.m4a: its sound has 8 channels and its file names "
+                + "no channel layout, so it is not downmixed to stereo"
+        )
     }
 
     @Test("the check of a sound target refuses a sample rate AAC is not written at")
@@ -424,14 +446,14 @@ struct AVFoundationEncoderTests {
     @Test(
         "a sound file is AAC with up to 2 channels and 48 kHz at the quality's bit rate per channel",
         arguments: [
-            (1, 48_000.0, EncodeQuality.high, 1, 48_000.0),
-            (2, 44_100.0, EncodeQuality.medium, 2, 44_100.0),
-            (6, 48_000.0, EncodeQuality.low, 2, 48_000.0),
-            (2, 96_000.0, EncodeQuality.medium, 2, 48_000.0)
+            (ChannelLayout(channels: 1), 48_000.0, EncodeQuality.high, 1, 48_000.0),
+            (ChannelLayout(channels: 2), 44_100.0, EncodeQuality.medium, 2, 44_100.0),
+            (fivePointOne, 48_000.0, EncodeQuality.low, 2, 48_000.0),
+            (ChannelLayout(channels: 2), 96_000.0, EncodeQuality.medium, 2, 48_000.0)
         ]
     )
     func writesSound(
-        channels: Int,
+        layout: ChannelLayout,
         sampleRate: Double,
         quality: EncodeQuality,
         writtenChannels: Int,
@@ -444,13 +466,8 @@ struct AVFoundationEncoderTests {
 
         // When
         try sut.writeSound(
-            tone(seconds: 1, sampleRate: sampleRate, channels: channels),
-            for: SoundTarget(
-                path: path,
-                quality: quality,
-                layout: ChannelLayout(channels: channels),
-                sampleRate: sampleRate
-            )
+            tone(seconds: 1, sampleRate: sampleRate, layout: layout),
+            for: SoundTarget(path: path, quality: quality, layout: layout, sampleRate: sampleRate)
         )
 
         // Then
@@ -576,8 +593,9 @@ struct AVFoundationEncoderTests {
     private func tone(
         seconds: Double,
         sampleRate: Double = 48_000,
-        channels: Int = 2
+        layout: ChannelLayout = ChannelLayout(channels: 2)
     ) -> SoundBuffer {
+        let channels = layout.labels.count
         let count = Int(seconds * sampleRate)
         let samples = (0..<count).flatMap { index in
             let level = Float(sin(2 * Double.pi * 440 * Double(index) / sampleRate) * 0.5)
@@ -585,7 +603,7 @@ struct AVFoundationEncoderTests {
             return [Float](repeating: level, count: channels)
         }
 
-        return SoundBuffer(sampleRate: sampleRate, channels: channels, samples: samples)
+        return SoundBuffer(sampleRate: sampleRate, channels: channels, samples: samples, layout: layout)
     }
 
     // An opaque 8-bit picture of pseudo random colours, the same for the same seed, which compresses poorly.

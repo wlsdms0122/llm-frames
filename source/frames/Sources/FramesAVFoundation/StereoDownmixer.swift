@@ -18,7 +18,7 @@ struct StereoDownmixer {
     private let gains: [StereoGain]
 
     // MARK: - Initializer
-    // Nil for a layout with a channel BS.775 names no speaker for.
+    // Nil for a layout with a channel BS.775 names no speaker for, or an unknown one.
     init?(layout: ChannelLayout) {
         guard !layout.isMono else {
             gains = [StereoGain(left: 1, right: 1)]
@@ -87,7 +87,7 @@ struct StereoDownmixer {
         case .centerSurround:
             StereoGain(left: 0.5, right: 0.5)
 
-        case .discrete:
+        case .discrete, .unknown:
             nil
         }
     }

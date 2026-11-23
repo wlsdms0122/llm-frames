@@ -398,6 +398,32 @@ struct AVFoundationMixerTests {
         #expect(error?.description == "mix plan segments[1]: media \(video) has no sound track")
     }
 
+    @Test("checking a plan refuses a sound of eight channels whose file names no layout, and passes one that names 7.1")
+    func refusesSoundWithoutLayout() throws {
+        // Given
+        let directory = try TemporaryDirectory()
+        let poly = directory.file("poly.wav")
+        let surround = directory.file("surround.wav")
+        let channels = noises(count: 4800, seeds: [1, 2, 3, 4, 5, 6, 7, 8], level: 0.1)
+        try WaveFileWriter(channels: channels).write(to: poly)
+        try WaveFileWriter(channels: channels, channelMask: 0x63F).write(to: surround)
+        let sut = AVFoundationMixer(decoder: AVFoundationDecoder())
+
+        // When
+        let error = #expect(throws: MixerError.self) {
+            try sut.check(MixPlan(length: 4800, segments: [segment(of: poly, from: 0, to: 0.1)]))
+        }
+
+        // Then
+        #expect(
+            error?.description == "mix plan segments[0]: media \(poly) has 8 channels and its file names no channel "
+                + "layout, so it is not downmixed to stereo"
+        )
+        #expect(throws: Never.self) {
+            try sut.check(MixPlan(length: 4800, segments: [segment(of: surround, from: 0, to: 0.1)]))
+        }
+    }
+
     @Test("checking a plan refuses a speed the time stretch does not reach, and passes one it does")
     func refusesUnstretchableSpeed() async throws {
         // Given

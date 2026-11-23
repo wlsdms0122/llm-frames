@@ -45,7 +45,7 @@ final class ImpulseResponseCache: Sendable {
             throw MixerError.unreadable(place: place, reason: "\(error)")
         }
         guard let downmixer = StereoDownmixer(layout: sound.layout) else {
-            throw MixerError.unmixableChannels(place: place, file: file.path)
+            throw MixerError(undownmixable: sound.layout, place: place, file: file.path)
         }
         guard sound.frameCount > 0 else { throw MixerError.emptyImpulseResponse(place: place, file: file.path) }
         let buffer = try Resampler().resampled(

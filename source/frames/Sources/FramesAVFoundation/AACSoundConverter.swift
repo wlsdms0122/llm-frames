@@ -18,13 +18,13 @@ struct AACSoundConverter: Sendable {
 
     // MARK: - Initializer
     // MARK: - Public
-    // Refuses sound of `layout` that has more channels than AAC stores here and a channel BS.775 names no speaker for.
+    // Refuses sound of `layout` that has more channels than AAC stores here and is not downmixed to stereo.
     func check(
         _ layout: ChannelLayout,
         path: String
     ) throws {
         guard layout.labels.count <= Self.maximumChannels || StereoDownmixer(layout: layout) != nil else {
-            throw EncoderError.undownmixable(file: path)
+            throw EncoderError(undownmixable: layout, file: path)
         }
     }
 
@@ -67,7 +67,7 @@ struct AACSoundConverter: Sendable {
     ) throws -> AVAudioPCMBuffer {
         if sound.channels > Self.maximumChannels {
             guard let downmixer = StereoDownmixer(layout: sound.layout) else {
-                throw EncoderError.undownmixable(file: path)
+                throw EncoderError(undownmixable: sound.layout, file: path)
             }
 
             return try downmixer.stereo(from: sound, path: path)

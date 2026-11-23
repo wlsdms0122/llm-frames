@@ -13,6 +13,7 @@ package enum EncoderError: Error, Equatable, CustomStringConvertible, Sendable {
     case highDynamicRange(file: String, codec: String, colorSpace: ColorSpace)
     case frameSize(file: String, index: Int, size: Size, video: Size)
     case undownmixable(file: String)
+    case noChannelLayout(file: String, channels: Int)
 
     // MARK: - Property
     package var description: String {
@@ -32,10 +33,24 @@ package enum EncoderError: Error, Equatable, CustomStringConvertible, Sendable {
         case let .undownmixable(file):
             "encoder avfoundation cannot write \(file): its sound has a channel ITU-R BS.775 names no speaker for, so "
                 + "it is not downmixed to stereo"
+
+        case let .noChannelLayout(file, channels):
+            "encoder avfoundation cannot write \(file): its sound has \(channels) channels and its file names no channel "
+                + "layout, so it is not downmixed to stereo"
         }
     }
 
     // MARK: - Initializer
+    // The refusal of sound of `layout` that is not downmixed to stereo.
+    init(
+        undownmixable layout: ChannelLayout,
+        file: String
+    ) {
+        self = layout.labels.contains(.unknown)
+            ? .noChannelLayout(file: file, channels: layout.labels.count)
+            : .undownmixable(file: file)
+    }
+
     // MARK: - Public
     // MARK: - Private
     private func written(_ size: Size) -> String {
