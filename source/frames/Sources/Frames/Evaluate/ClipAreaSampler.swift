@@ -70,13 +70,6 @@ struct ClipAreaSampler: Sendable {
         keyframes.mapValues { point(of: $0, at: time) }
     }
 
-    func points(
-        of keyframes: FollowedValue<[GeometryPoint]>,
-        at time: SampleTime
-    ) -> FollowedValue<[Point]> {
-        keyframes.mapValues { points in points.map { point(of: $0, at: time) } }
-    }
-
     func quads(
         of keyframes: FollowedValue<GeometryQuad>,
         at time: SampleTime
@@ -158,7 +151,8 @@ struct ClipAreaSampler: Sendable {
         return Rectangle(x: 0, y: 0, width: extent.width, height: extent.height)
     }
 
-    // A shape placed by its geometry's area or the box bounding its points, nil for one placed by its box.
+    // A shape placed by its geometry's area or the box of its path's curve (FRAMES-11 Shapes), nil for one placed by its
+    // box.
     private func geometryBox(
         of shape: ResolvedShape,
         writtenBy named: ResolvedClip,
@@ -172,8 +166,15 @@ struct ClipAreaSampler: Sendable {
         case let .area(area, _, _):
             return sampler.rectangles(of: area, at: time).value(at: time)
 
-        case let .points(points, _, _):
-            return Rectangle(bounding: sampler.points(of: points, at: time).value(at: time))
+        case let .points(vertices, isClosed, _):
+            return vertices
+                .map { vertex in
+                    vertex.map(
+                        vertex: { sampler.points(of: $0, at: time).value(at: time) },
+                        tangent: { $0.value(at: time) }
+                    )
+                }
+                .bounds(isClosed: isClosed)
         }
     }
 

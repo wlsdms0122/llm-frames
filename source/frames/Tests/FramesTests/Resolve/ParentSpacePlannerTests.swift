@@ -299,14 +299,41 @@ struct ParentSpacePlannerTests {
         let plan = try sut.plan(Fixture.planner.plan(document: document))
 
         // Then
-        guard case let .value(underCard) = plan.clips[1].points, case let .value(onScreen) = plan.clips[2].points else {
-            Issue.record("the points were not found as static values")
-            return
-        }
+        let underCard = (plan.clips[1].points ?? []).compactMap(\.vertex.values.first)
+        let onScreen = (plan.clips[2].points ?? []).compactMap(\.vertex.values.first)
+        try #require(underCard.count == 2 && onScreen.count == 2)
         let card = AffineTransform(scale: 1.5, rotation: 30, about: Point(x: 400, y: 400), offset: Point(x: 0, y: 0))
         let expected = try #require(card.inverse).apply(to: onScreen[0].fixed)
         #expect(isClose(underCard[0].fixed, expected), "the point is \(underCard[0]), carried back \(expected)")
         #expect(underCard[1] == .point(Point(x: 0, y: 0)))
+    }
+
+    @Test("a path vertex's point of text under a turned and scaled shape is carried back into its space, and its tangents, numbers in that space, are kept")
+    func bringsVertexBackThroughRotation() throws {
+        // Given
+        let sut = planner(growth: 0)
+        let vertex = #"{ "vertex": \#(Self.beside), "inTangent": [10, 0], "outTangent": [0, -20] }"#
+        let document = try Fixture.json(#"""
+            { "kind": "sequence", "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "connected": [
+                { "id": "card", "shape": "rect", "fill": "accent", "parent": "screen", "at": [0, 4], "area": [200, 300, 400, 200],
+                  "scale": 1.5, "rotation": 30 },
+                { "shape": "path", "stroke": { "width": 8 }, "parent": "card", "at": [2, 4], "points": [\#(vertex), [0, 0]] },
+                { "shape": "path", "stroke": { "width": 8 }, "parent": "screen", "at": [2, 4], "points": [\#(vertex), [0, 0]] } ] } ] }
+            """#)
+
+        // When
+        let plan = try sut.plan(Fixture.planner.plan(document: document))
+
+        // Then
+        let underCard = try #require(plan.clips[1].points?.first)
+        let onScreen = try #require(plan.clips[2].points?.first)
+        let card = AffineTransform(scale: 1.5, rotation: 30, about: Point(x: 400, y: 400), offset: Point(x: 0, y: 0))
+        let screenPoint = try #require(onScreen.vertex.values.first)
+        let expected = try #require(card.inverse).apply(to: screenPoint.fixed)
+        let point = try #require(underCard.vertex.values.first).fixed
+        #expect(isClose(point, expected), "the point is \(point), carried back \(expected)")
+        #expect(underCard.inTangent.values == [Point(x: 10, y: 0)])
+        #expect(underCard.outTangent.values == [Point(x: 0, y: -20)])
     }
 
     @Test("a chain of 64 shapes, each finding its area by text under the one before, resolves and evaluates in place")

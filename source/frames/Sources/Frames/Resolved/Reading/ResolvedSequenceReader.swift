@@ -463,9 +463,7 @@ struct ResolvedSequenceReader: Sendable {
         let kind = try clip.member("shape").name(among: ShapeKind.allCases.map(\.rawValue), ShapeKind.init)
         let geometry: ShapeGeometry = if kind == .path {
             .points(
-                try values.followedKeyframes(clip.member("points")) { points in
-                    try points.elements().map { try values.geometryPoint($0) }
-                },
+                try clip.member("points").elements().map { try values.vertex($0) },
                 isClosed: try clip.member("closed").bool(),
                 placement: try placement(of: clip)
             )

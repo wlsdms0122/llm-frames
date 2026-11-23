@@ -91,7 +91,8 @@ struct ResolvedDocumentReaderTests {
         """#,
         // Each shape kind and form: a rect by its area with a style, outset and a shadow object, a rect by its width
         // and height keyframed, an ellipse by its box at a position, an ellipse by its area with a named anchor, an
-        // open path with keyframed points and trim, and a closed path, scaled and turned.
+        // open path with keyframed points and trim, a closed path, scaled and turned, and a curved path whose tangents
+        // keyframe apart from its points.
         ##"""
         { "kind": "sequence",
           "theme": { "shapes": { "outline": { "stroke": { "width": 8, "color": "#ED2929" }, "radius": 18 } } },
@@ -108,7 +109,10 @@ struct ResolvedDocumentReaderTests {
               "keyframes": [ { "at": 0, "points": [[0, 0], [100, 50], [200, 0]], "trim": [0, 0] },
                              { "at": 1, "points": [[0, 100], [100, 150], [200, 100]], "trim": [0.2, 1], "rotation": 45 } ] },
             { "shape": "path", "points": [[300, 300], [400, 300], [350, 380]], "closed": true, "fill": "accent", "stroke": false,
-              "shadow": true, "at": [0, 4] } ] }
+              "shadow": true, "at": [0, 4] },
+            { "shape": "path", "stroke": { "width": 4 }, "anchor": "bottom", "position": [500, 500], "at": [0, 4],
+              "points": [{ "vertex": [0, 0], "outTangent": [0, 40] }, [100, 0]],
+              "keyframes": [ { "at": 0, "points": [{}, { "inTangent": [0, 40] }] }, { "at": 2, "points": [{}, { "inTangent": [0, 80] }] } ] } ] }
         """##,
         // Masks of each geometry form on a storyline clip, an adjustment, a shape and a title: an area found by text, a
         // box, an area and a path, inverted, feathered, in each mode, static and keyframed.

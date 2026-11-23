@@ -544,6 +544,35 @@ struct ResolvedSequenceWriterTests {
         #expect(clips[3]["anchor"] == .array([.number(300), .number(200)]))
     }
 
+    @Test("a path shape writes each vertex as its point and tangents, each a keyframe list, a tangent [0, 0] where none is written")
+    func writesPathVertices() throws {
+        // Given
+        let document = ##"""
+            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4" } ], "clips": [
+                { "shape": "path", "points": [[500, 500], { "vertex": [600, 500], "inTangent": [-20, 10] }], "stroke": { "width": 10 }, "at": [0, 1] } ] }
+            """##
+        let held = { (point: [Double]) in
+            JSONValue.array([.object(JSONObject(members: [
+                JSONMember(key: "at", value: .number(0)),
+                JSONMember(key: "value", value: .array(point.map(JSONValue.number))),
+                JSONMember(key: "ease", value: .string("linear"))
+            ]))])
+        }
+        let vertex = { (point: [Double], inTangent: [Double]) in
+            JSONValue.object(JSONObject(members: [
+                JSONMember(key: "vertex", value: held(point)),
+                JSONMember(key: "inTangent", value: held(inTangent)),
+                JSONMember(key: "outTangent", value: held([0, 0]))
+            ]))
+        }
+
+        // When
+        let clips = try #require(try write(document)["clips"]?.arrayValue?.compactMap(\.objectValue))
+
+        // Then
+        #expect(clips[0]["points"] == .array([vertex([500, 500], [0, 0]), vertex([600, 500], [-20, 10])]))
+    }
+
     @Test("masks are written after the crop as a list of {geometry, feather, invert, mode}, each number a keyframe list, a box keeping its width, height and position, and null for none")
     func writesMasks() throws {
         // Given

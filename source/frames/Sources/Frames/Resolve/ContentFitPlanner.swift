@@ -252,7 +252,7 @@ struct ContentFitPlanner: Sendable {
 
     // A mask moves with the content only where it is in the clip's parent's space: an adjustment's, or a shape's placed
     // by its geometry. A title's or a box shape's is in its box and a media clip's in its media. A clip area moves with
-    // the clip it names.
+    // the clip it names. A path's tangents are offsets, which a move leaves as they are.
     private func moved(
         _ geometry: ClipGeometry,
         in space: OwnSpace,
@@ -269,7 +269,9 @@ struct ContentFitPlanner: Sendable {
                     )
                 }
             },
-            points: geometry.points?.map { points in points.map { $0.map { moved($0, by: offset) } } },
+            points: geometry.points?.map { vertex in
+                vertex.map(vertex: { $0.mapValues { $0.map { moved($0, by: offset) } } }, tangent: { $0 })
+            },
             position: geometry.position?.map { $0.map { moved($0, by: offset) } },
             box: geometry.box.map { box in
                 ClipBox(size: box.size, position: box.position.map { $0.map { moved($0, by: offset) } }, anchor: box.anchor)

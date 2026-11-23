@@ -22,7 +22,7 @@ struct ParentSpacePlanner: Sendable {
     private let written: [Clip]
     private let shapes: [ShapeAppearance?]
     private let areas: [PropertyValue<AreaValue>?]
-    private let points: [PropertyValue<[GeometryPoint]>?]
+    private let points: [[PathVertex<PropertyValue<GeometryPoint>, PropertyValue<Point>>]?]
     private let positions: [PropertyValue<GeometryPoint>?]
     private let cornerPins: [PropertyValue<[GeometryPoint]>?]
     private let masks: [[FoundMask]?]
@@ -38,7 +38,7 @@ struct ParentSpacePlanner: Sendable {
         written: [Clip],
         shapes: [ShapeAppearance?],
         areas: [PropertyValue<AreaValue>?],
-        points: [PropertyValue<[GeometryPoint]>?],
+        points: [[PathVertex<PropertyValue<GeometryPoint>, PropertyValue<Point>>]?],
         positions: [PropertyValue<GeometryPoint>?],
         cornerPins: [PropertyValue<[GeometryPoint]>?],
         masks: [[FoundMask]?]
@@ -78,10 +78,35 @@ struct ParentSpacePlanner: Sendable {
         }
     }
 
-    func points(of index: Int) throws -> PropertyValue<[GeometryPoint]>? {
-        guard case let .shape(shape) = written[index].content else { return points[index] }
+    // A path's vertices as its entry holds them: each vertex's point found by text brought back at its own time as a
+    // position is, and its tangents, written as numbers, as they are. A tracked path's leaf written without keyframes
+    // is true on the track's frame, but a point a text form found, which is searched at the clip's instant.
+    func points(of index: Int) throws -> [PathVertex<FollowedValue<GeometryPoint>, FollowedValue<Point>>]? {
+        let plan = tracked.time.clips[index]
+        guard case let .shape(shape) = written[index].content, let found = points[index], let forms = shape.points else {
+            return nil
+        }
 
-        return try points(points[index], written: shape.points, of: index, key: "points")
+        let isOnTrackFrame = plan.onTrackFrame(of: written[index]).contains(.points)
+        return try zip(found, forms.vertices).map { found, forms in
+            let isPointOnTrackFrame = switch forms.vertex {
+            case let .value(form):
+                isOnTrackFrame && written[index].track?.isOnTrackFrame(.points, isFoundByText: form.isFoundByText) == true
+
+            case .keyframes:
+                false
+            }
+            let tangent = { (tangent: PropertyValue<Point>) in
+                tangent.followed(at: plan.instant, isOnTrackFrame: isOnTrackFrame) { $0 }
+            }
+
+            return PathVertex(
+                vertex: try broughtBack(found.vertex, written: forms.vertex, of: index, key: "points")
+                    .followed(at: plan.instant, isOnTrackFrame: isPointOnTrackFrame) { $0 },
+                inTangent: tangent(found.inTangent),
+                outTangent: tangent(found.outTangent)
+            )
+        }
     }
 
     func cornerPin(of index: Int) throws -> PropertyValue<[GeometryPoint]>? {
@@ -89,17 +114,9 @@ struct ParentSpacePlanner: Sendable {
     }
 
     func position(of index: Int) throws -> PropertyValue<GeometryPoint>? {
-        let plan = tracked.time.clips[index]
-        guard let found = positions[index], let written = written[index].position, let parent = plan.parent else {
-            return positions[index]
-        }
+        guard let found = positions[index], let written = written[index].position else { return positions[index] }
 
-        return try values(found, written: written, instant: plan.instant) { point, form, time in
-            guard form.isFoundByText else { return point }
-
-            let inverses = try inverseLinks(under: parent, at: time, of: index, key: "position")
-            return point.map { bringBack($0, through: inverses) }
-        }
+        return try broughtBack(found, written: written, of: index, key: "position")
     }
 
     // The masks of a shape placed by its geometry or of an adjustment are in its parent's space, and each keyframe of
@@ -145,6 +162,24 @@ struct ParentSpacePlanner: Sendable {
             tangent: { tangent, _ in tangent },
             scale: { _ in 1 }
         )
+    }
+
+    // A point brought back where a text form found it.
+    private func broughtBack(
+        _ found: PropertyValue<GeometryPoint>,
+        written: PropertyValue<PositionForm>,
+        of index: Int,
+        key: String
+    ) throws -> PropertyValue<GeometryPoint> {
+        let plan = tracked.time.clips[index]
+        guard let parent = plan.parent else { return found }
+
+        return try values(found, written: written, instant: plan.instant) { point, form, time in
+            guard form.isFoundByText else { return point }
+
+            let inverses = try inverseLinks(under: parent, at: time, of: index, key: key)
+            return point.map { bringBack($0, through: inverses) }
+        }
     }
 
     // A list of points brought back point by point, those found by text.
@@ -242,8 +277,7 @@ struct ParentSpacePlanner: Sendable {
                 plan: shape.geometry,
                 area: try area(of: index)?
                     .followed(at: plan.instant, isOnTrackFrame: onTrackFrame.contains(.area)) { $0.geometry },
-                points: try points(of: index)?
-                    .followed(at: plan.instant, isOnTrackFrame: onTrackFrame.contains(.points)) { $0 },
+                points: try points(of: index),
                 position: try position(of: index)?
                     .followed(at: plan.instant, isOnTrackFrame: onTrackFrame.contains(.position)) { $0 },
                 instant: plan.instant,

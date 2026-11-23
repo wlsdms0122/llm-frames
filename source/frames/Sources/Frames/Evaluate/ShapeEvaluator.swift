@@ -157,10 +157,12 @@ struct ShapeEvaluator: Sendable {
             }
 
         case let .points(keyframes, isClosed, pointsPlacement):
-            let points = space.points(of: keyframes, track: clip.parentTrack, at: time)
-            bounds = Rectangle(bounding: points)
+            // The box is the curve's, as resolve lays it out. The display list's `polyline` joins the points straight,
+            // so the tangents reach no further than the box.
+            let vertices = space.vertices(of: keyframes, track: clip.parentTrack, at: time)
+            bounds = vertices.bounds(isClosed: isClosed)
             placement = pointsPlacement
-            geometry = { _ in .polyline(points, isClosed: isClosed) }
+            geometry = { _ in .polyline(vertices.map(\.vertex), isClosed: isClosed) }
         }
 
         let motion = sample.animation.motion

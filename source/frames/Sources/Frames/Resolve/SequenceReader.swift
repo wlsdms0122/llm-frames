@@ -168,14 +168,7 @@ struct SequenceReader: Sendable {
             style: clip["style"]?.stringValue,
             width: property("width", of: clip, read: \.numberValue),
             height: property("height", of: clip, read: \.numberValue),
-            points: property("points", of: clip) { value in
-                value.arrayValue.map { elements in
-                    elements.compactMap { vertex in
-                        let point = PathKeyTable.isVertexObject(vertex) ? vertex.objectValue?["vertex"] : vertex
-                        return point.flatMap(PositionForm.init(value:))
-                    }
-                }
-            },
+            points: path(of: clip),
             isClosed: clip["closed"]?.boolValue ?? false,
             radius: look("radius", of: clip),
             outset: look("outset", of: clip),
@@ -290,6 +283,26 @@ struct SequenceReader: Sendable {
         guard !keyframes.isEmpty else { return nil }
 
         return .keyframes(keyframes)
+    }
+
+    // A path's `points` as written, nil where neither the clip nor a keyframe writes them.
+    private func path(of object: JSONObject) -> PathProperty? {
+        let keyframes = (object["keyframes"]?.arrayValue ?? []).enumerated().compactMap { index, element in
+            element.objectValue.flatMap { keyframe -> PropertyKeyframe<[JSONValue]>? in
+                guard let at = keyframe["at"]?.numberValue, let points = keyframe["points"]?.arrayValue else { return nil }
+
+                return PropertyKeyframe(
+                    index: index,
+                    at: at,
+                    value: points,
+                    ease: keyframe["ease"].flatMap(Ease.init(value:)) ?? .linear
+                )
+            }
+        }
+        let written = object["points"]?.arrayValue
+        guard written != nil || !keyframes.isEmpty else { return nil }
+
+        return PathProperty(written: written, keyframes: keyframes)
     }
 
     // A key of the look as written, nil where neither the clip nor a keyframe writes it.

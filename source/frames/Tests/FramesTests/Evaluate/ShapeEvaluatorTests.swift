@@ -429,7 +429,13 @@ struct ShapeEvaluatorTests {
             ResolvedShape(
                 kind: .path,
                 geometry: .points(
-                    .keyframes([Keyframe(at: 0, value: [.point(Point(x: 40, y: 20)), .point(Point(x: 80, y: 40))])]),
+                    [Point(x: 40, y: 20), Point(x: 80, y: 40)].map { point in
+                        PathVertex(
+                            vertex: .keyframes([Keyframe(at: 0, value: .point(point))]),
+                            inTangent: .keyframes([Keyframe(at: 0, value: Point(x: 0, y: 0))]),
+                            outTangent: .keyframes([Keyframe(at: 0, value: Point(x: 0, y: 0))])
+                        )
+                    },
                     isClosed: false,
                     placement: GeometryPlacement()
                 ),

@@ -233,6 +233,15 @@ struct ResolvedValueWriter: Sendable {
         }
     }
 
+    // A path shape's vertex, `{vertex, inTangent, outTangent}`, each a value a track can carry.
+    func vertex(_ vertex: PathVertex<FollowedValue<GeometryPoint>, FollowedValue<Point>>) -> JSONValue {
+        .object(JSONObject(members: [
+            JSONMember(key: "vertex", value: followed(vertex.vertex, value: geometryPoint)),
+            JSONMember(key: "inTangent", value: followed(vertex.inTangent, value: point)),
+            JSONMember(key: "outTangent", value: followed(vertex.outTangent, value: point))
+        ]))
+    }
+
     func followedNumbers(_ followed: FollowedValue<Double>) -> JSONValue {
         self.followed(followed) { .number($0) }
     }

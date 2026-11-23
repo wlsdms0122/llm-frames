@@ -188,7 +188,7 @@ struct ResolvedSequenceWriter: Sendable {
             (values.followed(area, value: values.geometryArea), .null, .null, .null, .null, values.timed(outset))
 
         case let .points(points, isClosed, _):
-            (.null, .null, .null, values.followed(points) { .array($0.map(values.geometryPoint)) }, .bool(isClosed), .null)
+            (.null, .null, .null, .array(points.map(values.vertex)), .bool(isClosed), .null)
         }
 
         return [

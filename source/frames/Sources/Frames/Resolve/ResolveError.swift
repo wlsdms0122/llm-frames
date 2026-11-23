@@ -286,9 +286,9 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
             "\(place) (\(kind.label)): a text form is searched in media, and this clip's mask is in its own box"
 
         case let .pointCountsDiffer(place, kind, counts):
-            "\(place) (\(kind.label)): the keyframes of \"points\" hold "
+            "\(place) (\(kind.label)): the values of \"points\" hold "
                 + counts.map { "\($0)" }.joined(separator: " and ")
-                + " points, and points interpolate one by one, so every value has the same number"
+                + " vertices, and a path interpolates vertex by vertex, so every value has the same number"
 
         case let .missingLookLeaf(place, kind, key, .some(layer)):
             "\(place) (\(kind.label)): missing key \"\(key)\", which the clip does not write and its theme turns off (\(layer))"

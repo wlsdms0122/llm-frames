@@ -189,7 +189,10 @@ struct SequenceReaderTests {
         #expect(sequence.clips[0].rotation == .value(30))
         #expect(sequence.clips[1].content == .shape(ClipShape(
             kind: .path,
-            points: .value([.point(Point(x: 0, y: 0)), .area(.rectangle(Rectangle(x: 0, y: 0, width: 10, height: 10)), point: "right")]),
+            points: PathProperty(
+                written: [try Fixture.json("[0, 0]"), try Fixture.json(#"{ "area": [0, 0, 10, 10], "point": "right" }"#)],
+                keyframes: []
+            ),
             isClosed: true,
             fill: LookProperty(written: .string("#FF0000")),
             stroke: LookProperty(written: .bool(false)),

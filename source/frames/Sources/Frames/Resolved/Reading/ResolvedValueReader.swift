@@ -297,6 +297,17 @@ struct ResolvedValueReader: Sendable {
 
     // A followed value of a tracked clip is a keyframe list, or its value where it is true on the track's frame
     // (FRAMES-19 Timed values). A keyframe list is a list of objects that hold `at`, and no value of such a leaf is one.
+    // A path shape's vertex, `{vertex, inTangent, outTangent}`, each a value a track can carry.
+    func vertex(_ value: PlacedJSONValue) throws -> PathVertex<FollowedValue<GeometryPoint>, FollowedValue<Point>> {
+        let vertex = try value.object(keys: ["vertex", "inTangent", "outTangent"])
+
+        return PathVertex(
+            vertex: try followedKeyframes(vertex.member("vertex"), read: geometryPoint),
+            inTangent: try followedKeyframes(vertex.member("inTangent"), read: point),
+            outTangent: try followedKeyframes(vertex.member("outTangent"), read: point)
+        )
+    }
+
     func followedKeyframes<Value: Equatable & Sendable>(
         _ value: PlacedJSONValue,
         read: (PlacedJSONValue) throws -> Value

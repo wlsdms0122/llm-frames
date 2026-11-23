@@ -11,11 +11,12 @@
 // the measuring space, so a clip with `isInOutputPixels` moves with the content. `box` is where a title, a media clip
 // or a shape given by `width` and `height` is drawn, and `position` the anchor point it was found from. `cornerPin` is
 // where such a clip is drawn when its corner pin places it, and it then has no `box`. `onTrackFrame` names the followed
-// values of a tracked clip written without keyframes that are true on the track's frame.
+// values of a tracked clip written without keyframes that are true on the track's frame. A path's vertices are as its
+// entry holds them, each leaf decided on its own.
 struct ClipGeometry: Equatable, Sendable {
     // MARK: - Property
     let area: PropertyValue<AreaValue>?
-    let points: PropertyValue<[GeometryPoint]>?
+    let points: [PathVertex<FollowedValue<GeometryPoint>, FollowedValue<Point>>]?
     let position: PropertyValue<GeometryPoint>?
     let box: ClipBox?
     let cornerPin: ClipCornerPin?
@@ -31,7 +32,7 @@ struct ClipGeometry: Equatable, Sendable {
     // MARK: - Initializer
     init(
         area: PropertyValue<AreaValue>?,
-        points: PropertyValue<[GeometryPoint]>? = nil,
+        points: [PathVertex<FollowedValue<GeometryPoint>, FollowedValue<Point>>]? = nil,
         position: PropertyValue<GeometryPoint>?,
         box: ClipBox?,
         cornerPin: ClipCornerPin? = nil,
