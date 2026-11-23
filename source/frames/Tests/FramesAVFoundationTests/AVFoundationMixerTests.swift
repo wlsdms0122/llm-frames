@@ -898,6 +898,55 @@ struct AVFoundationMixerTests {
         #expect(peak(of: convolved, channel: 1, frames: 12_000..<48_000) == 0)
     }
 
+    @Test("a `convolve` on a sound that ends before its span rings on to the span's end, the direct sum of silence past it")
+    func ringsPastSoundEnd() async throws {
+        // Given
+        let directory = try TemporaryDirectory()
+        let input = directory.file("half.wav")
+        try WaveFileWriter(channels: noises(count: 24_000, seeds: [1, 2], level: 0.5)).write(to: input)
+        let taps = noises(count: 3000, seeds: [29, 30], level: 0.05)
+        let response = directory.file("room.wav")
+        try WaveFileWriter(channels: taps).write(to: response)
+        let filter = convolution(response)
+        let sut = AVFoundationMixer(decoder: AVFoundationDecoder())
+
+        // When
+        let convolved = try sut.mix(MixPlan(length: 48_000, segments: [
+            segment(of: input, from: 0, to: 1, filter: filter)
+        ]))
+        let cut = try sut.mix(MixPlan(length: 48_000, segments: [
+            segment(of: input, from: 0, to: 0.5, filter: filter)
+        ]))
+        let plain = try sut.mix(MixPlan(length: 48_000, segments: [segment(of: input, from: 0, to: 1)]))
+
+        // Then
+        #expect(Array(convolved.samples[0..<48_000]) == Array(cut.samples[0..<48_000]))
+        let frames = Array(24_000..<27_100) + Array(stride(from: 27_100, to: 48_000, by: 97))
+        for channel in 0..<2 {
+            let reference = directSum(of: self.channel(channel, of: plain), by: taps[channel], at: frames)
+            let output = self.channel(channel, of: convolved)
+            let largest = deviation(of: frames.map { output[$0] }, from: reference)
+            #expect(largest <= 1e-6, "channel \(channel): \(largest)")
+        }
+    }
+
+    @Test("a segment without a filter whose sound ends before its span adds silence there, as one whose span ends with it")
+    func addsSilencePastSoundEnd() async throws {
+        // Given
+        let directory = try TemporaryDirectory()
+        let input = directory.file("half.wav")
+        try WaveFileWriter(channels: noises(count: 24_000, seeds: [1, 2], level: 0.5)).write(to: input)
+        let sut = AVFoundationMixer(decoder: AVFoundationDecoder())
+
+        // When
+        let long = try sut.mix(MixPlan(length: 48_000, segments: [segment(of: input, from: 0, to: 1)]))
+        let short = try sut.mix(MixPlan(length: 48_000, segments: [segment(of: input, from: 0, to: 0.5)]))
+
+        // Then
+        #expect(long.samples == short.samples)
+        #expect(peak(of: short, channel: 0, frames: 0..<24_000) > 0.1)
+    }
+
     @Test(
         "a `convolve` starts at rest at each segment and each bus span, so the repeats of a loop sound the same",
         arguments: [false, true]

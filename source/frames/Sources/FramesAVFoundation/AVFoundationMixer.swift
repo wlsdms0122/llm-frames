@@ -10,11 +10,12 @@ import Frames
 
 // The `avfoundation` mixer: reads each segment's media time through the decoder, maps its channels onto stereo,
 // resamples it to the plan's sample rate, stretches it in time with the pitch kept when its speed is not 1, runs its
-// audio filter, multiplies it by its envelope, pans it by its pan envelope with the pan law of its channel count, and
-// adds it into the bus that holds it from its start sample. A bus sums its segments and buses over its span, runs its
-// chain over the sum, at rest at the span's first sample, and multiplies the result by its level envelope before it is
-// added to the bus that holds it. The plan is the outermost bus: its chain runs over the whole sum of its `length`
-// samples, and that is the mix, interleaved in place, so the mix is held once. The sum is not clipped.
+// audio filter over the segment's span, silence after the sound the decoder gives, multiplies it by its envelope, pans
+// it by its pan envelope with the pan law of its channel count, and adds it into the bus that holds it from its start
+// sample. A bus sums its segments and buses over its span, runs its chain over the sum, at rest at the span's first
+// sample, and multiplies the result by its level envelope before it is added to the bus that holds it. The plan is the
+// outermost bus: its chain runs over the whole sum of its `length` samples, and that is the mix, interleaved in place,
+// so the mix is held once. The sum is not clipped.
 package final class AVFoundationMixer: Sendable {
     // MARK: - Property
     private static let sampleRate = Double(MixPlan.sampleRate)
@@ -116,21 +117,24 @@ package final class AVFoundationMixer: Sendable {
             buffer = try TimeStretcher().stretched(buffer, speed: segment.speed, path: path)
         }
 
+        let count = last - first
+        let from = max(span.lowerBound - first, 0)
+        guard from < count else { return }
+        buffer = try padded(buffer, to: count, path: path)
+        guard let channels = buffer.floatChannelData else { return }
+
         let law = PanLaw(layout: sound.layout)
         let gains = segment.gains(atSamples: first..<last, sampleRate: Self.sampleRate)
         let pans = segment.pans(atSamples: first..<last, sampleRate: Self.sampleRate)
-        let heard = min(last - first, Int(buffer.frameLength))
-        let from = max(span.lowerBound - first, 0)
-        guard from < heard, let channels = buffer.floatChannelData else { return }
         try AudioFilterChain(
             filter: segment.filter,
             place: "\(place).",
             sampleRate: Self.sampleRate,
             impulseResponses: impulseResponses
         )
-        .process(buffer, frames: heard, first: first)
+        .process(buffer, frames: count, first: first)
         let offset = first - span.lowerBound
-        for frame in from..<heard {
+        for frame in from..<count {
             let gain = gains[frame]
             let panned = law.gains(at: pans[frame])
             sum[offset + frame] += channels[0][frame] * gain * panned.left
@@ -205,6 +209,31 @@ package final class AVFoundationMixer: Sendable {
                 } while place != start
             }
         }
+    }
+
+    // `buffer` followed by silence up to `frames` frames, or `buffer` itself when it holds that many.
+    private func padded(
+        _ buffer: AVAudioPCMBuffer,
+        to frames: Int,
+        path: String
+    ) throws -> AVAudioPCMBuffer {
+        let length = Int(buffer.frameLength)
+        guard length < frames else { return buffer }
+        guard
+            let padded = AVAudioPCMBuffer(pcmFormat: buffer.format, frameCapacity: AVAudioFrameCount(frames)),
+            let source = buffer.floatChannelData,
+            let target = padded.floatChannelData
+        else {
+            throw MixerError.unrenderable(file: path, reason: "no buffer of \(frames) frames")
+        }
+
+        padded.frameLength = AVAudioFrameCount(frames)
+        for channel in 0..<Int(buffer.format.channelCount) {
+            target[channel].update(from: source[channel], count: length)
+            (target[channel] + length).update(repeating: 0, count: frames - length)
+        }
+
+        return padded
     }
 
     // The first sample of a span edge at `time`, by the span rule: round(sample rate × time), halves up.
