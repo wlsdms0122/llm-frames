@@ -244,7 +244,7 @@ struct RepositoryPacksTests {
         #expect(code == 0, "\(sut.standardError)")
     }
 
-    @Test("every example a pack holds resolves once its media paths name a rendered screenshot and screen recording")
+    @Test("every example a pack holds resolves once its media paths name rendered screenshots and a screen recording")
     func resolvesExamples() throws {
         // Given
         let media = sut.directory.file("media")
@@ -255,6 +255,10 @@ struct RepositoryPacksTests {
         try #require(screenshotCode == 0, "\(sut.standardError)")
         let recordingCode = sut.run(["render", recording, "-o", "\(media)/checkout.mov"])
         try #require(recordingCode == 0, "\(sut.standardError)")
+        // The screenshot the examples name `/path/to/checkout-before.png`: the same summary with a total of 38,000.
+        let before = try sut.write(Self.screenshot.replacingOccurrences(of: "42,000", with: "38,000"), named: "before.json")
+        let beforeCode = sut.run(["render", before, "-o", "\(media)/checkout-before.png", "--at", "0"])
+        try #require(beforeCode == 0, "\(sut.standardError)")
 
         // When
         let failures = try Self.examples.compactMap { example in
