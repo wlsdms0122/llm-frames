@@ -48,8 +48,9 @@ Between two keyframes of a property, at progress u from 0 to 1 through the span,
 
 | Value | Interpolation |
 | --- | --- |
-| a number (`opacity`, `rotation`, `radius`, `volume`, `pan`, a `width` or `height`) | per component: `a + (b - a) × e` |
+| a number (`opacity`, `rotation`, `volume`, `pan`, a `width` or `height`) | per component: `a + (b - a) × e` |
 | `scale`, a number or `[sx, sy]` | per component, a number s taken as `[s, s]`, so a keyframe that writes a number may follow one that writes a pair ([FRAMES-1](../FRAMES-1/SPEC.md)) |
+| a corner `radius`, a number or `[topLeft, topRight, bottomRight, bottomLeft]` | per corner, a number r taken as `[r, r, r, r]`, so a keyframe that writes a number may follow one that writes a list, as `scale` takes both of its forms, and each corner rounds apart from the others ([FRAMES-11](../FRAMES-11/SPEC.md#shapes)) |
 | a colour | per channel, as a number: red, green, blue and alpha, straight (not premultiplied), on the encoded form whatever the sequence's `compositing`, the home [FRAMES-26](../FRAMES-26/SPEC.md#compositing) declares for a path through colours, red, green and blue any real number and alpha from 0 to 1. A gradient's stops across space interpolate premultiplied instead ([FRAMES-11](../FRAMES-11/SPEC.md)) |
 | a value with leaves (a `stroke`, a `fill`, a `shadow`, a `border`, a `filter` or `adjust`) | leaf by leaf, each timed leaf between the keyframes that write it as its kind above, the static leaves and the structure the same at every instant. A filter's timed leaves are its preset arguments, its op parameters and its entries' `mix` |
 | `timeRemap` | as a number: the media time shown moves from one key's value to the next along the ease. Two keys with the same value hold a frame, a lower next value plays backwards, and eased keys give speed ramps ([FRAMES-8](../FRAMES-8/SPEC.md)) |
@@ -108,6 +109,8 @@ An ease value or a spring's `bounce` may be `{"param": "<name>"}` where a parame
 Which clock an instant is on, and what `timeRemap` maps, is [FRAMES-8](../FRAMES-8/SPEC.md). Which properties are keyframable is [FRAMES-7](../FRAMES-7/SPEC.md). Tracked values are brought back through the motion as [FRAMES-12](../FRAMES-12/SPEC.md) says. Presets use the same eases for their motion ([FRAMES-14](../FRAMES-14/SPEC.md)). Areas and points are [FRAMES-2](../FRAMES-2/SPEC.md), masks and paths [FRAMES-11](../FRAMES-11/SPEC.md).
 
 ## Alternatives considered
+
+A keyframe that changes a `radius` between one number and four stopping, as a form that changes between keyframes stops: a number is the list of four equal radii, as a number `scale` is the pair of two equal factors, so the two forms write one value, and a box rounded alike can round one corner apart from a keyframe that writes four.
 
 A spring simulated with its own settle time, as a physics engine runs it: the value would not land at its keyframe's time, and a keyframe would stop being an edit point. Normalising the step response to the span keeps the keyframe as the place and time it arrives.
 
