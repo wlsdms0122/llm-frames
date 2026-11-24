@@ -90,7 +90,7 @@ Inside `Frames`, one folder per module:
 | `Resolved` | the resolved document: its model, writing it, reading it, and checking it and the files it pins |
 | `Evaluate` | display lists at a time, animation and transition sampling, parents, shapes, the mix plan and a sequence's mix through the mixer, and the display list and mix plan as JSON |
 | `Role` | the decoder, renderer, mixer and encoder interfaces, and the bitmaps, picture readings, sound buffers and targets they exchange |
-| `Render` | the render pipeline from a resolved document through the roles to a PNG, a master and a delivery file |
+| `Render` | the render pipeline from a resolved document through the roles to a PNG, a master with or without a delivery file, or a delivery file alone |
 | `Export` | `still`, `sheet` and `extract`: frames of a video or a sequence drawn to PNG files without encoding a video |
 | `Analysis` | the reports of `probe`, `ocr`, `track`, `timeline`, `evaluate`, `locate` and `loudness`, and their machine output |
 | `Transcode` | image, audio and video delivery files |

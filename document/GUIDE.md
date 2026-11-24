@@ -99,7 +99,7 @@ frames render /path/to/work/edit.json -o /path/to/out/edit.mov
 frames sheet /path/to/out/edit.mov -o /path/to/out/edit-sheet.png --step 0.5
 ```
 
-The master is ProRes with PCM sound at full quality, in the sequence's colour space. Keep it, and make delivery files from it. Lay it out with `sheet` and check it against [FRAMES-24](../spec/FRAMES-24/SPEC.md). A sheet is an SDR sRGB preview, so check the colours of a `display-p3`, `rec2020` or HDR master on a frame from `render --at`, which is written in the sequence's colour space ([FRAMES-26](../spec/FRAMES-26/SPEC.md#providers-and-analysis-pictures)):
+The master is ProRes with PCM sound at full quality, in the sequence's colour space. It is what is kept and delivered from. A render made only to look at or hand over has no use for a master, and writes the delivery file alone with `-o /path/to/out/edit.mp4`, the same file `--deliver` writes. Lay it out with `sheet` and check it against [FRAMES-24](../spec/FRAMES-24/SPEC.md). A sheet is an SDR sRGB preview, so check the colours of a `display-p3`, `rec2020` or HDR master on a frame from `render --at`, which is written in the sequence's colour space ([FRAMES-26](../spec/FRAMES-26/SPEC.md#providers-and-analysis-pictures)):
 
 - the first frame is not black or empty, unless the storyline opens on a solid or on black media
 - during a transition both pictures show, with the transition's motion
@@ -121,7 +121,7 @@ frames transcode /path/to/out/edit.mov -o /path/to/out/edit-small.mp4 --quality 
 frames transcode /path/to/out/edit.mov -o /path/to/out/edit.m4a
 ```
 
-`--deliver` writes an `.mp4` from the same frames in the same step as the master: H.264 for an SDR colour space and HEVC Main 10 for an HDR one. `transcode` writes a delivery file from a master, an image or a sound: H.264 or HEVC (`--codec hevc`) for video, the sound alone as `.m4a`, and JPEG, HEIC or PNG for an image, at `--quality high`, `medium` (the default) or `low`, with `--max` capping the longer side. It prints the ratio to the source. HEVC looks slightly better than H.264 at the same level, and some browsers cannot play it, so H.264 is the default in an SDR colour space. An HDR file is HEVC Main 10, since H.264 holds 8 bits. The output keeps the source's colour space, and `--color-space` names another.
+`--deliver` writes an `.mp4` from the same frames in the same step as the master: H.264 for an SDR colour space and HEVC Main 10 for an HDR one. It goes with a `.mov` only, and `render` to an `.mp4` writes that file without a master. `transcode` writes a delivery file from a master, an image or a sound: H.264 or HEVC (`--codec hevc`) for video, the sound alone as `.m4a`, and JPEG, HEIC or PNG for an image, at `--quality high`, `medium` (the default) or `low`, with `--max` capping the longer side. It prints the ratio to the source. HEVC looks slightly better than H.264 at the same level, and some browsers cannot play it, so H.264 is the default in an SDR colour space. An HDR file is HEVC Main 10, since H.264 holds 8 bits. The output keeps the source's colour space, and `--color-space` names another.
 
 ### 6. Reuse a render as media
 

@@ -12,7 +12,7 @@ A few rules hold everywhere:
 - A reference that matches more than one thing stops and lists what it matched.
 - A value that still does its job is clamped (a transition longer than its clips, an `out` past the end of the media), and one that cannot stops (a clip that is never visible, a one-line title wider than its room).
 - The resolved document is a lockfile: recognised text, tracks, text layout, themes, presets and templates are written into it as values, and the files it still needs are pinned by hash, so it makes the same result again.
-- `render` writes a master at full quality. Delivery files are made from the same frames (`--deliver`) or from the master (`transcode`).
+- `render` writes a master at full quality. Delivery files are made from the same frames (`--deliver`) or from the master (`transcode`), and a render made only to look at or hand over writes the delivery file alone (`-o` an `.mp4`).
 
 The specification in [`spec/`](spec/README.md) is the contract for every rule, and this page is the way in for someone who uses the tool. Each section below links to the spec that holds the full rules.
 
@@ -118,6 +118,12 @@ Then render the master, with a delivery file from the same frames:
 frames render /path/to/edit.json -o /path/to/out/edit.mov --deliver /path/to/out/edit.mp4
 ```
 
+The master is what is kept and delivered from. A render made only to look at or hand over writes the delivery file alone:
+
+```sh
+frames render /path/to/edit.json -o /path/to/out/edit.mp4
+```
+
 [document/GUIDE.md](document/GUIDE.md) walks through the whole loop: picking a form, looking at the material, writing, checking, rendering and delivering.
 
 ## Commands
@@ -140,7 +146,7 @@ frames: storyline[0]#interview.connected[1] (image): unknown key "opactiy". Allo
 
 | Command | What it does |
 | --- | --- |
-| `render <document> -o <out.mov \| out.png> [--at <t>] [--deliver <out.mp4>] [--args <args.json>]` | Renders the sequence. A `.mov` is the master of every frame: ProRes 422 HQ, or ProRes 4444 when the background is not opaque, with 24-bit PCM sound. A `.png` is the frame at `--at` (0 when left out), without a time label, at 16 bits per channel. Both are in the sequence's colour space ([Colour](#colour)). `--deliver` also writes an `.mp4` from the same frames: H.264 for an SDR colour space, HEVC Main 10 for an HDR one |
+| `render <document> -o <out.mov \| out.mp4 \| out.png> [--at <t>] [--deliver <out.mp4>] [--args <args.json>]` | Renders the sequence. A `.mov` is the master of every frame: ProRes 422 HQ, or ProRes 4444 when the background is not opaque, with 24-bit PCM sound. An `.mp4` is the delivery file alone: H.264 for an SDR colour space, HEVC Main 10 for an HDR one, with AAC sound and transparent parts over black. A `.png` is the frame at `--at` (0 when left out), without a time label, at 16 bits per channel. All are in the sequence's colour space ([Colour](#colour)). `--deliver`, with a `.mov` only, also writes the same `.mp4` from the same frames |
 | `still <document> --at <t>[,<t>...] -o <out.png> [--args <args.json>]` | Draws frames at those sequence times side by side, each with its time label, without encoding a video, as an SDR sRGB preview. The cheap check while you edit |
 | `resolve <document> -o <resolved.json> [--args <args.json>]` | Writes the resolved document: everything found, laid out and planned, with the files it uses pinned by hash |
 | `transcode <in> [--page <n>] -o <out> [--quality high\|medium\|low] [--max <px> \| --scale <s>] [--codec h264\|hevc] [--color-space <name>]` | Writes a delivery file from a still (`.jpg`, `.heic`, `.png`), audio (`.m4a`) or video (`.mp4`, `.mov`, `.m4v`, or `.m4a` for its sound) at a quality level. `--max` caps the longer side, and `--color-space` names the output's colour space ([Colour](#colour)). A page of a PDF, which has no pixels of its own, is drawn at `--scale` pixels per point, fractions allowed, by default 4, or the largest at which the decoder holds the page where that is less, and takes no `--max` |
@@ -571,7 +577,7 @@ frames holds every colour from the decoder to the encoder as a working value: re
 | `rec2100-pq` | BT.2020, PQ | HDR, its peak `format.peak` (400 to 10000 cd/m², 1000 by default) |
 | `rec2100-hlg` | BT.2020, HLG | HDR, its peak 1000 cd/m² |
 
-- The master `.mov` and a `render` `.png` (16 bits per channel) are written and tagged in that space, with each channel clipped to its gamut and peak and no gamut mapping. `--deliver` writes H.264 for an SDR space and HEVC Main 10 for an HDR one, since H.264 holds 8 bits. On an HDR output reference white is 203 cd/m², as BT.2408 gives it, so a white title stays well below the peak.
+- The master `.mov` and a `render` `.png` (16 bits per channel) are written and tagged in that space, with each channel clipped to its gamut and peak and no gamut mapping. A delivery file, from `--deliver` or `render` to an `.mp4`, is H.264 for an SDR space and HEVC Main 10 for an HDR one, since H.264 holds 8 bits. On an HDR output reference white is 203 cd/m², as BT.2408 gives it, so a white title stays well below the peak.
 - `format.compositing` is the form the sequence composites in. Under `encoded` (the default) source-over, blends such as `multiply`, `screen` and `add`, dissolves, blurs and `mix` weigh code values, as browsers and After Effects do by default. Under `linear` they mix light, as Premiere Pro's Composite in Linear Color does, so a dissolve or a blur of HDR and wide gamut pictures mixes their light. A formula written for one form keeps it under either: `contrast`, `levels`, `overlay`, `soft-light` and luma read encoded values, `exposure` and `temperature` read light, and a `lut` reads its `space`. Keyframed colours and gradient stops interpolate on encoded values.
 - A picture is read in the colour space its tags name, an untagged one as `srgb`. A `colorSpace` written where the media is named (on a media clip, or on a transition's cover or matte) replaces what the file says, as Premiere Pro's Override Media Color Space does, and every place that names the same file names the same space. A picture tagged outside the table is converted by fixed formulas, and one with a LUT-based ICC profile stops, naming `transcode`. Log footage is not a colour space: a `lut` filter takes it to a display space.
 - HDR media (PQ or HLG) of a clip with `toneMap` true, the default, are tone mapped by the BT.2390 EETF to the sequence's peak where their own peak is above it, so an HDR shot in an SDR sequence comes in with its highlights fitted under white. With `toneMap` false they come in as their display light, values above 1 that filters see, to be graded into the sequence by hand.
