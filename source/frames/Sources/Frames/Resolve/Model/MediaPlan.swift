@@ -5,7 +5,7 @@
 //  Created by JSilver on 11/15/26.
 //
 
-// Media with what time knows of it. `reference` is the media as the document wrote it (`shorts/leak.mov`), the same on
+// Media with what time knows of it. `reference` is the media as the document wrote it (`broll/surf.mov`), the same on
 // every machine, and nil for media written in place. `frames` is the first and last media time a picture exists at,
 // nil for a still, which simply goes on, and for sound. `hasSound` says whether it plays sound: a file with a sound
 // track, or a nested sequence that holds one. `colorSpace` and `isToneMapped` are how the clip that shows it reads its
