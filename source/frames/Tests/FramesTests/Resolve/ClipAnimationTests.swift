@@ -139,8 +139,59 @@ struct ClipAnimationTests {
         ])
     }
 
+    @Test("`order` beside `by` reaches the plan in both object forms, and a choice that leaves it out plays in reading order")
+    func ordersUnits() throws {
+        // Given
+        let document = try Fixture.json(#"""
+            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4" } ], "clips": [
+              { "at": [0, 1], "title": "a", "style": "headline", "animation": { "preset": "frames/fade", "by": "word", "order": "center" } },
+              { "at": [0, 1], "title": "b", "style": "headline", "animation": { "entrance": "frames/pop", "exit": "frames/fade", "by": "line", "stagger": 0.2, "order": "random" } },
+              { "at": [0, 1], "title": "c", "style": "headline", "animation": { "preset": "frames/fade", "by": "character" } }
+            ] }
+            """#)
+
+        // When
+        let plan = try sut.plan(document: document)
+
+        // Then
+        #expect(plan.clips.map(\.animation.units) == [
+            UnitStagger(by: .word, stagger: 0.12, order: .center),
+            UnitStagger(by: .line, stagger: 0.2, order: .random),
+            UnitStagger(by: .character, stagger: 0.04, order: .forward)
+        ])
+    }
+
+    @Test("`{\"order\": \"backward\"}` merges over a theme default that has `by` as `{\"by\": ...}` does, keeping its preset, unit and stagger")
+    func mergesOrderOverDefault() throws {
+        // Given
+        let document = try Fixture.json(#"""
+            { "kind": "sequence",
+              "theme": { "defaults": { "animation": { "title": {
+                "subtitle": { "preset": "frames/pop", "by": "word", "stagger": 0.2 },
+                "title": { "entrance": "frames/pop", "exit": "frames/fade", "by": "character", "order": "edges" } } } } },
+              "storyline": [ { "media": "/abs/run.mp4" } ],
+              "clips": [
+                { "at": [0, 1], "title": "a", "style": "subtitle", "animation": { "order": "backward" } },
+                { "at": [0, 1], "title": "b", "style": "title", "animation": { "order": "backward" } },
+                { "at": [0, 1], "title": "c", "style": "title" }
+              ] }
+            """#)
+
+        // When
+        let plan = try sut.plan(document: document)
+
+        // Then
+        #expect(plan.clips.map(\.animation.entrance?.preset) == ["frames/pop", "frames/pop", "frames/pop"])
+        #expect(plan.clips.map(\.animation.exit?.preset) == [nil, "frames/fade", "frames/fade"])
+        #expect(plan.clips.map(\.animation.units) == [
+            UnitStagger(by: .word, stagger: 0.2, order: .backward),
+            UnitStagger(by: .character, stagger: 0.04, order: .backward),
+            UnitStagger(by: .character, stagger: 0.04, order: .edges)
+        ])
+    }
+
     @Test(
-        "`by` on a clip that is not a title, `stagger` without `by` and `by` over a preset with neither an entrance nor an exit stop",
+        "`by` on a clip that is not a title, `stagger` or `order` without `by` and `by` over a preset with neither an entrance nor an exit stop",
         arguments: [
             (
                 #"{ "at": [0, 1], "shape": "rect", "stroke": { "width": 8 }, "area": [0, 0, 10, 10], "animation": { "preset": "frames/fade", "by": "word" } }"#,
@@ -149,6 +200,14 @@ struct ClipAnimationTests {
             (
                 #"{ "at": [0, 1], "title": "a", "style": "headline", "animation": { "preset": "frames/fade", "stagger": 0.1 } }"#,
                 "clips[0].animation (title): `stagger` spaces a title's units, and the choice names no unit with `by`"
+            ),
+            (
+                #"{ "at": [0, 1], "title": "a", "style": "headline", "animation": { "preset": "frames/fade", "order": "center" } }"#,
+                "clips[0].animation (title): `order` orders a title's units, and the choice names no unit with `by`"
+            ),
+            (
+                #"{ "at": [0, 1], "title": "a", "style": "headline", "animation": { "entrance": "frames/fade", "exit": "frames/fade", "order": "backward" } }"#,
+                "clips[0].animation (title): `order` orders a title's units, and the choice names no unit with `by`"
             ),
             (
                 #"{ "at": [0, 1], "title": "a", "style": "headline", "animation": { "preset": "frames/none", "by": "word" } }"#,
@@ -180,6 +239,21 @@ struct ClipAnimationTests {
         // When, Then
         let error = #expect(throws: ResolveError.self) { try sut.plan(document: document) }
         #expect(error?.description == message)
+    }
+
+    @Test("a theme default with `order` and no `by` stops at the title that takes it, as one with `stagger` does")
+    func refusesDefaultOrderWithoutBy() throws {
+        // Given
+        let document = try Fixture.json(#"""
+            { "kind": "sequence",
+              "theme": { "defaults": { "animation": { "title": { "subtitle": { "preset": "frames/fade", "order": "center" } } } } },
+              "storyline": [ { "media": "/abs/run.mp4" } ],
+              "clips": [ { "at": [0, 1], "title": "a", "style": "subtitle" } ] }
+            """#)
+
+        // When, Then
+        let error = #expect(throws: ResolveError.self) { try sut.plan(document: document) }
+        #expect(error?.description == "clips[0] (title): `order` orders a title's units, and the choice names no unit with `by`")
     }
 
     @Test("an animation preset that is not there stops")

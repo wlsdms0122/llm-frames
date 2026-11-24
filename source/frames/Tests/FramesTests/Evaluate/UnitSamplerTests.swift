@@ -55,6 +55,43 @@ struct UnitSamplerTests {
         #expect(sut.unit(2, of: animation(), schedule: filled, at: 1.5).motion.value(of: .opacity) == 0.5)
     }
 
+    @Test("under `backward` the last unit enters first and leaves first, and the first unit leaves last, ending with the window")
+    func schedulesBackward() {
+        // When
+        let schedule = schedule(count: 5, stagger: 0.5, order: .backward, window: TimeRange(start: 0, end: 10))
+
+        // Then
+        #expect([0, 2, 4].map(schedule.entranceStart) == [2, 1, 0])
+        #expect([0, 2, 4].map(schedule.exitStart) == [9, 8, 7])
+        #expect(schedule.exitStart(of: 0) + schedule.exit == schedule.window.end)
+        #expect(schedule.rest == TimeRange(start: 3, end: 7))
+    }
+
+    @Test("under `center` the middle unit enters first and leaves first, and the two ends enter and leave together, last")
+    func schedulesCenter() {
+        // When
+        let schedule = schedule(count: 5, stagger: 0.5, order: .center, window: TimeRange(start: 0, end: 10))
+
+        // Then
+        #expect([0, 1, 2, 3, 4].map(schedule.entranceStart) == [1, 0.5, 0, 0.5, 1])
+        #expect([0, 1, 2, 3, 4].map(schedule.exitStart) == [9, 8.5, 8, 8.5, 9])
+        #expect(schedule.exitStart(of: 4) + schedule.exit == schedule.window.end)
+        #expect(schedule.rest == TimeRange(start: 2, end: 8))
+    }
+
+    @Test("on a short window under `center` E and X take the largest rank R where reading order takes n - 1")
+    func scalesTheExitByLargestRank() {
+        // When
+        let short = schedule(count: 5, stagger: 0.5, order: .center, window: TimeRange(start: 0, end: 3))
+        let filled = schedule(count: 5, stagger: 0.5, order: .center, window: TimeRange(start: 0, end: 2))
+
+        // Then
+        #expect(short.exit == 0.5)
+        #expect(short.exitStagger == 0.25)
+        #expect([0, 1, 2].map(short.exitStart) == [2.5, 2.25, 2])
+        #expect(filled.exit == 0)
+    }
+
     @Test("a unit holds its entrance at progress 0 before its turn and its exit at progress 1 after it")
     func holdsUnitsOutsideTheirSpans() {
         // Given
@@ -140,8 +177,9 @@ struct UnitSamplerTests {
     private func schedule(
         count: Int,
         stagger: Double,
+        order: UnitOrder = .forward,
         window: TimeRange
     ) -> UnitSchedule {
-        UnitSchedule(animation: animation(), stagger: stagger, count: count, in: window)
+        UnitSchedule(animation: animation(), stagger: stagger, order: order, count: count, in: window)
     }
 }

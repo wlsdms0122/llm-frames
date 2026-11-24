@@ -306,6 +306,62 @@ struct ResolvedDocumentReaderTests {
         #expect(read == document)
     }
 
+    @Test("a title by word reads back with the order it was resolved with, reading order written out where the choice leaves it out", arguments: UnitOrder.allCases)
+    func readsUnitOrder(order: UnitOrder) throws {
+        // Given
+        let animation = order == .forward
+            ? #"{ "preset": "frames/fade", "by": "word" }"#
+            : #"{ "preset": "frames/fade", "by": "word", "order": "\#(order.rawValue)" }"#
+        let document = try resolved(#"""
+            { "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4", "in": 0, "out": 3 } ],
+              "clips": [ { "title": "ab cd ef", "style": "title", "at": [0, 2], "position": [0, 0], "animation": \#(animation) } ] }
+            """#)
+        let text = writer.write(document)
+
+        // When
+        let read = try sut.read(text)
+
+        // Then
+        #expect(read == document)
+        #expect(read.clips[0].animation.units == UnitStagger(by: .word, stagger: 0.12, order: order))
+        #expect(text.contains(#""by": "word","#) && text.contains(#""order": "\#(order.rawValue)""#))
+    }
+
+    @Test(
+        "an animation's `order` that is not null where `by` is, missing, or not an order's name stops when read",
+        arguments: [
+            (
+                #"{ "entrance": null, "loop": null, "exit": null, "by": null, "stagger": null, "order": "center" }"#,
+                #"clips[0].animation.order (clip): expected null where `by` is null, found "center""#
+            ),
+            (
+                #"{ "entrance": null, "loop": null, "exit": null, "by": "word", "stagger": 0.12 }"#,
+                #"clips[0].animation (clip): missing key "order""#
+            ),
+            (
+                #"{ "entrance": null, "loop": null, "exit": null, "by": "word", "stagger": 0.12, "order": "inward" }"#,
+                #"clips[0].animation.order (clip): unknown value "inward". Allowed: forward, backward, center, edges, random"#
+            )
+        ]
+    )
+    func refusesUnreadableOrder(
+        animation: String,
+        message: String
+    ) throws {
+        // Given
+        let text = try replacing("animation", ofClip: 0, with: animation, in: written(#"""
+            { "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4", "in": 0, "out": 3 } ],
+              "clips": [ { "title": "ab cd", "style": "title", "at": [0, 1], "position": [0, 0],
+                           "animation": { "preset": "frames/fade", "by": "word" } } ] }
+            """#))
+
+        // When
+        let error = #expect(throws: ModelError.self) { try sut.read(text) }
+
+        // Then
+        #expect(error?.description == message)
+    }
+
     @Test("a tracked media clip of video with a corner pin reads back with the track of its parent's media")
     func readsPinnedTrack() throws {
         // Given

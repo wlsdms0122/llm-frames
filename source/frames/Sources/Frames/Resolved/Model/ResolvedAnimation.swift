@@ -6,7 +6,7 @@
 //
 
 // The animation spans a clip takes, inline: an entrance and an exit by their `seconds`, a loop by its `period`, each
-// nil when it takes none, and a title's unit and stagger when its entrance and exit play by unit.
+// nil when it takes none, and a title's unit, stagger and order when its entrance and exit play by unit.
 struct ResolvedAnimation: Equatable, Sendable {
     // MARK: - Property
     static let none = ResolvedAnimation(entrance: nil, loop: nil, exit: nil, units: nil)

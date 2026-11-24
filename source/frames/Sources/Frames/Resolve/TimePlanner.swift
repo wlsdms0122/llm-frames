@@ -742,21 +742,21 @@ struct TimePlanner: Sendable {
         kind: ClipKind
     ) throws -> AnimationPlan {
         let spans: (entrance: PresetSpan?, loop: PresetSpan?, exit: PresetSpan?)
-        let unit: (by: TextUnit?, stagger: Double?)
+        let unit: (by: TextUnit?, stagger: Double?, order: UnitOrder?)
         switch choice {
         case .none:
             return .none
 
-        case let .preset(instance, by, stagger):
+        case let .preset(instance, by, stagger, order):
             let preset = try animationPreset(instance, place: place, kind: kind)
             spans = (
                 preset.entrance.map { PresetSpan(preset: instance.name, span: $0) },
                 preset.loop.map { PresetSpan(preset: instance.name, span: $0) },
                 preset.exit.map { PresetSpan(preset: instance.name, span: $0) }
             )
-            unit = (by, stagger)
+            unit = (by, stagger, order)
 
-        case let .split(entrance, exit, by, stagger):
+        case let .split(entrance, exit, by, stagger, order):
             let entrancePreset = try entrance.map { try animationPreset($0, place: place, kind: kind) }
             let exitPreset = try exit.map { try animationPreset($0, place: place, kind: kind) }
             spans = (
@@ -768,12 +768,19 @@ struct TimePlanner: Sendable {
                     exitPreset?.exit.map { PresetSpan(preset: instance.name, span: $0) }
                 }
             )
-            unit = (by, stagger)
+            unit = (by, stagger, order)
         }
 
         // A theme default the clip takes is not written at the clip, so its stops name the clip.
         let unitPlace = clip.animation == nil ? place : place.appending(key: "animation")
-        let units = try units(by: unit.by, stagger: unit.stagger, of: clip, place: unitPlace, kind: kind)
+        let units = try units(
+            by: unit.by,
+            stagger: unit.stagger,
+            order: unit.order,
+            of: clip,
+            place: unitPlace,
+            kind: kind
+        )
         guard units == nil || spans.entrance != nil || spans.exit != nil else {
             throw ResolveError.unitsWithoutSpan(place: unitPlace, kind: .clip(kind))
         }
@@ -781,22 +788,24 @@ struct TimePlanner: Sendable {
         return AnimationPlan(entrance: spans.entrance, loop: spans.loop, exit: spans.exit, units: units)
     }
 
-    // A stagger the choice leaves out is its unit's default.
+    // A stagger the choice leaves out is its unit's default, and an order it leaves out is reading order.
     private func units(
         by: TextUnit?,
         stagger: Double?,
+        order: UnitOrder?,
         of clip: Clip,
         place: Place,
         kind: ClipKind
     ) throws -> UnitStagger? {
         guard let by else {
             guard stagger == nil else { throw ResolveError.staggerWithoutBy(place: place, kind: .clip(kind)) }
+            guard order == nil else { throw ResolveError.orderWithoutBy(place: place, kind: .clip(kind)) }
 
             return nil
         }
         guard case .title = clip.content else { throw ResolveError.unitsOnNonTitle(place: place, kind: .clip(kind)) }
 
-        return UnitStagger(by: by, stagger: stagger ?? by.defaultStagger)
+        return UnitStagger(by: by, stagger: stagger ?? by.defaultStagger, order: order ?? .forward)
     }
 
     // The presets a theme default names were found when the theme was validated, so only a clip's own choice stops

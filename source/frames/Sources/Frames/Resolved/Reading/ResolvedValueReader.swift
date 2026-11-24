@@ -487,10 +487,10 @@ struct ResolvedValueReader: Sendable {
         try span(value.object(keys: Self.spanKeys))
     }
 
-    // An entrance and an exit by their `seconds`, a loop by its `period`, each `null` when it takes none, and `by` and
-    // `stagger` both `null` or both given.
+    // An entrance and an exit by their `seconds`, a loop by its `period`, each `null` when it takes none, and `by`,
+    // `stagger` and `order` all `null` or all given.
     func animation(_ value: PlacedJSONValue) throws -> ResolvedAnimation {
-        let animation = try value.object(keys: ["entrance", "loop", "exit", "by", "stagger"])
+        let animation = try value.object(keys: ["entrance", "loop", "exit", "by", "stagger", "order"])
         let span = { (key: String, length: String) throws -> AnimationSpan? in
             try animation.member(key).optional { value in
                 let span = try value.object(keys: [length] + Self.spanKeys)
@@ -832,8 +832,10 @@ struct ResolvedValueReader: Sendable {
     private func units(of animation: PlacedJSONObject) throws -> UnitStagger? {
         let by = try animation.member("by")
         let stagger = try animation.member("stagger")
+        let order = try animation.member("order")
         guard !by.isNull else {
             guard stagger.isNull else { throw stagger.wrongType("null where `by` is null") }
+            guard order.isNull else { throw order.wrongType("null where `by` is null") }
 
             return nil
         }
@@ -841,8 +843,9 @@ struct ResolvedValueReader: Sendable {
         let unit = try by.name(among: TextUnit.allCases.map(\.rawValue), TextUnit.init(rawValue:))
         let seconds = try stagger.number()
         guard seconds >= 0 else { throw stagger.wrongType("a number 0 or more") }
+        let ranking = try order.name(among: UnitOrder.allCases.map(\.rawValue), UnitOrder.init(rawValue:))
 
-        return UnitStagger(by: unit, stagger: seconds)
+        return UnitStagger(by: unit, stagger: seconds, order: ranking)
     }
 
     // A unit's part is `[run, piece, x0, x1]`: a piece of one of `runs` with a highlight or an underline, the piece one
