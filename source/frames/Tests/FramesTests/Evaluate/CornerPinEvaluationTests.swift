@@ -693,6 +693,36 @@ struct CornerPinEvaluationTests {
         #expect(try DisplayListReader().read(DisplayListWriter().write(list)).samples?.count == 16)
     }
 
+    @Test("a tracked corner pin with motionBlur is carried by the homography of the media frame of T in every sample, though the exposure crosses into a frame whose quad differs")
+    func carriesTrackedCornerPinAtT() throws {
+        // Given
+        // `/abs/screen.mp4` shows a new frame every 0.1 seconds. From 0.1 to 0.9 the target [0, 0, 100, 100] is seen as
+        // one trapezoid and from 1 as a narrower one, so the two homographies differ and neither is a similarity. The
+        // exposure of the frame at 0.99 runs from 0.990625 to 1.009375, across the media frames at 0.9 and 1.
+        let target = Quad(Rectangle(x: 0, y: 0, width: 100, height: 100))
+        let near = Quad(topLeft: Point(x: 0, y: 0), topRight: Point(x: 100, y: 0), bottomRight: Point(x: 90, y: 90), bottomLeft: Point(x: 10, y: 90))
+        let far = Quad(topLeft: Point(x: 0, y: 0), topRight: Point(x: 100, y: 0), bottomRight: Point(x: 60, y: 50), bottomLeft: Point(x: 40, y: 50))
+        let quads = [(0.0, target)] + (1...20).map { (Double($0) / 10, $0 < 10 ? near : far) }
+        let sequence = try resolved(document: #"""
+            { "kind": "sequence", "format": { "size": [1920, 1080], "fps": 25 },
+              "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "out": 2, "connected": [
+                { "id": "pinned", "media": "/abs/card.png", "parent": "screen", "at": [0, 2], "width": 300, "motionBlur": true,
+                  "track": { "time": 0, "area": [0, 0, 100, 100] }, "cornerPin": [[10, 10], [90, 10], [90, 40], [10, 40]] } ] } ] }
+            """#, tracker: QuadTrackerTable(base: target, quads: quads))
+
+        // When
+        let samples = try #require(sut.displayList(of: sequence, at: 0.99).samples)
+
+        // Then
+        let atT = sut.displayListWithoutMotionBlur(of: sequence, at: 0.99).items
+        let next = sut.displayListWithoutMotionBlur(of: sequence, at: 1).items
+        let drawnAtT = try drawnCornerPin(of: "pinned", in: atT)
+        let drawnNext = try drawnCornerPin(of: "pinned", in: next)
+        #expect(samples.count == 16)
+        #expect(samples.allSatisfy { $0 == atT })
+        #expect(zip(drawnAtT, drawnNext).contains { abs($0.x - $1.x) > 1 || abs($0.y - $1.y) > 1 })
+    }
+
     // MARK: - Private
     // The corner pin of the one group in the inner list of the storyline item first in `items`.
     private func storylineCornerPin(in items: [DisplayItem]) -> Quad? {
@@ -721,6 +751,16 @@ struct CornerPinEvaluationTests {
         }
 
         return try #require(picture.cornerPin)
+    }
+
+    // The corners the clip named `id` draws its group at in `items`, in the pixels of the list.
+    private func drawnCornerPin(
+        of id: String,
+        in items: [DisplayItem]
+    ) throws -> [Point] {
+        let item = try #require(items.first { $0.origin?.id == id })
+
+        return try cornerPin(of: id, in: items).corners.map(item.transform.apply(to:))
     }
 
     private func isClose(
