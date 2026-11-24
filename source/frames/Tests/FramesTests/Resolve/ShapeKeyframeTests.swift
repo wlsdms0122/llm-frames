@@ -146,6 +146,10 @@ struct ShapeKeyframeTests {
                 #"clips[0].keyframes[0].stroke.cap (keyframe): a name, a boolean, a form or a static number is static and is written on the clip or the sequence, not in a keyframe"#
             ),
             (
+                #"{ "at": 0, "stroke": { "align": "inside" } }, { "at": 0.5, "stroke": { "width": 2 } }"#,
+                #"clips[0].keyframes[0].stroke.align (keyframe): a name, a boolean, a form or a static number is static and is written on the clip or the sequence, not in a keyframe"#
+            ),
+            (
                 ##"{ "at": 0, "fill": false }, { "at": 1, "fill": "#FFFFFF" }"##,
                 #"clips[0].keyframes[0].fill (keyframe): false or "none" turns a value off and is written on the clip, not in a keyframe"#
             ),
@@ -277,7 +281,7 @@ struct ShapeKeyframeTests {
     func roundTripsTimedValues() throws {
         // Given
         let shape = try resolvedShape(##"""
-            { "shape": "rect", "area": [0, 0, 10, 10], "style": "bar", "fill": "#FFFFFF",
+            { "shape": "rect", "area": [0, 0, 10, 10], "style": "bar", "fill": "#FFFFFF", "stroke": { "align": "outside" },
               "keyframes": [ { "at": 0, "stroke": { "width": 0 }, "shadow": { "color": "#000000" }, "outset": 0, "ease": "ease-in" },
                              { "at": 1, "stroke": { "width": null }, "shadow": { "color": "#FF000080" }, "outset": 2 } ] }
             """##)

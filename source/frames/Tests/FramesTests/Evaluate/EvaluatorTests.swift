@@ -1208,6 +1208,42 @@ struct EvaluatorTests {
         )])
     }
 
+    @Test("a document's shape strokes and media borders are evaluated with their align, written into the display list")
+    func carriesAlign() throws {
+        // Given
+        let document = #"""
+            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "in": 0, "out": 2 } ],
+              "clips": [ { "shape": "rect", "area": [100, 100, 200, 100], "stroke": { "width": 8, "align": "inside" }, "at": [0, 2] },
+                         { "shape": "ellipse", "area": [400, 100, 200, 100], "stroke": { "width": 8 }, "at": [0, 2] },
+                         { "media": "/abs/page.png", "width": 300, "border": { "align": "outside" }, "at": [0, 2] },
+                         { "media": "/abs/page.png", "width": 300, "border": true, "at": [0, 2] } ] }
+            """#
+        let sequence = try ResolvedSequence(plan: Fixture.documentPlanner.plan(Fixture.json(document)), hashes: FileHashTable())
+
+        // When
+        let list = sut.displayList(of: sequence, at: 1)
+
+        // Then
+        let aligns = list.items.compactMap { item -> StrokeAlign? in
+            switch item.content {
+            case let .path(path):
+                path.stroke?.align
+
+            case let .picture(picture):
+                picture.border?.align
+
+            default:
+                nil
+            }
+        }
+        let items = try #require(try Fixture.json(DisplayListWriter().write(list)).objectValue?["items"]?.arrayValue)
+        let written = items.compactMap { item in
+            (item.objectValue?["stroke"] ?? item.objectValue?["border"])?.objectValue?["align"]
+        }
+        #expect(aligns == [.inside, .center, .outside, .inside])
+        #expect(written == ["inside", "center", "outside", "inside"].map(JSONValue.string))
+    }
+
     // MARK: - Private
     private func storylineClip(
         _ media: ResolvedMediaContent?,

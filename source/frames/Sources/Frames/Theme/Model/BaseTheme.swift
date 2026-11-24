@@ -19,7 +19,7 @@ package enum BaseTheme {
           },
           "shapes": {},
           "placement": { "padding": 96 },
-          "border":    { "width": 4, "color": "accent" },
+          "border":    { "width": 4, "color": "accent", "align": "inside" },
           "shadow":    { "radius": 32, "offset": [0, 12], "color": "shadow" },
           "defaults":  { "transition": "cut", "filter": "none",
                          "animation": { "title": {}, "shape": "none", "media": "none", "adjust": "none" } }

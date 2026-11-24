@@ -687,6 +687,121 @@ struct PathDrawerTests {
         expect(bitmap, at: [(78, 35), (78, 64), (21, 64), (21, 35)], inked: [true, false, true, false])
     }
 
+    // A 10 wide stroke on an outline whose left side lies along x = 20 and whose middle row is y = 50: inside it covers
+    // x from 20 to 30, centred from 15 to 25 and outside from 10 to 20. The circle of radius 30 about (50, 50) reaches
+    // x = 20 on that row, and its stroke is the same band there within a hundredth of a pixel. The closed path is the
+    // rect's square wound the other way, which leaves its inside where it is.
+    @Test(
+        "a stroke's width lies inside, centred on or outside its outline as its align says, on a rect, an ellipse and a closed path",
+        arguments: [
+            PathGeometry.rect(Rectangle(x: 20, y: 20, width: 60, height: 60), radius: 0),
+            .ellipse(Rectangle(x: 20, y: 20, width: 60, height: 60)),
+            .polyline([Point(x: 20, y: 20), Point(x: 20, y: 80), Point(x: 80, y: 80), Point(x: 80, y: 20)], isClosed: true)
+        ],
+        [
+            (StrokeAlign.inside, [false, false, false, true, true, false]),
+            (StrokeAlign.center, [false, false, true, true, false, false]),
+            (StrokeAlign.outside, [false, true, true, false, false, false])
+        ]
+    )
+    func alignsStroke(
+        geometry: PathGeometry,
+        expectation: (StrokeAlign, [Bool])
+    ) throws {
+        // Given
+        let (align, inked) = expectation
+        let path = stroked(geometry, width: 10, align: align)
+
+        // When
+        let bitmap = try sut.frame(of: list([path]))
+
+        // Then
+        expect(bitmap, at: [(8, 49), (12, 49), (17, 49), (22, 49), (28, 49), (32, 49)], inked: inked)
+        try expectDrawnInsideBounds(of: path)
+    }
+
+    // A 10 wide stroke outside the square from (20, 20) to (80, 80): the miter fills the corner square from (10, 10) to
+    // (20, 20), and the round join the quarter circle of radius 10 about (20, 20), which leaves (11, 11) out.
+    @Test(
+        "an outside stroke's miter join keeps a square corner square and its round join rounds it by the stroke's width",
+        arguments: [(StrokeJoin.miter, [true, true]), (StrokeJoin.round, [false, true])]
+    )
+    func joinsOutsideStroke(
+        join: StrokeJoin,
+        inked: [Bool]
+    ) throws {
+        // Given
+        let square = PathGeometry.rect(Rectangle(x: 20, y: 20, width: 60, height: 60), radius: 0)
+        let path = stroked(square, width: 10, align: .outside, join: join)
+
+        // When
+        let bitmap = try sut.frame(of: list([path]))
+
+        // Then
+        expect(bitmap, at: [(11, 11), (15, 15)], inked: inked)
+    }
+
+    // The top left corner of the rect from (20, 20) to (80, 80) is an arc of radius 10 about (30, 30). A 10 wide stroke
+    // covers the distances from (30, 30) up to 10 inside, from 5 to 15 centred and from 10 to 20 outside: pixel (25, 25)
+    // lies from 5.7 to 7.1, pixel (17, 17) from 17 to 18.4 and pixel (12, 12) past 24.
+    @Test(
+        "a stroke on a rounded rect follows its rounded corners on the side its align names",
+        arguments: [
+            (StrokeAlign.inside, [true, false, false]),
+            (StrokeAlign.center, [true, false, false]),
+            (StrokeAlign.outside, [false, true, false])
+        ]
+    )
+    func alignsStrokeOnRoundedRect(
+        align: StrokeAlign,
+        inked: [Bool]
+    ) throws {
+        // Given
+        let path = stroked(.rect(Rectangle(x: 20, y: 20, width: 60, height: 60), radius: 10), width: 10, align: align)
+
+        // When
+        let bitmap = try sut.frame(of: list([path]))
+
+        // Then
+        expect(bitmap, at: [(25, 25), (17, 17), (12, 12)], inked: inked)
+        expect(bitmap, at: [(12, 49), (28, 49)], inked: [align == .outside, align == .inside])
+        try expectDrawnInsideBounds(of: path)
+    }
+
+    // The top edge of the rect from (20, 20) to (80, 80) is trimmed to x from 30 to 70, its first sixth of 240 being
+    // the 10 from (20, 20) along it and its last the 50 from there, so (24, 25) lies before the piece.
+    @Test("a trimmed and dashed inside stroke is the wider stroke's piece and dashes cut to the inside of the outline")
+    func cutsTrimmedDashedInsideStroke() throws {
+        // Given
+        let path = PathItem(
+            geometry: .rect(Rectangle(x: 20, y: 20, width: 60, height: 60), radius: 0),
+            fill: nil,
+            stroke: PathStroke(
+                width: 10,
+                paint: .color(Self.black),
+                align: .inside,
+                join: .miter,
+                cap: .butt,
+                start: .none,
+                end: .none,
+                dash: [10, 10]
+            ),
+            trim: Trim(start: 10.0 / 240, end: 50.0 / 240)
+        )
+
+        // When
+        let bitmap = try sut.frame(of: list([path]))
+
+        // Then
+        // The dashes lie from x = 30 to 40 and from 50 to 60 along the top edge, 10 deep below it.
+        expect(
+            bitmap,
+            at: [(34, 25), (54, 25), (44, 25), (24, 25), (34, 17), (64, 25)],
+            inked: [true, true, false, false, false, false]
+        )
+        try expectDrawnInsideBounds(of: path)
+    }
+
     // MARK: - Private
     private func list(_ paths: [PathItem]) -> DisplayList {
         DisplayList(
@@ -700,6 +815,7 @@ struct PathDrawerTests {
     private func stroked(
         _ geometry: PathGeometry,
         width: Double,
+        align: StrokeAlign = .center,
         join: StrokeJoin = .miter,
         cap: StrokeCap = .butt,
         start: StrokeEnd = .none,
@@ -709,7 +825,15 @@ struct PathDrawerTests {
         PathItem(
             geometry: geometry,
             fill: nil,
-            stroke: PathStroke(width: width, paint: .color(Self.black), join: join, cap: cap, start: start, end: end),
+            stroke: PathStroke(
+                width: width,
+                paint: .color(Self.black),
+                align: align,
+                join: join,
+                cap: cap,
+                start: start,
+                end: end
+            ),
             trim: trim
         )
     }

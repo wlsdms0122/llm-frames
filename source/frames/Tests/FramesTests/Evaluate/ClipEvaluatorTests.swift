@@ -106,6 +106,50 @@ struct ClipEvaluatorTests {
         #expect(item.reveal == Rectangle(x: -2, y: 0, width: 46, height: 52))
     }
 
+    @Test("a media clip's reveal wipes across its border where it lies outside its box, scaled with the clip")
+    func revealsMediaClipWithOutsideBorder() throws {
+        // Given
+        let entrance = AnimationSpan(length: 1, span: Span(ease: .linear, revealFrom: .left, keys: [
+            SpanKey(t: 0, values: [.reveal: 0]),
+            SpanKey(t: 1, values: [.reveal: 1])
+        ]))
+        let appearance = ResolvedMediaAppearance(
+            conform: .fit,
+            radius: 0,
+            border: .border(MediaBorder(width: 4, color: white, align: .outside)),
+            shadow: .off
+        )
+        let clip = ResolvedClip(
+            place: "clips[0]",
+            id: nil,
+            content: .media(ResolvedMediaClip(media: .pinned(media), timing: nil, filter: .off, appearance: appearance)),
+            start: 0,
+            end: 4,
+            lane: 1,
+            storyline: nil,
+            parent: nil,
+            box: box(size: Size(width: 80, height: 40), at: Point(x: 100, y: 100), anchor: Point(x: 40, y: 20)),
+            crop: nil,
+            mask: nil,
+            trackMatte: nil,
+            track: nil,
+            opacity: [Keyframe(at: 0, value: 1)],
+            scale: [Keyframe(at: 0, value: Scale(x: 2, y: 2))],
+            rotation: [Keyframe(at: 0, value: 0)],
+            blend: "normal",
+            animation: ResolvedAnimation(entrance: entrance, loop: nil, exit: nil, units: nil)
+        )
+
+        // When
+        let items = sut.items(of: clip, in: frame, picture: .media(MediaFrame(media: media, index: 0)), trackMatte: nil, compositing: .encoded, seed: 0, at: SampleTime(0.5))
+
+        // Then
+        // The border's width 4 is a length scaled with the clip, 8 output pixels under its scale of 2 and 4 of the box's
+        // own, so the box spans 88 x 48 from (-4, -4) with it. Halfway, the left half of that shows.
+        let item = try #require(items.first)
+        #expect(item.reveal == Rectangle(x: -4, y: -4, width: 44, height: 48))
+    }
+
     @Test("a title's keyframed scale and rotation act about its anchor point, and its background fills its whole box")
     func transformsTitleAboutAnchor() throws {
         // Given

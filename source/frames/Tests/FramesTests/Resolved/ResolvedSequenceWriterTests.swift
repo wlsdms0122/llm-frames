@@ -301,7 +301,8 @@ struct ResolvedSequenceWriterTests {
         #expect(clip["radius"] == held(.number(6.75)))
         #expect(clip["border"] == .object(JSONObject(members: [
             JSONMember(key: "width", value: held(.number(2.25))),
-            JSONMember(key: "color", value: held(.string("color(srgb 1 1 1 / 1)")))
+            JSONMember(key: "color", value: held(.string("color(srgb 1 1 1 / 1)"))),
+            JSONMember(key: "align", value: .string("inside"))
         ])))
         #expect(clip["shadow"] == .object(JSONObject(members: [
             JSONMember(key: "radius", value: held(.number(18))),
@@ -543,6 +544,7 @@ struct ResolvedSequenceWriterTests {
         #expect(clips[0]["stroke"] == .object(JSONObject(members: [
             JSONMember(key: "color", value: held(.string("color(srgb 0.9294117647058824 0.1607843137254902 0.1607843137254902 / 1)"))),
             JSONMember(key: "width", value: held(.number(8 * scale))),
+            JSONMember(key: "align", value: .string("center")),
             JSONMember(key: "join", value: .string("round")),
             JSONMember(key: "cap", value: .string("butt")),
             JSONMember(key: "start", value: .string("none")),

@@ -14,6 +14,7 @@ import Testing
 @Suite("Value type structure Tests")
 struct ValueTypeStructureTests {
     // MARK: - Property
+    private static let aligns = StrokeAlign.allCases.map(\.rawValue)
     private static let joins = StrokeJoin.allCases.map(\.rawValue)
     private static let caps = StrokeCap.allCases.map(\.rawValue)
     private static let ends = StrokeEnd.allCases.map(\.rawValue)
@@ -46,6 +47,7 @@ struct ValueTypeStructureTests {
                     KeyRule("color", .color),
                     KeyRule("gradient", Self.gradient),
                     KeyRule("width", .number(.positive)),
+                    KeyRule("align", .literal(Self.aligns)),
                     KeyRule("join", .literal(Self.joins)),
                     KeyRule("cap", .literal(Self.caps)),
                     KeyRule("start", .literal(Self.ends)),
@@ -76,10 +78,7 @@ struct ValueTypeStructureTests {
         let shadow = ThemeKeyTable.theme.rule(named: "shadow")?.type
 
         // Then
-        #expect(border == .object(ObjectTable(
-            kind: "border",
-            rules: [KeyRule("width", .number(.positive)), KeyRule("color", .color)]
-        )))
+        #expect(border == Self.border)
         #expect(shadow == Self.shadow)
     }
 
@@ -235,14 +234,14 @@ struct ValueTypeStructureTests {
         ))
     }
 
-    @Test("a clip's border takes only the border's shorthands, and its radius and outset are lengths 0 or more")
+    @Test("a clip's border takes `true`, `false`, a colour or a border object, and its radius and outset are lengths 0 or more")
     func readsClipLooks() {
         // When
         let media = ClipKeyTable.table(for: .media(.video), in: .sequence)
         let rect = ClipKeyTable.table(for: .shape("rect"), in: .sequence)
 
         // Then
-        #expect(media.rule(named: "border")?.type == .oneOf([.exactly(.bool(true)), .color]))
+        #expect(media.rule(named: "border")?.type == .oneOf([.bool, .color, Self.border]))
         #expect(media.rule(named: "radius")?.type == .number(.nonNegative))
         #expect(rect.rule(named: "radius")?.type == .number(.nonNegative))
         #expect(rect.rule(named: "outset")?.type == .number(.nonNegative))
@@ -360,6 +359,14 @@ struct ValueTypeStructureTests {
         groups: [KeyGroup(keys: ["linear", "radial"], isExclusive: true)]
     ))
 
+    private static let border = ValueType.object(ObjectTable(
+        kind: "border",
+        rules: [
+            KeyRule("width", .number(.positive)),
+            KeyRule("color", .color),
+            KeyRule("align", .literal(aligns))
+        ]
+    ))
     private static let shadow = ValueType.object(ObjectTable(
         kind: "shadow",
         rules: [KeyRule("radius", .number(.nonNegative)), KeyRule("offset", .numbers(2, .any)), KeyRule("color", .color)]

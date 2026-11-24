@@ -52,7 +52,7 @@ The base theme is the floor every theme merges over, not the look of a kind of r
   },
   "shapes": {},
   "placement": { "padding": 96 },
-  "border": { "width": 4, "color": "accent" },
+  "border": { "width": 4, "color": "accent", "align": "inside" },
   "shadow": { "radius": 32, "offset": [0, 12], "color": "shadow" },
   "defaults": { "transition": "cut", "filter": "none",
                 "animation": { "title": {}, "shape": "none", "media": "none", "adjust": "none" } }
@@ -67,7 +67,7 @@ The base theme is the floor every theme merges over, not the look of a kind of r
 | `styles` | text styles ([Styles](#styles)) |
 | `shapes` | shape styles ([Shape styles](#shape-styles)) |
 | `placement.padding` | the title safe margin: the distance of every placement name from the edges of the frame ([FRAMES-1](../FRAMES-1/SPEC.md)). 96 is 5% of 1920 |
-| `border` | `{width, color}`: the border a media clip draws with `border: true`. A clip's `border` colour replaces `color` ([FRAMES-11](../FRAMES-11/SPEC.md)) |
+| `border` | `{width, color, align}`: the border a media clip draws with `border: true`, its `align` `inside`, `center` or `outside`, the side of the box's edge it lies on ([FRAMES-11](../FRAMES-11/SPEC.md)). A clip's `border` colour replaces `color`, and its object the keys it writes |
 | `shadow` | `{radius, offset, color}`: the drop shadow a clip draws with `shadow: true`. `radius` is the standard deviation of its blur and `offset` is `[x, y]`, both theme lengths ([FRAMES-20](../FRAMES-20/SPEC.md)) |
 | `defaults` | the presets a clip takes when it names none ([Defaults](#defaults)) |
 
@@ -110,7 +110,7 @@ A shape style is a named set of defaults for a shape clip, as a text style is fo
 | Property | Form |
 | --- | --- |
 | `fill` | a colour, a gradient ([FRAMES-11](../FRAMES-11/SPEC.md)), or `false` for none |
-| `stroke` | `{color, gradient, width, join, cap, start, end, dash, dashOffset}`, its `color` a colour and its `gradient` a gradient, at most one of the two, or `false` for none |
+| `stroke` | `{color, gradient, width, align, join, cap, start, end, dash, dashOffset}`, its `color` a colour and its `gradient` a gradient, at most one of the two, or `false` for none |
 | `radius` | a theme length: the corner radius of a `rect` |
 | `outset` | a theme length: how far the outline a `rect` or `ellipse` draws grows on every side, its box staying as written |
 | `shadow` | `true` for on, with a weaker theme's shadow for this style or else the theme `shadow`, `false` for none, or `{radius, offset, color}`, whose missing keys come from the theme `shadow` |

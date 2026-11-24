@@ -5,17 +5,19 @@
 //  Created by JSilver on 11/18/26.
 //
 
-// What a `path` item covers in its own coordinates. A rect or an ellipse covers its rectangle grown by half its stroke,
-// less the rectangle shrunk by half its stroke when it is not filled. A filled path covers the convex hull of the
-// control points of its outline's segments, which holds its curve and the straight segment its fill closes an open path
-// with, and leaves out the tangents of an open path's ends, which shape nothing it draws. Its stroke as drawn after
-// `trim` covers, the line stopping at its arrowheads' bases, a band the stroke wide along each straight segment, and
-// along each curved one, cut into pieces of equal length, the hull of each piece's control points grown by half the
-// stroke along both axes, which holds the stroke since a cubic lies in the hull of its control points. Each adds what
-// its stroke draws past its outline grown by half its width (`PathItem.overhangs`): its arrowheads, miter joins and
-// square caps. Bevels, round joins and caps, rounded corners, the curve of an ellipse and the trim of a rect or an
-// ellipse are left out. The stroke is drawn in output pixels on the outline `transform` carries, so its band is taken
-// at its width over the transform's length factor, exact where the transform scales both axes alike.
+// What a `path` item covers in its own coordinates. A rect or an ellipse covers its rectangle grown by as far as its
+// stroke reaches past it, less the rectangle shrunk by as far as the stroke lies inside it when it is not filled. A
+// filled path covers the convex hull of the control points of its outline's segments, which holds its curve and the
+// straight segment its fill closes an open path with, and leaves out the tangents of an open path's ends, which shape
+// nothing it draws. Its stroke as drawn after `trim` covers, the line stopping at its arrowheads' bases, a band the
+// centred stroke it is cut from wide along each straight segment, and along each curved one, cut into pieces of equal
+// length, the hull of each piece's control points grown by half that stroke along both axes, which holds the stroke
+// since a cubic lies in the hull of its control points. Each adds what its stroke draws past its outline grown by its
+// reach (`PathItem.overhangs`): its arrowheads, miter joins and square caps. The half of the band an inside or outside
+// stroke is cut from, the side it does not lie on, is left in. Bevels, round joins and caps, rounded corners, the curve
+// of an ellipse and the trim of a rect or an ellipse are left out. The stroke is drawn in output pixels on the outline
+// `transform` carries, so its band is taken at its width over the transform's length factor, exact where the transform
+// scales both axes alike.
 extension ItemCoverage {
     // MARK: - Property
     // The pieces a curved segment is cut into, whose control points lie closer to the curve the more there are.
@@ -30,12 +32,12 @@ extension ItemCoverage {
         let overhangs = path.overhangs(carriedBy: transform).map(ConvexPolygon.init(corners:))
         let factor = transform.lengthFactor
         let width = factor > 0 ? (stroke?.width ?? 0) / factor : 0
+        let reach = stroke?.align.reach ?? 0
 
         switch path.geometry {
         case let .rect(rectangle, _), let .ellipse(rectangle):
-            let half = width / 2
-            let outer = Self.inset(rectangle, by: -half)
-            let inner = Self.inset(rectangle, by: half)
+            let outer = Self.inset(rectangle, by: -width * reach)
+            let inner = Self.inset(rectangle, by: width * (1 - reach))
             let isHollow = path.fill == nil && inner.width > 0 && inner.height > 0
             self.init(
                 pieces: (path.fill == nil && stroke == nil ? [] : [ConvexPolygon(rectangle: outer)]) + overhangs,
@@ -45,7 +47,7 @@ extension ItemCoverage {
         case .path:
             let outline = PathOutline(path.geometry)
             let fill = path.fill == nil ? [] : [ConvexPolygon(hullOf: outline.segments.flatMap(\.hullPoints))]
-            let line = Self.pieces(of: outline, path: path, width: width)
+            let line = Self.pieces(of: outline, path: path, width: stroke.map { $0.align.tracedWidth(of: width) } ?? 0)
             self.init(pieces: fill + line + overhangs)
         }
     }

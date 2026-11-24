@@ -71,6 +71,14 @@ struct ShapeAppearanceTests {
                 #"clips[0] (rect): the shape has neither a fill nor a stroke after its style, so it draws nothing"#
             ),
             (
+                #"{ "shape": "path", "points": [[0, 0], [10, 0], [5, 10]], "stroke": { "width": 2, "align": "inside" } }"#,
+                #"clips[0].stroke (path): a stroke "inside" its outline needs a closed outline, and the path is open"#
+            ),
+            (
+                #"{ "shape": "rect", "area": [0, 0, 10, 10], "style": "outline", "stroke": { "align": "outside" } }"#,
+                #"clips[0].stroke (rect): a stroke "outside" its outline takes no arrowhead, which is centred on the end of the stroke"#
+            ),
+            (
                 #"{ "shape": "rect", "area": [0, 0, 10, 10], "style": "box" }"#,
                 #"clips[0].style (rect): shape style "box" is not in shapes, which hold "outline", "pointer""#
             ),
@@ -154,6 +162,25 @@ struct ShapeAppearanceTests {
         #expect(shape.shadow.shadow() == DropShadow(radius: 2, offset: Point(x: 0, y: 4), color: Color(written: "#00000080")))
         #expect(shape.radius == 0)
         #expect(shape.geometry == .area(outset: 0, anchor: nil))
+    }
+
+    @Test(
+        "a closed path, a rect and an ellipse take a stroke inside or outside their outline, and a stroke is centred where no layer gives its align",
+        arguments: [
+            (#"{ "shape": "path", "points": [[0, 0], [10, 0], [5, 10]], "closed": true, "stroke": { "width": 2, "align": "inside" } }"#, StrokeAlign.inside),
+            (#"{ "shape": "rect", "area": [0, 0, 10, 10], "style": "pointer", "stroke": { "align": "outside" } }"#, .outside),
+            (#"{ "shape": "ellipse", "area": [0, 0, 10, 10], "stroke": { "width": 2 } }"#, .center)
+        ]
+    )
+    func takesAlign(
+        clip: String,
+        align: StrokeAlign
+    ) throws {
+        // When
+        let shape = try appearance(clip)
+
+        // Then
+        #expect(shape.stroke.stroke()?.align == align)
     }
 
     @Test("a stroke colour over a style whose stroke a stronger theme turns off stops, naming the clip and that theme")

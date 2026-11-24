@@ -312,16 +312,16 @@ final class FrameDrawer {
         return nil
     }
 
-    // The box of what the item draws in its own coordinates: a picture's `dest`, the box of a path's or glyphs' outlines
-    // and strokes, and for an adjustment the list's frame carried back to them and cut to what its masks let through,
-    // nil where its transform flattens the plane.
+    // The box of what the item draws in its own coordinates: a picture's `dest` with its border, the box of a path's or
+    // glyphs' outlines and strokes, and for an adjustment the list's frame carried back to them and cut to what its
+    // masks let through, nil where its transform flattens the plane.
     private func drawnBounds(
         of item: DisplayItem,
         in list: DisplayList
     ) -> CGRect? {
         switch item.content {
         case let .picture(picture):
-            return CGRect(picture.destination)
+            return CGRect(picture.drawnBounds(carriedBy: item.transform))
 
         case let .path(path):
             return CGRect(path.drawnBounds(carriedBy: item.transform))

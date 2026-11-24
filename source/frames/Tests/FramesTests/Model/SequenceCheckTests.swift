@@ -663,7 +663,7 @@ struct SequenceCheckTests {
             ##"{ "clips": [ { "shape": "rect", "fill": "#12345" } ] }"##,
             #"{ "clips": [ { "shape": "rect", "stroke": { "width": 8 }, "blend": "linear-dodge" } ] }"#,
             #"{ "clips": [ { "title": "a", "style": "s", "placement": "middle" } ] }"#,
-            #"{ "clips": [ { "media": "/abs/log.png", "at": [0, 1], "border": false } ] }"#,
+            #"{ "clips": [ { "media": "/abs/log.png", "at": [0, 1], "border": 4 } ] }"#,
             #"{ "clips": [ { "shape": "rect", "stroke": { "width": 8 }, "keyframes": [ { "at": 0, "opacity": 1, "ease": "ease" } ] } ] }"#,
             #"{ "clips": [ { "shape": "rect", "stroke": { "width": 8 }, "keyframes": [ { "at": 0, "opacity": 1, "ease": [1.2, 0, 0.5, 1] } ] } ] }"#,
             #"{ "storyline": [ { "media": "/abs/run.mp4", "transition": { "preset": "frames/flash" } } ] }"#,
@@ -1050,6 +1050,53 @@ struct SequenceCheckTests {
 
         // When, Then
         try sut.check(document: document)
+    }
+
+    @Test("a stroke and a border take each align, and a border also true, false, a colour and an object of some of its keys", arguments: StrokeAlign.allCases)
+    func acceptsAlign(align: StrokeAlign) throws {
+        // Given
+        let document = try Fixture.json(##"""
+            { "kind": "sequence", "theme": { "border": { "align": "\##(align.rawValue)" },
+                                             "shapes": { "frame": { "stroke": { "width": 2, "align": "\##(align.rawValue)" } } } },
+              "storyline": [ { "media": "/abs/run.mp4", "border": { "align": "\##(align.rawValue)" } } ],
+              "clips": [ { "shape": "rect", "area": [0, 0, 10, 10], "stroke": { "width": 2, "align": "\##(align.rawValue)" }, "at": [0, 1] },
+                         { "media": "/abs/card.png", "at": [0, 1], "border": { "width": 2, "color": "#FF0000", "align": "\##(align.rawValue)" } },
+                         { "media": "/abs/card.png", "at": [0, 1], "border": true },
+                         { "media": "/abs/card.png", "at": [0, 1], "border": false },
+                         { "media": "/abs/card.png", "at": [0, 1], "border": "#FF0000" } ] }
+            """##)
+
+        // When, Then
+        try sut.check(document: document)
+    }
+
+    @Test(
+        "an align other than inside, center or outside stops, naming its place",
+        arguments: [
+            (
+                #"{ "clips": [ { "shape": "rect", "area": [0, 0, 10, 10], "stroke": { "width": 2, "align": "middle" } } ] }"#,
+                #"clips[0].stroke.align (stroke): unknown value "middle". Allowed: inside, center, outside"#
+            ),
+            (
+                #"{ "clips": [ { "media": "/abs/card.png", "at": [0, 1], "border": { "align": "middle" } } ] }"#,
+                #"clips[0].border.align (border): unknown value "middle". Allowed: inside, center, outside"#
+            ),
+            (
+                #"{ "theme": { "border": { "align": "middle" } } }"#,
+                #"theme.border.align (border): unknown value "middle". Allowed: inside, center, outside"#
+            )
+        ]
+    )
+    func refusesUnknownAlign(
+        body: String,
+        message: String
+    ) throws {
+        // Given
+        let document = try Fixture.json(#"{ "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4" } ], "# + body.dropFirst())
+
+        // When, Then
+        let error = #expect(throws: ModelError.self) { try sut.check(document: document) }
+        #expect(error?.description == message)
     }
 
     @Test(

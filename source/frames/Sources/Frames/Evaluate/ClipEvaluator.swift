@@ -151,8 +151,6 @@ struct ClipEvaluator: Sendable {
                     carried: 1
                 )
             )
-            // The border lies inside the box, so only the shadow reaches past it.
-            let receiver = item.shadow.map { item.destination.union($0.castBounds(of: item.destination)) }
             return [boxItem(
                 of: clip,
                 box: box,
@@ -162,7 +160,7 @@ struct ClipEvaluator: Sendable {
                 in: space,
                 content: .picture(item),
                 at: time
-            ) { _ in receiver ?? item.destination }]
+            ) { item.receiverBox(carriedBy: $0) }]
 
         case let .shape(shape):
             return shapeEvaluator.items(of: shape, clip: clip, sample: sample, in: space, at: time)
@@ -231,7 +229,6 @@ struct ClipEvaluator: Sendable {
                     carried: 1
                 )
             )
-            let receiver = item.shadow.map { box.union($0.castBounds(of: box)) } ?? box
             let crop = clip.crop(at: time).map { crop in
                 AffineTransform(translation: Point(x: -crop.x, y: -crop.y))
                     .concatenating(AffineTransform(mapping: Size(width: crop.width, height: crop.height), onto: box))
@@ -240,7 +237,7 @@ struct ClipEvaluator: Sendable {
                 box,
                 .picture(item),
                 .identity,
-                { Rectangle(bounding: $0.apply(toCornersOf: receiver)) },
+                { Rectangle(bounding: $0.apply(toCornersOf: item.receiverBox(carriedBy: $0))) },
                 crop ?? .identity
             )
 

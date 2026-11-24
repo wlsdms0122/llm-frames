@@ -86,12 +86,6 @@ extension ValueType {
         }
     }
 
-    // A look object a clip writes only by its shorthands, as a media clip's `border` is.
-    init(shorthandsOf structure: ValueStructure) {
-        let shorthands = if case let .object(object) = structure { object.shorthands } else { [ObjectShorthand]() }
-        self = .oneOf(shorthands.map(Self.type(of:)))
-    }
-
     // MARK: - Public
     // MARK: - Private
     // `true` for the value below, a colour for its colour, and a point for its point.

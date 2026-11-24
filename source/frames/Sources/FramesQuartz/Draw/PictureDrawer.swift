@@ -10,14 +10,14 @@ import CoreImage
 import Frames
 
 // Draws a picture item in its item's own coordinates: the source region scaled into the destination, filtered,
-// masked by its matte, its corners rounded and its border inside the destination's edge. A picture with no filter or
-// matte is drawn straight from its source, so it is resampled once on its way to the output. A filtered picture is
-// filtered at the scale the context shows its destination at, held to the pixel limit, its filter's lengths scaled
-// with it, so it is as sharp as the source it is drawn from. It is filtered over the part of its destination that
-// reaches the context, grown by how far its filter reads, on the pixel grid of the whole destination, so its filter's
-// grids and its matte lie where they lie on the whole (FRAMES-20 Pictures). `transform` carries the item's
-// coordinates to output pixels, which the border's width is in. Its bitmaps are in the form `compositing` names, its
-// list's, so the picture is resampled, filtered and cut in that form.
+// masked by its matte, its corners rounded, and its border over it along the destination's edge. A picture with no
+// filter or matte is drawn straight from its source, so it is resampled once on its way to the output. A filtered
+// picture is filtered at the scale the context shows its destination at, held to the pixel limit, its filter's
+// lengths scaled with it, so it is as sharp as the source it is drawn from. It is filtered over the part of its
+// destination that reaches the context, grown by how far its filter reads, on the pixel grid of the whole
+// destination, so its filter's grids and its matte lie where they lie on the whole (FRAMES-20 Pictures). `transform`
+// carries the item's coordinates to output pixels, which the border's width is in. Its bitmaps are in the form
+// `compositing` names, its list's, so the picture is resampled, filtered and cut in that form.
 struct PictureDrawer {
     // MARK: - Property
     private let chain: FilterChain
@@ -48,19 +48,20 @@ struct PictureDrawer {
             placement = placed
         }
         guard !item.filter.isEmpty || item.matte != nil else {
-            framed(item, carriedBy: transform, in: context) { context in
+            framed(item, in: context) { context in
                 guard let source else { return }
 
                 context.concatenate(placement)
                 source.draw(in: context)
             }
+            border(of: item, carriedBy: transform, in: context)
 
             return
         }
 
         let reach = CGFloat(chain.reach(of: item.filter))
         let region = context.boundingBoxOfClipPath.insetBy(dx: -reach, dy: -reach).intersection(destination)
-        guard !region.isNull, !region.isEmpty else { return }
+        guard !region.isNull, !region.isEmpty else { return border(of: item, carriedBy: transform, in: context) }
 
         let scale = scale(of: region, reaching: reach, in: context)
         guard scale > 0 else { return }
@@ -106,10 +107,11 @@ struct PictureDrawer {
         )
         let finished = try FrameContext(holding: partSize, compositing: compositing)
         finished.context.concatenate(local)
-        framed(item, carriedBy: transform, in: finished.context) { context in
+        framed(item, in: finished.context) { context in
             context.drawUpright(filtered, in: bounds)
         }
         context.drawUpright(try finished.image(), in: bounds)
+        border(of: item, carriedBy: transform, in: context)
     }
 
     // MARK: - Private
@@ -150,38 +152,42 @@ struct PictureDrawer {
         return CGRect(x: left, y: top, width: right - left, height: bottom - top).intersection(whole)
     }
 
-    // What `drawing` draws cut to the destination with its corners rounded, and the border over it. `drawing` may move
-    // the context to place its source, and the border is drawn where the context stood before it.
+    // What `drawing` draws cut to the destination with its corners rounded. `drawing` may move the context to place
+    // its source.
     private func framed(
         _ item: PictureItem,
-        carriedBy transform: Frames.AffineTransform,
         in context: CGContext,
         drawing: (CGContext) -> Void
     ) {
-        let outline = PathOutline(.rect(item.destination, radius: item.radius))
         context.saveGState()
-        context.addPath(outline.path)
+        context.addPath(PathOutline(.rect(item.destination, radius: item.radius)).path)
         context.clip()
-        context.saveGState()
         drawing(context)
         context.restoreGState()
+    }
 
-        // The border is the inside half of a stroke twice its width along the carried outline, so its outer edge
-        // follows the rounded corners and it is as wide on every side in output pixels.
-        if let border = item.border, border.width > 0, let back = transform.inverse {
-            var matrix = CGAffineTransform(back)
-            let band = outline.carried(by: transform).path.copy(
-                strokingWithWidth: CGFloat(2 * border.width),
-                lineCap: .butt,
-                lineJoin: .miter,
-                miterLimit: CGFloat(StrokeJoin.miterLimit)
-            )
-            if let placed = band.copy(using: &matrix) {
-                context.addPath(placed)
-                context.setFillColor(border.color.cgColor)
-                context.fillPath(using: .winding)
-            }
-        }
-        context.restoreGState()
+    // The border along the carried outline of the destination with its corners rounded, a stroke with miter joins on
+    // the side of it the border's `align` names, so its edges follow the rounded corners and it is as wide on every
+    // side in output pixels. It is drawn over the picture, outside the destination where it lies there.
+    private func border(
+        of item: PictureItem,
+        carriedBy transform: Frames.AffineTransform,
+        in context: CGContext
+    ) {
+        guard let border = item.border, border.width > 0, let back = transform.inverse else { return }
+
+        let outline = PathOutline(.rect(item.destination, radius: item.radius)).carried(by: transform)
+        let band = outline.path.copy(
+            strokingWithWidth: CGFloat(border.align.tracedWidth(of: border.width)),
+            lineCap: .butt,
+            lineJoin: .miter,
+            miterLimit: CGFloat(StrokeJoin.miterLimit)
+        )
+        var matrix = CGAffineTransform(back)
+        guard let placed = band.cut(to: border.align, of: outline)?.copy(using: &matrix) else { return }
+
+        context.addPath(placed)
+        context.setFillColor(border.color.cgColor)
+        context.fillPath(using: .winding)
     }
 }

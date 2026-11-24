@@ -391,12 +391,12 @@ package struct Evaluator: Sendable {
         return [item]
     }
 
-    // A storyline clip with a corner pin drawn flat in its box B, `[0, 0, w, h]`, in a nested list of D, B and its
-    // shadow, with B's top left at (-x, -y) for D at (x, y), its masks inside. The group's `rect` is B in the list, its
-    // `dest` B and its corner pin Q(t); it carries the clip's track matte, and its opacity and blend are the outer
-    // item's. Nil for a solid, which takes no corner pin. Where the corner pin draws nothing, B having no area or Q(t)
-    // not being strictly convex, the group is nil, and in a sample list it is there with four points at [0, 0] as its
-    // corner pin (FRAMES-20 Pictures). A storyline clip's corner pin is in output pixels and does not track.
+    // A storyline clip with a corner pin drawn flat in its box B, `[0, 0, w, h]`, in a nested list of D, B with its
+    // border and shadow, with B's top left at (-x, -y) for D at (x, y), its masks inside. The group's `rect` is B in the
+    // list, its `dest` B and its corner pin Q(t); it carries the clip's track matte, and its opacity and blend are the
+    // outer item's. Nil for a solid, which takes no corner pin. Where the corner pin draws nothing, B having no area or
+    // Q(t) not being strictly convex, the group is nil, and in a sample list it is there with four points at [0, 0] as
+    // its corner pin (FRAMES-20 Pictures). A storyline clip's corner pin is in output pixels and does not track.
     private func group(
         of entry: ResolvedStorylineClip,
         cornerPin: ResolvedCornerPin,
@@ -432,7 +432,7 @@ package struct Evaluator: Sendable {
             ),
             shadow: DropShadow(sampled: entry.shadow.sampled(at: time, as: LookStructureTable.shadow), factor: 1, carried: 1)
         )
-        let bounds = item.shadow.map { box.union($0.castBounds(of: box)) } ?? box
+        let bounds = item.receiverBox(carriedBy: .identity)
         let shift = AffineTransform(translation: Point(x: -bounds.x, y: -bounds.y))
         let mask = entry.masks(at: time).map { mask in
             ItemMask(

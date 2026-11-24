@@ -154,6 +154,93 @@ struct PictureDrawerTests {
         #expect(bitmap.pixel(x: 4, y: 20) == [1, 1, 1, 1])
     }
 
+    // A 4 wide red border on a white picture whose destination's left edge lies along x = 10, on a transparent frame:
+    // inside it covers x from 10 to 14, centred from 8 to 12 and outside from 6 to 10.
+    @Test(
+        "a border lies inside, centred on or outside the destination's edge as its align says, over the picture",
+        arguments: [
+            (StrokeAlign.inside, [nil, nil, nil, true, true, false]),
+            (StrokeAlign.center, [nil, nil, true, true, false, false]),
+            (StrokeAlign.outside, [nil, true, true, false, false, false])
+        ]
+    )
+    func alignsBorder(
+        align: StrokeAlign,
+        red: [Bool?]
+    ) throws {
+        // Given
+        let sut = QuartzRenderer(decoder: AVFoundationDecoder())
+        let picture = PictureItem(
+            source: .media(try white(size: 40)),
+            rectangle: nil,
+            destination: Rectangle(x: 10, y: 10, width: 40, height: 40),
+            border: MediaBorder(width: 4, color: Color(written: "#FF0000"), align: align)
+        )
+
+        // When
+        let bitmap = try sut.frame(of: list(size: Size(width: 60, height: 60), items: [DisplayItem(content: .picture(picture))]))
+
+        // Then
+        // `nil` is a pixel nothing is drawn on, `true` a red one and `false` a white one.
+        for (x, expected) in zip([5, 6, 9, 10, 13, 14], red) {
+            let pixel = bitmap.pixel(x: x, y: 30)
+            let found: Bool? = switch pixel {
+            case [0, 0, 0, 0]: nil
+            case [1, 0, 0, 1]: true
+            case [1, 1, 1, 1]: false
+            default: nil
+            }
+            #expect(found == expected && (expected != nil || pixel[3] == 0), "pixel (\(x), 30) is \(pixel)")
+        }
+    }
+
+    // The destination from (10, 10) to (50, 50) has corners of radius 8, its top left one about (18, 18). The 4 wide
+    // border outside it reaches 12 from there: pixel (11, 11) lies from 8.5 to 9.9 from it, outside the picture and
+    // inside the border, and pixel (7, 7) past 14.
+    @Test("a border outside the destination follows its corners rounded by the radius plus the border's width")
+    func roundsOutsideBorder() throws {
+        // Given
+        let sut = QuartzRenderer(decoder: AVFoundationDecoder())
+        let picture = PictureItem(
+            source: .media(try white(size: 40)),
+            rectangle: nil,
+            destination: Rectangle(x: 10, y: 10, width: 40, height: 40),
+            radius: 8,
+            border: MediaBorder(width: 4, color: Color(written: "#FF0000"), align: .outside)
+        )
+
+        // When
+        let bitmap = try sut.frame(of: list(size: Size(width: 60, height: 60), items: [DisplayItem(content: .picture(picture))]))
+
+        // Then
+        #expect(bitmap.pixel(x: 11, y: 11) == [1, 0, 0, 1])
+        #expect(bitmap.pixel(x: 7, y: 7)[3] == 0)
+        #expect(bitmap.pixel(x: 7, y: 30) == [1, 0, 0, 1])
+        #expect(bitmap.pixel(x: 14, y: 14) == [1, 1, 1, 1])
+    }
+
+    @Test("a filtered picture's border outside its destination is drawn past the part of the picture it filters")
+    func drawsOutsideBorderOfFilteredPicture() throws {
+        // Given
+        let sut = QuartzRenderer(decoder: AVFoundationDecoder())
+        let picture = PictureItem(
+            source: .media(try checker(size: 16)),
+            rectangle: nil,
+            destination: Rectangle(x: 8, y: 8, width: 16, height: 16),
+            filter: [FilterEntry(operations: [.lut(file: try darkenedMiddle(), amount: 1)])],
+            border: MediaBorder(width: 2, color: Color(written: "#FF0000"), align: .outside)
+        )
+
+        // When
+        let bitmap = try sut.frame(of: list(size: Size(width: 32, height: 32), items: [DisplayItem(content: .picture(picture))]))
+
+        // Then
+        #expect(bitmap.pixel(x: 6, y: 16) == [1, 0, 0, 1])
+        #expect(bitmap.pixel(x: 16, y: 25) == [1, 0, 0, 1])
+        #expect(bitmap.pixel(x: 5, y: 16)[3] == 0)
+        #expect(bitmap.pixel(x: 8, y: 16)[1] == bitmap.pixel(x: 8, y: 16)[0])
+    }
+
     @Test("the border of a picture whose region starts off the media's origin at another scale lies on the destination's edge")
     func drawsBorderOfOffsetRegion() throws {
         // Given
