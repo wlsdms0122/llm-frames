@@ -82,13 +82,14 @@ struct ThemeValidatorTests {
         ))
         let animationPlace = place.appending(key: "animation")
         #expect(defaults.titleAnimations == [
-            "subtitle": .preset(PresetInstance(name: "frames/fade", place: animationPlace.appending(key: "title").appending(key: "subtitle")), by: nil, stagger: nil)
+            "subtitle": .preset(PresetInstance(name: "frames/fade", place: animationPlace.appending(key: "title").appending(key: "subtitle")), by: nil, stagger: nil, order: nil)
         ])
         #expect(defaults.shapeAnimation == .split(
             entrance: PresetInstance(name: "frames/wipe", place: animationPlace.appending(key: "shape").appending(key: "entrance")),
             exit: nil,
             by: nil,
-            stagger: nil
+            stagger: nil,
+            order: nil
         ))
         #expect(defaults.mediaAnimation == AnimationChoice.none)
     }

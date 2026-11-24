@@ -327,7 +327,8 @@ struct ResolvedDocumentWriterTests {
                 "loop": null,
                 "exit": null,
                 "by": null,
-                "stagger": null
+                "stagger": null,
+                "order": null
               }
             },
             {
@@ -412,7 +413,8 @@ struct ResolvedDocumentWriterTests {
                 "loop": null,
                 "exit": null,
                 "by": null,
-                "stagger": null
+                "stagger": null,
+                "order": null
               }
             }
           ],

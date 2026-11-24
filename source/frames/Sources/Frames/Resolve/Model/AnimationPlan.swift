@@ -5,7 +5,7 @@
 //  Created by JSilver on 11/15/26.
 //
 
-// `units` is a title's unit and stagger when its entrance and exit play by unit, and nil otherwise.
+// `units` is a title's unit, stagger and order when its entrance and exit play by unit, and nil otherwise.
 struct AnimationPlan: Equatable, Sendable {
     // MARK: - Property
     static let none = AnimationPlan(entrance: nil, loop: nil, exit: nil, units: nil)

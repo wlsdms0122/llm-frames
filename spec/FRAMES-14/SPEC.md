@@ -44,7 +44,7 @@ A document passes arguments in its preset choices:
 | Choice | Forms |
 | --- | --- |
 | transition choice | `"cut"`, a preset name, or `{preset, seconds, args}` |
-| animation choice | `"none"`, a preset name, `{preset, args}`, or `{entrance, exit}`. On a title, either object form may also take `by` and `stagger` ([By character, word or line](#by-character-word-or-line)) |
+| animation choice | `"none"`, a preset name, `{preset, args}`, or `{entrance, exit}`. On a title, either object form may also take `by`, `stagger` and `order` ([By character, word or line](#by-character-word-or-line)) |
 | side of `{entrance, exit}` | `"none"`, a preset name, or `{preset, args}` |
 | filter choice | [FRAMES-15](../FRAMES-15/SPEC.md) |
 
@@ -115,10 +115,10 @@ A span is:
 
 ### By character, word or line
 
-A title's animation choice may take `by`, `character`, `word` or `line`, and `stagger`, the seconds from the start of one unit's span to the start of the next. The entrance and the exit then play on each unit of the title ([FRAMES-5](../FRAMES-5/SPEC.md)) in reading order, each unit moving about its own box, as Motion and Final Cut Pro sequence text and After Effects' text animators with a range offset move text. A span is the same motion for one unit as for a whole title, so every animation preset plays by unit without a change, and the unit, the order and the stagger are all a document has to say.
+A title's animation choice may take `by`, `character`, `word` or `line`, `stagger`, the seconds from the start of one unit's span to the start of the next, and `order`, the order the units start in. The entrance and the exit then play on each unit of the title ([FRAMES-5](../FRAMES-5/SPEC.md)) in that order, each unit moving about its own box, as Motion and Final Cut Pro sequence text with its direction and After Effects' text animators with a range offset and a randomized order move text. A span is the same motion for one unit as for a whole title, so every animation preset plays by unit without a change, and the unit, the order and the stagger are all a document has to say.
 
 ```json
-"animation": { "preset": "frames/rise", "by": "word", "stagger": 0.08 }
+"animation": { "preset": "frames/rise", "by": "word", "stagger": 0.08, "order": "center" }
 ```
 
 | `by` | Default `stagger` |
@@ -127,12 +127,23 @@ A title's animation choice may take `by`, `character`, `word` or `line`, and `st
 | `word` | 0.12 |
 | `line` | 0.3 |
 
-- With n units numbered from 0 in reading order, a window from s to e, an entrance of `seconds` a and an exit of `seconds` x, unit i runs its entrance from s + i × `stagger` for a seconds, and its exit from e - x - (n - 1 - i) × `stagger` for x seconds, so the units leave in reading order too and the last one ends with the window. Before its entrance a unit holds the entrance at progress 0, and after its exit the exit at progress 1.
-- On a short window the entrance runs first and the exit takes what time is left, as for a whole clip. With E = a + (n - 1) × `stagger` and X = x + (n - 1) × `stagger`, when E + X is longer than the window, the exit's `seconds` and `stagger` are both multiplied by (e - s - E) / X, and when E alone fills the window there is no exit.
-- The loop, when the choice has one, plays on the whole title as it does without `by`, from the end of the last unit's entrance to the start of the first unit's exit. Its transform, opacity and `reveal` act on the title as one, in the title's own coordinates as without `by`: while it plays every unit rests, and its reveal wipes what the whole title draws, the units with it.
+With n units numbered from 0 in reading order, `order` gives unit i a rank:
+
+| `order` | Rank of unit i |
+| --- | --- |
+| `forward` (default) | i, so the units start in reading order |
+| `backward` | n - 1 - i |
+| `center` | the distance of i from (n - 1) / 2, rounded down: the middle unit, or the middle two of an even count, start first, and the two units at each distance from the middle start together. For n = 5 the ranks are 2 1 0 1 2, and for n = 4 they are 1 0 0 1 |
+| `edges` | C less the `center` rank of i, C being the largest `center` rank, so the first and the last unit start first. For n = 5 the ranks are 0 1 2 1 0 |
+| `random` | the value at position i of a shuffle of 0 to n - 1 that depends on n alone (below) |
+
+- With R the largest rank, a window from s to e, an entrance of `seconds` a and an exit of `seconds` x, unit i runs its entrance from s + rank(i) × `stagger` for a seconds, and its exit from e - x - (R - rank(i)) × `stagger` for x seconds, so the units leave in the order they came and the last to leave ends with the window. Before its entrance a unit holds the entrance at progress 0, and after its exit the exit at progress 1.
+- On a short window the entrance runs first and the exit takes what time is left, as for a whole clip. With E = a + R × `stagger` and X = x + R × `stagger`, when E + X is longer than the window, the exit's `seconds` and `stagger` are both multiplied by (e - s - E) / X, and when E alone fills the window there is no exit.
+- The `random` ranks depend on n and nothing else, so every render and every engine gives a title the same ones. The list 0 to n - 1 is shuffled by Fisher-Yates from its last position k = n - 1 down to 1, swapping position k with position next() mod (k + 1), and rank(i) is the value at position i. next() is SplitMix64 with its state seeded to n: state += 0x9E3779B97F4A7C15, z = state, z = (z ^ (z >> 30)) × 0xBF58476D1CE4E5B9, z = (z ^ (z >> 27)) × 0x94D049BB133111EB, and next() returns z ^ (z >> 31), all in wrapping 64-bit unsigned arithmetic, with ^ exclusive or and >> a logical shift right. For n = 5 the ranks are 4 1 2 0 3.
+- The loop, when the choice has one, plays on the whole title as it does without `by`, from the end of the last entrance to the start of the first exit. Its transform, opacity and `reveal` act on the title as one, in the title's own coordinates as without `by`: while it plays every unit rests, and its reveal wipes what the whole title draws, the units with it.
 - A unit's motion acts about the centre of the unit's box. Its `x` and `y` are multiples of that box's size, its `reveal` wipes the bounds of everything the unit draws from the `revealFrom` side, as it wipes a receiver's box (above): its drawn extent ([FRAMES-5](../FRAMES-5/SPEC.md#units)), which holds every glyph the unit draws, its raised characters and its spaces included, grown by as far as its stroke reaches at that instant, and the parts of highlights and underlines it carries, so a unit at reveal 1 shows whole, and its opacity applies to the unit's glyphs and the parts it carries. The unit's motion is applied inside the title's own transform, so the title's keyframes, its parent and its loop carry every unit. **The units are composited as one group**: the title's opacity, blend, mask and track matte apply once, to all of its units drawn together, as they apply to the one picture of a title without `by` ([FRAMES-20](../FRAMES-20/SPEC.md)), so the units do not show through each other at the title's opacity.
 - The paragraph background takes the title's keyframes and its loop, and no entrance or exit: it shows over the whole window. A run's highlight and underline are cut into parts that move with the units that carry them ([FRAMES-5](../FRAMES-5/SPEC.md)), so a highlighted word's box comes in with the word.
-- `by` on the animation of a clip that is not a title stops, and so does `stagger` without `by`, a negative `stagger`, and `by` with a choice that has neither an entrance nor an exit, since `by` would move nothing. A theme's `defaults.animation.title` takes `by` and `stagger` as any title's choice does, and its `shape`, `media` and `adjust` entries do not.
+- `by` on the animation of a clip that is not a title stops, and so does `stagger` or `order` without `by`, a negative `stagger`, and `by` with a choice that has neither an entrance nor an exit, since `by` would move nothing. A theme's `defaults.animation.title` takes `by`, `stagger` and `order` as any title's choice does, and its `shape`, `media` and `adjust` entries do not.
 
 ### transition
 

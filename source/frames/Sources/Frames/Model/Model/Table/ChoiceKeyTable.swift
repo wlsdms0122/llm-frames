@@ -35,7 +35,7 @@ enum ChoiceKeyTable {
                 KeyRule("preset", .name),
                 KeyRule("args", arguments)
             ] + unitRules,
-            groups: [KeyGroup(keys: ["args", "by", "stagger"], isExclusive: false)]
+            groups: [KeyGroup(keys: ["args", "by", "stagger", "order"], isExclusive: false)]
         )),
         .object(splitAnimation(rules: unitRules))
     ])
@@ -102,7 +102,8 @@ enum ChoiceKeyTable {
 
     private static let unitRules = [
         KeyRule("by", .literal(TextUnit.allCases.map(\.rawValue))),
-        KeyRule("stagger", .number(.nonNegative))
+        KeyRule("stagger", .number(.nonNegative)),
+        KeyRule("order", .literal(UnitOrder.allCases.map(\.rawValue)))
     ]
 
     private static func splitAnimation(rules: [KeyRule]) -> ObjectTable {

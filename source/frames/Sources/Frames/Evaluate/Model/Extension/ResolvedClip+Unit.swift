@@ -17,6 +17,7 @@ extension ResolvedClip {
         return UnitSchedule(
             animation: animation,
             stagger: stagger.stagger,
+            order: stagger.order,
             count: units.count,
             in: TimeRange(start: start, end: end)
         )

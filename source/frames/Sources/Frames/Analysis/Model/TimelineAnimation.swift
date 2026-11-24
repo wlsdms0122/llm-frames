@@ -5,8 +5,8 @@
 //  Created by JSilver on 11/15/26.
 //
 
-// The spans of a clip's animation, each nil when the clip does not take it, and a title's unit and stagger when its
-// entrance and exit play by unit.
+// The spans of a clip's animation, each nil when the clip does not take it, and a title's unit, stagger and order when
+// its entrance and exit play by unit.
 struct TimelineAnimation: Equatable, Sendable {
     // MARK: - Property
     let entrance: TimelineSpan?

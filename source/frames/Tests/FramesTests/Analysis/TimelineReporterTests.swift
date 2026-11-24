@@ -59,8 +59,8 @@ struct TimelineReporterTests {
             {"place": "storyline[0]#intro", "id": "intro", "media": "/abs/short.mp4", "edit": [0, 2], "drawn": [0, 2.5], "clip": [1, 3], "sound": null, "speed": 1, "timeRemap": false, "transition": null}, \#
             {"place": "storyline[1]", "id": null, "media": null, "edit": [2, 4], "drawn": [1.5, 4], "clip": [0, 2], "sound": null, "speed": 1, "timeRemap": false, "transition": {"preset": "frames/flash", "seconds": 1}}], \#
             "clips": [\#
-            {"place": "storyline[0]#intro.connected[0]", "id": null, "kind": "rect", "visible": [0, 2], "sound": null, "lane": 1, "storyline": "storyline[0]#intro", "parent": "storyline[0]#intro", "animation": {"entrance": {"preset": "frames/pulse", "seconds": 0.25}, "loop": {"preset": "frames/pulse", "period": 1}, "exit": {"preset": "frames/pulse", "seconds": 0.25}, "by": null, "stagger": null}}, \#
-            {"place": "clips[0]", "id": null, "kind": "title", "visible": [0, 4], "sound": null, "lane": 2, "storyline": null, "parent": null, "animation": {"entrance": {"preset": "frames/pop", "seconds": 0.25}, "loop": null, "exit": null, "by": "word", "stagger": 0.12}}, \#
+            {"place": "storyline[0]#intro.connected[0]", "id": null, "kind": "rect", "visible": [0, 2], "sound": null, "lane": 1, "storyline": "storyline[0]#intro", "parent": "storyline[0]#intro", "animation": {"entrance": {"preset": "frames/pulse", "seconds": 0.25}, "loop": {"preset": "frames/pulse", "period": 1}, "exit": {"preset": "frames/pulse", "seconds": 0.25}, "by": null, "stagger": null, "order": null}}, \#
+            {"place": "clips[0]", "id": null, "kind": "title", "visible": [0, 4], "sound": null, "lane": 2, "storyline": null, "parent": null, "animation": {"entrance": {"preset": "frames/pop", "seconds": 0.25}, "loop": null, "exit": null, "by": "word", "stagger": 0.12, "order": "forward"}}, \#
             {"place": "clips[1]", "id": null, "kind": "audio", "visible": [1, 2.5], "sound": null, "lane": null, "storyline": null, "parent": null, "animation": null}]}
             """#
         #expect(report.machineOutput.written == expected)
@@ -80,11 +80,31 @@ struct TimelineReporterTests {
             {"place": "storyline[0]#intro", "id": "intro", "media": "/abs/short.mp4", "edit": [0, 2], "drawn": [0, 2.5], "clip": [1, 3], "sound": null, "speed": 1, "timeRemap": false, "transition": null}, \#
             {"place": "storyline[1]", "id": null, "media": null, "edit": [2, 4], "drawn": [1.5, 4], "clip": [0, 2], "sound": null, "speed": 1, "timeRemap": false, "transition": {"preset": null, "seconds": 1}}], \#
             "clips": [\#
-            {"place": "storyline[0]#intro.connected[0]", "id": null, "kind": "rect", "visible": [0, 2], "sound": null, "lane": 1, "storyline": "storyline[0]#intro", "parent": "storyline[0]#intro", "animation": {"entrance": {"preset": null, "seconds": 0.25}, "loop": {"preset": null, "period": 1}, "exit": {"preset": null, "seconds": 0.25}, "by": null, "stagger": null}}, \#
-            {"place": "clips[0]", "id": null, "kind": "title", "visible": [0, 4], "sound": null, "lane": 2, "storyline": null, "parent": null, "animation": {"entrance": {"preset": null, "seconds": 0.25}, "loop": null, "exit": null, "by": "word", "stagger": 0.12}}]}
+            {"place": "storyline[0]#intro.connected[0]", "id": null, "kind": "rect", "visible": [0, 2], "sound": null, "lane": 1, "storyline": "storyline[0]#intro", "parent": "storyline[0]#intro", "animation": {"entrance": {"preset": null, "seconds": 0.25}, "loop": {"preset": null, "period": 1}, "exit": {"preset": null, "seconds": 0.25}, "by": null, "stagger": null, "order": null}}, \#
+            {"place": "clips[0]", "id": null, "kind": "title", "visible": [0, 4], "sound": null, "lane": 2, "storyline": null, "parent": null, "animation": {"entrance": {"preset": null, "seconds": 0.25}, "loop": null, "exit": null, "by": "word", "stagger": 0.12, "order": "forward"}}]}
             """#
         #expect(report.machineOutput.written == expected)
         #expect(report.text.split(separator: "\n").last == "clips[0]  title  visible [0, 4)  sound -  lane 2  parent -  animation 0.25s / - / -")
+    }
+
+    @Test("a title's `order` is written beside `by` and `stagger`, from the document and from its resolved document alike")
+    func writesUnitOrder() throws {
+        // Given
+        let value = try Fixture.json(#"""
+            { "kind": "sequence", "storyline": [ { "media": "/abs/short.mp4", "in": 1, "out": 3 } ],
+              "clips": [ { "at": [0, 2], "title": "Top", "style": "title", "animation": { "preset": "frames/pop", "by": "line", "stagger": 0.2, "order": "edges" } } ] }
+            """#)
+        let resolved = try ResolvedSequence(plan: Fixture.documentPlanner.plan(value), hashes: FileHashTable())
+
+        // When
+        let report = try sut.report(of: value)
+        let resolvedReport = sut.report(of: resolved)
+
+        // Then
+        let animation = #"{"entrance": {"preset": "frames/pop", "seconds": 0.25}, "loop": null, "exit": null, "by": "line", "stagger": 0.2, "order": "edges"}"#
+        let resolvedAnimation = #"{"entrance": {"preset": null, "seconds": 0.25}, "loop": null, "exit": null, "by": "line", "stagger": 0.2, "order": "edges"}"#
+        #expect(report.machineOutput.written.contains(#""animation": \#(animation)}"#))
+        #expect(resolvedReport.machineOutput.written.contains(#""animation": \#(resolvedAnimation)}"#))
     }
 
     @Test("a storyline page of a PDF has its media as the {file, page} object, a PDF of one page named as a file too")

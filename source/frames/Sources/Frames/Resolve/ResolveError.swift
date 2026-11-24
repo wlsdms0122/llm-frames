@@ -67,6 +67,7 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
     case partialChoiceOverList(place: Place, kind: PlaceKind, layer: Place)
     case unitsOnNonTitle(place: Place, kind: PlaceKind)
     case staggerWithoutBy(place: Place, kind: PlaceKind)
+    case orderWithoutBy(place: Place, kind: PlaceKind)
     case unitsWithoutSpan(place: Place, kind: PlaceKind)
     case textMaskInOwnBox(place: Place, kind: PlaceKind)
     case unknownParent(place: Place, kind: PlaceKind, id: String)
@@ -318,6 +319,9 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
 
         case let .staggerWithoutBy(place, kind):
             "\(place) (\(kind.label)): `stagger` spaces a title's units, and the choice names no unit with `by`"
+
+        case let .orderWithoutBy(place, kind):
+            "\(place) (\(kind.label)): `order` orders a title's units, and the choice names no unit with `by`"
 
         case let .unitsWithoutSpan(place, kind):
             "\(place) (\(kind.label)): `by` plays the entrance and the exit by unit, and the choice has neither"

@@ -253,6 +253,21 @@ struct TitleGroupTests {
         ])
     }
 
+    @Test("a title by word plays its units in the order its resolved animation names: under `backward` the last word fades in first")
+    func playsUnitsInResolvedOrder() throws {
+        // Given
+        let clip = try resolvedClip(#"{ "title": "ab cd", "style": "caption", "position": [400, 225] }"#)
+
+        // When
+        let forward = try group(of: animated(clip, entrance: fade, stagger: 0.5), at: 0.125)
+        let backward = try group(of: animated(clip, entrance: fade, stagger: 0.5, order: .backward), at: 0.125)
+
+        // Then
+        // Items 7 and 8 are the fills of "ab" and "cd".
+        #expect(forward.items[7...8].map(\.opacity) == [0.5, 0])
+        #expect(backward.items[7...8].map(\.opacity) == [0, 0.5])
+    }
+
     @Test("a right-to-left title by word at rest draws every glyph and piece where it draws them without `by`, its first word on the right")
     func drawsRightToLeftUnitsAsWhole() throws {
         // Given
@@ -554,12 +569,13 @@ struct TitleGroupTests {
         glyphs(of: item)?.runs.first?.highlight
     }
 
-    // `clip` with its animation replaced: by word at `stagger`, or as a whole without one.
+    // `clip` with its animation replaced: by word at `stagger` in `order`, or as a whole without one.
     private func animated(
         _ clip: ResolvedClip,
         entrance: AnimationSpan?,
         loop: AnimationSpan? = nil,
-        stagger: Double?
+        stagger: Double?,
+        order: UnitOrder = .forward
     ) -> ResolvedClip {
         ResolvedClip(
             place: clip.place,
@@ -583,7 +599,7 @@ struct TitleGroupTests {
                 entrance: entrance,
                 loop: loop,
                 exit: nil,
-                units: stagger.map { UnitStagger(by: .word, stagger: $0) }
+                units: stagger.map { UnitStagger(by: .word, stagger: $0, order: order) }
             )
         )
     }
