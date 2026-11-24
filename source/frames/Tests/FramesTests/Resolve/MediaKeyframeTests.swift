@@ -54,7 +54,7 @@ struct MediaKeyframeTests {
 
         // Then
         for look in looks {
-            #expect(look.radius.number(at: 0.5) == 10)
+            #expect(look.radius.cornerRadii(at: 0.5) == 10)
             #expect(look.shadow.shadow(at: 0.5) == DropShadow(
                 radius: 5,
                 offset: Point(x: 0, y: 4),
@@ -127,7 +127,7 @@ struct MediaKeyframeTests {
 
         // Then
         for look in looks {
-            #expect(try read(look.radius, LookStructureTable.length, "radius") == look.radius)
+            #expect(try read(look.radius, LookStructureTable.radius, "radius") == look.radius)
             #expect(try read(look.border, LookStructureTable.border, "border") == look.border)
             #expect(try read(look.shadow, LookStructureTable.shadow, "shadow") == look.shadow)
         }

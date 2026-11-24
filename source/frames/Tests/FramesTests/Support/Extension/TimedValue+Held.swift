@@ -25,6 +25,11 @@ extension TimedValue: ExpressibleByIntegerLiteral, ExpressibleByFloatLiteral {
         .track([Keyframe(at: 0, value: value)])
     }
 
+    // A corner `radius` held at its four radii, as resolve gives one written in either form.
+    static func corners(_ radii: CornerRadii) -> TimedValue {
+        .held(.numbers(radii.values))
+    }
+
     static func fill(_ color: Color?) -> TimedValue {
         color.map { .form(ValueStructure.colorForm, .held(.color($0))) } ?? .off
     }
@@ -167,6 +172,10 @@ extension TimedValue: ExpressibleByIntegerLiteral, ExpressibleByFloatLiteral {
 
     func number(at time: Double = 0) -> Double? {
         sampled(at: time, as: LookStructureTable.length).number
+    }
+
+    func cornerRadii(at time: Double = 0) -> CornerRadii? {
+        sampled(at: time, as: LookStructureTable.radius).cornerRadii
     }
 
     // MARK: - Private

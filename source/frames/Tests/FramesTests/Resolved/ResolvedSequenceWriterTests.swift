@@ -298,7 +298,7 @@ struct ResolvedSequenceWriterTests {
         #expect(clip["anchor"] == .array([.number(150), .number(150)]))
         #expect(clip["crop"] == keyframes(at: 0, Rectangle(x: 0, y: 135, width: 1080, height: 1080)))
         #expect(clip["conform"] == .string("fill"))
-        #expect(clip["radius"] == held(.number(6.75)))
+        #expect(clip["radius"] == held(.array([.number(6.75), .number(6.75), .number(6.75), .number(6.75)])))
         #expect(clip["border"] == .object(JSONObject(members: [
             JSONMember(key: "width", value: held(.number(2.25))),
             JSONMember(key: "color", value: held(.string("color(srgb 1 1 1 / 1)"))),
@@ -539,7 +539,7 @@ struct ResolvedSequenceWriterTests {
         #expect(clips[0]["points"] == .null)
         #expect(clips[0]["closed"] == .null)
         #expect(clips[0]["outset"] == .null)
-        #expect(clips[0]["radius"]?.arrayValue?.first?.objectValue?["value"] == .number(18 * scale))
+        #expect(clips[0]["radius"]?.arrayValue?.first?.objectValue?["value"] == .array(Array(repeating: .number(18 * scale), count: 4)))
         #expect(clips[0]["fill"] == .null)
         #expect(clips[0]["stroke"] == .object(JSONObject(members: [
             JSONMember(key: "color", value: held(.string("color(srgb 0.9294117647058824 0.1607843137254902 0.1607843137254902 / 1)"))),
@@ -635,7 +635,7 @@ struct ResolvedSequenceWriterTests {
             """#)))
         #expect(clips[0]["mask"] == (try Fixture.json(#"""
             [ { "geometry": { "rect": { "width": [ { "at": 0, "value": 100, "ease": "linear" } ], "height": [ { "at": 0, "value": 40, "ease": "linear" } ],
-                  "position": [ { "at": 0, "value": [200, 300], "ease": "linear" } ], "radius": [ { "at": 0, "value": 4, "ease": "linear" } ] } },
+                  "position": [ { "at": 0, "value": [200, 300], "ease": "linear" } ], "radius": [ { "at": 0, "value": [4, 4, 4, 4], "ease": "linear" } ] } },
                 "feather": [ { "at": 0, "value": 0, "ease": "linear" } ], "invert": true, "mode": "intersect" },
               { "geometry": { "path": { "vertices": [ [ { "at": 0, "value": [0, 0], "ease": "linear" } ], [ { "at": 0, "value": [10, 0], "ease": "linear" } ],
                   [ { "at": 0, "value": [5, 10], "ease": "linear" } ] ],
@@ -645,7 +645,7 @@ struct ResolvedSequenceWriterTests {
         #expect(clips[1]["mask"] == (try Fixture.json(#"""
             [ { "geometry": { "rect": {
                   "rect": [ { "at": 1, "value": [0, 0, 10, 10], "ease": "ease-out" }, { "at": 3, "value": [0, 0, 20, 20], "ease": "linear" } ],
-                  "radius": [ { "at": 0, "value": 0, "ease": "linear" } ] } },
+                  "radius": [ { "at": 0, "value": [0, 0, 0, 0], "ease": "linear" } ] } },
                 "feather": [ { "at": 3, "value": 2, "ease": "linear" } ], "invert": false, "mode": "add" } ]
             """#)))
         #expect(clips[2]["mask"] == .null)

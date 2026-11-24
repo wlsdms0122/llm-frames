@@ -72,10 +72,6 @@ package struct CornerRadii: Interpolable, ExpressibleByIntegerLiteral, Expressib
         mapped { $0 * factor }
     }
 
-    package func grown(by length: Double) -> CornerRadii {
-        mapped { $0 + length }
-    }
-
     // The radii a rectangle of `size` rounds its corners by: each 0 or more, then every one scaled by one factor where
     // the radii of a side's two corners add up to more than the side, the least of each side's length over that sum,
     // as CSS Backgrounds keeps corner curves from overlapping. Equal radii are so cut to half the shorter side.

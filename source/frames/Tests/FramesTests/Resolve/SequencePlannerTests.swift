@@ -802,7 +802,7 @@ struct SequencePlannerTests {
         #expect(appearance.rotation == .value(90))
         #expect(appearance.opacity == .value(1))
         #expect(appearance.blend == "screen")
-        #expect(appearance.radius.number() == 12 * scale)
+        #expect(appearance.radius.cornerRadii() == CornerRadii(12 * scale))
         #expect(appearance.border.border() == MediaBorder(width: 4 * scale, color: theme.color("accent")))
         #expect(appearance.shadow.shadow() == DropShadow(
             radius: 32 * scale,

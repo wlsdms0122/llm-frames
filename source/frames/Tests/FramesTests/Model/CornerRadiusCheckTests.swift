@@ -45,11 +45,11 @@ struct CornerRadiusCheckTests {
         arguments: [
             (
                 #"{ "clips": [ { "shape": "rect", "area": [0, 0, 10, 10], "fill": "accent", "radius": [1, 2, 3] } ] }"#,
-                "clips[0].radius (rect): expected a number or a list of 4 numbers"
+                "clips[0].radius (rect): expected a list of 4 numbers, each 0 or more, found a list of 3"
             ),
             (
                 #"{ "clips": [ { "media": "/abs/card.png", "at": [0, 1], "radius": [1, 2] } ] }"#,
-                "clips[0].radius (image): expected a number or a list of 4 numbers"
+                "clips[0].radius (image): expected a list of 4 numbers, each 0 or more, found a list of 2"
             ),
             (
                 #"{ "clips": [ { "shape": "rect", "area": [0, 0, 10, 10], "fill": "accent", "radius": [1, -2, 3, 4] } ] }"#,
@@ -57,7 +57,7 @@ struct CornerRadiusCheckTests {
             ),
             (
                 #"{ "clips": [ { "media": "/abs/card.png", "at": [0, 1], "mask": { "shape": "rect", "area": [0, 0, 10, 10], "radius": [1, 2, 3, 4, 5] } } ] }"#,
-                "clips[0].mask.radius (rect mask): expected a number or a list of 4 numbers"
+                "clips[0].mask.radius (rect mask): expected a list of 4 numbers, each 0 or more, found a list of 5"
             )
         ]
     )
@@ -70,6 +70,6 @@ struct CornerRadiusCheckTests {
 
         // When, Then
         let error = #expect(throws: ModelError.self) { try sut.check(document: document) }
-        #expect(error?.description.hasPrefix(message) == true, "\(error?.description ?? "no error")")
+        #expect(error?.description == message)
     }
 }

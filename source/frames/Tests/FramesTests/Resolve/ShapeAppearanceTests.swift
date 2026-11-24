@@ -140,7 +140,7 @@ struct ShapeAppearanceTests {
         #expect(shape == ShapeAppearance(
             kind: .rect,
             geometry: .area(outset: 3, anchor: nil),
-            radius: 9,
+            radius: .corners(9),
             trim: .value(.whole),
             fill: .fill(Color(written: "#123456")),
             stroke: .stroke(PathStroke(width: 4, paint: .color(Color(written: "#ED2929")), join: .round, cap: .butt, start: .none, end: .arrow)),
@@ -160,7 +160,7 @@ struct ShapeAppearanceTests {
         #expect(shape.stroke.stroke() == PathStroke(width: 1, paint: .color(Color(written: "#ED2929")), join: .round, cap: .butt, start: .none, end: .arrow))
         #expect(shape.fill == .off)
         #expect(shape.shadow.shadow() == DropShadow(radius: 2, offset: Point(x: 0, y: 4), color: Color(written: "#00000080")))
-        #expect(shape.radius == 0)
+        #expect(shape.radius == .corners(0))
         #expect(shape.geometry == .area(outset: 0, anchor: nil))
     }
 

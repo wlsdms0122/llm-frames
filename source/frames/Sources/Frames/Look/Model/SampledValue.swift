@@ -27,9 +27,9 @@ indirect enum SampledValue: Equatable, Sendable {
         return numbers
     }
 
-    // Corner radii sampled as four, or one number, the radius of every corner.
+    // Corner radii, which resolve and the resolved reader give as four whatever form they were written in.
     var cornerRadii: CornerRadii? {
-        number.map { CornerRadii($0) } ?? numbers.flatMap(CornerRadii.init(values:))
+        numbers.flatMap(CornerRadii.init(values:))
     }
 
     var color: Color? {

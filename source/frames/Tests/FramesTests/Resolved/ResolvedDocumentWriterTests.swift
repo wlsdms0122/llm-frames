@@ -207,7 +207,7 @@ struct ResolvedDocumentWriterTests {
                   "radius": [
                     {
                       "at": 0,
-                      "value": 6.75,
+                      "value": [6.75, 6.75, 6.75, 6.75],
                       "ease": "linear"
                     }
                   ]
