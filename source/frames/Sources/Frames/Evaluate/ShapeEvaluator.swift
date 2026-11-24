@@ -71,7 +71,7 @@ struct ShapeEvaluator: Sendable {
         let outline = box.grown(by: length(outset, at: time) * carried)
         let geometry: PathGeometry = shape.kind == .ellipse
             ? .ellipse(outline)
-            : .rect(outline, radius: length(shape.radius, at: time) * carried)
+            : .rect(outline, radius: radius(shape.radius, at: time).scaled(by: carried))
         return (box, path(of: shape, geometry: geometry, box: box, carried: carried, sample: sample, at: time))
     }
 
@@ -151,9 +151,9 @@ struct ShapeEvaluator: Sendable {
         case let .area(area, outset, areaPlacement):
             bounds = space.area(of: area, track: clip.parentTrack, at: time)
             placement = areaPlacement
-            geometry = { [kind = shape.kind, radius = shape.radius] carried in
+            geometry = { [kind = shape.kind, corners = shape.radius] carried in
                 let drawn = bounds.grown(by: length(outset, at: time) * carried)
-                return kind == .ellipse ? .ellipse(drawn) : .rect(drawn, radius: length(radius, at: time) * carried)
+                return kind == .ellipse ? .ellipse(drawn) : .rect(drawn, radius: radius(corners, at: time).scaled(by: carried))
             }
 
         case let .points(keyframes, isClosed, pointsPlacement):
@@ -209,7 +209,7 @@ struct ShapeEvaluator: Sendable {
         let outline = box.grown(by: length(outset, at: time) * (carried ?? 0))
         let geometry: PathGeometry = shape.kind == .ellipse
             ? .ellipse(outline)
-            : .rect(outline, radius: length(shape.radius, at: time) * (carried ?? 0))
+            : .rect(outline, radius: radius(shape.radius, at: time).scaled(by: carried ?? 0))
 
         return (geometry, box, presentation.transform, presentation.opacity, carried)
     }
@@ -231,5 +231,12 @@ struct ShapeEvaluator: Sendable {
         at time: SampleTime
     ) -> Double {
         value.sampled(at: time, as: LookStructureTable.length).number ?? 0
+    }
+
+    private func radius(
+        _ value: TimedValue,
+        at time: SampleTime
+    ) -> CornerRadii {
+        value.sampled(at: time, as: LookStructureTable.radius).cornerRadii ?? .zero
     }
 }

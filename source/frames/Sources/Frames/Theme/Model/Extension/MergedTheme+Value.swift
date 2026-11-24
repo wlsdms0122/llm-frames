@@ -182,7 +182,7 @@ extension MergedTheme {
         return TextBackground(
             color: color(written["color"]?.stringValue ?? "background"),
             padding: Size(width: padding[1] * scale, height: padding[0] * scale),
-            radius: (written["radius"]?.numberValue ?? 0) * scale
+            radius: (written["radius"].map(CornerRadii.init(written:)) ?? .zero).scaled(by: scale)
         )
     }
 

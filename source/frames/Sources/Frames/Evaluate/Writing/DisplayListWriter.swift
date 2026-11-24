@@ -110,7 +110,7 @@ package struct DisplayListWriter: Sendable {
             let background = glyphs.background.map { background in
                 JSONValue.object(JSONObject(members: [
                     JSONMember(key: "rect", value: values.rectangle(background.rectangle)),
-                    number("radius", background.radius),
+                    JSONMember(key: "radius", value: values.cornerRadii(background.radius)),
                     color(background.color)
                 ]))
             }
@@ -159,7 +159,7 @@ package struct DisplayListWriter: Sendable {
             JSONMember(key: "dest", value: values.rectangle(picture.destination)),
             JSONMember(key: "filter", value: values.filter(picture.filter, seed: seed)),
             JSONMember(key: "matte", value: matte ?? .null),
-            JSONMember(key: "radius", value: .number(picture.radius)),
+            JSONMember(key: "radius", value: values.cornerRadii(picture.radius)),
             JSONMember(key: "border", value: border ?? .null),
             JSONMember(key: "shadow", value: shadow(picture.shadow)),
             JSONMember(key: "cornerPin", value: picture.cornerPin.map { .array($0.corners.map(values.point)) } ?? .null)

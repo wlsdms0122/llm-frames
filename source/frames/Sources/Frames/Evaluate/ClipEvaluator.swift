@@ -139,7 +139,7 @@ struct ClipEvaluator: Sendable {
                 rectangle: clip.crop(at: time),
                 destination: Rectangle(x: 0, y: 0, width: box.size.width, height: box.size.height),
                 filter: FilterEntry.entries(of: media.filter, at: time),
-                radius: media.appearance.radius.sampled(at: time, as: LookStructureTable.length).number ?? 0,
+                radius: media.appearance.radius.sampled(at: time, as: LookStructureTable.radius).cornerRadii ?? .zero,
                 border: MediaBorder(
                     sampled: media.appearance.border.sampled(at: time, as: LookStructureTable.border),
                     factor: sample.lengthFactor,
@@ -217,7 +217,7 @@ struct ClipEvaluator: Sendable {
                 rectangle: clip.crop(at: time),
                 destination: box,
                 filter: FilterEntry.entries(of: media.filter, at: time),
-                radius: media.appearance.radius.sampled(at: time, as: LookStructureTable.length).number ?? 0,
+                radius: media.appearance.radius.sampled(at: time, as: LookStructureTable.radius).cornerRadii ?? .zero,
                 border: MediaBorder(
                     sampled: media.appearance.border.sampled(at: time, as: LookStructureTable.border),
                     factor: sample.lengthFactor,

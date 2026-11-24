@@ -52,6 +52,11 @@ struct LeafKind: Equatable, Sendable {
         LeafKind(form: .number, domain: domain, isLength: true)
     }
 
+    // A corner `radius`: a corner cannot curve inwards.
+    static func corners(isLength: Bool = true) -> LeafKind {
+        LeafKind(form: .corners, domain: .nonNegative, isLength: isLength)
+    }
+
     static func lengths(
         count: Int,
         domain: NumberDomain = .any

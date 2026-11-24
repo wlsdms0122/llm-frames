@@ -43,7 +43,7 @@ extension ResolvedMask {
         } else {
             guard let rectangle = Self.rectangle(of: timed) else { return nil }
 
-            if shape == .rect, let radius = Self.numbers(timed["radius"]) {
+            if shape == .rect, let radius = Self.corners(timed["radius"]) {
                 geometry = .rect(rectangle, radius: .keyframes(radius))
             } else {
                 geometry = .ellipse(rectangle)
@@ -101,6 +101,14 @@ extension ResolvedMask {
             guard case let .number(number) = keyframe.value else { return nil }
 
             return Keyframe(at: keyframe.at, value: number, ease: keyframe.ease)
+        }
+    }
+
+    private static func corners(_ value: TimedValue?) -> [Keyframe<CornerRadii>]? {
+        track(value)?.compactMap { keyframe in
+            guard case let .numbers(numbers) = keyframe.value, let radii = CornerRadii(values: numbers) else { return nil }
+
+            return Keyframe(at: keyframe.at, value: radii, ease: keyframe.ease)
         }
     }
 

@@ -248,9 +248,16 @@ struct MaskPlanner: Sendable {
         kind leafKind: LeafKind
     ) -> LeafValue {
         let length = leafKind.isLength ? lengthScale : 1
-        guard case .numbers = leafKind.form else { return .number((json.numberValue ?? 0) * length) }
+        switch leafKind.form {
+        case .numbers:
+            return .numbers((json.arrayValue ?? []).compactMap(\.numberValue).map { $0 * length })
 
-        return .numbers((json.arrayValue ?? []).compactMap(\.numberValue).map { $0 * length })
+        case .corners:
+            return .numbers(CornerRadii(written: json).scaled(by: length).values)
+
+        case .number, .color, .name, .boolean, .file, .staticNumber:
+            return .number((json.numberValue ?? 0) * length)
+        }
     }
 
     private func listed(_ json: JSONValue) -> JSONValue {

@@ -321,7 +321,7 @@ struct ResolvedSequenceReader: Sendable {
             rotation: cornerPin == nil ? try values.numbers(entry.member("rotation")) : nil,
             blend: try entry.member("blend").string(),
             isMotionBlurred: try entry.member("motionBlur").bool(),
-            radius: try values.timed(entry.member("radius"), as: LookStructureTable.length),
+            radius: try values.timed(entry.member("radius"), as: LookStructureTable.radius),
             border: try values.timed(entry.member("border"), as: LookStructureTable.border, kind: "border"),
             shadow: try values.timed(entry.member("shadow"), as: LookStructureTable.shadow, kind: "shadow"),
             transition: try entry.member("transition").optional(transition)
@@ -446,7 +446,7 @@ struct ResolvedSequenceReader: Sendable {
             filter: try values.timed(clip.member("filter"), as: LookStructureTable.resolvedFilter),
             appearance: ResolvedMediaAppearance(
                 conform: try conform(clip.member("conform")),
-                radius: try values.timed(clip.member("radius"), as: LookStructureTable.length),
+                radius: try values.timed(clip.member("radius"), as: LookStructureTable.radius),
                 border: try values.timed(clip.member("border"), as: LookStructureTable.border, kind: "border"),
                 shadow: try values.timed(clip.member("shadow"), as: LookStructureTable.shadow, kind: "shadow")
             )
@@ -484,7 +484,7 @@ struct ResolvedSequenceReader: Sendable {
         return ResolvedShape(
             kind: kind,
             geometry: geometry,
-            radius: try values.timed(clip.member("radius"), as: LookStructureTable.length),
+            radius: try values.timed(clip.member("radius"), as: LookStructureTable.radius),
             trim: try values.keyframes(clip.member("trim")) { value in
                 let ends = try value.numbers()
                 guard ends.count == 2 else { throw value.wrongType("[a, b]") }

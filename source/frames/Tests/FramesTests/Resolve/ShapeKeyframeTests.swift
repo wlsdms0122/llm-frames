@@ -120,7 +120,7 @@ struct ShapeKeyframeTests {
             Issue.record("the rect is placed by its area")
             return
         }
-        #expect(shape.radius.number(at: 0.5) == 3)
+        #expect(shape.radius.cornerRadii(at: 0.5) == 3)
         #expect(outset.number(at: 0.5) == 2)
     }
 
@@ -298,7 +298,7 @@ struct ShapeKeyframeTests {
         #expect(try read(shape.fill, LookStructureTable.fill) == shape.fill)
         #expect(try read(shape.stroke, LookStructureTable.stroke) == shape.stroke)
         #expect(try read(shape.shadow, LookStructureTable.shadow) == shape.shadow)
-        #expect(try read(shape.radius, LookStructureTable.length) == shape.radius)
+        #expect(try read(shape.radius, LookStructureTable.radius) == shape.radius)
     }
 
     @Test("a gradient's points are fractions of the shape's box and a radial radius of 1 reaches its farthest corner, wide or tall")

@@ -5,12 +5,13 @@
 //  Created by JSilver on 11/18/26.
 //
 
-// The outline of a `path` item or a mask: a rectangle with circular corners of `radius`, the ellipse inscribed in a
+// The outline of a `path` item or a mask: a rectangle with circular corners of its corner radii, the ellipse inscribed in a
 // rectangle, or a path of cubic Bézier segments through its vertices in order, back to the first when closed, each
 // segment's control points its first vertex plus its out tangent and the next vertex plus its in tangent (FRAMES-20).
-// A keyframed mask's geometry interpolates per component: a rectangle and its radius, and a path vertex by vertex.
+// A keyframed mask's geometry interpolates per component: a rectangle and each corner's radius, and a path vertex by
+// vertex.
 package enum PathGeometry: Interpolable {
-    case rect(Rectangle, radius: Double)
+    case rect(Rectangle, radius: CornerRadii)
     case ellipse(Rectangle)
     case path([PathVertex<Point, Point>], isClosed: Bool)
 

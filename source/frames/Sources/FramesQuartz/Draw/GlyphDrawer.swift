@@ -144,7 +144,7 @@ struct GlyphDrawer {
     // keeping that edge antialiased.
     private func fill(
         _ rects: [Rectangle],
-        radius: Double,
+        radius: CornerRadii,
         color: Color,
         bands: [ClosedRange<Double>]?,
         writingMode: WritingMode,

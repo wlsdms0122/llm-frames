@@ -287,7 +287,7 @@ struct ResolvedDocumentReaderTests {
               "tracking": null,
               "highlight": { "color": [ { "at": 1.2, "value": "color(srgb 0.9490196078431372 0.7176470588235294 0.0196078431372549 / 1)", "ease": "linear" } ],
                              "padding": [ { "at": 1.2, "value": [2, 8], "ease": "linear" } ],
-                             "radius": [ { "at": 1.2, "value": 4, "ease": "linear" } ],
+                             "radius": [ { "at": 1.2, "value": [4, 4, 4, 4], "ease": "linear" } ],
                              "rects": [ [123.6, 11.4, 92.6, 42] ] },
               "underline": null,
               "glyphs": [ [37, 123.6, 45.7, 0, 0], [68, 148.3, 45.7, 0, 0], [78, 167.6, 45.7, 0, 0], [72, 185.6, 45.7, 0, 0], [85, 204.9, 45.7, 0, 0] ] } ] }

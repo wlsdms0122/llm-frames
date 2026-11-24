@@ -27,6 +27,11 @@ indirect enum SampledValue: Equatable, Sendable {
         return numbers
     }
 
+    // Corner radii, which resolve and the resolved reader give as four whatever form they were written in.
+    var cornerRadii: CornerRadii? {
+        numbers.flatMap(CornerRadii.init(values:))
+    }
+
     var color: Color? {
         guard case let .leaf(.color(color)) = self else { return nil }
 

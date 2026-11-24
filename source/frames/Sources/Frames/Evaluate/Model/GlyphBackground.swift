@@ -9,13 +9,13 @@
 package struct GlyphBackground: Equatable, Sendable {
     // MARK: - Property
     package let rectangle: Rectangle
-    package let radius: Double
+    package let radius: CornerRadii
     package let color: Color
 
     // MARK: - Initializer
     package init(
         rectangle: Rectangle,
-        radius: Double,
+        radius: CornerRadii,
         color: Color
     ) {
         self.rectangle = rectangle

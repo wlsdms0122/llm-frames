@@ -345,7 +345,7 @@ package struct DisplayListReader: Sendable {
                     isInverted: try matte.member("invert").bool()
                 )
             },
-            radius: try item.member("radius").number(),
+            radius: try values.cornerRadii(item.member("radius")),
             border: try item.member("border").optional { value in
                 let border = try value.object(keys: ["width", "color", "align"])
 
@@ -565,7 +565,7 @@ package struct DisplayListReader: Sendable {
 
                 return GlyphBackground(
                     rectangle: try values.rectangle(background.member("rect")),
-                    radius: try background.member("radius").number(),
+                    radius: try values.cornerRadii(background.member("radius")),
                     color: try values.color(background.member("color"))
                 )
             }

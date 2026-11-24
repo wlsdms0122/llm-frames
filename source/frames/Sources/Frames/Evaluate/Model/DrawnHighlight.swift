@@ -10,14 +10,14 @@
 package struct DrawnHighlight: Equatable, Sendable {
     // MARK: - Property
     package let rects: [Rectangle]
-    package let radius: Double
+    package let radius: CornerRadii
     package let color: Color
     package let bands: [ClosedRange<Double>]?
 
     // MARK: - Initializer
     package init(
         rects: [Rectangle],
-        radius: Double,
+        radius: CornerRadii,
         color: Color,
         bands: [ClosedRange<Double>]?
     ) {

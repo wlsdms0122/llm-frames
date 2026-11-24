@@ -695,7 +695,7 @@ struct DisplayListReaderTests {
         #expect(masks?.count == 3)
         #expect(masks?.first?.objectValue?.keys == ["geometry", "transform", "feather", "invert", "mode"])
         #expect(masks?.first == (try Fixture.json(#"""
-            { "geometry": { "rect": { "rect": [0, 0, 1080, 1500], "radius": 24 } }, "transform": [0, 1, -1, 0, 1080, 0],
+            { "geometry": { "rect": { "rect": [0, 0, 1080, 1500], "radius": [24, 24, 24, 24] } }, "transform": [0, 1, -1, 0, 1080, 0],
               "feather": 0, "invert": false, "mode": "add" }
             """#)))
     }

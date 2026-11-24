@@ -65,9 +65,12 @@ enum LookStructureTable {
         shorthands: [.on, .color(key: "color")]
     ))
 
-    // A box's `radius` and a shape's `outset`: a corner cannot curve inwards, and an outset grows the outline a shape
-    // draws around its geometry, where a smaller outline is a smaller geometry.
+    // A shape's `outset` and the theme `placement.padding`: an outset grows the outline a shape draws around its
+    // geometry, where a smaller outline is a smaller geometry.
     static let length = ValueStructure.leaf(.length())
+
+    // A box's `radius`, one theme length for every corner or four (FRAMES-11 Shapes).
+    static let radius = ValueStructure.leaf(.corners())
 
     static let textStroke = ValueStructure.object(ObjectStructure(
         [
@@ -80,7 +83,7 @@ enum LookStructureTable {
     static let background = ValueStructure.object(ObjectStructure([
         ("color", .leaf(.color)),
         ("padding", .leaf(.lengths(count: 2, domain: .nonNegative))),
-        ("radius", .leaf(.length()))
+        ("radius", radius)
     ]))
 
     static let highlight = background
@@ -164,7 +167,7 @@ enum LookStructureTable {
     static let shapeStyle = ObjectStructure([
         ("fill", fill),
         ("stroke", stroke),
-        ("radius", length),
+        ("radius", radius),
         ("outset", length),
         ("shadow", shadow)
     ])
@@ -216,7 +219,7 @@ enum LookStructureTable {
             ("height", .leaf(.number(.positive))),
             ("position", .leaf(.numbers(count: 2))),
             ("points", .list(pathVertex)),
-            ("radius", .leaf(.number(.nonNegative))),
+            ("radius", .leaf(.corners(isLength: false))),
             ("feather", .leaf(.length())),
             ("invert", .leaf(.boolean)),
             ("mode", .leaf(.name(among: MaskMode.allCases.map(\.rawValue))))

@@ -66,8 +66,8 @@ struct MediaAppearanceTests {
         let plan = try plan(document)
 
         // Then
-        #expect(plan.clips[0].appearance.media?.radius.number() == 12)
-        #expect(plan.storyline[0].appearance.radius.number() == 12)
+        #expect(plan.clips[0].appearance.media?.radius.cornerRadii() == 12)
+        #expect(plan.storyline[0].appearance.radius.cornerRadii() == 12)
     }
 
     @Test("a shadow colour that is not a theme colour stops at the clip that writes it")

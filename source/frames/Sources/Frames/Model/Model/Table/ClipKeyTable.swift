@@ -357,7 +357,10 @@ enum ClipKeyTable {
         case "width", "height":
             .number(.positive)
 
-        case "radius", "outset":
+        case "radius":
+            ValueType(structure: LookStructureTable.radius, kind: name)
+
+        case "outset":
             ValueType(structure: LookStructureTable.length, kind: name)
 
         // A sound sits between the left channel (-1) and the right (1).

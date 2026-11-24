@@ -67,7 +67,7 @@ struct ContactSheetComposerTests {
         #expect(
             label.background == GlyphBackground(
                 rectangle: Rectangle(x: -24, y: -12, width: 96, height: 72),
-                radius: 48 * 0.3,
+                radius: CornerRadii(48 * 0.3),
                 color: Color(written: "#000000B3")
             )
         )

@@ -107,7 +107,7 @@ extension ResolvedText {
                 ResolvedBackground(
                     color: held(.color(background.color)),
                     padding: held(.numbers([background.padding.height, background.padding.width])),
-                    radius: held(.number(background.radius))
+                    radius: held(.numbers(background.radius.values))
                 )
             },
             writingMode: layout.writingMode,

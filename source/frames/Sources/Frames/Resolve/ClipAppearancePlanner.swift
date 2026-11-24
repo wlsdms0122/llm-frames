@@ -262,7 +262,7 @@ struct ClipAppearancePlanner: Sendable {
         return ShapeAppearance(
             kind: shape.kind,
             geometry: geometry,
-            radius: try timed("radius", shape.radius, LookStructureTable.length, nil),
+            radius: try timed("radius", shape.radius, LookStructureTable.radius, nil),
             trim: shape.trim.map { property($0, plain: .whole, clock: plan.clock) } ?? .value(.whole),
             fill: fill,
             stroke: stroke,
@@ -381,7 +381,7 @@ struct ClipAppearancePlanner: Sendable {
             scale: property(written.scale, plain: .identity, clock: plan.map),
             rotation: property(written.rotation, plain: 0, clock: plan.map),
             blend: written.blend ?? "normal",
-            radius: try looks.timed(written.radius, key: "radius", as: LookStructureTable.length),
+            radius: try looks.timed(written.radius, key: "radius", as: LookStructureTable.radius),
             border: try border(written.border, looks: looks, theme: theme),
             shadow: try shadow(written.shadow, looks: looks, theme: theme)
         )
@@ -674,7 +674,7 @@ struct ClipAppearancePlanner: Sendable {
         return MediaAppearance(
             conform: conform,
             crop: crops,
-            radius: try looks.timed(written.radius, key: "radius", as: LookStructureTable.length),
+            radius: try looks.timed(written.radius, key: "radius", as: LookStructureTable.radius),
             border: try border(written.border, looks: looks, theme: theme),
             shadow: try shadow(written.shadow, looks: looks, theme: theme)
         )

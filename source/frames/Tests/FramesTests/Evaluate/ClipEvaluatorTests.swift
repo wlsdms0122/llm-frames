@@ -71,7 +71,7 @@ struct ClipEvaluatorTests {
         ]))
         let appearance = ResolvedMediaAppearance(
             conform: .fit,
-            radius: 0,
+            radius: .corners(0),
             border: .border(MediaBorder(width: 4, color: white)),
             shadow: .shadow(DropShadow(radius: 2, offset: Point(x: 4, y: 6), color: white))
         )
@@ -115,7 +115,7 @@ struct ClipEvaluatorTests {
         ]))
         let appearance = ResolvedMediaAppearance(
             conform: .fit,
-            radius: 0,
+            radius: .corners(0),
             border: .border(MediaBorder(width: 4, color: white, align: .outside)),
             shadow: .off
         )

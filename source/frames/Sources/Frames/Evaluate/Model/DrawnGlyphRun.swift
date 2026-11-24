@@ -104,7 +104,7 @@ package struct DrawnGlyphRun: Equatable, Sendable {
                                 height: piece.height + padding[0] * 2
                             ))
                         },
-                        radius: highlight.radius.sampled(at: time, as: length).number ?? 0,
+                        radius: highlight.radius.sampled(at: time, as: LookStructureTable.radius).cornerRadii ?? .zero,
                         color: color,
                         bands: nil
                     )

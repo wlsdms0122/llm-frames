@@ -64,7 +64,7 @@ struct ValueTypeStructureTests {
             rules: [
                 KeyRule("fill", fill),
                 KeyRule("stroke", stroke),
-                KeyRule("radius", .number(.nonNegative)),
+                KeyRule("radius", .oneOf([.number(.nonNegative), .numbers(4, .nonNegative)])),
                 KeyRule("outset", .number(.nonNegative)),
                 KeyRule("shadow", shadow)
             ]
@@ -93,7 +93,7 @@ struct ValueTypeStructureTests {
                 .exactly(.bool(false)),
                 .object(ObjectTable(
                     kind: kind,
-                    rules: [KeyRule("color", .color), KeyRule("padding", .numbers(2, .nonNegative)), KeyRule("radius", .number(.nonNegative))]
+                    rules: [KeyRule("color", .color), KeyRule("padding", .numbers(2, .nonNegative)), KeyRule("radius", .oneOf([.number(.nonNegative), .numbers(4, .nonNegative)]))]
                 ))
             ])
         }
@@ -221,7 +221,7 @@ struct ValueTypeStructureTests {
         let groups = ["width", "height", "position"].map { key in
             KeyGroup(keys: ["area", key], isExclusive: true, isOptional: true)
         }
-        let radius = KeyRule("radius", .number(.nonNegative))
+        let radius = KeyRule("radius", .oneOf([.number(.nonNegative), .numbers(4, .nonNegative)]))
         #expect(ShapeKind.allCases == [.rect, .ellipse, .path])
         #expect(tables == [
             ObjectTable(kind: "rect mask", rules: [shape] + box + [radius] + look, groups: groups),
@@ -234,7 +234,7 @@ struct ValueTypeStructureTests {
         ))
     }
 
-    @Test("a clip's border takes `true`, `false`, a colour or a border object, and its radius and outset are lengths 0 or more")
+    @Test("a clip's border takes `true`, `false`, a colour or a border object, its radius one length 0 or more or four, and its outset a length 0 or more")
     func readsClipLooks() {
         // When
         let media = ClipKeyTable.table(for: .media(.video), in: .sequence)
@@ -242,8 +242,8 @@ struct ValueTypeStructureTests {
 
         // Then
         #expect(media.rule(named: "border")?.type == .oneOf([.bool, .color, Self.border]))
-        #expect(media.rule(named: "radius")?.type == .number(.nonNegative))
-        #expect(rect.rule(named: "radius")?.type == .number(.nonNegative))
+        #expect(media.rule(named: "radius")?.type == .oneOf([.number(.nonNegative), .numbers(4, .nonNegative)]))
+        #expect(rect.rule(named: "radius")?.type == .oneOf([.number(.nonNegative), .numbers(4, .nonNegative)]))
         #expect(rect.rule(named: "outset")?.type == .number(.nonNegative))
     }
 

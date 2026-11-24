@@ -89,7 +89,7 @@ struct ContactSheetComposer: Sendable {
             background: TextBackground(
                 color: Self.labelBackground,
                 padding: Size(width: size / 2, height: size / 4),
-                radius: size * 0.3
+                radius: CornerRadii(size * 0.3)
             ),
             align: .left,
             lines: 1

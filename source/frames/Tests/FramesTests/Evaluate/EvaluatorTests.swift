@@ -567,7 +567,7 @@ struct EvaluatorTests {
                             outset: 0,
                             placement: GeometryPlacement()
                         ),
-                        radius: 2,
+                        radius: .corners(2),
                         trim: [Keyframe(at: 0, value: .whole)],
                         fill: .off,
                         stroke: .stroke(PathStroke(width: 4, paint: .color(red), join: .round, cap: .butt, start: .none, end: .none)),
@@ -596,7 +596,7 @@ struct EvaluatorTests {
         let corners = item.transform.apply(toCornersOf: rectangle)
         #expect(isClose(corners, area))
         #expect(stroke.width == 4)
-        #expect(abs(radius * item.transform.a - 2) < 1e-9)
+        #expect(abs(radius.topLeft * item.transform.a - 2) < 1e-9)
     }
 
     @Test(
@@ -812,7 +812,7 @@ struct EvaluatorTests {
         let media = mediaClip(
             timing: nil,
             filter: [.blur(radius: 2)],
-            appearance: ResolvedMediaAppearance(conform: .fit, radius: 6, border: .border(border), shadow: .shadow(shadow)),
+            appearance: ResolvedMediaAppearance(conform: .fit, radius: .corners(6), border: .border(border), shadow: .shadow(shadow)),
             blend: "screen"
         )
         let sequence = sequence([storylineClip(.pinned(first), start: 0, end: 4)], clips: [media])
@@ -848,7 +848,7 @@ struct EvaluatorTests {
             scale: [Keyframe(at: 0, value: Scale(0.5))],
             opacity: 0.5,
             blend: "screen",
-            radius: 8,
+            radius: .corners(8),
             border: border,
             shadow: shadow
         )

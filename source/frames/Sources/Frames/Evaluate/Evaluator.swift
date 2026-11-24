@@ -362,7 +362,7 @@ package struct Evaluator: Sendable {
                 rectangle: entry.crop(at: time),
                 destination: box,
                 filter: FilterEntry.entries(of: entry.filter, at: time),
-                radius: entry.radius.sampled(at: time, as: LookStructureTable.length).number ?? 0,
+                radius: entry.radius.sampled(at: time, as: LookStructureTable.radius).cornerRadii ?? .zero,
                 border: MediaBorder(
                     sampled: entry.border.sampled(at: time, as: LookStructureTable.border),
                     factor: factor,
@@ -424,7 +424,7 @@ package struct Evaluator: Sendable {
             rectangle: entry.crop(at: time),
             destination: box,
             filter: FilterEntry.entries(of: entry.filter, at: time),
-            radius: entry.radius.sampled(at: time, as: LookStructureTable.length).number ?? 0,
+            radius: entry.radius.sampled(at: time, as: LookStructureTable.radius).cornerRadii ?? .zero,
             border: MediaBorder(
                 sampled: entry.border.sampled(at: time, as: LookStructureTable.border),
                 factor: 1,
