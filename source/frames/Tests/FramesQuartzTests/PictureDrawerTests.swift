@@ -154,6 +154,30 @@ struct PictureDrawerTests {
         #expect(bitmap.pixel(x: 4, y: 20) == [1, 1, 1, 1])
     }
 
+    @Test("the border of a picture whose region starts off the media's origin at another scale lies on the destination's edge")
+    func drawsBorderOfOffsetRegion() throws {
+        // Given
+        let sut = QuartzRenderer(decoder: AVFoundationDecoder())
+        let picture = PictureItem(
+            source: .media(try white(size: 40)),
+            rectangle: Rectangle(x: 10, y: 20, width: 20, height: 20),
+            destination: Rectangle(x: 0, y: 0, width: 40, height: 40),
+            border: MediaBorder(width: 4, color: Color(written: "#FF0000"))
+        )
+
+        // When
+        let bitmap = try sut.frame(of: list(size: Size(width: 40, height: 40), items: [DisplayItem(content: .picture(picture))]))
+
+        // Then
+        #expect(bitmap.pixel(x: 0, y: 20) == [1, 0, 0, 1])
+        #expect(bitmap.pixel(x: 3, y: 20) == [1, 0, 0, 1])
+        #expect(bitmap.pixel(x: 20, y: 0) == [1, 0, 0, 1])
+        #expect(bitmap.pixel(x: 20, y: 39) == [1, 0, 0, 1])
+        #expect(bitmap.pixel(x: 39, y: 20) == [1, 0, 0, 1])
+        #expect(bitmap.pixel(x: 4, y: 20) == [1, 1, 1, 1])
+        #expect(bitmap.pixel(x: 20, y: 20) == [1, 1, 1, 1])
+    }
+
     @Test("a shadow is the picture's shape blurred with its radius as standard deviation and moved by its offset")
     func castsShadow() throws {
         // Given

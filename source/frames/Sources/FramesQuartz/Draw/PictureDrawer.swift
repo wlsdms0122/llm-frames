@@ -150,7 +150,8 @@ struct PictureDrawer {
         return CGRect(x: left, y: top, width: right - left, height: bottom - top).intersection(whole)
     }
 
-    // What `drawing` draws cut to the destination with its corners rounded, and the border over it.
+    // What `drawing` draws cut to the destination with its corners rounded, and the border over it. `drawing` may move
+    // the context to place its source, and the border is drawn where the context stood before it.
     private func framed(
         _ item: PictureItem,
         carriedBy transform: Frames.AffineTransform,
@@ -161,7 +162,9 @@ struct PictureDrawer {
         context.saveGState()
         context.addPath(outline.path)
         context.clip()
+        context.saveGState()
         drawing(context)
+        context.restoreGState()
 
         // The border is the inside half of a stroke twice its width along the carried outline, so its outer edge
         // follows the rounded corners and it is as wide on every side in output pixels.
