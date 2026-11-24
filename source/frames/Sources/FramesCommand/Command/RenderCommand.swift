@@ -7,14 +7,14 @@
 
 import Frames
 
-// Renders a document through the roles the global options pick: the frame at `--at` to a PNG, or every frame to a
-// master and, with `--deliver`, a delivery from the same frames.
+// Renders a document through the roles the global options pick: the frame at `--at` to a PNG, every frame to a master
+// and, with `--deliver`, a delivery from the same frames, or every frame to a delivery alone.
 struct RenderCommand: Command {
     // MARK: - Property
     let name = "render"
-    let synopsis = "<document.json> -o <out.mov | out.png> [--at <t>] [--deliver <out.mp4>] [--args <args.json>]"
-    let summary = "Renders a sequence: every frame to a .mov master, or the frame at --at to a .png at the frame's "
-        + "size and without a time label."
+    let synopsis = "<document.json> -o <out.mov | out.mp4 | out.png> [--at <t>] [--deliver <out.mp4>] [--args <args.json>]"
+    let summary = "Renders a sequence: every frame to a .mov master or to an .mp4 delivery alone, or the frame at --at "
+        + "to a .png at the frame's size and without a time label."
 
     // MARK: - Initializer
     init() { }
