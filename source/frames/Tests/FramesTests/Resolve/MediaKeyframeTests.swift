@@ -76,11 +76,44 @@ struct MediaKeyframeTests {
         }
     }
 
+    @Test("a border object takes its missing keys from the theme border, its align inside by the base theme, and false draws none")
+    func takesBorderObject() throws {
+        // When
+        let outside = try resolvedLooks(#""border": { "align": "outside" }"#)
+        let coloured = try resolvedLooks(##""border": { "color": "#FF0000", "width": 2 }"##)
+        let none = try resolvedLooks(#""border": false"#)
+
+        // Then
+        for look in outside {
+            #expect(look.border.border() == MediaBorder(width: 4, color: Color(written: "#FFFFFF"), align: .outside))
+        }
+        for look in coloured {
+            #expect(look.border.border() == MediaBorder(width: 1, color: Color(written: "#FF0000"), align: .inside))
+        }
+        for look in none {
+            #expect(look.border == .off)
+        }
+    }
+
+    @Test("a keyframe that writes a border's align stops on a media clip and a storyline clip alike, since align is static")
+    func refusesKeyframedAlign() throws {
+        // Given
+        let keys = ##"""
+            "border": true, "keyframes": [ { "at": 0, "border": { "align": "outside" } }, { "at": 1, "border": "#FF0000" } ]
+            """##
+
+        // When, Then
+        let clipError = #expect(throws: (any Error).self) { try resolved(clip: keys) }
+        let storylineError = #expect(throws: (any Error).self) { try resolved(storyline: keys) }
+        #expect(clipError.map { "\($0)" } == "clips[0].keyframes[0].border.align (keyframe): a name, a boolean, a form or a static number is static and is written on the clip or the sequence, not in a keyframe")
+        #expect(storylineError.map { "\($0)" } == "storyline[0].keyframes[0].border.align (keyframe): a name, a boolean, a form or a static number is static and is written on the clip or the sequence, not in a keyframe")
+    }
+
     @Test("a media clip's timed values read back from its resolved entry as they were written")
     func roundTripsTimedValues() throws {
         // Given
         let looks = try resolvedLooks(##"""
-            "border": true, "shadow": { "color": "#000000" },
+            "border": { "align": "outside" }, "shadow": { "color": "#000000" },
             "keyframes": [ { "at": 0, "radius": 4, "border": "#FF0000", "ease": "ease-in" }, { "at": 1, "radius": 8, "border": "#0000FF" } ]
             """##)
         let writer = ResolvedValueWriter()

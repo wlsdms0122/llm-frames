@@ -144,10 +144,10 @@ struct ClipEvaluatorTests {
         let items = sut.items(of: clip, in: frame, picture: .media(MediaFrame(media: media, index: 0)), trackMatte: nil, compositing: .encoded, seed: 0, at: SampleTime(0.5))
 
         // Then
-        // The border is 4 output pixels wide, 2 of the box's own under the clip's scale of 2, so the box spans 84 x 44
-        // from (-2, -2) with it. Halfway, the left half of that shows.
+        // The border's width 4 is a length scaled with the clip, 8 output pixels under its scale of 2 and 4 of the box's
+        // own, so the box spans 88 x 48 from (-4, -4) with it. Halfway, the left half of that shows.
         let item = try #require(items.first)
-        #expect(item.reveal == Rectangle(x: -2, y: -2, width: 42, height: 44))
+        #expect(item.reveal == Rectangle(x: -4, y: -4, width: 44, height: 48))
     }
 
     @Test("a title's keyframed scale and rotation act about its anchor point, and its background fills its whole box")

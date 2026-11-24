@@ -14,9 +14,10 @@
 // length, the hull of each piece's control points grown by half that stroke along both axes, which holds the stroke
 // since a cubic lies in the hull of its control points. Each adds what its stroke draws past its outline grown by its
 // reach (`PathItem.overhangs`): its arrowheads, miter joins and square caps. The half of the band an inside or outside
-// stroke is cut from, the side it does not lie on, is left in. Bevels, round joins and caps, rounded corners, the curve of an ellipse and the trim of a rect or an
-// ellipse are left out. The stroke is drawn in output pixels on the outline `transform` carries, so its band is taken
-// at its width over the transform's length factor, exact where the transform scales both axes alike.
+// stroke is cut from, the side it does not lie on, is left in. Bevels, round joins and caps, rounded corners, the curve
+// of an ellipse and the trim of a rect or an ellipse are left out. The stroke is drawn in output pixels on the outline
+// `transform` carries, so its band is taken at its width over the transform's length factor, exact where the transform
+// scales both axes alike.
 extension ItemCoverage {
     // MARK: - Property
     // The pieces a curved segment is cut into, whose control points lie closer to the curve the more there are.

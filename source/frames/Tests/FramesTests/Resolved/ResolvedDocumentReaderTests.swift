@@ -61,13 +61,14 @@ struct ResolvedDocumentReaderTests {
 
     // Documents that between them write every kind of resolved entry and value.
     private static let documents = [
-        // A cropped, filtered storyline clip at speed 2, a title that pops in, a still with a border and music.
+        // A cropped, filtered storyline clip at speed 2, a title that pops in, a still with a border outside its box and
+        // music.
         #"""
         { "kind": "sequence", "format": { "size": [1080, 1920] },
           "storyline": [ { "media": "/abs/run.mp4", "in": 2, "out": 8, "speed": 2, "filter": "mine/grade",
                            "keyframes": [ { "at": 2, "crop": [0, 0, 1080, 1920] }, { "at": 8, "crop": [45, 97, 990, 1760] } ] } ],
           "clips": [ { "title": "Hi", "style": "title", "at": [0, 3], "animation": "frames/pop", "position": [75.4, 1709.8] },
-                     { "media": "/abs/page.png", "at": [0, 3], "width": 200, "border": true, "shadow": true, "radius": 12 },
+                     { "media": "/abs/page.png", "at": [0, 3], "width": 200, "border": { "align": "outside" }, "shadow": true, "radius": 12 },
                      { "media": "/abs/bgm.m4a", "at": 0, "loop": true,
                        "keyframes": [ { "at": 0, "volume": 0.3, "pan": -0.5, "ease": "ease-in" }, { "at": 2, "volume": 0.3 },
                                       { "at": 3, "volume": 0, "pan": 0.5 } ] } ] }
@@ -93,20 +94,21 @@ struct ResolvedDocumentReaderTests {
             { "title": "Hi", "style": "title", "at": [1, 2], "parent": "dim", "position": [50, 50] },
             { "media": "/abs/ding.wav", "at": 1.5, "fadeIn": 0.25, "fadeOut": 0.5 } ] } ] }
         """#,
-        // Each shape kind and form: a rect by its area with a style, outset and a shadow object, a rect by its width
-        // and height keyframed, an ellipse by its box at a position, an ellipse by its area with a named anchor, an
-        // open path with keyframed points and trim, a closed path, scaled and turned, and a curved path whose tangents
-        // keyframe apart from its points.
+        // Each shape kind and form: a rect by its area with a style, outset, a shadow object and a stroke inside its
+        // outline, a rect by its width and height keyframed, an ellipse by its box at a position stroked outside, an
+        // ellipse by its area with a named anchor, an open path with keyframed points and trim, a closed path, scaled
+        // and turned, and a curved path whose tangents keyframe apart from its points.
         ##"""
         { "kind": "sequence",
           "theme": { "shapes": { "outline": { "stroke": { "width": 8, "color": "#ED2929" }, "radius": 18 } } },
           "storyline": [ { "media": "/abs/run.mp4", "in": 0, "out": 4 } ],
           "clips": [
-            { "shape": "rect", "style": "outline", "area": [10, 20, 300, 200], "outset": 6, "shadow": { "radius": 4 }, "at": [0, 4] },
+            { "shape": "rect", "style": "outline", "area": [10, 20, 300, 200], "outset": 6, "shadow": { "radius": 4 },
+              "stroke": { "align": "inside" }, "at": [0, 4] },
             { "shape": "rect", "fill": "accent", "height": 100, "placement": "top", "at": [0, 4],
               "keyframes": [ { "at": 0, "width": 200, "radius": 4, "ease": "ease-in" }, { "at": 2, "width": 400, "radius": 12 } ] },
             { "shape": "ellipse", "width": 120, "height": 60, "anchor": "top-left", "position": [100, 100], "outset": 2,
-              "stroke": { "width": 3, "join": "bevel", "cap": "square" }, "rotation": 30, "at": [0, 4] },
+              "stroke": { "width": 3, "align": "outside", "join": "bevel", "cap": "square" }, "rotation": 30, "at": [0, 4] },
             { "shape": "ellipse", "area": [100, 100, 80, 40], "anchor": "bottom-right", "position": [400, 300], "fill": "#FFFFFF80",
               "shadow": true, "scale": 2, "at": [0, 4] },
             { "shape": "path", "stroke": { "width": 6, "start": "arrow", "end": "arrow", "color": "#00FF00" }, "at": [0, 4],
@@ -549,7 +551,7 @@ struct ResolvedDocumentReaderTests {
             (#""shape": "rect""#, #""shape": "box""#, #"clips[0].shape (clip): unknown value "box". Allowed: rect, ellipse, path"#),
             (#""join": "round""#, #""join": "square""#, #"clips[0].stroke.join (stroke): unknown value "square". Allowed: miter, round, bevel"#),
             (#""end": "none""#, #""end": "dot""#, #"clips[0].stroke.end (stroke): unknown value "dot". Allowed: none, arrow"#),
-            (#""cap": "butt""#, #""cap": "butt", "head": 8"#, #"clips[0].stroke (stroke): unknown key "head". Allowed: color, gradient, width, join, cap, start, end, dash, dashOffset"#)
+            (#""cap": "butt""#, #""cap": "butt", "head": 8"#, #"clips[0].stroke (stroke): unknown key "head". Allowed: color, gradient, width, align, join, cap, start, end, dash, dashOffset"#)
         ]
     )
     func refusesShapeMember(

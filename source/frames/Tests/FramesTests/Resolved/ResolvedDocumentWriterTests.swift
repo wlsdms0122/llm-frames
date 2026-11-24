@@ -174,7 +174,8 @@ struct ResolvedDocumentWriterTests {
                     "value": "color(srgb 1 1 1 / 1)",
                     "ease": "linear"
                   }
-                ]
+                ],
+                "align": "inside"
               },
               "shadow": null,
               "transition": null
@@ -357,7 +358,8 @@ struct ResolvedDocumentWriterTests {
                     "value": "color(srgb 1 1 1 / 1)",
                     "ease": "linear"
                   }
-                ]
+                ],
+                "align": "inside"
               },
               "shadow": null,
               "start": 0,

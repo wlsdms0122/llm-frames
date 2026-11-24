@@ -76,7 +76,7 @@ struct DisplayListReaderTests {
                     isInverted: true
                 ),
                 radius: 12,
-                border: MediaBorder(width: 4, color: Color(written: "#FFFFFF")),
+                border: MediaBorder(width: 4, color: Color(written: "#FFFFFF"), align: .outside),
                 shadow: DropShadow(radius: 8, offset: Point(x: 0, y: 6), color: Color(written: "color(srgb 0 0 0 / 0.5019607843137255)"))
             )),
             origin: origin
@@ -845,7 +845,7 @@ struct DisplayListReaderTests {
         #expect(item["fill"] == .null)
         #expect(item["shadow"] == .null)
         #expect(item["trim"] == .array([.number(0), .number(0.6)]))
-        #expect(item["stroke"]?.objectValue?.keys == ["width", "paint", "join", "cap", "start", "end", "dash", "dashOffset"])
+        #expect(item["stroke"]?.objectValue?.keys == ["width", "paint", "align", "join", "cap", "start", "end", "dash", "dashOffset"])
         #expect(item["geometry"] == (try Fixture.json(#"""
             { "path": { "vertices": [[240, 175], [300, 175]], "inTangents": [[0, 0], [-10, -15.5]],
                         "outTangents": [[20, -30], [0, 0]], "closed": false } }
@@ -1000,17 +1000,17 @@ struct DisplayListReaderTests {
                 #"items[0].geometry.ellipse (path): unknown key "radius". Allowed: rect"#
             ),
             (
-                ##"{ "width": 2, "paint": "color(srgb 1 1 1 / 1)", "join": "sharp", "cap": "butt", "start": "none", "end": "none" }"##,
+                ##"{ "width": 2, "paint": "color(srgb 1 1 1 / 1)", "align": "center", "join": "sharp", "cap": "butt", "start": "none", "end": "none" }"##,
                 "stroke",
                 #"items[0].stroke.join (path): unknown value "sharp". Allowed: miter, round, bevel"#
             ),
             (
-                ##"{ "width": 2, "paint": "color(srgb 1 1 1 / 1)", "join": "round", "cap": "flat", "start": "none", "end": "none" }"##,
+                ##"{ "width": 2, "paint": "color(srgb 1 1 1 / 1)", "align": "center", "join": "round", "cap": "flat", "start": "none", "end": "none" }"##,
                 "stroke",
                 #"items[0].stroke.cap (path): unknown value "flat". Allowed: butt, round, square"#
             ),
             (
-                ##"{ "width": 2, "paint": "color(srgb 1 1 1 / 1)", "join": "round", "cap": "butt", "start": "none", "end": "dot" }"##,
+                ##"{ "width": 2, "paint": "color(srgb 1 1 1 / 1)", "align": "center", "join": "round", "cap": "butt", "start": "none", "end": "dot" }"##,
                 "stroke",
                 #"items[0].stroke.end (path): unknown value "dot". Allowed: none, arrow"#
             ),
@@ -1023,6 +1023,11 @@ struct DisplayListReaderTests {
                 ##"{ "width": 2, "paint": { "radial": { "center": [0, 0], "radius": 1, "stops": [[0.5, "color(srgb 1 1 1 / 1)"], [0.2, "color(srgb 0 0 0 / 1)"]] } }, "join": "round", "cap": "butt", "start": "none", "end": "none" }"##,
                 "stroke",
                 "items[0].stroke.paint.radial.stops (path): a gradient has at least two stops, their offsets from 0 to 1 and in order"
+            ),
+            (
+                ##"{ "width": 2, "paint": "color(srgb 1 1 1 / 1)", "align": "middle", "join": "round", "cap": "butt", "start": "none", "end": "none" }"##,
+                "stroke",
+                #"items[0].stroke.align (path): unknown value "middle". Allowed: inside, center, outside"#
             ),
             ("[0, 1.5]", "trim", "items[0].trim[1] (path): a trim runs from 0 to 1, found 1.5"),
             ("[-0.25, 1]", "trim", "items[0].trim[0] (path): a trim runs from 0 to 1, found -0.25"),
@@ -1055,6 +1060,63 @@ struct DisplayListReaderTests {
 
         // Then
         #expect(error?.description == message)
+    }
+
+    @Test("a path's stroke and a picture's border are written with their align and read back with it", arguments: StrokeAlign.allCases)
+    func readsWrittenAlign(align: StrokeAlign) throws {
+        // Given
+        let list = list(items: [
+            DisplayItem(content: .picture(PictureItem(
+                source: .media(MediaFrame(media: Self.still, index: 0)),
+                rectangle: nil,
+                destination: Rectangle(x: 10, y: 20, width: 200, height: 100),
+                border: MediaBorder(width: 4, color: Color(written: "#FFFFFF"), align: align)
+            ))),
+            DisplayItem(content: .path(PathItem(
+                geometry: .rect(Rectangle(x: 10, y: 20, width: 200, height: 100), radius: 8),
+                fill: nil,
+                stroke: PathStroke(width: 4, paint: .color(Color(written: "#FF3B30")), align: align, join: .miter, cap: .butt, start: .none, end: .none)
+            )))
+        ])
+
+        // When
+        let text = writer.write(list)
+        let read = try sut.read(text)
+
+        // Then
+        let items = try #require(try Fixture.json(text).objectValue?["items"]?.arrayValue?.compactMap(\.objectValue))
+        #expect(items.map { ($0["border"] ?? $0["stroke"])?.objectValue?["align"] } == [.string(align.rawValue), .string(align.rawValue)])
+        #expect(read == list)
+    }
+
+    @Test(
+        "a stroke inside or outside its outline on an open path or with an arrowhead stops, naming its stroke",
+        arguments: [
+            (#"{ "path": { "vertices": [[0, 0], [5, 5], [10, 0]], "inTangents": [[0, 0], [0, 0], [0, 0]], "outTangents": [[0, 0], [0, 0], [0, 0]], "closed": false } }"#, "inside", "none"),
+            (#"{ "rect": { "rect": [0, 0, 1, 1], "radius": 0 } }"#, "outside", "arrow")
+        ]
+    )
+    func refusesAlignedStrokeOffClosedOutline(
+        geometry: String,
+        align: String,
+        end: String
+    ) throws {
+        // Given
+        let text = #"""
+            { "displayList": "\#(FramesVersion.current)", "size": [10, 10], "background": "color(srgb 0 0 0 / 1)", "colorSpace": "srgb",
+              "peak": null, "compositing": "encoded", "items": [
+              { "item": "path", "origin": null, "transform": [1, 0, 0, 1, 0, 0], "opacity": 1, "blend": "normal",
+                "mask": null, "trackMatte": null, "reveal": null, "geometry": \#(geometry), "fill": null,
+                "stroke": { "width": 2, "paint": "color(srgb 1 1 1 / 1)", "align": "\#(align)", "join": "round", "cap": "butt",
+                            "start": "none", "end": "\#(end)", "dash": null, "dashOffset": 0 },
+                "trim": [0, 1], "shadow": null } ] }
+            """#
+
+        // When
+        let error = #expect(throws: ModelError.self) { try sut.read(text) }
+
+        // Then
+        #expect(error?.description == "items[0].stroke (path): a stroke inside or outside its outline needs a closed outline and no arrowhead")
     }
 
     @Test("a list with samples reads back and writes the same text again, its seed from a grain in its samples")

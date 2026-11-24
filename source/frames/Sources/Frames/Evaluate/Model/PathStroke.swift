@@ -5,9 +5,10 @@
 //  Created by JSilver on 11/18/26.
 //
 
-// A stroke along an outline, on the side of it `align` names, its `paint` colouring its arrowheads too. `dash` is nil for a whole stroke, or an
-// even number of lengths, the dashes and gaps in turn, laid from the start of the stroke as drawn and moved back along
-// it by `dashOffset`. The dash lengths are in the item's own coordinates, carried by its transform with the outline.
+// A stroke along an outline, on the side of it `align` names, its `paint` colouring its arrowheads too. `dash` is nil
+// for a whole stroke, or an even number of lengths, the dashes and gaps in turn, laid from the start of the stroke as
+// drawn and moved back along it by `dashOffset`. The dash lengths are in the item's own coordinates, carried by its
+// transform with the outline.
 package struct PathStroke: Equatable, Sendable {
     // MARK: - Property
     package let width: Double
