@@ -5,7 +5,10 @@
     "lead": { "size": 44, "weight": "bold", "lineHeight": 64, "lines": 1 },
     "body": { "size": 38, "lineHeight": 64, "lines": 1 },
     "label": { "size": 36, "weight": "bold", "color": "#FFFFFF",
-               "background": { "color": "accent", "padding": [8, 16], "radius": 12 }, "lines": 1 }
+               "background": { "color": "accent", "padding": [8, 16], "radius": 12 }, "lines": 1 },
+    "caption": { "size": 36, "weight": "bold", "color": "#FFFFFF", "lineHeight": 52,
+                 "background": { "color": "#000000CC", "padding": [10, 20], "radius": 12 },
+                 "placement": "bottom", "offset": 40, "align": "center", "lines": 2 }
   },
   "shapes": {
     "outline": { "stroke": { "width": 8 }, "radius": 18 },

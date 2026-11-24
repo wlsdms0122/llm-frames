@@ -12,7 +12,7 @@ The reviewers of a pull request watch it, in the pull request's description or i
 
 - `baseWidth` is 1206, the width of a phone screenshot at 3x, so on a picture 1206 pixels wide every theme length is a pixel of the picture. On a wider or narrower picture the outlines and labels scale with it and keep their size relative to the text they mark.
 - Black text on white (`text`, `background`) and a red `accent`.
-- Text styles: `lead` (44, bold) for the conclusion, `body` (38) for the reason, both on a 64 line and one line long, and `label` (36, bold, white on a red rounded box, one line) for a label.
+- Text styles: `lead` (44, bold) for the conclusion, `body` (38) for the reason, both on a 64 line and one line long, `label` (36, bold, white on a red rounded box, one line) for a label, and `caption` (36, bold, white on a dark rounded box, two lines at most, placed at the bottom of the frame) for a line of words on a recording.
 - Shape styles: `outline` (a red stroke 8 wide, corners rounded 18), `cover` (opaque black fill) and `dim` (black at 60% opacity).
 - `border` is 3 wide and light grey, for a screenshot whose white background would otherwise meet the white page.
 - No default transition, filter or animation, as in the base theme. A reviewer who pauses on any frame sees every mark whole.
@@ -40,7 +40,9 @@ Under content fit the frame grows to hold it, so the picture keeps every pixel o
 - A **cover** is a rect in the `cover` style over personal data: `{ "shape": "rect", "style": "cover", "parent": "checkout", "area": { "text": "jane@example.com", "padding": 12 } }`.
 - A **dim** darkens everything but the reason lines: a rect in the `dim` style over the crop, with an inverted mask of the lines, `{ "shape": "rect", "style": "dim", "parent": "checkout", "area": [0, 130, 1206, 800], "mask": { "shape": "rect", "area": <the lines' area>, "radius": 18, "invert": true } }`. It comes before the outlines, so they draw over it.
 
-**Two states.** Before and after are two pictures side by side: the before picture as the storyline clip, and the after picture as a connected media clip with the same `crop` and `border`, `"anchor": "top-left"` and `"position": [W + 40, 0]`. Its marks are parented to it. Each takes a heading above it, a title in `lead` with `"width": 600`, `"anchor": "bottom-left"`, at `[40, -16]` and `[W + 80, -16]`. The header sits above the headings, at `"position": [0, -80]` and `"width": 1206`. Cover the personal data in both pictures.
+**Two states.** Before and after are two pictures side by side: the before picture as the storyline clip, and the after picture as a connected media clip with the same `crop` and `border`, `"anchor": "top-left"` and `"position": [W + 40, 0]`. Its marks are parented to it. Each takes a heading above it, a title in `lead` with `"width": 600`, `"anchor": "bottom-left"`, at `[40, -16]` and `[W + 80, -16]`. The header sits above the headings, at `"position": [0, -80]` and `"width": 1206`. Cover the personal data in both pictures. `examples/before-after.json` is this layout with its numbers written out: with `W` the picture's width, the after picture is at `[W + 40, 0]` and the headings at `[40, -16]` and `[W + 80, -16]`.
+
+**A caption.** A recording that needs a line of words on it takes a title in the `caption` style: white on a dark box, two lines at most, at the bottom of the frame. Its style places it, so it writes no `position`, and it does not change the measured frame: `{ "at": [1.2, 2.8], "title": "The total updates as shipping is added", "style": "caption" }`. It lies over the bottom of the recording, so use it where nothing that proves the claim is shown there, and keep the claim itself in the header.
 
 ## Rules
 
@@ -91,12 +93,15 @@ Under content fit the frame grows to hold it, so the picture keeps every pixel o
 
 ## Example
 
-Two examples are in `examples/`. They name their media by placeholder paths under `/path/to/`, so change each to an absolute path of your own before they run:
+Three examples are in `examples/`. They name their media by placeholder paths under `/path/to/`, so change each to an absolute path of your own before they run:
 
 - `/path/to/checkout.png`: a screenshot 1206 pixels wide of an order summary with the rows `Order summary`, `Ship to` with `jane@example.com`, `Item total` with `38,000`, `Shipping` with `4,000`, `Total` with `42,000` and `Arrives in 2 days`, and a `Pay 42,000` button below them. Rows are read with their label at the left and their value at the right.
+- `/path/to/checkout-before.png`: the same screenshot before the change, without the `Shipping` row and with `Total` at `38,000`.
 - `/path/to/checkout.mov`: a 1280 by 720 recording, at least 2.8 seconds long, of the same summary on a desktop, where `Add shipping` is clicked at 1 second, the `Shipping` row appears and `Total` turns from `38,000` to `42,000`, and the list then scrolls up so that the email leaves the top edge.
 
 `examples/screenshot.json` is a screenshot: the crop `[0, 130, 1206, 800]` keeps the rows from the heading to `Arrives in 2 days` across the whole width, the email is covered, the three reason rows are outlined, and only the total, whose row alone does not say why it is outlined, takes the label `38,000 + 4,000`. `"toNth": 0` picks the row's `42,000` and not the button's. The header is set on the picture's top edge. On your own screenshot change the crop's `y` and `h` to your rows.
+
+`examples/before-after.json` is two states side by side: the screenshot before the change as the storyline clip and the one after it as a media clip 40 to its right, each with its email covered and its total outlined, a heading above each, and the header above the headings. In the before picture `"toNth": 1` picks the total's `38,000` and not the item total's.
 
 `examples/recording.json` is a recording from 0.4 to 2.8 seconds with its sound off. The cover on the email follows `Total`, so it scrolls off the top with the email. The outline and its label come in at 1.2 seconds, once the total reads `42,000`, and follow the row with `"track": true`, since the row stays on screen. The header is 1280 wide, the recording's width.
 
