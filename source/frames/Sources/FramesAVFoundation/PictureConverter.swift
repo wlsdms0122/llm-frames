@@ -35,9 +35,7 @@ struct PictureConverter: Sendable {
     ) -> Bitmap {
         var (samples, width, height) = encodedSamples(of: image)
         if !conversion.isIdentity {
-            samples.withUnsafeMutableBufferPointer { pixels in
-                pixels.convertColors { conversion.working($0, toneMapping: toneMapping) }
-            }
+            samples.convertColors(width: width) { conversion.working($0, toneMapping: toneMapping) }
         }
 
         let bytesPerRow = width * 4 * 2
@@ -60,9 +58,7 @@ struct PictureConverter: Sendable {
         toneMapping: ToneMapping?
     ) -> Bitmap {
         var (samples, width, height) = encodedSamples(of: image)
-        samples.withUnsafeMutableBufferPointer { pixels in
-            pixels.convertColors { conversion.working($0, toneMapping: toneMapping).clipped(to: 0...1) }
-        }
+        samples.convertColors(width: width) { conversion.working($0, toneMapping: toneMapping).clipped(to: 0...1) }
 
         let bytesPerRow = width * 4
         var pixels = Data(count: bytesPerRow * height)
