@@ -120,7 +120,7 @@ struct CornerPinTests {
 
         // When, Then
         let error = #expect(throws: ResolveError.self) { try geometry(of: clip) }
-        #expect(error?.description == #"\#(place) (rect): a shape placed by its area or points takes no "cornerPin", since its outline is in its space already"#)
+        #expect(error?.description == #"\#(place) (rect): a shape placed by its area takes no "cornerPin", since its outline is in its space already"#)
     }
 
     @Test(

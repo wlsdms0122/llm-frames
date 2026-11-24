@@ -143,9 +143,9 @@ struct ClipAppearancePlanner: Sendable {
     }
 
     // The box a clip with a corner pin draws, sized as every clip's box is, and the points its corners go to, nil for a
-    // clip without one. It takes no other placement, a style's
-    // included, so a key that places a clip stops beside it, and a shape placed by its area or points stops, its
-    // outline being in its space already. Every corner pin written or found as numbers is strictly convex (FRAMES-27).
+    // clip without one. It takes no other placement, a style's included, so a key that places a clip stops beside it,
+    // and a rect or ellipse placed by its area stops, its outline being in its space already; a path takes no
+    // `cornerPin` key, which the key table refuses. Every corner pin written or found as numbers is strictly convex (FRAMES-27).
     func cornerPin(
         of plan: ClipPlan,
         written: Clip,
