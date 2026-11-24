@@ -8,6 +8,7 @@
 import Foundation
 import Frames
 @testable import FramesAVFoundation
+import FramesTestMedia
 import Testing
 
 @Suite("FilterEntryProcessor Tests")
@@ -135,6 +136,50 @@ struct FilterEntryProcessorTests {
             filtered(sound, by: try chain([entry]))
         }
         #expect(outputs == separate)
+    }
+
+    @Test("the ops of one entry that take one sample at a time compute together, rounded to the buffer's samples once")
+    func roundsSampleOpsOnce() throws {
+        // Given
+        let sut = try chain([MixFilterEntry(operations: operations, mix: .constant(1))])
+        let processors: [any AudioOperationProcessor] = [
+            EqualizerProcessor(bands: Self.highPass, sampleRate: Self.sampleRate),
+            CompressorProcessor(compressor: Self.compressor, sampleRate: Self.sampleRate)
+        ]
+        let inputs = rounded(signal(count: 4800))
+
+        // When
+        let outputs = filtered(inputs, by: sut)
+
+        // Then
+        let expected = rounded(inputs.enumerated().map { sample, input in
+            processors.reduce(input) { sound, processor in processor.process(sound, atSample: sample) }
+        })
+        #expect(outputs == expected)
+    }
+
+    @Test(
+        "a limiter or a convolve in one entry splits it: the ops on each side are rounded to the buffer's samples, as entries of their own",
+        arguments: ["limiter", "convolve"]
+    )
+    func roundsAroundWholeSoundOps(op: String) throws {
+        // Given
+        let directory = try TemporaryDirectory()
+        let response = directory.file("room.wav")
+        try WaveFileWriter(channels: [[0.6, 0.3, -0.2, 0.1], [0.5, -0.25, 0.125, 0.0625]]).write(to: response)
+        let middle: MixFilterOperation = op == "limiter"
+            ? .limiter(Self.limiter)
+            : .convolve(MixConvolution(file: PinnedFile(path: response, sha256: ""), gain: .constant(0)))
+        let split = [operations[0], middle, operations[1]]
+        let sut = try chain([MixFilterEntry(operations: split, mix: .constant(1))])
+        let separate = try chain(split.map { MixFilterEntry(operations: [$0], mix: .constant(1)) })
+        let inputs = rounded(signal(count: 9600).map { $0.scaled(by: 4) })
+
+        // When
+        let outputs = filtered(inputs, by: sut)
+
+        // Then
+        #expect(outputs == filtered(inputs, by: separate))
     }
 
     // MARK: - Private
