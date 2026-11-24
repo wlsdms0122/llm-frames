@@ -1,6 +1,6 @@
 # FRAMES-27: Corner pin
 
-Status: draft
+Status: accepted
 
 ## Summary
 

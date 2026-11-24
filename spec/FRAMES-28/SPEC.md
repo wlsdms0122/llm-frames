@@ -1,6 +1,6 @@
 # FRAMES-28: Buses and loudness
 
-Status: draft
+Status: accepted
 
 ## Summary
 

@@ -1,6 +1,6 @@
 # FRAMES-29: Motion blur
 
-Status: draft
+Status: accepted
 
 ## Summary
 
