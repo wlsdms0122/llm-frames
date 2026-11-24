@@ -22,6 +22,31 @@ struct CornerPinEvaluationTests {
         bottomLeft: Point(x: 120, y: 380)
     )
 
+    // A scale of 2 throughout a two second entrance, and a transition that slides the incoming clip in from one frame
+    // width to the right.
+    private static let presets = PresetTable(
+        transitions: Fixture.presets.transitions.merging(["mine/slide": TransitionPreset(
+            description: "",
+            seconds: 1,
+            over: .incoming,
+            audio: .constantPower,
+            incoming: Span(ease: .linear, keys: [SpanKey(t: 0, values: [.x: 1]), SpanKey(t: 1, values: [.x: 0])]),
+            outgoing: nil,
+            cover: nil,
+            matte: nil
+        )]) { $1 },
+        animations: Fixture.presets.animations.merging(["mine/grow": AnimationPreset(
+            description: "",
+            entrance: AnimationSpan(length: 2, span: Span(ease: .linear, keys: [
+                SpanKey(t: 0, values: [.scale: 2]),
+                SpanKey(t: 1, values: [.scale: 2])
+            ])),
+            loop: nil,
+            exit: nil
+        )]) { $1 },
+        filters: Fixture.presets.filters
+    )
+
     private let sut = Evaluator()
 
     // MARK: - Initializer
@@ -181,6 +206,118 @@ struct CornerPinEvaluationTests {
         #expect(nested.items.first?.transform == AffineTransform(translation: Point(x: 16.875, y: 16.875)))
     }
 
+    @Test("a clip with a corner pin draws nothing at an instant its keyframed box has no width, and draws on either side")
+    func drawsNothingWithoutBoxArea() throws {
+        // Given
+        // The ease [0, 4, 1, 4] is 3.125 half way, so the width from 100 to 50 overshoots to -56.25 at 1, and is above
+        // 0 near either keyframe.
+        let sequence = try resolved(#"""
+            { "id": "card", "shape": "rect", "fill": "accent", "height": 50, "at": [0, 4], "cornerPin": \#(Self.pin), "keyframes": [
+              { "at": 0, "width": 100, "ease": [0, 4, 1, 4] }, { "at": 2, "width": 50 } ] }
+            """#)
+
+        // When
+        let before = sut.displayList(of: sequence, at: 0.01)
+        let flat = sut.displayList(of: sequence, at: 1)
+        let after = sut.displayList(of: sequence, at: 1.99)
+
+        // Then
+        #expect(before.items.contains { $0.origin?.id == "card" })
+        #expect(!flat.items.contains { $0.origin?.id == "card" })
+        #expect(after.items.contains { $0.origin?.id == "card" })
+    }
+
+    @Test("a clip with a corner pin and an animation scales on its plane, about the centre of its box, and its group in its parent's space is not moved")
+    func scalesOnPlane() throws {
+        // Given
+        let sequence = try resolved(
+            document: #"{ "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4" } ], "clips": [ { "id": "card", "media": "/abs/page.png", "width": 300, "at": [0, 4], "cornerPin": \#(Self.pin), "animation": "mine/grow" } ] }"#,
+            presets: Self.presets
+        )
+
+        // When
+        let list = sut.displayList(of: sequence, at: 1)
+
+        // Then
+        // The box is [0, 0, 300, 240], and the nested list puts its top left at the picture's rectangle's origin.
+        let group = try #require(list.items.last)
+        guard case let .picture(picture) = group.content, case let .displayList(nested) = picture.source else {
+            Issue.record("the group is not a picture of a nested list")
+            return
+        }
+        let item = try #require(nested.items.first)
+        let origin = try #require(picture.rectangle)
+        let inBox = { (point: Point) in
+            let carried = item.transform.apply(to: point)
+            return Point(x: carried.x - origin.x, y: carried.y - origin.y)
+        }
+        #expect(group.transform == .identity)
+        #expect(picture.cornerPin == Self.quad)
+        #expect(inBox(Point(x: 150, y: 120)) == Point(x: 150, y: 120))
+        #expect(inBox(Point(x: 0, y: 0)) == Point(x: -150, y: -120))
+    }
+
+    @Test("a storyline clip's transition moves its pinned picture in the frame's space, on its outer item, and leaves its corner pin as written")
+    func movesStorylineTransitionInFrame() throws {
+        // Given
+        let sequence = try resolved(
+            document: #"""
+                { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "in": 0, "out": 2 },
+                  { "id": "shot", "media": "/abs/run.mp4", "in": 0, "out": 2, "transition": "mine/slide", "cornerPin": \#(Self.pin) } ] }
+                """#,
+            presets: Self.presets
+        )
+
+        // When
+        let list = sut.displayList(of: sequence, at: 2)
+
+        // Then
+        let outer = try #require(list.items.first { storylineCornerPin(in: [$0]) != nil })
+        #expect(storylineCornerPin(in: [outer]) == Self.quad)
+        #expect(outer.transform.tx > 0)
+        #expect(outer.transform.ty == 0)
+    }
+
+    @Test("a clip with a corner pin applies its filter to the item inside its group, on its plane, and its group carries none")
+    func filtersOnPlane() throws {
+        // Given
+        let sequence = try resolved(#"{ "id": "card", "media": "/abs/page.png", "width": 300, "at": [0, 4], "cornerPin": \#(Self.pin), "filter": "mine/grade" }"#)
+
+        // When
+        let list = sut.displayList(of: sequence, at: 1)
+
+        // Then
+        let group = try #require(list.items.last)
+        guard case let .picture(picture) = group.content, case let .displayList(nested) = picture.source,
+              case let .picture(inner) = nested.items.first?.content else {
+            Issue.record("the group is not a picture of a nested list of a picture")
+            return
+        }
+        #expect(picture.filter.isEmpty)
+        #expect(!inner.filter.isEmpty)
+    }
+
+    @Test("a cropped media clip with a corner pin pins its box by its width and crop, the crop drawn inside its group")
+    func pinsCroppedBox() throws {
+        // Given
+        let sequence = try resolved(#"{ "id": "card", "media": "/abs/page.png", "width": 300, "crop": [100, 0, 500, 400], "at": [0, 4], "cornerPin": \#(Self.pin) }"#)
+
+        // When
+        let list = sut.displayList(of: sequence, at: 1)
+
+        // Then
+        let group = try #require(list.items.last)
+        guard case let .picture(picture) = group.content, case let .displayList(nested) = picture.source,
+              case let .picture(inner) = nested.items.first?.content else {
+            Issue.record("the group is not a picture of a nested list of a picture")
+            return
+        }
+        #expect(picture.cornerPin == Self.quad)
+        #expect(picture.destination == Rectangle(x: 0, y: 0, width: 300, height: 240))
+        #expect(inner.rectangle == Rectangle(x: 100, y: 0, width: 500, height: 400))
+        #expect(inner.destination == Rectangle(x: 0, y: 0, width: 300, height: 240))
+    }
+
     @Test("a corner pin keyframed to its mirror draws nothing where its interpolated corners are not strictly convex")
     func drawsNothingWhereFolded() throws {
         // Given
@@ -197,6 +334,31 @@ struct CornerPinEvaluationTests {
         // Then
         #expect(!folded.items.contains { $0.origin?.id == "card" })
         #expect(mirrored.items.contains { $0.origin?.id == "card" })
+    }
+
+    @Test("a corner pin holding a clip area draws nothing at an instant the named clip's box makes it not strictly convex, and draws on either side")
+    func drawsNothingWhereClipAreaFolds() throws {
+        // Given
+        // The bottom right corner is that of "bar", at x = 500 at 0 and 2 and at x = -300 at 1, so it passes the bottom
+        // left corner at 0.5 and 1.5 and the corner pin is not strictly convex between them.
+        let sequence = try resolved(#"""
+            { "id": "bar", "shape": "rect", "fill": "accent", "at": [0, 4], "keyframes": [
+              { "at": 0, "area": [400, 300, 100, 100], "ease": "linear" },
+              { "at": 1, "area": [-400, 300, 100, 100], "ease": "linear" },
+              { "at": 2, "area": [400, 300, 100, 100] } ] },
+            { "id": "card", "media": "/abs/page.png", "width": 300, "at": [0, 4],
+              "cornerPin": [[100, 100], [500, 100], { "area": { "clip": "bar" }, "point": "bottom-right" }, [100, 400]] }
+            """#)
+
+        // When
+        let before = sut.displayList(of: sequence, at: 0.25)
+        let folded = sut.displayList(of: sequence, at: 1)
+        let after = sut.displayList(of: sequence, at: 1.75)
+
+        // Then
+        #expect(before.items.contains { $0.origin?.id == "card" })
+        #expect(!folded.items.contains { $0.origin?.id == "card" })
+        #expect(after.items.contains { $0.origin?.id == "card" })
     }
 
     @Test("a sibling's clip area naming a clip with a corner pin takes its corner pin bounds, its padding not divided by a length factor")
@@ -388,6 +550,65 @@ struct CornerPinEvaluationTests {
         #expect(zip(drawn, expected).allSatisfy { abs($0.x - $1.x) < 1e-9 && abs($0.y - $1.y) < 1e-9 })
     }
 
+    @Test("a static tracked corner pin with a corner found by text under a named target is brought back whole at the clip's instant, so it draws there what it writes and finds")
+    func bringsBackFoundStaticWhole() throws {
+        // Given
+        // From media second 0.1 the target [0, 0, 100, 100] is seen as a trapezoid, so the track's homography there is
+        // not its motion. The clip's instant shows media 0.5, where "Sign" has its bottom left at (10, 40).
+        let target = Quad(Rectangle(x: 0, y: 0, width: 100, height: 100))
+        let far = Quad(topLeft: Point(x: 0, y: 0), topRight: Point(x: 100, y: 0), bottomRight: Point(x: 60, y: 50), bottomLeft: Point(x: 40, y: 50))
+        let quads = [(0.0, target)] + (1...10).map { (Double($0) / 10, far) }
+        let ocr = OCRTable(["/abs/screen.mp4": [
+            (from: 0, lines: [RecognisedLine(text: "Sign", rectangle: Rectangle(x: 10, y: 30, width: 20, height: 10))])
+        ]])
+        let document = #"""
+            { "kind": "sequence", "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "out": 1, "connected": [
+                { "id": "tracked", "media": "/abs/card.png", "parent": "screen", "at": [0.5, 1], "width": 300, "track": { "time": 0, "area": [0, 0, 100, 100] },
+                  "cornerPin": [[10, 10], [90, 10], [90, 40], { "area": { "text": "Sign" }, "point": "bottom-left" }] } ] } ] }
+            """#
+        let sequence = try resolved(document: document, tracker: QuadTrackerTable(base: target, quads: quads), ocr: ocr)
+
+        // When
+        let list = sut.displayList(of: sequence, at: 0.5)
+
+        // Then
+        let item = try #require(list.items.first { $0.origin?.id == "tracked" })
+        guard case let .picture(picture) = item.content else {
+            Issue.record("the group is not a picture")
+            return
+        }
+        let drawn = try #require(picture.cornerPin).corners.map(item.transform.apply(to:))
+        let expected = [Point(x: 10, y: 10), Point(x: 90, y: 10), Point(x: 90, y: 40), Point(x: 10, y: 40)]
+        #expect(drawn.count == 4)
+        #expect(zip(drawn, expected).allSatisfy { abs($0.x - $1.x) < 1e-9 && abs($0.y - $1.y) < 1e-9 })
+    }
+
+    @Test("a tracked corner pin draws nothing where all four corners lie beyond the horizon of the track's homography, though the corner pin it would carry is strictly convex")
+    func drawsNothingBeyondHorizon() throws {
+        // Given
+        // From media second 0.1 the target [0, 0, 100, 100] is seen as a trapezoid, whose homography has the horizon
+        // y = -25 and w below 0 above it. The corner pin [10, -60, 80, 20] on the track's frame lies wholly there, and
+        // the homography would carry it to the strictly convex [78.57, 107.14], [21.43, 107.14], [-16.67, 166.67],
+        // [116.67, 166.67], the plane seen from behind.
+        let target = Quad(Rectangle(x: 0, y: 0, width: 100, height: 100))
+        let far = Quad(topLeft: Point(x: 0, y: 0), topRight: Point(x: 100, y: 0), bottomRight: Point(x: 60, y: 50), bottomLeft: Point(x: 40, y: 50))
+        let quads = [(0.0, target)] + (1...10).map { (Double($0) / 10, far) }
+        let document = #"""
+            { "kind": "sequence", "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "out": 1, "connected": [
+                { "id": "pinned", "media": "/abs/card.png", "parent": "screen", "at": [0, 1], "width": 300, "track": { "time": 0, "area": [0, 0, 100, 100] },
+                  "cornerPin": [[10, -60], [90, -60], [90, -40], [10, -40]] } ] } ] }
+            """#
+        let sequence = try resolved(document: document, tracker: QuadTrackerTable(base: target, quads: quads))
+
+        // When
+        let onTarget = sut.displayList(of: sequence, at: 0.05)
+        let behind = sut.displayList(of: sequence, at: 0.5)
+
+        // Then
+        #expect(onTarget.items.contains { $0.origin?.id == "pinned" })
+        #expect(!behind.items.contains { $0.origin?.id == "pinned" })
+    }
+
     @Test("a corner pin with motionBlur keyframed to move gives its group in every sample at that sample's corner pin, and the samples read back")
     func movesCornerPinInEverySample() throws {
         // Given
@@ -513,14 +734,32 @@ struct CornerPinEvaluationTests {
 
     private func resolved(
         document: String,
-        tracker: any TrackerProvider
+        tracker: any TrackerProvider,
+        ocr: any OCRProvider = Fixture.ocr
     ) throws -> ResolvedSequence {
         let planner = DocumentPlanner(
             mediaFacts: Fixture.mediaFacts,
             presets: Fixture.presets,
-            ocr: Fixture.ocr,
+            ocr: ocr,
             languages: nil,
             tracker: tracker,
+            shaper: Fixture.shaper,
+            library: Fixture.library
+        )
+
+        return try ResolvedSequence(plan: planner.plan(Fixture.json(document)), hashes: FileHashTable())
+    }
+
+    private func resolved(
+        document: String,
+        presets: any PresetProvider
+    ) throws -> ResolvedSequence {
+        let planner = DocumentPlanner(
+            mediaFacts: Fixture.mediaFacts,
+            presets: presets,
+            ocr: Fixture.ocr,
+            languages: nil,
+            tracker: Fixture.tracker,
             shaper: Fixture.shaper,
             library: Fixture.library
         )

@@ -408,6 +408,33 @@ struct CornerPinTests {
         #expect(error?.description == "storyline[0]#screen.connected[0].keyframes[1].cornerPin (image): the corner pin at 0.5, brought back through the inverse of the track's homography there, does not lie wholly in front of its horizon or is not strictly convex")
     }
 
+    @Test("a tracked corner pin keyframe at a time whose media frame was not followed is brought back through the last frame followed, and stops past that inverse homography's horizon")
+    func refusesUnfollowedKeyframeBeyondHorizon() throws {
+        // Given
+        // As above, from media second 0.1 the horizon of the inverse homography is the line y = 62.5. The track ends at
+        // media second 0.5, so the keyframe at 0.8 is brought back through the frame at 0.5.
+        let target = Quad(Rectangle(x: 0, y: 0, width: 100, height: 100))
+        let far = Quad(topLeft: Point(x: 0, y: 0), topRight: Point(x: 100, y: 0), bottomRight: Point(x: 60, y: 50), bottomLeft: Point(x: 40, y: 50))
+        let quads = [(0.0, target)] + (1...5).map { (Double($0) / 10, far) }
+        let sut = planner(tracker: QuadTrackerTable(base: target, quads: quads))
+        let document = { (bottom: Double) in #"""
+            { "kind": "sequence", "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "out": 1, "connected": [
+                { "media": "/abs/card.png", "parent": "screen", "at": [0, 1], "width": 300, "track": { "time": 0, "area": [0, 0, 100, 100] },
+                  "keyframes": [ { "at": 0, "cornerPin": [[0, 0], [100, 0], [100, 100], [0, 100]] },
+                                 { "at": 0.8, "cornerPin": [[10, 10], [90, 10], [90, \#(bottom)], [10, \#(bottom)]] } ] } ] } ] }
+            """# }
+
+        // When
+        let plan = try sut.plan(Fixture.planner.plan(document: Fixture.json(document(40))))
+
+        // Then
+        #expect(plan.clips[0].cornerPin != nil)
+        let error = #expect(throws: ResolveError.self) {
+            try sut.plan(Fixture.planner.plan(document: Fixture.json(document(70))))
+        }
+        #expect(error?.description == "storyline[0]#screen.connected[0].keyframes[1].cornerPin (image): the corner pin at 0.8, brought back through the inverse of the track's homography there, does not lie wholly in front of its horizon or is not strictly convex")
+    }
+
     @Test("a static corner pin a text form found under a named target is brought back at the instant, and stops past the inverse homography's horizon")
     func refusesFoundStaticBeyondHorizon() throws {
         // Given
