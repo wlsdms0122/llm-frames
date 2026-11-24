@@ -561,6 +561,28 @@ struct MixPlannerTests {
         #expect(nested.lookahead == 0.005)
     }
 
+    @Test("a looping compound clip's moving chain is mapped from each repeat's start, so each repeat's bus moves alike")
+    func chainsEachRepeatFromItsStart() {
+        // Given
+        let nestedChain = TimedValue.list([limiter(gain: [Keyframe(at: 0, value: .number(0)), Keyframe(at: 1, value: .number(4))])])
+        let audio = [
+            sound(nil, nested: [sound(music, start: 0, end: 1)], nestedAudioFilter: nestedChain, out: 1, loop: true, start: 0, end: 2)
+        ]
+
+        // When
+        let plan = sut.mix(of: sequence(audio, fps: 4, duration: 2))
+
+        // Then
+        let gains = plan.buses.map { bus -> MixValue? in
+            guard case let .limiter(limiter) = bus.filter.first?.operations.first else { return nil }
+            return limiter.gain
+        }
+        #expect(gains == [
+            .envelope(envelope([[0, 0], [0.25, 1], [0.5, 2], [0.75, 3], [1, 4]])),
+            .envelope(envelope([[1, 0], [1.25, 1], [1.5, 2], [1.75, 3], [2, 4]]))
+        ])
+    }
+
     @Test("the plan's filter is the sequence's audio filter over the whole mix, and the plan's length is N")
     func carriesSequenceFilter() throws {
         // Given

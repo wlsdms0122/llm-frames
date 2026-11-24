@@ -14,6 +14,9 @@ import Testing
 @Suite("LoudnessReporter Tests")
 struct LoudnessReporterTests {
     // MARK: - Property
+    // A sound file of one second.
+    private static let ding = ProbedMedia(kind: .audio, duration: 1, sound: ProbedSound(channels: 2, sampleRate: 48_000))
+
     // MARK: - Initializer
     // MARK: - Test
     @Test("a resolved document whose file changed since it was resolved stops as render does, before any role is called")
@@ -82,6 +85,55 @@ struct LoudnessReporterTests {
             .mix(length: 48_000)
         ])
         #expect(loudness.integrated == nil)
+    }
+
+    @Test(
+        "--from and --to pick the samples n whose time n / 48000 lies in [from, to), each edge at the first sample at or after it",
+        arguments: [
+            // Sample 1 lies at 20.83 µs, before 21 µs, and sample 2 after it.
+            (0.000021, nil, [1: 1, 2: 0.5]),
+            // Sample 2 lies at 41.67 µs, before 60 µs, and sample 3 at 62.5 µs, after it.
+            (nil, 0.00006, [2: 0.5, 3: 1])
+        ] as [(Double?, Double?, [Int: Float])]
+    )
+    func picksSamplesInRange(
+        from: Double?,
+        to: Double?,
+        levels: [Int: Float]
+    ) throws {
+        // Given
+        let sut = LoudnessReporter(
+            decoder: RecordingDecoder(log: RoleCallLog()),
+            mixer: RecordingMixer(log: RoleCallLog()) { sample in levels[sample] ?? 0 },
+            mediaFacts: MediaFactTable(files: ["/abs/ding.wav": Self.ding]),
+            hasher: FileHashTable()
+        )
+
+        // When
+        let loudness = try sut.loudness(ofMedium: "/abs/ding.wav", from: from, to: to)
+
+        // Then
+        #expect(loudness.samplePeak == -6.02)
+    }
+
+    @Test("--from before 0 stops before anything is mixed, since the sound starts at 0")
+    func refusesFromBeforeStart() throws {
+        // Given
+        let log = RoleCallLog()
+        let sut = LoudnessReporter(
+            decoder: RecordingDecoder(log: log),
+            mixer: RecordingMixer(log: log),
+            mediaFacts: MediaFactTable(files: ["/abs/ding.wav": Self.ding]),
+            hasher: FileHashTable()
+        )
+
+        // When
+        #expect(throws: AnalysisError.beforeSoundStart(option: "--from", time: -0.5)) {
+            try sut.loudness(ofMedium: "/abs/ding.wav", from: -0.5, to: nil)
+        }
+
+        // Then
+        #expect(!log.calls.contains(.mix(length: 48_000)))
     }
 
     // MARK: - Private

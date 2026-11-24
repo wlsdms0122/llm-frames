@@ -34,11 +34,12 @@ struct ClipAppearancePlanner: Sendable {
 
     // MARK: - Public
     // Each keyframe of a tracked corner pin is brought back through the inverse of the track's homography at its own
-    // time, on the frame shown there or the nearest frame followed, and a corner at or beyond that inverse's horizon, or
-    // a corner pin brought back that is not strictly convex, stops (FRAMES-27 A tracked corner pin). A static corner pin
-    // true on the track's frame is where the homography is the identity; one a text form found other than the track's
-    // target is one keyframe at the clip's instant, and is brought back there as a keyframe is (FRAMES-19 Timed
-    // values). A keyframe holding a clip area is the named clip's box at each instant, which only evaluation knows.
+    // time, on the frame shown there or the nearest frame followed, corner by corner as `Track.broughtBack` brings it
+    // back for evaluation, and a corner at or beyond that inverse's horizon, or a corner pin of points brought back that
+    // is not strictly convex, stops (FRAMES-27 A tracked corner pin). A corner of a clip area is on the track's frame
+    // already and is kept. A static corner pin true on the track's frame is where the homography is the identity; one a
+    // text form found other than the track's target is one keyframe at the clip's instant, and is brought back there as
+    // a keyframe is (FRAMES-19 Timed values).
     private func checkBroughtBack(
         of points: PropertyValue<GeometryQuad>,
         written: PropertyValue<[PositionForm]>,
@@ -142,9 +143,9 @@ struct ClipAppearancePlanner: Sendable {
     }
 
     // The box a clip with a corner pin draws, sized as every clip's box is, and the points its corners go to, nil for a
-    // clip without one. It takes no other placement, a style's
-    // included, so a key that places a clip stops beside it, and a shape placed by its area or points stops, its
-    // outline being in its space already. Every corner pin written or found as numbers is strictly convex (FRAMES-27).
+    // clip without one. It takes no other placement, a style's included, so a key that places a clip stops beside it,
+    // and a rect or ellipse placed by its area stops, its outline being in its space already; a path takes no
+    // `cornerPin` key, which the key table refuses. Every corner pin written or found as numbers is strictly convex (FRAMES-27).
     func cornerPin(
         of plan: ClipPlan,
         written: Clip,

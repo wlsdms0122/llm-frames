@@ -41,6 +41,13 @@ struct DocumentPlannerTests {
             files: [
                 media.appendingPathComponent("leak.mov").path: ProbedMedia(kind: .video, duration: 4, fps: 24, size: Size(width: 1080, height: 1920)),
                 "/abs/run.mp4": ProbedMedia(kind: .video, duration: 30, fps: 29.97, size: Size(width: 1080, height: 1920)),
+                "/abs/talk.mp4": ProbedMedia(
+                    kind: .video,
+                    duration: 4,
+                    fps: 24,
+                    size: Size(width: 1080, height: 1920),
+                    sound: ProbedSound(channels: 2, sampleRate: 48_000)
+                ),
                 "/abs/page.png": ProbedMedia(kind: .image, size: Size(width: 1000, height: 800))
             ],
             imageSequences: [
@@ -186,6 +193,28 @@ struct DocumentPlannerTests {
         // When, Then
         let error = #expect(throws: ThemeError.self) { try sut.plan(document) }
         #expect(error?.description == #"shorts/broken: defaults.transition (defaults): unknown transition preset "dissolve". A preset is named <pack>/<name>, and the ones frames ships are frames/<name>"#)
+    }
+
+    @Test("a template's audioFilter stands whether or not its arguments play sound, since the template is checked before them")
+    func takesTemplateAudioFilterWithEitherArgument() throws {
+        // Given
+        try directory.write(
+            #"{ "kind": "sequence", "params": { "clip": { "type": "video", "description": "the clip" } }, "storyline": [ { "media": { "param": "clip" }, "out": 2 } ], "audioFilter": { "op": "limiter" } }"#,
+            in: "shorts",
+            at: "templates/voiced.json"
+        )
+        let instance = { (clip: String) in
+            try Fixture.json(#"{ "kind": "sequence", "storyline": [ { "media": { "template": "shorts/voiced", "args": { "clip": "\#(clip)" } } } ] }"#)
+        }
+
+        // When
+        let silent = try sut.plan(instance("shorts/leak.mov"))
+        let sounding = try sut.plan(instance("/abs/talk.mp4"))
+
+        // Then
+        #expect(silent.sound.isEmpty)
+        #expect(sounding.sound.map(\.place.description) == ["storyline[0]"])
+        #expect(sounding.sound.first?.nestedAudioFilter != .off)
     }
 
     @Test("a resolve error inside a template instance continues the entry's place")

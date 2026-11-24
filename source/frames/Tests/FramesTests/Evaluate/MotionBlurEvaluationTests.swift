@@ -558,6 +558,103 @@ struct MotionBlurEvaluationTests {
         #expect(try samples.allSatisfy { try x(of: "x", in: nested(in: $0)) == x(of: "x", in: nested(in: at)) })
     }
 
+    @Test("under speed 2 the nested time moves twice as fast over the exposure, so a clip inside blurs by the motion it shows on the output")
+    func carriesSpeedIntoCompound() throws {
+        // Given
+        // C plays its 4 nested seconds at speed 2 over 0 to 2, so the frame at 0.5 shows X at nested time 1.
+        let compound = compoundClip(isMotionBlurred: false, inner: true, at: "[0, 2]", extra: #""in": 0, "out": 4, "speed": 2"#)
+        let sequence = try resolved(clips: [compound])
+
+        // When
+        let samples = try #require(sut.displayList(of: sequence, at: 0.5).samples)
+
+        // Then
+        let at = sut.displayListWithoutMotionBlur(of: sequence, at: 0.5).items
+        let innerShifts = try samples.map { try x(of: "x", in: nested(in: $0)) - x(of: "x", in: nested(in: at)) }
+        #expect(isClose(innerShifts, offsets.map { -1000 * $0 }))
+    }
+
+    @Test("where timeRemap plays backwards the nested times follow it instant by instant, so a clip inside blurs back along its motion")
+    func carriesBackwardRemapIntoCompound() throws {
+        // Given
+        // The remap shows nested time 3 at 0 and 0 at 3, so the frame at 2.5 shows X at nested time 0.5 and each later
+        // instant an earlier nested time.
+        let remap = #""keyframes": [ { "at": 0, "timeRemap": 3 }, { "at": 3, "timeRemap": 0 } ]"#
+        let sequence = try resolved(clips: [compoundClip(isMotionBlurred: false, inner: true, extra: remap)])
+
+        // When
+        let samples = try #require(sut.displayList(of: sequence, at: 2.5).samples)
+
+        // Then
+        let at = sut.displayListWithoutMotionBlur(of: sequence, at: 2.5).items
+        let innerShifts = try samples.map { try x(of: "x", in: nested(in: $0)) - x(of: "x", in: nested(in: at)) }
+        #expect(isClose(innerShifts, offsets.map { 500 * $0 }))
+    }
+
+    @Test("where timeRemap turns back inside the exposure the nested times it passes twice are read twice")
+    func readsTurningRemapTwice() throws {
+        // Given
+        // The remap plays forwards to nested time 1.01 at 1.01 and back from there, so of the frame at 1, exposed from 1
+        // to 1.02, the instants 1.01 - u and 1.01 + u show one nested time: samples i and 15 - i.
+        let remap = #""keyframes": [ { "at": 0, "timeRemap": 0 }, { "at": 1.01, "timeRemap": 1.01 }, { "at": 2.02, "timeRemap": 0 } ]"#
+        let sequence = try resolved(clips: [compoundClip(isMotionBlurred: false, inner: true, extra: remap)])
+
+        // When
+        let samples = try #require(sut.displayList(of: sequence, at: 1).samples)
+
+        // Then
+        let at = sut.displayListWithoutMotionBlur(of: sequence, at: 1).items
+        let innerShifts = try samples.map { try x(of: "x", in: nested(in: $0)) - x(of: "x", in: nested(in: at)) }
+        let turned = offsets.map { -500 * min($0, 0.02 - $0) }
+        #expect(isClose(innerShifts, turned))
+        #expect(isClose(innerShifts, innerShifts.reversed()))
+    }
+
+    @Test("a keyframed displace offset with motionBlur takes in each sample its value at that sample's instant, and the samples read back")
+    func movesDisplaceOffsetInEverySample() throws {
+        // Given
+        let sequence = try resolved(clips: [#"""
+            { "id": "leaf", "media": "/abs/card.png", "at": [0, 4], "motionBlur": true,
+              "filter": { "op": "displace", "file": "/abs/matte.png", "amount": 8 },
+              "keyframes": [ { "at": 0, "filter": { "offset": [0, 0] } }, { "at": 2, "filter": { "offset": [400, -200] } } ] }
+            """#])
+        let list = sut.displayList(of: sequence, at: 1)
+
+        // When
+        let read = try DisplayListReader().read(DisplayListWriter().write(list))
+
+        // Then
+        let samples = try #require(list.samples)
+        let moved = samples.map { displaceOffsets(in: $0) }
+        let expected = offsets.map { displaceOffsets(in: sut.displayListWithoutMotionBlur(of: sequence, at: 1 + $0).items) }
+        #expect(moved.allSatisfy { $0.count == 1 })
+        #expect(isClose(moved.flatMap { $0.flatMap { [$0.x, $0.y] } }, expected.flatMap { $0.flatMap { [$0.x, $0.y] } }))
+        #expect(moved.first != moved.last)
+        #expect(read.samples?.count == 16)
+    }
+
+    @Test("a path with keyframed points and motionBlur takes in each sample its vertices at that sample's instant, and the samples read back")
+    func movesPathPointsInEverySample() throws {
+        // Given
+        let sequence = try resolved(clips: [#"""
+            { "id": "leaf", "shape": "path", "stroke": { "width": 4, "color": "#FFFFFF" }, "at": [0, 4], "motionBlur": true,
+              "keyframes": [ { "at": 0, "points": [[0, 0], [100, 0], [100, 100]] }, { "at": 2, "points": [[0, 0], [300, 0], [300, 400]] } ] }
+            """#])
+        let list = sut.displayList(of: sequence, at: 1)
+
+        // When
+        let read = try DisplayListReader().read(DisplayListWriter().write(list))
+
+        // Then
+        let samples = try #require(list.samples)
+        let moved = try samples.map { try vertices(of: "leaf", in: $0) }
+        let expected = try offsets.map { try vertices(of: "leaf", in: sut.displayListWithoutMotionBlur(of: sequence, at: 1 + $0).items) }
+        #expect(moved.allSatisfy { $0.count == 3 })
+        #expect(isClose(moved.flatMap { $0.flatMap { [$0.x, $0.y] } }, expected.flatMap { $0.flatMap { [$0.x, $0.y] } }))
+        #expect(moved.first != moved.last)
+        #expect(read.samples?.count == 16)
+    }
+
     @Test("an edit point on a frame boundary is the frame's membership: the incoming clip draws in every sample at 2, the outgoing one at 1.96")
     func keepsCutAtEditPoint() throws {
         // Given
@@ -758,15 +855,17 @@ struct MotionBlurEvaluationTests {
             """#
     }
 
-    // C slides right at 500 pixels a second and X inside it left at 500, while Y inside it stands still.
+    // C slides right at 500 pixels a second over `at` and X inside it left at 500 a second of its nested time, from 1500
+    // at 0 to 500 at 2, while Y inside it stands still. `extra` takes the place of C's keyframes.
     private func compoundClip(
         isMotionBlurred: Bool,
         inner: Bool,
+        at: String = "[0, 4]",
         extra: String? = nil
     ) -> String {
         let keyframes = extra ?? #""keyframes": [ { "at": 0, "position": [460, 540] }, { "at": 2, "position": [1460, 540] } ]"#
         return #"""
-            { "id": "c", "at": [0, 4], "motionBlur": \#(isMotionBlurred), \#(keyframes),
+            { "id": "c", "at": \#(at), "motionBlur": \#(isMotionBlurred), \#(keyframes),
               "media": { "kind": "sequence", "format": { "size": [1920, 1080] },
                          "storyline": [ { "solid": "#000000", "duration": 4 } ],
                          "clips": [ { "id": "x", "shape": "rect", "fill": "#FF0000", "at": [0, 4], "width": 100, "height": 50,
@@ -970,6 +1069,35 @@ struct MotionBlurEvaluationTests {
               case let .media(frame) = inner.source else { return nil }
 
         return frame
+    }
+
+    // The offset of every `displace` op of every picture in `items`, nested lists included.
+    private func displaceOffsets(in items: [DisplayItem]) -> [Point] {
+        items.flatMap { item -> [Point] in
+            guard case let .picture(picture) = item.content else { return [] }
+
+            let own = picture.filter.flatMap(\.operations).compactMap { operation -> Point? in
+                guard case let .displace(_, _, offset) = operation else { return nil }
+
+                return offset
+            }
+            guard case let .displayList(list) = picture.source else { return own }
+
+            return own + displaceOffsets(in: list.items)
+        }
+    }
+
+    // The vertices of the path the clip at `id` draws, in its item's coordinates.
+    private func vertices(
+        of id: String,
+        in items: [DisplayItem]
+    ) throws -> [Point] {
+        guard case let .path(path) = try item(id, in: items).content, case let .path(vertices, _) = path.geometry else {
+            Issue.record("the clip draws no path of vertices")
+            return []
+        }
+
+        return vertices.map(\.vertex)
     }
 
     private func isClose(
