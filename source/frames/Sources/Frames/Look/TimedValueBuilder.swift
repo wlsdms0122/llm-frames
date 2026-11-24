@@ -144,7 +144,7 @@ struct TimedValueBuilder: Sendable {
                 keyframes: bodies,
                 as: structure.structure(ofForm: name) ?? .anyValue,
                 instant: instant,
-                place: place,
+                place: Self.place(ofForm: name, in: structure, at: place),
                 leaf: leaf
             )
             return .form(name, inner)
@@ -250,6 +250,18 @@ struct TimedValueBuilder: Sendable {
         }
 
         return .track(values)
+    }
+
+    // Where a form's body is written: under the form's name where the value is an object keyed by it, as a gradient
+    // is, and at the value itself for a colour and for a choice, whose form is told by its keys.
+    private static func place(
+        ofForm name: String,
+        in structure: ValueStructure,
+        at place: LookPlace
+    ) -> LookPlace {
+        guard case .forms = structure, name != ValueStructure.colorForm else { return place }
+
+        return place.appending(key: name)
     }
 
     // A keyframe's value with every timed leaf `unset`: the forms and list lengths it writes. A static leaf, `off`, a

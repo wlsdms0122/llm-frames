@@ -182,6 +182,21 @@ struct ShapeKeyframeTests {
         #expect(error.map { "\($0)" } == message)
     }
 
+    @Test("a gradient's leaf written statically and in every keyframe stops, naming the leaf under its gradient")
+    func refusesStaticGradientLeaf() throws {
+        // Given
+        let clip = ##"""
+            { "shape": "rect", "area": [0, 0, 10, 10],
+              "fill": { "radial": { "center": [0.5, 0.5], "radius": 0.5, "stops": [[0, "#FF0000"], [1, "#0000FF"]] } },
+              "keyframes": [ { "at": 0, "fill": { "radial": { "center": [0.2, 0.2] } } },
+                             { "at": 1, "fill": { "radial": { "center": [0.8, 0.8] } } } ] }
+            """##
+
+        // When, Then
+        let error = #expect(throws: (any Error).self) { try resolvedShape(clip) }
+        #expect(error.map { "\($0)" } == "clips[0].fill.radial.center: written as a static value and in every keyframe that writes it, so the static value never shows")
+    }
+
     @Test("dash lengths and the dash offset are theme lengths, scaled to output pixels")
     func scalesDash() throws {
         // When

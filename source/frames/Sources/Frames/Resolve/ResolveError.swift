@@ -390,8 +390,8 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
                 + keys.map { "\"\($0)\"" }.joined(separator: " and ") + ", so it must name its target"
 
         case let .trackOwnOnNamingClip(place, kind):
-            "\(place) (\(kind.label)): a title, still or compound clip names the area it tracks in its parent's "
-                + "media, so it cannot take \"track\": true"
+            "\(place) (\(kind.label)): a title, still or compound clip has no area of its own to follow, so its "
+                + "`track` names the area it tracks in its parent's media"
 
         case let .trackLost(place, kind, followed, edit):
             "\(place) (\(kind.label)): the tracker follows its target only over \(written(followed)) and loses it "
