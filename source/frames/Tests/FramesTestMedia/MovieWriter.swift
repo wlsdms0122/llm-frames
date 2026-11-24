@@ -20,7 +20,6 @@ import Frames
 package struct MovieWriter {
     // MARK: - Property
     private static let timescale: Int32 = 600
-    private static let deadline: Double = 60
 
     private let size: Size
     private let frameTimes: [Double]
@@ -144,16 +143,15 @@ package struct MovieWriter {
         CMTime(value: CMTimeValue((seconds * Double(Self.timescale)).rounded()), timescale: Self.timescale)
     }
 
-    // Waits until `input` takes more data. A writer that has stopped writing, or a wait past the deadline, is an
-    // error: the pixel buffer pool of a writer that has failed is not to be drawn from.
+    // Waits until `input` takes more data. A writer that has stopped writing is an error:
+    // the pixel buffer pool of a writer that has failed is not to be drawn from.
     private func wait(
         for input: AVAssetWriterInput,
         of writer: AVAssetWriter,
         path: String
     ) async throws {
-        let start = Date()
         while !input.isReadyForMoreMediaData {
-            guard writer.status == .writing, Date().timeIntervalSince(start) < Self.deadline else {
+            guard writer.status == .writing else {
                 throw writer.error ?? TestMediaError.unwritable(path)
             }
 

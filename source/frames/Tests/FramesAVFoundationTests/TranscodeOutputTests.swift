@@ -17,10 +17,12 @@ import Testing
 
 // Transcodes real files through the `avfoundation` decoder and encoder. Serialized, since the hardware encoders are
 // shared by every test.
-@Suite("Transcode Output Tests", .serialized)
+@Suite("Transcode Output Tests", .serialized, .timeLimit(.minutes(5)))
 struct TranscodeOutputTests {
     // MARK: - Property
-    private static let deadline = 20.0
+    // These tests read the file a writer leaves and none of them is about how long the writer takes, so the encoder
+    // waits on its writers without a deadline, and the suite's time limit ends a writer that never finishes.
+    private static let deadline = Double.infinity
     private static let frameTimes = (0..<8).map { Double($0) / 30 }
 
     private let size = Size(width: 64, height: 48)

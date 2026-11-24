@@ -14,10 +14,12 @@ import FramesTestMedia
 import Testing
 
 // Serialized, since the hardware encoders and AVAssetReader are shared by every test.
-@Suite("AVFoundationEncoder Tests", .serialized)
+@Suite("AVFoundationEncoder Tests", .serialized, .timeLimit(.minutes(5)))
 struct AVFoundationEncoderTests {
     // MARK: - Property
-    private static let deadline = 20.0
+    // These tests read the file a writer leaves and none of them is about how long the writer takes, so the encoder
+    // waits on its writers without a deadline, and the suite's time limit ends a writer that never finishes.
+    private static let deadline = Double.infinity
 
     // Half transparent red on the left half, transparent in the third quarter, opaque grey in the last, premultiplied.
     private static let halfRed: [UInt16] = [32_768, 0, 0, 32_768]

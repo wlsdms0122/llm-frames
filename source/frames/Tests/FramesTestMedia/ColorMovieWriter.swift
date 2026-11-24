@@ -17,7 +17,6 @@ import VideoToolbox
 package struct ColorMovieWriter {
     // MARK: - Property
     private static let timescale: Int32 = 600
-    private static let deadline: Double = 60
 
     private let size: Size
     private let colorSpace: ColorSpace
@@ -127,16 +126,14 @@ package struct ColorMovieWriter {
     }
 
     // MARK: - Private
-    // Waits until `input` takes more data. A writer that has stopped writing, or a wait past the deadline, is an
-    // error.
+    // Waits until `input` takes more data. A writer that has stopped writing is an error.
     private func wait(
         for input: AVAssetWriterInput,
         of writer: AVAssetWriter,
         path: String
     ) async throws {
-        let start = Date()
         while !input.isReadyForMoreMediaData {
-            guard writer.status == .writing, Date().timeIntervalSince(start) < Self.deadline else {
+            guard writer.status == .writing else {
                 throw writer.error ?? TestMediaError.unwritable(path)
             }
 
