@@ -216,9 +216,10 @@ struct DocumentCommandTests {
         #expect(try sut.standardOutput == line(of: again))
     }
 
-    @Test("render to another extension, or with --at to a master, stops with the pipeline's reason", arguments: [
-        ("out.gif", [] as [String], "render writes a .mov master or a .png frame"),
-        ("out.mov", ["--at", "1"], "--at picks the frame of a .png, and a .mov master holds every frame")
+    @Test("render to another extension, or with --at to a video, stops with the pipeline's reason", arguments: [
+        ("out.gif", [] as [String], "render writes a .mov master, an .mp4 delivery or a .png frame"),
+        ("out.mov", ["--at", "1"], "--at picks the frame of a .png, and a video holds every frame"),
+        ("out.mp4", ["--at", "1"], "--at picks the frame of a .png, and a video holds every frame")
     ])
     func stopsOnOutput(
         name: String,

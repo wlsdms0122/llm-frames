@@ -16,9 +16,13 @@ import Testing
 
 // Masters and deliveries written by `RenderPipeline` on the real roles, read back through AVFoundation and the
 // decoder. Serialized, since AVAssetReader needs a free thread of the shared pool and each test encodes.
-@Suite("Render Output Tests", .serialized)
+@Suite("Render Output Tests", .serialized, .timeLimit(.minutes(5)))
 struct RenderOutputTests {
     // MARK: - Property
+    // These tests read the files a render leaves and none of them is about how long a writer takes, so the encoder
+    // waits on its writers without a deadline, and the suite's time limit ends a writer that never finishes.
+    private static let deadline = Double.infinity
+
     // ProRes 422 HQ subsamples colour and H.264 compresses it, so a flat colour comes back to within a few steps.
     private let tolerance = 6.0 / 255
 
@@ -125,6 +129,46 @@ struct RenderOutputTests {
         #expect(delivery.video == kCMVideoCodecType_H264)
         #expect(delivery.audio.mFormatID == kAudioFormatMPEG4AAC)
         #expect(delivery.audio.mSampleRate == 48_000 && delivery.audio.mChannelsPerFrame == 2)
+    }
+
+    @Test("an MP4 output is the one file written, in the codecs and with the frames of a delivery beside a master")
+    func rendersDeliveryAlone() async throws {
+        // Given
+        let media = try TemporaryDirectory()
+        let beside = try TemporaryDirectory()
+        let alone = try TemporaryDirectory()
+        let storyline = try image(in: media, named: "orange.png", width: 160, height: 90, color: [255, 128, 0])
+        let clip = try image(in: media, named: "blue.png", width: 40, height: 30, color: [0, 0, 255])
+        let document = try DocumentResolver().resolve(#"""
+            { "kind": "sequence", "format": { "fps": 10 },
+              "storyline": [ { "media": "\#(storyline)", "duration": 0.5 } ],
+              "clips": [ { "at": [0, 0.5], "media": "\#(clip)", "width": 40 } ] }
+            """#)
+        let box = try #require(Evaluator().displayList(of: document, at: 0).placedPictures(named: "blue.png").first)
+        let sut = pipeline()
+
+        // When
+        try sut.render(document, to: beside.file("out.mov"), at: nil, delivery: beside.file("out.mp4"))
+        try sut.render(document, to: alone.file("out.mp4"), at: nil, delivery: nil)
+
+        // Then
+        #expect(try contents(of: alone) == ["out.mp4"])
+
+        let written = try await formats(of: alone.file("out.mp4"))
+        let delivered = try await formats(of: beside.file("out.mp4"))
+        #expect(written.video == kCMVideoCodecType_H264 && written.video == delivered.video)
+        #expect(written.audio.mFormatID == kAudioFormatMPEG4AAC && written.audio.mFormatID == delivered.audio.mFormatID)
+        #expect(written.audio.mSampleRate == delivered.audio.mSampleRate)
+        #expect(written.audio.mChannelsPerFrame == delivered.audio.mChannelsPerFrame)
+
+        let decoder = AVFoundationDecoder()
+        let frame = try decoder.picture(of: MediaFile(path: alone.file("out.mp4")), atFrame: 0)
+        let centre = (Int(box.center.x), Int(box.center.y))
+        #expect(
+            frame.isPixel(x: centre.0, y: centre.1, [0, 0, 255], tolerance: tolerance),
+            "\(frame.pixel(x: centre.0, y: centre.1))"
+        )
+        #expect(frame.isPixel(x: 8, y: 8, [255, 128, 0], tolerance: tolerance), "\(frame.pixel(x: 8, y: 8))")
     }
 
     @Test("a document whose pinned file changed since it was resolved is refused, and nothing is written")
@@ -266,7 +310,7 @@ struct RenderOutputTests {
             decoder: decoder,
             renderer: failure.map { FailingRenderer(renderer: renderer, failingAt: $0) } ?? renderer,
             mixer: AVFoundationMixer(decoder: decoder),
-            encoder: AVFoundationEncoder()
+            encoder: AVFoundationEncoder(deadline: Self.deadline)
         )
     }
 

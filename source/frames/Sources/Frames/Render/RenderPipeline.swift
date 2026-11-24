@@ -8,10 +8,10 @@
 import Foundation
 
 // Renders a resolved sequence through the roles: one frame of it to a PNG of 16 bits per channel, or every frame to a
-// master and, when asked, a delivery from the same frames in the same pass, each in the sequence's colour space and
-// clipped to its peak. Everything that can refuse does before the first frame, in this order: the output paths and the
-// time, every pinned file's hash, the decoder on every pinned media, the mixer on the mix plan, the renderer on every
-// frame's display list, and the encoder on each target.
+// master and, when asked, a delivery from the same frames in the same pass, or to a delivery alone, each in the
+// sequence's colour space and clipped to its peak. Everything that can refuse does before the first frame, in this
+// order: the output paths and the time, every pinned file's hash, the decoder on every pinned media, the mixer on the
+// mix plan, the renderer on every frame's display list, and the encoder on each target.
 package struct RenderPipeline: Sendable {
     // MARK: - Property
     private let renderer: any Renderer
@@ -44,20 +44,40 @@ package struct RenderPipeline: Sendable {
     }
 
     // MARK: - Public
-    // `time` is the frame of a PNG, 0 when it is nil, and must be nil for a master.
+    // `time` is the frame of a PNG, 0 when it is nil, and must be nil for a video. `delivery` goes beside a master
+    // only.
     package func render(
         _ sequence: ResolvedSequence,
         to output: String,
         at time: Double?,
         delivery: String?
     ) throws {
+        let format = sequence.format
+
         switch pathExtension(of: output) {
         case "png":
-            try still(sequence, at: time ?? 0, to: output, delivery: delivery)
+            if let delivery {
+                throw RenderError.deliveryWithoutMaster(path: delivery)
+            }
+            try still(sequence, at: time ?? 0, to: output)
 
         case "mov":
-            guard time == nil else { throw RenderError.timeOfMaster(path: output) }
-            try master(sequence, to: output, delivery: delivery)
+            guard time == nil else { throw RenderError.timeOfVideo(path: output) }
+            if let delivery, pathExtension(of: delivery) != "mp4" {
+                throw RenderError.deliveryExtension(path: delivery)
+            }
+
+            let master = EncodeTarget.master(path: output, alpha: !format.background.isOpaque, output: format.output)
+            let deliveries = delivery.map { [EncodeTarget.delivery(path: $0, output: format.output)] } ?? []
+            try video(sequence, to: [master] + deliveries)
+
+        case "mp4":
+            guard time == nil else { throw RenderError.timeOfVideo(path: output) }
+            if let delivery {
+                throw RenderError.deliveryWithoutMaster(path: delivery)
+            }
+
+            try video(sequence, to: [.delivery(path: output, output: format.output)])
 
         default:
             throw RenderError.outputExtension(path: output)
@@ -68,12 +88,8 @@ package struct RenderPipeline: Sendable {
     private func still(
         _ sequence: ResolvedSequence,
         at time: Double,
-        to output: String,
-        delivery: String?
+        to output: String
     ) throws {
-        if let delivery {
-            throw RenderError.deliveryOfStill(path: delivery)
-        }
         try FrameSpan(end: sequence.format.duration, kind: "sequence").check(time, option: "--at")
 
         try pinned.check(sequence.pinnedReferences)
@@ -91,15 +107,11 @@ package struct RenderPipeline: Sendable {
         try encoder.writeImage(renderer.frame(of: list), for: target)
     }
 
-    private func master(
+    // Draws every frame once and appends it to each target's writer.
+    private func video(
         _ sequence: ResolvedSequence,
-        to output: String,
-        delivery: String?
+        to targets: [EncodeTarget]
     ) throws {
-        if let delivery, pathExtension(of: delivery) != "mp4" {
-            throw RenderError.deliveryExtension(path: delivery)
-        }
-
         let mix = try SequenceMix(of: sequence, pinned: pinned, mixer: mixer)
 
         let format = sequence.format
@@ -108,8 +120,6 @@ package struct RenderPipeline: Sendable {
             try renderer.check(evaluator.displayList(of: sequence, at: time), ofFrameAt: time)
         }
 
-        let master = EncodeTarget.master(path: output, alpha: !format.background.isOpaque, output: format.output)
-        let targets = [master] + (delivery.map { [EncodeTarget.delivery(path: $0, output: format.output)] } ?? [])
         for target in targets {
             try encoder.check(target)
         }

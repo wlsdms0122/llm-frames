@@ -309,6 +309,30 @@ struct RenderPipelineTests {
         #expect(drawn.count == 5)
     }
 
+    @Test("an MP4 output is a delivery alone: every frame is drawn once and goes to its one writer, and no master is written")
+    func rendersDeliveryAlone() throws {
+        // Given
+        let log = RoleCallLog()
+        let sut = pipeline(log: log)
+        let sequence = sequence(fps: 2, duration: 1, audio: soundtrack)
+
+        // When
+        try sut.render(sequence, to: delivery, at: nil, delivery: nil)
+
+        // Then
+        let silence = SoundBuffer(sampleRate: 48_000, channels: 2, samples: Array(repeating: 0, count: 96_000))
+        #expect(log.calls == Array(checks(of: sequence).prefix(5)) + [
+            .checkTarget(.delivery(path: delivery)),
+            .mix(length: 48_000),
+            .videoWriter(.delivery(path: delivery), size: size, fps: 2, sound: silence),
+            .draw(frame: 0),
+            .append(path: delivery, frame: 0),
+            .draw(frame: 1),
+            .append(path: delivery, frame: 1),
+            .finish(path: delivery)
+        ])
+    }
+
     @Test(
         "a PNG is the frame at `--at`, 0 when it is left out, checked and written once at 16 bits in the sequence's space",
         arguments: [
@@ -342,7 +366,7 @@ struct RenderPipelineTests {
     }
 
     @Test(
-        "a master, a delivery and a PNG are written in the sequence's colour space at its peak",
+        "a master, a delivery beside it or alone and a PNG are written in the sequence's colour space at its peak",
         arguments: [(ColorSpace.rec2100PQ, 600 as Double?), (.rec2100HLG, nil), (.displayP3, nil)]
     )
     func rendersInColorSpace(
@@ -355,15 +379,18 @@ struct RenderPipelineTests {
         let sut = pipeline(log: log)
         let sequence = sequence(fps: 2, duration: 1, colorSpace: colorSpace, peak: peak)
         let output = directory.file("out.png")
+        let alone = "/abs/alone.mp4"
 
         // When
         try sut.render(sequence, to: master, at: nil, delivery: delivery)
+        try sut.render(sequence, to: alone, at: nil, delivery: nil)
         try sut.render(sequence, to: output, at: 0, delivery: nil)
 
         // Then
         let conversion = ColorConversion(space: colorSpace, peak: peak)
         #expect(log.calls.contains(.checkTarget(.master(path: master, alpha: false, output: conversion))))
         #expect(log.calls.contains(.checkTarget(.delivery(path: delivery, output: conversion))))
+        #expect(log.calls.contains(.checkTarget(.delivery(path: alone, output: conversion))))
         #expect(log.calls.contains(.checkImageTarget(.png(path: output, size: size, depth: .sixteen, output: conversion))))
     }
 
@@ -382,9 +409,11 @@ struct RenderPipelineTests {
         #expect(log.calls.isEmpty)
     }
 
-    @Test("`--at` with a master, `--deliver` with a PNG, a delivery other than an MP4 and any other output stop", arguments: [
-        ("/abs/out.mov", 0.5 as Double?, nil as String?, RenderError.timeOfMaster(path: "/abs/out.mov")),
-        ("/abs/out.png", nil, "/abs/out.mp4", RenderError.deliveryOfStill(path: "/abs/out.mp4")),
+    @Test("`--at` with a video, `--deliver` without a master, a delivery other than an MP4 and any other output stop", arguments: [
+        ("/abs/out.mov", 0.5 as Double?, nil as String?, RenderError.timeOfVideo(path: "/abs/out.mov")),
+        ("/abs/out.mp4", 0.5, nil, RenderError.timeOfVideo(path: "/abs/out.mp4")),
+        ("/abs/out.png", nil, "/abs/out.mp4", RenderError.deliveryWithoutMaster(path: "/abs/out.mp4")),
+        ("/abs/out.mp4", nil, "/abs/other.mp4", RenderError.deliveryWithoutMaster(path: "/abs/other.mp4")),
         ("/abs/out.mov", nil, "/abs/deliver.mov", RenderError.deliveryExtension(path: "/abs/deliver.mov")),
         ("/abs/out.gif", nil, nil, RenderError.outputExtension(path: "/abs/out.gif"))
     ])

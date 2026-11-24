@@ -27,7 +27,7 @@ struct CommandUsageTests {
             [--encoder <name>] [--shaper <name>] [--tracker <name>] [--ocr <name>] [--ocr-languages <tag>[,<tag>...]] \
             <command> ...
 
-            render    <document.json> -o <out.mov | out.png> [--at <t>] [--deliver <out.mp4>] [--args <args.json>]
+            render    <document.json> -o <out.mov | out.mp4 | out.png> [--at <t>] [--deliver <out.mp4>] [--args <args.json>]
             still     <document.json> --at <t>[,<t>...] -o <out.png> [--args <args.json>]
             resolve   <document.json> -o <resolved.json> [--args <args.json>]
             timeline  <document.json> [--args <args.json>] [--json]

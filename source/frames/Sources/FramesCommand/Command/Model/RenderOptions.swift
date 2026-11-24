@@ -10,8 +10,9 @@ struct RenderOptions: CommandOptions, Equatable {
     static let rules = [
         OptionRule(
             "-o",
-            value: "<out.mov | out.png>",
-            help: "The file written: a .mov master of every frame, or a .png of one frame, as an absolute path."
+            value: "<out.mov | out.mp4 | out.png>",
+            help: "The file written, as an absolute path: a .mov master of every frame, an .mp4 delivery of "
+                + "every frame alone, or a .png of one frame."
         ),
         OptionRule(
             "--at",
