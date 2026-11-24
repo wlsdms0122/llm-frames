@@ -334,4 +334,7 @@ These are not contract, but help whoever writes documents.
 - OCR confuses similar characters (`0` and `O`). Read the `ocr` output before pointing, and point with a part of the line that is less confusable, plus `nth`.
 - A shape placed by text while the screen is still moving lands where the text was at its start. Start it after the screen settles, or follow the text with `track`.
 - A shape found on one screen stays where that text was. When the recording changes screens, end the shape at the change, or start another on the new screen.
+- A crop found by text has the shape of the text, not of the frame. The default `conform` of `fit` grows it to the frame's shape, and where that reaches past the picture's edge the frame stays empty. A crop that zooms in on text near an edge takes `"conform": "fill"`, which cuts the crop to the frame's shape.
+- `still` and `sheet` draw a time label over the top left of each frame. To see what lies under it, write that frame with `render --at`, which draws no label.
+- `evaluate` gives each item's `bounds` and `opacity` bottom first, so a clip that does not show because another covers it can be found from the items above it.
 - PNG is lossless and does not shrink when written again. Use JPEG or HEIC for smaller stills.

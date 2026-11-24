@@ -31,9 +31,23 @@ sh source/install.sh
 frames --version
 ```
 
-`install.sh` builds a release and installs `frames` and `Frames_FramesCommand.bundle` side by side in `/usr/local/bin`. The bundle holds `frames`, the pack of presets that ships with the tool, and the tool reads it from its own directory, so the two always go together. `--prefix <dir>` (or `FRAMES_PREFIX`) installs them elsewhere, for example `sh source/install.sh --prefix "$HOME/.local/bin"`. `open-package install` runs the same script.
+`install.sh` builds a release and installs `frames` and `Frames_FramesCommand.bundle` side by side. The bundle holds `frames`, the pack of presets that ships with the tool, and the tool reads it from its own directory, so the two always go together. `open-package install` runs the same script.
 
-Packs are installed by copying a pack's directory into `$FRAMES_HOME/packs/`. `FRAMES_HOME` defaults to `~/.config/frames`.
+Two settings say where frames lives on a machine:
+
+| Setting | What it changes |
+|---|---|
+| `--prefix <dir>` or `FRAMES_PREFIX` | Where `install.sh` puts the tool. Defaults to `/usr/local/bin` |
+| `FRAMES_HOME` | Where the tool looks for installed packs, in `$FRAMES_HOME/packs/`. Defaults to `~/.config/frames` |
+
+To keep everything inside one directory, give both:
+
+```sh
+sh source/install.sh --prefix "$PWD/bin"
+export FRAMES_HOME="$PWD/frames-home"
+```
+
+A pack is installed by copying its directory into `$FRAMES_HOME/packs/`:
 
 ```sh
 mkdir -p ~/.config/frames/packs
