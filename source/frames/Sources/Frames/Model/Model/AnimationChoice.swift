@@ -5,13 +5,13 @@
 //  Created by JSilver on 11/15/26.
 //
 
-// An animation choice as a document, a theme or a template writes it. A preset choice's `by` and `stagger` are as
-// written, nil where absent, and resolve checks them. `split` takes the entrance from one preset and the exit from
-// another, and a side that is nil, written `"none"`, has none.
+// An animation choice as a document, a theme or a template writes it. `by` and `stagger` are as written, nil where
+// absent, and resolve checks them. `split` takes the entrance from one preset and the exit from another, and a side
+// that is nil, written `"none"`, has none.
 enum AnimationChoice: Equatable, Sendable {
     case none
     case preset(PresetInstance, by: TextUnit?, stagger: Double?)
-    case split(entrance: PresetInstance?, exit: PresetInstance?)
+    case split(entrance: PresetInstance?, exit: PresetInstance?, by: TextUnit?, stagger: Double?)
 
     // MARK: - Property
     // MARK: - Initializer
@@ -24,21 +24,21 @@ enum AnimationChoice: Equatable, Sendable {
             self = .none
             return
         }
-        if let object = value.objectValue, let entrance = object["entrance"], let exit = object["exit"] {
+        let object = value.objectValue
+        let by = object?["by"]?.stringValue.flatMap(TextUnit.init(rawValue:))
+        let stagger = object?["stagger"]?.numberValue
+        if let entrance = object?["entrance"], let exit = object?["exit"] {
             self = .split(
                 entrance: Self.side(entrance, place: place.appending(key: "entrance")),
-                exit: Self.side(exit, place: place.appending(key: "exit"))
+                exit: Self.side(exit, place: place.appending(key: "exit")),
+                by: by,
+                stagger: stagger
             )
             return
         }
         guard let instance = PresetInstance(value: value, place: place) else { return nil }
 
-        let object = value.objectValue
-        self = .preset(
-            instance,
-            by: object?["by"]?.stringValue.flatMap(TextUnit.init(rawValue:)),
-            stagger: object?["stagger"]?.numberValue
-        )
+        self = .preset(instance, by: by, stagger: stagger)
     }
 
     // MARK: - Public

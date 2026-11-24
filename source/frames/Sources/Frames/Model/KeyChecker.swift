@@ -432,14 +432,16 @@ struct KeyChecker: Sendable {
         }
 
         // When only one alternative takes this kind of value, its own error says more than a list of every form.
-        // Objects of several forms are told apart by the keys they hold.
+        // Objects of several forms are told apart by the keys they hold: the form that knows the most of them.
         var admitting = types.indices.filter { admits(types[$0], value) }
         if admitting.count > 1, let object = value.objectValue {
-            admitting = admitting.filter { index in
-                guard case let .object(table) = types[index] else { return false }
+            let known = admitting.map { index -> (index: Int, count: Int) in
+                guard case let .object(table) = types[index] else { return (index, 0) }
 
-                return object.keys.contains { table.rule(named: $0) != nil }
+                return (index, object.keys.count { table.rule(named: $0) != nil })
             }
+            let most = known.map(\.count).max() ?? 0
+            admitting = most > 0 ? known.filter { $0.count == most }.map(\.index) : []
         }
         guard admitting.count == 1 else {
             throw wrongType(value, .oneOf(types), place, kind)

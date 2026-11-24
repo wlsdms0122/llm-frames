@@ -227,7 +227,9 @@ extension AssetVideoWriter: VideoWriter {
     // MARK: - Lifecycle
     func append(_ frame: Bitmap) throws {
         do {
-            try appendFrame(frame)
+            try autoreleasepool {
+                try appendFrame(frame)
+            }
         } catch {
             abandon()
             throw error

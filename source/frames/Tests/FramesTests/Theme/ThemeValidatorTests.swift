@@ -86,7 +86,9 @@ struct ThemeValidatorTests {
         ])
         #expect(defaults.shapeAnimation == .split(
             entrance: PresetInstance(name: "frames/wipe", place: animationPlace.appending(key: "shape").appending(key: "entrance")),
-            exit: nil
+            exit: nil,
+            by: nil,
+            stagger: nil
         ))
         #expect(defaults.mediaAnimation == AnimationChoice.none)
     }
