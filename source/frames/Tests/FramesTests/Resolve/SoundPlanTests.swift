@@ -252,6 +252,23 @@ struct SoundPlanTests {
         #expect(plan.sound[1].nested.map(\.range) == [TimeRange(start: 0, end: 1)])
     }
 
+    @Test("a compound clip whose handle runs past its nested sequence's end is heard only to where the nested sequence ends")
+    func silencesCompoundHandlePastNestedEnd() throws {
+        // Given
+        let nested = #"{ "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "out": 4 } ] }"#
+
+        // When
+        let plan = try plan(#"""
+            { "kind": "sequence", "storyline": [
+                { "media": \#(nested) },
+                { "media": "/abs/run.mp4", "in": 10, "out": 14, "transition": "frames/wipe-right" } ] }
+            """#)
+
+        // Then
+        #expect(plan.sound[0].range == TimeRange(start: 0, end: 4.5))
+        #expect(plan.sound[0].audible == TimeRange(start: 0, end: 4))
+    }
+
     // MARK: - Private
     private func plan(_ document: String) throws -> SequencePlan {
         try sut.plan(Fixture.planner.plan(document: Fixture.json(document)))

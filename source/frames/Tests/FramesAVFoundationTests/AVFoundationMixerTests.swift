@@ -1039,6 +1039,31 @@ struct AVFoundationMixerTests {
         }
     }
 
+    @Test("a `convolve` in a bus's chain rings to the end of the bus's span and no further")
+    func cutsBusTailAtSpanEnd() async throws {
+        // Given
+        let directory = try TemporaryDirectory()
+        let input = try writeNoise(to: directory.file("input.wav"))
+        let response = directory.file("delayed.wav")
+        try WaveFileWriter(channels: [zeros(300) + [1]]).write(to: response)
+        let sut = AVFoundationMixer(decoder: AVFoundationDecoder())
+
+        // When
+        let convolved = try sut.mix(MixPlan(length: 48_000, segments: [], buses: [
+            bus(from: 0, to: 0.5, segments: [segment(of: input, from: 0, to: 0.5)], filter: convolution(response))
+        ]))
+        let plain = try sut.mix(MixPlan(length: 48_000, segments: [segment(of: input, from: 0, to: 0.5)]))
+
+        // Then
+        for channel in 0..<2 {
+            let output = self.channel(channel, of: convolved)
+            let dry = self.channel(channel, of: plain)
+            let largest = (0..<24_000).map { abs(output[$0] - ($0 < 300 ? 0 : dry[$0 - 300])) }.max()!
+            #expect(largest <= 1e-6, "channel \(channel): \(largest)")
+            #expect(output[24_000..<24_300].allSatisfy { $0 == 0 }, "channel \(channel)")
+        }
+    }
+
     @Test("a `convolve` in an entry at `mix` 0.5 is half the dry sound and half the wet, aligned sample for sample")
     func mixesConvolutionByHalf() async throws {
         // Given

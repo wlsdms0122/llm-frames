@@ -48,6 +48,24 @@ struct LoudnessCommandTests {
         #expect(object["shortTermMax"] == .null)
     }
 
+    @Test("a mono medium is placed at the centre by the pan law: its loudness kept, its peaks 3.01 dB under the file's")
+    func measuresMonoMediumByPanLaw() async throws {
+        // Given
+        let tone = sut.directory.file("mono.wav")
+        try await SoundWriter(end: 1, signal: .tone(frequency: 997), levels: [0.5]).write(to: tone)
+
+        // When
+        let code = sut.run(["loudness", tone, "--json"])
+
+        // Then
+        #expect(code == 0, "\(sut.standardError)")
+        let object = try #require(try JSONReader().read(Data(sut.standardOutput.utf8)).objectValue)
+        let integrated = try #require(object["integrated"]?.numberValue)
+        let samplePeak = try #require(object["samplePeak"]?.numberValue)
+        #expect(abs(integrated + 9.03) <= 0.02, "\(integrated)")
+        #expect(abs(samplePeak + 9.03) <= 0.02, "\(samplePeak)")
+    }
+
     @Test("loudness of a document that plays a medium from 0 at volume 1 prints the medium's measures")
     func measuresDocumentAsItsMix() async throws {
         // Given
