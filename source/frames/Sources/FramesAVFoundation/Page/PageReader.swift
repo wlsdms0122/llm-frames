@@ -28,7 +28,8 @@ final class PageReader: @unchecked Sendable {
     // Nil where the file is no PDF. A PDF that opens only with a password throws; one encrypted with an empty user
     // password opens.
     init?(path: String) throws {
-        guard let document = CGPDFDocument(URL(fileURLWithPath: path) as CFURL) else { return nil }
+        let url = URL(fileURLWithPath: path)
+        guard Self.hasHeader(url), let document = CGPDFDocument(url as CFURL) else { return nil }
         if !document.isUnlocked, !document.unlockWithPassword("") {
             throw DecoderError.lockedDocument(file: path)
         }
@@ -134,6 +135,16 @@ final class PageReader: @unchecked Sendable {
     }
 
     // MARK: - Private
+    // Whether the file starts as a PDF does, with `%PDF-` in its first 1024 bytes, where readers look for it. Core
+    // Graphics logs an error to stderr for every other file it is asked to open.
+    private static func hasHeader(_ url: URL) -> Bool {
+        guard let file = try? FileHandle(forReadingFrom: url) else { return false }
+        defer { try? file.close() }
+
+        let head = (try? file.read(upToCount: 1024)) ?? Data()
+        return head.range(of: Data("%PDF-".utf8)) != nil
+    }
+
     private func content(of number: Int) throws -> PageContent {
         if let content = contents.withLock({ $0[number] }) { return content }
         let (page, _) = try self.page(number)
