@@ -122,7 +122,7 @@ A mask is `{geometry, transform, feather, invert, mode}`: `geometry` in one of t
 Evaluation has done everything above pixels: keyframes and eases (springs included), clip areas at t ([FRAMES-2](../FRAMES-2/SPEC.md)), animation spans and how they combine, transition motion, cover and matte progress, reveal, parent transforms, masks, track mattes, tracked motion and tracked corner pins, corner pins as quadrilaterals, time remapping, and the visible windows. A role is left with the items as written.
 
 - Evaluation writes `seed` into every `grain` op: the number of the output frame being drawn, k for frame k of the outermost sequence (evaluated at k / fps), and the frame whose interval holds t for `still`, the `evaluate` command and a PNG. Nested lists take the outer frame's seed, so grain belongs to the output frame and two pictures in a transition share it.
-- Evaluation has also exposed every frame in which a clip with `motionBlur` owns a value the frame reads ([FRAMES-29](../FRAMES-29/SPEC.md)): sample list i is the frame at the i-th instant of the outermost sequence's exposure, the same for every clip, at which every parameter that takes time and that a clip with `motionBlur` owns is read, clamped to t's side of every jump written on it, and every other at t, while media frames, tracked motion, the seed and which clips draw are those of t. It writes the samples whether or not they differ.
+- Evaluation has also exposed every frame in which a clip with `motionBlur` owns a value the frame reads, into the sample lists of [FRAMES-29](../FRAMES-29/SPEC.md#the-samples), each read as [FRAMES-29](../FRAMES-29/SPEC.md#what-a-sample-moves-and-what-it-holds) says.
 
 ### JSON form
 
