@@ -741,40 +741,44 @@ struct TimePlanner: Sendable {
         place: Place,
         kind: ClipKind
     ) throws -> AnimationPlan {
+        let spans: (entrance: PresetSpan?, loop: PresetSpan?, exit: PresetSpan?)
+        let unit: (by: TextUnit?, stagger: Double?)
         switch choice {
         case .none:
             return .none
 
         case let .preset(instance, by, stagger):
             let preset = try animationPreset(instance, place: place, kind: kind)
-            // A theme default the clip takes is not written at the clip, so its stops name the clip.
-            let unitPlace = clip.animation == nil ? place : place.appending(key: "animation")
-            let units = try units(by: by, stagger: stagger, of: clip, place: unitPlace, kind: kind)
-            guard units == nil || preset.entrance != nil || preset.exit != nil else {
-                throw ResolveError.unitsWithoutSpan(place: unitPlace, kind: .clip(kind))
-            }
-
-            return AnimationPlan(
-                entrance: preset.entrance.map { PresetSpan(preset: instance.name, span: $0) },
-                loop: preset.loop.map { PresetSpan(preset: instance.name, span: $0) },
-                exit: preset.exit.map { PresetSpan(preset: instance.name, span: $0) },
-                units: units
+            spans = (
+                preset.entrance.map { PresetSpan(preset: instance.name, span: $0) },
+                preset.loop.map { PresetSpan(preset: instance.name, span: $0) },
+                preset.exit.map { PresetSpan(preset: instance.name, span: $0) }
             )
+            unit = (by, stagger)
 
-        case let .split(entrance, exit):
+        case let .split(entrance, exit, by, stagger):
             let entrancePreset = try entrance.map { try animationPreset($0, place: place, kind: kind) }
             let exitPreset = try exit.map { try animationPreset($0, place: place, kind: kind) }
-            return AnimationPlan(
-                entrance: entrance.flatMap { instance in
+            spans = (
+                entrance.flatMap { instance in
                     entrancePreset?.entrance.map { PresetSpan(preset: instance.name, span: $0) }
                 },
-                loop: nil,
-                exit: exit.flatMap { instance in
+                nil,
+                exit.flatMap { instance in
                     exitPreset?.exit.map { PresetSpan(preset: instance.name, span: $0) }
-                },
-                units: nil
+                }
             )
+            unit = (by, stagger)
         }
+
+        // A theme default the clip takes is not written at the clip, so its stops name the clip.
+        let unitPlace = clip.animation == nil ? place : place.appending(key: "animation")
+        let units = try units(by: unit.by, stagger: unit.stagger, of: clip, place: unitPlace, kind: kind)
+        guard units == nil || spans.entrance != nil || spans.exit != nil else {
+            throw ResolveError.unitsWithoutSpan(place: unitPlace, kind: .clip(kind))
+        }
+
+        return AnimationPlan(entrance: spans.entrance, loop: spans.loop, exit: spans.exit, units: units)
     }
 
     // A stagger the choice leaves out is its unit's default.

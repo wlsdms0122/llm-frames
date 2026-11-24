@@ -33,19 +33,17 @@ enum ChoiceKeyTable {
             kind: "animation choice",
             rules: [
                 KeyRule("preset", .name),
-                KeyRule("args", arguments),
-                KeyRule("by", .literal(TextUnit.allCases.map(\.rawValue))),
-                KeyRule("stagger", .number(.nonNegative))
-            ],
+                KeyRule("args", arguments)
+            ] + unitRules,
             groups: [KeyGroup(keys: ["args", "by", "stagger"], isExclusive: false)]
         )),
-        splitAnimation
+        .object(splitAnimation(rules: unitRules))
     ])
     // A theme's default for shapes, media clips and adjustment clips, which have no units.
     static let wholeAnimation = ValueType.oneOf([
         .name,
         .object(presetWithArguments("animation choice")),
-        splitAnimation
+        .object(splitAnimation(rules: []))
     ])
     static let filterKind = "filter choice"
     static let filter = ValueType.filterChoice
@@ -102,13 +100,20 @@ enum ChoiceKeyTable {
         }
     }
 
-    private static let splitAnimation = ValueType.object(ObjectTable(
-        kind: "animation choice",
-        rules: [
-            KeyRule("entrance", animationSide, isRequired: true),
-            KeyRule("exit", animationSide, isRequired: true)
-        ]
-    ))
+    private static let unitRules = [
+        KeyRule("by", .literal(TextUnit.allCases.map(\.rawValue))),
+        KeyRule("stagger", .number(.nonNegative))
+    ]
+
+    private static func splitAnimation(rules: [KeyRule]) -> ObjectTable {
+        ObjectTable(
+            kind: "animation choice",
+            rules: [
+                KeyRule("entrance", animationSide, isRequired: true),
+                KeyRule("exit", animationSide, isRequired: true)
+            ] + rules
+        )
+    }
 
     private static func presetWithArguments(_ kind: String) -> ObjectTable {
         ObjectTable(

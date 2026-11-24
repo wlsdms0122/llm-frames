@@ -191,7 +191,7 @@ struct ThemeValidator: Sendable {
         case let .preset(instance, _, _):
             [instance]
 
-        case let .split(entrance, exit):
+        case let .split(entrance, exit, _, _):
             [entrance, exit].compactMap(\.self)
         }
 

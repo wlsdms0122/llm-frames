@@ -110,6 +110,35 @@ struct ClipAnimationTests {
         ])
     }
 
+    @Test("`{entrance, exit}` plays by unit as a preset choice does, written whole or with `by` over a default that splits")
+    func playsSplitChoiceByUnit() throws {
+        // Given
+        let document = try Fixture.json(#"""
+            { "kind": "sequence",
+              "theme": { "defaults": { "animation": { "title": { "subtitle": { "entrance": "frames/pop", "exit": "frames/fade" } } } } },
+              "storyline": [ { "media": "/abs/run.mp4" } ],
+              "clips": [
+                { "at": [0, 1], "title": "a", "style": "headline", "animation": { "entrance": "frames/pop", "exit": "frames/fade", "by": "character", "stagger": 0.1 } },
+                { "at": [0, 1], "title": "b", "style": "headline", "animation": { "entrance": "frames/pop", "exit": "none", "by": "word" } },
+                { "at": [0, 1], "title": "c", "style": "subtitle", "animation": { "by": "line" } },
+                { "at": [0, 1], "title": "d", "style": "headline", "animation": { "entrance": "frames/pop", "exit": "frames/fade" } }
+              ] }
+            """#)
+
+        // When
+        let plan = try sut.plan(document: document)
+
+        // Then
+        #expect(plan.clips.map(\.animation.entrance?.preset) == ["frames/pop", "frames/pop", "frames/pop", "frames/pop"])
+        #expect(plan.clips.map(\.animation.exit?.preset) == ["frames/fade", nil, "frames/fade", "frames/fade"])
+        #expect(plan.clips.map(\.animation.units) == [
+            UnitStagger(by: .character, stagger: 0.1),
+            UnitStagger(by: .word, stagger: 0.12),
+            UnitStagger(by: .line, stagger: 0.3),
+            nil
+        ])
+    }
+
     @Test(
         "`by` on a clip that is not a title, `stagger` without `by` and `by` over a preset with neither an entrance nor an exit stop",
         arguments: [
@@ -123,6 +152,18 @@ struct ClipAnimationTests {
             ),
             (
                 #"{ "at": [0, 1], "title": "a", "style": "headline", "animation": { "preset": "frames/none", "by": "word" } }"#,
+                "clips[0].animation (title): `by` plays the entrance and the exit by unit, and the choice has neither"
+            ),
+            (
+                #"{ "at": [0, 1], "shape": "rect", "stroke": { "width": 8 }, "area": [0, 0, 10, 10], "animation": { "entrance": "frames/fade", "exit": "none", "by": "word" } }"#,
+                "clips[0].animation (rect): `by` plays a title's animation by unit, and this clip is not a title"
+            ),
+            (
+                #"{ "at": [0, 1], "title": "a", "style": "headline", "animation": { "entrance": "frames/fade", "exit": "frames/fade", "stagger": 0.1 } }"#,
+                "clips[0].animation (title): `stagger` spaces a title's units, and the choice names no unit with `by`"
+            ),
+            (
+                #"{ "at": [0, 1], "title": "a", "style": "headline", "animation": { "entrance": "none", "exit": "none", "by": "word" } }"#,
                 "clips[0].animation (title): `by` plays the entrance and the exit by unit, and the choice has neither"
             )
         ]
