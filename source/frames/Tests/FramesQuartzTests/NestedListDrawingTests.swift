@@ -49,6 +49,32 @@ struct NestedListDrawingTests {
         #expect(difference(scaledUp, drawn).largest > 0.2)
     }
 
+    @Test("a nested list shown whole over a frame of its size draws as it does under a reveal of the whole frame, which draws it apart")
+    func drawsWholeNestedListInPlace() throws {
+        // Given
+        let half = PathItem(filling: Rectangle(x: 4, y: 6, width: 20, height: 16), color: Color(written: "#FF000080"))
+        let scene = DisplayList(
+            size: Size(width: 40, height: 40),
+            background: Self.clear,
+            seed: 0,
+            items: [
+                DisplayItem(content: .path(PathItem(filling: Rectangle(x: 10, y: 10, width: 24, height: 24), color: Self.white))),
+                DisplayItem(opacity: 0.5, content: .path(half))
+            ]
+        )
+        let backdrop = DisplayItem(content: .path(PathItem(filling: Rectangle(x: 0, y: 0, width: 40, height: 20), color: Color(written: "#0000FF"))))
+        let whole = Rectangle(x: 0, y: 0, width: 40, height: 40)
+
+        // When
+        let inPlace = try sut.frame(of: list(size: 40, items: [backdrop, DisplayItem(content: .picture(picture(of: scene)))]))
+        let apart = try sut.frame(of: list(size: 40, items: [backdrop, DisplayItem(reveal: whole, content: .picture(picture(of: scene)))]))
+
+        // Then
+        #expect(difference(inPlace, apart).largest < 0.001)
+        #expect(inPlace.pixel(x: 20, y: 30) == [1, 1, 1, 1])
+        #expect(inPlace.pixel(x: 2, y: 2) == [0, 0, 1, 1])
+    }
+
     @Test("a nested list turned and scaled is closer to its items drawn in place than drawing it at its size")
     func drawsTurnedNestedList() throws {
         // Given
