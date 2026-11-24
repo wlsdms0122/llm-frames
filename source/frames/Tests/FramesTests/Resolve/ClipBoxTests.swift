@@ -46,7 +46,12 @@ struct ClipBoxTests {
         let box = try box(of: clip)
 
         // Then
-        #expect(box == ClipBox(size: Size(width: 300, height: 375), position: .value(position), anchor: anchor))
+        #expect(box == ClipBox(
+            size: Size(width: 300, height: 375),
+            position: .value(position),
+            anchor: anchor,
+            placement: BoxPlacement(name: placement, padding: ClipBoxTests.padding, edge: ClipBoxTests.padding)
+        ))
     }
 
     @Test("a media clip without a placement or position sits in the centre of the output frame")

@@ -81,9 +81,10 @@ struct ClipAppearancePlanner: Sendable {
     // A title's box is its text box, a media clip's is set by `width` and `height`, and a box shape's is its `width`
     // and `height` at the clip's instant, as written: its outset grows only the outline it draws. The box goes where
     // its position puts its anchor point, or where its placement sets it: a title by default where its style places it,
-    // and media and shapes in the centre. Under content fit there is no frame to place on, so a placement stops and a
-    // box without a position has its top left at the origin. A shape placed by its geometry or an adjustment has none,
-    // and an audio clip is not drawn. A clip with a corner pin has none either: its corner pin places its box.
+    // with its style's offset, and media and shapes in the centre. A content-fit frame is not measured yet, so a box
+    // placed by its placement is placed on it once it is, and the centre is no default there: a box with neither a
+    // position nor a placement has its top left at the origin. A shape placed by its geometry or an adjustment has
+    // none, and an audio clip is not drawn. A clip with a corner pin has none either: its corner pin places its box.
     func box(
         of plan: ClipPlan,
         written: Clip,
@@ -113,33 +114,32 @@ struct ClipAppearancePlanner: Sendable {
             throw ResolveError.parentWithoutPosition(place: written.place, kind: .clip(plan.kind))
         }
         let bounds = Rectangle(x: 0, y: 0, width: size.width, height: size.height)
-        if format.isMeasured {
-            guard written.placement == nil else {
-                throw ResolveError.placementUnderContentFit(place: written.place, kind: .clip(plan.kind))
-            }
-
-            let anchor = bounds.point(named: written.anchor ?? "center")
-            return ClipBox(size: size, position: position ?? .value(.point(anchor)), anchor: anchor)
+        if let position {
+            return ClipBox(size: size, position: position, anchor: bounds.point(named: written.anchor ?? "center"))
         }
 
-        // A title takes its style's placement by default, so a style that gives none leaves it no place.
+        // A title takes its style's placement by default, so on a frame of a written size a style that gives none
+        // leaves it no place.
         let named = written.placement ?? style.flatMap(theme.placement(ofStyle:))
-        guard style == nil || named != nil || position != nil else {
+        guard format.isMeasured || style == nil || named != nil else {
             throw ResolveError.titleWithoutPlacement(place: written.place, kind: .clip(plan.kind), style: style ?? "")
         }
+        guard let name = named ?? (format.isMeasured ? nil : "center") else {
+            let anchor = bounds.point(named: written.anchor ?? "center")
+            return ClipBox(size: size, position: .value(.point(anchor)), anchor: anchor)
+        }
 
-        let placement = named ?? "center"
-        let anchor = bounds.point(named: written.anchor ?? (position == nil ? placement : "center"))
-        let placed = position ?? .value(.point(self.placed(
-            bounds,
-            anchor: anchor,
-            at: placement,
-            offset: style.flatMap(theme.offset(ofStyle:)),
-            format: format,
-            theme: theme
-        )))
+        let scale = theme.lengthScale(at: format.size.width)
+        let padding = theme.placementPadding * scale
+        let placement = BoxPlacement(
+            name: name,
+            padding: padding,
+            edge: style.flatMap(theme.offset(ofStyle:)).map { $0 * scale } ?? padding
+        )
+        let anchor = bounds.point(named: written.anchor ?? name)
+        let placed = placement.position(of: size, anchor: anchor, in: format.frame)
 
-        return ClipBox(size: size, position: placed, anchor: anchor)
+        return ClipBox(size: size, position: .value(.point(placed)), anchor: anchor, placement: placement)
     }
 
     // The box a clip with a corner pin draws, sized as every clip's box is, and the points its corners go to, nil for a
@@ -613,31 +613,6 @@ struct ClipAppearancePlanner: Sendable {
 
             return Size(width: first.width * frame.height / first.height, height: frame.height)
         }
-    }
-
-    // Where the anchor point goes of a box placed by name inside the output frame, inset by the placement padding on
-    // the edges the name sits on, or on the top or bottom edge by a style's `offset`. A box in the middle of an axis is
-    // centred on the whole frame.
-    private func placed(
-        _ box: Rectangle,
-        anchor: Point,
-        at name: String,
-        offset: Double?,
-        format: FormatPlan,
-        theme: MergedTheme
-    ) -> Point {
-        let scale = theme.lengthScale(at: format.size.width)
-        let padding = theme.placementPadding * scale
-        let edge = offset.map { $0 * scale } ?? padding
-        let size = format.size
-        let x = name.hasSuffix("left")
-            ? padding
-            : name.hasSuffix("right") ? size.width - padding - box.width : (size.width - box.width) / 2
-        let y = name.hasPrefix("top")
-            ? edge
-            : name.hasPrefix("bottom") ? size.height - edge - box.height : (size.height - box.height) / 2
-
-        return Point(x: x + anchor.x, y: y + anchor.y)
     }
 
     // A media clip's crops conform to its box by its `conform`, `fit` unless written, and without a crop its whole

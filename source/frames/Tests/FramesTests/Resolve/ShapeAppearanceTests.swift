@@ -210,7 +210,8 @@ struct ShapeAppearanceTests {
         #expect(plan.clips[0].box == ClipBox(
             size: Size(width: 200, height: 100),
             position: .value(Point(x: 960 - padding, y: 540 - padding)),
-            anchor: Point(x: 200, y: 100)
+            anchor: Point(x: 200, y: 100),
+            placement: BoxPlacement(name: "bottom-right", padding: padding, edge: padding)
         ))
     }
 

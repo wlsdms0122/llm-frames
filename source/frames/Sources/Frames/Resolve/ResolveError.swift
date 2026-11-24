@@ -47,7 +47,6 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
     case keyframesOutsideVisibleRange(place: Place, kind: PlaceKind, leaf: String, visible: TimeRange)
     case missingFormatSize(place: Place, kind: PlaceKind)
     case contentFitWithoutPicture(place: Place, kind: PlaceKind)
-    case placementUnderContentFit(place: Place, kind: PlaceKind)
     case soundAsPicture(place: Place, kind: PlaceKind, reference: String)
     case textAreaInOutputPixels(place: Place, kind: PlaceKind)
     case shapeAreaWithBox(place: Place, kind: PlaceKind)
@@ -247,10 +246,6 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
         case let .contentFitWithoutPicture(place, kind):
             "\(place) (\(kind.label)): every storyline clip is a solid, so a frame measured from the content has "
                 + "nothing to measure and no length scale, and the format needs \"size\""
-
-        case let .placementUnderContentFit(place, kind):
-            "\(place) (\(kind.label)): \"placement\" names the frame, which is measured from the content, "
-                + "so the clip needs \"position\""
 
         case let .soundAsPicture(place, kind, reference):
             "\(place) (\(kind.label)): media \(quoted(reference)) is sound, and a picture is taken here"

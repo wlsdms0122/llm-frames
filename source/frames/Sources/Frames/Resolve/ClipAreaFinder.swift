@@ -61,6 +61,12 @@ struct ClipAreaFinder: Sendable {
         }
     }
 
+    // The ids of the clips whose boxes a clip's geometry takes through clip areas: in its `area`, `position`, a path's
+    // `points` and its `cornerPin`. A mask's are left out, since a mask places nothing.
+    func named(by clip: Clip) -> [String] {
+        references(of: clip).map(\.clip)
+    }
+
     // MARK: - Private
     // The index of the clip a reference names, checked.
     private func named(
