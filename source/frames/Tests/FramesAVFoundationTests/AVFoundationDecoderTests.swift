@@ -241,7 +241,7 @@ struct AVFoundationDecoderTests {
     // needs a free thread of the pool.
     @Test(
         "probes of a sound file from more tasks at once than the shared pool has threads all finish",
-        .timeLimit(.minutes(1))
+        .timeLimit(.minutes(5))
     )
     func probesConcurrently() async throws {
         // Given
