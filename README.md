@@ -16,36 +16,24 @@ A few rules hold everywhere:
 
 The specification in [`spec/`](spec/README.md) is the contract for every rule, and this page is the way in for someone who uses the tool. Each section below links to the spec that holds the full rules.
 
-- [Build and install](#build-and-install)
+- [Build](#build)
 - [A first edit](#a-first-edit)
 - [Commands](#commands)
 - [Document reference](#document-reference)
 - [More](#more)
 
-## Build and install
+## Build
 
 frames is a Swift package for macOS 14 or later. It renders with Apple's frameworks: AVFoundation, Core Graphics and Core Image, Vision and Core Text.
 
 ```sh
-sh source/install.sh
-frames --version
+swift build -c release --package-path source/frames
+source/frames/.build/release/frames --version
 ```
 
-`install.sh` builds a release and installs `frames` and `Frames_FramesCommand.bundle` side by side. The bundle holds `frames`, the pack of presets that ships with the tool, and the tool reads it from its own directory, so the two always go together. `open-package install` runs the same script.
+The tool is `source/frames/.build/release/frames`, with `Frames_FramesCommand.bundle` beside it. The bundle holds `frames`, the pack of presets that ships with the tool, and the tool reads it from its own directory, so the two are copied together wherever the tool is put. `open-package build` runs the same build.
 
-Two settings say where frames lives on a machine:
-
-| Setting | What it changes |
-|---|---|
-| `--prefix <dir>` or `FRAMES_PREFIX` | Where `install.sh` puts the tool. Defaults to `/usr/local/bin` |
-| `FRAMES_HOME` | Where the tool looks for installed packs, in `$FRAMES_HOME/packs/`. Defaults to `~/.config/frames` |
-
-To keep everything inside one directory, give both:
-
-```sh
-sh source/install.sh --prefix "$PWD/bin"
-export FRAMES_HOME="$PWD/frames-home"
-```
+`FRAMES_HOME` is where the tool looks for installed packs, in `$FRAMES_HOME/packs/`. It defaults to `~/.config/frames`, and setting it keeps a machine's packs wherever that machine keeps its work.
 
 A pack is installed by copying its directory into `$FRAMES_HOME/packs/`:
 

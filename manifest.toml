@@ -7,11 +7,13 @@ version = "1.0.0"
 name = "frames"
 version = "0.1.0"
 description = "Edits images and video from a JSON timeline an agent writes, on a render engine that can be swapped"
-requires = ["swift", "sh"]
+requires = ["swift"]
 
+# `build` is what this package is for: the `frames` tool, at source/frames/.build/release/frames, with
+# Frames_FramesCommand.bundle beside it.
 [command]
 # Commands run from the package root, and no name means anything but this line.
 # Arguments are appended, unless the line places "$@" itself.
-install = "sh source/install.sh"
+build = "swift build -c release --package-path source/frames"
 verify = "swift test --package-path source/frames"
 test = "swift test --package-path source/frames"
