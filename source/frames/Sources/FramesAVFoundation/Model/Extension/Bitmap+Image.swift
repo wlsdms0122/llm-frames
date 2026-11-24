@@ -92,19 +92,25 @@ extension Bitmap {
     }
 
     // Its pixels as RGBA floats with premultiplied alpha, rows top first and packed: an integer component taken to 0
-    // to 1, a half float one as it is, and alpha clipped to 0 to 1.
+    // to 1, a half float one as it is, and alpha clipped to 0 to 1. Rows are converted in parallel.
     func floatPixels() -> [Float] {
-        var floats = [Float](repeating: 0, count: width * height * 4)
+        let rowLength = width * 4
+        var floats = [Float](repeating: 0, count: rowLength * height)
+        guard rowLength > 0, height > 0 else { return floats }
+
         pixels.withUnsafeBytes { source in
-            for row in 0..<height {
-                let input = source.baseAddress! + row * bytesPerRow
-                for index in 0..<width * 4 {
-                    floats[row * width * 4 + index] = component(of: input, at: index)
+            floats.withUnsafeMutableBufferPointer { buffer in
+                nonisolated(unsafe) let input = source.baseAddress!
+                nonisolated(unsafe) let output = buffer.baseAddress!
+                DispatchQueue.concurrentPerform(iterations: height) { row in
+                    let line = input + row * bytesPerRow
+                    let packed = output + row * rowLength
+                    for index in 0..<rowLength {
+                        let value = component(of: line, at: index)
+                        packed[index] = index % 4 == 3 ? min(max(value, 0), 1) : value
+                    }
                 }
             }
-        }
-        for alpha in stride(from: 3, to: floats.count, by: 4) {
-            floats[alpha] = min(max(floats[alpha], 0), 1)
         }
 
         return floats

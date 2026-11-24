@@ -87,14 +87,32 @@ final class FrameDrawer {
         let frame = try FrameContext(width: raster.width, height: raster.height, compositing: list.compositing)
         frame.context.setFillColor(list.background.cgColor)
         frame.context.fill(frame.bounds)
+        try draw(items, seed: list.seed, of: list, place: place, on: raster, in: frame)
 
+        return frame
+    }
+
+    // `seed` is that of the list the items were written in, which for the items of a list drawn in place is not `list`.
+    private func draw(
+        _ items: [DisplayItem],
+        seed: Int,
+        of list: DisplayList,
+        place: String,
+        on raster: Raster,
+        in frame: FrameContext
+    ) throws {
         for (index, item) in items.enumerated() {
             guard let mode = BlendMode(rawValue: item.blend) else {
                 throw QuartzError.unsupportedBlend(name: item.blend, place: "\(place)[\(index)].blend")
             }
             guard item.opacity > 0 else { continue }
 
-            let drawing = try self.drawing(of: item, over: frame, on: raster, seed: list.seed)
+            if let inner = listDrawnInPlace(by: item, of: list), case let .items(innerItems) = inner.content {
+                try draw(innerItems, seed: inner.seed, of: list, place: "items", on: raster, in: frame)
+                continue
+            }
+
+            let drawing = try self.drawing(of: item, over: frame, on: raster, seed: seed)
             if mode == .normal {
                 try draw(item, of: list, drawing: drawing, on: raster, in: frame)
             } else {
@@ -105,8 +123,43 @@ final class FrameDrawer {
                 try frame.replace(with: blended)
             }
         }
+    }
 
-        return frame
+    // The nested list an item shows whole over the whole of `list`, with nothing of its own between the two: drawing
+    // that list's items straight onto the frame gives what drawing it apart and laying it over the frame would. Its
+    // items draw over one another alone, since a blend mode or an adjustment would take the frame for its backdrop.
+    private func listDrawnInPlace(
+        by item: DisplayItem,
+        of list: DisplayList
+    ) -> DisplayList? {
+        guard
+            case let .picture(picture) = item.content,
+            case let .displayList(inner) = picture.source,
+            case let .items(innerItems) = inner.content
+        else {
+            return nil
+        }
+
+        let whole = Rectangle(x: 0, y: 0, width: list.size.width, height: list.size.height)
+        guard
+            item.transform == .identity, item.opacity == 1, item.blend == BlendMode.normal.rawValue,
+            item.mask.isEmpty, item.trackMatte == nil, item.reveal == nil,
+            picture.rectangle ?? whole == whole, picture.destination == whole, picture.filter.isEmpty,
+            picture.matte == nil, picture.radius == 0, picture.border == nil, picture.shadow == nil,
+            picture.cornerPin == nil,
+            inner.size == list.size, inner.background.alpha == 0, inner.compositing == list.compositing,
+            inner.colorSpace == nil, inner.peak == nil
+        else {
+            return nil
+        }
+
+        let drawsAlone = innerItems.allSatisfy { inner in
+            if case .adjust = inner.content { return false }
+
+            return inner.blend == BlendMode.normal.rawValue
+        }
+
+        return drawsAlone ? inner : nil
     }
 
     private func draw(
