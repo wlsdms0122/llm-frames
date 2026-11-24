@@ -351,7 +351,12 @@ struct SequenceCheckTests {
             (#"{ "shape": "rect", "area": [0, 0, 10, 10], "fill": true }"#, #"clips[0].fill (rect): expected "#),
             (#"{ "shape": "rect", "area": [0, 0, 10, 10], "stroke": true }"#, #"clips[0].stroke (rect): expected "#),
             (#"{ "shape": "rect", "area": [0, 0, 10, 10], "stroke": { "width": 2, "join": "square" } }"#, #"clips[0].stroke.join (stroke): unknown value "square". Allowed: miter, round, bevel"#),
-            (#"{ "shape": "rect", "area": [0, 0, 10, 10], "stroke": { "width": 2, "end": "dot" } }"#, #"clips[0].stroke.end (stroke): unknown value "dot". Allowed: none, arrow"#),
+            (#"{ "shape": "rect", "area": [0, 0, 10, 10], "stroke": { "width": 2, "end": "dot" } }"#, #"clips[0].stroke.end (stroke): unknown value "dot". Allowed: none, arrow, line-arrow, circle, square, diamond, bar"#),
+            (#"{ "shape": "path", "points": [[0, 0], [9, 9]], "stroke": { "width": 2, "end": { "shape": "dot" } } }"#, #"clips[0].stroke.end.shape (end): unknown value "dot". Allowed: none, arrow, line-arrow, circle, square, diamond, bar"#),
+            (#"{ "shape": "path", "points": [[0, 0], [9, 9]], "stroke": { "width": 2, "end": { "shape": "arrow", "scale": 0 } } }"#, #"clips[0].stroke.end.scale (end): "#),
+            (#"{ "shape": "path", "points": [[0, 0], [9, 9]], "stroke": { "width": 2, "end": { "shape": "arrow", "scale": -1 } } }"#, #"clips[0].stroke.end.scale (end): "#),
+            (#"{ "shape": "path", "points": [[0, 0], [9, 9]], "stroke": { "width": 2, "end": { "shape": "arrow", "size": 2 } } }"#, #"clips[0].stroke.end (end): unknown key "size""#),
+            (#"{ "shape": "path", "points": [[0, 0], [9, 9]], "stroke": { "width": 2, "end": false } }"#, #"clips[0].stroke.end (stroke): expected "#),
             (#"{ "shape": "rect", "area": [0, 0, 10, 10], "stroke": { "width": 2, "head": 8 } }"#, #"clips[0].stroke (stroke): unknown key "head""#),
             (#"{ "shape": "rect", "area": [0, 0, 10, 10], "fill": "accent", "trim": [0, 1.5] }"#, #"clips[0].trim[1] (rect): 1.5 is not within 0 to 1"#),
             (#"{ "shape": "rect", "area": [0, 0, 10, 10], "fill": "accent", "trim": [0.5] }"#, #"clips[0].trim (rect): expected a list of 2 numbers, each within 0 to 1"#),
@@ -420,6 +425,8 @@ struct SequenceCheckTests {
         arguments: [
             #"{ "shape": "rect", "width": 100, "height": 50, "placement": "top", "radius": 8, "outset": 2, "fill": false, "stroke": { "color": "accent", "width": 4, "join": "miter", "cap": "square", "start": "arrow", "end": "none" }, "shadow": true }"#,
             ##"{ "shape": "ellipse", "area": [0, 0, 10, 10], "fill": "#FFFFFF80", "stroke": false, "trim": [0.25, 0], "shadow": { "radius": 4 } }"##,
+            #"{ "shape": "path", "points": [[0, 0], [9, 9]], "stroke": { "width": 2, "start": "line-arrow", "end": { "shape": "circle", "scale": 2 } } }"#,
+            #"{ "shape": "path", "points": [[0, 0], [9, 9]], "stroke": { "width": 2, "start": { "scale": 1.5 }, "end": "bar" } }"#,
             #"{ "shape": "path", "points": [[0, 0], { "area": [0, 0, 10, 10], "point": "center" }], "closed": true, "style": "outline", "shadow": false }"#,
             #"{ "shape": "path", "fill": "accent", "keyframes": [ { "at": 0, "points": [[0, 0], [2, 2]], "trim": [0, 0.5], "position": [1, 1], "scale": 2, "rotation": 90 } ] }"#,
             #"{ "shape": "rect", "fill": "accent", "keyframes": [ { "at": 0, "width": 10, "height": 20, "radius": 2, "area": [0, 0, 1, 1] } ] }"#

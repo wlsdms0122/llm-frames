@@ -9,7 +9,7 @@
 // stroke reaches past it, less the rectangle shrunk by as far as the stroke lies inside it when it is not filled. A
 // filled path covers the convex hull of the control points of its outline's segments, which holds its curve and the
 // straight segment its fill closes an open path with, and leaves out the tangents of an open path's ends, which shape
-// nothing it draws. Its stroke as drawn after `trim` covers, the line stopping at its arrowheads' bases, a band the
+// nothing it draws. Its stroke as drawn after `trim` covers, the line stopping where its arrowheads stop it, a band the
 // centred stroke it is cut from wide along each straight segment, and along each curved one, cut into pieces of equal
 // length, the hull of each piece's control points grown by half that stroke along both axes, which holds the stroke
 // since a cubic lies in the hull of its control points. Each adds what its stroke draws past its outline grown by its

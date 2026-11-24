@@ -547,8 +547,8 @@ struct ResolvedSequenceWriterTests {
             JSONMember(key: "align", value: .string("center")),
             JSONMember(key: "join", value: .string("round")),
             JSONMember(key: "cap", value: .string("butt")),
-            JSONMember(key: "start", value: .string("none")),
-            JSONMember(key: "end", value: .string("none")),
+            JSONMember(key: "start", value: end("none")),
+            JSONMember(key: "end", value: end("none")),
             JSONMember(key: "dashOffset", value: held(.number(0)))
         ])))
         #expect(clips[0]["shadow"] == .null)
@@ -559,7 +559,7 @@ struct ResolvedSequenceWriterTests {
         #expect(clips[1]["area"] == .null)
         #expect(clips[1]["outset"] == .null)
         #expect(clips[1]["stroke"]?.objectValue?["color"] == held(.string(theme.color("accent").resolvedForm)))
-        #expect(clips[1]["stroke"]?.objectValue?["end"] == .string("arrow"))
+        #expect(clips[1]["stroke"]?.objectValue?["end"] == end("arrow"))
         #expect(clips[1]["radius"] == .null)
         #expect(clips[1]["trim"]?.arrayValue?.first?.objectValue?["value"] == .array([.number(0), .number(1)]))
         #expect(clips[2]["width"]?.arrayValue?.first?.objectValue?["value"] == .number(200))
@@ -725,6 +725,14 @@ struct ResolvedSequenceWriterTests {
     }
 
     // A timed leaf no keyframe moves: one keyframe at the clip's instant.
+    // A stroke's end of a head's shape at the scale no layer writes, 1.
+    private func end(_ shape: String) -> JSONValue {
+        .object(JSONObject(members: [
+            JSONMember(key: "shape", value: .string(shape)),
+            JSONMember(key: "scale", value: held(.number(1)))
+        ]))
+    }
+
     private func held(_ value: JSONValue) -> JSONValue {
         .array([.object(JSONObject(members: [
             JSONMember(key: "at", value: .number(0)),

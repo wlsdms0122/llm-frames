@@ -29,6 +29,17 @@ enum LookStructureTable {
 
     static let fill = ValueStructure.forms([(ValueStructure.colorForm, .leaf(.color))] + gradientForms)
 
+    // A stroke's `start` or `end`: its head's `shape` is static and its `scale` a timed number, 1 where no layer writes
+    // it, and a name names the shape alone.
+    static let strokeEnd = ValueStructure.object(ObjectStructure(
+        [
+            ("shape", .leaf(.name(among: StrokeEndShape.allCases.map(\.rawValue)))),
+            ("scale", .leaf(.number(.positive)))
+        ],
+        shorthands: [.name(key: "shape")],
+        plain: ["scale": .number(1)]
+    ))
+
     static let stroke = ValueStructure.object(ObjectStructure(
         [
             ("color", .leaf(.color)),
@@ -37,8 +48,8 @@ enum LookStructureTable {
             ("align", .leaf(.name(among: StrokeAlign.allCases.map(\.rawValue)))),
             ("join", .leaf(.name(among: StrokeJoin.allCases.map(\.rawValue)))),
             ("cap", .leaf(.name(among: StrokeCap.allCases.map(\.rawValue)))),
-            ("start", .leaf(.name(among: StrokeEnd.allCases.map(\.rawValue)))),
-            ("end", .leaf(.name(among: StrokeEnd.allCases.map(\.rawValue)))),
+            ("start", strokeEnd),
+            ("end", strokeEnd),
             ("dash", .list(.leaf(.length()))),
             ("dashOffset", .leaf(.length(.any)))
         ],

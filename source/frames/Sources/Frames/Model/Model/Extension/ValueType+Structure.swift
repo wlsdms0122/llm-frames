@@ -32,8 +32,15 @@ extension ValueType {
         case let .leaf(leaf):
             self = Self.type(of: leaf, checksDomain: checksDomains)
 
+        // An object with a name shorthand also takes the names of the key it names, as a stroke's end takes its shape.
         case let .object(object):
-            self = .object(ObjectTable(structure: object, kind: kind, checksDomains: checksDomains))
+            let table = ValueType.object(ObjectTable(structure: object, kind: kind, checksDomains: checksDomains))
+            let names = object.shorthands.compactMap { shorthand -> ValueType? in
+                guard case let .name(key) = shorthand, let named = object.structure(of: key) else { return nil }
+
+                return ValueType(structure: named, kind: kind, checksDomains: checksDomains)
+            }
+            self = names.isEmpty ? table : .oneOf(names + [table])
 
         case let .map(element):
             self = .map(ValueType(structure: element, kind: kind, checksDomains: checksDomains), kind: kind)
@@ -75,7 +82,7 @@ extension ValueType {
         switch structure {
         case let .object(object):
             let on = object.shorthands.contains(.on)
-            let shorthands = object.shorthands.filter { $0 != .on }.map(Self.type(of:))
+            let shorthands = object.shorthands.compactMap(Self.type(of:))
             self = .oneOf([on ? .bool : .exactly(.bool(false))] + shorthands + forms)
 
         case .forms:
@@ -88,11 +95,12 @@ extension ValueType {
 
     // MARK: - Public
     // MARK: - Private
-    // `true` for the value below, a colour for its colour, and a point for its point.
-    private static func type(of shorthand: ObjectShorthand) -> ValueType {
+    // A colour for its colour and a point for its point, nil for `true`, which `on` takes, and a name, which the object
+    // itself takes.
+    private static func type(of shorthand: ObjectShorthand) -> ValueType? {
         switch shorthand {
-        case .on:
-            .exactly(.bool(true))
+        case .on, .name:
+            nil
 
         case .color:
             .color

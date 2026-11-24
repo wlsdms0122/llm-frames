@@ -161,6 +161,67 @@ struct PathOutlineTests {
         #expect(abs(head.axis.y - 50 / chord) < 1e-9)
     }
 
+    @Test(
+        "every head on a straight end reaches the end and no further, as long and as wide as its shape in units",
+        arguments: [
+            (StrokeEndShape.arrow, 1.0, 8.0, 8.0),
+            (.arrow, 2.0, 16.0, 16.0),
+            (.lineArrow, 1.0, 8.0, 8.0),
+            (.lineArrow, 2.0, 16.0, 16.0),
+            (.circle, 1.0, 8.0, 8.0),
+            (.circle, 2.0, 16.0, 16.0),
+            (.square, 1.0, 8.0, 8.0),
+            (.diamond, 2.0, 16.0, 16.0),
+            (.bar, 1.0, 2.0, 8.0),
+            (.bar, 2.0, 4.0, 16.0)
+        ]
+    )
+    func laysEveryHead(
+        shape: StrokeEndShape,
+        scale: Double,
+        length: Double,
+        width: Double
+    ) throws {
+        // Given
+        let sut = PathOutline(.polyline([Point(x: 0, y: 0), Point(x: 100, y: 0)], isClosed: false))
+        let end = StrokeEnd(shape: shape, scale: scale)
+
+        // When
+        let head = try #require(sut.arrowheads(of: drawn(width: 2, trim: .whole, isClosed: false, end: end)).first)
+
+        // Then
+        let points = head.parts.flatMap { $0 }
+        let xs = head.circle.map { [$0.center.x - $0.radius, $0.center.x + $0.radius] } ?? points.map(\.x)
+        let ys = head.circle.map { [$0.center.y - $0.radius, $0.center.y + $0.radius] } ?? points.map(\.y)
+        #expect(head.tip == Point(x: 100, y: 0))
+        #expect(abs((xs.max() ?? 0) - 100) < 1e-9)
+        #expect(abs((xs.min() ?? 0) - (100 - length)) < 1e-9)
+        #expect(abs((ys.max() ?? 0) - (ys.min() ?? 0) - width) < 1e-9)
+    }
+
+    @Test("a line arrow is two bands one unit thick inside the arrow's triangle, meeting at its tip")
+    func laysLineArrow() throws {
+        // Given
+        let sut = PathOutline(.polyline([Point(x: 0, y: 0), Point(x: 100, y: 0)], isClosed: false))
+        let end = StrokeEnd(shape: .lineArrow)
+
+        // When
+        let head = try #require(sut.arrowheads(of: drawn(width: 2, trim: .whole, isClosed: false, end: end)).first)
+
+        // Then
+        // The inner edges meet 2√5 back from the tip and reach the base 8 back, 4 - (8 - 2√5) / 2 inside its corners.
+        let inner = 100 - 2 * 5.0.squareRoot()
+        let reach = (8 - 2 * 5.0.squareRoot()) / 2
+        let expected = [
+            [Point(x: 100, y: 0), Point(x: 92, y: 4), Point(x: 92, y: reach), Point(x: inner, y: 0)],
+            [Point(x: 100, y: 0), Point(x: inner, y: 0), Point(x: 92, y: -reach), Point(x: 92, y: -4)]
+        ]
+        #expect(head.parts.count == 2)
+        for (part, corners) in zip(head.parts, expected) {
+            #expect(zip(part, corners).allSatisfy { abs($0.x - $1.x) < 1e-9 && abs($0.y - $1.y) < 1e-9 })
+        }
+    }
+
     @Test("a path's box is its curve's, carried with its tangents by a map's linear part")
     func boundsCarriedCurve() {
         // Given

@@ -54,11 +54,75 @@ struct DrawnStrokeTests {
         #expect(abs(sut.start(along: 100) - start) < 1e-9)
         #expect(abs(sut.end(along: 100) - end) < 1e-9)
         #expect(sut.isWhole == (isClosed && !hasHeads))
-        #expect(sut.hasStartHead == hasHeads)
-        #expect(sut.hasEndHead == hasHeads)
-        #expect(abs(sut.headLength(along: 100) - headLength) < 1e-9)
+        #expect(sut.startHead == (hasHeads ? .arrow : .none))
+        #expect(sut.endHead == (hasHeads ? .arrow : .none))
+        #expect(abs(4 * sut.unit(of: sut.endHead, along: 100) - headLength) < 1e-9)
         #expect(abs(sut.lineStart(along: 100) - (start + headLength)) < 1e-9)
         #expect(abs(sut.lineEnd(along: 100) - (end - headLength)) < 1e-9)
+    }
+
+    @Test(
+        "each head's line stops where the head stops it, in units of the stroke's width times its scale",
+        arguments: [
+            (StrokeEndShape.arrow, 1.0, 8.0),
+            (.arrow, 2.0, 16.0),
+            (.lineArrow, 1.0, 2 * 5.0.squareRoot()),
+            (.lineArrow, 2.0, 4 * 5.0.squareRoot()),
+            (.circle, 1.0, 4.0),
+            (.square, 2.0, 8.0),
+            (.diamond, 1.0, 4.0),
+            (.bar, 1.0, 1.0),
+            (.bar, 2.0, 2.0),
+            // A head of scale 0 draws nothing and stops no line.
+            (.circle, 0.0, 0.0)
+        ]
+    )
+    func stopsLineAtHead(
+        shape: StrokeEndShape,
+        scale: Double,
+        inset: Double
+    ) {
+        // Given
+        let stroke = PathStroke(
+            width: 2,
+            paint: Self.stroke.paint,
+            join: .round,
+            cap: .butt,
+            start: .none,
+            end: StrokeEnd(shape: shape, scale: scale)
+        )
+
+        // When
+        let sut = DrawnStroke(stroke: stroke, trim: .whole, isClosed: false)
+
+        // Then
+        #expect(sut.endHead.shape == (scale > 0 ? shape : .none))
+        #expect(abs(sut.unit(of: sut.endHead, along: 100) - 2 * scale) < 1e-9)
+        #expect(sut.lineStart(along: 100) == 0)
+        #expect(abs(sut.lineEnd(along: 100) - (100 - inset)) < 1e-9)
+    }
+
+    @Test("heads of two lengths on a short stroke shrink by one factor so that their lengths add up to the stroke's")
+    func shrinksHeadsTogether() {
+        // Given
+        // An arrow 8 long and a bar 4 long at scale 2, on a stroke 6 long: both shrink by a half.
+        let stroke = PathStroke(
+            width: 2,
+            paint: Self.stroke.paint,
+            join: .round,
+            cap: .butt,
+            start: StrokeEnd(shape: .bar, scale: 2),
+            end: .arrow
+        )
+
+        // When
+        let sut = DrawnStroke(stroke: stroke, trim: Trim(start: 0, end: 0.06), isClosed: false)
+
+        // Then
+        #expect(abs(sut.unit(of: sut.startHead, along: 100) - 2) < 1e-9)
+        #expect(abs(sut.unit(of: sut.endHead, along: 100) - 1) < 1e-9)
+        #expect(abs(sut.lineStart(along: 100) - 1) < 1e-9)
+        #expect(abs(sut.lineEnd(along: 100) - 2) < 1e-9)
     }
 
     @Test("a stroke with no width or no part of its outline draws nothing")
