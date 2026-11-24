@@ -119,7 +119,7 @@ Global options go before the command. `--theme` merges a theme under every docum
 Paths are absolute. Where a command takes a document, it also takes a resolved document, a pack template (`<pack>/<name>`), or `-` for standard input. On success a command that writes a file prints one line with its path and size. On failure it prints `frames: <reason>` to standard error and exits with 1, and without a command it prints its usage to standard error and exits with 64. `frames --help` prints the usage and what each global option takes, and `frames <command> --help` prints what that command does and each of its arguments and options with its default, both to standard output with exit 0. A message names the place in the document, a path of keys and indexes with a clip's `id` after its index. With `opacity` misspelt on the logo of the first edit:
 
 ```
-frames: storyline[0]#interview.connected[1] (image): unknown key "opactiy". Allowed: id, metadata, at, lane, parent, opacity, blend, mask, trackMatte, track, animation, keyframes, media, colorSpace, toneMap, placement, position, anchor, scale, rotation, crop, conform, filter, width, height, radius, border, shadow
+frames: storyline[0]#interview.connected[1] (image): unknown key "opactiy". Allowed: id, metadata, at, lane, parent, opacity, blend, motionBlur, mask, trackMatte, track, animation, keyframes, media, colorSpace, toneMap, placement, position, anchor, scale, rotation, cornerPin, crop, conform, filter, width, height, radius, border, shadow
 ```
 
 ### Making results
@@ -196,7 +196,7 @@ An extension checks `frames --version` against the versions it is written for. [
 
 ## Document reference
 
-A document is a JSON object whose `kind` is `"sequence"`. Its keys are checked over the whole tree before any value is read, a value of the wrong type stops with its place, and a property written both as a static value and in a keyframe stops. The full key table is [FRAMES-7](spec/FRAMES-7/SPEC.md).
+A document is a JSON object whose `kind` is `"sequence"`. Its keys are checked over the whole tree before any value is read, a value of the wrong type stops with its place, and a leaf written as a static value and given a value in every keyframe that writes it stops, since the static value would never show. The full key table is [FRAMES-7](spec/FRAMES-7/SPEC.md).
 
 ### Values
 
@@ -206,7 +206,7 @@ A document is a JSON object whose `kind` is `"sequence"`. Its keys are checked o
 | colour | `#RRGGBB` or `#RRGGBBAA` (sRGB), `color(<space> r g b)` or `color(<space> r g b / a)` with `srgb`, `srgb-linear`, `display-p3` or `rec2020` and components of any real number, or the name of a theme colour (`accent`) | [FRAMES-26](spec/FRAMES-26/SPEC.md#colour-values) |
 | a clip's coordinates (`position`, `area`, path points, mask geometry) | output pixels, origin top left, for an unparented clip, and the space its parent gives for a parented one | [FRAMES-1](spec/FRAMES-1/SPEC.md), [FRAMES-10](spec/FRAMES-10/SPEC.md) |
 | `crop` | media pixels of the clip's own media | [FRAMES-9](spec/FRAMES-9/SPEC.md) |
-| theme length (text size, stroke width, `radius`, `outset`, `feather`, border, shadow, filter radius) | points at the theme `baseWidth`, scaled by the frame's width over it | [FRAMES-1](spec/FRAMES-1/SPEC.md) |
+| theme length (text size, `lineHeight`, stroke width, `dash`, `radius`, `outset`, `feather`, border, shadow, filter radius, `displace` `amount`) | points at the theme `baseWidth`, scaled by the width of the frame the clip is drawn on over it: the output frame, or a compound clip's own frame for a clip inside it | [FRAMES-1](spec/FRAMES-1/SPEC.md) |
 | angle | degrees, clockwise positive | [FRAMES-1](spec/FRAMES-1/SPEC.md) |
 | placement name | `top-left, top, top-right, left, center, right, bottom-left, bottom, bottom-right` | [FRAMES-1](spec/FRAMES-1/SPEC.md) |
 
@@ -214,7 +214,7 @@ A document is a JSON object whose `kind` is `"sequence"`. Its keys are checked o
 
 | Object | Keys |
 | --- | --- |
-| sequence | `kind, format, theme, params, storyline, clips`. `kind` is required and is `"sequence"` |
+| sequence | `kind, format, theme, params, storyline, clips, audioFilter, keyframes`. `kind` is required and is `"sequence"` |
 | format | `size, fps, background, conform, colorSpace, peak, compositing, motionBlur` |
 | content fit (a `size` written as an object) | `fit, margin` |
 
@@ -225,8 +225,9 @@ A document is a JSON object whose `kind` is `"sequence"`. Its keys are checked o
 - `colorSpace` is the colour space the sequence is output in, `srgb` by default, `peak` the mastering peak of a `rec2100-pq` sequence, and `compositing` the form it composites in, `encoded` by default or `linear` ([Colour](#colour)).
 - `motionBlur` is the shutter of every frame, `{shutterAngle, shutterPhase, samplesPerFrame}` ([Motion blur](#motion-blur)).
 - `theme` is a theme object, `<pack>/<name>` or an absolute path ([Theme](#theme)). `params` makes the document a template ([Templates](#templates)).
+- `audioFilter` is the chain of the sequence's bus, run over the sum of its sounds wherever the sequence plays, so the outermost sequence's chain is the master bus ([Audio filters](#audio-filters)). The sequence's own `keyframes` time it on sequence time, and it is the only thing they take.
 
-[FRAMES-6](spec/FRAMES-6/SPEC.md), [FRAMES-9](spec/FRAMES-9/SPEC.md), [FRAMES-26](spec/FRAMES-26/SPEC.md)
+[FRAMES-6](spec/FRAMES-6/SPEC.md), [FRAMES-7](spec/FRAMES-7/SPEC.md), [FRAMES-9](spec/FRAMES-9/SPEC.md), [FRAMES-26](spec/FRAMES-26/SPEC.md), [FRAMES-28](spec/FRAMES-28/SPEC.md)
 
 ### Clips
 
@@ -234,18 +235,19 @@ A document is a JSON object whose `kind` is `"sequence"`. Its keys are checked o
 - `connected` clips belong to one storyline clip, live on its clip time and move when it moves, as connected clips do in an NLE.
 - `clips` are sequence clips, on the sequence clock.
 
-A clip is a media clip (`media`), a title (`title`), a shape (`shape`), an adjustment clip (`adjust`) or, on the storyline only, a solid (`solid`, a colour that fills the frame). Exactly one of these keys is present. A clip with a picture is every clip except an audio clip, a media clip whose media holds only sound. Which media row applies is decided once the media is probed.
+A clip is a media clip (`media`), a title (`title`), a shape (`shape`), an adjustment clip (`adjust`) or, on the storyline only, a solid (`solid`, a colour that fills the frame). Exactly one of these keys is present. An audio clip is a media clip that takes no picture, because its media holds only sound or because it is written with `"picture": false`, and a clip with a picture is every other clip. Which media row applies is decided once the media is probed.
 
 | Clip | Keys |
 | --- | --- |
-| storyline clip, timed media (video, image sequence, compound) | `id, metadata, media, colorSpace, toneMap, in, out, speed, crop, filter, transition, anchor, position, scale, rotation, cornerPin, opacity, blend, motionBlur, mask, trackMatte, track, radius, border, shadow, volume, pan, fadeIn, fadeOut, keyframes, connected` |
+| storyline clip, timed media (video, image sequence, compound) | `id, metadata, media, colorSpace, toneMap, in, out, speed, crop, filter, transition, anchor, position, scale, rotation, cornerPin, opacity, blend, motionBlur, mask, trackMatte, track, radius, border, shadow, volume, pan, fadeIn, fadeOut, split, keyframes, connected`, and `audioFilter` on a video or a compound clip |
 | storyline clip, still (image or page, a page without `toneMap`) | `id, metadata, media, colorSpace, toneMap, duration, crop, filter, transition, anchor, position, scale, rotation, cornerPin, opacity, blend, motionBlur, mask, trackMatte, radius, border, shadow, keyframes, connected` |
 | storyline clip, solid | `id, metadata, solid, duration, transition, motionBlur, keyframes, connected` |
 | every clip with a picture (connected and sequence) | `id, metadata, at, lane, parent, opacity, blend, motionBlur, mask, trackMatte, track, animation, keyframes` |
-| visual media clip (video, image sequence, compound) | every clip with a picture's, `media, colorSpace, toneMap, in, out, speed, loop, volume, pan, fadeIn, fadeOut, placement, position, anchor, scale, rotation, cornerPin, crop, conform, filter, width, height, radius, border, shadow` |
+| visual media clip (video, image sequence, compound) | every clip with a picture's, `audioFilter` on a video or a compound clip and `split`, `media, picture, colorSpace, toneMap, in, out, speed, loop, volume, pan, fadeIn, fadeOut, placement, position, anchor, scale, rotation, cornerPin, crop, conform, filter, width, height, radius, border, shadow` |
 | still media clip (image or page, a page without `toneMap`) | every clip with a picture's, `media, colorSpace, toneMap, placement, position, anchor, scale, rotation, cornerPin, crop, conform, filter, width, height, radius, border, shadow` |
-| audio clip | `id, metadata, at, media, in, out, speed, loop, volume, pan, fadeIn, fadeOut, keyframes` |
-| title clip | every clip with a picture's, `title, style, width, placement, position, anchor, scale, rotation, cornerPin` |
+| audio clip | `id, metadata, at, media, in, out, speed, loop, volume, pan, fadeIn, fadeOut, audioFilter, keyframes` |
+| audio clip of a video's, a compound clip's or a template instance's sound (`"picture": false`) | every audio clip's, `picture` |
+| title clip | every clip with a picture's, `title, style, character, paragraph, width, placement, position, anchor, scale, rotation, cornerPin` |
 | shape clip | every clip with a picture's, `shape, style, area, width, height, placement, position, anchor, points, closed, radius, outset, fill, stroke, trim, shadow, scale, rotation`, and `cornerPin` on a rect or ellipse given by `width` and `height` |
 | adjustment clip | every clip with a picture's, `adjust` |
 
@@ -255,8 +257,9 @@ A clip is a media clip (`media`), a title (`title`), a shape (`shape`), an adjus
 - A storyline clip is placed by `position` (default the centre of the frame) or by `cornerPin` and takes no `placement` and no `parent`. Its box is the frame, which its conformed crop fills, so a storyline clip that writes no transform fills the frame. `radius`, `border` and `shadow` show where its transform leaves the box smaller than the frame.
 - `colorSpace` on a media clip names the colour space its media are in, over what the file says, and `toneMap` (`true` by default) whether an HDR picture of it is tone mapped to the sequence's peak ([Colour](#colour)). A clip whose media is a compound clip or a template instance takes neither.
 - `filter` and `transition` take preset choices ([Presets and choices](#presets-and-choices)). `"none"` turns off the theme's default filter for one clip, and `"cut"` its default transition. The first storyline clip takes no transition. To open from black, put a solid there and give the clip after it a transition.
+- `"picture": false` on a connected or sequence clip of a video, a compound clip or a template instance takes only its sound, and `split` moves the edges of a clip's sound for a J or an L cut ([Sound](#sound)).
 
-[FRAMES-7](spec/FRAMES-7/SPEC.md), [FRAMES-9](spec/FRAMES-9/SPEC.md), [FRAMES-11](spec/FRAMES-11/SPEC.md)
+[FRAMES-7](spec/FRAMES-7/SPEC.md), [FRAMES-9](spec/FRAMES-9/SPEC.md), [FRAMES-11](spec/FRAMES-11/SPEC.md), [FRAMES-13](spec/FRAMES-13/SPEC.md)
 
 ### Media
 
@@ -310,16 +313,18 @@ The interview plays 4 seconds of media in 2. The B-roll shows its media seconds 
 
 ### Keyframes and eases
 
-Any keyframable property takes a static value or keyframes. A keyframe is `{at, ease}` with one or more properties of its clip. Each property joins only the keyframes that name it, holds its first value before them and its last after them, and an `ease` shapes the span leaving its keyframe, as in CSS and Lottie.
+Any keyframable property takes a static value or keyframes. A keyframe is `{at, ease}` with one or more properties of its clip, and sets only the leaves it writes: each number, colour, point, area and crop in a value is a leaf, timed on its own. Each leaf joins only the keyframes that write it, holds its first value before them and its last after them, and an `ease` shapes the span leaving its keyframe, as in CSS and Lottie.
 
 | Clip | Keyframable |
 | --- | --- |
-| storyline clip with media | `crop, position, scale, rotation, cornerPin, opacity, mask`, and `volume`, `pan` and `timeRemap` on timed media |
-| media clip | `position, scale, rotation, cornerPin, opacity, crop, mask`, and `volume`, `pan` and `timeRemap` on timed media |
-| audio clip | `volume, pan` |
-| title clip | `position, scale, rotation, cornerPin, opacity, mask` |
-| shape clip | `area, width, height, points, position, scale, rotation, cornerPin, opacity, trim, radius, mask` |
-| adjustment clip | `opacity, mask` |
+| sequence, by its own `keyframes` | `audioFilter` |
+| storyline clip with media | `crop, position, scale, rotation, cornerPin, opacity, mask, filter, radius, border, shadow`, `volume`, `pan` and `timeRemap` on timed media, and `audioFilter` on a video or a compound clip with sound |
+| storyline clip, solid | `solid` |
+| media clip | `position, scale, rotation, cornerPin, opacity, crop, mask, filter, radius, border, shadow`, `volume`, `pan` and `timeRemap` on timed media, and `audioFilter` on a video or a compound clip with sound |
+| audio clip | `volume, pan`, and `audioFilter` where it takes one |
+| title clip | `position, scale, rotation, cornerPin, opacity, mask`, in `character` its `color`, `stroke`, `tracking`, `baselineShift`, `highlight` and `underline`, and in `paragraph` its `lineHeight` and `background` |
+| shape clip | `area, width, height, points, position, scale, rotation, cornerPin, opacity, trim, radius, outset, fill, stroke, shadow, mask` |
+| adjustment clip | `opacity, mask, adjust` |
 
 | ease | Shape |
 | --- | --- |
@@ -329,7 +334,17 @@ Any keyframable property takes a static value or keyframes. A keyframe is `{at, 
 | `[x1, y1, x2, y2]` | a cubic Bezier, as CSS `cubic-bezier()` |
 | `{"spring": {"bounce": b}}` | a damped spring, b between -1 and 1: 0 settles without overshoot, higher swings past and back |
 
-A `crop` keyframes its size in log space, so a zoom keeps one speed. `mask` in a keyframe is the clip's whole mask list at that instant. Keyframes that all lie before or all after the range a clip is visible in stop, since only one value would ever show. [FRAMES-4](spec/FRAMES-4/SPEC.md)
+A `crop` keyframes its size in log space, so a zoom keeps one speed. In `mask`, `filter`, `adjust`, `fill`, `stroke`, `shadow`, `border`, `character`, `paragraph` and `audioFilter` a keyframe writes the numbers and colours that move, over the clip's static value merged over its style. Names, booleans, files and the form of a value (a mask's `shape`, `invert` and `mode`, a filter's presets and ops, a gradient's kind and number of stops, a stroke's `join` and `cap`) are static on the clip, and a keyframe that writes one stops. A keyframe's `mask` is a list as long as the clip's, whose masks write only the geometry, `radius` and `feather` they move. A leaf written `null` in a keyframe is the merged value at that instant, so a keyframe can point back at the static value or the style's. A leaf whose keyframes all lie before or all after the range its clip is visible in (for the sequence's own keyframes, the sequence) stops, since only one value would ever show.
+
+```json
+{ "at": [0, 3], "media": "/path/to/broll.mov", "width": 960, "position": [960, 540],
+  "mask": { "shape": "ellipse", "position": [640, 360] },
+  "filter": { "op": "blur", "radius": 12 },
+  "keyframes": [ { "at": 0, "mask": [ { "width": 0, "height": 0, "feather": 0 } ], "filter": { "radius": 0 }, "ease": "ease-out" },
+                 { "at": 1, "mask": [ { "width": 1400, "height": 1400, "feather": 40 } ], "filter": { "radius": null } } ] }
+```
+
+The picture opens in a circle from its centre as its edge softens, and its blur eases in to the clip's own 12. The mask's `shape` and `position` are written once on the clip, and `"invert": true` in a keyframe would stop. [FRAMES-4](spec/FRAMES-4/SPEC.md), [FRAMES-7](spec/FRAMES-7/SPEC.md)
 
 ### Placement and transform
 
@@ -337,7 +352,7 @@ A clip with a box of its own (a title, a media clip, a rect or ellipse given by 
 
 - `placement` is a placement name: the box sits there inside the frame, kept in from every edge by the theme `placement.padding`, the title safe margin. A text style's `offset` replaces that margin on the top or bottom edge.
 - `position` is where the clip's anchor point goes, a point ([Areas and points](#areas-and-points)). `anchor` names that point of the clip's box, `center` by default, or for a placed clip the point its placement names, so a `bottom` subtitle grows upwards.
-- `cornerPin` places a clip by the four points its box's corners go to, top left, top right, bottom right and bottom left, so a picture lies on a plane seen in perspective. It takes no other placement key. The clip is drawn flat in its box with everything it does, its animation included, and carried onto the four points by one homography, so an entrance slides and scales on the plane. A child of a clip with a corner pin follows its tracked motion, not the plane, and what should lie on the plane goes inside it as a compound clip.
+- `cornerPin` places a clip by the four points its box's corners go to, top left, top right, bottom right and bottom left, so a picture lies on a plane seen in perspective: `"cornerPin": [[400, 300], [1500, 360], [1460, 760], [440, 700]]`. Written with any of `placement`, `position`, `anchor`, `scale` and `rotation`, on the clip or in a keyframe, it stops. It is keyframable point by point, and on a shape given by `area` or `points` it stops. The clip is drawn flat in its box with everything it does, its animation included, and carried onto the four points by one homography, so an entrance slides and scales on the plane. A child of a clip with a corner pin follows its tracked motion, not the plane, and what should lie on the plane goes inside it as a compound clip.
 - `scale` and `rotation` act around the anchor point. `opacity` runs from 0 to 1, and `blend` composites the clip onto what is below ([Blend modes and adjustment clips](#blend-modes-and-adjustment-clips)).
 - A media clip's `width` and `height` size its box. Given one, the other follows the aspect ratio of its first crop. Given both, the crop conforms to the box by `conform`. Given neither, the box is the picture fitted to the frame. `radius` rounds its corners, `border` (`true` or a colour) draws the theme border inside it, and `shadow` (`true`, `false` or `{radius, offset, color}`) drops the theme shadow below it.
 - A media clip with video or an image sequence is picture in picture. One with alpha is how a motion graphic made elsewhere comes in.
@@ -360,15 +375,34 @@ An area is a rectangle in the coordinate space of the clip that writes it. A poi
 
 A title clip's `title` is a string or a list of runs `{text, style}`, and its `style` names a theme text style and is required.
 
-- A run's `style` gives that run its character attributes (`size`, `weight`, `color`, `stroke`). The clip's style gives the paragraph its attributes (`placement`, `offset`, `writingMode`, `direction`, `align`, `lineHeight`, `lines`, `background`). A run without `style` is in the clip's style.
+- A run's `style` gives that run its character attributes (`font`, `size`, `weight`, `italic`, `tracking`, `kerning`, `features`, `baselineShift`, `color`, `stroke`, `highlight`, `underline`, `textOrientation`, `textCombineUpright`). The clip's style gives the paragraph its attributes (`placement`, `offset`, `writingMode`, `direction`, `align`, `lineHeight`, `lines`, `background`). A run without `style` is in the clip's style.
+- `character` on a title merges character attributes over every run's style, leaf by leaf, as After Effects' Character panel sets a text layer, so `"character": {"color": "accent"}` colours every run and keeps each run's size. `paragraph` merges `writingMode`, `direction`, `align`, `lineHeight` and `background` over the clip style's. Their lengths are theme lengths. What decides faces, shaping and line breaks (`font`, `size`, `weight`, `italic`, `kerning`, `features`, `textOrientation`, `textCombineUpright`, `writingMode`, `direction`, `align`) is static, and the rest takes keyframes ([Keyframes and eases](#keyframes-and-eases)). A title changes size through its `scale`.
 - Without `width` a title is point text: it does not wrap, its lines break only at `\n`, and its box is as wide as its widest line, so a background hugs the text.
 - With `width` (output pixels) a title is paragraph text: it wraps at that width, its box is `width` wide, each line sits in it by the style's `align`, and a background fills it. Lines break by Unicode line breaking and keep words whole, so Korean breaks at spaces.
 - Text that needs more lines than its style's `lines` stops, with `width` or without, so a `lines: 1` title wider than its `width` stops rather than shrink or cut.
 - Right-to-left and mixed-direction text is laid out by the Unicode Bidirectional Algorithm. A style's `direction` is `auto` (from the text's first strong character, the default), `ltr` or `rtl`, and `align` names a side of the box, `left` by default for left-to-right text and `right` for right-to-left. Characters, words, lines and units stay in the order they are read, so a reveal by character starts an Arabic word at its first letter. Write the text as it is read: `{"title": "שלום עולם", "style": "title"}` is set right to left with no key, and a style with `"direction": "rtl"` sets a line that starts with a Latin name, such as `Frames 2.0 יצאה היום`, from the right.
 - Vertical text: a style's or a title's `paragraph` `writingMode` is `horizontal-tb` (the default), `vertical-rl` (vertical lines stacked right to left, for Chinese, Japanese and Korean) or `vertical-lr` (stacked left to right, for Mongolian). Ideographs, kana and Hangul stand upright in their vertical forms and Latin words and digits lie on their sides, as Unicode's Vertical_Orientation gives. A run's style sets `textOrientation` to `upright` to stand every character of the run, `NHK` letter under letter, or to `sideways` to lay every one on its side (`mixed`, the default, follows Vertical_Orientation), and `textCombineUpright: all` to set the run's text side by side in one square of the column, narrowed to 1 em where it is wider, as tate-chu-yoko sets the digits of a date, here with a `combined` style that sets it: `[{"text": "令和", "style": "title"}, {"text": "12", "style": "combined"}, {"text": "年", "style": "title"}]`. Every other key keeps its meaning on the line's axes: `width` is the length the columns wrap at, `align` `left` and `right` are the top and the bottom, `lineHeight` is the distance between columns and `baselineShift` moves to the right.
-- Fonts come from the theme `font` list, the first family the pack or the machine has. Text is laid out by resolve, so line breaks and boxes are the same on every renderer.
+- A style's or a `character`'s `font` is a list of families in the order they are tried, the theme `font` by default, and the first family the pack or the machine has is used. Text is laid out by resolve, so line breaks and boxes are the same on every renderer.
+- An animation choice on a title takes `by` (`character`, `word` or `line`) and `stagger`, the seconds between one unit's start and the next, in both object forms: `{"preset": "frames/rise", "by": "word"}` and `{"entrance": "frames/pop", "exit": "frames/fade", "by": "character", "stagger": 0.03}`. Each unit plays the entrance and the exit about its own box in reading order, and the default `stagger` is 0.04 by character, 0.12 by word and 0.3 by line ([Presets and choices](#presets-and-choices)).
 
-[FRAMES-5](spec/FRAMES-5/SPEC.md), [FRAMES-11](spec/FRAMES-11/SPEC.md)
+```json
+{
+  "kind": "sequence",
+  "format": { "size": [1920, 1080] },
+  "theme": { "styles": { "mark": { "size": 96, "weight": "bold", "color": "#101418",
+                                   "highlight": { "color": "#F2B33D", "padding": [4, 16], "radius": 8 } } } },
+  "storyline": [ { "solid": "#101418", "duration": 4 } ],
+  "clips": [
+    { "title": [ { "text": "Baked " }, { "text": "this morning", "style": "mark" } ], "style": "title",
+      "width": 900, "character": { "font": ["Avenir Next"], "tracking": 20 }, "paragraph": { "align": "left", "lineHeight": 110 },
+      "animation": { "preset": "frames/rise", "by": "word", "stagger": 0.1 } }
+  ]
+}
+```
+
+The title wraps at 900 pixels, its lines 110 apart from baseline to baseline, all of it in Avenir Next with a little more tracking, and the words `this morning` are dark on a rounded yellow highlight. Its three words rise in one after another, a tenth of a second apart.
+
+[FRAMES-5](spec/FRAMES-5/SPEC.md), [FRAMES-11](spec/FRAMES-11/SPEC.md), [FRAMES-14](spec/FRAMES-14/SPEC.md)
 
 ### Shapes
 
@@ -382,12 +416,35 @@ A title clip's `title` is a string or a list of runs `{text, style}`, and its `s
 
 | Key | Form |
 | --- | --- |
-| `fill` | a colour, or `false`. A path fills as if closed |
-| `stroke` | `{color, width, join, cap, start, end}`, or `false`. `width` is required, `color` defaults to the theme `accent`, `join` is `miter`, `round` (default) or `bevel`, `cap` is `butt` (default), `round` or `square`, and `start` and `end` are `none` (default) or `arrow` |
+| `fill` | a colour, a gradient, or `false`. A path fills as if closed |
+| `stroke` | `{color, gradient, width, join, cap, start, end, dash, dashOffset}`, or `false`. `width` is required, the stroke is painted by at most one of `color` and `gradient`, the theme `accent` without either, `join` is `miter`, `round` (default) or `bevel`, `cap` is `butt` (default), `round` or `square`, and `start` and `end` are `none` (default) or `arrow` |
+| `dash`, `dashOffset` | a list of theme lengths, dashes and gaps in turn, not all 0, as SVG `stroke-dasharray`, and how far into that pattern the stroke starts. Each dash takes `cap`, and keyframing `dashOffset` moves the dashes along the outline |
 | `trim` | `[a, b]` from 0 to 1: the part of the outline the stroke draws, as Trim Paths. Keyframed, it draws a stroke on |
 | `radius`, `outset` | a rect's rounded corners, and how far a rect or an ellipse's outline grows beyond its box, both theme lengths |
 | `shadow` | `true`, `false` or `{radius, offset, color}` |
-| `style` | a shape style of the theme, which gives defaults for `fill`, `stroke`, `radius`, `outset` and `shadow`. A key on the clip replaces the style's whole |
+| `style` | a shape style of the theme, which gives defaults for `fill`, `stroke`, `radius`, `outset` and `shadow`. A key on the clip merges over the style's leaf by leaf, so `"stroke": {"color": "#FF0000"}` keeps the style's width, `join` and `cap`, a value of another form (a colour fill over a gradient) replaces it, and `false` turns it off |
+
+A path's vertex `{vertex, inTangent, outTangent}` carries its tangents as offsets from its point, as After Effects and Lottie write a path: the segment from A to B is the cubic Bézier whose control points are A plus A's `outTangent` and B plus B's `inTangent`, so a path of plain points is straight and a quadratic curve or an arc is written as tangents. A gradient is `{"linear": {"from": p, "to": p, "stops": [...]}}` or `{"radial": {"center": p, "radius": r, "stops": [...]}}`, its points fractions of the shape's box (`[0, 0]` its top left, `[1, 1]` its bottom right) and a radial `radius` a fraction of the distance from the centre to the farthest corner, 1 by default. `stops` are at least two `[offset, colour]` pairs, offsets from 0 to 1 in order. A gradient paints a `fill` or a stroke's `gradient` and nothing else, and its points, offsets and colours take keyframes while its kind and number of stops stay.
+
+```json
+{
+  "kind": "sequence",
+  "format": { "size": [1920, 1080] },
+  "theme": { "colors": { "accent": "#F2B33D" } },
+  "storyline": [ { "solid": "#101418", "duration": 4 } ],
+  "clips": [
+    { "shape": "rect", "width": 800, "height": 200, "position": [960, 300], "radius": 24,
+      "fill": { "linear": { "from": [0, 0], "to": [1, 0], "stops": [ [0, "accent"], [1, "#F2B33D00"] ] } } },
+    { "shape": "ellipse", "width": 300, "height": 300, "position": [1600, 300],
+      "fill": { "radial": { "center": [0.5, 0.5], "radius": 1, "stops": [ [0, "#FFFFFF"], [1, "#FFFFFF00"] ] } } },
+    { "shape": "path", "points": [ [400, 800], { "vertex": [1520, 800], "inTangent": [-300, -400] } ],
+      "stroke": { "width": 6, "dash": [24, 12], "cap": "round", "end": "arrow" },
+      "keyframes": [ { "at": 0, "stroke": { "dashOffset": 0 } }, { "at": 4, "stroke": { "dashOffset": 144 } } ] }
+  ]
+}
+```
+
+The bar fades from the accent colour to clear across its width, the disc glows from a white centre, and a dashed arrow arcs up and over to the right, its dashes marching along the curve.
 
 A shape given by `area` or `points` sits where its geometry is written, and `position` moves its anchor point. A shape that has neither a fill nor a stroke after its style stops. To darken everything but a region, fill a rect over the picture and give it an inverted mask of the region. To point at something, draw a path with `"end": "arrow"`. Text beside a shape is a title parented to it. [FRAMES-11](spec/FRAMES-11/SPEC.md)
 
@@ -399,13 +456,13 @@ A shape given by `area` or `points` sits where its geometry is written, and `pos
 | --- | --- |
 | `shape` | `rect`, `ellipse` or `path`, required |
 | `area`, or `width`, `height` and `position` | a rect's or an ellipse's box, the second form centred on `position` |
-| `points` | a path's points, at least three, always closed |
+| `points` | a path's vertices, at least two, each a point or `{vertex, inTangent, outTangent}` as a path shape's, always closed |
 | `radius` | a rect mask's corner radius |
-| `feather` | a theme length, the blur of the mask's edge |
+| `feather` | a theme length, the blur of the mask's edge, 0 by default |
 | `invert` | `true` to cover everything outside the geometry |
 | `mode` | `add` (default), `subtract` or `intersect` |
 
-A mask is in the clip's own space: its media's pixels for a storyline or media clip, its text box for a title, its box for a shape given by `width` and `height`, and the space its geometry is written in for a shape given by `area` or `points`. It moves with the clip, and on a storyline clip it cuts the picture before a transition moves it.
+A mask is in the clip's own space: its media's pixels for a storyline or media clip, its text box for a title, its box for a shape given by `width` and `height`, and the space its geometry is written in for a shape given by `area` or `points`. It moves with the clip, and on a storyline clip it cuts the picture before a transition moves it. Its `shape`, `invert` and `mode` are static, and keyframes move its geometry, `radius` and `feather` ([Keyframes and eases](#keyframes-and-eases)).
 
 `trackMatte` is `{clip, mode, invert}`: `clip` names by `id` a connected or sequence media clip, title or shape in the same document, `mode` is `alpha` or `luma`, and `invert` defaults to `false`. The named clip is not drawn, and the clip shows only where the matte's alpha or luma is.
 
@@ -531,11 +588,83 @@ From the bottom, a frame is the background, the clips on negative lanes, the sto
 
 ### Tracking
 
-`track` makes a clip follow something in a picture, as an NLE's tracker does. Its value is an area, `true` for the clip's own `area`, `mask`, `crop` or `cornerPin`, or an object whose `time` names the frame of the media the clip's values are written on, so a trim of the clip's head moves nothing: `{time}` follows the clip's own geometry from that frame, `{time, area}` an area found there, and track data, `{time, frames}`, is a track made outside frames whose quad on that frame is the target. `true` and a bare area take the frame the clip's start shows, which a head trim moves. What `track` follows is how the clip is placed: a clip placed by points in its parent's space (an area, points, a corner pin) follows its parent's media, and the motion carries those points as a moving parent would; a clip placed by its box follows inside its own media, and the motion moves its crop and mask; a title, still or compound clip, with no frames of its own, follows its parent's media by its position. A clip with a corner pin follows its parent's media, and its crop and mask ride its plane. The tracker provider follows the target's four corners on each frame, a similarity motion (a move, a uniform scale and a rotation) is fitted to them, and evaluation computes the homography they give. A clip with a corner pin rides the homography, so its corners stay on a screen's corners. `frames track` reports the same for a video. [FRAMES-12](spec/FRAMES-12/SPEC.md), [FRAMES-27](spec/FRAMES-27/SPEC.md)
+`track` makes a clip follow something in a picture, as an NLE's tracker does. Its value is an area, `true` for the clip's own `area`, `mask`, `crop` or `cornerPin`, or an object whose `time` names the frame of the media the clip's values are written on, so a trim of the clip's head moves nothing: `{time}` follows the clip's own geometry from that frame, `{time, area}` an area found there, and track data, `{time, frames}`, is a track made outside frames whose quad on that frame is the target. `true` and a bare area take the frame the clip's start shows, which a head trim moves. What `track` follows is how the clip is placed: a clip placed by points in its parent's space (an area, points, a corner pin) follows its parent's media, and the motion carries those points as a moving parent would; a clip placed by its box follows inside its own media, and the motion moves its crop and mask; a title, still or compound clip, with no frames of its own, follows its parent's media by its position. A clip with a corner pin follows its parent's media, and its crop and mask ride its plane. The tracker provider follows the target's four corners on each frame, a similarity motion (a move, a uniform scale and a rotation) is fitted to them, and evaluation computes the homography they give. A clip with a corner pin rides the homography, so its corners stay on a screen's corners. `frames track` reports the same for a video.
+
+The tracker is picked for each run by `--tracker`, not by the document: `point` (the default) reports a move, scale and rotation of the target, and `planar` follows it in perspective, which a tracked corner pin needs. A clip that writes track data calls no tracker, so track data from a planar tracker run outside frames drives a corner pin whatever `--tracker` names.
+
+```json
+{
+  "kind": "sequence",
+  "storyline": [
+    { "id": "phone", "media": "/path/to/phone.mov", "in": 0, "out": 3,
+      "connected": [
+        { "id": "screen", "parent": "phone", "media": "/path/to/app.png",
+          "cornerPin": [ [412, 204], [731, 252], [702, 518], [379, 461] ],
+          "track": { "time": 0,
+                     "frames": [ { "time": 0, "quad": [ [412, 204], [731, 252], [702, 518], [379, 461] ] },
+                                 { "time": 0.033333, "quad": [ [414, 203], [733, 252], [704, 519], [381, 461] ] } ] } } ] }
+  ]
+}
+```
+
+A picture of an app is pinned to a phone's screen, its corner pin written on the shot's first frame in the shot's media pixels, and the track data of a planar tracker keeps it there. The data is cut short here to two frames, and the clip is visible only over the frames the data names. With `"track": {"time": 0}` in place of the data and `--tracker planar`, frames follows the corner pin itself. [FRAMES-12](spec/FRAMES-12/SPEC.md), [FRAMES-21](spec/FRAMES-21/SPEC.md), [FRAMES-27](spec/FRAMES-27/SPEC.md)
 
 ### Sound
 
-A clip with sound plays it at `volume` (default 1), following its `speed` with the pitch kept. `pan` runs from -1 (left) to 1 (right): a mono sound is panned with equal power, and a stereo sound is balanced. `fadeIn` and `fadeOut` ramp the volume over the range the sound plays: a storyline clip's drawn range, or another clip's visible window. `volume` and `pan` are keyframable, for ducking and longer fades. During a storyline transition the two clips' sounds crossfade by the preset's curve. An audio clip has no lane, and a sequence with no sound has no audio track. [FRAMES-13](spec/FRAMES-13/SPEC.md)
+A clip with sound plays it at `volume` (default 1), following its `speed` with the pitch kept. `pan` runs from -1 (left) to 1 (right): a mono sound is panned with equal power, and a stereo sound is balanced. `fadeIn` and `fadeOut` ramp the volume over the range the sound plays: a storyline clip's drawn range, or another clip's visible window. `volume` and `pan` are keyframable, for ducking and longer fades. During a storyline transition the two clips' sounds crossfade by the preset's curve. An audio clip has no lane. A sequence with no sound mixes to silence, and its file still carries a silent track as long as its frames.
+
+- `split: {"before": b, "after": a}` on a storyline clip or a visual media clip with sound is a J or an L cut: its sound starts `b` seconds before its picture and ends `a` seconds after, measured from a storyline clip's edit points, and plays its media beyond `in` and `out`. The media must hold sound over that range, and a split that reaches past it or outside the sequence stops. `timeline` prints the range each clip's sound plays over.
+- `"picture": false` on a connected or sequence clip of a video, a compound clip or a template instance takes only its sound, as Final Cut Pro detaches a clip's audio, and the clip is then an audio clip. On a storyline clip, a still, an image sequence or an audio file it stops.
+
+```json
+{
+  "kind": "sequence",
+  "storyline": [
+    { "media": "/path/to/question.mov", "in": 0, "out": 2.5 },
+    { "media": "/path/to/answer.mov", "in": 1, "out": 3.5, "split": { "before": 1 } }
+  ],
+  "clips": [ { "at": [0, 5], "media": "/path/to/music-video.mov", "picture": false, "volume": 0.3, "loop": true } ]
+}
+```
+
+The answer is heard a second before it is seen, over the end of the question, and the music video's sound plays under both with none of its picture. [FRAMES-13](spec/FRAMES-13/SPEC.md)
+
+### Audio filters
+
+`audioFilter` processes a sound with operations from a fixed table, as `filter` does a picture. It is taken by a clip whose media has sound (a storyline or media clip of a video with sound, a compound clip or a template instance, and an audio clip) and by the sequence. It is an audio preset (`<pack>/<name>` for `presets/audio/<name>.json`, or an absolute path), `{preset, args, mix}` with at least one of `args` and `mix`, an op written in place, or a list of those, the first applied first. An entry written as an object takes `mix`, the dry sound and its result mixed from 0 to 1. frames ships no audio preset.
+
+| op | Parameters |
+| --- | --- |
+| `eq` | `bands`, each `{type, frequency, gain, q}`: `type` is `lowShelf`, `highShelf`, `peak`, `lowPass` or `highPass`, `gain` (dB) only for the shelves and `peak`, and `q` 0.7071 by default |
+| `compressor` | `threshold` (dBFS), `ratio`, `knee`, `attack`, `release`, `makeup` |
+| `gate` | `threshold` (dBFS), `range`, `attack`, `hold`, `release` |
+| `limiter` | `gain` (dB), `ceiling` (dBTP, -1 by default), `lookahead`, `release`: holds the true peak at `ceiling` |
+| `convolve` | `file`, an impulse response named as media is, and `gain` (dB): a room, a plate, a speaker or a telephone |
+
+- A clip's chain acts on its sound after its `speed` and before its volume, fades, crossfades and pan, so a fade fades the processed sound.
+- The sum of a sequence's sounds is its bus, and the sequence's `audioFilter` runs over it wherever the sequence plays, inside another sequence included. The outermost sequence's chain is the master bus, and a `limiter` last in it, at `mix` 1, holds the whole mix under its `ceiling`. `loudness` measures the mix after it.
+- `audioFilter` is keyframable: a clip's keyframes on its clip time, and the sequence's in its own `keyframes` on sequence time. They write the numbers that move (a band's `frequency`, `gain` and `q`, an op's numbers other than a limiter's `lookahead`, an entry's `mix`), and a list in a keyframe is as long as the chain. A band's `frequency` and `q` move in log space.
+- A `convolve` reverb ends with the range its clip's sound plays over, its tail cut there. An audio clip whose `at` window is longer than its sound plays silence after it, and the tail rings into that silence to the window's end. A tail that must ring past a clip goes on a longer bus: a compound clip that holds the clip and runs longer, or the sequence's `audioFilter`.
+
+```json
+{
+  "kind": "sequence",
+  "audioFilter": [ { "op": "eq", "bands": [ { "type": "lowPass", "frequency": 20000 } ] }, { "op": "limiter", "gain": 3, "ceiling": -1 } ],
+  "keyframes": [ { "at": 0, "audioFilter": [ { "bands": [ { "frequency": 400 } ] }, {} ], "ease": "ease-in" },
+                 { "at": 2, "audioFilter": [ { "bands": [ { "frequency": null } ] }, {} ] } ],
+  "storyline": [
+    { "media": "/path/to/interview.mov", "in": 0, "out": 3.5,
+      "audioFilter": [ { "op": "eq", "bands": [ { "type": "highPass", "frequency": 80 }, { "type": "peak", "frequency": 3000, "gain": 3, "q": 1 } ] },
+                       { "op": "compressor", "threshold": -18, "ratio": 3, "knee": 6 },
+                       { "op": "gate", "threshold": -50 } ] }
+  ],
+  "clips": [
+    { "at": [0.5, 3.5], "media": "/path/to/tick.wav", "audioFilter": { "op": "convolve", "file": "/path/to/hall.wav", "mix": 0.4 } }
+  ]
+}
+```
+
+The voice loses its rumble, gains presence, is evened out and gated between phrases. The tick is a short sound in a three second window, so the hall's reverb rings on after it. On the master bus the whole mix opens from a muffled 400 Hz to full over two seconds, and the limiter raises it by 3 dB under a ceiling of -1 dBTP. [FRAMES-13](spec/FRAMES-13/SPEC.md), [FRAMES-28](spec/FRAMES-28/SPEC.md)
 
 ### Stills and content fit
 
@@ -564,9 +693,9 @@ A theme holds a look: sizes, colours, text styles, shape styles and default pres
 | Group | Holds |
 | --- | --- |
 | `baseWidth` | the frame width theme lengths are written for, 1920 |
-| `font` | font families in the order they are tried |
+| `font` | a list of font families in the order they are tried, for every text style without a `font` of its own |
 | `colors` | named colours, an open map. `text` is the default text colour and `background` the default format background |
-| `styles` | text styles by name, an open map: `size` (required), `weight` (`regular` or `bold`), `color`, `stroke` (`{width, color}`), `lineHeight`, `background` (`{color, padding, radius}`), `placement`, `offset`, `writingMode` (`horizontal-tb`, `vertical-rl`, `vertical-lr`), `textOrientation` (`mixed`, `upright`, `sideways`), `textCombineUpright` (`none`, `all`), `direction` (`auto`, `ltr`, `rtl`), `align` (`left`, `center`, `right`), `lines` |
+| `styles` | text styles by name, an open map. Character attributes: `font` (a list of families), `size` (required), `weight` (100 to 900, or a name from `thin` to `black`, `regular` and `bold` among them), `italic`, `tracking` (thousandths of an em), `kerning`, `features`, `baselineShift`, `color`, `stroke` (`{width, color}`), `highlight` (`{color, padding, radius}`, a box behind the run's glyphs on each line), `underline` (`true` or `{width, offset, color}`), `textOrientation` (`mixed`, `upright`, `sideways`), `textCombineUpright` (`none`, `all`). Paragraph attributes: `lineHeight` (a theme length, the distance between baselines, not a multiple of the size, 1.25 × size by default), `background` (`{color, padding, radius}`), `placement`, `offset`, `writingMode` (`horizontal-tb`, `vertical-rl`, `vertical-lr`), `direction` (`auto`, `ltr`, `rtl`), `align` (`left`, `center`, `right`), `lines` |
 | `shapes` | shape styles by name, an open map: `fill`, `stroke`, `radius`, `outset`, `shadow` |
 | `placement` | `padding`, the title safe margin |
 | `border`, `shadow` | `{width, color}` and `{radius, offset, color}`, drawn by `border: true` and `shadow: true` |
@@ -597,16 +726,20 @@ Transitions, animations and filters are presets: data files named `<pack>/<name>
 
 | Choice | Takes |
 | --- | --- |
-| transition | a preset, `"cut"`, or `{preset, seconds, args}` with `seconds` and `args` optional |
-| animation | a preset, `"none"`, `{preset, args}`, or `{entrance, exit}`, each side a preset, `"none"` or `{preset, args}` |
-| filter | a preset, `{preset, args}`, a list of those applied in order, or `"none"` |
+| transition | a preset, `"cut"`, or `{preset, seconds, args}` with at least one of `seconds` and `args` |
+| animation | a preset, `"none"`, `{preset, args}`, or `{entrance, exit}`, each side a preset, `"none"` or `{preset, args}`. On a title both object forms also take `by` and `stagger` ([Titles and runs](#titles-and-runs)) |
+| filter | a preset, `{preset, args, mix}` with at least one of `args` and `mix`, an op written in place, a list of those applied in order, or `"none"` |
+
+An object choice needs a key besides `preset`: `{"preset": "frames/warm"}` alone stops, since the name alone is that choice. An object without `preset` merges over the theme's default choice, so `{"by": "word"}` plays the default title animation by word and `{"mix": 0.5}` is the default filter at half strength.
 
 A preset may publish parameters, as an NLE effect publishes its controls. `args` gives them values: an unknown name or a value of the wrong type stops, and a missing one takes its default. `frames packs <pack>` and `frames presets <kind> <name>` print a preset's parameters.
+
+A filter op is `{"op": ..., ...}` with the parameters of its row in [FRAMES-15](spec/FRAMES-15/SPEC.md): `exposure`, `contrast`, `saturation`, `temperature`, `hue`, `sepia`, `levels`, `lut`, `blur`, `sharpen`, `bloom`, `vignette`, `displace`, `pixelate` and `grain`. Written in a `filter` list it stands beside presets. `displace` moves each pixel by a displacement map, a still whose red moves it along x and green along y, 0.5 moving nothing, by up to `amount` (a theme length), the map stretched over the clip's box and moved by `offset`: a ripple, a heat haze or a refraction as a file. An entry written as an object takes `mix`, from 0 to 1, which mixes its result with its input.
 
 ```json
 { "transition": { "preset": "frames/dip-black", "seconds": 1 },
   "animation": { "entrance": "frames/pop", "exit": "frames/fade" },
-  "filter": [ "frames/warm", "frames/vignette" ] }
+  "filter": [ "frames/warm", { "op": "displace", "file": "/path/to/ripple.png", "amount": 12 }, { "preset": "frames/vignette", "mix": 0.5 } ] }
 ```
 
 An animation preset holds an entrance, played at the start of a clip's window, a loop that repeats until the exit, and an exit, played at its end. `{entrance, exit}` takes each side from its own preset, with no loop. A filter applies at the clip's own size, before its transform. [FRAMES-14](spec/FRAMES-14/SPEC.md), [FRAMES-15](spec/FRAMES-15/SPEC.md), [FRAMES-16](spec/FRAMES-16/SPEC.md)
