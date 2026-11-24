@@ -273,7 +273,7 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
             "\(place) (\(kind.label)): a clip placed by \"cornerPin\" takes no \(quoted(key)), since its corner pin places it"
 
         case let .cornerPinOnGeometry(place, kind):
-            "\(place) (\(kind.label)): a shape placed by its area or points takes no \"cornerPin\", "
+            "\(place) (\(kind.label)): a shape placed by its area takes no \"cornerPin\", "
                 + "since its outline is in its space already"
 
         case let .cornerPinNotBroughtBack(place, kind, time):

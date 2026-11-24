@@ -72,8 +72,8 @@ extension ResolvedClip {
     }
 
     // MARK: - Private
-    // A keyframe brought back to the track's frame at its own time, where its clip follows its parent's media; resolve
-    // has checked that every keyframe of numbers comes back.
+    // A keyframe brought back to the track's frame at its own time, corner by corner, where its clip follows its
+    // parent's media; resolve has checked that every keyframe comes back.
     private func broughtBack(
         _ points: GeometryQuad,
         on clock: MediaClock?,

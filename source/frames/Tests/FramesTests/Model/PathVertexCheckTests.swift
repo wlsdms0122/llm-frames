@@ -47,6 +47,10 @@ struct PathVertexCheckTests {
             (
                 #"{ "shape": "rect", "width": 10, "height": 10, "at": [0, 1], "position": { "vertex": [0, 0] } }"#,
                 "storyline[0].connected[0].position"
+            ),
+            (
+                #"{ "shape": "rect", "width": 10, "height": 10, "at": [0, 1], "cornerPin": [ { "vertex": [0, 0] }, [10, 0], [10, 10], [0, 10] ] }"#,
+                "storyline[0].connected[0].cornerPin[0]"
             )
         ]
     )
