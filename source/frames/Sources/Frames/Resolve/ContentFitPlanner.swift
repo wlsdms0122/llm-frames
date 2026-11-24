@@ -12,11 +12,13 @@ import Foundation
 // motion, its parent's included, as evaluation carries it: a storyline picture's or media clip's box, a title's box
 // with its highlights and underlines, and a shape's outline with its stroke, joins, caps and arrowheads. A solid fills
 // the frame and an adjustment applies to it, so neither is measured, and nor is a clip used as a track matte, which is
-// not drawn.
+// not drawn. A clip placed by its placement is placed on the frame, so neither it nor any clip placed from it, through
+// a parent or a clip area, is measured, and it is placed on the measured frame in place of being moved.
 struct ContentFitPlanner: Sendable {
     // MARK: - Property
     private let clipEvaluator = ClipEvaluator()
     private let shapeEvaluator = ShapeEvaluator()
+    private let areaFinder = ClipAreaFinder()
 
     // MARK: - Initializer
     init() { }
@@ -28,7 +30,9 @@ struct ContentFitPlanner: Sendable {
         margin: Margin
     ) throws -> SequencePlan {
         let still = try self.still(ResolvedSequence(plan: plan, hashes: PlaceholderHasher()))
-        guard let union = extents(of: still).reduce(nil, { union, extent in union?.union(extent) ?? extent }) else {
+        let placed = placedOnFrame(plan)
+        let extents = extents(of: still, without: placed)
+        guard let union = extents.reduce(nil, { union, extent in union?.union(extent) ?? extent }) else {
             throw ResolveError.contentFitWithoutPicture(
                 place: plan.time.sequence.place.appending(key: "format").appending(key: "size"),
                 kind: .sequence
@@ -60,7 +64,7 @@ struct ContentFitPlanner: Sendable {
             storyline: plan.storyline.map { moved($0, by: offset) },
             clips: plan.clips.indices.map { index in
                 plan.clips[index].isInOutputPixels
-                    ? moved(plan.clips[index], in: plan.time.clips[index].space, by: offset)
+                    ? moved(plan.clips[index], in: plan.time.clips[index].space, by: offset, onto: format.frame)
                     : plan.clips[index]
             },
             sound: plan.sound,
@@ -134,9 +138,43 @@ struct ContentFitPlanner: Sendable {
         )
     }
 
-    // The extent of every measured clip at sequence time 0, in the measuring space. A storyline picture with a corner
-    // pin covers the quadrilateral of its four points.
-    private func extents(of sequence: ResolvedSequence) -> [Rectangle] {
+    // The places of the clips that depend on the frame: a clip placed by its placement, and a clip parented to one that
+    // does or whose geometry takes the box of one through a clip area. Parents and clip areas hold no cycle, so the
+    // walk ends.
+    private func placedOnFrame(_ plan: SequencePlan) -> Set<String> {
+        let clips = plan.time.clips
+        let written = plan.time.sequence.storyline.flatMap(\.connected) + plan.time.sequence.clips
+        let named = written.map(areaFinder.named(by:))
+        var isPlaced = plan.clips.map { $0.box?.placement != nil }
+        var isGrowing = true
+        while isGrowing {
+            isGrowing = false
+            for index in clips.indices where !isPlaced[index] {
+                let isParentPlaced = if case let .clip(parent, _) = clips[index].parent {
+                    isPlaced[parent]
+                } else {
+                    false
+                }
+                let isAreaPlaced = named[index].contains { id in
+                    clips.indices.contains { isPlaced[$0] && clips[$0].id == id }
+                }
+                guard isParentPlaced || isAreaPlaced else { continue }
+
+                isPlaced[index] = true
+                isGrowing = true
+            }
+        }
+
+        return Set(clips.indices.filter { isPlaced[$0] }.map { clips[$0].place.description })
+    }
+
+    // The extent of every measured clip at sequence time 0, in the measuring space, `placed` naming the places of the
+    // clips that depend on the frame. A storyline picture with a corner pin covers the quadrilateral of its four
+    // points.
+    private func extents(
+        of sequence: ResolvedSequence,
+        without placed: Set<String>
+    ) -> [Rectangle] {
         let parents = ParentEvaluator(sequence: sequence)
         let storyline = sequence.storyline.filter { $0.media != nil }.compactMap { entry -> Rectangle? in
             if let pin = entry.cornerPin {
@@ -147,7 +185,7 @@ struct ContentFitPlanner: Sendable {
             let rectangle = Rectangle(x: 0, y: 0, width: box.size.width, height: box.size.height)
             return bounds(of: rectangle, by: entry.presentation(at: SampleTime(0)).transform)
         }
-        let clips = sequence.clips.filter { !sequence.isMatte($0) }.compactMap { clip in
+        let clips = sequence.clips.filter { !sequence.isMatte($0) && !placed.contains($0.place) }.compactMap { clip in
             extent(of: clip, in: parents.space(of: clip, at: SampleTime(0)))
         }
 
@@ -252,11 +290,13 @@ struct ContentFitPlanner: Sendable {
 
     // A mask moves with the content only where it is in the clip's parent's space: an adjustment's, or a shape's placed
     // by its geometry. A title's or a box shape's is in its box and a media clip's in its media. A clip area moves with
-    // the clip it names. A path's tangents are offsets, which a move leaves as they are.
+    // the clip it names. A path's tangents are offsets, which a move leaves as they are. A box placed by its placement
+    // is placed on `frame`, the measured frame, and not moved.
     private func moved(
         _ geometry: ClipGeometry,
         in space: OwnSpace,
-        by offset: Point
+        by offset: Point,
+        onto frame: Rectangle
     ) -> ClipGeometry {
         ClipGeometry(
             area: geometry.area?.map { area in
@@ -273,9 +313,7 @@ struct ContentFitPlanner: Sendable {
                 vertex.map(vertex: { $0.mapValues { $0.map { moved($0, by: offset) } } }, tangent: { $0 })
             },
             position: geometry.position?.map { $0.map { moved($0, by: offset) } },
-            box: geometry.box.map { box in
-                ClipBox(size: box.size, position: box.position.map { $0.map { moved($0, by: offset) } }, anchor: box.anchor)
-            },
+            box: geometry.box.map { box in placed(box, by: offset, onto: frame) },
             cornerPin: geometry.cornerPin.map { pin in
                 ClipCornerPin(size: pin.size, points: pin.points.map { $0.map { moved($0, by: offset) } })
             },
@@ -296,6 +334,24 @@ struct ContentFitPlanner: Sendable {
             nested: geometry.nested,
             appearance: geometry.appearance
         )
+    }
+
+    // A box placed by its position moves with the content, and one placed by its placement is placed on the frame.
+    private func placed(
+        _ box: ClipBox,
+        by offset: Point,
+        onto frame: Rectangle
+    ) -> ClipBox {
+        guard let placement = box.placement else {
+            return ClipBox(
+                size: box.size,
+                position: box.position.map { $0.map { moved($0, by: offset) } },
+                anchor: box.anchor
+            )
+        }
+
+        let position = placement.position(of: box.size, anchor: box.anchor, in: frame)
+        return ClipBox(size: box.size, position: .value(.point(position)), anchor: box.anchor, placement: placement)
     }
 
     private func moved(

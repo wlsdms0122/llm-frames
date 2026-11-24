@@ -691,7 +691,7 @@ The voice loses its rumble, gains presence, is evened out and gated between phra
 
 A still is a sequence rendered as one frame (`render -o out.png`, `still`). A still edit is usually one still storyline clip with clips connected to it: its `crop` crops, `format.size` resizes, a larger `format.size` with the clip's transform pads, `border` borders, and connected titles, shapes and adjustment clips draw on it.
 
-`format.size` as `{"fit": "content", "margin": m}` measures the frame from what it holds, as a design tool's "fit to content". `margin` is `n`, `[v, h]` or `[t, r, b, l]` in whole pixels. A storyline picture is drawn at the pixel size of its crop, clips sit where they are written with their top left at the origin by default, and the frame is the bounding box of everything plus the margin. A `placement` stops under content fit, since it depends on the frame.
+`format.size` as `{"fit": "content", "margin": m}` measures the frame from what it holds, as a design tool's "fit to content". `margin` is `n`, `[v, h]` or `[t, r, b, l]` in whole pixels. A storyline picture is drawn at the pixel size of its crop, a clip sits where its `position` puts it (a box with neither a `position` nor a placement sits with its top left at the origin), and the frame is the bounding box of all of it plus the margin. A clip placed by `placement`, its own or its text style's, is placed on that frame, margin included, as on any frame, with its style's `offset`. It and what is parented to it or takes its box through a clip area are not measured, since they depend on the frame. A content-fit sequence whose storyline has no picture stops.
 
 ```json
 {

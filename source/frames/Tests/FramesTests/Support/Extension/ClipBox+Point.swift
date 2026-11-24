@@ -14,9 +14,10 @@ extension ClipBox {
     init(
         size: Size,
         position: PropertyValue<Point>,
-        anchor: Point
+        anchor: Point,
+        placement: BoxPlacement? = nil
     ) {
-        self.init(size: size, position: position.map(GeometryPoint.point), anchor: anchor)
+        self.init(size: size, position: position.map(GeometryPoint.point), anchor: anchor, placement: placement)
     }
 
     // MARK: - Public

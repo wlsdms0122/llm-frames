@@ -281,31 +281,83 @@ struct ContentFitTests {
     }
 
     @Test(
-        "a placement stops, since it would depend on the frame being measured",
+        "a clip placed by its placement or its style's lies on the measured frame where that placement puts it, with its style's offset, and is not measured",
         arguments: [
-            (#"{ "title": "Hi", "style": "title", "width": 300, "placement": "top", "at": [0, 1] }"#, ResolveError.placementUnderContentFit(place: Place.root.appending(key: "clips").appending(index: 0), kind: .clip(.title))),
-            (#"{ "media": "/abs/card.png", "placement": "center", "at": [0, 1] }"#, ResolveError.placementUnderContentFit(place: Place.root.appending(key: "clips").appending(index: 0), kind: .clip(.media(.image))))
+            // The subtitle style places at the bottom, 108 theme lengths up, 56.25 output pixels at the length scale.
+            (#"{ "title": "Hi", "style": "subtitle", "at": [0, 1] }"#, Point(x: 510, y: 763.75)),
+            // The placement padding is 96 theme lengths, 50 output pixels.
+            (#"{ "title": "Hi", "style": "title", "placement": "bottom-right", "at": [0, 1] }"#, Point(x: 970, y: 770)),
+            (#"{ "media": "/abs/card.png", "width": 2000, "placement": "top-left", "at": [0, 1] }"#, Point(x: 50, y: 50)),
+            (#"{ "shape": "rect", "width": 100, "height": 50, "fill": "accent", "placement": "center", "at": [0, 1] }"#, Point(x: 510, y: 410))
         ]
     )
-    func refusesWhatNamesFrame(
+    func placesOnMeasuredFrame(
         clip: String,
-        expected: ResolveError
+        position: Point
     ) throws {
-        // Given
-        let document = #"{ "storyline": [ { "media": "/abs/page.png", "duration": 1 } ], "clips": [ \#(clip) ] }"#
+        // When
+        let plan = try plan(
+            #"{ "storyline": [ { "media": "/abs/page.png", "duration": 1 } ], "clips": [ \#(clip) ] }"#,
+            margin: "10"
+        )
 
-        // When, Then
-        let error = #expect(throws: ResolveError.self) { try plan(document) }
-        #expect(error == expected)
+        // Then
+        #expect(plan.format.size == Size(width: 1020, height: 820))
+        #expect(plan.storyline[0].appearance.box?.position == .value(.point(Point(x: 510, y: 410))))
+        #expect(plan.clips[0].box?.position == .value(.point(position)))
     }
 
-    @Test("a storyline of solids leaves nothing to measure and no length scale, so it stops")
-    func refusesNothingMeasured() throws {
+    @Test("a clip parented to a clip placed by its placement, or taking its box through a clip area, follows it and is not measured")
+    func followsClipPlacedOnFrame() throws {
         // Given
-        let document = ##"""
-            { "storyline": [ { "solid": "#FF0000", "duration": 1 } ],
-              "clips": [ { "shape": "rect", "fill": "#FFD43B80", "area": [0, 0, 100, 100], "at": [0, 1] } ] }
-            """##
+        let plan = try plan(##"""
+            { "storyline": [ { "media": "/abs/page.png", "duration": 1 } ],
+              "clips": [ { "id": "sub", "title": "Hi", "style": "subtitle", "at": [0, 1] },
+                         { "shape": "rect", "fill": "#FFD43B80", "parent": "sub", "area": [0, 0, 4000, 10], "at": [0, 1] },
+                         { "shape": "rect", "fill": "#FFD43B80", "area": { "clip": "sub", "padding": 2000 }, "at": [0, 1] } ] }
+            """##, margin: "10")
+        let box = try #require(plan.clips[0].box)
+
+        // When
+        let resolved = try ResolvedSequence(plan: plan, hashes: PlaceholderHasher())
+        let space = ParentEvaluator(sequence: resolved).space(of: resolved.clips[1], at: SampleTime(0))
+
+        // Then
+        #expect(plan.format.size == Size(width: 1020, height: 820))
+        #expect(space.transform.apply(to: Point(x: 0, y: 0)) == Point(
+            x: 510 - box.size.width / 2,
+            y: 763.75 - box.size.height
+        ))
+        #expect(plan.clips[2].area?.firstValue == .clip(ClipArea(clip: "sub", padding: 2000 * (1000 / 1920.0))))
+    }
+
+    @Test("a box with neither a position nor a placement, its style's included, sits with its top left at the origin and is measured")
+    func measuresUnplacedTitle() throws {
+        // When
+        let plan = try plan(#"""
+            { "theme": { "styles": { "plain": { "size": 96 } } },
+              "storyline": [ { "media": "/abs/page.png", "duration": 1 } ],
+              "clips": [ { "title": "Hello", "style": "plain", "width": 1500, "at": [0, 1] } ] }
+            """#)
+        let box = try #require(plan.clips[0].box)
+
+        // Then
+        #expect(box.placement == nil)
+        #expect(box.position == .value(.point(box.anchor)))
+        #expect(box.anchor == Point(x: 750, y: box.size.height / 2))
+        #expect(plan.format.size == Size(width: 1500, height: 800))
+    }
+
+    @Test(
+        "a storyline of solids leaves nothing to measure and no length scale, so it stops, whatever its other clips",
+        arguments: [
+            ##"{ "shape": "rect", "fill": "#FFD43B80", "area": [0, 0, 100, 100], "at": [0, 1] }"##,
+            #"{ "title": "Hi", "style": "subtitle", "at": [0, 1] }, { "media": "/abs/card.png", "placement": "center", "at": [0, 1] }"#
+        ]
+    )
+    func refusesNothingMeasured(clips: String) throws {
+        // Given
+        let document = ##"{ "storyline": [ { "solid": "#FF0000", "duration": 1 } ], "clips": [ \##(clips) ] }"##
 
         // When, Then
         let error = #expect(throws: ResolveError.self) { try plan(document) }

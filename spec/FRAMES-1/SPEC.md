@@ -53,7 +53,7 @@ Placement names are measured on the frame. The defaults:
 | a clip with `cornerPin` | none: its corner pin places it ([FRAMES-27](../FRAMES-27/SPEC.md)) |
 | parented clip | none: a parented clip with a box of its own needs `position` (or `area` or `points` for a shape, or `cornerPin`), and one with a `placement` stops, since a placement names the frame and not the parent's space |
 
-On a sequence whose size is measured from its content, the defaults that name the frame do not apply and a `placement` stops, as [FRAMES-6](../FRAMES-6/SPEC.md) says.
+On a sequence whose size is measured from its content, a placement name is measured on the measured frame, and a clip placed by one is not measured, as [FRAMES-6](../FRAMES-6/SPEC.md) says. A clip decides between `placement` and `position` there as on any frame, a title by its style's placement by default. The default `center` of a media clip and of a rect or ellipse does not apply, and a title whose style gives no placement does not stop: a clip with a box of its own that takes no placement and writes no `position` sits with its box's top left at the origin, where the frame is measured from it.
 
 ### Scale
 

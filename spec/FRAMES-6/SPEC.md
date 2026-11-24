@@ -67,19 +67,20 @@ Under content fit the frame is measured in a **measuring space**: output pixels 
 
 - **Storyline pictures.** A storyline clip with a picture of its own (video, still, image sequence, compound clip) has a box the pixel size of its crop at scale 1: the crop's width and height in media pixels (a page's points, which may be fractions, [FRAMES-1](../FRAMES-1/SPEC.md#units)), the media's size when it has no crop, the media's size divided by `s` for `{scale: s}`, and a compound clip's own frame size as its media size. Before its transform, that box has its top left at the origin, so the clip's default `position` is its anchor point on that box and a clip with no transform covers `[0, 0, w, h]`. The picture is drawn at that box, not scaled to the frame. A crop at another time is conformed to that box's aspect ratio by `format.conform` and fills it, as a media clip's crop fills its box ([FRAMES-11](../FRAMES-11/SPEC.md)).
 - **Media clips.** A media clip's box follows its `width` and `height` as [FRAMES-11](../FRAMES-11/SPEC.md) says. Given neither, it is the pixel size of its first crop, or of its media, at scale 1, in place of being fitted to the frame.
-- **Default positions.** A clip with a box of its own that writes no `position` sits with its box's top left at the origin. A style's `placement` and `offset` are not used.
-- **What would depend on the frame stops.** A written `placement` stops, since it would depend on the frame being measured. A title's box does not depend on the frame: it is its `width`, or fitted to its text without one ([FRAMES-5](../FRAMES-5/SPEC.md)). Theme lengths are scaled by the length scale of [FRAMES-1](../FRAMES-1/SPEC.md), which a content-fit sequence takes from its first storyline picture.
+- **Placement.** `placement` names the frame ([FRAMES-1](../FRAMES-1/SPEC.md#placement)), here the measured frame with its margin. A clip with a box of its own is placed by `placement` or by `position` as on a frame of a written size: by its own `placement`, or, when it writes no `position`, by its text style's, with that style's `offset`. A clip placed by `placement` depends on the frame, so it is not measured and is placed on the measured frame once that exists (rules 3 and 6). A parented clip with a box of its own needs `position` here as on any frame.
+- **Default positions.** A clip with a box of its own that writes no `position` and takes no `placement` (a media clip or a rect or ellipse, whose default `center` would name the frame, or a title whose style gives none) sits with its box's top left at the origin, and is measured.
+- **Boxes and lengths.** A title's box does not depend on the frame: it is its `width`, or fitted to its text without one ([FRAMES-5](../FRAMES-5/SPEC.md)). Theme lengths are scaled by the length scale of [FRAMES-1](../FRAMES-1/SPEC.md), which a content-fit sequence takes from its first storyline picture, so the `placement.padding` and a style's `offset` that place a clip on the measured frame take it too.
 
 The frame is the bounding box of what is measured, plus the margin:
 
 1. Each measured clip's extent is taken at sequence time 0, on the clip's own clock ([FRAMES-8](../FRAMES-8/SPEC.md)), whether or not the clip is visible then: its keyframed values at that instant (a property whose first keyframe is later holds that keyframe's value), its parent's geometry at that instant ([FRAMES-10](../FRAMES-10/SPEC.md)), and no animation and no transition motion, as `geometry(clip, t)` gives it ([the specification's shape of the system](../README.md#shape-of-the-system)).
 2. A clip's extent is the axis-aligned bounding box, after its transform, of: its box for a storyline picture or a media clip; its text box, its background and its runs' highlights and underlines included, for a title; its outline with its stroke as drawn, its miter joins, square caps and arrowheads included, for a shape. Masks, track mattes, borders, shadows and opacity do not change an extent.
-3. What is not measured: solid storyline clips (a solid fills the frame), adjustment clips (they apply to the frame), audio clips, and a clip used as another clip's track matte (it is not drawn).
+3. What is not measured: solid storyline clips (a solid fills the frame), adjustment clips (they apply to the frame), a clip placed by `placement` (it is placed on the frame) and every clip placed from one, at any depth: a clip parented to it ([FRAMES-10](../FRAMES-10/SPEC.md)) and a clip whose `area`, `points`, `position` or `cornerPin` takes its box through a clip area ([FRAMES-2](../FRAMES-2/SPEC.md#clip-areas)); audio clips; and a clip used as another clip's track matte (it is not drawn).
 4. The union of every extent is `[x0, y0, x1, y1]`. It is rounded outward to whole pixels: `X0 = floor(x0)`, `Y0 = floor(y0)`, `X1 = ceil(x1)`, `Y1 = ceil(y1)`.
 5. The frame is `X1 - X0 + l + r` wide and `Y1 - Y0 + t + b` tall, with `t, r, b, l` the margin, each side rounded up to an even number, the extra pixel on the right or the bottom.
-6. Everything is moved by `(l - X0, t - Y0)`, so the content's top left lies at `(l, t)` with the margin round it. An unparented clip's written coordinates are measuring-space coordinates and are drawn moved by that offset.
+6. Everything is moved by `(l - X0, t - Y0)`, so the content's top left lies at `(l, t)` with the margin round it. An unparented clip's written coordinates are measuring-space coordinates and are drawn moved by that offset. A clip placed by `placement` is placed on the measured frame, where its placement puts it on any frame of that size, and is not moved again. What is placed from it follows it: its children are in its space, and a clip area takes its box where it is placed.
 
-- A content-fit sequence where nothing is measured stops, since it has no frame.
+- A content-fit sequence where nothing is measured stops, since it has no frame. Every storyline picture is measured, so this is a sequence whose storyline is all solids, however its other clips are placed.
 - Every other rule that names the frame (transition offsets, the frame its clips are drawn on, the output size the encoder writes) uses the measured frame once it exists.
 - A compound clip whose sequence uses content fit has the measured size as its own frame size ([FRAMES-3](../FRAMES-3/SPEC.md)).
 
@@ -89,7 +90,7 @@ The frame is the bounding box of what is measured, plus the margin:
 
 ## Interactions
 
-A document's keys are [FRAMES-7](../FRAMES-7/SPEC.md), its format and storyline [FRAMES-9](../FRAMES-9/SPEC.md). A document as media is [FRAMES-3](../FRAMES-3/SPEC.md). `render`, `--at` and `still` are [FRAMES-23](../FRAMES-23/SPEC.md). Templates are [FRAMES-17](../FRAMES-17/SPEC.md). The length scale is [FRAMES-1](../FRAMES-1/SPEC.md). Clip boxes are [FRAMES-11](../FRAMES-11/SPEC.md), text boxes [FRAMES-5](../FRAMES-5/SPEC.md).
+A document's keys are [FRAMES-7](../FRAMES-7/SPEC.md), its format and storyline [FRAMES-9](../FRAMES-9/SPEC.md). A document as media is [FRAMES-3](../FRAMES-3/SPEC.md). `render`, `--at` and `still` are [FRAMES-23](../FRAMES-23/SPEC.md). Templates are [FRAMES-17](../FRAMES-17/SPEC.md). The length scale and placement are [FRAMES-1](../FRAMES-1/SPEC.md), clip areas [FRAMES-2](../FRAMES-2/SPEC.md), parents [FRAMES-10](../FRAMES-10/SPEC.md). Clip boxes are [FRAMES-11](../FRAMES-11/SPEC.md), text boxes [FRAMES-5](../FRAMES-5/SPEC.md).
 
 ## Alternatives considered
 
@@ -98,6 +99,10 @@ A separate image document kind, an ordered list of operations on one picture (cr
 A layout document kind, pictures on a grid with headings: a grid is one arrangement among many, the kind of shape a purpose takes. Media clips placed by `position`, and a template or a pack that writes them, make any arrangement.
 
 Content fit as the default: a frame that changes size when a clip moves would surprise every video edit, and delivery formats fix the size. A written or default size is the NLE default, and content fit is chosen, as an image editor's "reveal all" or "canvas size to fit" is.
+
+Stopping on a style's `placement` under content fit, as on a written one: a style that places its titles could not be shared between a sequence of a written size and a content-fit one, and a clip meant to sit at the bottom of the frame would have no way to say so. A clip placed by `placement` is placed on the frame as on any other, and is left out of what measures it, as a solid and an adjustment clip are.
+
+Resolving `placement` against the first storyline picture's box, the frame a content-fit sequence is planned on before it is measured: `placement` would name that box under content fit and the frame everywhere else, two different things under one name, and a `bottom` title would sit inside the picture and not at the bottom of the frame its margin makes.
 
 Measuring the frame over the whole timeline: the frame would depend on every keyframe and animation, and a still with an entrance would be sized by where the entrance starts. Measuring once at time 0 without animation sizes the frame by where things are placed.
 
