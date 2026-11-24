@@ -348,13 +348,13 @@ struct DisplayListReaderTests {
         (["0", "filter", "0", "mix"], "1"),
         (["0", "filter", "0", "ops", "0", "ev"], "1"),
         (["0", "matte", "progress"], "0.75"),
-        (["0", "radius"], "0"),
+        (["0", "radius"], "[0, 0, 0, 0]"),
         (["0", "border", "width"], "0"),
         (["0", "border", "color"], #""color(srgb 1 0 0 / 1)""#),
         (["0", "shadow"], "null"),
         (["2", "fill"], #""color(srgb 1 1 1 / 1)""#),
         (["2", "shadow"], "null"),
-        (["4", "geometry"], #"{ "rect": { "rect": [0, 0, 10, 10], "radius": 2 } }"#),
+        (["4", "geometry"], #"{ "rect": { "rect": [0, 0, 10, 10], "radius": [2, 2, 2, 2] } }"#),
         (["4", "stroke", "width"], "3"),
         (["4", "stroke", "paint"], #""color(srgb 1 1 1 / 1)""#),
         (["4", "stroke", "dashOffset"], "1"),
@@ -655,7 +655,7 @@ struct DisplayListReaderTests {
               { "item": "picture", "origin": null, "transform": [1, 0, 0, 1, 0, 0], "opacity": 1, "blend": "normal", "mask": null,
                 "trackMatte": null, "reveal": null, "source": { "list": { "size": [10, 10], "background": "color(srgb 0 0 0 / 0)",
                 "compositing": "encoded", "items": [] } }, "rect": null, "dest": [0, 0, 10, 10], "filter": [], "matte": null,
-                "radius": 0, "border": null, "shadow": null, "cornerPin": \#(written) } ] }
+                "radius": [0, 0, 0, 0], "border": null, "shadow": null, "cornerPin": \#(written) } ] }
             """#
 
         // When
@@ -737,7 +737,7 @@ struct DisplayListReaderTests {
             { "displayList": "\#(FramesVersion.current)", "size": [10, 10], "background": "color(srgb 0 0 0 / 1)", "colorSpace": "srgb",
               "peak": null, "compositing": "encoded", "items": [
               { "item": "path", "origin": null, "transform": [1, 0, 0, 1, 0, 0], "opacity": 1, "blend": "normal",
-                "mask": \#(written), "trackMatte": null, "reveal": null, "geometry": { "rect": { "rect": [0, 0, 1, 1], "radius": 0 } },
+                "mask": \#(written), "trackMatte": null, "reveal": null, "geometry": { "rect": { "rect": [0, 0, 1, 1], "radius": [0, 0, 0, 0] } },
                 "fill": "color(srgb 1 1 1 / 1)", "stroke": null, "trim": [0, 1], "shadow": null } ] }
             """#
 
@@ -986,7 +986,7 @@ struct DisplayListReaderTests {
                 "items[0].geometry.path.outTangents (path): a path has a tangent for each of its 2 vertices, found 1"
             ),
             (
-                #"{ "rect": { "rect": [0, 0, 1, 1], "radius": 0 }, "ellipse": { "rect": [0, 0, 1, 1] } }"#,
+                #"{ "rect": { "rect": [0, 0, 1, 1], "radius": [0, 0, 0, 0] }, "ellipse": { "rect": [0, 0, 1, 1] } }"#,
                 "geometry",
                 #"items[0].geometry (path): takes only one of "rect", "ellipse""#
             ),
@@ -1063,7 +1063,7 @@ struct DisplayListReaderTests {
     ) throws {
         // Given
         var members = [
-            "geometry": #"{ "rect": { "rect": [0, 0, 1, 1], "radius": 0 } }"#,
+            "geometry": #"{ "rect": { "rect": [0, 0, 1, 1], "radius": [0, 0, 0, 0] } }"#,
             "stroke": "null",
             "trim": "[0, 1]"
         ]
@@ -1164,7 +1164,7 @@ struct DisplayListReaderTests {
         "a stroke inside or outside its outline on an open path or with an arrowhead stops, naming its stroke",
         arguments: [
             (#"{ "path": { "vertices": [[0, 0], [5, 5], [10, 0]], "inTangents": [[0, 0], [0, 0], [0, 0]], "outTangents": [[0, 0], [0, 0], [0, 0]], "closed": false } }"#, "inside", "null"),
-            (#"{ "rect": { "rect": [0, 0, 1, 1], "radius": 0 } }"#, "outside", #"{ "shape": "circle", "scale": 1 }"#)
+            (#"{ "rect": { "rect": [0, 0, 1, 1], "radius": [0, 0, 0, 0] } }"#, "outside", #"{ "shape": "circle", "scale": 1 }"#)
         ]
     )
     func refusesAlignedStrokeOffClosedOutline(

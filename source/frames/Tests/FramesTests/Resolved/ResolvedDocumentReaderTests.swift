@@ -669,7 +669,7 @@ struct ResolvedDocumentReaderTests {
                 "clips[0].mask[0].geometry (mask): a path mask is a closed path through at least two vertices, with an in and an out tangent for each"
             ),
             (
-                #"{ "rect": { "rect": \#(Self.rect), "radius": [ { "at": 0, "value": 0, "ease": "linear" } ] } }"#, "-1", #""add""#,
+                #"{ "rect": { "rect": \#(Self.rect), "radius": [ { "at": 0, "value": [0, 0, 0, 0], "ease": "linear" } ] } }"#, "-1", #""add""#,
                 "clips[0].mask[0].feather[0].value (mask): a feather is 0 or more, found -1"
             ),
             (

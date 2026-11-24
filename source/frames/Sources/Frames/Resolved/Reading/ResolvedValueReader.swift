@@ -340,18 +340,15 @@ struct ResolvedValueReader: Sendable {
         try followedKeyframes(value) { try $0.number() }
     }
 
-    // Corner radii written as their four radii, or one number read as the radius of every corner (FRAMES-20).
+    // Corner radii, written as their four radii (FRAMES-20).
     func cornerRadii(_ value: PlacedJSONValue) throws -> CornerRadii {
-        if let number = value.value.numberValue {
-            return CornerRadii(number)
-        }
         guard
             let elements = value.value.arrayValue,
             case let numbers = elements.compactMap(\.numberValue),
             numbers.count == elements.count,
             let radii = CornerRadii(values: numbers)
         else {
-            throw value.wrongType("a number or a list of 4 numbers")
+            throw value.wrongType("a list of 4 numbers")
         }
 
         return radii

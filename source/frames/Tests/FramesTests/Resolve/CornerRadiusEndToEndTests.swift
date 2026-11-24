@@ -90,8 +90,8 @@ struct CornerRadiusEndToEndTests {
         ])
     }
 
-    @Test("a resolved document and a display list that write each radius as one number read it as that radius at every corner")
-    func readsOneNumberAsFourCorners() throws {
+    @Test("a resolved document and a display list that write a radius as one number stop, since each writes its four radii")
+    func refusesOneNumber() throws {
         // Given
         let sequence = try resolved(##"""
             { "kind": "sequence", "format": { "size": [1920, 1080] },
@@ -109,18 +109,13 @@ struct CornerRadiusEndToEndTests {
         let oneNumberDocument = Self.oneNumber(document)
         let oneNumberList = Self.oneNumber(written)
 
-        // When
-        let readSequence = try reader.read(JSONWriter().write(oneNumberDocument))
-        let readList = try listReader.read(JSONWriter().write(oneNumberList))
-
-        // Then
+        // When, Then
         #expect(oneNumberDocument != document)
-        #expect(oneNumberDocument.objectValue?["clips"]?.arrayValue?.first?.objectValue?["radius"] == (try Fixture.json(
-            #"[ { "at": 0, "value": 12, "ease": "linear" } ]"#
-        )))
         #expect(oneNumberList != written)
-        #expect(readSequence == sequence)
-        #expect(listWriter.write(readList) == listWriter.write(list))
+        let documentError = #expect(throws: ModelError.self) { try reader.read(JSONWriter().write(oneNumberDocument)) }
+        let listError = #expect(throws: ModelError.self) { try listReader.read(JSONWriter().write(oneNumberList)) }
+        #expect(documentError?.description.contains("expected a list of 4 numbers, found") == true, "\(documentError?.description ?? "no error")")
+        #expect(listError?.description.contains("expected a list of 4 numbers, found") == true, "\(listError?.description ?? "no error")")
     }
 
     @Test("a corner radius of another length than four in a display list stops, naming its place")
@@ -146,7 +141,7 @@ struct CornerRadiusEndToEndTests {
         let error = #expect(throws: ModelError.self) {
             try listReader.read(JSONWriter().write(.object(root.setting("items", to: .array(changed)))))
         }
-        #expect(error?.description.hasSuffix("expected a number or a list of 4 numbers, found a list of 3") == true, "\(error?.description ?? "no error")")
+        #expect(error?.description.hasSuffix("expected a list of 4 numbers, found a list of 3") == true, "\(error?.description ?? "no error")")
         #expect(error?.description.hasPrefix("items[\(index)].geometry.rect.radius") == true, "\(error?.description ?? "no error")")
     }
 
