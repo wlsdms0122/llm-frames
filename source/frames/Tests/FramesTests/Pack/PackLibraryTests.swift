@@ -87,7 +87,7 @@ struct PackLibraryTests {
         // When, Then
         let error = #expect(throws: PackError.self) { try sut.pack(named: "future") }
         let manifest = directory.installed.appendingPathComponent("future/pack.json").path
-        #expect(error?.description == #"\#(manifest): engine (manifest): pack "future" is written for frames ^2.1, and this is frames 1.0.0"#)
+        #expect(error?.description == #"\#(manifest): engine (manifest): pack "future" is written for frames ^2.1, and this is frames 0.1.0"#)
     }
 
     @Test("a pack that is not there is none")

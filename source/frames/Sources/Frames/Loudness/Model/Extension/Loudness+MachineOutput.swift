@@ -5,7 +5,7 @@
 //  Created by JSilver on 11/21/26.
 //
 
-// `{"loudness": "1.0.0", integrated, range, momentaryMax, shortTermMax, truePeak, samplePeak}`, the object
+// `{"loudness": "0.1.0", integrated, range, momentaryMax, shortTermMax, truePeak, samplePeak}`, the object
 // `loudness --json` prints, each measure as it is held, `null` where the meter gives none.
 extension Loudness {
     // MARK: - Property

@@ -51,7 +51,7 @@ final class TestShell {
     init() throws {
         directory = try TemporaryDirectory()
         try FileManager.default.createDirectory(at: installed, withIntermediateDirectories: true)
-        try addPack("frames", manifest: #"{ "engine": "^1", "name": "Frames" }"#, in: shipped)
+        try addPack("frames", manifest: #"{ "engine": "^0.1", "name": "Frames" }"#, in: shipped)
         try write(Self.pop, to: framesPresets.appendingPathComponent("animation/pop.json"))
     }
 
@@ -78,7 +78,7 @@ final class TestShell {
     @discardableResult
     func addPack(
         _ name: String,
-        manifest: String = #"{ "engine": "^1", "name": "Shorts", "version": "1.2.0", "description": "Looks for shorts" }"#,
+        manifest: String = #"{ "engine": "^0.1", "name": "Shorts", "version": "1.2.0", "description": "Looks for shorts" }"#,
         in packs: URL? = nil
     ) throws -> URL {
         let directory = (packs ?? installed).appendingPathComponent(name, isDirectory: true)

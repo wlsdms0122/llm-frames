@@ -30,7 +30,7 @@ frames evaluate /path/to/work/word.json --at 0
 ```
 
 ```
-{"evaluate": "1.0.0", ..., "items": [ ...,
+{"evaluate": "0.1.0", ..., "items": [ ...,
   {"place": "clips[0]", "id": "word", "kind": "title", "item": "glyphs", ..., "characters": [
     {"text": "A", "range": [0, 1], "level": 0, "rect": [0, 0, 40.896, 76.288086], "baseline": 62.400391},
     {"text": "V", "range": [1, 2], "level": 0, "rect": [44.736, 0, 37.376, 76.288086], "baseline": 62.400391},

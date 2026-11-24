@@ -789,7 +789,7 @@ A template instance is `{template, args}`. A template starts from the base theme
 
 ### Machine output
 
-With `--json`, and always for `evaluate`, `locate` and `track`, a command prints one JSON object whose first key is the command's name, set to the version of frames that printed it: `{"probe": "1.0.0", "kind": "video", ...}`. That output is the contract extensions build on. The text output is for people.
+With `--json`, and always for `evaluate`, `locate` and `track`, a command prints one JSON object whose first key is the command's name, set to the version of frames that printed it: `{"probe": "0.1.0", "kind": "video", ...}`. That output is the contract extensions build on. The text output is for people.
 
 | Command | Object |
 | --- | --- |

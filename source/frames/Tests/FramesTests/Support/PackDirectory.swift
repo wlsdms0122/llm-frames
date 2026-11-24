@@ -43,7 +43,7 @@ final class PackDirectory {
     @discardableResult
     func addPack(
         _ name: String,
-        engine: String = "^1.0",
+        engine: String = "^0.1",
         in packs: URL? = nil
     ) throws -> URL {
         let directory = (packs ?? installed).appendingPathComponent(name, isDirectory: true)

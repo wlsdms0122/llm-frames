@@ -1,6 +1,6 @@
 {
-  "engine": "^1",
+  "engine": "^0.1",
   "name": "Demo",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "description": "Landscape feature demos with title and end cards"
 }

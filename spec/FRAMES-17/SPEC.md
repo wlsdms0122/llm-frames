@@ -14,7 +14,7 @@ Editors build a piece once and use it many times: a lower third for every speake
 
 ### Packs
 
-A pack is a bundle of data that frames reads: presets, themes, templates, LUTs, media and fonts, with a guide and examples for people and agents. Nothing in a pack is code (README). It is a directory with a `pack.json` at its root and any of these folders. `pack.json` gives the `engine` versions of frames the pack is written for ([FRAMES-18](../FRAMES-18/SPEC.md)), and optionally what the pack calls itself (`name`), its version (`version`) and a `description`, for `frames packs` to show: `{ "engine": "^1", "name": "Studio", "version": "1.0.0", "description": "Lower thirds, an end card and a warm grade" }`.
+A pack is a bundle of data that frames reads: presets, themes, templates, LUTs, media and fonts, with a guide and examples for people and agents. Nothing in a pack is code (README). It is a directory with a `pack.json` at its root and any of these folders. `pack.json` gives the `engine` versions of frames the pack is written for ([FRAMES-18](../FRAMES-18/SPEC.md)), and optionally what the pack calls itself (`name`), its version (`version`) and a `description`, for `frames packs` to show: `{ "engine": "^0.1", "name": "Studio", "version": "1.0.0", "description": "Lower thirds, an end card and a warm grade" }`.
 
 | Folder | Holds | Named as |
 | --- | --- | --- |

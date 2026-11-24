@@ -5,7 +5,7 @@
 //  Created by JSilver on 11/17/26.
 //
 
-// `{"locate": "1.0.0", hits}`, the object `locate` prints, each hit `{place, id, kind, item}` and for a picture of media
+// `{"locate": "0.1.0", hits}`, the object `locate` prints, each hit `{place, id, kind, item}` and for a picture of media
 // also `media`, the file its frame is read from, `mediaTime`, `point`, `[x, y]` in that media's pixels or `null`, and
 // `page`, the page of a PDF the picture shows or `null`.
 extension LocationReport {

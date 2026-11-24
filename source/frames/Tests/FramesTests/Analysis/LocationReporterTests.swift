@@ -507,7 +507,7 @@ struct LocationReporterTests {
         // Then
         #expect(text == #"""
             {
-              "locate": "1.0.0",
+              "locate": "0.1.0",
               "hits": [
                 {
                   "place": "clips[0]",

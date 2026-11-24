@@ -5,7 +5,7 @@
 //  Created by JSilver on 11/17/26.
 //
 
-// `{"track": "1.0.0", time, target, frames}`, the object `track` always prints: the media time of `--at`, the target's
+// `{"track": "0.1.0", time, target, frames}`, the object `track` always prints: the media time of `--at`, the target's
 // quad there, and each frame `{time, quad, motion}`, a quad as four points `[x, y]` in media pixels and the motion as
 // the matrix `[a, b, c, d, tx, ty]`, as the resolved document writes them.
 extension TrackReport {

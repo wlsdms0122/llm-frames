@@ -40,7 +40,7 @@ struct ResolvedDocumentWriterTests {
     private let resolvedSequence = #"""
         {
           "kind": "sequence",
-          "resolved": "1.0.0",
+          "resolved": "0.1.0",
           "format": {
             "size": [1080, 1920],
             "fps": 30,

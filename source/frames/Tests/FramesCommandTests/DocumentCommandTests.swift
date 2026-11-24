@@ -41,7 +41,7 @@ struct DocumentCommandTests {
         #expect(code == 0)
         #expect(sut.standardError.isEmpty)
         #expect(try sut.standardOutput == line(of: output))
-        #expect(text.hasPrefix("{\n  \"kind\": \"sequence\",\n  \"resolved\": \"1.0.0\""))
+        #expect(text.hasPrefix("{\n  \"kind\": \"sequence\",\n  \"resolved\": \"0.1.0\""))
     }
 
     @Test("resolve of a resolved document writes it as it is")
@@ -119,7 +119,7 @@ struct DocumentCommandTests {
 
         // Then
         #expect(code == 0)
-        #expect(sut.standardOutput.hasPrefix("{\n  \"timeline\": \"1.0.0\",\n  \"duration\": 1.5,"))
+        #expect(sut.standardOutput.hasPrefix("{\n  \"timeline\": \"0.1.0\",\n  \"duration\": 1.5,"))
     }
 
     @Test("a pack template named <pack>/<name> takes its defaults, or the arguments --args gives")

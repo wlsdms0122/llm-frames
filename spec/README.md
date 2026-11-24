@@ -2,7 +2,7 @@
 
 This is where what is decided about frames is kept. Whatever is built or done for frames follows it, and nothing that work does adds to it. Where a decision lands a cost on the work, or where it cannot be measured, the spec that makes the decision says so in a **Note.**, so whoever does the work next is told rather than left to find it.
 
-This describes **frames 1.0.0**.
+This describes **frames 0.1.0**.
 
 ## What frames is
 

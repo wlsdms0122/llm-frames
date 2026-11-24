@@ -5,7 +5,7 @@
 //  Created by JSilver on 11/15/26.
 //
 
-// `{"timeline": "1.0.0", duration, storyline, clips}`, the object `timeline --json` prints. A nested document's
+// `{"timeline": "0.1.0", duration, storyline, clips}`, the object `timeline --json` prints. A nested document's
 // object has the same form.
 extension TimelineReport {
     // MARK: - Property
