@@ -110,7 +110,7 @@ A shape style is a named set of defaults for a shape clip, as a text style is fo
 | Property | Form |
 | --- | --- |
 | `fill` | a colour, a gradient ([FRAMES-11](../FRAMES-11/SPEC.md)), or `false` for none |
-| `stroke` | `{color, gradient, width, align, join, cap, start, end, dash, dashOffset}`, its `color` a colour and its `gradient` a gradient, at most one of the two, or `false` for none |
+| `stroke` | `{color, gradient, width, align, join, cap, start, end, dash, dashOffset}`, its `color` a colour and its `gradient` a gradient, at most one of the two, and its `start` and `end` each an arrowhead's name or `{shape, scale}`, or `false` for none |
 | `radius` | a theme length: the corner radius of a `rect` |
 | `outset` | a theme length: how far the outline a `rect` or `ellipse` draws grows on every side, its box staying as written |
 | `shadow` | `true` for on, with a weaker theme's shadow for this style or else the theme `shadow`, `false` for none, or `{radius, offset, color}`, whose missing keys come from the theme `shadow` |
@@ -136,7 +136,7 @@ A title whose style is not in `animation.title` takes `"none"`. A clip whose med
 
 ### A pack's theme
 
-A pack's theme lives in its `themes/` ([FRAMES-17](../FRAMES-17/SPEC.md)) and holds only the keys it changes. A broadcast look, `studio/broadcast`, with a lower third's styles, a boxed subtitle with a `keyword` style a run can name to highlight one word, two shape styles and gentle default motion:
+A pack's theme lives in its `themes/` ([FRAMES-17](../FRAMES-17/SPEC.md)) and holds only the keys it changes. A broadcast look, `studio/broadcast`, with a lower third's styles, a boxed subtitle with a `keyword` style a run can name to highlight one word, three shape styles, one of them a pointer with an open arrowhead half again as large as the stroke's own, and gentle default motion:
 
 ```json
 { "font": ["Avenir Next", "Apple SD Gothic Neo"],
@@ -148,7 +148,8 @@ A pack's theme lives in its `themes/` ([FRAMES-17](../FRAMES-17/SPEC.md)) and ho
     "keyword":  { "size": 44, "color": "ink", "highlight": { "color": "accent", "padding": [2, 8], "radius": 4 } } },
   "shapes": {
     "bar":     { "fill": "accent", "radius": 4 },
-    "outline": { "stroke": { "width": 6, "color": "accent" }, "radius": 12, "outset": 8 } },
+    "outline": { "stroke": { "width": 6, "color": "accent" }, "radius": 12, "outset": 8 },
+    "pointer": { "stroke": { "width": 6, "color": "accent", "cap": "round", "end": { "shape": "line-arrow", "scale": 1.5 } } } },
   "border": { "width": 6, "color": "ink" },
   "defaults": { "transition": { "preset": "frames/fade", "seconds": 0.5 }, "filter": "frames/warm",
                 "animation": { "title": { "subtitle": "frames/fade", "name": "frames/slide-left" }, "media": "frames/fade" } } }
