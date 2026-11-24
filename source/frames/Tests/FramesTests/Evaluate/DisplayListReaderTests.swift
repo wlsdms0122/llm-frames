@@ -295,7 +295,8 @@ struct DisplayListReaderTests {
         ),
         (["1", "4", "stroke", "join"], #""round""#, "samples[1][4].stroke.join (path)"),
         (["1", "4", "stroke", "cap"], #""round""#, "samples[1][4].stroke.cap (path)"),
-        (["1", "4", "stroke", "end"], #""arrow""#, "samples[1][4].stroke.end (path)"),
+        (["1", "4", "stroke", "end"], #"{ "shape": "arrow", "scale": 1 }"#, "samples[1][4].stroke.end (path)"),
+        (["1", "5", "stroke", "end", "shape"], #""circle""#, "samples[1][5].stroke.end.shape (path)"),
         (["1", "4", "stroke", "dash"], "[2, 2]", "samples[1][4].stroke.dash (path)"),
         (["1", "6", "runs", "0", "file"], #""/abs/Other.ttf""#, "samples[1][6].runs[0].file (glyphs)"),
         (["1", "6", "runs", "0", "face"], #""Inter-Regular""#, "samples[1][6].runs[0].face (glyphs)"),
@@ -357,6 +358,7 @@ struct DisplayListReaderTests {
         (["4", "stroke", "width"], "3"),
         (["4", "stroke", "paint"], #""color(srgb 1 1 1 / 1)""#),
         (["4", "stroke", "dashOffset"], "1"),
+        (["5", "stroke", "end", "scale"], "0.5"),
         (["4", "trim"], "[0, 1]"),
         (["6", "size"], "[100, 40]"),
         (["6", "background"], "null"),
@@ -1015,6 +1017,16 @@ struct DisplayListReaderTests {
                 #"items[0].stroke.end.shape (path): unknown value "dot". Allowed: arrow, line-arrow, circle, square, diamond, bar"#
             ),
             (
+                ##"{ "width": 2, "paint": "color(srgb 1 1 1 / 1)", "align": "center", "join": "round", "cap": "butt", "start": null, "end": "arrow" }"##,
+                "stroke",
+                #"items[0].stroke.end (path): expected an object, found "arrow""#
+            ),
+            (
+                ##"{ "width": 2, "paint": "color(srgb 1 1 1 / 1)", "align": "center", "join": "round", "cap": "butt", "start": "none", "end": null }"##,
+                "stroke",
+                #"items[0].stroke.start (path): expected an object, found "none""#
+            ),
+            (
                 ##"{ "width": 2, "paint": "color(srgb 1 1 1 / 1)", "align": "center", "join": "round", "cap": "butt", "start": { "shape": "none", "scale": 1 }, "end": null }"##,
                 "stroke",
                 #"items[0].stroke.start.shape (path): unknown value "none". Allowed: arrow, line-arrow, circle, square, diamond, bar"#
@@ -1141,7 +1153,7 @@ struct DisplayListReaderTests {
             #expect(read.items.first.map { item -> Bool in
                 guard case let .path(path) = item.content else { return false }
 
-                return path.stroke?.start == .none && path.stroke?.end == .none
+                return path.stroke?.start == StrokeEnd.none && path.stroke?.end == StrokeEnd.none
             } == true)
         } else {
             #expect(read == list)

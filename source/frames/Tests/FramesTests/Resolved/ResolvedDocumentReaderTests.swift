@@ -571,6 +571,29 @@ struct ResolvedDocumentReaderTests {
     }
 
     @Test(
+        "a stroke's end written as a bare name, the form only a clip writes, stops, since a resolved end is its shape and scale",
+        arguments: [("start", "none"), ("end", "arrow")]
+    )
+    func refusesNamedEnd(
+        key: String,
+        name: String
+    ) throws {
+        // Given
+        let root = try #require(try JSONReader().read(written(Self.documents[3])).objectValue)
+        var clips = try #require(root["clips"]?.arrayValue)
+        let clip = try #require(clips[0].objectValue)
+        let stroke = try #require(clip["stroke"]?.objectValue)
+        clips[0] = .object(clip.setting("stroke", to: .object(stroke.setting(key, to: .string(name)))))
+        let text = JSONWriter().write(.object(root.setting("clips", to: .array(clips))))
+
+        // When
+        let error = #expect(throws: ModelError.self) { try sut.read(text) }
+
+        // Then
+        #expect(error?.description == #"clips[0].stroke.\#(key) (stroke): expected an object, found "\#(name)""#)
+    }
+
+    @Test(
         "a parent that names no clip with a picture, or a parent chain that comes back to itself, stops",
         arguments: [
             (#""parent": "a""#, #""parent": "ghost""#, #"clips[1].parent (clip): no clip in the document has the id "ghost""#),

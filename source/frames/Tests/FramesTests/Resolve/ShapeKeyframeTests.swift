@@ -201,10 +201,10 @@ struct ShapeKeyframeTests {
         let bare = try resolvedShape(#"{ "shape": "path", "points": [[0, 0], [100, 0]], "stroke": { "width": 4, "start": "bar" } }"#)
 
         // Then
-        #expect(named.stroke.stroke(at: 0)?.start == .none)
+        #expect(named.stroke.stroke(at: 0)?.start == StrokeEnd.none)
         #expect(named.stroke.stroke(at: 0)?.end == StrokeEnd(shape: .circle, scale: 2))
         #expect(bare.stroke.stroke(at: 0)?.start == StrokeEnd(shape: .bar, scale: 1))
-        #expect(bare.stroke.stroke(at: 0)?.end == .none)
+        #expect(bare.stroke.stroke(at: 0)?.end == StrokeEnd.none)
     }
 
     @Test("an end's scale moves between keyframes from 0, as a stroke's width does, its shape the style's")
