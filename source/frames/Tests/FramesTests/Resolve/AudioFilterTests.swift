@@ -494,6 +494,30 @@ struct AudioFilterTests {
         }
     }
 
+    @Test(
+        "a limiter's parameter at the edge of its range resolves as written",
+        arguments: [
+            (#"{ "op": "limiter", "ceiling": 0 }"#, "ceiling", 0.0),
+            (#"{ "op": "limiter", "lookahead": 0.0015 }"#, "lookahead", 0.0015),
+            (#"{ "op": "limiter", "lookahead": 0.05 }"#, "lookahead", 0.05)
+        ]
+    )
+    func takesLimiterAtRangeEdge(
+        filter: String,
+        key: String,
+        value: Double
+    ) throws {
+        // When
+        let plan = try plan(#"""
+            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "out": 4 } ],
+              "clips": [ { "media": "/abs/bgm.m4a", "audioFilter": \#(filter) } ] }
+            """#)
+
+        // Then
+        let limiter = try #require(sampledLimiter(of: plan.sound[1].audioFilter, at: 0))
+        #expect(limiter[key]?.number == value || limiter[key] == .fixed(.number(value)))
+    }
+
     @Test("a resolved limiter is planned as a limiter op, its lookahead static, its held values numbers and its gain moving")
     func plansLimiter() throws {
         // Given

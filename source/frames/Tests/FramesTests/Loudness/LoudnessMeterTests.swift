@@ -189,6 +189,21 @@ struct LoudnessMeterTests {
         #expect(block.shortTermMax == nil && block.range == nil)
     }
 
+    @Test("a range one sample shorter than 3 s reads no short-term or range, and one of 3 s reads both")
+    func readsShortTermWindowEdge() {
+        // Given
+        let sound = LoudnessSignal.tone([(4, -20)])
+
+        // When
+        let short = sut.measure(sound, over: 0..<143_999)
+        let window = sut.measure(sound, over: 0..<144_000)
+
+        // Then
+        #expect(short.shortTermMax == nil && short.range == nil)
+        #expect(short.integrated != nil && short.momentaryMax != nil)
+        #expect(window.shortTermMax != nil && window.range != nil)
+    }
+
     @Test("a range is read as an interval of the whole sound: its filters run from sample 0, and its edges read their neighbours")
     func readsRangeOfWhole() throws {
         // Given
