@@ -88,7 +88,8 @@ enum CommandError: Error, Equatable, CustomStringConvertible, Sendable {
                 + "and paths are absolute"
 
         case let .unknownTemplate(command, name):
-            "\(command): unknown template \(quoted(name))"
+            "\(command): unknown template \(quoted(name)), "
+                + "as a document that is not an absolute path names <pack>/<name>"
 
         case let .missingFile(path):
             "\(path): the file is not there"

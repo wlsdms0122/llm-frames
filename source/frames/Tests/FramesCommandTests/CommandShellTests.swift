@@ -176,7 +176,7 @@ struct CommandShellTests {
             ),
             (["timeline", "a/b/c.json"], #"timeline: the document "a/b/c.json" is not an absolute path, <pack>/<name> or -, and paths are absolute"#),
             (["timeline", "/nowhere/doc.json"], "/nowhere/doc.json: the file is not there"),
-            (["timeline", "nopack/intro"], #"timeline: unknown template "nopack/intro""#),
+            (["timeline", "nopack/intro"], #"timeline: unknown template "nopack/intro", as a document that is not an absolute path names <pack>/<name>"#),
             (["--decoder", "ffmpeg", "theme"], #"--decoder: unknown decoder "ffmpeg". Known: avfoundation"#),
             (["--renderer", "metal", "theme"], #"--renderer: unknown renderer "metal". Known: quartz"#),
             (["--ocr", "tesseract", "theme"], #"--ocr: unknown OCR provider "tesseract". Known: vision"#),
