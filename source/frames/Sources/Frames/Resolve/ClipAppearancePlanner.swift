@@ -34,11 +34,12 @@ struct ClipAppearancePlanner: Sendable {
 
     // MARK: - Public
     // Each keyframe of a tracked corner pin is brought back through the inverse of the track's homography at its own
-    // time, on the frame shown there or the nearest frame followed, and a corner at or beyond that inverse's horizon, or
-    // a corner pin brought back that is not strictly convex, stops (FRAMES-27 A tracked corner pin). A static corner pin
-    // true on the track's frame is where the homography is the identity; one a text form found other than the track's
-    // target is one keyframe at the clip's instant, and is brought back there as a keyframe is (FRAMES-19 Timed
-    // values). A keyframe holding a clip area is the named clip's box at each instant, which only evaluation knows.
+    // time, on the frame shown there or the nearest frame followed, corner by corner as `Track.broughtBack` brings it
+    // back for evaluation, and a corner at or beyond that inverse's horizon, or a corner pin of points brought back that
+    // is not strictly convex, stops (FRAMES-27 A tracked corner pin). A corner of a clip area is on the track's frame
+    // already and is kept. A static corner pin true on the track's frame is where the homography is the identity; one a
+    // text form found other than the track's target is one keyframe at the clip's instant, and is brought back there as
+    // a keyframe is (FRAMES-19 Timed values).
     private func checkBroughtBack(
         of points: PropertyValue<GeometryQuad>,
         written: PropertyValue<[PositionForm]>,

@@ -355,6 +355,39 @@ struct CornerPinEvaluationTests {
         #expect(zip(tracked, still).allSatisfy { abs($0.x - $1.x) < 1e-9 && abs($0.y - $1.y) < 1e-9 })
     }
 
+    @Test("a tracked corner pin keyframe that holds a clip area brings back its other corners at its own time and carries the clip area's corner by the track's homography")
+    func bringsBackCornersBesideClipAreaCorner() throws {
+        // Given
+        // From media second 0.1 the target [0, 0, 100, 100] is seen as a trapezoid, whose homography takes (x, y) to
+        // ((x + 2y) / w, 2.5y / w) with w = 1 + 0.04y. The bottom right of "bar" is (80, 50) on the track's frame, which
+        // the homography takes to (60, 125 / 3).
+        let target = Quad(Rectangle(x: 0, y: 0, width: 100, height: 100))
+        let far = Quad(topLeft: Point(x: 0, y: 0), topRight: Point(x: 100, y: 0), bottomRight: Point(x: 60, y: 50), bottomLeft: Point(x: 40, y: 50))
+        let quads = [(0.0, target)] + (1...10).map { (Double($0) / 10, far) }
+        let pin = #"[[10, 10], [90, 10], { "area": { "clip": "bar" }, "point": "bottom-right" }, [10, 40]]"#
+        let document = #"""
+            { "kind": "sequence", "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "out": 1, "connected": [
+                { "id": "bar", "shape": "rect", "fill": "accent", "area": [20, 20, 60, 30], "parent": "screen", "at": [0, 1] },
+                { "id": "tracked", "media": "/abs/card.png", "parent": "screen", "at": [0, 1], "width": 300, "track": { "time": 0, "area": [0, 0, 100, 100] },
+                  "keyframes": [ { "at": 0.5, "cornerPin": \#(pin) }, { "at": 0.9, "cornerPin": \#(pin) } ] } ] } ] }
+            """#
+        let sequence = try resolved(document: document, tracker: QuadTrackerTable(base: target, quads: quads))
+
+        // When
+        let list = sut.displayList(of: sequence, at: 0.5)
+
+        // Then
+        let item = try #require(list.items.first { $0.origin?.id == "tracked" })
+        guard case let .picture(picture) = item.content else {
+            Issue.record("the group is not a picture")
+            return
+        }
+        let drawn = try #require(picture.cornerPin).corners.map(item.transform.apply(to:))
+        let expected = [Point(x: 10, y: 10), Point(x: 90, y: 10), Point(x: 60, y: 125.0 / 3), Point(x: 10, y: 40)]
+        #expect(drawn.count == 4)
+        #expect(zip(drawn, expected).allSatisfy { abs($0.x - $1.x) < 1e-9 && abs($0.y - $1.y) < 1e-9 })
+    }
+
     @Test("a corner pin with motionBlur keyframed to move gives its group in every sample at that sample's corner pin, and the samples read back")
     func movesCornerPinInEverySample() throws {
         // Given
