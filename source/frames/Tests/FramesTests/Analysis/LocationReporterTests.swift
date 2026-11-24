@@ -459,6 +459,35 @@ struct LocationReporterTests {
         #expect(hit.media?.mediaTime == 2)
     }
 
+    @Test("a sliding clip with motionBlur is located by its shape as it is at the time, not as a sample or the trail its exposure sweeps")
+    func locatesBlurredClipAtTime() throws {
+        // Given
+        // The rect slides right at 500 pixels a second. A centred shutter of 360 degrees at 25 fps exposes the frame at 1
+        // from 0.98 to 1.02, so its first and last samples stand 9.375 pixels left and right of where it stands at 1.
+        let document = #"""
+            { "kind": "sequence", "format": { "size": [1920, 1080], "fps": 25, "motionBlur": { "shutterAngle": 360, "shutterPhase": -180 } },
+              "storyline": [ { "solid": "#202020", "duration": 4 } ],
+              "clips": [ { "id": "slider", "shape": "rect", "fill": "#FF0000", "at": [0, 4], "width": 100, "height": 50, "motionBlur": true,
+                           "keyframes": [ { "at": 0, "position": [100, 500] }, { "at": 2, "position": [1100, 500] } ] } ] }
+            """#
+        let sequence = try resolved(document)
+        let item = try #require(Evaluator().displayListWithoutMotionBlur(of: sequence, at: 1).items.last { $0.origin?.id == "slider" })
+        guard case let .path(path) = item.content, case let .rect(rectangle, _) = path.geometry else {
+            Issue.record("the clip draws no rect")
+            return
+        }
+        let box = Rectangle(bounding: item.transform.apply(toCornersOf: rectangle))
+        let y = box.y + box.height / 2
+        let points = [box.x - 5, box.x + 5, box.x + box.width - 5, box.x + box.width + 5].map { Point(x: $0, y: y) }
+
+        // When
+        let reports = try points.map { try sut.report(of: sequence, at: 1, point: $0) }
+
+        // Then
+        #expect(Evaluator().displayList(of: sequence, at: 1).samples?.count == 16)
+        #expect(reports.map { $0.hits.contains { $0.origin?.id == "slider" } } == [false, true, true, false])
+    }
+
     @Test("the machine output is the locate object FRAMES-23 gives, with media only on a picture of media")
     func writesMachineOutput() {
         // Given
