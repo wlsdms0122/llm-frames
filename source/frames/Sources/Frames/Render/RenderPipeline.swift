@@ -107,7 +107,7 @@ package struct RenderPipeline: Sendable {
         try encoder.writeImage(renderer.frame(of: list), for: target)
     }
 
-    // Draws every frame once and appends it to each target's writer.
+    // Draws every frame once and appends it to each target's writer, which writes it while the next is drawn.
     private func video(
         _ sequence: ResolvedSequence,
         to targets: [EncodeTarget]
@@ -130,14 +130,15 @@ package struct RenderPipeline: Sendable {
             try encoder.videoWriter(for: target, size: format.size, fps: format.fps, sound: sound)
         }
 
-        for time in times {
-            let frame = try renderer.frame(of: evaluator.displayList(of: sequence, at: time))
-            for writer in writers {
-                try writer.append(frame)
+        let queue = FrameWriteQueue(writers: writers)
+        do {
+            for time in times {
+                try queue.append(renderer.frame(of: evaluator.displayList(of: sequence, at: time)))
             }
-        }
-        for writer in writers {
-            try writer.finish()
+            try queue.finish()
+        } catch {
+            queue.cancel()
+            throw error
         }
     }
 

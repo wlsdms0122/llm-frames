@@ -27,7 +27,7 @@ struct RenderPipelineTests {
 
     // MARK: - Initializer
     // MARK: - Test
-    @Test("every role checks before the first frame, in order, and then each frame goes to every writer")
+    @Test("every role checks before the first frame, in order, and then each frame is drawn once and goes to every writer in order, each finished after its last frame")
     func checksBeforeFirstFrame() throws {
         // Given
         let log = RoleCallLog()
@@ -39,19 +39,25 @@ struct RenderPipelineTests {
 
         // Then
         let silence = SoundBuffer(sampleRate: 48_000, channels: 2, samples: Array(repeating: 0, count: 96_000))
-        #expect(log.calls == checks(of: sequence) + [
+        let opened = checks(of: sequence) + [
             .mix(length: 48_000),
             .videoWriter(.master(path: master, alpha: false), size: size, fps: 2, sound: silence),
-            .videoWriter(.delivery(path: delivery), size: size, fps: 2, sound: silence),
-            .draw(frame: 0),
+            .videoWriter(.delivery(path: delivery), size: size, fps: 2, sound: silence)
+        ]
+        let written = Array(log.calls.dropFirst(opened.count))
+        #expect(Array(log.calls.prefix(opened.count)) == opened)
+        #expect(written.filter { $0 == .draw(frame: 0) || $0 == .draw(frame: 1) } == [.draw(frame: 0), .draw(frame: 1)])
+        #expect(calls(of: master, in: written) == [
             .append(path: master, frame: 0),
-            .append(path: delivery, frame: 0),
-            .draw(frame: 1),
             .append(path: master, frame: 1),
+            .finish(path: master)
+        ])
+        #expect(calls(of: delivery, in: written) == [
+            .append(path: delivery, frame: 0),
             .append(path: delivery, frame: 1),
-            .finish(path: master),
             .finish(path: delivery)
         ])
+        #expect(Array(written.suffix(2)) == [.finish(path: master), .finish(path: delivery)])
     }
 
     @Test("a role that refuses stops the render after the checks before it, with nothing drawn or written", arguments: [
@@ -321,16 +327,20 @@ struct RenderPipelineTests {
 
         // Then
         let silence = SoundBuffer(sampleRate: 48_000, channels: 2, samples: Array(repeating: 0, count: 96_000))
-        #expect(log.calls == Array(checks(of: sequence).prefix(5)) + [
+        let opened = Array(checks(of: sequence).prefix(5)) + [
             .checkTarget(.delivery(path: delivery)),
             .mix(length: 48_000),
-            .videoWriter(.delivery(path: delivery), size: size, fps: 2, sound: silence),
-            .draw(frame: 0),
+            .videoWriter(.delivery(path: delivery), size: size, fps: 2, sound: silence)
+        ]
+        let written = Array(log.calls.dropFirst(opened.count))
+        #expect(Array(log.calls.prefix(opened.count)) == opened)
+        #expect(written.filter { $0 == .draw(frame: 0) || $0 == .draw(frame: 1) } == [.draw(frame: 0), .draw(frame: 1)])
+        #expect(calls(of: delivery, in: written) == [
             .append(path: delivery, frame: 0),
-            .draw(frame: 1),
             .append(path: delivery, frame: 1),
             .finish(path: delivery)
         ])
+        #expect(written.count == 5)
     }
 
     @Test(
@@ -437,6 +447,25 @@ struct RenderPipelineTests {
     }
 
     // MARK: - Private
+    // The calls a writer of the file at `path` took, in order.
+    private func calls(
+        of path: String,
+        in calls: [RoleCall]
+    ) -> [RoleCall] {
+        calls.filter { call in
+            switch call {
+            case let .append(appended, _):
+                appended == path
+
+            case let .finish(finished):
+                finished == path
+
+            default:
+                false
+            }
+        }
+    }
+
     // The storyline entry's own sound and a sequence clip's music.
     private var soundtrack: [ResolvedSound] {
         [sound(video, place: "storyline[0]"), sound(music, place: "clips[0]")]
