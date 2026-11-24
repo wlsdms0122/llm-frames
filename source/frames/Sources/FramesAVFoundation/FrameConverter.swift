@@ -63,22 +63,25 @@ struct FrameConverter: Sendable {
 
         CVPixelBufferLockBaseAddress(buffer, [])
         defer { CVPixelBufferUnlockBaseAddress(buffer, []) }
-        let destination = CVPixelBufferGetBaseAddress(buffer)!
         let bytesPerRow = CVPixelBufferGetBytesPerRow(buffer)
         let format = CVPixelBufferGetPixelFormatType(buffer)
-        for row in 0..<height {
-            let source = row * width * 4
-            let line = destination + row * bytesPerRow
+        pixels.withUnsafeBufferPointer { pixels in
+            nonisolated(unsafe) let source = pixels.baseAddress!
+            nonisolated(unsafe) let destination = CVPixelBufferGetBaseAddress(buffer)!
+            DispatchQueue.concurrentPerform(iterations: height) { row in
+                let packed = source + row * width * 4
+                let line = destination + row * bytesPerRow
 
-            switch format {
-            case kCVPixelFormatType_32BGRA:
-                store(pixels, from: source, width: width, toBGRA: line)
+                switch format {
+                case kCVPixelFormatType_32BGRA:
+                    store(packed, width: width, toBGRA: line)
 
-            case kCVPixelFormatType_64RGBAHalf:
-                store(pixels, from: source, width: width, toHalfFloat: line)
+                case kCVPixelFormatType_64RGBAHalf:
+                    store(packed, width: width, toHalfFloat: line)
 
-            default:
-                store(pixels, from: source, width: width, toRGBA: line)
+                default:
+                    store(packed, width: width, toRGBA: line)
+                }
             }
         }
 
@@ -91,44 +94,41 @@ struct FrameConverter: Sendable {
     }
 
     private func store(
-        _ pixels: [Float],
-        from start: Int,
+        _ pixels: UnsafePointer<Float>,
         width: Int,
         toRGBA destination: UnsafeMutableRawPointer
     ) {
         let output = destination.assumingMemoryBound(to: UInt16.self)
         for pixel in 0..<width {
             for channel in 0..<4 {
-                let value = pixels[start + pixel * 4 + channel]
+                let value = pixels[pixel * 4 + channel]
                 output[pixel * 4 + channel] = Self.sixteenBits(channel == 3 ? alpha(value) : value)
             }
         }
     }
 
     private func store(
-        _ pixels: [Float],
-        from start: Int,
+        _ pixels: UnsafePointer<Float>,
         width: Int,
         toHalfFloat destination: UnsafeMutableRawPointer
     ) {
         let output = destination.assumingMemoryBound(to: Float16.self)
         for pixel in 0..<width {
             for channel in 0..<4 {
-                let value = pixels[start + pixel * 4 + channel]
+                let value = pixels[pixel * 4 + channel]
                 output[pixel * 4 + channel] = Float16(channel == 3 ? alpha(value) : value)
             }
         }
     }
 
     private func store(
-        _ pixels: [Float],
-        from start: Int,
+        _ pixels: UnsafePointer<Float>,
         width: Int,
         toBGRA destination: UnsafeMutableRawPointer
     ) {
         let output = destination.assumingMemoryBound(to: UInt8.self)
         for pixel in 0..<width {
-            let offset = start + pixel * 4
+            let offset = pixel * 4
             output[pixel * 4] = Self.eightBits(pixels[offset + 2])
             output[pixel * 4 + 1] = Self.eightBits(pixels[offset + 1])
             output[pixel * 4 + 2] = Self.eightBits(pixels[offset])
