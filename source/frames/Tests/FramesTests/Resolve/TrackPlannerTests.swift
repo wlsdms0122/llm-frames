@@ -33,11 +33,15 @@ struct TrackPlannerTests {
         ),
         (
             #"{ "kind": "sequence", "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "connected": [ { "title": "a", "style": "title", "parent": "screen", "position": [0, 0], "track": true } ] } ] }"#,
-            #"storyline[0]#screen.connected[0].track (title): a title, still or compound clip names the area it tracks in its parent's media, so it cannot take "track": true"#
+            #"storyline[0]#screen.connected[0].track (title): a title, still or compound clip has no area of its own to follow, so its `track` names the area it tracks in its parent's media"#
+        ),
+        (
+            #"{ "kind": "sequence", "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "connected": [ { "title": "a", "style": "title", "parent": "screen", "position": [0, 0], "track": { "time": 0.5 } } ] } ] }"#,
+            #"storyline[0]#screen.connected[0].track (title): a title, still or compound clip has no area of its own to follow, so its `track` names the area it tracks in its parent's media"#
         ),
         (
             #"{ "kind": "sequence", "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "connected": [ { "media": "/abs/page.png", "parent": "screen", "position": [0, 0], "track": true } ] } ] }"#,
-            #"storyline[0]#screen.connected[0].track (image): a title, still or compound clip names the area it tracks in its parent's media, so it cannot take "track": true"#
+            #"storyline[0]#screen.connected[0].track (image): a title, still or compound clip has no area of its own to follow, so its `track` names the area it tracks in its parent's media"#
         ),
         (
             #"{ "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4" } ], "clips": [ { "media": "/abs/screen.mp4", "at": [0, 1], "width": 300, "track": true } ] }"#,
