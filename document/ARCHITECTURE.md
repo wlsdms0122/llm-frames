@@ -111,7 +111,6 @@ frames/
     PACK.md                how to make a pack, a form and a template
     howto/<name>.md
   packs/<name>/            packs kept beside the tool and installed by copying, not part of it
-  source/film-luts.py      writes the LUTs of packs/film
   source/frames/           the Swift package
     Package.swift
     Sources/Frames/                the engine

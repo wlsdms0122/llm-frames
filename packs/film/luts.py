@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-# Writes the film looks of packs/film as 33-point 3D LUTs.
+# Writes the film looks of this pack as 33-point 3D LUTs.
 #
-#   python3 source/film-luts.py
+#   python3 packs/film/luts.py
 #
 # Each look is a fixed chain over sRGB-encoded values, the values a `lut` op maps: a channel mix, a contrast curve, a
 # saturation, a split tone, and the black and white points the film fades to. The numbers are the looks, so changing
@@ -11,7 +11,7 @@ import os
 import numpy as np
 
 SIZE = 33
-LUTS = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "packs", "film", "luts"))
+LUTS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "luts")
 
 LOOKS = {
     "warm-negative": {
