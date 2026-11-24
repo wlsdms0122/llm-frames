@@ -17,6 +17,7 @@ struct ClipAppearancePlanner: Sendable {
     // What a stroke takes where neither the clip nor its style gives it.
     private static let strokeDefaults = JSONValue.object(JSONObject(members: [
         JSONMember(key: "color", value: .string("accent")),
+        JSONMember(key: "align", value: .string(StrokeAlign.center.rawValue)),
         JSONMember(key: "join", value: .string(StrokeJoin.round.rawValue)),
         JSONMember(key: "cap", value: .string(StrokeCap.butt.rawValue)),
         JSONMember(key: "start", value: .string(StrokeEnd.none.rawValue)),
@@ -243,6 +244,7 @@ struct ClipAppearancePlanner: Sendable {
         guard fill != .off || stroke != .off else {
             throw ResolveError.shapeDrawsNothing(place: written.place, kind: kind)
         }
+        try checkAlign(of: stroke, shape: shape, written: written, kind: kind)
 
         let outset = try timed("outset", shape.outset, LookStructureTable.length, nil)
         let geometry: ShapeGeometryPlan = if shape.isPlacedByBox, let width = shape.width, let height = shape.height {
@@ -693,6 +695,25 @@ struct ClipAppearancePlanner: Sendable {
         at instant: Double
     ) -> Double {
         property.keyframes(at: instant) { $0 }.value(at: instant)
+    }
+
+    // A stroke inside or outside its outline needs a closed outline, which a rect and an ellipse always have, and no
+    // arrowhead. Its `align`, `start` and `end` are static names of the merged stroke, and `closed` is static.
+    private func checkAlign(
+        of stroke: TimedValue,
+        shape: ClipShape,
+        written: Clip,
+        kind: PlaceKind
+    ) throws {
+        guard case let .fixed(.string(align))? = stroke["align"], align != StrokeAlign.center.rawValue else { return }
+
+        let place = written.place.appending(key: "stroke")
+        guard shape.kind != .path || shape.isClosed else {
+            throw ResolveError.alignedStrokeOnOpenPath(place: place, kind: kind, align: align)
+        }
+        guard !["start", "end"].contains(where: { stroke[$0] == .fixed(.string(StrokeEnd.arrow.rawValue)) }) else {
+            throw ResolveError.alignedStrokeWithArrowhead(place: place, kind: kind, align: align)
+        }
     }
 
     // A rect or an ellipse takes exactly one of `area` and the pair `width` and `height`, and only with the pair a

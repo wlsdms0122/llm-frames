@@ -54,6 +54,8 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
     case shapeWithoutGeometry(place: Place, kind: PlaceKind)
     case pointCountsDiffer(place: Place, kind: PlaceKind, counts: [Int])
     case shapeDrawsNothing(place: Place, kind: PlaceKind)
+    case alignedStrokeOnOpenPath(place: Place, kind: PlaceKind, align: String)
+    case alignedStrokeWithArrowhead(place: Place, kind: PlaceKind, align: String)
     case cornerPinWithPlacement(place: Place, kind: PlaceKind, key: String)
     case cornerPinOnGeometry(place: Place, kind: PlaceKind)
     case cornerPinNotConvex(place: Place, kind: PlaceKind, time: Double?)
@@ -323,6 +325,13 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
 
         case let .shapeDrawsNothing(place, kind):
             "\(place) (\(kind.label)): the shape has neither a fill nor a stroke after its style, so it draws nothing"
+
+        case let .alignedStrokeOnOpenPath(place, kind, align):
+            "\(place) (\(kind.label)): a stroke \"\(align)\" its outline needs a closed outline, and the path is open"
+
+        case let .alignedStrokeWithArrowhead(place, kind, align):
+            "\(place) (\(kind.label)): a stroke \"\(align)\" its outline takes no arrowhead, which is centred on the "
+                + "end of the stroke"
 
         case let .unknownParent(place, kind, id):
             "\(place) (\(kind.label)): no clip in the document has the id \(quoted(id))"

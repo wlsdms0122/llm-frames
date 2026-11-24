@@ -82,7 +82,7 @@ The interview opens with a slow push in and a lower third, a name and a role in 
 | paragraph (a title's `paragraph`) | `writingMode, direction, align, lineHeight, background`, each as a text style takes it ([FRAMES-22](../FRAMES-22/SPEC.md)) |
 | shape clip | every clip with a picture's, `shape, style, area, width, height, placement, position, anchor, points, closed, radius, outset, fill, stroke, trim, shadow, scale, rotation`, and `cornerPin` on a rect or ellipse given by `width` and `height` ([FRAMES-27](../FRAMES-27/SPEC.md)) |
 | split (on a storyline clip or a visual media clip) | `before, after` ([FRAMES-13](../FRAMES-13/SPEC.md)) |
-| stroke | `color, gradient, width, join, cap, start, end, dash, dashOffset` |
+| stroke | `color, gradient, width, align, join, cap, start, end, dash, dashOffset` |
 | gradient | exactly one of `linear` and `radial` ([FRAMES-11](../FRAMES-11/SPEC.md)) |
 | linear gradient | `from, to, stops` |
 | radial gradient | `center, radius, stops` |

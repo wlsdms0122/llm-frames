@@ -23,7 +23,11 @@ extension MediaBorder {
             let color = sampled["color"]?.color
         else { return nil }
 
-        self.init(width: width * factor, color: color)
+        self.init(
+            width: width * factor,
+            color: color,
+            align: sampled["align"]?.name.flatMap(StrokeAlign.init(rawValue:)) ?? .inside
+        )
     }
 
     // MARK: - Public

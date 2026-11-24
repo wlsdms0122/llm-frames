@@ -34,6 +34,7 @@ enum LookStructureTable {
             ("color", .leaf(.color)),
             ("gradient", .forms(gradientForms)),
             ("width", .leaf(.length(.positive))),
+            ("align", .leaf(.name(among: StrokeAlign.allCases.map(\.rawValue)))),
             ("join", .leaf(.name(among: StrokeJoin.allCases.map(\.rawValue)))),
             ("cap", .leaf(.name(among: StrokeCap.allCases.map(\.rawValue)))),
             ("start", .leaf(.name(among: StrokeEnd.allCases.map(\.rawValue)))),
@@ -58,7 +59,8 @@ enum LookStructureTable {
     static let border = ValueStructure.object(ObjectStructure(
         [
             ("width", .leaf(.length(.positive))),
-            ("color", .leaf(.color))
+            ("color", .leaf(.color)),
+            ("align", .leaf(.name(among: StrokeAlign.allCases.map(\.rawValue))))
         ],
         shorthands: [.on, .color(key: "color")]
     ))

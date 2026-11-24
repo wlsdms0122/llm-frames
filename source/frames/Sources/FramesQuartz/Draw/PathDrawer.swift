@@ -10,9 +10,11 @@ import Foundation
 import Frames
 
 // Draws a path item in its own coordinates: its fill, then its stroke over it. The stroke runs along its outline
-// between the smaller and the larger trim, centred, and stops at the middle of its arrowheads' bases. It is laid in
-// output pixels on the outline `transform` carries (`PathItem.carriedStroke(by:)`), so a transform that scales its
-// axes apart does not stretch it, and drawn back in the item's coordinates.
+// between the smaller and the larger trim, centred, and stops at the middle of its arrowheads' bases. An inside or an
+// outside stroke is that centred stroke twice its width, its joins, caps and dashes included, cut to the inside of the
+// outline, the region its fill covers by the nonzero rule, or to the outside of it. It is laid in output pixels on the
+// outline `transform` carries (`PathItem.carriedStroke(by:)`), so a transform that scales its axes apart does not
+// stretch it, and drawn back in the item's coordinates.
 // The stroked line and its heads are united into one shape filled once, so a translucent colour is not drawn twice
 // where they overlap. Dashes are laid in the item's own distances along the outline, from the start of the stroke as
 // drawn, so they stretch with it, and cut at the heads' bases; the heads are drawn whole. A dash with no length above 0
@@ -40,7 +42,8 @@ struct PathDrawer {
             let back = transform.inverse,
             case let (carried, drawn)? = item.carriedStroke(by: transform),
             drawn.isDrawn,
-            let shape = shape(of: stroke, drawn: drawn, along: carried, own: outline)
+            let traced = shape(of: stroke.traced, drawn: drawn, along: carried, own: outline),
+            let shape = traced.cut(to: stroke.align, of: carried)
         else { return }
 
         var matrix = CGAffineTransform(back)

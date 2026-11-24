@@ -138,7 +138,8 @@ package struct DisplayListWriter: Sendable {
         let border = picture.border.map { border in
             JSONValue.object(JSONObject(members: [
                 JSONMember(key: "width", value: .number(border.width)),
-                JSONMember(key: "color", value: values.color(border.color))
+                JSONMember(key: "color", value: values.color(border.color)),
+                JSONMember(key: "align", value: .string(border.align.rawValue))
             ]))
         }
         let matte = picture.matte.map { matte in
@@ -170,6 +171,7 @@ package struct DisplayListWriter: Sendable {
             JSONValue.object(JSONObject(members: [
                 JSONMember(key: "width", value: .number(stroke.width)),
                 JSONMember(key: "paint", value: values.paint(stroke.paint)),
+                JSONMember(key: "align", value: .string(stroke.align.rawValue)),
                 JSONMember(key: "join", value: .string(stroke.join.rawValue)),
                 JSONMember(key: "cap", value: .string(stroke.cap.rawValue)),
                 JSONMember(key: "start", value: .string(stroke.start.rawValue)),

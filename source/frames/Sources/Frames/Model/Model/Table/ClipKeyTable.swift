@@ -332,7 +332,7 @@ enum ClipKeyTable {
             .literal(VocabularyTable.blendModes)
 
         case "border":
-            ValueType(shorthandsOf: LookStructureTable.border)
+            ValueType(written: LookStructureTable.border, kind: "border")
 
         case "title":
             .runs

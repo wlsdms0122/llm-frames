@@ -347,11 +347,12 @@ package struct DisplayListReader: Sendable {
             },
             radius: try item.member("radius").number(),
             border: try item.member("border").optional { value in
-                let border = try value.object(keys: ["width", "color"])
+                let border = try value.object(keys: ["width", "color", "align"])
 
                 return MediaBorder(
                     width: try border.member("width").number(),
-                    color: try values.color(border.member("color"))
+                    color: try values.color(border.member("color")),
+                    align: try literal(border.member("align"))
                 )
             },
             shadow: try item.member("shadow").optional(shadow),
@@ -371,15 +372,18 @@ package struct DisplayListReader: Sendable {
     }
 
     private func path(_ item: PlacedJSONObject) throws -> PathItem {
-        PathItem(
+        let path = PathItem(
             geometry: try values.geometry(item.member("geometry")),
             fill: try item.member("fill").optional(values.paint),
             stroke: try item.member("stroke").optional { value in
-                let stroke = try value.object(keys: ["width", "paint", "join", "cap", "start", "end", "dash", "dashOffset"])
+                let stroke = try value.object(
+                    keys: ["width", "paint", "align", "join", "cap", "start", "end", "dash", "dashOffset"]
+                )
 
                 return PathStroke(
                     width: try stroke.member("width").number(),
                     paint: try values.paint(stroke.member("paint")),
+                    align: try literal(stroke.member("align")),
                     join: try literal(stroke.member("join")),
                     cap: try literal(stroke.member("cap")),
                     start: try literal(stroke.member("start")),
@@ -391,6 +395,21 @@ package struct DisplayListReader: Sendable {
             trim: try trim(item.member("trim")),
             shadow: try item.member("shadow").optional(shadow)
         )
+        // A stroke on one side of its outline needs a closed outline and no arrowhead (FRAMES-20 Paths).
+        if
+            let stroke = path.stroke,
+            stroke.align != .center,
+            !path.isClosed || stroke.start == .arrow || stroke.end == .arrow
+        {
+            let value = try item.member("stroke")
+            throw ModelError.invalidValue(
+                place: value.place,
+                kind: value.kind,
+                reason: "a stroke inside or outside its outline needs a closed outline and no arrowhead"
+            )
+        }
+
+        return path
     }
 
     // Four points the corners of `dest` go to, a corner pin a display list holds (`Quad.isCornerPin(inSampleList:)`).

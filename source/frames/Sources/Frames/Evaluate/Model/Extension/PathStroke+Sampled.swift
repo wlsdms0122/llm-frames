@@ -32,6 +32,7 @@ extension PathStroke {
         self.init(
             width: width * factor,
             paint: paint,
+            align: sampled["align"]?.name.flatMap(StrokeAlign.init(rawValue:)) ?? .center,
             join: sampled["join"]?.name.flatMap(StrokeJoin.init(rawValue:)) ?? .round,
             cap: sampled["cap"]?.name.flatMap(StrokeCap.init(rawValue:)) ?? .butt,
             start: end("start"),

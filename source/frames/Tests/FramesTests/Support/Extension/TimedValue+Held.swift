@@ -47,6 +47,7 @@ extension TimedValue: ExpressibleByIntegerLiteral, ExpressibleByFloatLiteral {
         return .object([
             paint,
             TimedMember(key: "width", value: .held(.number(stroke.width))),
+            TimedMember(key: "align", value: .fixed(.string(stroke.align.rawValue))),
             TimedMember(key: "join", value: .fixed(.string(stroke.join.rawValue))),
             TimedMember(key: "cap", value: .fixed(.string(stroke.cap.rawValue))),
             TimedMember(key: "start", value: .fixed(.string(stroke.start.rawValue))),
@@ -69,7 +70,8 @@ extension TimedValue: ExpressibleByIntegerLiteral, ExpressibleByFloatLiteral {
 
         return .object([
             TimedMember(key: "width", value: .held(.number(border.width))),
-            TimedMember(key: "color", value: .held(.color(border.color)))
+            TimedMember(key: "color", value: .held(.color(border.color))),
+            TimedMember(key: "align", value: .fixed(.string(border.align.rawValue)))
         ])
     }
 

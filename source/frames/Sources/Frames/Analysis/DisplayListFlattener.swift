@@ -69,7 +69,7 @@ struct DisplayListFlattener: Sendable {
         let characters: CharacterScope?
         switch item.content {
         case let .picture(picture):
-            return try items(of: picture, own: own)
+            return try items(of: picture, carriedBy: item.transform, own: own)
 
         case let .path(path):
             transform = own.planeTransform
@@ -104,8 +104,11 @@ struct DisplayListFlattener: Sendable {
         )]
     }
 
+    // A picture of media covers its destination and its border, whose width is in the pixels of its list on the outline
+    // `item` carries.
     private func items(
         of picture: PictureItem,
+        carriedBy item: AffineTransform,
         own: GraphicsState
     ) throws -> [FlattenedItem] {
         switch picture.source {
@@ -118,7 +121,8 @@ struct DisplayListFlattener: Sendable {
                     : map.inverse.concatenating(Homography(transform(from: picture.destination, onto: rectangle)))
             }
             let placement = MediaPlacement(frame: media, transform: transform)
-            let coverage = own.covered(ItemCoverage(pieces: [ConvexPolygon(rectangle: picture.destination)]))
+            let drawn = picture.drawnBounds(carriedBy: item)
+            let coverage = own.covered(ItemCoverage(pieces: [ConvexPolygon(rectangle: drawn)]))
             return [FlattenedItem(
                 origin: own.origin,
                 item: .picture,
