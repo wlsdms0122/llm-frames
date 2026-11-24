@@ -79,6 +79,14 @@ struct ShapeAppearanceTests {
                 #"clips[0].stroke (rect): a stroke "outside" its outline takes no arrowhead, which is centred on the end of the stroke"#
             ),
             (
+                #"{ "shape": "rect", "area": [0, 0, 10, 10], "stroke": { "width": 2, "align": "inside", "start": { "shape": "bar", "scale": 2 } } }"#,
+                #"clips[0].stroke (rect): a stroke "inside" its outline takes no arrowhead, which is centred on the end of the stroke"#
+            ),
+            (
+                #"{ "shape": "ellipse", "area": [0, 0, 10, 10], "stroke": { "width": 2, "align": "outside", "end": "circle" } }"#,
+                #"clips[0].stroke (ellipse): a stroke "outside" its outline takes no arrowhead, which is centred on the end of the stroke"#
+            ),
+            (
                 #"{ "shape": "rect", "area": [0, 0, 10, 10], "style": "box" }"#,
                 #"clips[0].style (rect): shape style "box" is not in shapes, which hold "outline", "pointer""#
             ),

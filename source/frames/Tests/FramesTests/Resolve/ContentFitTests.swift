@@ -394,6 +394,12 @@ struct ContentFitTests {
             (#"{ "shape": "ellipse", "area": [400, 0, 100, 50], "stroke": { "width": 64, "end": "arrow" }, "trim": [0, 0.2], "at": [0, 1] }"#, Size(width: 506, height: 220)),
             (#"{ "shape": "path", "points": [[400, 0], [400, 100]], "stroke": { "width": 64 }, "at": [0, 1] }"#, Size(width: 406, height: 206)),
             (#"{ "shape": "path", "points": [[400, 0], [400, 100]], "stroke": { "width": 64, "end": "arrow" }, "at": [0, 1] }"#, Size(width: 420, height: 206)),
+            // At scale 2 the arrowhead is 80 long and 80 wide, and a bar is 40 across the end.
+            (#"{ "shape": "path", "points": [[400, 0], [400, 100]], "stroke": { "width": 64, "end": { "shape": "arrow", "scale": 2 } }, "at": [0, 1] }"#, Size(width: 440, height: 206)),
+            (#"{ "shape": "path", "points": [[400, 0], [400, 100]], "stroke": { "width": 64, "end": "bar" }, "at": [0, 1] }"#, Size(width: 420, height: 206)),
+            // A circle at scale 2 is 80 across with its tip at the end (400, 250), its centre 40 back: it reaches down to
+            // y = 290 and no further along the line than its end, which the stroke's half width reaches past.
+            (#"{ "shape": "path", "points": [[100, 250], [400, 250]], "stroke": { "width": 64, "end": { "shape": "circle", "scale": 2 } }, "at": [0, 1] }"#, Size(width: 406, height: 290)),
             // Both tangents (100, 0) bulge the segment right to x = 475 at its middle, where the stroke reaches 480.
             (#"{ "shape": "path", "points": [{ "vertex": [400, 0], "outTangent": [100, 0] }, { "vertex": [400, 100], "inTangent": [100, 0] }], "stroke": { "width": 64 }, "at": [0, 1] }"#, Size(width: 480, height: 206)),
             (#"{ "shape": "rect", "area": [400, 0, 100, 50], "fill": "accent", "scale": 2, "at": [0, 1] }"#, Size(width: 550, height: 226)),

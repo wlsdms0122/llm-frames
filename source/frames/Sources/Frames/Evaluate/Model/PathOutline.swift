@@ -121,30 +121,28 @@ package struct PathOutline: Equatable, Sendable {
         return found.segment.direction(at: distance - found.offset)
     }
 
-    // The arrowheads of a stroke drawn along the outline, the start's first (FRAMES-20 Arrowheads). Each has its tip at
-    // its end of the stroke and the middle of its base on the stroke its length back along it, its axis the chord
-    // between them, or where they are one point the direction at the tip, back along the outline for the start's.
+    // The heads of a stroke drawn along the outline, the start's first (FRAMES-20 Arrowheads). Each has its tip at its
+    // end of the stroke and the middle of its base on the stroke its length back along it, its axis the chord between
+    // them, or where they are one point the direction at the tip, back along the outline for the start's.
     package func arrowheads(of drawn: DrawnStroke) -> [Arrowhead] {
         guard length > 0 else { return [] }
 
-        let size = drawn.headLength(along: length)
-        guard size > 0 else { return [] }
-
-        let start = drawn.hasStartHead ? head(at: drawn.start(along: length), isStart: true, length: size) : nil
-        let end = drawn.hasEndHead ? head(at: drawn.end(along: length), isStart: false, length: size) : nil
+        let start = head(drawn.startHead, of: drawn, at: drawn.start(along: length), isStart: true)
+        let end = head(drawn.endHead, of: drawn, at: drawn.end(along: length), isStart: false)
         return [start, end].compactMap { $0 }
     }
 
     // The convex parts of what a stroke draws along the outline that lie past the outline grown by half the stroke's
-    // width, each by its corners in order: its arrowheads, the points of its miter joins and the ends of its square
-    // caps. A round or bevelled join and a round or butt cap lie within that grown outline.
+    // width, each by its corners in order: its heads other than circles, which are no polygons, the points of its miter
+    // joins and the ends of its square caps. A round or bevelled join and a round or butt cap lie within that grown
+    // outline.
     package func overhangs(
         of stroke: PathStroke,
         drawn: DrawnStroke
     ) -> [[Point]] {
         guard drawn.isDrawn, length > 0 else { return [] }
 
-        let heads = arrowheads(of: drawn).map(\.corners)
+        let heads = arrowheads(of: drawn).filter { $0.circle == nil }.flatMap(\.parts)
         let lineStart = drawn.lineStart(along: length)
         let lineEnd = drawn.lineEnd(along: length)
         guard drawn.isWhole || lineEnd > lineStart else { return heads }
@@ -302,21 +300,30 @@ package struct PathOutline: Equatable, Sendable {
         ]
     }
 
+    // The head `end` draws at a distance along the outline, nil where it draws none.
     private func head(
+        _ end: StrokeEnd,
+        of drawn: DrawnStroke,
         at distance: Double,
-        isStart: Bool,
-        length: Double
-    ) -> Arrowhead {
+        isStart: Bool
+    ) -> Arrowhead? {
+        let unit = drawn.unit(of: end, along: length)
+        guard unit > 0 else { return nil }
+
+        let along = end.shape.length * unit
         let tip = point(at: distance)
-        let base = point(at: isStart ? distance + length : distance - length)
+        let base = point(at: isStart ? distance + along : distance - along)
         let chord = Point(x: tip.x - base.x, y: tip.y - base.y)
         let size = hypot(chord.x, chord.y)
-        guard size > 0 else {
+        let axis: Point
+        if size > 0 {
+            axis = Point(x: chord.x / size, y: chord.y / size)
+        } else {
             let direction = direction(at: distance, leaving: isStart)
             let sign = isStart ? -1.0 : 1.0
-            return Arrowhead(tip: tip, axis: Point(x: direction.x * sign, y: direction.y * sign), length: 0, width: length)
+            axis = Point(x: direction.x * sign, y: direction.y * sign)
         }
 
-        return Arrowhead(tip: tip, axis: Point(x: chord.x / size, y: chord.y / size), length: size, width: length)
+        return Arrowhead(shape: end.shape, tip: tip, axis: axis, length: size, width: end.shape.width * unit, unit: unit)
     }
 }

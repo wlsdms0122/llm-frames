@@ -13,8 +13,8 @@ import Testing
 // size, and each is checked by the key tables before it is planned. The theme holds the colour `brand` `#123456` and
 // the shape styles `bar`, a stroke 8 wide in `#ED2929` with a shadow 10 wide, `dashed`, a stroke 4 wide dashed
 // `[10, 5]`, `glow`, a radial fill about `[0.25, 0.5]` from `brand` to `#00000000` and a stroke 2 wide with a linear
-// gradient from `[0.25, 0]` to `[1, 0.5]`, red to blue, and `ramp`, a linear fill from `[0, 0]` to `[1, 0]` through
-// red, green at 0.5 and blue.
+// gradient from `[0.25, 0]` to `[1, 0.5]`, red to blue, `ramp`, a linear fill from `[0, 0]` to `[1, 0]` through
+// red, green at 0.5 and blue, and `pointer`, a stroke 4 wide ending in a diamond at scale 2.
 @Suite("Shape keyframe Tests")
 struct ShapeKeyframeTests {
     // MARK: - Property
@@ -146,6 +146,14 @@ struct ShapeKeyframeTests {
                 #"clips[0].keyframes[0].stroke.cap (keyframe): a name, a boolean, a form or a static number is static and is written on the clip or the sequence, not in a keyframe"#
             ),
             (
+                #"{ "at": 0, "stroke": { "end": "circle" } }, { "at": 0.5, "stroke": { "width": 2 } }"#,
+                #"clips[0].keyframes[0].stroke.end.shape (keyframe): a name, a boolean, a form or a static number is static and is written on the clip or the sequence, not in a keyframe"#
+            ),
+            (
+                #"{ "at": 0, "stroke": { "end": { "scale": 0 } } }"#,
+                #"clips[0].keyframes[0].stroke.end.scale: 0 is not above 0"#
+            ),
+            (
                 #"{ "at": 0, "stroke": { "align": "inside" } }, { "at": 0.5, "stroke": { "width": 2 } }"#,
                 #"clips[0].keyframes[0].stroke.align (keyframe): a name, a boolean, a form or a static number is static and is written on the clip or the sequence, not in a keyframe"#
             ),
@@ -184,6 +192,33 @@ struct ShapeKeyframeTests {
         // When, Then
         let error = #expect(throws: (any Error).self) { try resolvedShape(clip) }
         #expect(error.map { "\($0)" } == message)
+    }
+
+    @Test("an end written as a name names its shape alone, keeping its style's scale, and a bare stroke's end is scale 1")
+    func namesEndShape() throws {
+        // When
+        let named = try resolvedShape(#"{ "shape": "path", "points": [[0, 0], [100, 0]], "style": "pointer", "stroke": { "end": "circle" } }"#)
+        let bare = try resolvedShape(#"{ "shape": "path", "points": [[0, 0], [100, 0]], "stroke": { "width": 4, "start": "bar" } }"#)
+
+        // Then
+        #expect(named.stroke.stroke(at: 0)?.start == StrokeEnd.none)
+        #expect(named.stroke.stroke(at: 0)?.end == StrokeEnd(shape: .circle, scale: 2))
+        #expect(bare.stroke.stroke(at: 0)?.start == StrokeEnd(shape: .bar, scale: 1))
+        #expect(bare.stroke.stroke(at: 0)?.end == StrokeEnd.none)
+    }
+
+    @Test("an end's scale moves between keyframes from 0, as a stroke's width does, its shape the style's")
+    func movesEndScale() throws {
+        // When
+        let shape = try resolvedShape(##"""
+            { "shape": "path", "points": [[0, 0], [100, 0]], "style": "pointer",
+              "keyframes": [ { "at": 0, "stroke": { "end": { "scale": 0 } } }, { "at": 1, "stroke": { "end": { "scale": null } } } ] }
+            """##)
+
+        // Then
+        #expect(shape.stroke.stroke(at: 0)?.end == StrokeEnd(shape: .diamond, scale: 0))
+        #expect(shape.stroke.stroke(at: 0.5)?.end == StrokeEnd(shape: .diamond, scale: 1))
+        #expect(shape.stroke.stroke(at: 1)?.end == StrokeEnd(shape: .diamond, scale: 2))
     }
 
     @Test("a gradient's leaf written statically and in every keyframe stops, naming the leaf under its gradient")
@@ -495,6 +530,7 @@ struct ShapeKeyframeTests {
                          "shadow": { "radius": 20, "offset": [0, 8], "color": "#00000080" },
                          "shapes": { "bar": { "stroke": { "width": \#(width), "color": "#ED2929" }, "radius": 12, "shadow": { "radius": 10 } },
                                      "dashed": { "stroke": { "width": 4, "dash": [10, 5] } },
+                                     "pointer": { "stroke": { "width": 4, "end": { "shape": "diamond", "scale": 2 } } },
                                      "glow": { "fill": { "radial": { "center": [0.25, 0.5], "stops": [[0, "brand"], [1, "#00000000"]] } },
                                                "stroke": { "width": 2, "gradient": { "linear": { "from": [0.25, 0], "to": [1, 0.5],
                                                            "stops": [[0, "#FF0000"], [1, "#0000FF"]] } } } },

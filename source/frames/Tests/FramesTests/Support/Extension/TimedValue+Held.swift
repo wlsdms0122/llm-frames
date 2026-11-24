@@ -55,9 +55,17 @@ extension TimedValue: ExpressibleByIntegerLiteral, ExpressibleByFloatLiteral {
             TimedMember(key: "align", value: .fixed(.string(stroke.align.rawValue))),
             TimedMember(key: "join", value: .fixed(.string(stroke.join.rawValue))),
             TimedMember(key: "cap", value: .fixed(.string(stroke.cap.rawValue))),
-            TimedMember(key: "start", value: .fixed(.string(stroke.start.rawValue))),
-            TimedMember(key: "end", value: .fixed(.string(stroke.end.rawValue)))
+            TimedMember(key: "start", value: end(stroke.start)),
+            TimedMember(key: "end", value: end(stroke.end))
         ] + [dash].compactMap { $0 } + [TimedMember(key: "dashOffset", value: .held(.number(stroke.dashOffset)))])
+    }
+
+    // A stroke's end as resolve writes it, its static `shape` and its timed `scale`.
+    static func end(_ end: StrokeEnd) -> TimedValue {
+        .object([
+            TimedMember(key: "shape", value: .fixed(.string(end.shape.rawValue))),
+            TimedMember(key: "scale", value: .held(.number(end.scale)))
+        ])
     }
 
     static func shadow(_ shadow: DropShadow?) -> TimedValue {

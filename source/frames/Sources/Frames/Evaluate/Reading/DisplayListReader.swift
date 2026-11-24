@@ -386,8 +386,8 @@ package struct DisplayListReader: Sendable {
                     align: try literal(stroke.member("align")),
                     join: try literal(stroke.member("join")),
                     cap: try literal(stroke.member("cap")),
-                    start: try literal(stroke.member("start")),
-                    end: try literal(stroke.member("end")),
+                    start: try stroke.member("start").optional(end) ?? .none,
+                    end: try stroke.member("end").optional(end) ?? .none,
                     dash: try stroke.member("dash").optional { try $0.numbers() },
                     dashOffset: try stroke.member("dashOffset").number()
                 )
@@ -399,7 +399,7 @@ package struct DisplayListReader: Sendable {
         if
             let stroke = path.stroke,
             stroke.align != .center,
-            !path.isClosed || stroke.start == .arrow || stroke.end == .arrow
+            !path.isClosed || stroke.start.shape != .none || stroke.end.shape != .none
         {
             let value = try item.member("stroke")
             throw ModelError.invalidValue(
@@ -410,6 +410,17 @@ package struct DisplayListReader: Sendable {
         }
 
         return path
+    }
+
+    // A stroke's end that draws a head, its shape one of the heads, `none` written as `null`.
+    private func end(_ value: PlacedJSONValue) throws -> StrokeEnd {
+        let end = try value.object(keys: ["shape", "scale"])
+        let heads = StrokeEndShape.allCases.filter { $0 != .none }.map(\.rawValue)
+
+        return StrokeEnd(
+            shape: try end.member("shape").name(among: heads) { heads.contains($0) ? StrokeEndShape(rawValue: $0) : nil },
+            scale: try end.member("scale").number()
+        )
     }
 
     // Four points the corners of `dest` go to, a corner pin a display list holds (`Quad.isCornerPin(inSampleList:)`).

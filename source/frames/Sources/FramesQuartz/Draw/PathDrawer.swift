@@ -10,16 +10,16 @@ import Foundation
 import Frames
 
 // Draws a path item in its own coordinates: its fill, then its stroke over it. The stroke runs along its outline
-// between the smaller and the larger trim, centred, and stops at the middle of its arrowheads' bases. An inside or an
+// between the smaller and the larger trim, centred, and stops where each of its arrowheads stops it. An inside or an
 // outside stroke is that centred stroke twice its width, its joins, caps and dashes included, cut to the inside of the
 // outline, the region its fill covers by the nonzero rule, or to the outside of it. It is laid in output pixels on the
 // outline `transform` carries (`PathItem.carriedStroke(by:)`), so a transform that scales its axes apart does not
 // stretch it, and drawn back in the item's coordinates.
 // The stroked line and its heads are united into one shape filled once, so a translucent colour is not drawn twice
 // where they overlap. Dashes are laid in the item's own distances along the outline, from the start of the stroke as
-// drawn, so they stretch with it, and cut at the heads' bases; the heads are drawn whole. A dash with no length above 0
-// draws the stroke whole. A gradient paints the fill
-// or the stroke's shape through it as a clip, laid in the item's own coordinates.
+// drawn, so they stretch with it, and cut where the heads stop the line; the heads are drawn whole. A dash with no
+// length above 0 draws the stroke whole. A gradient paints the fill or the stroke's shape through it as a clip, laid in
+// the item's own coordinates.
 struct PathDrawer {
     // MARK: - Property
     private let gradients = GradientDrawer()
@@ -189,12 +189,27 @@ struct PathDrawer {
         )
     }
 
+    // A head as one shape: a circle, or the union of its convex parts.
     private func path(of head: Arrowhead) -> CGPath {
-        let path = CGMutablePath()
-        path.addLines(between: head.corners.map { CGPoint(x: $0.x, y: $0.y) })
-        path.closeSubpath()
+        if let circle = head.circle {
+            let rectangle = CGRect(
+                x: circle.center.x - circle.radius,
+                y: circle.center.y - circle.radius,
+                width: 2 * circle.radius,
+                height: 2 * circle.radius
+            )
+            return CGPath(ellipseIn: rectangle, transform: nil)
+        }
 
-        return path
+        let parts = head.parts.map { corners in
+            let path = CGMutablePath()
+            path.addLines(between: corners.map { CGPoint(x: $0.x, y: $0.y) })
+            path.closeSubpath()
+            return path as CGPath
+        }
+        guard let first = parts.first else { return CGMutablePath() }
+
+        return parts.dropFirst().reduce(first) { shape, part in shape.union(part, using: .winding) }
     }
 
     private func lineCap(of cap: StrokeCap) -> CGLineCap {

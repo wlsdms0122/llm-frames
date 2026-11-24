@@ -27,6 +27,26 @@ struct PathDrawerTests {
         ],
         isClosed: false
     )
+    // A 4 wide line from (10, 50) to its end at (90, 50), so u is 4 at scale 1 and 8 at scale 2, and every head is 4u
+    // wide across the line, its sides at y = 50 - 2u and 50 + 2u. An arrow and a line arrow reach a pixel 2 back from
+    // the tip on the line, a circle and a diamond 1 back, a square and a bar the last pixel. The other probes lie just
+    // inside and just outside a head's side near its base, 4u back, or u for a bar, and behind its base. A line
+    // arrow's bands at scale 2 are 8 thick, and between them the line runs to their inner corner √5 u back, with blank
+    // on each side of it.
+    private static let headsAtEnd: [(StrokeEndShape, Double, [(Int, Int)], [(Int, Int)])] = [
+        (.arrow, 1, [(87, 49), (87, 50), (20, 49), (75, 43)], [(75, 41), (72, 43)]),
+        (.arrow, 2, [(87, 49), (87, 50), (20, 49), (59, 35)], [(59, 33), (56, 35)]),
+        (.lineArrow, 1, [(87, 49), (87, 50), (20, 49), (75, 43), (75, 55)], [(75, 41), (72, 43)]),
+        (.lineArrow, 2, [(87, 49), (87, 50), (20, 49), (59, 35), (59, 60), (62, 50)], [(59, 33), (56, 35), (59, 53), (59, 46)]),
+        (.circle, 1, [(88, 49), (88, 50), (20, 49), (82, 43)], [(82, 41), (74, 42), (72, 43)]),
+        (.circle, 2, [(88, 49), (88, 50), (20, 49), (74, 35)], [(74, 33), (58, 34), (56, 35)]),
+        (.square, 1, [(89, 49), (89, 50), (20, 49), (74, 42)], [(74, 41), (73, 42)]),
+        (.square, 2, [(89, 49), (89, 50), (20, 49), (58, 34)], [(58, 33), (57, 34)]),
+        (.diamond, 1, [(88, 49), (88, 50), (20, 49), (82, 43)], [(82, 41), (74, 42)]),
+        (.diamond, 2, [(88, 49), (88, 50), (20, 49), (74, 35)], [(74, 33), (58, 34)]),
+        (.bar, 1, [(89, 49), (89, 50), (20, 49), (86, 42)], [(86, 41), (85, 42)]),
+        (.bar, 2, [(89, 49), (89, 50), (20, 49), (82, 34)], [(82, 33), (81, 34)])
+    ]
 
     private let sut = QuartzRenderer(decoder: AVFoundationDecoder())
 
@@ -385,6 +405,97 @@ struct PathDrawerTests {
         // Then
         // A head at the rect's end, its tip at (20, 50) pointing up the left edge, would cover (16, 62).
         expect(bitmap, at: [(35, 13), (60, 20), (16, 62)], inked: [true, false, false])
+    }
+
+    @Test(
+        "each head lies with its tip at the end of the outline, nothing of it past the end, 4u wide across and as long as its shape at u = width × scale",
+        arguments: headsAtEnd
+    )
+    func drawsHeadAtEnd(
+        shape: StrokeEndShape,
+        scale: Double,
+        inked: [(Int, Int)],
+        blank: [(Int, Int)]
+    ) throws {
+        // Given
+        let points = [Point(x: 10, y: 50), Point(x: 90, y: 50)]
+        let path = stroked(.polyline(points, isClosed: false), width: 4, end: StrokeEnd(shape: shape, scale: scale))
+
+        // When
+        let bitmap = try sut.frame(of: list([path]))
+
+        // Then
+        expect(bitmap, at: inked + blank, inked: inked.map { _ in true } + blank.map { _ in false })
+        let past = (0..<100).flatMap { y in (90..<100).map { x in (x, y) } }.filter { x, y in alpha(bitmap, x, y) >= 0.01 }
+        #expect(past.isEmpty, "\(past.count) pixels at or past the end are drawn, first \(past.prefix(4))")
+    }
+
+    // At scale 2 on the bulge, whose last stretch turns from heading up and right to heading straight up at (90, 20),
+    // the arrow is 32 long and its base lies 32 back along the curve at (84.8, 51.4), so its axis tilts 9.3 degrees from
+    // the tangent at the tip and its base corners lie at (69.1, 48.8) and (100.6, 54.0). (76, 42) lies inside it and
+    // outside a head laid along the tangent, and (99, 42) the other way round.
+    @Test("a head on a curved end lies along the chord from its base on the curve to its tip, nothing of it past the end")
+    func drawsHeadOnCurvedEnd() throws {
+        // Given
+        let path = stroked(Self.bulge, width: 4, end: StrokeEnd(shape: .arrow, scale: 2))
+
+        // When
+        let bitmap = try sut.frame(of: list([path]))
+
+        // Then
+        expect(bitmap, at: [(89, 22), (89, 23), (76, 42), (84, 50), (99, 42)], inked: [true, true, true, true, false])
+        let past = (0..<20).flatMap { y in (0..<100).map { x in (x, y) } }.filter { x, y in alpha(bitmap, x, y) >= 0.01 }
+        #expect(past.isEmpty, "\(past.count) pixels above the tip are drawn, first \(past.prefix(4))")
+    }
+
+    // The stroke is 20 long. A circle at scale 1 and a bar at scale 2 would be 16 and 8 long, so both shrink by 20 / 24:
+    // the circle to 13.3 across from its tip at x = 10, its centre at 16.7, and the bar to 6.7 long and 26.7 across,
+    // from x = 23.3 to its front at 30, the circle's base. The circle's top is at y = 43.3, and the bar unshrunk would
+    // cover (24, 35).
+    @Test("heads longer together than the drawn stroke shrink by one factor, each keeping its shape, so their lengths add up to it")
+    func shrinksHeadsByOneFactor() throws {
+        // Given
+        let points = [Point(x: 10, y: 50), Point(x: 30, y: 50)]
+        let path = stroked(
+            .polyline(points, isClosed: false),
+            width: 4,
+            start: StrokeEnd(shape: .circle),
+            end: StrokeEnd(shape: .bar, scale: 2)
+        )
+
+        // When
+        let bitmap = try sut.frame(of: list([path]))
+
+        // Then
+        expect(bitmap, at: [(16, 44), (11, 49), (24, 37), (29, 40), (16, 42), (9, 49), (24, 35), (30, 40)], inked: [
+            true, true, true, true, false, false, false, false
+        ])
+    }
+
+    // A circle at scale 1 starts the stroke, centred at x = 18 with a radius of 8, and a line arrow at scale 2 ends it,
+    // from its base at x = 58, its inner corner, where the line stops, at 72.1. Dashes of 6 every 16 from x = 10 fall
+    // at 26, 42, 58 and 74: the one at 58 runs inside the line arrow's open middle, and the gap after it shows there.
+    @Test("heads on a dashed stroke are drawn whole, and the dashes run to where each head stops the line")
+    func drawsHeadsOverDashes() throws {
+        // Given
+        let stroke = PathStroke(
+            width: 4,
+            paint: .color(Self.black),
+            join: .miter,
+            cap: .butt,
+            start: StrokeEnd(shape: .circle),
+            end: StrokeEnd(shape: .lineArrow, scale: 2),
+            dash: [6, 10]
+        )
+        let path = PathItem(geometry: .polyline([Point(x: 10, y: 50), Point(x: 90, y: 50)], isClosed: false), fill: nil, stroke: stroke)
+
+        // When
+        let bitmap = try sut.frame(of: list([path]))
+
+        // Then
+        expect(bitmap, at: [(18, 43), (28, 49), (36, 49), (44, 49), (52, 49), (60, 49), (68, 49), (59, 60), (87, 49)], inked: [
+            true, true, false, true, false, true, false, true, true
+        ])
     }
 
     @Test("a translucent stroke and its heads are one shape, so where the line, its caps and heads overlap the alpha is not doubled")

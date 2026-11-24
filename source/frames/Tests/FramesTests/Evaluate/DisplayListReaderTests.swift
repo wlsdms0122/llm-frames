@@ -295,7 +295,8 @@ struct DisplayListReaderTests {
         ),
         (["1", "4", "stroke", "join"], #""round""#, "samples[1][4].stroke.join (path)"),
         (["1", "4", "stroke", "cap"], #""round""#, "samples[1][4].stroke.cap (path)"),
-        (["1", "4", "stroke", "end"], #""arrow""#, "samples[1][4].stroke.end (path)"),
+        (["1", "4", "stroke", "end"], #"{ "shape": "arrow", "scale": 1 }"#, "samples[1][4].stroke.end (path)"),
+        (["1", "5", "stroke", "end", "shape"], #""circle""#, "samples[1][5].stroke.end.shape (path)"),
         (["1", "4", "stroke", "dash"], "[2, 2]", "samples[1][4].stroke.dash (path)"),
         (["1", "6", "runs", "0", "file"], #""/abs/Other.ttf""#, "samples[1][6].runs[0].file (glyphs)"),
         (["1", "6", "runs", "0", "face"], #""Inter-Regular""#, "samples[1][6].runs[0].face (glyphs)"),
@@ -357,6 +358,7 @@ struct DisplayListReaderTests {
         (["4", "stroke", "width"], "3"),
         (["4", "stroke", "paint"], #""color(srgb 1 1 1 / 1)""#),
         (["4", "stroke", "dashOffset"], "1"),
+        (["5", "stroke", "end", "scale"], "0.5"),
         (["4", "trim"], "[0, 1]"),
         (["6", "size"], "[100, 40]"),
         (["6", "background"], "null"),
@@ -1000,32 +1002,52 @@ struct DisplayListReaderTests {
                 #"items[0].geometry.ellipse (path): unknown key "radius". Allowed: rect"#
             ),
             (
-                ##"{ "width": 2, "paint": "color(srgb 1 1 1 / 1)", "align": "center", "join": "sharp", "cap": "butt", "start": "none", "end": "none" }"##,
+                ##"{ "width": 2, "paint": "color(srgb 1 1 1 / 1)", "align": "center", "join": "sharp", "cap": "butt", "start": null, "end": null }"##,
                 "stroke",
                 #"items[0].stroke.join (path): unknown value "sharp". Allowed: miter, round, bevel"#
             ),
             (
-                ##"{ "width": 2, "paint": "color(srgb 1 1 1 / 1)", "align": "center", "join": "round", "cap": "flat", "start": "none", "end": "none" }"##,
+                ##"{ "width": 2, "paint": "color(srgb 1 1 1 / 1)", "align": "center", "join": "round", "cap": "flat", "start": null, "end": null }"##,
                 "stroke",
                 #"items[0].stroke.cap (path): unknown value "flat". Allowed: butt, round, square"#
             ),
             (
-                ##"{ "width": 2, "paint": "color(srgb 1 1 1 / 1)", "align": "center", "join": "round", "cap": "butt", "start": "none", "end": "dot" }"##,
+                ##"{ "width": 2, "paint": "color(srgb 1 1 1 / 1)", "align": "center", "join": "round", "cap": "butt", "start": null, "end": { "shape": "dot", "scale": 1 } }"##,
                 "stroke",
-                #"items[0].stroke.end (path): unknown value "dot". Allowed: none, arrow"#
+                #"items[0].stroke.end.shape (path): unknown value "dot". Allowed: arrow, line-arrow, circle, square, diamond, bar"#
             ),
             (
-                ##"{ "width": 2, "paint": { "linear": { "from": [0, 0], "to": [1, 0], "stops": [[0, "color(srgb 1 1 1 / 1)"]] } }, "join": "round", "cap": "butt", "start": "none", "end": "none" }"##,
+                ##"{ "width": 2, "paint": "color(srgb 1 1 1 / 1)", "align": "center", "join": "round", "cap": "butt", "start": null, "end": "arrow" }"##,
+                "stroke",
+                #"items[0].stroke.end (path): expected an object, found "arrow""#
+            ),
+            (
+                ##"{ "width": 2, "paint": "color(srgb 1 1 1 / 1)", "align": "center", "join": "round", "cap": "butt", "start": "none", "end": null }"##,
+                "stroke",
+                #"items[0].stroke.start (path): expected an object, found "none""#
+            ),
+            (
+                ##"{ "width": 2, "paint": "color(srgb 1 1 1 / 1)", "align": "center", "join": "round", "cap": "butt", "start": { "shape": "none", "scale": 1 }, "end": null }"##,
+                "stroke",
+                #"items[0].stroke.start.shape (path): unknown value "none". Allowed: arrow, line-arrow, circle, square, diamond, bar"#
+            ),
+            (
+                ##"{ "width": 2, "paint": "color(srgb 1 1 1 / 1)", "align": "center", "join": "round", "cap": "butt", "start": null, "end": { "shape": "arrow", "size": 1 } }"##,
+                "stroke",
+                #"items[0].stroke.end (path): unknown key "size". Allowed: shape, scale"#
+            ),
+            (
+                ##"{ "width": 2, "paint": { "linear": { "from": [0, 0], "to": [1, 0], "stops": [[0, "color(srgb 1 1 1 / 1)"]] } }, "join": "round", "cap": "butt", "start": null, "end": null }"##,
                 "stroke",
                 "items[0].stroke.paint.linear.stops (path): a gradient has at least two stops, their offsets from 0 to 1 and in order"
             ),
             (
-                ##"{ "width": 2, "paint": { "radial": { "center": [0, 0], "radius": 1, "stops": [[0.5, "color(srgb 1 1 1 / 1)"], [0.2, "color(srgb 0 0 0 / 1)"]] } }, "join": "round", "cap": "butt", "start": "none", "end": "none" }"##,
+                ##"{ "width": 2, "paint": { "radial": { "center": [0, 0], "radius": 1, "stops": [[0.5, "color(srgb 1 1 1 / 1)"], [0.2, "color(srgb 0 0 0 / 1)"]] } }, "join": "round", "cap": "butt", "start": null, "end": null }"##,
                 "stroke",
                 "items[0].stroke.paint.radial.stops (path): a gradient has at least two stops, their offsets from 0 to 1 and in order"
             ),
             (
-                ##"{ "width": 2, "paint": "color(srgb 1 1 1 / 1)", "align": "middle", "join": "round", "cap": "butt", "start": "none", "end": "none" }"##,
+                ##"{ "width": 2, "paint": "color(srgb 1 1 1 / 1)", "align": "middle", "join": "round", "cap": "butt", "start": null, "end": null }"##,
                 "stroke",
                 #"items[0].stroke.align (path): unknown value "middle". Allowed: inside, center, outside"#
             ),
@@ -1090,10 +1112,59 @@ struct DisplayListReaderTests {
     }
 
     @Test(
+        "a path's stroke ends are written as null for no head or as the head's shape and scale, and read back",
+        arguments: StrokeEndShape.allCases
+    )
+    func readsWrittenEnds(shape: StrokeEndShape) throws {
+        // Given
+        let list = list(items: [
+            DisplayItem(content: .path(PathItem(
+                geometry: .polyline([Point(x: 10, y: 20), Point(x: 200, y: 20)], isClosed: false),
+                fill: nil,
+                stroke: PathStroke(
+                    width: 4,
+                    paint: .color(Color(written: "#FF3B30")),
+                    join: .miter,
+                    cap: .butt,
+                    start: StrokeEnd(shape: shape, scale: 2.5),
+                    end: StrokeEnd(shape: shape)
+                )
+            )))
+        ])
+
+        // When
+        let text = writer.write(list)
+        let read = try sut.read(text)
+
+        // Then
+        let items = try #require(try Fixture.json(text).objectValue?["items"]?.arrayValue?.compactMap(\.objectValue))
+        let stroke = try #require(items.first?["stroke"]?.objectValue)
+        let written = { (scale: Double) -> JSONValue in
+            shape == .none
+                ? .null
+                : .object(JSONObject(members: [
+                    JSONMember(key: "shape", value: .string(shape.rawValue)),
+                    JSONMember(key: "scale", value: .number(scale))
+                ]))
+        }
+        #expect(stroke["start"] == written(2.5))
+        #expect(stroke["end"] == written(1))
+        if shape == .none {
+            #expect(read.items.first.map { item -> Bool in
+                guard case let .path(path) = item.content else { return false }
+
+                return path.stroke?.start == StrokeEnd.none && path.stroke?.end == StrokeEnd.none
+            } == true)
+        } else {
+            #expect(read == list)
+        }
+    }
+
+    @Test(
         "a stroke inside or outside its outline on an open path or with an arrowhead stops, naming its stroke",
         arguments: [
-            (#"{ "path": { "vertices": [[0, 0], [5, 5], [10, 0]], "inTangents": [[0, 0], [0, 0], [0, 0]], "outTangents": [[0, 0], [0, 0], [0, 0]], "closed": false } }"#, "inside", "none"),
-            (#"{ "rect": { "rect": [0, 0, 1, 1], "radius": 0 } }"#, "outside", "arrow")
+            (#"{ "path": { "vertices": [[0, 0], [5, 5], [10, 0]], "inTangents": [[0, 0], [0, 0], [0, 0]], "outTangents": [[0, 0], [0, 0], [0, 0]], "closed": false } }"#, "inside", "null"),
+            (#"{ "rect": { "rect": [0, 0, 1, 1], "radius": 0 } }"#, "outside", #"{ "shape": "circle", "scale": 1 }"#)
         ]
     )
     func refusesAlignedStrokeOffClosedOutline(
@@ -1108,7 +1179,7 @@ struct DisplayListReaderTests {
               { "item": "path", "origin": null, "transform": [1, 0, 0, 1, 0, 0], "opacity": 1, "blend": "normal",
                 "mask": null, "trackMatte": null, "reveal": null, "geometry": \#(geometry), "fill": null,
                 "stroke": { "width": 2, "paint": "color(srgb 1 1 1 / 1)", "align": "\#(align)", "join": "round", "cap": "butt",
-                            "start": "none", "end": "\#(end)", "dash": null, "dashOffset": 0 },
+                            "start": null, "end": \#(end), "dash": null, "dashOffset": 0 },
                 "trim": [0, 1], "shadow": null } ] }
             """#
 

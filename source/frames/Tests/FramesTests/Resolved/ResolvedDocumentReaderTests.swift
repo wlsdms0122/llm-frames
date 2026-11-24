@@ -97,7 +97,8 @@ struct ResolvedDocumentReaderTests {
         // Each shape kind and form: a rect by its area with a style, outset, a shadow object and a stroke inside its
         // outline, a rect by its width and height keyframed, an ellipse by its box at a position stroked outside, an
         // ellipse by its area with a named anchor, an open path with keyframed points and trim, a closed path, scaled
-        // and turned, and a curved path whose tangents keyframe apart from its points.
+        // and turned, its ends a circle at scale 2 and a line arrow, and a curved path whose tangents keyframe apart from its
+        // points.
         ##"""
         { "kind": "sequence",
           "theme": { "shapes": { "outline": { "stroke": { "width": 8, "color": "#ED2929" }, "radius": 18 } } },
@@ -111,7 +112,7 @@ struct ResolvedDocumentReaderTests {
               "stroke": { "width": 3, "align": "outside", "join": "bevel", "cap": "square" }, "rotation": 30, "at": [0, 4] },
             { "shape": "ellipse", "area": [100, 100, 80, 40], "anchor": "bottom-right", "position": [400, 300], "fill": "#FFFFFF80",
               "shadow": true, "scale": 2, "at": [0, 4] },
-            { "shape": "path", "stroke": { "width": 6, "start": "arrow", "end": "arrow", "color": "#00FF00" }, "at": [0, 4],
+            { "shape": "path", "stroke": { "width": 6, "start": { "shape": "circle", "scale": 2 }, "end": "line-arrow", "color": "#00FF00" }, "at": [0, 4],
               "keyframes": [ { "at": 0, "points": [[0, 0], [100, 50], [200, 0]], "trim": [0, 0] },
                              { "at": 1, "points": [[0, 100], [100, 150], [200, 100]], "trim": [0.2, 1], "rotation": 45 } ] },
             { "shape": "path", "points": [[300, 300], [400, 300], [350, 380]], "closed": true, "fill": "accent", "stroke": false,
@@ -550,7 +551,7 @@ struct ResolvedDocumentReaderTests {
         arguments: [
             (#""shape": "rect""#, #""shape": "box""#, #"clips[0].shape (clip): unknown value "box". Allowed: rect, ellipse, path"#),
             (#""join": "round""#, #""join": "square""#, #"clips[0].stroke.join (stroke): unknown value "square". Allowed: miter, round, bevel"#),
-            (#""end": "none""#, #""end": "dot""#, #"clips[0].stroke.end (stroke): unknown value "dot". Allowed: none, arrow"#),
+            (#""shape": "none""#, #""shape": "dot""#, #"clips[0].stroke.start.shape (stroke): unknown value "dot". Allowed: none, arrow, line-arrow, circle, square, diamond, bar"#),
             (#""cap": "butt""#, #""cap": "butt", "head": 8"#, #"clips[0].stroke (stroke): unknown key "head". Allowed: color, gradient, width, align, join, cap, start, end, dash, dashOffset"#)
         ]
     )
@@ -567,6 +568,29 @@ struct ResolvedDocumentReaderTests {
 
         // Then
         #expect(error?.description == message)
+    }
+
+    @Test(
+        "a stroke's end written as a bare name, the form only a clip writes, stops, since a resolved end is its shape and scale",
+        arguments: [("start", "none"), ("end", "arrow")]
+    )
+    func refusesNamedEnd(
+        key: String,
+        name: String
+    ) throws {
+        // Given
+        let root = try #require(try JSONReader().read(written(Self.documents[3])).objectValue)
+        var clips = try #require(root["clips"]?.arrayValue)
+        let clip = try #require(clips[0].objectValue)
+        let stroke = try #require(clip["stroke"]?.objectValue)
+        clips[0] = .object(clip.setting("stroke", to: .object(stroke.setting(key, to: .string(name)))))
+        let text = JSONWriter().write(.object(root.setting("clips", to: .array(clips))))
+
+        // When
+        let error = #expect(throws: ModelError.self) { try sut.read(text) }
+
+        // Then
+        #expect(error?.description == #"clips[0].stroke.\#(key) (stroke): expected an object, found "\#(name)""#)
     }
 
     @Test(

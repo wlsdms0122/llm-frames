@@ -174,8 +174,8 @@ package struct DisplayListWriter: Sendable {
                 JSONMember(key: "align", value: .string(stroke.align.rawValue)),
                 JSONMember(key: "join", value: .string(stroke.join.rawValue)),
                 JSONMember(key: "cap", value: .string(stroke.cap.rawValue)),
-                JSONMember(key: "start", value: .string(stroke.start.rawValue)),
-                JSONMember(key: "end", value: .string(stroke.end.rawValue)),
+                JSONMember(key: "start", value: end(stroke.start)),
+                JSONMember(key: "end", value: end(stroke.end)),
                 JSONMember(key: "dash", value: stroke.dash.map { .array($0.map(JSONValue.number)) } ?? .null),
                 JSONMember(key: "dashOffset", value: .number(stroke.dashOffset))
             ]))
@@ -188,6 +188,16 @@ package struct DisplayListWriter: Sendable {
             JSONMember(key: "trim", value: values.numbers([path.trim.start, path.trim.end])),
             JSONMember(key: "shadow", value: shadow(path.shadow))
         ]
+    }
+
+    // A stroke's end, `null` where it draws no head.
+    private func end(_ end: StrokeEnd) -> JSONValue {
+        guard end.shape != .none else { return .null }
+
+        return .object(JSONObject(members: [
+            JSONMember(key: "shape", value: .string(end.shape.rawValue)),
+            JSONMember(key: "scale", value: .number(end.scale))
+        ]))
     }
 
     private func mask(_ mask: ItemMask) -> JSONValue {

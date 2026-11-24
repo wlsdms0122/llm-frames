@@ -66,7 +66,63 @@ struct PathItemTests {
         #expect(bounds == expected)
     }
 
+    @Test(
+        "a line's drawn bounds hold each head as drawn, reaching as far across the line as its width and no further along it than its tip",
+        arguments: [
+            (StrokeEnd.arrow, 4.0),
+            (StrokeEnd(shape: .lineArrow, scale: 2), 8.0),
+            (StrokeEnd(shape: .circle), 4.0),
+            (StrokeEnd(shape: .square, scale: 0.5), 2.0),
+            (StrokeEnd(shape: .diamond), 4.0),
+            (StrokeEnd(shape: .bar, scale: 2), 8.0)
+        ]
+    )
+    func boundsHoldHeads(
+        end: StrokeEnd,
+        half: Double
+    ) {
+        // Given
+        // A line 2 wide from (0, 50) to (100, 50), whose heads are 4 units of 2 wide across it at scale 1.
+        let sut = line(from: Point(x: 0, y: 50), to: Point(x: 100, y: 50), end: end)
+
+        // When
+        let bounds = sut.drawnBounds(carriedBy: .identity)
+
+        // Then
+        // The line's own reach of 1 past its outline holds its ends, and no head reaches past the tip at x = 100.
+        #expect(bounds == Rectangle(x: -1, y: 50 - max(half, 1), width: 102, height: 2 * max(half, 1)))
+    }
+
+    @Test("a circle head's drawn bounds are the circle's, not the square it is inscribed in, on a line at 45 degrees")
+    func boundsHoldTurnedCircle() {
+        // Given
+        let sut = line(from: Point(x: 0, y: 0), to: Point(x: 100, y: 100), end: StrokeEnd(shape: .circle))
+
+        // When
+        let bounds = sut.drawnBounds(carriedBy: .identity)
+
+        // Then
+        // The circle is 8 across, centred 4 back from the tip along the line, so it reaches 4 - 4 / √2 past the tip
+        // along each axis, and the line's own reach of 1 past its outline holds its start.
+        let far = 100 - 4 / 2.0.squareRoot() + 4
+        let near = -1.0
+        #expect(abs(bounds.maxX - far) < 1e-9 && abs(bounds.maxY - far) < 1e-9)
+        #expect(abs(bounds.x - near) < 1e-9 && abs(bounds.y - near) < 1e-9)
+    }
+
     // MARK: - Private
+    private func line(
+        from start: Point,
+        to end: Point,
+        end head: StrokeEnd
+    ) -> PathItem {
+        PathItem(
+            geometry: .polyline([start, end], isClosed: false),
+            fill: nil,
+            stroke: PathStroke(width: 2, paint: .color(Self.black), join: .miter, cap: .butt, start: .none, end: head)
+        )
+    }
+
     private func stroked(
         _ geometry: PathGeometry,
         align: StrokeAlign

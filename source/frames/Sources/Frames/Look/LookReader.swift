@@ -68,9 +68,15 @@ struct LookReader: Sendable {
         case .bool(true) where structure.shorthands.contains(.on):
             return .object(structure.keys.map { LookMember(key: $0.name, value: .unset) })
 
-        case let .string(color):
-            for case let .color(key) in structure.shorthands {
-                return .object([LookMember(key: key, value: .leaf(.string(color)))])
+        case .string:
+            for shorthand in structure.shorthands {
+                switch shorthand {
+                case let .color(key), let .name(key):
+                    return .object([LookMember(key: key, value: .leaf(json))])
+
+                case .on, .point:
+                    continue
+                }
             }
             return .leaf(json)
 

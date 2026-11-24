@@ -17,7 +17,7 @@ struct ValueTypeStructureTests {
     private static let aligns = StrokeAlign.allCases.map(\.rawValue)
     private static let joins = StrokeJoin.allCases.map(\.rawValue)
     private static let caps = StrokeCap.allCases.map(\.rawValue)
-    private static let ends = StrokeEnd.allCases.map(\.rawValue)
+    private static let ends = StrokeEndShape.allCases.map(\.rawValue)
 
     // MARK: - Initializer
     // MARK: - Test
@@ -50,8 +50,8 @@ struct ValueTypeStructureTests {
                     KeyRule("align", .literal(Self.aligns)),
                     KeyRule("join", .literal(Self.joins)),
                     KeyRule("cap", .literal(Self.caps)),
-                    KeyRule("start", .literal(Self.ends)),
-                    KeyRule("end", .literal(Self.ends)),
+                    KeyRule("start", Self.end("start")),
+                    KeyRule("end", Self.end("end")),
                     KeyRule("dash", .dash(isKeyframed: false)),
                     KeyRule("dashOffset", .number(.any))
                 ],
@@ -336,6 +336,17 @@ struct ValueTypeStructureTests {
     }
 
     // MARK: - Private
+    // A stroke's end: its head's name, or its shape and its scale.
+    private static func end(_ kind: String) -> ValueType {
+        .oneOf([
+            .literal(ends),
+            .object(ObjectTable(
+                kind: kind,
+                rules: [KeyRule("shape", .literal(ends)), KeyRule("scale", .number(.positive))]
+            ))
+        ])
+    }
+
     private static let gradient = ValueType.object(ObjectTable(
         kind: "gradient",
         rules: [

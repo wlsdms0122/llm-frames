@@ -20,8 +20,8 @@ struct ClipAppearancePlanner: Sendable {
         JSONMember(key: "align", value: .string(StrokeAlign.center.rawValue)),
         JSONMember(key: "join", value: .string(StrokeJoin.round.rawValue)),
         JSONMember(key: "cap", value: .string(StrokeCap.butt.rawValue)),
-        JSONMember(key: "start", value: .string(StrokeEnd.none.rawValue)),
-        JSONMember(key: "end", value: .string(StrokeEnd.none.rawValue)),
+        JSONMember(key: "start", value: .string(StrokeEndShape.none.rawValue)),
+        JSONMember(key: "end", value: .string(StrokeEndShape.none.rawValue)),
         JSONMember(key: "dashOffset", value: .number(0))
     ]))
 
@@ -698,7 +698,7 @@ struct ClipAppearancePlanner: Sendable {
     }
 
     // A stroke inside or outside its outline needs a closed outline, which a rect and an ellipse always have, and no
-    // arrowhead. Its `align`, `start` and `end` are static names of the merged stroke, and `closed` is static.
+    // head at either end. Its `align` and its ends' shapes are static names of the merged stroke, and `closed` is static.
     private func checkAlign(
         of stroke: TimedValue,
         shape: ClipShape,
@@ -711,7 +711,8 @@ struct ClipAppearancePlanner: Sendable {
         guard shape.kind != .path || shape.isClosed else {
             throw ResolveError.alignedStrokeOnOpenPath(place: place, kind: kind, align: align)
         }
-        guard !["start", "end"].contains(where: { stroke[$0] == .fixed(.string(StrokeEnd.arrow.rawValue)) }) else {
+        let none = TimedValue.fixed(.string(StrokeEndShape.none.rawValue))
+        guard ["start", "end"].allSatisfy({ stroke[$0]?["shape"] ?? none == none }) else {
             throw ResolveError.alignedStrokeWithArrowhead(place: place, kind: kind, align: align)
         }
     }
