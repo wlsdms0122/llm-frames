@@ -22,7 +22,7 @@ struct DocumentResolver {
     private static let pop = #"""
         { "description": "pops in", "entrance": { "seconds": 0.25, "keys": [ { "t": 0, "scale": 0.6, "opacity": 0 }, { "t": 1, "scale": 1 } ] } }
         """#
-    private static let manifest = #"{ "engine": "^1" }"#
+    private static let manifest = #"{ "engine": "^0.1" }"#
 
     private let directory: TemporaryDirectory
     private let decoder = AVFoundationDecoder()

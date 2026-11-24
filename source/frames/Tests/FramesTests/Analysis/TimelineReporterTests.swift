@@ -55,7 +55,7 @@ struct TimelineReporterTests {
 
         // Then
         let expected = #"""
-            {"timeline": "1.0.0", "duration": 4, "storyline": [\#
+            {"timeline": "0.1.0", "duration": 4, "storyline": [\#
             {"place": "storyline[0]#intro", "id": "intro", "media": "/abs/short.mp4", "edit": [0, 2], "drawn": [0, 2.5], "clip": [1, 3], "sound": null, "speed": 1, "timeRemap": false, "transition": null}, \#
             {"place": "storyline[1]", "id": null, "media": null, "edit": [2, 4], "drawn": [1.5, 4], "clip": [0, 2], "sound": null, "speed": 1, "timeRemap": false, "transition": {"preset": "frames/flash", "seconds": 1}}], \#
             "clips": [\#
@@ -76,7 +76,7 @@ struct TimelineReporterTests {
 
         // Then
         let expected = #"""
-            {"timeline": "1.0.0", "duration": 4, "storyline": [\#
+            {"timeline": "0.1.0", "duration": 4, "storyline": [\#
             {"place": "storyline[0]#intro", "id": "intro", "media": "/abs/short.mp4", "edit": [0, 2], "drawn": [0, 2.5], "clip": [1, 3], "sound": null, "speed": 1, "timeRemap": false, "transition": null}, \#
             {"place": "storyline[1]", "id": null, "media": null, "edit": [2, 4], "drawn": [1.5, 4], "clip": [0, 2], "sound": null, "speed": 1, "timeRemap": false, "transition": {"preset": null, "seconds": 1}}], \#
             "clips": [\#
@@ -187,7 +187,7 @@ struct TimelineReporterTests {
         let nested = try #require(entry["nested"]?.objectValue)
         #expect(entry["media"] == .null)
         #expect(entry["clip"] == .array([.number(0), .number(2)]))
-        #expect(nested["timeline"] == .string("1.0.0"))
+        #expect(nested["timeline"] == .string("0.1.0"))
         #expect(nested["clips"]?.arrayValue?.first?.objectValue?["place"] == .string("storyline[0].media.clips[0]"))
     }
 
@@ -227,12 +227,12 @@ struct TimelineReporterTests {
 
         // Then
         let expected = #"""
-            {"timeline": "1.0.0", "duration": 3, "storyline": [\#
+            {"timeline": "0.1.0", "duration": 3, "storyline": [\#
             {"place": "storyline[0]", "id": null, "media": null, "edit": [0, 2], "drawn": [0, 2], "clip": [0, 2], "sound": null, "speed": 1, "timeRemap": false, "transition": null, "nested": \#
-            {"timeline": "1.0.0", "duration": 2, "storyline": [\#
+            {"timeline": "0.1.0", "duration": 2, "storyline": [\#
             {"place": "storyline[0].media.storyline[0]", "id": null, "media": "shorts/leak.mov", "edit": [0, 2], "drawn": [0, 2], "clip": [0, 2], "sound": null, "speed": 1, "timeRemap": false, "transition": null}], "clips": []}}, \#
             {"place": "storyline[1]", "id": null, "media": "shorts/intro.json", "edit": [2, 3], "drawn": [2, 3], "clip": [0, 1], "sound": null, "speed": 1, "timeRemap": false, "transition": null, "nested": \#
-            {"timeline": "1.0.0", "duration": 1, "storyline": [\#
+            {"timeline": "0.1.0", "duration": 1, "storyline": [\#
             {"place": "storyline[1].media.storyline[0]", "id": null, "media": "shorts/leak.mov", "edit": [0, 1], "drawn": [0, 1], "clip": [0, 1], "sound": null, "speed": 1, "timeRemap": false, "transition": null}], "clips": []}}], \#
             "clips": []}
             """#
@@ -443,7 +443,7 @@ struct TimelineReporterTests {
 
         // Then
         let expected = #"""
-            {"timeline": "1.0.0", "duration": 2, "storyline": [\#
+            {"timeline": "0.1.0", "duration": 2, "storyline": [\#
             {"place": "storyline[0]#screen", "id": "screen", "media": "/abs/screen.mp4", "edit": [0, 2], "drawn": [0, 2], "clip": [1, 3], "sound": null, "speed": 1, "timeRemap": false, "transition": null}], \#
             "clips": [\#
             {"place": "storyline[0]#screen.connected[0]", "id": null, "kind": "rect", "visible": [0.5, 1], "sound": null, "lane": 1, "storyline": "storyline[0]#screen", "parent": "storyline[0]#screen", "animation": null}, \#

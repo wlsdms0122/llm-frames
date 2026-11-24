@@ -173,10 +173,10 @@ struct RepositoryPacksTests {
         #expect(packs == expected)
     }
 
-    @Test("packs lists the pack frames ships and every installed pack with the name, version 1.0.0 and description its pack.json gives")
+    @Test("packs lists the pack frames ships and every installed pack with the name, version 0.1.0 and description its pack.json gives")
     func listsPacks() {
         // Given
-        let expected: [[String?]] = (Self.packNames + ["frames"]).sorted().map { [$0, "1.0.0"] }
+        let expected: [[String?]] = (Self.packNames + ["frames"]).sorted().map { [$0, "0.1.0"] }
 
         // When
         let code = sut.run(["packs"])

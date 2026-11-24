@@ -5,7 +5,7 @@
 //  Created by JSilver on 11/17/26.
 //
 
-// `{"evaluate": "1.0.0", time, size, items, texts}`, the object `evaluate` prints. Each item is `{place, id, kind,
+// `{"evaluate": "0.1.0", time, size, items, texts}`, the object `evaluate` prints. Each item is `{place, id, kind,
 // item, bounds, opacity, transform, rect, cornerPins, characters}` with `bounds` as `[x, y, w, h]` in output pixels, or
 // `null` where it covers nothing, `transform` as `[a, b, c, d, tx, ty]`, `rect` as `[x, y, w, h]` in the item's own
 // coordinates, `cornerPins` a list of `{dest, cornerPin}`, each four points `[x, y]`, or `null` on an item no corner

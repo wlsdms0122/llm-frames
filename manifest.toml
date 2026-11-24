@@ -5,7 +5,7 @@ version = "1.0.0"
 
 [package]
 name = "frames"
-version = "1.0.0"
+version = "0.1.0"
 description = "Edits images and video from a JSON timeline an agent writes, on a render engine that can be swapped"
 requires = ["swift", "sh"]
 

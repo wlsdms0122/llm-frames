@@ -188,29 +188,29 @@ struct MixPlanReaderTests {
 
     @Test(
         "a mix plan from a later minor version or another major version is refused, naming both versions",
-        arguments: ["1.1.0", "2.0.0", "0.9.0"]
+        arguments: ["0.2.0", "1.0.0"]
     )
     func refusesOtherVersion(version: String) throws {
         // Given
-        let text = replacingFirst(#""mixPlan": "1.0.0""#, with: #""mixPlan": "\#(version)""#, in: written())
+        let text = replacingFirst(#""mixPlan": "0.1.0""#, with: #""mixPlan": "\#(version)""#, in: written())
 
         // When
         let error = #expect(throws: EvaluateError.self) { try sut.read(text) }
 
         // Then
         #expect(error?.description == #"""
-            mixPlan (mix plan): the mix plan was written by frames "\#(version)", and frames 1.0.0 reads only one \#
-            written by frames 1.0 up to 1.0
+            mixPlan (mix plan): the mix plan was written by frames "\#(version)", and frames 0.1.0 reads only one \#
+            written by frames 0.0 up to 0.1
             """#)
     }
 
     @Test(
         "a member that is missing, of another type, or never written there stops, naming its place",
         arguments: [
-            (#""mixPlan": "1.0.0","#, "", #"top level (mix plan): missing key "mixPlan""#),
+            (#""mixPlan": "0.1.0","#, "", #"top level (mix plan): missing key "mixPlan""#),
             (#""speed": 2,"#, "", #"segments[0] (segment): missing key "speed""#),
             (#""speed": 2,"#, #""speed": 2, "rate": 2,"#, #"segments[0] (segment): unknown key "rate". Allowed: media, mediaStart, speed, start, end, filter, envelope, pan"#),
-            (#""mixPlan": "1.0.0","#, #""mixPlan": "1.0.0", "duration": 4,"#, #"top level (mix plan): unknown key "duration". Allowed: mixPlan, length, segments, buses, filter"#),
+            (#""mixPlan": "0.1.0","#, #""mixPlan": "0.1.0", "duration": 4,"#, #"top level (mix plan): unknown key "duration". Allowed: mixPlan, length, segments, buses, filter"#),
             (#""length": 192000,"#, "", #"top level (mix plan): missing key "length""#),
             (#""length": 192000,"#, #""length": 192000.5,"#, #"length (mix plan): expected a whole number, found 192000.5"#),
             (#""end": 3,"#, #""end": "3","#, #"segments[0].end (segment): expected a number, found "3""#)

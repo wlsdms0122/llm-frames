@@ -778,26 +778,26 @@ struct DisplayListReaderTests {
 
     @Test(
         "a display list from a later minor version or another major version is refused, naming both versions",
-        arguments: ["1.1.0", "2.0.0", "0.9.0"]
+        arguments: ["0.2.0", "1.0.0"]
     )
     func refusesOtherVersion(version: String) throws {
         // Given
-        let text = replacingFirst(#""displayList": "1.0.0""#, with: #""displayList": "\#(version)""#, in: written())
+        let text = replacingFirst(#""displayList": "0.1.0""#, with: #""displayList": "\#(version)""#, in: written())
 
         // When
         let error = #expect(throws: EvaluateError.self) { try sut.read(text) }
 
         // Then
         #expect(error?.description == #"""
-            displayList (display list): the display list was written by frames "\#(version)", and frames 1.0.0 reads \#
-            only one written by frames 1.0 up to 1.0
+            displayList (display list): the display list was written by frames "\#(version)", and frames 0.1.0 reads \#
+            only one written by frames 0.0 up to 0.1
             """#)
     }
 
     @Test(
         "a member that is missing, of another type, or never written there stops, naming its place",
         arguments: [
-            (#""displayList": "1.0.0","#, "", #"top level (display list): missing key "displayList""#),
+            (#""displayList": "0.1.0","#, "", #"top level (display list): missing key "displayList""#),
             (#""trim": [0.125, 0.625]"#, #""trimmed": [0.125, 0.625]"#, #"items[4] (path): unknown key "trimmed". Allowed: item, origin, transform, opacity, blend, mask, trackMatte, reveal, geometry, fill, stroke, trim, shadow"#),
             (#""rect": [0, 0, 1080, 1920],"#, "", #"items[2].geometry.rect (path): missing key "rect""#),
             (#""blend": "multiply""#, #""blend": "linear-dodge""#, #"items[0].blend (picture): unknown value "linear-dodge". Allowed: normal, multiply, screen, overlay, darken, lighten, color-dodge, color-burn, hard-light, soft-light, difference, exclusion, plus-lighter, hue, saturation, color, luminosity, add"#),

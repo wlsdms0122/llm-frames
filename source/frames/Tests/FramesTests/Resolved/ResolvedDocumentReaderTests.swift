@@ -407,19 +407,19 @@ struct ResolvedDocumentReaderTests {
 
     @Test(
         "a resolved document from a later minor version or another major version is refused, naming both versions",
-        arguments: ["1.1.0", "2.0.0", "0.9.0"]
+        arguments: ["0.2.0", "1.0.0"]
     )
     func refusesOtherVersion(version: String) throws {
         // Given
-        let text = try replacingFirst(#""resolved": "1.0.0""#, with: #""resolved": "\#(version)""#, in: written(Self.documents[0]))
+        let text = try replacingFirst(#""resolved": "0.1.0""#, with: #""resolved": "\#(version)""#, in: written(Self.documents[0]))
 
         // When
         let error = #expect(throws: ResolveError.self) { try sut.read(text) }
 
         // Then
         #expect(error?.description == #"""
-            resolved (sequence): the resolved document was written by frames "\#(version)", and frames 1.0.0 reads only one \#
-            written by frames 1.0 up to 1.0
+            resolved (sequence): the resolved document was written by frames "\#(version)", and frames 0.1.0 reads only one \#
+            written by frames 0.0 up to 0.1
             """#)
     }
 

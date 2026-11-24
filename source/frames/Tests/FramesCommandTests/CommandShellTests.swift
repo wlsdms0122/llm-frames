@@ -29,7 +29,7 @@ struct CommandShellTests {
 
         // Then
         #expect(code == 0)
-        #expect(sut.standardOutput == "1.0.0\n")
+        #expect(sut.standardOutput == "0.1.0\n")
         #expect(sut.standardError.isEmpty)
     }
 
@@ -204,7 +204,7 @@ struct CommandShellTests {
     @Test("a resolved document has its theme and arguments written in, so --theme or --args with it stops")
     func stopsOnOptionsWithResolvedDocument() throws {
         // Given
-        let document = try sut.write(#"{ "kind": "sequence", "resolved": "1.0.0" }"#, named: "resolved.json")
+        let document = try sut.write(#"{ "kind": "sequence", "resolved": "0.1.0" }"#, named: "resolved.json")
         let arguments = try sut.write("{}", named: "args.json")
 
         // When

@@ -36,10 +36,10 @@ mine/
 `pack.json` says which versions of frames the pack is written for, and what `frames packs` shows:
 
 ```json
-{ "engine": "^1", "name": "Mine", "version": "1.0.0", "description": "A dark look, a dip, two grades and three templates for an interview series" }
+{ "engine": "^0.1", "name": "Mine", "version": "1.0.0", "description": "A dark look, a dip, two grades and three templates for an interview series" }
 ```
 
-- `engine` is required. `^1` is any 1.x, and `^1.2` is 1.2.0 or later before 2.0.0. Outside its range the pack stops when it is used, naming both versions: `pack "mine" is written for frames ^2, and this is frames 1.0.0`.
+- `engine` is required. `^0.1` is 0.1.0 or later before 1.0.0, and `^1` is any 1.x. Outside its range the pack stops when it is used, naming both versions: `pack "mine" is written for frames ^1, and this is frames 0.1.0`.
 - `name`, `version` and `description` are optional strings, only for people. Any other key stops, and so does a pack directory without a `pack.json`.
 
 ## Installing
@@ -53,7 +53,7 @@ frames packs
 ```
 
 ```
-frames  Frames  1.0.0  The transitions, animations and filters that ship with frames
+frames  Frames  0.1.0  The transitions, animations and filters that ship with frames
 mine  Mine  1.0.0  A dark look, a dip, two grades and three templates for an interview series
 ```
 

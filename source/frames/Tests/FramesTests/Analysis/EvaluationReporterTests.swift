@@ -633,7 +633,7 @@ struct EvaluationReporterTests {
         // Then
         #expect(text == #"""
             {
-              "evaluate": "1.0.0",
+              "evaluate": "0.1.0",
               "time": 1,
               "size": [200, 100],
               "items": [

@@ -52,7 +52,7 @@ struct OCRReporterTests {
 
         // Then
         let expected = #"""
-            {"ocr": "1.0.0", "size": [400, 300], "languages": null, "frames": [{"time": 0, "lines": [\#
+            {"ocr": "0.1.0", "size": [400, 300], "languages": null, "frames": [{"time": 0, "lines": [\#
             {"text": "First", "rect": [10, 20, 100, 30]}]}]}
             """#
         #expect(report.machineOutput.written == expected)
@@ -72,7 +72,7 @@ struct OCRReporterTests {
 
         // Then
         let expected = #"""
-            {"ocr": "1.0.0", "size": [400, 300], "languages": null, "frames": [{"time": 0, "lines": [\#
+            {"ocr": "0.1.0", "size": [400, 300], "languages": null, "frames": [{"time": 0, "lines": [\#
             {"text": "Send", "rect": [94, 188, 128, 42]}]}]}
             """#
         #expect(report.machineOutput.written == expected)
@@ -102,7 +102,7 @@ struct OCRReporterTests {
 
         // Then
         let expected = #"""
-            {"ocr": "1.0.0", "size": [595.2756, 841.8898], "languages": null, "frames": [{"time": 0, "lines": [\#
+            {"ocr": "0.1.0", "size": [595.2756, 841.8898], "languages": null, "frames": [{"time": 0, "lines": [\#
             {"text": "Second", "rect": [10, 100, 120.4, 30]}]}]}
             """#
         #expect(page.machineOutput.written == expected)

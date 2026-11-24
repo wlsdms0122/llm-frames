@@ -48,7 +48,7 @@ struct ProbeReporterTests {
 
         // Then
         let expected = #"""
-            {"probe": "1.0.0", "kind": "video", "size": [1080, 1920], "duration": 2, "fps": 29.97, "alpha": false, \#
+            {"probe": "0.1.0", "kind": "video", "size": [1080, 1920], "duration": 2, "fps": 29.97, "alpha": false, \#
             "colorSpace": {"name": "rec2100-pq", "primaries": 9, "transfer": 16, "matrix": 9, "bitDepth": 10, \#
             "hdr": true}, "audio": {"channels": 2, "sampleRate": 48000}, "pages": null}
             """#
@@ -103,7 +103,7 @@ struct ProbeReporterTests {
 
         // Then
         let expected = #"""
-            {"probe": "1.0.0", "kind": "page", "size": [595.2756, 841.8898], "duration": null, "fps": null, \#
+            {"probe": "0.1.0", "kind": "page", "size": [595.2756, 841.8898], "duration": null, "fps": null, \#
             "alpha": true, "colorSpace": {"name": "srgb", "primaries": 1, "transfer": 13, "matrix": null, \#
             "bitDepth": null, "hdr": false}, "audio": null, "pages": 2}
             """#
@@ -130,7 +130,7 @@ struct ProbeReporterTests {
         // Then
         #expect(one.kind == "page" && one.size == Size(width: 64, height: 32) && one.pageCount == 1)
         let expected = #"""
-            {"probe": "1.0.0", "kind": null, "size": null, "duration": null, "fps": null, "alpha": null, \#
+            {"probe": "0.1.0", "kind": null, "size": null, "duration": null, "fps": null, "alpha": null, \#
             "colorSpace": null, "audio": null, "pages": 2}
             """#
         #expect(several.machineOutput.written == expected)

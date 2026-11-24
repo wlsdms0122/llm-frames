@@ -5,7 +5,7 @@
 //  Created by JSilver on 11/17/26.
 //
 
-// `{"ocr": "1.0.0", size, languages, frames}`, the object `ocr --json` prints: `size` as `[width, height]`,
+// `{"ocr": "0.1.0", size, languages, frames}`, the object `ocr --json` prints: `size` as `[width, height]`,
 // `languages` the tags asked for or `null`, each frame `{time, lines}` and each line `{text, rect}`, its rectangle
 // `[x, y, w, h]` in media pixels.
 extension OCRReport {

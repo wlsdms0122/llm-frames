@@ -25,7 +25,7 @@ struct PacksCommandTests {
     func listsPacks() throws {
         // Given
         try sut.addPack("shorts")
-        try sut.addPack("demo", manifest: #"{ "engine": "^1" }"#, in: sut.shipped)
+        try sut.addPack("demo", manifest: #"{ "engine": "^0.1" }"#, in: sut.shipped)
         try sut.write("", to: sut.installed.appendingPathComponent(".DS_Store"))
         try sut.write("", to: sut.shipped.appendingPathComponent(".gitkeep"))
 

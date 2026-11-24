@@ -41,7 +41,7 @@ How it is written, so the same plan gives the same bytes:
 
 ```json
 {
-  "kind": "sequence", "resolved": "1.0.0",
+  "kind": "sequence", "resolved": "0.1.0",
   "format": { "size": [1920, 1080], "fps": 25, "duration": 9, "background": "color(srgb 0 0 0 / 1)", "conform": "fill",
               "colorSpace": "srgb", "peak": null, "compositing": "encoded",
               "motionBlur": { "shutterAngle": 180, "shutterPhase": 0, "samplesPerFrame": 16 } },

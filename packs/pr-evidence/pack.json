@@ -1,6 +1,6 @@
 {
-  "engine": "^1",
+  "engine": "^0.1",
   "name": "PR evidence",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "description": "Screenshots and recordings that prove what a pull request changes"
 }
