@@ -29,9 +29,9 @@ package struct PathOutline: Equatable, Sendable {
         switch geometry {
         case let .rect(rectangle, radius):
             let frame = Self.standardized(rectangle)
-            let corner = max(0, min(radius, frame.width / 2, frame.height / 2))
-            segments = Self.segments(of: frame, radius: corner)
-            start = Point(x: frame.x + corner, y: frame.y)
+            let corners = radius.fitted(to: Size(width: frame.width, height: frame.height))
+            segments = Self.segments(of: frame, radius: corners)
+            start = Point(x: frame.x + corners.topLeft, y: frame.y)
             isClosed = true
 
         case let .ellipse(rectangle):
@@ -209,16 +209,17 @@ package struct PathOutline: Equatable, Sendable {
         )
     }
 
-    // Top edge, top right corner, right edge and so on round to the top left corner.
+    // Top edge, top right corner, right edge and so on round to the top left corner, each corner an arc of its own
+    // radius, which `radius` has already fitted to the frame.
     private static func segments(
         of frame: Rectangle,
-        radius: Double
+        radius: CornerRadii
     ) -> [OutlineSegment] {
         let minX = frame.x
         let minY = frame.y
         let maxX = frame.maxX
         let maxY = frame.maxY
-        let corner = { (x: Double, y: Double, start: Double) in
+        let corner = { (x: Double, y: Double, radius: Double, start: Double) in
             OutlineSegment.arc(
                 center: Point(x: x, y: y),
                 radii: Size(width: radius, height: radius),
@@ -226,16 +227,20 @@ package struct PathOutline: Equatable, Sendable {
                 sweep: .pi / 2
             )
         }
+        let topLeft = radius.topLeft
+        let topRight = radius.topRight
+        let bottomRight = radius.bottomRight
+        let bottomLeft = radius.bottomLeft
 
         return [
-            .line(from: Point(x: minX + radius, y: minY), to: Point(x: maxX - radius, y: minY)),
-            corner(maxX - radius, minY + radius, -.pi / 2),
-            .line(from: Point(x: maxX, y: minY + radius), to: Point(x: maxX, y: maxY - radius)),
-            corner(maxX - radius, maxY - radius, 0),
-            .line(from: Point(x: maxX - radius, y: maxY), to: Point(x: minX + radius, y: maxY)),
-            corner(minX + radius, maxY - radius, .pi / 2),
-            .line(from: Point(x: minX, y: maxY - radius), to: Point(x: minX, y: minY + radius)),
-            corner(minX + radius, minY + radius, .pi)
+            .line(from: Point(x: minX + topLeft, y: minY), to: Point(x: maxX - topRight, y: minY)),
+            corner(maxX - topRight, minY + topRight, topRight, -.pi / 2),
+            .line(from: Point(x: maxX, y: minY + topRight), to: Point(x: maxX, y: maxY - bottomRight)),
+            corner(maxX - bottomRight, maxY - bottomRight, bottomRight, 0),
+            .line(from: Point(x: maxX - bottomRight, y: maxY), to: Point(x: minX + bottomLeft, y: maxY)),
+            corner(minX + bottomLeft, maxY - bottomLeft, bottomLeft, .pi / 2),
+            .line(from: Point(x: minX, y: maxY - bottomLeft), to: Point(x: minX, y: minY + topLeft)),
+            corner(minX + topLeft, minY + topLeft, topLeft, .pi)
         ]
     }
 

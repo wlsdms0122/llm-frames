@@ -184,7 +184,7 @@ struct ResolvedValueReader: Sendable {
         case "rect":
             let rect = try form.object(keys: ["rect", "radius"])
 
-            return .rect(try rectangle(rect.member("rect")), radius: try rect.member("radius").number())
+            return .rect(try rectangle(rect.member("rect")), radius: try cornerRadii(rect.member("radius")))
 
         case "ellipse":
             return .ellipse(try rectangle(form.object(keys: ["rect"]).member("rect")))
@@ -338,6 +338,15 @@ struct ResolvedValueReader: Sendable {
 
     func followedNumbers(_ value: PlacedJSONValue) throws -> FollowedValue<Double> {
         try followedKeyframes(value) { try $0.number() }
+    }
+
+    // Corner radii as their four radii, or one number, the radius of every corner (FRAMES-19 Timed values).
+    func cornerRadii(_ value: PlacedJSONValue) throws -> CornerRadii {
+        if let number = value.value.numberValue {
+            return CornerRadii(number)
+        }
+
+        return CornerRadii(values: try value.numbers(count: 4)) ?? .zero
     }
 
     func scales(_ value: PlacedJSONValue) throws -> [Keyframe<Scale>] {
@@ -566,7 +575,7 @@ struct ResolvedValueReader: Sendable {
                 return ResolvedBackground(
                     color: try timed(background.member("color"), as: .leaf(.color)),
                     padding: try timed(background.member("padding"), as: .leaf(.lengths(count: 2, domain: .nonNegative))),
-                    radius: try timed(background.member("radius"), as: length)
+                    radius: try timed(background.member("radius"), as: LookStructureTable.radius)
                 )
             },
             writingMode: writingMode,
@@ -626,6 +635,9 @@ struct ResolvedValueReader: Sendable {
         case let .numbers(count):
             .numbers(try value.numbers(count: count))
 
+        case .corners:
+            .numbers(try cornerRadii(value).values)
+
         case .number, .name, .boolean, .file, .staticNumber:
             .number(try value.number())
         }
@@ -659,7 +671,7 @@ struct ResolvedValueReader: Sendable {
         switch name {
         case "rect":
             let rect = try form.object(keys: ["rect", "width", "height", "position", "radius"])
-            return .rect(try maskRectangle(rect), radius: try followedNumbers(rect.member("radius")))
+            return .rect(try maskRectangle(rect), radius: try followedKeyframes(rect.member("radius"), read: cornerRadii))
 
         case "ellipse":
             return .ellipse(try maskRectangle(form.object(keys: ["rect", "width", "height", "position"])))
@@ -734,7 +746,7 @@ struct ResolvedValueReader: Sendable {
                 return ResolvedHighlight(
                     color: try timed(highlight.member("color"), as: .leaf(.color)),
                     padding: try timed(highlight.member("padding"), as: .leaf(.lengths(count: 2, domain: .nonNegative))),
-                    radius: try timed(highlight.member("radius"), as: length),
+                    radius: try timed(highlight.member("radius"), as: LookStructureTable.radius),
                     rects: try highlight.member("rects").elements().map(rectangle)
                 )
             },
@@ -792,7 +804,7 @@ struct ResolvedValueReader: Sendable {
 
                 return DrawnHighlight(
                     rects: rects,
-                    radius: try highlight.member("radius").number(),
+                    radius: try cornerRadii(highlight.member("radius")),
                     color: try color(highlight.member("color")),
                     bands: try bands(highlight.member("bands"), count: rects.count)
                 )

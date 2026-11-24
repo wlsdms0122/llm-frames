@@ -70,7 +70,7 @@ package struct GlyphsItem: Equatable, Sendable {
                 background.color.sampled(at: time, as: .leaf(.color)).color.map { color in
                     GlyphBackground(
                         rectangle: text.boxInTextBox(at: time),
-                        radius: background.radius.sampled(at: time, as: .leaf(.length(.any))).number ?? 0,
+                        radius: background.radius.sampled(at: time, as: LookStructureTable.radius).cornerRadii ?? .zero,
                         color: color
                     )
                 }

@@ -97,7 +97,7 @@ struct DisplayListChecker {
             case .displayList = picture.source,
             picture.filter.isEmpty,
             picture.matte == nil,
-            picture.radius == 0,
+            picture.radius.isZero,
             picture.border == nil,
             picture.shadow == nil,
             reveal == nil

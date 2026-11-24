@@ -206,6 +206,9 @@ struct ClipLookPlanner: Sendable {
         case .numbers:
             return .numbers((value.arrayValue ?? []).compactMap(\.numberValue).map { $0 * length })
 
+        case .corners:
+            return .numbers(CornerRadii(written: value).scaled(by: length).values)
+
         case .number, .name, .boolean, .file, .staticNumber:
             return .number((value.numberValue ?? 0) * length)
         }

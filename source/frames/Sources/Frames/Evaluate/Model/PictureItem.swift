@@ -18,7 +18,7 @@ package struct PictureItem: Equatable, Sendable {
     package let destination: Rectangle
     package let filter: [FilterEntry]
     package let matte: PictureMatte?
-    package let radius: Double
+    package let radius: CornerRadii
     package let border: MediaBorder?
     package let shadow: DropShadow?
     package let cornerPin: Quad?
@@ -30,7 +30,7 @@ package struct PictureItem: Equatable, Sendable {
         destination: Rectangle,
         filter: [FilterEntry] = [],
         matte: PictureMatte? = nil,
-        radius: Double = 0,
+        radius: CornerRadii = .zero,
         border: MediaBorder? = nil,
         shadow: DropShadow? = nil,
         cornerPin: Quad? = nil

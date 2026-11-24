@@ -65,7 +65,7 @@ struct ResolvedMask: Equatable, Sendable {
 
     // The same mask with each keyframe of its geometry carried to another space at its own time: an area, a box's
     // centre and each vertex's point by `area` and `point`, each tangent, an offset, by `tangent`, and a box's size
-    // and a rect's radius by the factor `scale` gives.
+    // and a rect's corner radii by the factor `scale` gives.
     // The time is nil for a static value true on the track's frame. A clip area is in the space the clip is drawn in,
     // so it stays, and the feather is in output pixels and stays.
     func carried(
@@ -78,7 +78,7 @@ struct ResolvedMask: Equatable, Sendable {
         case let .rect(box, radius):
             .rect(
                 try Self.carried(box, area: area, point: point, scale: scale),
-                radius: try Self.carried(radius) { try $0 * scale($1) }
+                radius: try Self.carried(radius) { try $0.scaled(by: scale($1)) }
             )
 
         case let .ellipse(box):

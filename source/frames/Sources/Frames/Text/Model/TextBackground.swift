@@ -6,18 +6,18 @@
 //
 
 // A box behind the text. `padding` is its room on the block axis, above and below horizontal text (`height`), and on
-// the inline axis, at both ends of its lines (`width`), in output pixels, as is `radius`.
+// the inline axis, at both ends of its lines (`width`), in output pixels, as are its corner radii.
 struct TextBackground: Equatable, Sendable {
     // MARK: - Property
     let color: Color
     let padding: Size
-    let radius: Double
+    let radius: CornerRadii
 
     // MARK: - Initializer
     init(
         color: Color,
         padding: Size,
-        radius: Double
+        radius: CornerRadii
     ) {
         self.color = color
         self.padding = padding

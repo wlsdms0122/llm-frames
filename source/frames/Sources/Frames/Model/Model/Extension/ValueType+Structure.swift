@@ -124,6 +124,9 @@ extension ValueType {
         case let .numbers(count):
             return .numbers(count, domain)
 
+        case .corners:
+            return .oneOf([.number(domain), .numbers(4, domain)])
+
         case .number, .staticNumber:
             return .number(domain)
         }

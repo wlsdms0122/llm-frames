@@ -125,7 +125,7 @@ struct ResolvedValueWriter: Sendable {
         case let .rect(rectangle, radius):
             return form("rect", [
                 JSONMember(key: "rect", value: self.rectangle(rectangle)),
-                JSONMember(key: "radius", value: .number(radius))
+                JSONMember(key: "radius", value: cornerRadii(radius))
             ])
 
         case let .ellipse(rectangle):
@@ -246,6 +246,11 @@ struct ResolvedValueWriter: Sendable {
 
     func followedNumbers(_ followed: FollowedValue<Double>) -> JSONValue {
         self.followed(followed) { .number($0) }
+    }
+
+    // Corner radii are written as their four radii, equal or not (FRAMES-19 Timed values).
+    func cornerRadii(_ radii: CornerRadii) -> JSONValue {
+        numbers(radii.values)
     }
 
     // A scale is written as its pair, `[sx, sy]`.
@@ -470,7 +475,7 @@ struct ResolvedValueWriter: Sendable {
                 JSONMember(key: "highlight", value: run.highlight.map { highlight in
                     .object(JSONObject(members: [
                         JSONMember(key: "rects", value: .array(highlight.rects.map(rectangle))),
-                        JSONMember(key: "radius", value: .number(highlight.radius)),
+                        JSONMember(key: "radius", value: cornerRadii(highlight.radius)),
                         JSONMember(key: "color", value: color(highlight.color)),
                         JSONMember(key: "bands", value: bands(highlight.bands))
                     ]))
@@ -502,7 +507,7 @@ struct ResolvedValueWriter: Sendable {
 
         switch geometry {
         case let .rect(rectangle, radius):
-            return form("rect", members(of: rectangle) + [JSONMember(key: "radius", value: followedNumbers(radius))])
+            return form("rect", members(of: rectangle) + [JSONMember(key: "radius", value: followed(radius, value: cornerRadii))])
 
         case let .ellipse(rectangle):
             return form("ellipse", members(of: rectangle))

@@ -55,7 +55,7 @@ struct ShapeEvaluatorTests {
         let factor = item.transform.lengthFactor
         #expect(abs(try #require(path.stroke).width - 4 * 6) < 1e-9)
         if case let .rect(_, radius) = path.geometry {
-            #expect(abs(radius * factor - 2 * 6) < 1e-9)
+            #expect(abs(radius.topLeft * factor - 2 * 6) < 1e-9)
         }
         #expect(abs(try #require(path.shadow).radius - 6 * 6) < 1e-9)
         #expect(abs(try #require(path.shadow).offset.y * factor - 4 * 6) < 1e-9)
@@ -86,8 +86,8 @@ struct ShapeEvaluatorTests {
             return
         }
         #expect(abs(try #require(path.stroke).width - 4 * 2.0.squareRoot()) < 1e-9)
-        #expect(abs(radius * item.transform.a - 2 * 2) < 1e-9)
-        #expect(abs(radius * item.transform.d - 2) < 1e-9)
+        #expect(abs(radius.topLeft * item.transform.a - 2 * 2) < 1e-9)
+        #expect(abs(radius.topLeft * item.transform.d - 2) < 1e-9)
     }
 
     @Test("a shape placed by its area turns about the centre of its geometry's box by default")

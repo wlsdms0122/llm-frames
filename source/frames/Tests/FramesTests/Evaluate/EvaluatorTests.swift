@@ -596,7 +596,7 @@ struct EvaluatorTests {
         let corners = item.transform.apply(toCornersOf: rectangle)
         #expect(isClose(corners, area))
         #expect(stroke.width == 4)
-        #expect(abs(radius * item.transform.a - 2) < 1e-9)
+        #expect(abs(radius.topLeft * item.transform.a - 2) < 1e-9)
     }
 
     @Test(

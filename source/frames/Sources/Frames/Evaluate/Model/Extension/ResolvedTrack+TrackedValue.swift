@@ -39,7 +39,7 @@ extension ResolvedTrack {
         broughtBack(keyframes, on: clock) { $0.bringBack(offset: $1) }.value(at: time)
     }
 
-    // A mask's box size and radius are divided by the motion's scale, and its feather is in output pixels and is not
+    // A mask's box size and corner radii are divided by the motion's scale, and its feather is in output pixels and is not
     // brought back.
     func masks(
         of masks: [ResolvedMask],
