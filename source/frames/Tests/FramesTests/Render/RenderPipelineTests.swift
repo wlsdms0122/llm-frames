@@ -476,7 +476,7 @@ struct RenderPipelineTests {
         // Then
         #expect(run == RenderRun(
             frames: 1,
-            files: [FileEncoding(path: image, codec: "PNG", usesHardware: false, seconds: StageTimes())]
+            files: [FileEncoding(path: image, codec: "PNG", usesHardware: false, device: .cpu, seconds: StageTimes())]
         ))
         #expect(recorder.waitingOnEncoder > 0)
     }

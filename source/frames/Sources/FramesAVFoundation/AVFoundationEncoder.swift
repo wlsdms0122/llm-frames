@@ -293,6 +293,7 @@ extension AVFoundationEncoder: Encoder {
             path: target.path,
             codec: codecName(of: target),
             usesHardware: false,
+            device: .cpu,
             seconds: clock.seconds
         )
     }

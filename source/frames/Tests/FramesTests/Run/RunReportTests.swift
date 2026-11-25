@@ -127,7 +127,7 @@ struct RunReportTests {
         ahead.add(0.0625, to: .decode)
         let files = [
             file("/abs/out.mov", outputConversion: 0.375, encode: 0.5, usesHardware: true),
-            FileEncoding(path: "/abs/out.mp4", codec: "H.264", usesHardware: true, seconds: StageTimes())
+            FileEncoding(path: "/abs/out.mp4", codec: "H.264", usesHardware: true, device: .gpu, seconds: StageTimes())
         ]
 
         // When
@@ -156,8 +156,8 @@ struct RunReportTests {
             "device": "cpu", "pixelFormat": "32-bit float RGBA", "framesRead": 1, "framesDecoded": 1, "reopened": 0}, \#
             {"path": "/abs/hlg.mov", "page": null, "colorSpace": null, "conversion": "hlg", \#
             "device": "cpu", "pixelFormat": "16-bit float RGBA", "framesRead": 1, "framesDecoded": 1, "reopened": 0}], \#
-            "files": [{"path": "/abs/out.mov", "codec": "ProRes 422 HQ", "hardware": true}, \#
-            {"path": "/abs/out.mp4", "codec": "H.264", "hardware": true}]}
+            "files": [{"path": "/abs/out.mov", "codec": "ProRes 422 HQ", "hardware": true, "device": "cpu"}, \#
+            {"path": "/abs/out.mp4", "codec": "H.264", "hardware": true, "device": "gpu"}]}
             """#
         #expect(sut.machineOutput.written == expected)
     }
@@ -173,6 +173,6 @@ struct RunReportTests {
         seconds.add(outputConversion, to: .outputConversion)
         seconds.add(encode, to: .encode)
 
-        return FileEncoding(path: path, codec: "ProRes 422 HQ", usesHardware: usesHardware, seconds: seconds)
+        return FileEncoding(path: path, codec: "ProRes 422 HQ", usesHardware: usesHardware, device: .cpu, seconds: seconds)
     }
 }

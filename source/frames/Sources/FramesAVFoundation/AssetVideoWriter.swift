@@ -15,7 +15,9 @@ import VideoToolbox
 // end. Frames come at `size`, and the file's picture is the format's size when it has one, each frame scaled to it. A
 // wait on the writer longer than `deadline` seconds cancels it. A writer that fails, or is let go before it finishes,
 // cancels and removes its file. Its conversion of each frame to the output's values is `outputConversion`, and the rest
-// of appending a frame and finishing the file `encode`, each on the thread that calls it (FRAMES-23 Runs).
+// of appending a frame and finishing the file `encode`, each on the thread that calls it (FRAMES-23 Runs). A frame
+// given as a surface is converted on the GPU where the writer has a GPU converter, and every other frame on the CPU,
+// the reference (FRAMES-21 Pictures).
 final class AssetVideoWriter {
     // MARK: - Property
     private static let soundChunk = 48_000
@@ -31,9 +33,15 @@ final class AssetVideoWriter {
     private let sound: SoundBuffer?
     private let soundConverter: SoundConverter?
     private let frameConverter: FrameConverter
+    // Nil where the file's picture is scaled from the frames, its colour space is HDR, or the machine has no Metal
+    // device.
+    private let gpuConverter: MetalFrameConverter?
     private let usesHardware: Bool
     private let clock = StageClock(marker: StageSignposter())
 
+    // The processor the frames were converted on. A renderer gives every frame in one form, so it is that of every
+    // frame of the file.
+    private var device = ConversionDevice.cpu
     private var frameCount = 0
     private var soundPosition = 0
     private var isClosed = false
@@ -79,7 +87,9 @@ final class AssetVideoWriter {
             sourcePixelBufferAttributes: [
                 kCVPixelBufferPixelFormatTypeKey as String: format.pixelFormat,
                 kCVPixelBufferWidthKey as String: width,
-                kCVPixelBufferHeightKey as String: height
+                kCVPixelBufferHeightKey as String: height,
+                kCVPixelBufferIOSurfacePropertiesKey as String: [String: Any](),
+                kCVPixelBufferMetalCompatibilityKey as String: true
             ]
         )
         writer.add(video)
@@ -101,6 +111,13 @@ final class AssetVideoWriter {
         self.sound = sound
         self.soundConverter = try sound.map { try SoundConverter(sound: $0, path: format.path) }
         self.frameConverter = FrameConverter(keepsAlpha: format.keepsAlpha, output: format.target.output)
+        self.gpuConverter = picture == size
+            ? MetalFrameConverter(
+                output: format.target.output,
+                keepsAlpha: format.keepsAlpha,
+                pixelFormat: format.pixelFormat
+            )
+            : nil
         self.usesHardware = Self.usesHardware(codec: format.codecType, width: width, height: height, format: format)
 
         guard writer.startWriting() else {
@@ -116,7 +133,7 @@ final class AssetVideoWriter {
 
     // MARK: - Public
     // MARK: - Private
-    private func appendFrame(_ frame: Bitmap) throws {
+    private func appendFrame(_ frame: Pixels) throws {
         guard frame.width == Int(size.width), frame.height == Int(size.height) else {
             throw EncoderError.frameSize(
                 file: format.path,
@@ -134,8 +151,16 @@ final class AssetVideoWriter {
         else {
             throw failure("no pixel buffer for frame \(frameCount)")
         }
-        let isCopied = clock.measure(.outputConversion) { frameConverter.copy(frame, into: buffer) }
-        guard isCopied else { throw failure("frame \(frameCount) cannot be scaled") }
+        if case let .surface(surface) = frame, let gpuConverter {
+            device = .gpu
+            frameConverter.tag(buffer)
+            let isConverted = clock.measure(.outputConversion) { gpuConverter.copy(surface, into: buffer) }
+            guard isConverted else { throw failure("frame \(frameCount) cannot be converted on the GPU") }
+        } else {
+            device = .cpu
+            let isCopied = clock.measure(.outputConversion) { frameConverter.copy(frame.bitmap, into: buffer) }
+            guard isCopied else { throw failure("frame \(frameCount) cannot be scaled") }
+        }
 
         try waitUntilReady(video, for: "frame \(frameCount)")
         guard adaptor.append(buffer, withPresentationTime: timing.time(ofFrame: frameCount)) else {
@@ -277,14 +302,20 @@ extension AssetVideoWriter: VideoWriter {
         // The encoder's time in a frame is what appending it took beside its conversion.
         seconds.add(-seconds[.outputConversion], to: .encode)
 
-        return FileEncoding(path: format.path, codec: format.codecName, usesHardware: usesHardware, seconds: seconds)
+        return FileEncoding(
+            path: format.path,
+            codec: format.codecName,
+            usesHardware: usesHardware,
+            device: device,
+            seconds: seconds
+        )
     }
 
     func append(_ frame: Pixels) throws {
         do {
             try clock.measure(.encode) {
                 try autoreleasepool {
-                    try appendFrame(frame.bitmap)
+                    try appendFrame(frame)
                 }
             }
         } catch {

@@ -96,6 +96,20 @@ package struct ColorConversion: Equatable, Sendable {
         }
     }
 
+    // The output conversion as the steps a GPU runs.
+    package var outputSteps: OutputSteps {
+        switch space {
+        case .srgb:
+            .clip
+
+        case .displayP3, .rec2020, .rec709:
+            .decodeMatrixClipEncode(fromLinearSRGB: toSpace, transfer: transferFunction)
+
+        case .rec2100PQ, .rec2100HLG:
+            .formulas
+        }
+    }
+
     // The working value of the space's encoded value. An HDR value is clipped to 0 to 1 first, so it names finite
     // light.
     package func working(_ encoded: RGB) -> RGB {

@@ -71,7 +71,8 @@ extension RunReport {
         .object(JSONObject(members: [
             JSONMember(key: "path", value: .string(file.path)),
             JSONMember(key: "codec", value: .string(file.codec)),
-            JSONMember(key: "hardware", value: .bool(file.usesHardware))
+            JSONMember(key: "hardware", value: .bool(file.usesHardware)),
+            JSONMember(key: "device", value: .string(file.device.name))
         ]))
     }
 }

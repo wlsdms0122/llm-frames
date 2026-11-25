@@ -58,7 +58,7 @@ struct RecordingEncoder: Encoder {
         log.record(.writeImageTarget(target, frame: bitmap.frame))
         try RecordingVideoWriter.write(target.path, log: log)
 
-        return FileEncoding(path: target.path, codec: "PNG", usesHardware: false, seconds: StageTimes())
+        return FileEncoding(path: target.path, codec: "PNG", usesHardware: false, device: .cpu, seconds: StageTimes())
     }
 
     func writeSound(
