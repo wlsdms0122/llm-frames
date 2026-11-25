@@ -39,6 +39,29 @@ struct TemplateCheckTests {
     }
 
     @Test(
+        "a choice parameter stands for one entry of a filter list and of an audio filter list",
+        arguments: [
+            #"{ "kind": "media", "media": "/abs/run.mp4", "filter": [ { "param": "tone" }, { "kind": "saturation", "amount": 0.8 } ] }"#,
+            #"{ "kind": "media", "media": "/abs/run.mp4", "audioFilter": [ { "kind": "limiter" }, { "param": "voice" } ] }"#
+        ]
+    )
+    func acceptsEntryParameters(clip: String) throws {
+        // Given
+        let document = try Fixture.json(#"""
+            { "kind": "sequence",
+              "params": {
+                "tone":  { "type": "choice", "options": ["frames/warm", "frames/cool"], "default": "frames/warm", "description": "the grade" },
+                "voice": { "type": "choice", "options": ["mine/voice", "mine/radio"], "default": "mine/voice", "description": "the voice chain" }
+              },
+              "storyline": [ \#(clip) ],
+              "clips": [ { "kind": "media", "media": "/abs/run.mp4", "filter": { "param": "tone" }, "audioFilter": { "param": "voice" } } ] }
+            """#)
+
+        // When, Then
+        try sut.check(document: document)
+    }
+
+    @Test(
         "a text parameter stands for a whole title and for a run's text, and a choice for a run's style",
         arguments: [
             #"{ "kind": "title", "text": { "param": "name" }, "style": "s" }"#,
