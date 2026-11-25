@@ -63,14 +63,14 @@ struct PictureDrawer {
                     }
                 }
             }
-            border(of: item, carriedBy: transform, in: context)
+            Self.border(of: item, carriedBy: transform, in: context)
 
             return
         }
 
         let reach = CGFloat(chain.reach(of: item.filter))
         let region = context.boundingBoxOfClipPath.insetBy(dx: -reach, dy: -reach).intersection(destination)
-        guard !region.isNull, !region.isEmpty else { return border(of: item, carriedBy: transform, in: context) }
+        guard !region.isNull, !region.isEmpty else { return Self.border(of: item, carriedBy: transform, in: context) }
 
         let scale = scale(of: region, reaching: reach, in: context)
         guard scale > 0 else { return }
@@ -134,7 +134,32 @@ struct PictureDrawer {
             compositing: compositing,
             in: context
         )
-        border(of: item, carriedBy: transform, in: context)
+        Self.border(of: item, carriedBy: transform, in: context)
+    }
+
+    // The border along the carried outline of the destination with its corners rounded, a stroke with miter joins on
+    // the side of it the border's `align` names, so its edges follow the rounded corners and it is as wide on every
+    // side in output pixels. It is drawn over the picture, outside the destination where it lies there.
+    static func border(
+        of item: PictureItem,
+        carriedBy transform: Frames.AffineTransform,
+        in context: CGContext
+    ) {
+        guard let border = item.border, border.width > 0, let back = transform.inverse else { return }
+
+        let outline = PathOutline(.rect(item.destination, radius: item.radius)).carried(by: transform)
+        let band = outline.path.copy(
+            strokingWithWidth: CGFloat(border.align.tracedWidth(of: border.width)),
+            lineCap: .butt,
+            lineJoin: .miter,
+            miterLimit: CGFloat(StrokeJoin.miterLimit)
+        )
+        var matrix = CGAffineTransform(back)
+        guard let placed = band.cut(to: border.align, of: outline)?.copy(using: &matrix) else { return }
+
+        context.addPath(placed)
+        context.setFillColor(border.color.cgColor)
+        context.fillPath(using: .winding)
     }
 
     // MARK: - Private
@@ -234,30 +259,5 @@ struct PictureDrawer {
         context.concatenate(device.inverted())
         context.interpolationQuality = .none
         context.draw(drawn, in: image.extent)
-    }
-
-    // The border along the carried outline of the destination with its corners rounded, a stroke with miter joins on
-    // the side of it the border's `align` names, so its edges follow the rounded corners and it is as wide on every
-    // side in output pixels. It is drawn over the picture, outside the destination where it lies there.
-    private func border(
-        of item: PictureItem,
-        carriedBy transform: Frames.AffineTransform,
-        in context: CGContext
-    ) {
-        guard let border = item.border, border.width > 0, let back = transform.inverse else { return }
-
-        let outline = PathOutline(.rect(item.destination, radius: item.radius)).carried(by: transform)
-        let band = outline.path.copy(
-            strokingWithWidth: CGFloat(border.align.tracedWidth(of: border.width)),
-            lineCap: .butt,
-            lineJoin: .miter,
-            miterLimit: CGFloat(StrokeJoin.miterLimit)
-        )
-        var matrix = CGAffineTransform(back)
-        guard let placed = band.cut(to: border.align, of: outline)?.copy(using: &matrix) else { return }
-
-        context.addPath(placed)
-        context.setFillColor(border.color.cgColor)
-        context.fillPath(using: .winding)
     }
 }
