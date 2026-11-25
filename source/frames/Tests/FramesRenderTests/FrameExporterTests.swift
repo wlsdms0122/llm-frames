@@ -316,18 +316,107 @@ struct FrameExporterTests {
         #expect(try contents(of: output).isEmpty)
     }
 
+    @Test("a sheet under the floor of its own list is refused before its first cell is drawn")
+    func refusesSheetBeforeCells() throws {
+        // Given
+        let media = try TemporaryDirectory()
+        let output = try TemporaryDirectory()
+        let document = try motionBlurSequence(in: media)
+        let face = try labelFace()
+        let budget = MemoryBudget(limit: try #require(MemorySize("20MB")))
+        let sut = exporter(budget: budget, failingFrame: 0)
+
+        // When
+        #expect(throws: MemoryError.self) {
+            try sut.sheet(
+                .document(document),
+                range: FrameRange(step: 0.3),
+                columns: 4,
+                labelFace: face,
+                to: output.file("sheet.png")
+            )
+        }
+
+        // Then
+        // Each frame drawn first reads its image once, 1280 x 720 at 8 bytes a pixel, and the sheet shows four such
+        // frames as analysis pictures at 4 bytes a pixel; the floor is twice the larger.
+        let pictures = budget.usage.holders.first { $0.holder == .pictures }
+        #expect(pictures?.floor == 2 * 4 * 1280 * 720 * 4)
+        #expect(try contents(of: output).isEmpty)
+    }
+
+    @Test("a sheet runs whole at a limit of the floor its own list gives")
+    func drawsSheetAtFloor() throws {
+        // Given
+        let media = try TemporaryDirectory()
+        let output = try TemporaryDirectory()
+        let document = try motionBlurSequence(in: media)
+        let face = try labelFace()
+        let budget = MemoryBudget(limit: try #require(MemorySize("28.125MB")))
+        let sut = exporter(budget: budget)
+
+        // When
+        try sut.sheet(
+            .document(document),
+            range: FrameRange(step: 0.3),
+            columns: 4,
+            labelFace: face,
+            to: output.file("sheet.png")
+        )
+
+        // Then
+        #expect(budget.usage.floor == 2 * 4 * 1280 * 720 * 4)
+        #expect(budget.usage.peak <= budget.limit.bytes)
+        #expect(try contents(of: output) == ["sheet.png"])
+    }
+
+    @Test("extract of a video under the run's floor is refused before the directory is made")
+    func refusesExtractUnderFloor() async throws {
+        // Given
+        let media = try TemporaryDirectory()
+        let output = try TemporaryDirectory()
+        let file = try await video(in: media)
+        let budget = MemoryBudget(limit: try #require(MemorySize("1MB")))
+        let sut = exporter(budget: budget)
+
+        // When
+        let error = #expect(throws: MemoryError.self) {
+            try sut.extract(.video(path: file), range: FrameRange(), to: output.file("frames"))
+        }
+
+        // Then
+        #expect(error?.description.hasPrefix("memory limit 1MB is under the ") == true)
+        #expect(try contents(of: output).isEmpty)
+    }
+
     // MARK: - Private
-    private func exporter() -> FrameExporter {
-        let decoder = AVFoundationDecoder()
+    // `failingFrame`, where given, is the frame the renderer fails to draw, counted from the first it is asked for.
+    private func exporter(
+        budget: MemoryBudget = MemoryBudget(limit: .unlimited),
+        failingFrame: Int? = nil
+    ) -> FrameExporter {
+        let decoder = AVFoundationDecoder(budget: budget)
+        let renderer = QuartzRenderer(decoder: decoder, budget: budget)
 
         return FrameExporter(
             decoder: decoder,
-            renderer: QuartzRenderer(decoder: decoder),
+            renderer: failingFrame.map { FailingRenderer(renderer: renderer, failingAt: $0) } ?? renderer,
             encoder: AVFoundationEncoder(),
             mediaFacts: decoder,
             shaper: CoreTextShaper(),
-            budget: MemoryBudget(limit: .unlimited)
+            budget: budget
         )
+    }
+
+    // An orange image of 1280 x 720 fading out over one second with motion blur, at 10 frames a second.
+    private func motionBlurSequence(in media: TemporaryDirectory) throws -> ResolvedSequence {
+        let file = try image(in: media, named: "orange.png", color: orange, size: Size(width: 1280, height: 720))
+
+        return try DocumentResolver().resolve(#"""
+            { "kind": "sequence", "format": { "fps": 10 },
+              "storyline": [ { "kind": "media", "media": "\#(file)", "duration": 1, "motionBlur": true,
+                               "keyframes": [ { "at": 0, "opacity": 1, "ease": "linear" }, { "at": 1, "opacity": 0 } ] } ] }
+            """#)
     }
 
     private func labelFace() throws -> FontFace {
@@ -364,10 +453,11 @@ struct FrameExporterTests {
     private func image(
         in directory: TemporaryDirectory,
         named name: String,
-        color: [Double]
+        color: [Double],
+        size: Size = Size(width: 160, height: 90)
     ) throws -> String {
         let file = directory.file(name)
-        try ImageWriter(size: Size(width: 160, height: 90)).write(to: file) { canvas in
+        try ImageWriter(size: size).write(to: file) { canvas in
             canvas.fill(red: color[0], green: color[1], blue: color[2])
         }
 

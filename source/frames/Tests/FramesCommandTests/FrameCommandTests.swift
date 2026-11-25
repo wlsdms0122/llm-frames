@@ -66,10 +66,10 @@ struct FrameCommandTests {
         #expect(try sut.standardOutput == line(of: documentSheet))
     }
 
-    @Test("sheet with --memory under its cells' pictures stops before a cell is read, naming the pictures' floor")
+    @Test("sheet with --memory under the run's floor stops before a cell is read, naming the floor and its holders")
     func refusesSheetUnderFloor() async throws {
         // Given
-        let video = try await movie(named: "clip.mov")
+        let video = try await movie(named: "clip.mov", size: Size(width: 1280, height: 720))
         let output = sut.directory.file("sheet.png")
 
         // When
@@ -130,9 +130,12 @@ struct FrameCommandTests {
     }
 
     // One second at 2 frames a second, grey.
-    private func movie(named name: String) async throws -> String {
+    private func movie(
+        named name: String,
+        size: Size = Size(width: 64, height: 48)
+    ) async throws -> String {
         let file = sut.directory.file(name)
-        let writer = MovieWriter(size: Size(width: 64, height: 48), frameTimes: [0, 0.5], end: 1)
+        let writer = MovieWriter(size: size, frameTimes: [0, 0.5], end: 1)
         try await writer.write(to: file) { canvas, _ in
             canvas.fill(red: 128, green: 128, blue: 128)
         }
