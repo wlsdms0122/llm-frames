@@ -27,12 +27,12 @@ struct VideoReaderTests {
         let sut = try #require(try VideoReader(path: movie))
 
         // When
-        let first = try sut.buffer(atFrame: 2, path: movie, turn: 4)
+        let first = try #require(try sut.buffer(atFrame: 2, path: movie, turn: 4) { true })
         let held = (0..<12).filter { sut.holds(frame: $0) }
-        let fromHeld = try sut.buffer(atFrame: 4, path: movie, turn: 1)
+        let fromHeld = try #require(try sut.buffer(atFrame: 4, path: movie, turn: 1) { true })
         let heldAfter = (0..<12).filter { sut.holds(frame: $0) }
         sut.close()
-        let again = try sut.buffer(atFrame: 9, path: movie, turn: 1)
+        let again = try #require(try sut.buffer(atFrame: 9, path: movie, turn: 1) { true })
 
         // Then
         #expect(!first.reopened)
@@ -49,17 +49,39 @@ struct VideoReaderTests {
         let directory = try TemporaryDirectory()
         let movie = try await Self.movie(in: directory)
         let sut = try #require(try VideoReader(path: movie))
-        _ = try sut.buffer(atFrame: 0, path: movie, turn: 1)
-        _ = try sut.buffer(atFrame: 2, path: movie, turn: 1)
+        _ = try sut.buffer(atFrame: 0, path: movie, turn: 1) { true }
+        _ = try sut.buffer(atFrame: 2, path: movie, turn: 1) { true }
         sut.close()
 
         // When
-        let turn = try sut.buffer(atFrame: 4, path: movie, turn: 4)
+        let turn = try #require(try sut.buffer(atFrame: 4, path: movie, turn: 4) { true })
         let held = (0..<12).filter { sut.holds(frame: $0) }
 
         // Then
         #expect(turn.reopened)
         #expect(held == [6, 8, 10])
+    }
+
+    @Test("a frame that needs a reader opened opens none where the reader is not admitted, and a held frame needs none")
+    func opensOnlyAdmittedReader() async throws {
+        // Given
+        let directory = try TemporaryDirectory()
+        let movie = try await Self.movie(in: directory)
+        let sut = try #require(try VideoReader(path: movie))
+        _ = try sut.buffer(atFrame: 0, path: movie, turn: 3) { true }
+        sut.close()
+
+        // When
+        let fromHeld = try sut.buffer(atFrame: 1, path: movie, turn: 1) { false }
+        let refused = try sut.buffer(atFrame: 6, path: movie, turn: 1) { false }
+        let heldAfterRefusal = (0..<12).filter { sut.holds(frame: $0) }
+        let admitted = try sut.buffer(atFrame: 6, path: movie, turn: 1) { true }
+
+        // Then
+        #expect(fromHeld?.decoded == 0)
+        #expect(refused == nil)
+        #expect(heldAfterRefusal == [2])
+        #expect(admitted?.reopened == true)
     }
 
     // MARK: - Private

@@ -237,6 +237,35 @@ struct YCbCrConversionTests {
     }
 
     @Test(
+        "a buffer converted on the GPU is retained by nothing of the conversion once it returns",
+        .enabled(if: MTLCreateSystemDefaultDevice() != nil, "the GPU conversion needs a Metal device")
+    )
+    func letsGoOfConvertedBuffer() throws {
+        // Given
+        let layout = Self.layout(bitDepth: 8, sampling: .fourTwoZero, isFullRange: false)
+        let buffer = try Self.buffer(of: layout, width: 96, height: 64) { x, _ in x } chroma: { _, _, _ in 128 }
+        let surface = try #require(CVPixelBufferGetIOSurface(buffer)?.takeUnretainedValue())
+        let retained = CFGetRetainCount(surface)
+        let sut = try #require(MetalPictureConverter())
+
+        // When
+        let converted = autoreleasepool {
+            sut.picture(
+                from: buffer,
+                format: .yCbCr(layout),
+                storedSize: CGSize(width: 96, height: 64),
+                displaySize: Size(width: 96, height: 64),
+                transform: .identity,
+                steps: MediaColorConversion(.space(.displayP3)).steps
+            )
+        }
+
+        // Then
+        #expect(converted != nil)
+        #expect(CFGetRetainCount(surface) == retained)
+    }
+
+    @Test(
         "a video is given in the Y'CbCr its stream stores, and a video with alpha as half floats",
         arguments: [
             (AVVideoCodecType.h264, ColorSpace.srgb, "8-bit integer Y'CbCr 4:2:0"),

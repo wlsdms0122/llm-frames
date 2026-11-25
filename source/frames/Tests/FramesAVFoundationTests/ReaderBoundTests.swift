@@ -99,6 +99,21 @@ struct ReaderBoundTests {
         #expect(throws: MemoryError.self) { try sut.admit("a", cost: 11 * megabyte) { _ in false } }
     }
 
+    @Test("a video is open from its admission until the bound closes its reader for another")
+    func tellsOpenReaders() throws {
+        // Given
+        let sut = ReaderBound(count: 1, budget: MemoryBudget(limit: .unlimited))
+
+        // When
+        _ = try sut.admit("a", cost: 1) { _ in false }
+        let openAfterAdmission = sut.isOpen("a")
+        _ = try sut.admit("b", cost: 1) { _ in false }
+
+        // Then
+        #expect(openAfterAdmission)
+        #expect(!sut.isOpen("a") && sut.isOpen("b"))
+    }
+
     // MARK: - Private
     private var megabyte: Int {
         MemorySize.megabyte
