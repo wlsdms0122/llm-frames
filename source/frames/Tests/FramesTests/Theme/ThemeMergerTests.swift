@@ -205,7 +205,7 @@ struct ThemeMergerTests {
             (#"{ "shapes": { "box": { "width": 8, "radius": 18 } } }"#, #"shapes.box (shape style): unknown key "width". Allowed: fill, stroke, radius, outset, shadow"#),
             (#"{ "shapes": { "outline": { "stroke": { "paint": "accent" } } } }"#, #"shapes.outline.stroke: missing key "width", which no layer gives"#),
             (#"{ "shapes": { "outline": { "fill": "brand" } } }"#, #"shapes.outline.fill (shape style): colour "brand" is not in colors"#),
-            (#"{ "shapes": { "outline": { "stroke": { "width": 2, "paint": "brand" } } } }"#, #"shapes.outline.stroke.color (stroke): colour "brand" is not in colors"#),
+            (#"{ "shapes": { "outline": { "stroke": { "width": 2, "paint": "brand" } } } }"#, #"shapes.outline.stroke.paint (stroke): colour "brand" is not in colors"#),
             (#"{ "shapes": { "outline": { "shadow": { "color": "brand" } } } }"#, #"shapes.outline.shadow.color (shadow): colour "brand" is not in colors"#)
         ]
     )

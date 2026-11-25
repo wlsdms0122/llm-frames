@@ -558,7 +558,7 @@ struct ResolvedDocumentReaderTests {
             (#""join": "round""#, #""join": "square""#, #"clips[0].stroke.join (stroke): unknown value "square". Allowed: miter, round, bevel"#),
             (#""inset": 2"#, #""inset": 9"#, "clips[4].stroke.start (stroke): a head's inset is from 0 to its length 4, found 9"),
             (#""inset": 2"#, #""inset": 2, "shape": "circle""#, #"clips[4].stroke.start (stroke): unknown key "shape". Allowed: points, length, inset, scale"#),
-            (#""cap": "butt""#, #""cap": "butt", "head": 8"#, #"clips[0].stroke (stroke): unknown key "head". Allowed: color, gradient, width, align, join, cap, start, end, dash, dashOffset"#)
+            (#""cap": "butt""#, #""cap": "butt", "head": 8"#, #"clips[0].stroke (stroke): unknown key "head". Allowed: paint, width, align, join, cap, start, end, dash, dashOffset"#)
         ]
     )
     func refusesShapeMember(

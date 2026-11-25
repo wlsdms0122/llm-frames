@@ -268,7 +268,7 @@ struct TemplateCheckTests {
             (
                 #"{ "kind": { "param": "s" }, "points": [[0, 0]] }"#,
                 #"["path", "rect"]"#,
-                "clips[0].mask.points (path mask): expected a list of at least two vertices, each a point or {vertex, inTangent, outTangent}"
+                "clips[0].mask.points (path mask): expected a list of at least two vertices, each [x, y] or {vertex, inTangent, outTangent}"
             ),
             (
                 #"{ "kind": { "param": "s" }, "feather": 2 }"#,

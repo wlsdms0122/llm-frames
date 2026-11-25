@@ -249,7 +249,7 @@ struct ShapeKeyframeTests {
 
         // When, Then
         let error = #expect(throws: (any Error).self) { try resolvedShape(clip) }
-        #expect(error.map { "\($0)" } == "clips[0].fill.radial.center: written as a static value and in every keyframe that writes it, so the static value never shows")
+        #expect(error.map { "\($0)" } == "clips[0].fill.center: written as a static value and in every keyframe that writes it, so the static value never shows")
     }
 
     @Test("dash lengths and the dash offset are theme lengths, scaled to output pixels")
@@ -346,7 +346,7 @@ struct ShapeKeyframeTests {
         }
 
         // Then
-        #expect(try read(shape.fill, LookStructureTable.fill) == shape.fill)
+        #expect(try read(shape.fill, LookStructureTable.paint) == shape.fill)
         #expect(try read(shape.stroke, LookStructureTable.stroke) == shape.stroke)
         #expect(try read(shape.shadow, LookStructureTable.shadow) == shape.shadow)
         #expect(try read(shape.radius, LookStructureTable.radius) == shape.radius)
@@ -524,7 +524,7 @@ struct ShapeKeyframeTests {
 
         // Then
         #expect(gradient(shape.fill.fill(at: 0.5)) != nil)
-        #expect(try read(shape.fill, LookStructureTable.fill) == shape.fill)
+        #expect(try read(shape.fill, LookStructureTable.paint) == shape.fill)
         #expect(try read(shape.stroke, LookStructureTable.stroke) == shape.stroke)
     }
 

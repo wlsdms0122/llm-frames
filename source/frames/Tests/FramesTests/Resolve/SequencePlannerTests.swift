@@ -693,7 +693,7 @@ struct SequencePlannerTests {
                 #"{ "kind": "rect" }"#,
                 #"{ "area": [0, 0, 10, 10] }"#,
                 #"{ "kind": "ellipse", "area": [0, 0, 10, 10] }"#,
-                "clips[0].keyframes[1].mask.shape (keyframe): a name, a boolean, a form or a static number is static and is written on the clip or the sequence, not in a keyframe"
+                "clips[0].keyframes[1].mask.kind (keyframe): a name, a boolean, a form or a static number is static and is written on the clip or the sequence, not in a keyframe"
             ),
             (
                 "clips",
@@ -728,7 +728,7 @@ struct SequencePlannerTests {
                 #"{ "kind": "rect" }"#,
                 #"{ "area": [0, 0, 10, 10] }"#,
                 #"{ "kind": "ellipse" }"#,
-                "storyline[0].keyframes[1].mask.shape (keyframe): a name, a boolean, a form or a static number is static and is written on the clip or the sequence, not in a keyframe"
+                "storyline[0].keyframes[1].mask.kind (keyframe): a name, a boolean, a form or a static number is static and is written on the clip or the sequence, not in a keyframe"
             )
         ]
     )

@@ -109,7 +109,7 @@ struct ShapeAppearanceTests {
             ),
             (
                 #"{ "kind": "path", "points": [[0, 0], [1, 1]], "stroke": { "width": 2, "paint": "ink" } }"#,
-                #"clips[0].stroke.color (path): colour "ink" is not in colors"#
+                #"clips[0].stroke.paint (path): colour "ink" is not in colors"#
             ),
             (
                 #"{ "kind": "rect", "area": [0, 0, 10, 10], "placement": "top", "fill": "accent" }"#,

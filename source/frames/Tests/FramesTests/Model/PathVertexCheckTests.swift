@@ -17,7 +17,7 @@ struct PathVertexCheckTests {
     // MARK: - Initializer
     // MARK: - Test
     @Test(
-        "a path's and a path mask's points take a point or a vertex object, and a mask takes two vertices",
+        "a path's and a path mask's points take [x, y] or a vertex object whose vertex may be a point of an area, and a mask takes two vertices",
         arguments: [
             #"{ "kind": "path", "at": [0, 1], "points": [ [0, 0], { "vertex": [10, 0], "inTangent": [-4, 0], "outTangent": [4, 0] } ] }"#,
             #"{ "kind": "path", "at": [0, 1], "points": [ { "vertex": { "area": [0, 0, 10, 10], "point": "top" } }, [10, 10] ] }"#,
@@ -34,8 +34,16 @@ struct PathVertexCheckTests {
     }
 
     @Test(
-        "a tangent takes two numbers and no form of an area, a static vertex object writes its point, and a vertex object stops where a point is taken",
+        "a tangent takes two numbers and no form of an area, a static vertex object writes its point, a point of an area stands in points only as a vertex, and a vertex object stops where a point is taken",
         arguments: [
+            (
+                #"{ "kind": "path", "at": [0, 1], "points": [ { "area": [0, 0, 10, 10], "point": "top" }, [10, 10] ] }"#,
+                "storyline[0].connected[0].points[0]"
+            ),
+            (
+                #"{ "kind": "rect", "width": 10, "height": 10, "at": [0, 1], "mask": { "kind": "path", "points": [ [0, 0], { "area": [0, 0, 10, 10], "point": "top" } ] } }"#,
+                "storyline[0].connected[0].mask.points[1]"
+            ),
             (
                 #"{ "kind": "path", "at": [0, 1], "points": [ [0, 0], { "vertex": [10, 0], "inTangent": { "area": [0, 0, 1, 1], "point": "top" } } ] }"#,
                 "storyline[0].connected[0].points[1].inTangent"

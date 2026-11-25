@@ -161,15 +161,19 @@ struct SequenceCheckTests {
     }
 
     @Test(
-        "a gradient with fewer than two stops, an offset outside 0 to 1, a static offset below the one before, both kinds, or a stroke with both a colour and a gradient stops",
+        "a gradient with fewer than two stops, an offset outside 0 to 1, a static offset below the one before, no kind, a kind of no gradient or a key of another kind, or a shape stroke's color or gradient stops",
         arguments: [
-            (##""fill": { "kind": "linear", "from": [0, 0], "to": [1, 0], "stops": [[0, "#000000"]] }"##, "fill.linear.stops ("),
-            (##""fill": { "kind": "linear", "stops": [[0, "#000000"], [1.5, "#FFFFFF"]] }"##, "fill.linear.stops[1][0] ("),
-            (##""fill": { "kind": "radial", "stops": [[0.5, "#000000"], [0.2, "#FFFFFF"]] }"##, "fill.radial.stops[1][0] ("),
-            (##""fill": { "kind": "radial", "stops": [[0, "#000000"], [1, "#FFFFFF", 2]] }"##, "fill.radial.stops[1] ("),
-            (##""fill": { "linear": { }, "radial": { } }"##, "fill (gradient): "),
-            (##""stroke": { "width": 2, "color": "#FFFFFF", "gradient": {"kind": "radial"} }"##, "stroke (stroke): "),
-            (##""keyframes": [ { "at": 0, "fill": { "kind": "linear", "stops": [[0, null], [1.5, null]] } } ]"##, "keyframes[0].fill.linear.stops[1][0] (")
+            (##""fill": { "kind": "linear", "from": [0, 0], "to": [1, 0], "stops": [[0, "#000000"]] }"##, "fill.stops ("),
+            (##""fill": { "kind": "linear", "stops": [[0, "#000000"], [1.5, "#FFFFFF"]] }"##, "fill.stops[1][0] ("),
+            (##""fill": { "kind": "radial", "stops": [[0.5, "#000000"], [0.2, "#FFFFFF"]] }"##, "fill.stops[1][0] ("),
+            (##""fill": { "kind": "radial", "stops": [[0, "#000000"], [1, "#FFFFFF", 2]] }"##, "fill.stops[1] ("),
+            (##""fill": { "from": [0, 0], "to": [1, 0], "stops": [[0, "#000000"], [1, "#FFFFFF"]] }"##, #"fill (rect): missing key "kind""#),
+            (##""fill": { "kind": "conic", "stops": [[0, "#000000"], [1, "#FFFFFF"]] }"##, #"fill.kind (rect): unknown value "conic". Allowed: linear, radial"#),
+            (##""fill": { "kind": "linear", "radius": 1, "stops": [[0, "#000000"], [1, "#FFFFFF"]] }"##, #"fill (linear gradient): unknown key "radius""#),
+            (##""stroke": { "width": 2, "color": "#FFFFFF" }"##, #"stroke (stroke): unknown key "color""#),
+            (##""stroke": { "width": 2, "gradient": { "kind": "radial", "stops": [[0, "#000000"], [1, "#FFFFFF"]] } }"##, #"stroke (stroke): unknown key "gradient""#),
+            (##""keyframes": [ { "at": 0, "fill": { "kind": "linear", "stops": [[0, null], [1.5, null]] } } ]"##, "keyframes[0].fill.stops[1][0] ("),
+            (##""keyframes": [ { "at": 0, "fill": { "stops": [[0, null], [1, null]] } } ]"##, #"keyframes[0].fill (keyframe): missing key "kind""#)
         ]
     )
     func refusesGradient(
@@ -402,7 +406,7 @@ struct SequenceCheckTests {
             (#"{ "kind": "rect", "area": [0, 0, 10, 10], "fill": "accent", "trim": [0.5] }"#, #"clips[0].trim (rect): expected a list of 2 numbers, each within 0 to 1"#),
             (#"{ "kind": "rect", "area": [0, 0, 10, 10], "fill": "accent", "shadow": "soft" }"#, #"clips[0].shadow (rect): expected "#),
             (#"{ "kind": "rect", "area": [0, 0, 10, 10], "fill": "accent", "shadow": { "blur": 4 } }"#, #"clips[0].shadow (shadow): unknown key "blur""#),
-            (#"{ "kind": "path", "points": [[0, 0]], "fill": "accent" }"#, #"clips[0].points (path): expected a list of at least two vertices, each a point or {vertex, inTangent, outTangent}"#),
+            (#"{ "kind": "path", "points": [[0, 0]], "fill": "accent" }"#, #"clips[0].points (path): expected a list of at least two vertices, each [x, y] or {vertex, inTangent, outTangent}"#),
             (#"{ "kind": "path", "points": [[0, 0], "top"], "fill": "accent" }"#, #"clips[0].points[1] (path): expected "#),
             (#"{ "kind": "path", "points": [[0, 0], [1, 1]], "closed": 1, "fill": "accent" }"#, #"clips[0].closed (path): expected "#)
         ]
@@ -432,7 +436,7 @@ struct SequenceCheckTests {
             ),
             (
                 #"{ "clips": [ { "kind": "rect", "area": [0, 0, 10, 10], "fill": { "kind": "radial", "radius": 0 } } ] }"#,
-                "clips[0].fill.radial.radius (radial gradient): 0 is not above 0"
+                "clips[0].fill.radius (radial gradient): 0 is not above 0"
             ),
             (
                 #"{ "clips": [ { "kind": "media", "media": "/abs/card.png", "at": [0, 1], "radius": -8 } ] }"#,
@@ -709,7 +713,7 @@ struct SequenceCheckTests {
             ),
             (
                 #"{ "kind": "path", "parent": "shot", "points": [ [0, 0], { "vertex": { "area": { "tool": "frames/find-text", "from": "Total", "to": "42,000" }, "point": "right" } } ] }"#,
-                "storyline[0]#shot.connected[0].points[1].area",
+                "storyline[0]#shot.connected[0].points[1].vertex.area",
                 "frames/find-text"
             ),
             (
@@ -1326,7 +1330,7 @@ struct SequenceCheckTests {
     }
 
     @Test(
-        "a mask takes only the keys of its shape, and a rect or ellipse exactly one of an area and a whole box",
+        "a mask takes only the keys of its kind, and a rect or ellipse exactly one of an area and a whole box",
         arguments: [
             (#"{ "kind": "rect", "area": [0, 0, 10, 10], "points": [[0, 0], [10, 0], [5, 10]] }"#, #"clips[0].mask (rect mask): unknown key "points""#),
             (#"{ "kind": "ellipse", "area": [0, 0, 10, 10], "radius": 2 }"#, #"clips[0].mask (ellipse mask): unknown key "radius""#),
@@ -1336,7 +1340,7 @@ struct SequenceCheckTests {
             (#"{ "kind": "path", "points": [[0, 0], [10, 0], [5, 10]], "height": 10 }"#, #"clips[0].mask (path mask): unknown key "height""#),
             (#"{ "kind": "path", "points": [[0, 0], [10, 0], [5, 10]], "position": [5, 5] }"#, #"clips[0].mask (path mask): unknown key "position""#),
             (#"{ "kind": "path", "points": [[0, 0], [10, 0], [5, 10]], "radius": 2 }"#, #"clips[0].mask (path mask): unknown key "radius""#),
-            (#"{ "shape": "rect", "area": [0, 0, 10, 10], "outset": 2 }"#, #"clips[0].mask (rect mask): unknown key "outset""#),
+            (#"{ "kind": "rect", "area": [0, 0, 10, 10], "outset": 2 }"#, #"clips[0].mask (rect mask): unknown key "outset""#),
             (#"[ { "kind": "rect", "area": [0, 0, 10, 10] }, { "kind": "ellipse", "area": [0, 0, 10, 10], "radius": 2 } ]"#, #"clips[0].mask[1] (ellipse mask): unknown key "radius""#),
             (#"{ "kind": "rect", "area": [0, 0, 10, 10], "width": 10, "height": 10 }"#, #"clips[0].mask (rect mask): takes only one of "area", "width", "height""#),
             (#"{ "kind": "ellipse" }"#, "clips[0].mask (ellipse mask): needs one of area, width, height, position"),
@@ -1344,9 +1348,11 @@ struct SequenceCheckTests {
             (#"{ "kind": "rect", "width": 10, "position": [5, 5] }"#, #"clips[0].mask (rect mask): missing key "height""#),
             (#"{ "kind": "ellipse", "width": 10, "height": 10 }"#, #"clips[0].mask (ellipse mask): missing key "position""#),
             (#"{ "kind": "path" }"#, #"clips[0].mask (path mask): missing key "points""#),
-            (#"{ "kind": "path", "points": [[0, 0]] }"#, "clips[0].mask.points (path mask): expected a list of at least two vertices, each a point or {vertex, inTangent, outTangent}"),
-            (#"{ "area": [0, 0, 10, 10] }"#, #"clips[0].mask (mask): missing key "shape""#),
-            (#"{ "kind": "star", "area": [0, 0, 10, 10] }"#, #"clips[0].mask.shape (mask): unknown value "star". Allowed: rect, ellipse, path"#),
+            (#"{ "kind": "path", "points": [[0, 0]] }"#, "clips[0].mask.points (path mask): expected a list of at least two vertices, each [x, y] or {vertex, inTangent, outTangent}"),
+            (#"{ "area": [0, 0, 10, 10] }"#, #"clips[0].mask (mask): missing key "kind""#),
+            (#"{ "shape": "rect", "area": [0, 0, 10, 10] }"#, #"clips[0].mask (mask): missing key "kind""#),
+            (#"{ "kind": "rect", "shape": "rect", "area": [0, 0, 10, 10] }"#, #"clips[0].mask (rect mask): unknown key "shape""#),
+            (#"{ "kind": "star", "area": [0, 0, 10, 10] }"#, #"clips[0].mask.kind (mask): unknown value "star". Allowed: rect, ellipse, path"#),
             (#"{ "kind": "rect", "area": [0, 0, 10, 10], "mode": "multiply" }"#, #"clips[0].mask.mode (rect mask): unknown value "multiply". Allowed: add, subtract, intersect"#),
             ("[]", "clips[0].mask (adjustment): a mask list holds at least one mask, and a clip without masks writes no mask"),
             ("true", "clips[0].mask (adjustment): expected a mask or a list of masks, found true")
@@ -1410,7 +1416,7 @@ struct SequenceCheckTests {
             (
                 #"{ "kind": "path" }"#,
                 #"[ { "at": 0, "mask": { "points": [[0, 0]] } } ]"#,
-                "clips[0].keyframes[0].mask.points (mask): expected a list of at least two vertices, each a point or {vertex, inTangent, outTangent}"
+                "clips[0].keyframes[0].mask.points (mask): expected a list of at least two vertices, each [x, y] or {vertex, inTangent, outTangent}"
             )
         ]
     )

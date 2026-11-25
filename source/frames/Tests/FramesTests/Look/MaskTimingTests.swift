@@ -19,13 +19,13 @@ struct MaskTimingTests {
 
     // MARK: - Initializer
     // MARK: - Test
-    @Test("a mask's shape, invert or mode in a keyframe stops, naming the keyframe")
+    @Test("a mask's kind, invert or mode in a keyframe stops, naming the keyframe")
     func refusesStaticLeafInKeyframe() throws {
         // Given
         let written = try value(##"[{ "kind": "rect", "area": [0, 0, 10, 10] }]"##)
 
         // When, Then
-        for key in ["shape", "invert", "mode"] {
+        for key in ["kind", "invert", "mode"] {
             let json = key == "invert" ? "true" : (key == "mode" ? ##""subtract""## : ##""ellipse""##)
             let keyframes = try keyframes([(0, ##"[{ "\##(key)": \##(json) }]"##)])
             #expect(throws: LookError.keyframedStatic(place: place.keyframe(0).appending(index: 0).appending(key: key))) {
@@ -78,7 +78,7 @@ struct MaskTimingTests {
 
         // Then
         let mask = try #require(timed.first)
-        #expect(mask["shape"] == .fixed(.string("ellipse")))
+        #expect(mask["kind"] == .fixed(.string("ellipse")))
         #expect(mask["invert"] == .fixed(.bool(true)))
         #expect(mask["mode"] == .fixed(.string("add")))
         #expect(mask["area"] == .track([

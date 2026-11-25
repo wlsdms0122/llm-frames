@@ -147,7 +147,7 @@ struct MaskEndToEndTests {
             ),
             (
                 #""keyframes": [ { "at": 0, "mask": { "area": [0, 0, 10, 10] } } ]"#,
-                #"clips[0].mask (adjustment): missing key "shape", which the clip does not write and no theme layer gives"#
+                #"clips[0].mask (adjustment): missing key "kind", which the clip does not write and no theme layer gives"#
             )
         ]
     )

@@ -42,16 +42,12 @@ extension TimedValue: ExpressibleByIntegerLiteral, ExpressibleByFloatLiteral {
             TimedMember(key: "dash", value: .list(lengths.map { .held(.number($0)) }))
         }
 
-        let paint: TimedMember = switch stroke.paint {
-        case let .color(color):
-            TimedMember(key: "color", value: .held(.color(color)))
-
-        case .gradient:
-            TimedMember(key: "gradient", value: .off)
-        }
+        // A gradient's points are those of the evaluated box, which no written stroke holds, so a stroke here is
+        // painted with a colour.
+        guard case let .color(color) = stroke.paint else { preconditionFailure("a held stroke takes a colour paint") }
 
         return .object([
-            paint,
+            TimedMember(key: "paint", value: .form(ValueStructure.colorForm, .held(.color(color)))),
             TimedMember(key: "width", value: .held(.number(stroke.width))),
             TimedMember(key: "align", value: .fixed(.string(stroke.align.rawValue))),
             TimedMember(key: "join", value: .fixed(.string(stroke.join.rawValue))),
@@ -159,7 +155,7 @@ extension TimedValue: ExpressibleByIntegerLiteral, ExpressibleByFloatLiteral {
         at time: Double = 0,
         box: Rectangle = Rectangle(x: 0, y: 0, width: 1, height: 1)
     ) -> Paint? {
-        Paint(sampled: sampled(at: time, as: LookStructureTable.fill), box: box)
+        Paint(sampled: sampled(at: time, as: LookStructureTable.paint), box: box)
     }
 
     func stroke(

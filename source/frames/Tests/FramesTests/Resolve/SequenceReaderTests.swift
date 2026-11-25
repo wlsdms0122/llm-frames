@@ -190,7 +190,7 @@ struct SequenceReaderTests {
         #expect(sequence.clips[1].content == .shape(ClipShape(
             kind: .path,
             points: PathProperty(
-                written: [try Fixture.json("[0, 0]"), try Fixture.json(#"{ "area": [0, 0, 10, 10], "point": "right" }"#)],
+                written: [try Fixture.json("[0, 0]"), try Fixture.json(#"{ "vertex": { "area": [0, 0, 10, 10], "point": "right" } }"#)],
                 keyframes: []
             ),
             isClosed: true,

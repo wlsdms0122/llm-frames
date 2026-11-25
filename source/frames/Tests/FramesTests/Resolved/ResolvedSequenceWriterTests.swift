@@ -545,7 +545,7 @@ struct ResolvedSequenceWriterTests {
         #expect(clips[0]["radius"]?.arrayValue?.first?.objectValue?["value"] == .array(Array(repeating: .number(18 * scale), count: 4)))
         #expect(clips[0]["fill"] == .null)
         #expect(clips[0]["stroke"] == .object(JSONObject(members: [
-            JSONMember(key: "color", value: held(.string("color(srgb 0.9294117647058824 0.1607843137254902 0.1607843137254902 / 1)"))),
+            JSONMember(key: "paint", value: held(.string("color(srgb 0.9294117647058824 0.1607843137254902 0.1607843137254902 / 1)"))),
             JSONMember(key: "width", value: held(.number(8 * scale))),
             JSONMember(key: "align", value: .string("center")),
             JSONMember(key: "join", value: .string("round")),
@@ -561,7 +561,7 @@ struct ResolvedSequenceWriterTests {
         #expect(clips[1]["closed"] == .bool(false))
         #expect(clips[1]["area"] == .null)
         #expect(clips[1]["outset"] == .null)
-        #expect(clips[1]["stroke"]?.objectValue?["color"] == held(.string(theme.color("accent").resolvedForm)))
+        #expect(clips[1]["stroke"]?.objectValue?["paint"] == held(.string(theme.color("accent").resolvedForm)))
         #expect(clips[1]["stroke"]?.objectValue?["end"] == end("arrow"))
         #expect(clips[1]["radius"] == .null)
         #expect(clips[1]["trim"]?.arrayValue?.first?.objectValue?["value"] == .array([.number(0), .number(1)]))
