@@ -29,6 +29,7 @@
           "shape": "rect",
           "style": "box",
           "area": {
+            "tool": "find-text",
             "text": "Sourdough"
           }
         },
@@ -38,6 +39,7 @@
           "shape": "rect",
           "style": "box",
           "area": {
+            "tool": "find-text",
             "text": "Total",
             "nth": 1,
             "padding": 8
@@ -49,6 +51,7 @@
           "shape": "rect",
           "style": "box",
           "area": {
+            "tool": "find-text",
             "from": "Flat white",
             "to": "Total 10",
             "padding": 12
@@ -62,6 +65,7 @@
           "anchor": "left",
           "position": {
             "area": {
+              "tool": "find-text",
               "text": "Thank you",
               "padding": 10
             },
@@ -75,6 +79,7 @@
       "media": "/media/board.png",
       "duration": 2,
       "crop": {
+        "tool": "find-text",
         "text": "Thank",
         "padding": 20
       }
