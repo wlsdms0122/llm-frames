@@ -90,7 +90,7 @@ The interview opens with a slow push in and a lower third, a name and a role in 
 | mask | `shape, area, points, width, height, position, radius, feather, invert, mode` |
 | path vertex (an object in the `points` of a path shape or a path mask, [FRAMES-11](../FRAMES-11/SPEC.md#shapes)) | `vertex, inTangent, outTangent`, `vertex` required outside a keyframe |
 | track matte | `clip, mode, invert` |
-| `track` as an object ([FRAMES-12](../FRAMES-12/SPEC.md#the-track)) | `time`, required, and at most one of `area` and `frames`: `{time}`, `{time, area}`, or track data `{time, frames}` ([FRAMES-12](../FRAMES-12/SPEC.md#track-data)) |
+| `track`, track data ([FRAMES-12](../FRAMES-12/SPEC.md#track-data)) | `time, frames`, both required |
 | track data frame | `time, quad` |
 | keyframe | `at, ease`, and the keyframable properties of its clip |
 | transition choice | a preset as `<pack>/<name>` or an absolute path, `"cut"`, or `{preset, seconds, args}` with at least one of `seconds` and `args`, `preset` left out to merge over the theme's default ([FRAMES-14](../FRAMES-14/SPEC.md), [FRAMES-22](../FRAMES-22/SPEC.md)) |

@@ -78,7 +78,7 @@ media time at clip time c (timed media clip):
 
 ### A clip's instant
 
-A clip's **instant** is where a value it writes without keyframes takes effect: a connected or sequence clip's start (a connected clip without `at` starts at its storyline clip's `in`, a sequence clip without `at` at 0), and a storyline clip's `in`. It is on the clip's own clock. The frame of a media that the instant shows is found by carrying the instant to the clip time of the clip whose media it is, and turning that into media time through that clip's time map: its `timeRemap` when it has one, otherwise clip time is media time. So a clip parented to a time-remapped clip shows, at its instant, the frame its parent shows at that clip's start. A tracked clip's short forms find their target on that frame ([FRAMES-12](../FRAMES-12/SPEC.md#the-track)).
+A clip's **instant** is where a value it writes without keyframes takes effect: a connected or sequence clip's start (a connected clip without `at` starts at its storyline clip's `in`, a sequence clip without `at` at 0), and a storyline clip's `in`. It is on the clip's own clock. The frame of a media that the instant shows is found by carrying the instant to the clip time of the clip whose media it is, and turning that into media time through that clip's time map: its `timeRemap` when it has one, otherwise clip time is media time. So a clip parented to a time-remapped clip shows, at its instant, the frame its parent shows at that clip's start.
 
 ## Interactions
 
