@@ -16,7 +16,7 @@ Any property marked keyframable takes a static value or a list of keyframes. A k
 
 ```json
 "opacity": 1,
-"keyframes": [ { "at": 3, "position": [600, 500], "ease": { "spring": { "bounce": 0.3 } } }, { "at": 4, "position": [330, 900], "scale": 1.5 } ]
+"keyframes": [ { "at": 3, "position": [600, 500], "ease": { "kind": "spring", "bounce": 0.3 } }, { "at": 4, "position": [330, 900], "scale": 1.5 } ]
 ```
 
 - **Each leaf is timed on its own: it joins only the keyframes that write it**, holds the first of their values before the first of them and the last after the last, and between two of them moves from one to the next. The unit of timing is one value an editor moves on its own, as After Effects keyframes a shape's Fill Color, Stroke Color and Stroke Width each on its own, so a title's colour that changes from 0 to 1 seconds and a highlight colour that pulses from 2 to 3 seconds are written apart, and a keyframe of one leaves the other where its own keyframes put it.
@@ -79,7 +79,9 @@ An ease is a name, a cubic Bézier, or a spring.
 | `bounce-out` | with n = 7.5625 and d = 2.75: n·u² when u < 1/d; n(u - 1.5/d)² + 0.75 when u < 2/d; n(u - 2.25/d)² + 0.9375 when u < 2.5/d; otherwise n(u - 2.625/d)² + 0.984375 |
 | `step` | 0 when u < 1, otherwise 1 |
 | `[x1, y1, x2, y2]` | cubic Bézier from (0, 0) to (1, 1) with control points (x1, y1) and (x2, y2), as CSS `cubic-bezier()`: f(u) is the y of the curve's point whose x is u. `x1` and `x2` lie in [0, 1], and one outside stops. `y1` and `y2` may be any number |
-| `{"spring": {"bounce": b}}` | a damped spring settling from 0 to 1, below |
+| `{"kind": "spring", "bounce": b}` | a damped spring settling from 0 to 1, below |
+
+An ease written as an object says which ease it is with `kind`, and holds that ease's parameters beside it. `spring` is the one such kind. An object without `kind` stops, and so does another kind, with the kinds it takes.
 
 **Spring.** `bounce` b is a number greater than -1 and less than 1. 0 settles with no overshoot, a bounce above 1 − √3/2 (about 0.134) swings past 1 and back, more the higher it is, before it settles, and a lower one approaches 1 more slowly with no overshoot. A bounce of -1 or less, or of 1 or more, stops, since at -1 the spring never moves and at 1 it never settles (below). From b:
 
@@ -113,6 +115,8 @@ Which clock an instant is on, and what `timeRemap` maps, is [FRAMES-8](../FRAMES
 A keyframe that changes a `radius` between one number and four stopping, as a form that changes between keyframes stops: a number is the list of four equal radii, as a number `scale` is the pair of two equal factors, so the two forms write one value, and a box rounded alike can round one corner apart from a keyframe that writes four.
 
 A spring simulated with its own settle time, as a physics engine runs it: the value would not land at its keyframe's time, and a keyframe would stop being an edit point. Normalising the step response to the span keeps the keyframe as the place and time it arrives.
+
+A spring written as `{"spring": {"bounce": b}}`, the key naming the ease: one key would carry two facts, which ease it is and its parameters, and an ease of parameters of its own would be one more key whose presence decides the form. `kind` names the ease with one value, as it names a clip ([FRAMES-7](../FRAMES-7/SPEC.md)), and its parameters sit beside it.
 
 A spring given by mass, stiffness and damping: three numbers with one effect an editor sees. One `bounce`, as SwiftUI's spring takes it, gives the same range of looks, and the span's length gives its speed.
 

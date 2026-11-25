@@ -51,8 +51,8 @@ enum Ease: Equatable, Sendable {
             self = .cubicBezier(x1: numbers[0], y1: numbers[1], x2: numbers[2], y2: numbers[3])
 
         case let .object(object):
-            guard object.keys == ["spring"], let spring = object["spring"]?.objectValue, spring.keys == ["bounce"],
-                  let bounce = spring["bounce"]?.numberValue, bounce > -1, bounce < 1 else { return nil }
+            guard Set(object.keys) == ["kind", "bounce"], object["kind"] == .string("spring"),
+                  let bounce = object["bounce"]?.numberValue, bounce > -1, bounce < 1 else { return nil }
 
             self = .spring(bounce: bounce)
 

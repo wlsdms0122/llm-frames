@@ -94,11 +94,11 @@ struct ResolvedSequencePinnedReferencesTests {
         // Given
         let plan = try Fixture.documentPlanner.plan(Fixture.json(#"""
             { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "out": 4 } ],
-              "clips": [ { "kind": "audio", "media": "/abs/bgm.m4a", "audioFilter": { "op": "convolve", "file": "/abs/ding.wav" } },
+              "clips": [ { "kind": "audio", "media": "/abs/bgm.m4a", "audioFilter": { "kind": "convolve", "file": "/abs/ding.wav" } },
                          { "kind": "audio", "media": { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "out": 2 } ],
-                                      "audioFilter": { "op": "convolve", "file": "/abs/bgm.m4a" } },
-                           "audioFilter": [ { "op": "gate", "threshold": -50 }, { "op": "convolve", "file": "/abs/run.mp4" } ] } ],
-              "audioFilter": { "op": "convolve", "file": "/abs/ding.wav", "gain": -3 } }
+                                      "audioFilter": { "kind": "convolve", "file": "/abs/bgm.m4a" } },
+                           "audioFilter": [ { "kind": "gate", "threshold": -50 }, { "kind": "convolve", "file": "/abs/run.mp4" } ] } ],
+              "audioFilter": { "kind": "convolve", "file": "/abs/ding.wav", "gain": -3 } }
             """#))
         let sut = try ResolvedSequence(plan: plan, hashes: FileHashTable(["/abs/ding.wav": "ding-digest"]))
 

@@ -115,7 +115,7 @@ struct DisplacementRenderTests {
         _ map: String,
         amount: Double
     ) -> String {
-        #"{ "description": "moves the picture", "ops": [ { "op": "displace", "file": "\#(map)", "amount": \#(amount) } ] }"#
+        #"{ "description": "moves the picture", "ops": [ { "kind": "displace", "file": "\#(map)", "amount": \#(amount) } ] }"#
     }
 
     // A 16-bit map of one value, 2 by 2.

@@ -36,7 +36,7 @@ struct ChoiceArgumentTests {
             #"""
             { "description": "Springs up into place.",
               "params": { "bounce": { "type": "number", "default": 0.2, "description": "how far it overshoots" } },
-              "entrance": { "seconds": 0.5, "ease": { "spring": { "bounce": { "param": "bounce" } } },
+              "entrance": { "seconds": 0.5, "ease": { "kind": "spring", "bounce": { "param": "bounce" } },
                             "keys": [ { "t": 0, "y": 0.2 }, { "t": 1, "y": 0 } ] } }
             """#,
             in: "studio",
@@ -46,7 +46,7 @@ struct ChoiceArgumentTests {
             #"""
             { "description": "Grains the picture like film.",
               "params": { "grain": { "type": "number", "default": 0.05, "description": "strength of the grain" } },
-              "ops": [ { "op": "grain", "amount": { "param": "grain" }, "size": 2 } ] }
+              "ops": [ { "kind": "grain", "amount": { "param": "grain" }, "size": 2 } ] }
             """#,
             in: "studio",
             at: "presets/filter/film.json"
@@ -55,7 +55,7 @@ struct ChoiceArgumentTests {
             #"""
             { "description": "Blooms the highlights in a colour.",
               "params": { "tint": { "type": "color", "default": "#FFFFFF", "description": "colour of the bloom" } },
-              "ops": [ { "op": "bloom", "amount": 0.4, "radius": 8, "color": { "param": "tint" } } ] }
+              "ops": [ { "kind": "bloom", "amount": 0.4, "radius": 8, "color": { "param": "tint" } } ] }
             """#,
             in: "studio",
             at: "presets/filter/glow.json"
@@ -68,7 +68,7 @@ struct ChoiceArgumentTests {
         // Given
         let document = try Fixture.json(##"""
             { "kind": "sequence",
-              "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "in": 0, "out": 3, "filter": [ "studio/film", { "preset": "studio/film", "args": { "grain": 0.02 } } ] },
+              "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "in": 0, "out": 3, "filter": [ "studio/film", { "kind": "preset", "preset": "studio/film", "args": { "grain": 0.02 } } ] },
                              { "kind": "media", "media": "/abs/run.mp4", "in": 0, "out": 3, "transition": { "preset": "studio/dip", "seconds": 1, "args": { "color": "#1B3A6B" } } } ],
               "clips": [ { "kind": "title", "text": "a", "style": "subtitle", "at": [0, 2], "animation": { "entrance": { "preset": "studio/spring-in", "args": { "bounce": 0.4 } }, "exit": "none" } } ] }
             """##)
@@ -90,7 +90,7 @@ struct ChoiceArgumentTests {
         #expect(filter == [.number(0.05), .number(0.02)])
         #expect(transition?["cover"]?.objectValue?["color"] == .string("color(srgb 0.10588235294117647 0.22745098039215686 0.4196078431372549 / 1)"))
         #expect(transition.map { ($0["end"]?.numberValue ?? 0) - ($0["start"]?.numberValue ?? 0) } == 1)
-        #expect(entrance?["ease"] == (try Fixture.json(#"{ "spring": { "bounce": 0.4 } }"#)))
+        #expect(entrance?["ease"] == (try Fixture.json(#"{ "kind": "spring", "bounce": 0.4 }"#)))
         #expect(!text.contains("params") && !text.contains("param\""))
         #expect(read == sequence)
         #expect(!report.text.isEmpty)
@@ -171,7 +171,7 @@ struct ChoiceArgumentTests {
         let document = try Fixture.json(##"""
             { "kind": "sequence", "theme": { "colors": { "brand": "#1B3A6B" }, "defaults": {
                 "transition": { "preset": "studio/dip", "args": { "color": "brand" } },
-                "filter": { "preset": "studio/glow", "args": { "tint": "shadow" } } } },
+                "filter": { "kind": "preset", "preset": "studio/glow", "args": { "tint": "shadow" } } } },
               "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "in": 0, "out": 3 }, { "kind": "media", "media": "/abs/run.mp4", "in": 0, "out": 3 } ] }
             """##)
 
@@ -190,7 +190,7 @@ struct ChoiceArgumentTests {
                 #"theme.defaults.transition (defaults): the preset names the colour "brand", which is not in the theme's colors"#
             ),
             (
-                #"{ "filter": [ "studio/film", { "preset": "studio/glow", "args": { "tint": "brand" } } ] }"#,
+                #"{ "filter": [ "studio/film", { "kind": "preset", "preset": "studio/glow", "args": { "tint": "brand" } } ] }"#,
                 #"theme.defaults.filter[1] (defaults): the preset names the colour "brand", which is not in the theme's colors"#
             )
         ]

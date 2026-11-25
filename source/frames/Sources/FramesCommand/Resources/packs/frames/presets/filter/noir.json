@@ -1,7 +1,7 @@
 {
   "description": "High-contrast black and white with deep blacks.",
   "ops": [
-    { "op": "saturation", "amount": 0 },
-    { "op": "contrast", "amount": 1.45 }
+    { "kind": "saturation", "amount": 0 },
+    { "kind": "contrast", "amount": 1.45 }
   ]
 }

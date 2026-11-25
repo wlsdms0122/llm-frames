@@ -42,7 +42,7 @@ extension MixFilterEntry {
         sampler: MixValueSampler
     ) -> MixFilterOperation? {
         guard case let .form(form, body) = value, case let .object(structure) = LookStructureTable.audioOperation(
-            String(form.dropFirst("op:".count))
+            String(form.dropFirst("kind:".count))
         ) else {
             return nil
         }
@@ -54,14 +54,14 @@ extension MixFilterEntry {
         }
 
         switch form {
-        case "op:eq":
+        case "kind:eq":
             guard case let .list(bands) = body["bands"], case let .list(band) = structure.structure(of: "bands") else {
                 return nil
             }
 
             return .eq(bands: bands.compactMap { self.band($0, structure: band, sampler: sampler) })
 
-        case "op:compressor":
+        case "kind:compressor":
             guard
                 let threshold = number("threshold"),
                 let ratio = number("ratio"),
@@ -82,7 +82,7 @@ extension MixFilterEntry {
                 makeup: makeup
             ))
 
-        case "op:limiter":
+        case "kind:limiter":
             guard
                 let gain = number("gain"),
                 let ceiling = number("ceiling"),
@@ -94,7 +94,7 @@ extension MixFilterEntry {
 
             return .limiter(MixLimiter(gain: gain, ceiling: ceiling, lookahead: lookahead, release: release))
 
-        case "op:convolve":
+        case "kind:convolve":
             guard
                 case let .fixed(.string(path))? = body["file"],
                 case let .fixed(.string(sha256))? = body["sha256"],
@@ -140,7 +140,7 @@ extension MixFilterEntry {
     ) -> MixBand? {
         guard
             case let .form(form, body) = value,
-            let type = MixBandType(rawValue: String(form.dropFirst("type:".count))),
+            let type = MixBandType(rawValue: String(form.dropFirst("kind:".count))),
             case let .object(band) = structure.structure(ofForm: form)
         else {
             return nil

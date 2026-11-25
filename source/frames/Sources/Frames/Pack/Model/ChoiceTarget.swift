@@ -100,7 +100,11 @@ enum ChoiceTarget: Equatable, Sendable {
             part = .whole
 
         case [.key("preset")]:
-            guard reference.kind.hasSuffix("choice") else { return nil }
+            guard
+                reference.kind.hasSuffix("choice") || reference.kind == ChoiceKeyTable.animationSideKind
+            else {
+                return nil
+            }
 
             part = .name
 

@@ -87,6 +87,29 @@ struct ClipAnimationTests {
         #expect(plan.clips[1].animation.exit?.span.length == 0.25)
     }
 
+    @Test("sides written over a default keep its loop and its other side, and over none play only the spans they write")
+    func replacesSidesOfDefault() throws {
+        // Given
+        let document = try Fixture.json(#"""
+            { "kind": "sequence",
+              "theme": { "defaults": { "animation": { "media": "frames/pulse", "shape": "none" } } },
+              "storyline": [ { "kind": "media", "media": "/abs/run.mp4" } ],
+              "clips": [
+                { "at": [0, 4], "kind": "media", "media": "/abs/log.png", "animation": { "entrance": "frames/pop", "exit": "frames/fade" } },
+                { "at": [0, 4], "kind": "media", "media": "/abs/log.png", "animation": { "exit": "none" } },
+                { "at": [0, 4], "kind": "rect", "stroke": { "width": 8 }, "area": [0, 0, 10, 10], "animation": { "entrance": "frames/pop", "exit": "frames/fade" } }
+              ] }
+            """#)
+
+        // When
+        let plan = try sut.plan(document: document)
+
+        // Then
+        #expect(plan.clips.map(\.animation.entrance?.preset) == ["frames/pop", "frames/pulse", "frames/pop"])
+        #expect(plan.clips.map(\.animation.loop?.preset) == ["frames/pulse", "frames/pulse", nil])
+        #expect(plan.clips.map(\.animation.exit?.preset) == ["frames/fade", nil, "frames/fade"])
+    }
+
     @Test("a title's `{\"by\": \"word\"}` plays its default animation by word, and a written `stagger` replaces the unit's default")
     func playsByUnit() throws {
         // Given

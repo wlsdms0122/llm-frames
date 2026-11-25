@@ -622,7 +622,7 @@ struct MotionBlurEvaluationTests {
         // Given
         let sequence = try resolved(clips: [#"""
             { "id": "leaf", "kind": "media", "media": "/abs/card.png", "at": [0, 4], "motionBlur": true,
-              "filter": { "op": "displace", "file": "/abs/matte.png", "amount": 8 },
+              "filter": { "kind": "displace", "file": "/abs/matte.png", "amount": 8 },
               "keyframes": [ { "at": 0, "filter": { "offset": [0, 0] } }, { "at": 2, "filter": { "offset": [400, -200] } } ] }
             """#])
         let list = sut.displayList(of: sequence, at: 1)

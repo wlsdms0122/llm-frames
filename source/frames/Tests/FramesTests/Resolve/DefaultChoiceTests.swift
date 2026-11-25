@@ -38,13 +38,19 @@ struct DefaultChoiceTests {
         #expect(plan.storyline[1].transition?.seconds == 1)
     }
 
-    @Test("a transition that names a preset replaces the default whole, its seconds included")
-    func replacesDefaultWithPreset() throws {
+    @Test(
+        "a transition that names a preset replaces the default whole, its seconds included, also where it names the default's own preset",
+        arguments: [
+            (#""frames/wipe-right""#, #"{ "preset": "frames/flash", "seconds": 0.25 }"#),
+            (#"{ "preset": "frames/wipe-right", "args": {} }"#, #"{ "preset": "frames/wipe-right", "seconds": 0.25 }"#)
+        ]
+    )
+    func replacesDefaultWithPreset(
+        choice: String,
+        defaults: String
+    ) throws {
         // When
-        let plan = try sut.plan(document: transition(
-            #""frames/wipe-right""#,
-            defaults: #"{ "preset": "frames/flash", "seconds": 0.25 }"#
-        ))
+        let plan = try sut.plan(document: transition(choice, defaults: defaults))
 
         // Then
         #expect(plan.storyline[1].transition?.preset == "frames/wipe-right")
@@ -89,29 +95,34 @@ struct DefaultChoiceTests {
         "a filter without a preset, its arguments or its mix, stops over a default list, over none, and on an adjustment",
         arguments: [
             (
-                #"{ "kind": "media", "media": "/abs/card.png", "at": [0, 1], "filter": { "args": {} } }"#,
+                #"{ "kind": "media", "media": "/abs/card.png", "at": [0, 1], "filter": { "kind": "preset", "args": {} } }"#,
                 #"["frames/warm", "frames/warm"]"#,
                 "clips[0].filter (image): a choice without a preset over the theme's default list (theme.defaults.filter), where which entry it changes is ambiguous"
             ),
             (
-                #"{ "kind": "media", "media": "/abs/card.png", "at": [0, 1], "filter": { "args": {} } }"#,
+                #"{ "kind": "media", "media": "/abs/card.png", "at": [0, 1], "filter": { "kind": "preset", "args": {} } }"#,
                 #""none""#,
                 "clips[0].filter (image): a choice without a preset changes the theme's default, which is none here (theme.defaults.filter)"
             ),
             (
-                #"{ "kind": "media", "media": "/abs/card.png", "at": [0, 1], "filter": { "mix": 0.5 } }"#,
+                #"{ "kind": "media", "media": "/abs/card.png", "at": [0, 1], "filter": { "kind": "preset", "mix": 0.5 } }"#,
                 #"["frames/warm", "frames/warm"]"#,
                 "clips[0].filter (image): a choice without a preset over the theme's default list (theme.defaults.filter), where which entry it changes is ambiguous"
             ),
             (
-                #"{ "kind": "media", "media": "/abs/card.png", "at": [0, 1], "filter": { "mix": 0.5 } }"#,
+                #"{ "kind": "media", "media": "/abs/card.png", "at": [0, 1], "filter": { "kind": "preset", "mix": 0.5 } }"#,
                 #""none""#,
                 "clips[0].filter (image): a choice without a preset changes the theme's default, which is none here (theme.defaults.filter)"
             ),
             (
-                #"{ "kind": "adjustment", "adjust": { "args": {} }, "at": [0, 1] }"#,
+                #"{ "kind": "adjustment", "adjust": { "kind": "preset", "args": {} }, "at": [0, 1] }"#,
                 #""frames/warm""#,
                 "clips[0].adjust (adjustment): a choice without a preset changes the theme's default, and this clip takes none"
+            ),
+            (
+                #"{ "kind": "media", "media": "/abs/card.png", "at": [0, 1], "filter": { "kind": "preset", "mix": 0.5 } }"#,
+                #"{ "kind": "blur", "radius": 4 }"#,
+                #"clips[0].filter (image): a preset entry without a preset changes the theme's default preset entry, and the default (theme.defaults.filter) is of kind "blur""#
             )
         ]
     )
@@ -138,7 +149,7 @@ struct DefaultChoiceTests {
         // Given
         let document = try Fixture.json(#"""
             { "kind": "sequence", "theme": { "defaults": { "filter": "frames/warm" } },
-              "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "in": 0, "out": 3, "filter": { "args": {} } } ] }
+              "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "in": 0, "out": 3, "filter": { "kind": "preset", "args": {} } } ] }
             """#)
 
         // When
@@ -146,6 +157,30 @@ struct DefaultChoiceTests {
 
         // Then
         #expect(plan.storyline[0].filter.filter() == [FilterEntry(operations: [])])
+    }
+
+    @Test(
+        "a filter op over a default op of its own kind merges over it key by key, and an op of another kind replaces it",
+        arguments: [
+            (#"{ "kind": "sepia", "mix": 0.5 }"#, FilterEntry(operations: [.sepia(amount: 0.8)], mix: 0.5)),
+            (#"{ "kind": "contrast", "amount": 1.2 }"#, FilterEntry(operations: [.contrast(amount: 1.2)]))
+        ]
+    )
+    func mergesFilterOperationOverDefault(
+        choice: String,
+        entry: FilterEntry
+    ) throws {
+        // Given
+        let document = try Fixture.json(#"""
+            { "kind": "sequence", "theme": { "defaults": { "filter": { "kind": "sepia", "amount": 0.8 } } },
+              "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "in": 0, "out": 3, "filter": \#(choice) } ] }
+            """#)
+
+        // When
+        let plan = try Fixture.sequencePlanner.plan(Fixture.planner.plan(document: document))
+
+        // Then
+        #expect(plan.storyline[0].filter.filter() == [entry])
     }
 
     // MARK: - Private

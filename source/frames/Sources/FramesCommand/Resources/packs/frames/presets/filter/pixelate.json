@@ -1,6 +1,6 @@
 {
   "description": "Square blocks.",
   "ops": [
-    { "op": "pixelate", "size": 16 }
+    { "kind": "pixelate", "size": 16 }
   ]
 }

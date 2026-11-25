@@ -21,13 +21,13 @@ struct ValueTypeStructureTests {
 
     // MARK: - Initializer
     // MARK: - Test
-    @Test("a gradient is one object per kind, each requiring its kind under `kind` and named by it before the value's")
+    @Test("a gradient is an object of the kinds of a kind table, each kind's table taking its kind under `kind` and named by it before the value's")
     func readsGradient() {
         // When
         let sut = ValueType(structure: .forms(LookStructureTable.gradientForms), kind: "gradient")
 
         // Then
-        #expect(sut == .oneOf(Self.gradients(of: "gradient")))
+        #expect(sut == Self.gradients(of: "gradient"))
     }
 
     @Test("a shape's fill, stroke and shadow take `false`, and a shadow `true`, beside their values")
@@ -38,13 +38,13 @@ struct ValueTypeStructureTests {
         let shadow = ValueType(written: LookStructureTable.shadow, kind: "shadow")
 
         // Then
-        #expect(fill == .oneOf([.exactly(.bool(false)), .color] + Self.gradients(of: "gradient")))
+        #expect(fill == .oneOf([.exactly(.bool(false)), .color, Self.gradients(of: "gradient")]))
         #expect(stroke == .oneOf([
             .exactly(.bool(false)),
             .object(ObjectTable(
                 kind: "stroke",
                 rules: [
-                    KeyRule("paint", .oneOf([.color] + Self.gradients(of: "paint"))),
+                    KeyRule("paint", .oneOf([.color, Self.gradients(of: "paint")])),
                     KeyRule("width", .number(.positive)),
                     KeyRule("align", .literal(Self.aligns)),
                     KeyRule("join", .literal(Self.joins)),
@@ -112,20 +112,20 @@ struct ValueTypeStructureTests {
         ])
     }
 
-    @Test("an audio op's table requires only `op` and a band's only `type`, and leaves every parameter's domain to the domain check")
+    @Test("an audio op's table requires only `kind` and a band's only `kind`, and leaves every parameter's domain to the domain check")
     func readsAudioOperations() {
         // When
         let tables = AudioFilterKeyTable.operations.map(AudioFilterKeyTable.table(for:))
-        let bands = AudioFilterKeyTable.bandTypes.map(AudioFilterKeyTable.band(of:))
+        let bands = AudioFilterKeyTable.bandKinds.map { AudioFilterKeyTable.bands.tables[$0] }
 
         // Then
-        let operation = KeyRule("op", .literal(AudioFilterKeyTable.operations), isRequired: true)
+        let operation = { (name: String) in KeyRule("kind", .literal([name]), isRequired: true) }
         #expect(tables == [
-            ObjectTable(kind: "eq", rules: [operation, KeyRule("bands", .list(.anyObject))]),
+            ObjectTable(kind: "eq", rules: [operation("eq"), KeyRule("bands", .list(.kinds(AudioFilterKeyTable.bands)))]),
             ObjectTable(
                 kind: "compressor",
                 rules: [
-                    operation,
+                    operation("compressor"),
                     KeyRule("threshold", .number(.any)),
                     KeyRule("ratio", .number(.any)),
                     KeyRule("knee", .number(.any)),
@@ -137,7 +137,7 @@ struct ValueTypeStructureTests {
             ObjectTable(
                 kind: "gate",
                 rules: [
-                    operation,
+                    operation("gate"),
                     KeyRule("threshold", .number(.any)),
                     KeyRule("range", .number(.any)),
                     KeyRule("attack", .number(.any)),
@@ -148,27 +148,26 @@ struct ValueTypeStructureTests {
             ObjectTable(
                 kind: "limiter",
                 rules: [
-                    operation,
+                    operation("limiter"),
                     KeyRule("gain", .number(.any)),
                     KeyRule("ceiling", .number(.any)),
                     KeyRule("lookahead", .number(.any)),
                     KeyRule("release", .number(.any))
                 ]
             ),
-            ObjectTable(kind: "convolve", rules: [operation, KeyRule("file", .name), KeyRule("gain", .number(.any))])
+            ObjectTable(kind: "convolve", rules: [operation("convolve"), KeyRule("file", .name), KeyRule("gain", .number(.any))])
         ])
-        let type = KeyRule("type", .literal(AudioFilterKeyTable.bandTypes), isRequired: true)
         #expect(bands == MixBandType.allCases.map { band in
             ObjectTable(
                 kind: "band",
-                rules: [type, KeyRule("frequency", .number(.any))]
+                rules: [KeyRule("kind", .literal([band.rawValue]), isRequired: true), KeyRule("frequency", .number(.any))]
                     + (band.takesGain ? [KeyRule("gain", .number(.any))] : [])
                     + [KeyRule("q", .number(.any))]
             )
         })
     }
 
-    @Test("a filter op's table requires only `op`, and leaves every parameter's range to the range check")
+    @Test("a filter op's table requires only `kind`, and leaves every parameter's range to the range check")
     func readsFilterOperations() {
         // When
         let tables = FilterKeyTable.operations.map(FilterKeyTable.table(for:))
@@ -192,9 +191,8 @@ struct ValueTypeStructureTests {
             "pixelate": [number("size")],
             "grain": [number("amount"), number("size")]
         ]
-        let operation = KeyRule("op", .literal(FilterKeyTable.operations), isRequired: true)
         #expect(tables == FilterKeyTable.operations.map { name in
-            ObjectTable(kind: name, rules: [operation] + (parameters[name] ?? []))
+            ObjectTable(kind: name, rules: [KeyRule("kind", .literal([name]), isRequired: true)] + (parameters[name] ?? []))
         })
     }
 
@@ -346,27 +344,30 @@ struct ValueTypeStructureTests {
     }
 
     // A gradient's object forms, each named in messages by its kind before `kind`.
-    private static func gradients(of kind: String) -> [ValueType] {
-        [
-            .object(ObjectTable(
-                kind: "linear \(kind)",
-                rules: [
-                    KeyRule("kind", .exactly(.string("linear")), isRequired: true),
-                    KeyRule("from", .numbers(2, .any)),
-                    KeyRule("to", .numbers(2, .any)),
-                    KeyRule("stops", .stops(isKeyframed: false))
-                ]
-            )),
-            .object(ObjectTable(
-                kind: "radial \(kind)",
-                rules: [
-                    KeyRule("kind", .exactly(.string("radial")), isRequired: true),
-                    KeyRule("center", .numbers(2, .any)),
-                    KeyRule("radius", .number(.positive)),
-                    KeyRule("stops", .stops(isKeyframed: false))
-                ]
-            ))
-        ]
+    private static func gradients(of kind: String) -> ValueType {
+        .kinds(KindTable(
+            kind: kind,
+            tables: [
+                "linear": ObjectTable(
+                    kind: "linear \(kind)",
+                    rules: [
+                        KeyRule("kind", .literal(["linear"]), isRequired: true),
+                        KeyRule("from", .numbers(2, .any)),
+                        KeyRule("to", .numbers(2, .any)),
+                        KeyRule("stops", .stops(isKeyframed: false))
+                    ]
+                ),
+                "radial": ObjectTable(
+                    kind: "radial \(kind)",
+                    rules: [
+                        KeyRule("kind", .literal(["radial"]), isRequired: true),
+                        KeyRule("center", .numbers(2, .any)),
+                        KeyRule("radius", .number(.positive)),
+                        KeyRule("stops", .stops(isKeyframed: false))
+                    ]
+                )
+            ]
+        ))
     }
 
     private static let border = ValueType.object(ObjectTable(

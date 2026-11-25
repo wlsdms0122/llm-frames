@@ -22,7 +22,7 @@ struct MixPlannerTests {
     @Test("a segment carries its sound's audio filter: a held leaf as a number, a moving frequency sampled in log space")
     func carriesAudioFilter() throws {
         // Given
-        let band = TimedValue.form("type:peak", .object([
+        let band = TimedValue.form("kind:peak", .object([
             TimedMember(key: "frequency", value: .track([
                 Keyframe(at: 0, value: .number(100)),
                 Keyframe(at: 2, value: .number(10000))
@@ -31,7 +31,7 @@ struct MixPlannerTests {
             TimedMember(key: "q", value: .track([Keyframe(at: 0, value: .number(0.7071))]))
         ]))
         let entry = TimedValue.object([
-            TimedMember(key: "ops", value: .list([.form("op:eq", .object([TimedMember(key: "bands", value: .list([band]))]))])),
+            TimedMember(key: "ops", value: .list([.form("kind:eq", .object([TimedMember(key: "bands", value: .list([band]))]))])),
             TimedMember(key: "mix", value: .track([Keyframe(at: 0, value: .number(1))]))
         ])
         let audio = [sound(music, start: 0, end: 2, audioFilter: .list([entry]))]
@@ -715,7 +715,7 @@ struct MixPlannerTests {
     // A limiter entry at `mix` 1 whose gain takes `gain`, its other parameters held at their defaults.
     private func limiter(gain: [Keyframe<LeafValue>]) -> TimedValue {
         TimedValue.object([
-            TimedMember(key: "ops", value: .list([.form("op:limiter", .object([
+            TimedMember(key: "ops", value: .list([.form("kind:limiter", .object([
                 TimedMember(key: "gain", value: .track(gain)),
                 TimedMember(key: "ceiling", value: .track([Keyframe(at: 0, value: .number(-1))])),
                 TimedMember(key: "lookahead", value: .fixed(.number(0.005))),

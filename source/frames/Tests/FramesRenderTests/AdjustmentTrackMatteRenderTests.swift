@@ -19,7 +19,7 @@ import Testing
 @Suite("Adjustment Track Matte Render Tests", .serialized)
 struct AdjustmentTrackMatteRenderTests {
     // MARK: - Property
-    private static let grey = #"{ "description": "every colour turned to its grey", "ops": [ { "op": "saturation", "amount": 0 } ] }"#
+    private static let grey = #"{ "description": "every colour turned to its grey", "ops": [ { "kind": "saturation", "amount": 0 } ] }"#
 
     // MARK: - Initializer
     // MARK: - Test

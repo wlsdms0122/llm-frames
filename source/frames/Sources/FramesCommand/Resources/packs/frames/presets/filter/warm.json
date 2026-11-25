@@ -1,6 +1,6 @@
 {
   "description": "Warmer light, towards yellow.",
   "ops": [
-    { "op": "temperature", "kelvin": 1000 }
+    { "kind": "temperature", "kelvin": 1000 }
   ]
 }

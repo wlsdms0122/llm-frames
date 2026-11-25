@@ -1,6 +1,6 @@
 {
   "description": "Cooler light, towards blue.",
   "ops": [
-    { "op": "temperature", "kelvin": -1500 }
+    { "kind": "temperature", "kelvin": -1500 }
   ]
 }

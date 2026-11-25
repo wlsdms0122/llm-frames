@@ -121,7 +121,7 @@ struct MotionBlurRenderTests {
             { "kind": "sequence", "format": { "size": [64, 36], "fps": 25 },
               "storyline": [ { "kind": "solid", "color": "#203040", "duration": 1 } ],
               "clips": [ { "kind": "ellipse", "fill": "#FF8000", "at": [0, 1], "width": 40, "height": 24, "position": [32, 18] },
-                         { "kind": "adjustment", "adjust": [ { "op": "exposure", "ev": 1 } ], "at": [0, 1], "animation": "mine/wipe", "motionBlur": true,
+                         { "kind": "adjustment", "adjust": [ { "kind": "exposure", "ev": 1 } ], "at": [0, 1], "animation": "mine/wipe", "motionBlur": true,
                            "mask": \#(mask) } ] }
             """#)
         let evaluator = Evaluator()

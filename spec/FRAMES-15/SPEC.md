@@ -19,9 +19,9 @@ A filter preset is a chain of operations from this table, applied in order. The 
   "params": {
     "lift":  { "type": "number", "default": 0.08, "description": "how far the blacks are lifted" },
     "grain": { "type": "number", "default": 0.05, "description": "strength of the grain" } },
-  "ops": [ { "op": "saturation", "amount": 0.8 },
-           { "op": "levels", "input": [0, 1], "output": [{ "param": "lift" }, 0.95] },
-           { "op": "grain", "amount": { "param": "grain" }, "size": 2 } ] }
+  "ops": [ { "kind": "saturation", "amount": 0.8 },
+           { "kind": "levels", "input": [0, 1], "output": [{ "param": "lift" }, 0.95] },
+           { "kind": "grain", "amount": { "param": "grain" }, "size": 2 } ] }
 ```
 
 | op | Parameters | Meaning |
@@ -42,6 +42,7 @@ A filter preset is a chain of operations from this table, applied in order. The 
 | `pixelate` | `size` (theme length) | square blocks, each filled with the mean colour of the pixels it covers |
 | `grain` | `amount` (0 to 1), `size` (theme length) | adds amount × 4L'(1 - L') × n to each channel, with L' = clamp(L, 0, 1), where n is monochrome noise with standard deviation 1 and grains `size` across. Evaluation writes its `seed` ([FRAMES-20](../FRAMES-20/SPEC.md)), so a render made again has the same grain |
 
+- **An op is an object that names its op with `kind`**, `{"kind": "saturation", "amount": 0.8}`, and holds the op's parameters beside it. `preset` is not the name of an op: it is the kind of a preset entry of a filter choice ([Filter choice](#filter-choice)), and in a preset's `ops` it stops as an unknown op does.
 - An unknown op stops when the preset is read, and so does a parameter outside its range: the ranges in the table, `levels` with black at or above white, a length or size (`radius`, `size`, a `displace` `amount`) at or below 0, and a `vignette` radius outside 0 to 1. A length or size that two keyframes or more write may be 0 in them, as its sampled value may ([FRAMES-4](../FRAMES-4/SPEC.md)), while one a single keyframe writes is checked as a static value, and an op at a length or size of 0 leaves the picture as it is. An op written in place on a choice is checked by the same ranges, statically and with each keyframe's parameters over it.
 - Every op has values at which it leaves the picture as it is, its identity: `exposure` `ev` 0, `contrast` and `saturation` `amount` 1, `temperature` `kelvin` 0, `hue` `degrees` 0, `levels` `input` and `output` `[0, 1]`, `sepia`, `lut`, `sharpen`, `bloom`, `vignette` and `grain` `amount` 0, and `blur` `radius`, `pixelate` `size` and `displace` `amount` 0. Each identity leaves every value as it is, HDR and wide gamut values included. An op eases in or out by keyframing its parameters from or to its identity, and a whole entry by its `mix` ([Filter choice](#filter-choice)), since `"none"` against a preset stops.
 - Op parameters are numbers, lists of numbers, colours, or for `lut` a file, `<pack>/<name>` for `luts/<name>.cube` in a pack or an absolute path, and a `space`, a name whose `lut` column in the table of [FRAMES-26](../FRAMES-26/SPEC.md) says yes, and for `displace` a file, named as a media file is ([FRAMES-3](../FRAMES-3/SPEC.md)): `<pack>/<name.ext>` for a file in a pack's `media/` or an absolute path. Any other name stops when the preset is read.
@@ -68,7 +69,7 @@ A displacement map says, for every pixel of a picture, where its colour is read 
 
 ### Parameters
 
-A filter preset publishes `params` as every preset does ([FRAMES-14](../FRAMES-14/SPEC.md)), with the parameter table of [FRAMES-17](../FRAMES-17/SPEC.md). Inside `ops`, `{"param": "<name>"}` stands for a number wherever an op takes a number, an element of `input` and `output` included, and for a colour where an op takes a colour (`bloom` `color`). It never stands for an `op` name, a key, a `lut` or `displace` file or a `lut` `space`. A filter has no ease, so its parameters are `number` or `color`, and a `choice` stops. The ranges above are checked when the preset is read, with every parameter at its default, again with the arguments a choice gives, naming that choice, and with the arguments each keyframe gives over them, naming that keyframe, where an argument that two keyframes or more write may put a length or size at 0.
+A filter preset publishes `params` as every preset does ([FRAMES-14](../FRAMES-14/SPEC.md)), with the parameter table of [FRAMES-17](../FRAMES-17/SPEC.md). Inside `ops`, `{"param": "<name>"}` stands for a number wherever an op takes a number, an element of `input` and `output` included, and for a colour where an op takes a colour (`bloom` `color`). It never stands for a `kind`, a key, a `lut` or `displace` file or a `lut` `space`. A filter has no ease, so its parameters are `number` or `color`, and a `choice` stops. The ranges above are checked when the preset is read, with every parameter at its default, again with the arguments a choice gives, naming that choice, and with the arguments each keyframe gives over them, naming that keyframe, where an argument that two keyframes or more write may put a length or size at 0.
 
 ### Filter choice
 
@@ -76,17 +77,18 @@ A filter preset publishes `params` as every preset does ([FRAMES-14](../FRAMES-1
 | --- | --- |
 | `"none"` | no filter. On a clip it turns off the theme's default filter |
 | a preset name | that preset with its defaults: `<pack>/<name>` or an absolute path |
-| `{preset, args, mix}` | that preset with arguments, as [FRAMES-14](../FRAMES-14/SPEC.md) checks them, and its `mix`. At least one of `args` and `mix` is required, since the name alone is the form above. Without `preset` it merges over the theme's default filter when that is one entry ([FRAMES-22](../FRAMES-22/SPEC.md)), so `{"mix": 0.5}` is the default filter at half strength |
-| an op | one operation of the op table above written in place, `{"op": ..., ..., "mix": m}`, as a preset's `ops` holds it, with numbers where a preset would take `{"param"}`, and its `mix` |
-| a list of names, `{preset, args}` and ops | each in turn, the first applied first |
+| a preset entry, `{"kind": "preset", "preset": ..., "args": ..., "mix": m}` | that preset with arguments, as [FRAMES-14](../FRAMES-14/SPEC.md) checks them, and its `mix`. At least one of `args` and `mix` is required, since the name alone is the form above. Without `preset` it merges over the theme's default filter when that is one preset entry ([FRAMES-22](../FRAMES-22/SPEC.md)), so `{"kind": "preset", "mix": 0.5}` is the default filter at half strength |
+| an op | one operation of the op table above written in place, `{"kind": ..., ..., "mix": m}`, as a preset's `ops` holds it, with numbers where a preset would take `{"param"}`, and its `mix` |
+| a list of names, preset entries and ops | each in turn, the first applied first |
 
+- **An entry written as an object says what it is with `kind`**: `preset` for a preset entry, and for an op the op's name. An object without `kind` stops, and so does a `kind` that is neither `preset` nor an op of the table, with the kinds it takes.
 - A list holds at least one entry and no `"none"`. An empty list, or one that holds `"none"`, stops.
 - The same preset may appear twice in a list, each time with its own arguments.
 - **An entry written as an object takes `mix`, from 0 to 1, default 1: its result is its input mixed with the entry's filtered result by `mix`**, as Premiere Pro's effect opacity and After Effects' Blend With Original mix an effect with the picture it was applied to. Each channel is `input + (filtered - input) × mix`, premultiplied by alpha, a form-free formula in the form the sequence's `compositing` names ([FRAMES-26](../FRAMES-26/SPEC.md#compositing)), so `mix` 0 leaves the picture as it is and `mix` 1 is the entry alone. A preset entry mixes the result of its whole chain, and the next entry takes the mixed picture. `mix` is keyframable, so a preset fades in by its `mix` from 0 with none of its op parameters written out, and a fix to the preset still reaches it. `mix` is checked against 0 to 1 as an op parameter is. A preset's own ops take no `mix`, since an entry is what a choice writes.
-- A filter choice is keyframable on every clip that takes one, and so is an adjustment clip's `adjust` ([FRAMES-7](../FRAMES-7/SPEC.md)). Its structure is static, written on the clip or taken from the theme's default filter ([FRAMES-22](../FRAMES-22/SPEC.md)): its entries in order, their presets and ops, and their `lut` and `displace` files and `lut` spaces. Its timed leaves are its preset arguments, its op parameters that are numbers or colours and its entries' `mix`: a keyframe's `filter` writes the ones it moves, over that structure, each preset's ops taking its arguments at each instant, and between two keyframes that write it each leaf interpolates by the keyframe's ease ([FRAMES-4](../FRAMES-4/SPEC.md)). A keyframe that writes a preset, an op, a `lut` or `displace` file, a `lut` `space` or `"none"`, or a list of another length, stops. A sampled parameter is clamped to its op's range, and a length to 0 or more, where 0 leaves the picture as it is. Every parameter of an op but `bloom`'s `color`, `lut`'s `space` and `displace`'s `offset` is required: an op written in place, on the clip or as the theme's default, may leave one to its keyframes, which give it at every instant, and a parameter that neither the op nor its keyframes write stops, as one a preset's op leaves out does.
+- A filter choice is keyframable on every clip that takes one, and so is an adjustment clip's `adjust` ([FRAMES-7](../FRAMES-7/SPEC.md)). Its structure is static, written on the clip or taken from the theme's default filter ([FRAMES-22](../FRAMES-22/SPEC.md)): its entries in order, their presets and ops, and their `lut` and `displace` files and `lut` spaces. Its timed leaves are its preset arguments, its op parameters that are numbers or colours and its entries' `mix`: a keyframe's `filter` writes the ones it moves, over that structure, each preset's ops taking its arguments at each instant, and between two keyframes that write it each leaf interpolates by the keyframe's ease ([FRAMES-4](../FRAMES-4/SPEC.md)). A keyframe that writes an entry's `kind` or `preset`, a `lut` or `displace` file, a `lut` `space` or `"none"`, or a list of another length, stops. A sampled parameter is clamped to its op's range, and a length to 0 or more, where 0 leaves the picture as it is. Every parameter of an op but `bloom`'s `color`, `lut`'s `space` and `displace`'s `offset` is required: an op written in place, on the clip or as the theme's default, may leave one to its keyframes, which give it at every instant, and a parameter that neither the op nor its keyframes write stops, as one a preset's op leaves out does.
 
 ```json
-"filter": [ "frames/warm", { "preset": "studio/film", "args": { "grain": 0.02 } } ]
+"filter": [ "frames/warm", { "kind": "preset", "preset": "studio/film", "args": { "grain": 0.02 } } ]
 ```
 
 ## Interactions
@@ -110,5 +112,7 @@ A map that is a video: its frame would need a time, the clip's or the sequence's
 Transparent pixels beyond the edge, as `feDisplacementMap` of W3C Filter Effects reads them: a displaced video would show holes along its edges, and an editor would scale it up to hide them. Edge pixels extended outward are what `blur` reads.
 
 The W3C form, scale × (m - 0.5), where `scale` is the whole span of the move: `amount` is the farthest a pixel moves, the number an editor sets as After Effects's Max Displacement.
+
+An entry told apart by the key it holds, an op by `op` and a preset entry by the lack of it: `op` would carry two facts, that the entry is an op and which op it is, and the preset entry that changes the default filter, `{"mix": 0.5}`, would be one only by what it lacks. `kind` says what an entry is with one value, `preset` or an op's name, as a clip's `kind` says what a clip is ([FRAMES-7](../FRAMES-7/SPEC.md)), and `preset` and `mix` say only what they hold. An op in a preset's `ops` writes the same `kind`, so an op is written one way wherever it stands.
 
 ## Notes

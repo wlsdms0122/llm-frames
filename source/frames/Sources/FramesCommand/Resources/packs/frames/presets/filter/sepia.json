@@ -1,8 +1,8 @@
 {
   "description": "An old brown photo, muted and faded.",
   "ops": [
-    { "op": "levels", "input": [0, 1], "output": [0.05, 0.78] },
-    { "op": "sepia", "amount": 1 },
-    { "op": "contrast", "amount": 0.92 }
+    { "kind": "levels", "input": [0, 1], "output": [0.05, 0.78] },
+    { "kind": "sepia", "amount": 1 },
+    { "kind": "contrast", "amount": 0.92 }
   ]
 }

@@ -108,7 +108,7 @@ struct LoudnessCommandTests {
         let document = try sut.write(#"""
             { "kind": "sequence", "format": { "size": [160, 90], "fps": 10 }, "storyline": [ { "kind": "solid", "color": "#000000", "duration": 2 } ],
               "clips": [ { "kind": "audio", "media": "\#(tone)", "at": [0, 2] }, { "kind": "audio", "media": "\#(tone)", "at": [0.5, 2] } ],
-              "audioFilter": { "op": "limiter", "gain": 12, "ceiling": -1 } }
+              "audioFilter": { "kind": "limiter", "gain": 12, "ceiling": -1 } }
             """#, named: "doc.json")
 
         // When

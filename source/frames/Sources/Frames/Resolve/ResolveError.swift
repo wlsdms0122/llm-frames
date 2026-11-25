@@ -65,6 +65,8 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
     case missingLookLeaf(place: Place, kind: PlaceKind, key: String, layer: Place?)
     case partialChoiceOverNone(place: Place, kind: PlaceKind, layer: Place?)
     case partialChoiceOverList(place: Place, kind: PlaceKind, layer: Place)
+    // `entryKind` is the kind of the theme's default entry, an op's name.
+    case presetEntryOverKind(place: Place, kind: PlaceKind, layer: Place, entryKind: String)
     case unitsOnNonTitle(place: Place, kind: PlaceKind)
     case staggerWithoutBy(place: Place, kind: PlaceKind)
     case orderWithoutBy(place: Place, kind: PlaceKind)
@@ -293,6 +295,9 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
 
         case let .partialChoiceOverList(place, kind, layer):
             "\(place) (\(kind.label)): a choice without a preset over the theme's default list (\(layer)), where which entry it changes is ambiguous"
+
+        case let .presetEntryOverKind(place, kind, layer, entryKind):
+            "\(place) (\(kind.label)): a preset entry without a preset changes the theme's default preset entry, and the default (\(layer)) is of kind \"\(entryKind)\""
 
         case let .unitsOnNonTitle(place, kind):
             "\(place) (\(kind.label)): `by` plays a title's animation by unit, and this clip is not a title"

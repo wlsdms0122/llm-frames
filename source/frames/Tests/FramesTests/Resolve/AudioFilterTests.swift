@@ -30,8 +30,8 @@ struct AudioFilterTests {
         let plan = try plan(#"""
             { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "out": 4 } ],
               "clips": [ { "kind": "audio", "media": "/abs/bgm.m4a", "audioFilter": [
-                { "op": "eq", "bands": [ { "type": "highPass", "frequency": 80 }, { "type": "peak", "frequency": 3000, "gain": 3, "q": 1 } ] },
-                { "op": "compressor", "threshold": -18, "ratio": 3, "mix": 0.5 } ] } ] }
+                { "kind": "eq", "bands": [ { "kind": "highPass", "frequency": 80 }, { "kind": "peak", "frequency": 3000, "gain": 3, "q": 1 } ] },
+                { "kind": "compressor", "threshold": -18, "ratio": 3, "mix": 0.5 } ] } ] }
             """#)
 
         // Then
@@ -43,21 +43,21 @@ struct AudioFilterTests {
         #expect(entries[0]["mix"]?.number == 1)
         #expect(entries[1]["mix"]?.number == 0.5)
         let eq = try #require(operation(of: entries[0]))
-        #expect(eq.name == "op:eq")
+        #expect(eq.name == "kind:eq")
         guard case let .list(bands) = eq.body["bands"], bands.count == 2,
             case let .form(firstType, first) = bands[0], case let .form(secondType, second) = bands[1]
         else {
             Issue.record("expected two bands, each a form by its type")
             return
         }
-        #expect(firstType == "type:highPass")
+        #expect(firstType == "kind:highPass")
         #expect(first["frequency"]?.number == 80)
         #expect(first["q"]?.number == 0.7071)
         #expect(first["gain"] == nil)
-        #expect(secondType == "type:peak")
+        #expect(secondType == "kind:peak")
         #expect(second["gain"]?.number == 3)
         let compressor = try #require(operation(of: entries[1]))
-        #expect(compressor.name == "op:compressor")
+        #expect(compressor.name == "kind:compressor")
         #expect(compressor.body["knee"]?.number == 0)
         #expect(compressor.body["attack"]?.number == 0.01)
         #expect(compressor.body["release"]?.number == 0.1)
@@ -71,7 +71,7 @@ struct AudioFilterTests {
         let plan = try plan(#"""
             { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "out": 4 } ],
               "clips": [ { "kind": "audio", "media": "/abs/bgm.m4a", "at": 0,
-                "audioFilter": { "op": "eq", "bands": [ { "type": "peak", "gain": 6 } ] },
+                "audioFilter": { "kind": "eq", "bands": [ { "kind": "peak", "gain": 6 } ] },
                 "keyframes": [
                   { "at": 0, "audioFilter": { "bands": [ { "frequency": 100, "q": 10 } ] }, "ease": "back-out" },
                   { "at": 2, "audioFilter": { "bands": [ { "frequency": 10000, "q": 0.1 } ] } } ] } ] }
@@ -96,7 +96,7 @@ struct AudioFilterTests {
         let document = #"""
             { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "out": 4 } ],
               "clips": [ { "kind": "audio", "media": "/abs/bgm.m4a", "at": 0,
-                "audioFilter": { "op": "eq", "bands": [ { "type": "peak", "frequency": 1000 } ] },
+                "audioFilter": { "kind": "eq", "bands": [ { "kind": "peak", "frequency": 1000 } ] },
                 "keyframes": [
                   { "at": 0, "audioFilter": { "bands": [ { "gain": 0 } ] } },
                   { "at": 2, "audioFilter": { "bands": [ { "gain": 6 } ] } } ] } ] }
@@ -118,7 +118,7 @@ struct AudioFilterTests {
         #expect(throws: ResolveError.missingLookLeaf(place: clip.appending(key: "audioFilter"), kind: .clip(.media(.audio)), key: "gain", layer: nil)) {
             try plan(#"""
                 { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "out": 4 } ],
-                  "clips": [ { "kind": "audio", "media": "/abs/bgm.m4a", "audioFilter": { "op": "eq", "bands": [ { "type": "lowShelf", "frequency": 200 } ] } } ] }
+                  "clips": [ { "kind": "audio", "media": "/abs/bgm.m4a", "audioFilter": { "kind": "eq", "bands": [ { "kind": "lowShelf", "frequency": 200 } ] } } ] }
                 """#)
         }
     }
@@ -128,7 +128,7 @@ struct AudioFilterTests {
         // Given
         let document = #"""
             { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "out": 4 } ],
-              "clips": [ { "kind": "audio", "media": "/abs/bgm.m4a", "at": 0, "audioFilter": { "op": "compressor", "ratio": 4 },
+              "clips": [ { "kind": "audio", "media": "/abs/bgm.m4a", "at": 0, "audioFilter": { "kind": "compressor", "ratio": 4 },
                 "keyframes": [
                   { "at": 0, "audioFilter": { "threshold": -10 } },
                   { "at": 2, "audioFilter": { "threshold": -30 } } ] } ] }
@@ -154,7 +154,7 @@ struct AudioFilterTests {
         #expect(throws: ResolveError.missingLookLeaf(place: clip.appending(key: "audioFilter"), kind: .clip(.media(.audio)), key: "threshold", layer: nil)) {
             try plan(#"""
                 { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "out": 4 } ],
-                  "clips": [ { "kind": "audio", "media": "/abs/bgm.m4a", "audioFilter": { "op": "compressor", "ratio": 4 } } ] }
+                  "clips": [ { "kind": "audio", "media": "/abs/bgm.m4a", "audioFilter": { "kind": "compressor", "ratio": 4 } } ] }
                 """#)
         }
     }
@@ -164,7 +164,7 @@ struct AudioFilterTests {
         // Given
         let document = #"""
             { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "out": 4 } ],
-              "clips": [ { "kind": "audio", "media": "/abs/bgm.m4a", "audioFilter": { "op": "gate", "threshold": -40, "attack": 0 } } ] }
+              "clips": [ { "kind": "audio", "media": "/abs/bgm.m4a", "audioFilter": { "kind": "gate", "threshold": -40, "attack": 0 } } ] }
             """#
         try checker.check(document: Fixture.json(document))
 
@@ -211,7 +211,7 @@ struct AudioFilterTests {
         // When
         let plan = try plan(#"""
             { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "out": 4 } ],
-              "clips": [ { "kind": "audio", "media": "/abs/bgm.m4a", "audioFilter": [ "mine/voice", { "preset": "mine/voice", "args": { "cut": 120 }, "mix": 0.5 } ] } ] }
+              "clips": [ { "kind": "audio", "media": "/abs/bgm.m4a", "audioFilter": [ "mine/voice", { "kind": "preset", "preset": "mine/voice", "args": { "cut": 120 }, "mix": 0.5 } ] } ] }
             """#)
 
         // Then
@@ -223,7 +223,7 @@ struct AudioFilterTests {
         #expect(entries[0]["mix"]?.number == 1)
         #expect(entries[1]["mix"]?.number == 0.5)
         guard case let .list(operations) = entries[1]["ops"], operations.count == 2,
-            case let .form("op:eq", eq) = operations[0], case let .form("op:compressor", compressor) = operations[1],
+            case let .form("kind:eq", eq) = operations[0], case let .form("kind:compressor", compressor) = operations[1],
             case let .list(bands) = eq["bands"], case let .form(_, highPass) = bands.first
         else {
             Issue.record("expected an eq and a compressor, got \(entries[1])")
@@ -258,7 +258,7 @@ struct AudioFilterTests {
         #expect(throws: PresetError.self) {
             try plan(#"""
                 { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "out": 4 } ],
-                  "clips": [ { "kind": "audio", "media": "/abs/bgm.m4a", "audioFilter": { "preset": "mine/voice", "args": { "squash": 0.5 } } } ] }
+                  "clips": [ { "kind": "audio", "media": "/abs/bgm.m4a", "audioFilter": { "kind": "preset", "preset": "mine/voice", "args": { "squash": 0.5 } } } ] }
                 """#)
         }
         let error = #expect(throws: PresetError.self) {
@@ -292,7 +292,7 @@ struct AudioFilterTests {
         #expect(throws: ResolveError.missingLookLeaf(place: clip.appending(key: "audioFilter"), kind: .clip(.media(.audio)), key: "frequency", layer: nil)) {
             try plan(#"""
                 { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "out": 4 } ],
-                  "clips": [ { "kind": "audio", "media": "/abs/bgm.m4a", "audioFilter": { "op": "eq", "bands": [ { "type": "peak", "gain": 6 } ] },
+                  "clips": [ { "kind": "audio", "media": "/abs/bgm.m4a", "audioFilter": { "kind": "eq", "bands": [ { "kind": "peak", "gain": 6 } ] },
                     "keyframes": [ { "at": 0, "audioFilter": { "bands": [ { "q": 2 } ] } }, { "at": 1, "audioFilter": { "bands": [ { "q": 4 } ] } } ] } ] }
                 """#)
         }
@@ -304,13 +304,13 @@ struct AudioFilterTests {
         #expect(throws: LookError.outsideDomain(place: clip.appending(key: "audioFilter").appending(key: "bands").appending(index: 0).appending(key: "frequency"), value: 30000, domain: .between(0, 24000))) {
             try plan(#"""
                 { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "out": 4 } ],
-                  "clips": [ { "kind": "audio", "media": "/abs/bgm.m4a", "audioFilter": { "op": "eq", "bands": [ { "type": "lowPass", "frequency": 30000 } ] } } ] }
+                  "clips": [ { "kind": "audio", "media": "/abs/bgm.m4a", "audioFilter": { "kind": "eq", "bands": [ { "kind": "lowPass", "frequency": 30000 } ] } } ] }
                 """#)
         }
         #expect(throws: LookError.outsideDomain(place: clip.appending(key: "audioFilter").appending(key: "ratio"), value: 0.5, domain: .range(1...Double.infinity))) {
             try plan(#"""
                 { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "out": 4 } ],
-                  "clips": [ { "kind": "audio", "media": "/abs/bgm.m4a", "audioFilter": { "op": "compressor", "threshold": -20, "ratio": 0.5 } } ] }
+                  "clips": [ { "kind": "audio", "media": "/abs/bgm.m4a", "audioFilter": { "kind": "compressor", "threshold": -20, "ratio": 0.5 } } ] }
                 """#)
         }
     }
@@ -321,8 +321,8 @@ struct AudioFilterTests {
         #expect(throws: (any Error).self) {
             try plan(#"""
                 { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "out": 4 } ],
-                  "clips": [ { "kind": "audio", "media": "/abs/bgm.m4a", "audioFilter": { "op": "gate", "threshold": -50 },
-                    "keyframes": [ { "at": 0, "audioFilter": { "op": "compressor", "threshold": -20, "ratio": 2 } } ] } ] }
+                  "clips": [ { "kind": "audio", "media": "/abs/bgm.m4a", "audioFilter": { "kind": "gate", "threshold": -50 },
+                    "keyframes": [ { "at": 0, "audioFilter": { "kind": "compressor", "threshold": -20, "ratio": 2 } } ] } ] }
                 """#)
         }
     }
@@ -333,7 +333,7 @@ struct AudioFilterTests {
         #expect(throws: ResolveError.audioFilterWithoutSound(place: clip.appending(key: "audioFilter"), kind: .clip(.media(.video)))) {
             try plan(#"""
                 { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "out": 4 } ],
-                  "clips": [ { "kind": "media", "media": "/abs/short.mp4", "audioFilter": { "op": "gate", "threshold": -50 } } ] }
+                  "clips": [ { "kind": "media", "media": "/abs/short.mp4", "audioFilter": { "kind": "gate", "threshold": -50 } } ] }
                 """#)
         }
     }
@@ -341,7 +341,7 @@ struct AudioFilterTests {
     @Test(
         "the key tables refuse a gain on a pass band",
         arguments: [
-            (#"{ "kind": "audio", "media": "/abs/bgm.m4a", "audioFilter": { "op": "eq", "bands": [ { "type": "lowPass", "frequency": 100, "gain": 3 } ] } }"#, "gain")
+            (#"{ "kind": "audio", "media": "/abs/bgm.m4a", "audioFilter": { "kind": "eq", "bands": [ { "kind": "lowPass", "frequency": 100, "gain": 3 } ] } }"#, "gain")
         ]
     )
     func refusesKeys(clip: String, key: String) throws {
@@ -359,7 +359,7 @@ struct AudioFilterTests {
 
     @Test("the key tables refuse an empty list, an empty eq and an unknown op")
     func refusesShapes() throws {
-        for filter in [#"[]"#, #"{ "op": "eq", "bands": [] }"#, #"{ "op": "reverb" }"#] {
+        for filter in [#"[]"#, #"{ "kind": "eq", "bands": [] }"#, #"{ "kind": "reverb" }"#] {
             // Given
             let document = try Fixture.json(#"""
                 { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4" } ], "clips": [ { "kind": "audio", "media": "/abs/bgm.m4a", "audioFilter": \#(filter) } ] }
@@ -374,10 +374,10 @@ struct AudioFilterTests {
     func acceptsAudioFilter() throws {
         // Given
         let document = try Fixture.json(#"""
-            { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "audioFilter": { "op": "gate", "threshold": -50 },
+            { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "audioFilter": { "kind": "gate", "threshold": -50 },
                 "keyframes": [ { "at": 0, "audioFilter": { "mix": 0 } }, { "at": 1, "audioFilter": { "mix": 1 } } ] } ],
-              "clips": [ { "kind": "audio", "media": "/abs/run.mp4", "audioFilter": [ { "op": "eq", "bands": [ { "type": "highPass", "frequency": 80 } ] } ] },
-                         { "kind": "audio", "media": "/abs/bgm.m4a", "audioFilter": { "op": "compressor", "threshold": -18, "ratio": 3 } } ] }
+              "clips": [ { "kind": "audio", "media": "/abs/run.mp4", "audioFilter": [ { "kind": "eq", "bands": [ { "kind": "highPass", "frequency": 80 } ] } ] },
+                         { "kind": "audio", "media": "/abs/bgm.m4a", "audioFilter": { "kind": "compressor", "threshold": -18, "ratio": 3 } } ] }
             """#)
 
         // When, Then
@@ -389,10 +389,10 @@ struct AudioFilterTests {
         // Given
         let document = try Fixture.json(#"""
             { "kind": "sequence",
-              "storyline": [ { "kind": "media", "media": { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4" } ] }, "audioFilter": { "op": "limiter" },
+              "storyline": [ { "kind": "media", "media": { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4" } ] }, "audioFilter": { "kind": "limiter" },
                 "keyframes": [ { "at": 0, "audioFilter": { "gain": 0 } }, { "at": 1, "audioFilter": { "gain": 3 } } ] } ],
-              "clips": [ { "kind": "media", "media": { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4" } ] }, "audioFilter": { "op": "gate", "threshold": -50 } },
-                         { "kind": "audio", "media": { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4" } ] }, "audioFilter": { "op": "gate", "threshold": -50 },
+              "clips": [ { "kind": "media", "media": { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4" } ] }, "audioFilter": { "kind": "gate", "threshold": -50 } },
+                         { "kind": "audio", "media": { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4" } ] }, "audioFilter": { "kind": "gate", "threshold": -50 },
                            "keyframes": [ { "at": 0, "audioFilter": { "mix": 0 } }, { "at": 1, "audioFilter": { "mix": 1 } } ] } ] }
             """#)
 
@@ -406,7 +406,7 @@ struct AudioFilterTests {
         let plan = try plan(#"""
             { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "out": 4 } ],
               "clips": [ { "kind": "audio", "media": { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "out": 2 } ] }, "at": 1,
-                "audioFilter": { "op": "limiter", "ceiling": -3 },
+                "audioFilter": { "kind": "limiter", "ceiling": -3 },
                 "keyframes": [ { "at": 0, "audioFilter": { "gain": 0 } }, { "at": 1, "audioFilter": { "gain": 6 } } ] } ] }
             """#)
 
@@ -423,7 +423,7 @@ struct AudioFilterTests {
         #expect(throws: ResolveError.audioFilterWithoutSound(place: clip.appending(key: "audioFilter"), kind: .clip(.media(.sequence)))) {
             try plan(#"""
                 { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "out": 4 } ],
-                  "clips": [ { "kind": "media", "media": { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/short.mp4" } ] }, "audioFilter": { "op": "gate", "threshold": -50 } } ] }
+                  "clips": [ { "kind": "media", "media": { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/short.mp4" } ] }, "audioFilter": { "kind": "gate", "threshold": -50 } } ] }
                 """#)
         }
     }
@@ -433,12 +433,12 @@ struct AudioFilterTests {
         // When
         let plan = try plan(#"""
             { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "out": 4 } ],
-              "clips": [ { "kind": "audio", "media": "/abs/bgm.m4a", "audioFilter": { "op": "limiter" } } ] }
+              "clips": [ { "kind": "audio", "media": "/abs/bgm.m4a", "audioFilter": { "kind": "limiter" } } ] }
             """#)
 
         // Then
         guard case let .list(entries) = plan.sound[1].audioFilter, case let .list(operations)? = entries.first?["ops"],
-            case let .form("op:limiter", limiter)? = operations.first
+            case let .form("kind:limiter", limiter)? = operations.first
         else {
             Issue.record("expected one limiter, got \(plan.sound[1].audioFilter)")
             return
@@ -455,7 +455,7 @@ struct AudioFilterTests {
         // When
         let plan = try plan(#"""
             { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "out": 4 } ],
-              "clips": [ { "kind": "audio", "media": "/abs/bgm.m4a", "at": 0, "audioFilter": { "op": "limiter", "lookahead": 0.01 },
+              "clips": [ { "kind": "audio", "media": "/abs/bgm.m4a", "at": 0, "audioFilter": { "kind": "limiter", "lookahead": 0.01 },
                 "keyframes": [
                   { "at": 0, "audioFilter": { "gain": 0, "ceiling": -6, "release": 0.1 }, "ease": "back-out" },
                   { "at": 2, "audioFilter": { "gain": 6, "ceiling": 0, "release": 0.3 } } ] } ] }
@@ -473,10 +473,10 @@ struct AudioFilterTests {
     @Test(
         "a limiter's parameter outside its range stops where the clip writes it",
         arguments: [
-            (#"{ "op": "limiter", "ceiling": 0.5 }"#, "ceiling", 0.5, NumberDomain.range(-Double.infinity...0)),
-            (#"{ "op": "limiter", "lookahead": 0.001 }"#, "lookahead", 0.001, NumberDomain.range(0.0015...0.05)),
-            (#"{ "op": "limiter", "lookahead": 0.06 }"#, "lookahead", 0.06, NumberDomain.range(0.0015...0.05)),
-            (#"{ "op": "limiter", "release": 0 }"#, "release", 0, NumberDomain.positive)
+            (#"{ "kind": "limiter", "ceiling": 0.5 }"#, "ceiling", 0.5, NumberDomain.range(-Double.infinity...0)),
+            (#"{ "kind": "limiter", "lookahead": 0.001 }"#, "lookahead", 0.001, NumberDomain.range(0.0015...0.05)),
+            (#"{ "kind": "limiter", "lookahead": 0.06 }"#, "lookahead", 0.06, NumberDomain.range(0.0015...0.05)),
+            (#"{ "kind": "limiter", "release": 0 }"#, "release", 0, NumberDomain.positive)
         ]
     )
     func refusesLimiterOutOfRange(
@@ -497,9 +497,9 @@ struct AudioFilterTests {
     @Test(
         "a limiter's parameter at the edge of its range resolves as written",
         arguments: [
-            (#"{ "op": "limiter", "ceiling": 0 }"#, "ceiling", 0.0),
-            (#"{ "op": "limiter", "lookahead": 0.0015 }"#, "lookahead", 0.0015),
-            (#"{ "op": "limiter", "lookahead": 0.05 }"#, "lookahead", 0.05)
+            (#"{ "kind": "limiter", "ceiling": 0 }"#, "ceiling", 0.0),
+            (#"{ "kind": "limiter", "lookahead": 0.0015 }"#, "lookahead", 0.0015),
+            (#"{ "kind": "limiter", "lookahead": 0.05 }"#, "lookahead", 0.05)
         ]
     )
     func takesLimiterAtRangeEdge(
@@ -523,7 +523,7 @@ struct AudioFilterTests {
         // Given
         let plan = try plan(#"""
             { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "out": 4 } ],
-              "clips": [ { "kind": "audio", "media": "/abs/bgm.m4a", "at": 0, "audioFilter": { "op": "limiter", "lookahead": 0.01 },
+              "clips": [ { "kind": "audio", "media": "/abs/bgm.m4a", "at": 0, "audioFilter": { "kind": "limiter", "lookahead": 0.01 },
                 "keyframes": [ { "at": 0, "audioFilter": { "gain": 0 } }, { "at": 2, "audioFilter": { "gain": 6 } } ] } ] }
             """#)
 
@@ -551,7 +551,7 @@ struct AudioFilterTests {
         #expect(throws: LookError.keyframedStatic(place: clip.appending(key: "keyframes").appending(index: 1).appending(key: "audioFilter").appending(key: "lookahead"))) {
             try plan(#"""
                 { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "out": 4 } ],
-                  "clips": [ { "kind": "audio", "media": "/abs/bgm.m4a", "at": 0, "audioFilter": { "op": "limiter" },
+                  "clips": [ { "kind": "audio", "media": "/abs/bgm.m4a", "at": 0, "audioFilter": { "kind": "limiter" },
                     "keyframes": [ { "at": 0, "audioFilter": { "gain": 0 } }, { "at": 2, "audioFilter": { "lookahead": 0.01 } } ] } ] }
                 """#)
         }
@@ -563,7 +563,7 @@ struct AudioFilterTests {
         let document = { (keyframes: String) in
             #"""
                 { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "out": 4 } ],
-                  "clips": [ { "kind": "audio", "media": "/abs/bgm.m4a", "at": 0, "audioFilter": { "preset": "mine/limit", "args": { "ahead": 0.02 } },
+                  "clips": [ { "kind": "audio", "media": "/abs/bgm.m4a", "at": 0, "audioFilter": { "kind": "preset", "preset": "mine/limit", "args": { "ahead": 0.02 } },
                     "keyframes": \#(keyframes) } ] }
                 """#
         }
@@ -585,7 +585,7 @@ struct AudioFilterTests {
         // Given
         let document = try Fixture.json(#"""
             { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4" } ],
-              "clips": [ { "kind": "audio", "media": "/abs/bgm.m4a", "audioFilter": { "op": "limiter", "gain": 3, "ceiling": -1, "lookahead": 0.005, "release": 0.1, "mix": 1 },
+              "clips": [ { "kind": "audio", "media": "/abs/bgm.m4a", "audioFilter": { "kind": "limiter", "gain": 3, "ceiling": -1, "lookahead": 0.005, "release": 0.1, "mix": 1 },
                 "keyframes": [ { "at": 0, "audioFilter": { "gain": 0 } } ] } ] }
             """#)
 
@@ -598,7 +598,7 @@ struct AudioFilterTests {
         // Given
         let document = try Fixture.json(#"""
             { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4" } ],
-              "clips": [ { "kind": "audio", "media": "/abs/bgm.m4a", "audioFilter": { "op": "convolve", "file": "/abs/ding.wav", "gain": -6, "mix": 0 },
+              "clips": [ { "kind": "audio", "media": "/abs/bgm.m4a", "audioFilter": { "kind": "convolve", "file": "/abs/ding.wav", "gain": -6, "mix": 0 },
                 "keyframes": [ { "at": 0, "audioFilter": { "gain": -12, "mix": 0 } }, { "at": 1, "audioFilter": { "gain": 0, "mix": 1 } } ] } ] }
             """#)
 
@@ -611,7 +611,7 @@ struct AudioFilterTests {
         // Given
         let document = #"""
             { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "out": 4 } ],
-              "clips": [ { "kind": "audio", "media": "/abs/bgm.m4a", "audioFilter": { "op": "convolve", "gain": -6 } } ] }
+              "clips": [ { "kind": "audio", "media": "/abs/bgm.m4a", "audioFilter": { "kind": "convolve", "gain": -6 } } ] }
             """#
         try checker.check(document: Fixture.json(document))
 
@@ -624,9 +624,9 @@ struct AudioFilterTests {
     @Test(
         "the key tables refuse a convolve's unknown key, a file that is no name and a gain that is no number",
         arguments: [
-            #"{ "op": "convolve", "file": "/abs/ding.wav", "decay": 2 }"#,
-            #"{ "op": "convolve", "file": 3 }"#,
-            #"{ "op": "convolve", "file": "/abs/ding.wav", "gain": "loud" }"#
+            #"{ "kind": "convolve", "file": "/abs/ding.wav", "decay": 2 }"#,
+            #"{ "kind": "convolve", "file": 3 }"#,
+            #"{ "kind": "convolve", "file": "/abs/ding.wav", "gain": "loud" }"#
         ]
     )
     func refusesConvolutionKeys(filter: String) throws {
@@ -645,7 +645,7 @@ struct AudioFilterTests {
         #expect(throws: LookError.outsideDomain(place: clip.appending(key: "audioFilter").appending(key: "mix"), value: 1.5, domain: .range(0...1))) {
             try plan(#"""
                 { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "out": 4 } ],
-                  "clips": [ { "kind": "audio", "media": "/abs/bgm.m4a", "audioFilter": { "op": "convolve", "file": "/abs/ding.wav", "mix": 1.5 } } ] }
+                  "clips": [ { "kind": "audio", "media": "/abs/bgm.m4a", "audioFilter": { "kind": "convolve", "file": "/abs/ding.wav", "mix": 1.5 } } ] }
                 """#)
         }
     }
@@ -655,7 +655,7 @@ struct AudioFilterTests {
         // When
         let plan = try plan(#"""
             { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "out": 4 } ],
-              "clips": [ { "kind": "audio", "media": "/abs/bgm.m4a", "audioFilter": { "op": "convolve", "file": "/abs/ding.wav", "mix": 0.3 } } ] }
+              "clips": [ { "kind": "audio", "media": "/abs/bgm.m4a", "audioFilter": { "kind": "convolve", "file": "/abs/ding.wav", "mix": 0.3 } } ] }
             """#)
 
         // Then
@@ -665,7 +665,7 @@ struct AudioFilterTests {
             return
         }
         let convolution = try #require(operation(of: entry))
-        #expect(convolution.name == "op:convolve")
+        #expect(convolution.name == "kind:convolve")
         #expect(convolution.body["gain"]?.number == 0)
         #expect(convolution.body["mix"] == nil)
         #expect(entry["mix"]?.number == 0.3)
@@ -684,8 +684,8 @@ struct AudioFilterTests {
         let plan = try plan(#"""
             { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "out": 4 } ],
               "clips": [ { "kind": "audio", "media": { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "out": 2 } ],
-                                      "audioFilter": { "op": "convolve", "file": "/abs/bgm.m4a" } },
-                           "audioFilter": { "op": "convolve", "file": "/abs/ding.wav", "gain": -3 } } ] }
+                                      "audioFilter": { "kind": "convolve", "file": "/abs/bgm.m4a" } },
+                           "audioFilter": { "kind": "convolve", "file": "/abs/ding.wav", "gain": -3 } } ] }
             """#)
 
         // Then
@@ -696,8 +696,8 @@ struct AudioFilterTests {
     @Test(
         "an impulse response that is no sound an impulse response can be stops, naming the entry that writes it",
         arguments: [
-            (#"{ "op": "convolve", "file": "/abs/card.png" }"#, "/abs/card.png", ImpulseResponseRefusal.noSound, false),
-            (#"[ { "op": "gate", "threshold": -50 }, { "op": "convolve", "file": "/abs/short.mp4" } ]"#, "/abs/short.mp4", .noSound, true)
+            (#"{ "kind": "convolve", "file": "/abs/card.png" }"#, "/abs/card.png", ImpulseResponseRefusal.noSound, false),
+            (#"[ { "kind": "gate", "threshold": -50 }, { "kind": "convolve", "file": "/abs/short.mp4" } ]"#, "/abs/short.mp4", .noSound, true)
         ]
     )
     func refusesImpulseResponse(
@@ -726,7 +726,7 @@ struct AudioFilterTests {
         // When
         let plan = try plan(#"""
             { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "out": 4 } ],
-              "clips": [ { "kind": "audio", "media": "/abs/bgm.m4a", "audioFilter": { "op": "convolve", "file": "/abs/run.mp4" } } ] }
+              "clips": [ { "kind": "audio", "media": "/abs/bgm.m4a", "audioFilter": { "kind": "convolve", "file": "/abs/run.mp4" } } ] }
             """#)
 
         // Then
@@ -738,12 +738,12 @@ struct AudioFilterTests {
         // Given
         let moving = try plan(#"""
             { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "out": 4 } ],
-              "clips": [ { "kind": "audio", "media": "/abs/bgm.m4a", "at": 0, "audioFilter": { "op": "convolve", "file": "/abs/ding.wav" },
+              "clips": [ { "kind": "audio", "media": "/abs/bgm.m4a", "at": 0, "audioFilter": { "kind": "convolve", "file": "/abs/ding.wav" },
                 "keyframes": [ { "at": 0, "audioFilter": { "gain": -12 } }, { "at": 2, "audioFilter": { "gain": 0 } } ] } ] }
             """#)
         let held = try plan(#"""
             { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "out": 4 } ],
-              "clips": [ { "kind": "audio", "media": "/abs/bgm.m4a", "at": 0, "audioFilter": { "op": "convolve", "file": "/abs/ding.wav", "gain": -6 } } ] }
+              "clips": [ { "kind": "audio", "media": "/abs/bgm.m4a", "at": 0, "audioFilter": { "kind": "convolve", "file": "/abs/ding.wav", "gain": -6 } } ] }
             """#)
 
         // When
@@ -772,7 +772,7 @@ struct AudioFilterTests {
         #expect(throws: LookError.keyframedStatic(place: clip.appending(key: "keyframes").appending(index: 0).appending(key: "audioFilter").appending(key: "file"))) {
             try plan(#"""
                 { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "out": 4 } ],
-                  "clips": [ { "kind": "audio", "media": "/abs/bgm.m4a", "at": 0, "audioFilter": { "op": "convolve", "file": "/abs/ding.wav" },
+                  "clips": [ { "kind": "audio", "media": "/abs/bgm.m4a", "at": 0, "audioFilter": { "kind": "convolve", "file": "/abs/ding.wav" },
                     "keyframes": [ { "at": 0, "audioFilter": { "file": "/abs/bgm.m4a" } } ] } ] }
                 """#)
         }
@@ -799,7 +799,7 @@ struct AudioFilterTests {
             case let .list(entries) = filter.sampled(at: time, as: LookStructureTable.resolvedAudioFilter),
             let entry = entries.first,
             let operation = operation(of: entry),
-            operation.name == "op:limiter"
+            operation.name == "kind:limiter"
         else {
             return nil
         }

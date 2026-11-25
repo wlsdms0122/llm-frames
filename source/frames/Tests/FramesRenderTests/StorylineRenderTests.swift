@@ -45,7 +45,7 @@ struct StorylineRenderTests {
             """#,
         "filter/grade": #"""
             { "description": "grain over a soft blur", "ops": [
-              { "op": "saturation", "amount": 1.4 }, { "op": "blur", "radius": 2 }, { "op": "grain", "amount": 0.5, "size": 1 } ] }
+              { "kind": "saturation", "amount": 1.4 }, { "kind": "blur", "radius": 2 }, { "kind": "grain", "amount": 0.5, "size": 1 } ] }
             """#
     ]
 

@@ -167,13 +167,13 @@ struct SequenceCheckTests {
             (##""fill": { "kind": "linear", "stops": [[0, "#000000"], [1.5, "#FFFFFF"]] }"##, "fill.stops[1][0] ("),
             (##""fill": { "kind": "radial", "stops": [[0.5, "#000000"], [0.2, "#FFFFFF"]] }"##, "fill.stops[1][0] ("),
             (##""fill": { "kind": "radial", "stops": [[0, "#000000"], [1, "#FFFFFF", 2]] }"##, "fill.stops[1] ("),
-            (##""fill": { "from": [0, 0], "to": [1, 0], "stops": [[0, "#000000"], [1, "#FFFFFF"]] }"##, #"fill (rect): missing key "kind""#),
-            (##""fill": { "kind": "conic", "stops": [[0, "#000000"], [1, "#FFFFFF"]] }"##, #"fill.kind (rect): unknown value "conic". Allowed: linear, radial"#),
+            (##""fill": { "from": [0, 0], "to": [1, 0], "stops": [[0, "#000000"], [1, "#FFFFFF"]] }"##, #"fill (gradient): missing key "kind""#),
+            (##""fill": { "kind": "conic", "stops": [[0, "#000000"], [1, "#FFFFFF"]] }"##, #"fill.kind (gradient): unknown value "conic". Allowed: linear, radial"#),
             (##""fill": { "kind": "linear", "radius": 1, "stops": [[0, "#000000"], [1, "#FFFFFF"]] }"##, #"fill (linear gradient): unknown key "radius""#),
             (##""stroke": { "width": 2, "color": "#FFFFFF" }"##, #"stroke (stroke): unknown key "color""#),
             (##""stroke": { "width": 2, "gradient": { "kind": "radial", "stops": [[0, "#000000"], [1, "#FFFFFF"]] } }"##, #"stroke (stroke): unknown key "gradient""#),
             (##""keyframes": [ { "at": 0, "fill": { "kind": "linear", "stops": [[0, null], [1.5, null]] } } ]"##, "keyframes[0].fill.stops[1][0] ("),
-            (##""keyframes": [ { "at": 0, "fill": { "stops": [[0, null], [1, null]] } } ]"##, #"keyframes[0].fill (keyframe): missing key "kind""#)
+            (##""keyframes": [ { "at": 0, "fill": { "stops": [[0, null], [1, null]] } } ]"##, #"keyframes[0].fill (gradient): missing key "kind""#)
         ]
     )
     func refusesGradient(
@@ -764,7 +764,7 @@ struct SequenceCheckTests {
     func refusesRequestAsArgument() throws {
         // Given
         let document = try Fixture.json(#"""
-            { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "filter": { "preset": "frames/vivid", "args": { "amount": { "tool": "studio/grader" } } } } ] }
+            { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "filter": { "kind": "preset", "preset": "frames/vivid", "args": { "amount": { "tool": "studio/grader" } } } } ] }
             """#)
 
         // When, Then
@@ -925,13 +925,16 @@ struct SequenceCheckTests {
             #"{ "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "filter": ["frames/vivid", "pack/warm", "/abs/f.json"], "transition": "cut" } ] }"#,
             #"{ "clips": [ { "kind": "rect", "stroke": { "width": 8 }, "keyframes": [ { "at": 0, "opacity": 1, "ease": [0.25, 0.1, 0.25, 1] }, { "at": 1, "opacity": 0 } ] } ] }"#,
             #"{ "clips": [ { "kind": "path", "points": [[0, 0], [10, 10]], "stroke": { "width": 4, "end": "frames/arrow" }, "animation": { "entrance": "frames/pop", "exit": "none" } } ] }"#,
+            #"{ "clips": [ { "kind": "rect", "stroke": { "width": 8 }, "animation": { "entrance": "frames/pop" } } ] }"#,
+            #"{ "clips": [ { "kind": "rect", "stroke": { "width": 8 }, "animation": { "exit": "none" } } ] }"#,
+            #"{ "clips": [ { "kind": "rect", "stroke": { "width": 8 }, "animation": { "preset": "frames/pulse", "entrance": { "preset": "frames/pop", "args": {} }, "exit": "frames/fade" } } ] }"#,
             ##"{ "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "transition": { "preset": "studio/dip", "seconds": 1, "args": { "color": "#1B3A6B" } } } ] }"##,
             #"{ "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "transition": { "preset": "studio/dip", "args": { "curve": "linear" } } } ] }"#,
             #"{ "clips": [ { "kind": "title", "text": "a", "style": "s", "animation": { "preset": "studio/spring-in", "args": { "bounce": 0.4 } } } ] }"#,
-            #"{ "clips": [ { "kind": "title", "text": "a", "style": "s", "animation": { "entrance": { "preset": "studio/spring-in", "args": { "ease": { "spring": { "bounce": 0.4 } } } }, "exit": "frames/fade" } } ] }"#,
-            #"{ "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "filter": { "preset": "studio/film", "args": { "grain": 0.02 } } } ] }"#,
-            #"{ "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "filter": ["frames/warm", { "preset": "studio/film", "args": { "grain": 0.02 } }, { "preset": "studio/film", "args": { "grain": 0.04 } }] } ] }"#,
-            ##"{ "theme": { "defaults": { "transition": { "preset": "studio/dip", "args": { "color": "#000000" } }, "filter": { "preset": "studio/film", "args": { "grain": 0.02 } } } } }"##,
+            #"{ "clips": [ { "kind": "title", "text": "a", "style": "s", "animation": { "entrance": { "preset": "studio/spring-in", "args": { "ease": { "kind": "spring", "bounce": 0.4 } } }, "exit": "frames/fade" } } ] }"#,
+            #"{ "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "filter": { "kind": "preset", "preset": "studio/film", "args": { "grain": 0.02 } } } ] }"#,
+            #"{ "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "filter": ["frames/warm", { "kind": "preset", "preset": "studio/film", "args": { "grain": 0.02 } }, { "kind": "preset", "preset": "studio/film", "args": { "grain": 0.04 } }] } ] }"#,
+            ##"{ "theme": { "defaults": { "transition": { "preset": "studio/dip", "args": { "color": "#000000" } }, "filter": { "kind": "preset", "preset": "studio/film", "args": { "grain": 0.02 } } } } }"##,
             #"{ "format": { "size": { "fit": "content" } }, "storyline": [ { "kind": "media", "media": "/abs/run.mp4" } ] }"#,
             #"{ "format": { "size": { "fit": "content", "margin": 0 } }, "storyline": [ { "kind": "media", "media": "/abs/run.mp4" } ] }"#,
             #"{ "format": { "size": { "fit": "content", "margin": [8, 16] } }, "storyline": [ { "kind": "media", "media": "/abs/run.mp4" } ] }"#,
@@ -947,24 +950,26 @@ struct SequenceCheckTests {
     }
 
     @Test(
-        "a choice written as an object takes both sides, or a preset with another key beside it",
+        "a choice written as an object takes a preset with another key beside it, a side written as an object both its preset and its args, and a filter entry its kind",
         arguments: [
-            (#"{ "clips": [ { "kind": "rect", "stroke": { "width": 8 }, "animation": { "entrance": "frames/pop" } } ] }"#, #"clips[0].animation (animation choice): missing key "exit""#),
-            (#"{ "clips": [ { "kind": "rect", "stroke": { "width": 8 }, "animation": { "exit": "frames/fade" } } ] }"#, #"clips[0].animation (animation choice): missing key "entrance""#),
-            (#"{ "clips": [ { "kind": "rect", "stroke": { "width": 8 }, "animation": { "preset": "frames/pop" } } ] }"#, #"clips[0].animation (animation choice): needs one of args, by, stagger, order"#),
-            (#"{ "clips": [ { "kind": "rect", "stroke": { "width": 8 }, "animation": { "entrance": { "preset": "frames/pop" }, "exit": "none" } } ] }"#, #"clips[0].animation.entrance (animation choice): missing key "args""#),
-            (#"{ "clips": [ { "kind": "rect", "stroke": { "width": 8 }, "animation": { "preset": "frames/pop", "args": {}, "seconds": 1 } } ] }"#, #"clips[0].animation (animation choice): unknown key "seconds". Allowed: preset, args, by, stagger, order"#),
+            (#"{ "clips": [ { "kind": "rect", "stroke": { "width": 8 }, "animation": { "preset": "frames/pop" } } ] }"#, #"clips[0].animation (animation choice): needs one of args, entrance, exit, by, stagger, order"#),
+            (#"{ "clips": [ { "kind": "rect", "stroke": { "width": 8 }, "animation": { "entrance": { "preset": "frames/pop" }, "exit": "none" } } ] }"#, #"clips[0].animation.entrance (animation side): missing key "args""#),
+            (#"{ "clips": [ { "kind": "rect", "stroke": { "width": 8 }, "animation": { "exit": { "args": {} } } } ] }"#, #"clips[0].animation.exit (animation side): missing key "preset""#),
+            (#"{ "clips": [ { "kind": "rect", "stroke": { "width": 8 }, "animation": { "preset": "frames/pop", "args": {}, "seconds": 1 } } ] }"#, #"clips[0].animation (animation choice): unknown key "seconds". Allowed: preset, args, entrance, exit, by, stagger, order"#),
             (#"{ "clips": [ { "kind": "title", "text": "a", "style": "title", "animation": { "preset": "frames/pop", "by": "word", "stagger": -0.1 } } ] }"#, #"clips[0].animation.stagger (animation choice): -0.1 is not 0 or more"#),
-            (#"{ "theme": { "defaults": { "animation": { "shape": { "preset": "frames/pop", "by": "word" } } } } }"#, #"theme.defaults.animation.shape (animation choice): unknown key "by". Allowed: preset, args"#),
+            (#"{ "theme": { "defaults": { "animation": { "shape": { "preset": "frames/pop", "by": "word" } } } } }"#, #"theme.defaults.animation.shape (animation choice): unknown key "by". Allowed: preset, args, entrance, exit"#),
             (#"{ "clips": [ { "kind": "title", "text": "a", "style": "title", "animation": { "entrance": "frames/pop", "exit": "none", "stagger": -0.1 } } ] }"#, #"clips[0].animation.stagger (animation choice): -0.1 is not 0 or more"#),
-            (#"{ "clips": [ { "kind": "title", "text": "a", "style": "title", "animation": { "entrance": "frames/pop", "exit": "none", "by": "word", "seconds": 1 } } ] }"#, #"clips[0].animation (animation choice): unknown key "seconds". Allowed: entrance, exit, by, stagger, order"#),
+            (#"{ "clips": [ { "kind": "title", "text": "a", "style": "title", "animation": { "entrance": "frames/pop", "exit": "none", "by": "word", "seconds": 1 } } ] }"#, #"clips[0].animation (animation choice): unknown key "seconds". Allowed: preset, args, entrance, exit, by, stagger, order"#),
             (#"{ "clips": [ { "kind": "title", "text": "a", "style": "title", "animation": { "preset": "frames/pop", "by": "word", "order": "inward" } } ] }"#, #"clips[0].animation.order (animation choice): unknown value "inward". Allowed: forward, backward, center, edges, random"#),
             (#"{ "clips": [ { "kind": "title", "text": "a", "style": "title", "animation": { "entrance": "frames/pop", "exit": "none", "by": "word", "order": "inward" } } ] }"#, #"clips[0].animation.order (animation choice): unknown value "inward". Allowed: forward, backward, center, edges, random"#),
             (#"{ "theme": { "defaults": { "animation": { "title": { "title": { "preset": "frames/pop", "by": "word", "order": "Center" } } } } } }"#, #"theme.defaults.animation.title.title.order (animation choice): unknown value "Center". Allowed: forward, backward, center, edges, random"#),
-            (#"{ "theme": { "defaults": { "animation": { "shape": { "entrance": "frames/pop", "exit": "none", "by": "word" } } } } }"#, #"theme.defaults.animation.shape (animation choice): unknown key "by". Allowed: entrance, exit"#),
+            (#"{ "theme": { "defaults": { "animation": { "shape": { "entrance": "frames/pop", "exit": "none", "by": "word" } } } } }"#, #"theme.defaults.animation.shape (animation choice): unknown key "by". Allowed: preset, args, entrance, exit"#),
             (#"{ "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "transition": { "preset": "frames/push-up" } } ] }"#, #"storyline[0].transition (transition choice): needs one of seconds, args"#),
             (#"{ "theme": { "defaults": { "transition": { "preset": "frames/push-up" } } } }"#, #"theme.defaults.transition (transition choice): needs one of seconds, args"#),
-            (#"{ "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "filter": { "preset": "frames/warm" } } ] }"#, #"storyline[0].filter (filter choice): needs one of args, mix"#),
+            (#"{ "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "filter": { "kind": "preset", "preset": "frames/warm" } } ] }"#, #"storyline[0].filter (filter choice): needs one of args, mix"#),
+            (#"{ "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "filter": { "preset": "frames/warm", "mix": 0.5 } } ] }"#, #"storyline[0].filter (filter choice): missing key "kind""#),
+            (#"{ "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "filter": ["frames/warm", { "kind": "glow", "amount": 1 }] } ] }"#, #"storyline[0].filter[1].kind (filter choice): unknown value "glow". Allowed: bloom, blur, contrast, displace, exposure, grain, hue, levels, lut, pixelate, preset, saturation, sepia, sharpen, temperature, vignette"#),
+            (#"{ "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "audioFilter": { "threshold": -50 } } ] }"#, #"storyline[0].audioFilter (audio filter choice): missing key "kind""#),
             (#"{ "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "filter": [] } ] }"#, #"storyline[0].filter (filter choice): a filter list holds at least one entry"#),
             (#"{ "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "filter": ["frames/warm", "none"] } ] }"#, #"storyline[0].filter[1] (filter choice): "none" turns the filter off, so it is written alone and never in a list"#)
         ]
@@ -1002,7 +1007,7 @@ struct SequenceCheckTests {
         let document = try Fixture.json(#"""
             { "kind": "sequence", "clips": [
               { "kind": "media", "media": "/abs/log.png", "at": [0, 6],
-                "keyframes": [ { "at": 3, "scale": 1, "ease": { "spring": { "bounce": 0.99 } } }, { "at": 4, "scale": 1.5 } ] }
+                "keyframes": [ { "at": 3, "scale": 1, "ease": { "kind": "spring", "bounce": 0.99 } }, { "at": 4, "scale": 1.5 } ] }
             ] }
             """#)
 
@@ -1011,13 +1016,14 @@ struct SequenceCheckTests {
     }
 
     @Test(
-        "a spring ease with a bounce outside its range or another key stops where it is written",
+        "a spring ease with a bounce outside its range or another key, and an ease object of no kind or another kind, stop where they are written",
         arguments: [
-            (#"{ "spring": { "bounce": 1 } }"#, "clips[0].keyframes[0].ease.spring.bounce (spring): 1 is not above -1 and below 1"),
-            (#"{ "spring": { "bounce": -1 } }"#, "clips[0].keyframes[0].ease.spring.bounce (spring): -1 is not above -1 and below 1"),
-            (#"{ "spring": { "bounce": "0.5" } }"#, #"clips[0].keyframes[0].ease.spring.bounce (spring): expected a number above -1 and below 1, found "0.5""#),
-            (#"{ "spring": { "stiffness": 100 } }"#, #"clips[0].keyframes[0].ease.spring (spring): unknown key "stiffness". Allowed: bounce"#),
-            (#"{ "bounce": 0.5 }"#, #"clips[0].keyframes[0].ease (spring ease): unknown key "bounce". Allowed: spring"#)
+            (#"{ "kind": "spring", "bounce": 1 }"#, "clips[0].keyframes[0].ease.bounce (ease): 1 is not above -1 and below 1"),
+            (#"{ "kind": "spring", "bounce": -1 }"#, "clips[0].keyframes[0].ease.bounce (ease): -1 is not above -1 and below 1"),
+            (#"{ "kind": "spring", "bounce": "0.5" }"#, #"clips[0].keyframes[0].ease.bounce (ease): expected a number above -1 and below 1, found "0.5""#),
+            (#"{ "kind": "spring", "stiffness": 100 }"#, #"clips[0].keyframes[0].ease (ease): unknown key "stiffness". Allowed: kind, bounce"#),
+            (#"{ "bounce": 0.5 }"#, #"clips[0].keyframes[0].ease (ease): missing key "kind""#),
+            (#"{ "kind": "elastic", "bounce": 0.5 }"#, #"clips[0].keyframes[0].ease.kind (ease): unknown value "elastic". Allowed: spring"#)
         ]
     )
     func refusesBrokenSpring(

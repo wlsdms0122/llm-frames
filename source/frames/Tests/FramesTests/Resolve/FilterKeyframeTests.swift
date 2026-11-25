@@ -25,34 +25,34 @@ struct FilterKeyframeTests {
         filters: Fixture.presets.filters.merging([
             "soften": #"""
                 { "description": "", "params": { "blur": { "type": "number", "default": 4, "description": "the blur" } },
-                  "ops": [ { "op": "blur", "radius": { "param": "blur" } } ] }
+                  "ops": [ { "kind": "blur", "radius": { "param": "blur" } } ] }
                 """#,
             "vignette": #"""
                 { "description": "", "params": { "soft": { "type": "number", "default": 0.5, "description": "the soft" } },
-                  "ops": [ { "op": "vignette", "amount": 1, "radius": { "param": "soft" } } ] }
+                  "ops": [ { "kind": "vignette", "amount": 1, "radius": { "param": "soft" } } ] }
                 """#,
             "fade": #"""
                 { "description": "",
                   "params": { "black": { "type": "number", "default": 0, "description": "the black" },
                               "white": { "type": "number", "default": 1, "description": "the white" } },
-                  "ops": [ { "op": "levels", "input": [ { "param": "black" }, { "param": "white" } ], "output": [0, 1] } ] }
+                  "ops": [ { "kind": "levels", "input": [ { "param": "black" }, { "param": "white" } ], "output": [0, 1] } ] }
                 """#,
             "crisp": #"""
                 { "description": "",
                   "params": { "blur": { "type": "number", "default": 4, "description": "the blur" },
                               "size": { "type": "number", "default": 8, "description": "the size" } },
-                  "ops": [ { "op": "blur", "radius": { "param": "blur" } }, { "op": "pixelate", "size": { "param": "size" } } ] }
+                  "ops": [ { "kind": "blur", "radius": { "param": "blur" } }, { "kind": "pixelate", "size": { "param": "size" } } ] }
                 """#,
             "ripple": #"""
                 { "description": "",
                   "params": { "strength": { "type": "number", "default": 8, "description": "the strength" },
                               "drift": { "type": "number", "default": 0, "description": "the drift" } },
-                  "ops": [ { "op": "displace", "file": "/abs/matte.png", "amount": { "param": "strength" },
+                  "ops": [ { "kind": "displace", "file": "/abs/matte.png", "amount": { "param": "strength" },
                              "offset": [{ "param": "drift" }, 0] } ] }
                 """#,
             "glow": #"""
                 { "description": "", "params": { "tint": { "type": "color", "default": "#FFFFFF", "description": "the tint" } },
-                  "ops": [ { "op": "bloom", "amount": 1, "radius": 4, "color": { "param": "tint" } } ] }
+                  "ops": [ { "kind": "bloom", "amount": 1, "radius": 4, "color": { "param": "tint" } } ] }
                 """#
         ]) { $1 }
     )
@@ -86,7 +86,7 @@ struct FilterKeyframeTests {
     @Test("a mix written alone over a default of one preset is that preset at that mix")
     func mixesDefault() throws {
         // When
-        let plan = try plan(#"{ "kind": "media", "media": "/abs/run.mp4", "in": 0, "out": 3, "filter": { "mix": 0.5 } }"#)
+        let plan = try plan(#"{ "kind": "media", "media": "/abs/run.mp4", "in": 0, "out": 3, "filter": { "kind": "preset", "mix": 0.5 } }"#)
 
         // Then
         #expect(plan.storyline[0].filter.filter() == [FilterEntry(operations: grade, mix: 0.5)])
@@ -96,7 +96,7 @@ struct FilterKeyframeTests {
     func appliesOperationInPlace() throws {
         // When
         let plan = try plan(#"""
-            { "kind": "media", "media": "/abs/run.mp4", "in": 0, "out": 3, "filter": [ "mine/grade", { "op": "exposure", "ev": 1, "mix": 0.5 } ] }
+            { "kind": "media", "media": "/abs/run.mp4", "in": 0, "out": 3, "filter": [ "mine/grade", { "kind": "exposure", "ev": 1, "mix": 0.5 } ] }
             """#)
 
         // Then
@@ -110,7 +110,7 @@ struct FilterKeyframeTests {
     func movesOperationInPlace() throws {
         // When
         let plan = try plan(#"""
-            { "kind": "media", "media": "/abs/run.mp4", "in": 0, "out": 3, "filter": { "op": "blur", "radius": 8 },
+            { "kind": "media", "media": "/abs/run.mp4", "in": 0, "out": 3, "filter": { "kind": "blur", "radius": 8 },
               "keyframes": [ { "at": 0, "filter": { "radius": 0 } }, { "at": 2, "filter": { "radius": null } } ] }
             """#)
 
@@ -163,7 +163,7 @@ struct FilterKeyframeTests {
     func movesDisplaceInPlace() throws {
         // When
         let plan = try plan(#"""
-            { "kind": "media", "media": "/abs/run.mp4", "in": 0, "out": 3, "filter": { "op": "displace", "file": "/abs/matte.png" },
+            { "kind": "media", "media": "/abs/run.mp4", "in": 0, "out": 3, "filter": { "kind": "displace", "file": "/abs/matte.png" },
               "keyframes": [ { "at": 0, "filter": { "amount": 0, "offset": [0, 0] } },
                              { "at": 2, "filter": { "amount": 8, "offset": [40, -20] } } ] }
             """#)
@@ -246,27 +246,27 @@ struct FilterKeyframeTests {
         "an op written in place is checked by a preset op's rules, statically and in each keyframe",
         arguments: [
             (
-                #"{ "op": "levels", "input": [0.8, 0.2], "output": [0, 1] }"#,
+                #"{ "kind": "levels", "input": [0.8, 0.2], "output": [0, 1] }"#,
                 "[]",
                 "storyline[0].filter.input (levels): [0.8, 0.2] is not within 0 to 1 with black below white"
             ),
             (
-                #"{ "op": "levels", "input": [0, 1], "output": [0, 1] }"#,
+                #"{ "kind": "levels", "input": [0, 1], "output": [0, 1] }"#,
                 #"[ { "at": 1, "filter": { "input": [0.6, 0.4] } } ]"#,
                 "storyline[0].keyframes[0].filter.input (levels): [0.6, 0.4] is not within 0 to 1 with black below white"
             ),
             (
-                #"{ "op": "blur", "radius": 4 }"#,
+                #"{ "kind": "blur", "radius": 4 }"#,
                 #"[ { "at": 1, "filter": { "radius": 0 } } ]"#,
                 "storyline[0].keyframes[0].filter.radius (blur): 0 is not above 0"
             ),
             (
-                #"{ "op": "displace", "file": "/abs/matte.png", "amount": 0 }"#,
+                #"{ "kind": "displace", "file": "/abs/matte.png", "amount": 0 }"#,
                 "[]",
                 "storyline[0].filter.amount (displace): 0 is not above 0"
             ),
             (
-                #"{ "op": "displace", "file": "/abs/matte.png", "amount": 4 }"#,
+                #"{ "kind": "displace", "file": "/abs/matte.png", "amount": 4 }"#,
                 #"[ { "at": 1, "filter": { "amount": 0 } } ]"#,
                 "storyline[0].keyframes[0].filter.amount (displace): 0 is not above 0"
             )
@@ -289,7 +289,7 @@ struct FilterKeyframeTests {
     func movesOperationParameterFromKeyframes() throws {
         // Given
         let clip = #"""
-            { "kind": "media", "media": "/abs/run.mp4", "in": 0, "out": 3, "filter": { "op": "blur" },
+            { "kind": "media", "media": "/abs/run.mp4", "in": 0, "out": 3, "filter": { "kind": "blur" },
               "keyframes": [ { "at": 0, "filter": { "radius": 0 } }, { "at": 2, "filter": { "radius": 8 } } ] }
             """#
 
@@ -303,9 +303,9 @@ struct FilterKeyframeTests {
     @Test(
         "an op parameter that neither the op, written on the clip or as the theme's default, nor its keyframes write stops",
         arguments: [
-            (#""filter": { "op": "blur" },"#, #""mine/grade""#, "storyline[0].filter"),
-            (#""filter": [ "mine/grade", { "op": "sharpen", "amount": 1 } ],"#, #""mine/grade""#, "storyline[0].filter[1]"),
-            ("", #"{ "op": "blur" }"#, "storyline[0].filter")
+            (#""filter": { "kind": "blur" },"#, #""mine/grade""#, "storyline[0].filter"),
+            (#""filter": [ "mine/grade", { "kind": "sharpen", "amount": 1 } ],"#, #""mine/grade""#, "storyline[0].filter[1]"),
+            ("", #"{ "kind": "blur" }"#, "storyline[0].filter")
         ]
     )
     func refusesMissingOperationParameter(
@@ -325,7 +325,7 @@ struct FilterKeyframeTests {
     func movesOperationInPlaceFromZero() throws {
         // Given
         let clip = #"""
-            { "kind": "media", "media": "/abs/run.mp4", "in": 0, "out": 3, "filter": { "op": "blur", "radius": 4 },
+            { "kind": "media", "media": "/abs/run.mp4", "in": 0, "out": 3, "filter": { "kind": "blur", "radius": 4 },
               "keyframes": [ { "at": 0, "filter": { "radius": 0 } }, { "at": 2, "filter": { "radius": null } } ] }
             """#
 
@@ -352,14 +352,14 @@ struct FilterKeyframeTests {
         "a keyframe that writes a preset, an op, a LUT, a displacement map, none or a list of another length stops, naming the keyframe",
         arguments: [
             (#""mine/grade""#, #""soften""#, "storyline[0].keyframes[0].filter (keyframe): a name, a boolean, a form or a static number is static and is written on the clip or the sequence, not in a keyframe"),
-            (#""mine/grade""#, #"{ "op": "blur", "radius": 2 }"#, "storyline[0].keyframes[0].filter (keyframe): a name, a boolean, a form or a static number is static and is written on the clip or the sequence, not in a keyframe"),
+            (#""mine/grade""#, #"{ "kind": "blur", "radius": 2 }"#, "storyline[0].keyframes[0].filter (keyframe): a name, a boolean, a form or a static number is static and is written on the clip or the sequence, not in a keyframe"),
             (
-                #"{ "op": "lut", "file": "/abs/look.cube", "amount": 1 }"#,
+                #"{ "kind": "lut", "file": "/abs/look.cube", "amount": 1 }"#,
                 #"{ "file": "/abs/other.cube" }"#,
                 "storyline[0].keyframes[0].filter.file (keyframe): a name, a boolean, a form or a static number is static and is written on the clip or the sequence, not in a keyframe"
             ),
             (
-                #"{ "op": "displace", "file": "/abs/matte.png", "amount": 4 }"#,
+                #"{ "kind": "displace", "file": "/abs/matte.png", "amount": 4 }"#,
                 #"{ "file": "/abs/page.png" }"#,
                 "storyline[0].keyframes[0].filter.file (keyframe): a name, a boolean, a form or a static number is static and is written on the clip or the sequence, not in a keyframe"
             ),
