@@ -26,7 +26,7 @@ ln -s "$PWD/extensions/track-motion/frames-track-motion" /usr/local/bin/frames-t
 frames track-motion <document.json | ->
 ```
 
-`<document.json>` is an absolute path, or `-` for standard input. The document is printed to standard output, and a stop prints `frames-track-motion: <reason>` to standard error and exits with 1.
+`<document.json>` is an absolute path, or `-` for standard input. The document is printed to standard output, and a stop prints `frames-track-motion: <reason>` to standard error and exits with 1. Where a frames command it runs fails, the reason is the command line it ran, with the global options it passed, and what frames printed.
 
 ## The requests
 
@@ -34,32 +34,30 @@ A request is a hole a tool fills ([FRAMES-25](../../spec/FRAMES-25/SPEC.md#reque
 
 ```json
 "track": { "tool": "track-motion", "target": "area" }
-"track": { "tool": "track-motion", "target": [150, 194, 132, 92], "time": 1.5 }
+"track": { "tool": "track-motion", "target": [150, 194, 132, 92] }
 ```
 
-A track says how a clip moves with something in its media. It is followed from one frame, the **frame the target is written on**, where the clip stands as written, and on every other frame the clip moves as that thing moved from there. So a request says two things:
+A track says how a clip moves with something in its media. It is followed from one frame, the **frame the target is written on**, where the clip stands as written, and on every other frame the clip moves as that thing moved from there. That frame is the one the clip's instant shows (where the clip starts, or a storyline clip's `in`), and where the named key is keyframed, the one its first keyframe shows, as `frames timeline` reports them. The target and the clip's values are written on it. So a request says one thing:
 
 - `target`, required: **what is followed**, a box around the thing on that frame. It is the name of one of the clip's own keys, `area`, `cornerPin`, `crop` or `mask`, whose value is that box, or an area `[x, y, w, h]` written in the request. Either is in the media pixels the track follows, the pixels of the video the clip is parented to, or of the clip's own video for a storyline clip's `crop` and `mask`.
-- `time`, optional: **the frame the target is written on**, as a media time of that video. Without it, it is the frame the clip's instant shows (where the clip starts, or a storyline clip's `in`), and where the named key is keyframed, the frame its first keyframe shows.
 
 **A worked example.** A shot shows a card that slides right, and a green box is to stay on the card from 0.4 seconds.
 
-1. Pick a frame: the box starts at 0.4 seconds, so the frame it shows there is the one to write it on. `frames extract /path/to/shot.mp4 /path/to/out/frames --from 0.4 --to 0.44` writes that frame, the one frame from 0.4 seconds up to the next, as a PNG, in the shot's pixels.
+1. Find the frame: the box starts at 0.4 seconds, so the frame the shot shows there is the one it is written on. `frames extract /path/to/shot.mp4 /path/to/out/frames --from 0.4 --to 0.44` writes that frame, the one frame from 0.4 seconds up to the next, as a PNG, in the shot's pixels.
 2. Write the box over the card on that frame, in that frame's pixels: the card's top left corner is at 150, 194 and it is 132 by 92, so the box's `area` is `[150, 194, 132, 92]`.
-3. Name the box as the target: `"track": { "tool": "track-motion", "target": "area" }`. No `time` is needed, since 0.4 seconds is the box's instant.
+3. Name the box as the target: `"track": { "tool": "track-motion", "target": "area" }`.
 
 The extension follows the card from that frame backwards and forwards, and writes what it found as the box's `track`. On the frame at 0.4 seconds the box is where it is written, and on every other frame it is where the card went.
 
-- A target written beside the clip's own keys, `"target": [x, y, w, h]`, follows a thing other than the box, as a title written beside the card that moves with it.
-- `time` names another frame: the target and the clip's values are where they are on the frame at that media time. A target key filled by `frames find-text` is found on the frame the clip's instant shows, so its request writes no `time`.
+- A target written beside the clip's own keys, `"target": [x, y, w, h]`, follows a thing other than the box, as a title written beside the card that moves with it. It is written on the same frame, the one the clip's instant shows.
+- A target key filled by `frames find-text` is found on the frame the clip's instant shows, and a keyframe's on the frame that keyframe shows, so the track starts from the rectangle found on its own frame. A track followed from any other frame is track data written by `frames track` or another tool.
 - A key the clip does not write stops, and so does one that is not in the media pixels the track follows (a title's own box, output pixels). A crop written as `{"scale": s}` is no area and stops.
 - A key named as the target that still holds a request stops, naming that request, since the target is the value it finds: run that tool first. A target that is itself a request stops, since a request's arguments are values: write the request in the clip's own key and name the key.
 - A target that names `mask` stops, since no report gives the bounds of a clip's masks: write the area to follow.
-- With `time`, a keyframed target key stops, since a keyframe's value is where it is at its own time and none is written on the frame `time` names: leave `time` out, or write the area and the frame.
-- A keyframed target key without `time` is the value of its first keyframe, the one at the earliest `at` and, of those written at that `at`, the one written last, which the key takes there.
+- A keyframed target key is the value of its first keyframe, the one at the earliest `at` and, of those written at that `at`, the one written last, which the key takes there.
 - A corner pin is followed from its quadrilateral, its four points in their order, with `frames track --quad`, so with `--tracker planar` it is followed in perspective. A corner pin with a point that names a clip area stops.
 - A clip area `{"clip": ...}` as the target stops, since no report gives another clip's box in the media pixels followed.
-- A request holds `tool`, `target` and `time` alone, and any other key stops. A request for this tool anywhere but a clip's `track` stops.
+- A request holds `tool` and `target` alone, and any other key stops. A request for this tool anywhere but a clip's `track` stops.
 - Track data, and a request for any other tool, are left as written, so this extension and another chain in either order where neither needs a value the other finds.
 
 ## Where it works
@@ -72,7 +70,7 @@ Every fact the extension acts on is in a report of a copy of the document with a
 - `instant` of the clip's entry, and the `mediaTime` of the entry at `tracked.clip` in `timeline --at <instant> --json`: the frame the clip's instant shows, `speed`, `in`, `loop`, `timeRemap` and a parent's time map applied by frames.
 - `clock` of the clip's entry, `{clip, origin, speed}`, the map frames reports from the times the clip writes to sequence time: a keyframed target's first keyframe lies at sequence time `origin + at / speed`, and the `mediaTime` of the entry at `tracked.clip` in `timeline --at` at that time is the frame it shows. The extension applies the map as reported and derives no rule of its own.
 
-The target is followed with `frames track` from the track's frame to `first`, and from it to `last`, as `--to`, and the frames of both are joined in time order, so it is followed over every frame the clip can show and no further. The tracked clip's `colorSpace`, as the document writes it, is given as `--color-space`. A `track` that stops (a target lost on its own frame, a time past the media) stops the extension with frames' message.
+The target is followed with `frames track` from the track's frame to `first`, and from it to `last`, as `--to`, and the frames of both are joined in time order, so it is followed over every frame the clip can show and no further. The tracked clip's `colorSpace`, as the document writes it, is given as `--color-space`. A `track` that stops (a target lost on its own frame, a time past the media) stops the extension with the command line it ran and frames' message.
 
 ## What it does not cover
 
