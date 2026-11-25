@@ -10,10 +10,10 @@
 // A fake OCR provider that fails on every picture with `failure`.
 struct FailingOCR: OCRProvider {
     // MARK: - Property
-    let failure: ProviderFailure
+    let failure: any Error
 
     // MARK: - Initializer
-    init(_ failure: ProviderFailure) {
+    init(_ failure: any Error) {
         self.failure = failure
     }
 
