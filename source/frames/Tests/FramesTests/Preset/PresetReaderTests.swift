@@ -221,9 +221,9 @@ struct PresetReaderTests {
     @Test(
         "a filter preset with a broken rule stops",
         arguments: [
-            (#"{ "description": "x", "ops": [ { "kind": "glow", "amount": 1 } ] }"#, #"ops[0].kind (filter operation): unknown value "glow". Allowed: exposure, contrast, saturation, temperature, hue, sepia, levels, lut, blur, sharpen, bloom, vignette, displace, pixelate, grain"#),
+            (#"{ "description": "x", "ops": [ { "kind": "glow", "amount": 1 } ] }"#, #"ops[0].kind (filter operation): unknown value "glow". Allowed: bloom, blur, contrast, displace, exposure, grain, hue, levels, lut, pixelate, saturation, sepia, sharpen, temperature, vignette"#),
             (#"{ "description": "x", "ops": [ { "amount": 1 } ] }"#, #"ops[0] (filter operation): missing key "kind""#),
-            (#"{ "description": "x", "ops": [ { "kind": "preset", "preset": "frames/warm" } ] }"#, #"ops[0].kind (filter operation): unknown value "preset". Allowed: exposure, contrast, saturation, temperature, hue, sepia, levels, lut, blur, sharpen, bloom, vignette, displace, pixelate, grain"#),
+            (#"{ "description": "x", "ops": [ { "kind": "preset", "preset": "frames/warm" } ] }"#, #"ops[0].kind (filter operation): unknown value "preset". Allowed: bloom, blur, contrast, displace, exposure, grain, hue, levels, lut, pixelate, saturation, sepia, sharpen, temperature, vignette"#),
             (#"{ "description": "x", "ops": [ { "kind": "blur", "radius": 2, "amount": 1 } ] }"#, #"ops[0] (blur): unknown key "amount". Allowed: kind, radius"#),
             (#"{ "description": "x", "ops": [ { "kind": "exposure" } ] }"#, #"ops[0] (exposure): missing key "ev""#),
             (#"{ "description": "x", "ops": [ { "kind": "levels", "input": [0, 1, 2], "output": [0, 1] } ] }"#, "ops[0].input (levels): expected a list of 2 numbers, found a list of 3"),

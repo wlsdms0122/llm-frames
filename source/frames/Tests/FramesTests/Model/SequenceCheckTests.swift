@@ -167,13 +167,13 @@ struct SequenceCheckTests {
             (##""fill": { "kind": "linear", "stops": [[0, "#000000"], [1.5, "#FFFFFF"]] }"##, "fill.stops[1][0] ("),
             (##""fill": { "kind": "radial", "stops": [[0.5, "#000000"], [0.2, "#FFFFFF"]] }"##, "fill.stops[1][0] ("),
             (##""fill": { "kind": "radial", "stops": [[0, "#000000"], [1, "#FFFFFF", 2]] }"##, "fill.stops[1] ("),
-            (##""fill": { "from": [0, 0], "to": [1, 0], "stops": [[0, "#000000"], [1, "#FFFFFF"]] }"##, #"fill (rect): missing key "kind""#),
-            (##""fill": { "kind": "conic", "stops": [[0, "#000000"], [1, "#FFFFFF"]] }"##, #"fill.kind (rect): unknown value "conic". Allowed: linear, radial"#),
+            (##""fill": { "from": [0, 0], "to": [1, 0], "stops": [[0, "#000000"], [1, "#FFFFFF"]] }"##, #"fill (gradient): missing key "kind""#),
+            (##""fill": { "kind": "conic", "stops": [[0, "#000000"], [1, "#FFFFFF"]] }"##, #"fill.kind (gradient): unknown value "conic". Allowed: linear, radial"#),
             (##""fill": { "kind": "linear", "radius": 1, "stops": [[0, "#000000"], [1, "#FFFFFF"]] }"##, #"fill (linear gradient): unknown key "radius""#),
             (##""stroke": { "width": 2, "color": "#FFFFFF" }"##, #"stroke (stroke): unknown key "color""#),
             (##""stroke": { "width": 2, "gradient": { "kind": "radial", "stops": [[0, "#000000"], [1, "#FFFFFF"]] } }"##, #"stroke (stroke): unknown key "gradient""#),
             (##""keyframes": [ { "at": 0, "fill": { "kind": "linear", "stops": [[0, null], [1.5, null]] } } ]"##, "keyframes[0].fill.stops[1][0] ("),
-            (##""keyframes": [ { "at": 0, "fill": { "stops": [[0, null], [1, null]] } } ]"##, #"keyframes[0].fill (keyframe): missing key "kind""#)
+            (##""keyframes": [ { "at": 0, "fill": { "stops": [[0, null], [1, null]] } } ]"##, #"keyframes[0].fill (gradient): missing key "kind""#)
         ]
     )
     func refusesGradient(
@@ -968,7 +968,7 @@ struct SequenceCheckTests {
             (#"{ "theme": { "defaults": { "transition": { "preset": "frames/push-up" } } } }"#, #"theme.defaults.transition (transition choice): needs one of seconds, args"#),
             (#"{ "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "filter": { "kind": "preset", "preset": "frames/warm" } } ] }"#, #"storyline[0].filter (filter choice): needs one of args, mix"#),
             (#"{ "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "filter": { "preset": "frames/warm", "mix": 0.5 } } ] }"#, #"storyline[0].filter (filter choice): missing key "kind""#),
-            (#"{ "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "filter": ["frames/warm", { "kind": "glow", "amount": 1 }] } ] }"#, #"storyline[0].filter[1].kind (filter choice): unknown value "glow". Allowed: preset, exposure, contrast, saturation, temperature, hue, sepia, levels, lut, blur, sharpen, bloom, vignette, displace, pixelate, grain"#),
+            (#"{ "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "filter": ["frames/warm", { "kind": "glow", "amount": 1 }] } ] }"#, #"storyline[0].filter[1].kind (filter choice): unknown value "glow". Allowed: bloom, blur, contrast, displace, exposure, grain, hue, levels, lut, pixelate, preset, saturation, sepia, sharpen, temperature, vignette"#),
             (#"{ "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "audioFilter": { "threshold": -50 } } ] }"#, #"storyline[0].audioFilter (audio filter choice): missing key "kind""#),
             (#"{ "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "filter": [] } ] }"#, #"storyline[0].filter (filter choice): a filter list holds at least one entry"#),
             (#"{ "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "filter": ["frames/warm", "none"] } ] }"#, #"storyline[0].filter[1] (filter choice): "none" turns the filter off, so it is written alone and never in a list"#)
