@@ -12,9 +12,10 @@ import Foundation
 // sequence's colour space and clipped to its peak. Everything that can refuse does before the first frame, in this
 // order: the output paths and the time, every pinned file's hash, the decoder on every pinned media, the mixer on the
 // mix plan, the renderer on every frame's display list, and the encoder on each target. A run's recorder times each
-// stage the pipeline runs and the time it spends in the encoder, and is told of every frame drawn (FRAMES-23 Runs).
-// The run's budget is given the floors of the frames in flight and of the mixed sound once the roles have checked
-// everything, and a limit under the run's floor is refused there, in `check` (FRAMES-30 The budget).
+// stage the pipeline runs and the time it spends in the encoder, and is told of every frame drawn (FRAMES-23 Runs). The
+// run's budget is given the floors of the frames in flight and of the mixed sound once the roles have checked
+// everything, and a limit under the run's floor is refused there, in `check` (FRAMES-30 The budget). It counts the
+// frame being drawn while a video is written, and the write queue the frames it holds.
 package struct RenderPipeline: Sendable {
     // MARK: - Property
     private let decoder: any MediaDecoder
@@ -143,6 +144,7 @@ package struct RenderPipeline: Sendable {
         let mix = try recorder.measure(.check, reading: decoder) {
             try SequenceMix(of: sequence, pinned: pinned, mixer: mixer)
         }
+        let soundBytes = mix.plan.length * 2 * MemoryLayout<Float>.size
 
         let format = sequence.format
         let times = (0..<format.frameCount).map(format.frameTime)
@@ -155,8 +157,8 @@ package struct RenderPipeline: Sendable {
             for target in targets {
                 try encoder.check(target)
             }
-            budget.require((1 + FrameWriteQueue.depth) * frameBytes(of: format), for: .frames)
-            budget.require(mix.plan.length * 2 * MemoryLayout<Float>.size, for: .sound)
+            budget.require(2 * frameBytes(of: format), for: .frames)
+            budget.require(soundBytes, for: .sound)
             try budget.checkFloor()
         }
 
@@ -168,7 +170,9 @@ package struct RenderPipeline: Sendable {
             }
         }
 
-        let queue = FrameWriteQueue(writers: writers)
+        let queue = FrameWriteQueue(writers: writers, budget: budget, frameBytes: frameBytes(of: format))
+        budget.hold(frameBytes(of: format), for: .frames)
+        defer { budget.give(frameBytes(of: format), for: .frames) }
         do {
             for (index, time) in times.enumerated() {
                 let list = recorder.measure(.evaluate, reading: decoder) {

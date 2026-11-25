@@ -75,6 +75,17 @@ package final class MemoryBudget: Sendable {
         }
     }
 
+    // `holder` holds `bytes` more whatever the total, for memory the run cannot go on without, which the holders that
+    // give way then find no room in.
+    package func hold(
+        _ bytes: Int,
+        for holder: MemoryHolder
+    ) {
+        update { state in
+            state[holder].held += bytes
+        }
+    }
+
     // `holder` holds `bytes` less.
     package func give(
         _ bytes: Int,

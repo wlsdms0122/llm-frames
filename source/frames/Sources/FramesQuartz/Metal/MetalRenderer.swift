@@ -22,8 +22,12 @@ package final class MetalRenderer: Sendable {
     private let surfaces = SurfacePool<Void>()
 
     // MARK: - Initializer
-    package init(decoder: any MediaDecoder) {
-        self.pictures = MediaPictureCache(decoder: decoder)
+    // `budget` is the run's, which counts the media pictures the renderer keeps.
+    package init(
+        decoder: any MediaDecoder,
+        budget: MemoryBudget = MemoryBudget(limit: .unlimited)
+    ) {
+        self.pictures = MediaPictureCache(decoder: decoder, budget: budget)
     }
 
     // MARK: - Public

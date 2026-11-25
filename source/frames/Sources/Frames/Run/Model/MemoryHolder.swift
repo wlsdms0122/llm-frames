@@ -7,10 +7,12 @@
 
 // A holder of large memory that a run's budget counts, in the order the run report gives them (FRAMES-30 The budget):
 // the decoding service's memory for the decoder's open readers, the frames the decoder has read ahead and not given,
-// the output frames in flight, and the run's mixed sound.
+// the decoded frames a turn holds for later asks, the media pictures the renderer keeps, the output frames in flight, and the run's mixed sound.
 package enum MemoryHolder: String, CaseIterable, Equatable, Sendable {
     case readers
     case readAhead
+    case turns
+    case pictures
     case frames
     case sound
 

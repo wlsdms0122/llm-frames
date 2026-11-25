@@ -19,8 +19,12 @@ package final class QuartzRenderer: Sendable {
     private let fonts = FontLibrary()
 
     // MARK: - Initializer
-    package init(decoder: any MediaDecoder) {
-        self.pictures = MediaPictureCache(decoder: decoder)
+    // `budget` is the run's, which counts the media pictures the renderer keeps.
+    package init(
+        decoder: any MediaDecoder,
+        budget: MemoryBudget = MemoryBudget(limit: .unlimited)
+    ) {
+        self.pictures = MediaPictureCache(decoder: decoder, budget: budget)
     }
 
     // MARK: - Public

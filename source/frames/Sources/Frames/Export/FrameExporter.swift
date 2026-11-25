@@ -12,7 +12,9 @@ import Foundation
 // its index. Everything that can refuse does before the first file is written, in this order: the output, the times,
 // every pinned file's hash and the decoder on every pinned media (for a video, the decoder on it), and the renderer on
 // every list it draws. Every file is an analysis picture (FRAMES-26), an 8-bit sRGB PNG whatever the sequence's colour
-// space, and a label lies on the analysis picture of its frame.
+// space, and a label lies on the analysis picture of its frame. A sheet draws every cell in one frame, so the run's
+// budget is given its pictures and its frame as floors and a limit under them is refused before a cell is read
+// (FRAMES-30 The budget).
 package struct FrameExporter: Sendable {
     // MARK: - Property
     // The longest side of a sheet's cell, so a sheet of many frames stays a picture one can open and read.
@@ -23,18 +25,20 @@ package struct FrameExporter: Sendable {
     private let encoder: any Encoder
     private let mediaFacts: any MediaFactProvider
     private let hasher: any FileHashProvider
+    private let budget: MemoryBudget
     private let pinned: PinnedReferenceChecker
     private let composer: ContactSheetComposer
     private let evaluator = Evaluator()
 
     // MARK: - Initializer
-    // `shaper` sets the time labels of `still` and `sheet`.
+    // `shaper` sets the time labels of `still` and `sheet`, and `budget` is the run's.
     package init(
         decoder: any MediaDecoder,
         renderer: any Renderer,
         encoder: any Encoder,
         mediaFacts: any MediaFactProvider,
-        shaper: any ShapingProvider
+        shaper: any ShapingProvider,
+        budget: MemoryBudget
     ) {
         self.init(
             decoder: decoder,
@@ -42,6 +46,7 @@ package struct FrameExporter: Sendable {
             encoder: encoder,
             mediaFacts: mediaFacts,
             shaper: shaper,
+            budget: budget,
             hasher: FileHasher()
         )
     }
@@ -52,12 +57,14 @@ package struct FrameExporter: Sendable {
         encoder: any Encoder,
         mediaFacts: any MediaFactProvider,
         shaper: any ShapingProvider,
+        budget: MemoryBudget,
         hasher: any FileHashProvider
     ) {
         self.decoder = decoder
         self.renderer = renderer
         self.encoder = encoder
         self.mediaFacts = mediaFacts
+        self.budget = budget
         self.hasher = hasher
         self.pinned = PinnedReferenceChecker(decoder: decoder, hasher: hasher)
         self.composer = ContactSheetComposer(shaper: shaper, hasher: hasher)
@@ -170,6 +177,15 @@ package struct FrameExporter: Sendable {
         for frame in drawn {
             try renderer.check(frame.list, ofFrameAt: frame.time)
         }
+        // A cell of a video's or an image sequence's frame, or of a frame drawn first, shows an analysis picture of
+        // the frames' size, 4 bytes a pixel, which the renderer holds with every other cell's while the sheet is drawn.
+        let pictureCells = frames.frames.count { frame in
+            guard case let .displayList(list) = frame.picture else { return true }
+
+            return isDrawn(list)
+        }
+        budget.require(pictureCells * Int(frames.size.width) * Int(frames.size.height) * 4, for: .pictures)
+        try budget.checkFloor()
 
         let folder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
         defer { try? FileManager.default.removeItem(at: folder) }

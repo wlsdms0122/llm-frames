@@ -29,11 +29,14 @@ struct RoleFactory: Sendable {
             "avfoundation-cpu": { AVFoundationDecoder(conversion: .cpu, budget: $0) }
         ]
     )
-    private let renderers = RoleTable<@Sendable (any MediaDecoder) -> any Renderer>(
+    private let renderers = RoleTable<@Sendable (any MediaDecoder, MemoryBudget) -> any Renderer>(
         role: "renderer",
         option: "--renderer",
         defaultName: "quartz",
-        builders: ["metal": { MetalRenderer(decoder: $0) }, "quartz": { QuartzRenderer(decoder: $0) }]
+        builders: [
+            "metal": { MetalRenderer(decoder: $0, budget: $1) },
+            "quartz": { QuartzRenderer(decoder: $0, budget: $1) }
+        ]
     )
     private let mixers = RoleTable<@Sendable (any MediaDecoder) -> any Mixer>(
         role: "mixer",
@@ -97,7 +100,7 @@ struct RoleFactory: Sendable {
         return Roles(
             budget: budget,
             decoder: decoder,
-            renderer: try renderers.builder(named: options.renderer)(decoder),
+            renderer: try renderers.builder(named: options.renderer)(decoder, budget),
             mixer: try mixers.builder(named: options.mixer)(decoder),
             encoder: try encoders.builder(named: options.encoder)(),
             ocr: try ocrs.builder(named: options.ocr)(decoder),

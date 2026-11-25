@@ -14,10 +14,12 @@ import os
 // is shown on every frame of its clip. A frame is kept for each reading of it, and a page's picture for each region,
 // scale and reading, so a picture is reused only for the very request a frame makes (FRAMES-20 Pictures). Once a frame
 // is drawn, `frameDrawn()` lets go of every picture it did not use, so the pictures kept are those of the frame drawn
-// last and those the frame being drawn has read.
+// last and those the frame being drawn has read. The run's budget counts every picture kept as its `pictures` hold,
+// which the frames need and so is never refused (FRAMES-30 The budget).
 final class MediaPictureCache: Sendable {
     // MARK: - Property
     private let decoder: any MediaDecoder
+    private let budget: MemoryBudget
     private let pictures = OSAllocatedUnfairLock<[Kept<PictureRequest, (pixels: Pixels, image: CGImage)>]>(
         uncheckedState: []
     )
@@ -28,8 +30,12 @@ final class MediaPictureCache: Sendable {
     }
 
     // MARK: - Initializer
-    init(decoder: any MediaDecoder) {
+    init(
+        decoder: any MediaDecoder,
+        budget: MemoryBudget
+    ) {
         self.decoder = decoder
+        self.budget = budget
     }
 
     // MARK: - Public
@@ -65,7 +71,7 @@ final class MediaPictureCache: Sendable {
         if let kept = Self.use(key, in: pages) { return kept }
 
         let image = try decoder.picture(of: file, region: region, scale: scale, reading: frame.reading).bitmap.cgImage()
-        Self.keep(image, for: key, in: pages)
+        keep(image, bytes: image.bytesPerRow * image.height, for: key, in: pages)
 
         return image
     }
@@ -77,8 +83,8 @@ final class MediaPictureCache: Sendable {
 
     // Lets go of every picture the frame drawn last did not use, and counts the rest unused by the next frame.
     func frameDrawn() {
-        Self.drop(in: pictures)
-        Self.drop(in: pages)
+        drop(in: pictures)
+        drop(in: pages)
     }
 
     // MARK: - Private
@@ -88,8 +94,9 @@ final class MediaPictureCache: Sendable {
         if let kept = Self.use(request, in: pictures) { return kept }
 
         let pixels = try decoder.picture(of: frame)
-        let picture = (pixels: pixels, image: try pixels.bitmap.cgImage())
-        Self.keep(picture, for: request, in: pictures)
+        let bitmap = pixels.bitmap
+        let picture = (pixels: pixels, image: try bitmap.cgImage())
+        keep(picture, bytes: bitmap.bytesPerRow * bitmap.height, for: request, in: pictures)
 
         return picture
     }
@@ -107,33 +114,44 @@ final class MediaPictureCache: Sendable {
         }
     }
 
-    // `value` kept for `key`, used by the frame being drawn, in place of any value kept for it before.
-    private static func keep<Key: Equatable, Value>(
+    // `value` of `bytes` kept for `key`, used by the frame being drawn, in place of any value kept for it before.
+    private func keep<Key: Equatable, Value>(
         _ value: Value,
+        bytes: Int,
         for key: Key,
         in kept: OSAllocatedUnfairLock<[Kept<Key, Value>]>
     ) {
-        kept.withLockUnchecked { kept in
+        let replaced = kept.withLockUnchecked { kept in
+            let replaced = kept.filter { $0.key == key }.reduce(0) { $0 + $1.bytes }
             kept.removeAll { $0.key == key }
-            kept.append(Kept(key: key, value: value, isUsed: true))
+            kept.append(Kept(key: key, value: value, bytes: bytes, isUsed: true))
+
+            return replaced
         }
+        budget.give(replaced, for: .pictures)
+        budget.hold(bytes, for: .pictures)
     }
 
-    private static func drop<Key, Value>(in kept: OSAllocatedUnfairLock<[Kept<Key, Value>]>) {
-        kept.withLockUnchecked { kept in
+    private func drop<Key, Value>(in kept: OSAllocatedUnfairLock<[Kept<Key, Value>]>) {
+        let dropped = kept.withLockUnchecked { kept in
+            let dropped = kept.filter { !$0.isUsed }.reduce(0) { $0 + $1.bytes }
             kept.removeAll { !$0.isUsed }
             for index in kept.indices {
                 kept[index].isUsed = false
             }
+
+            return dropped
         }
+        budget.give(dropped, for: .pictures)
     }
 }
 
 extension MediaPictureCache {
-    // A picture kept, and whether the frame being drawn has used it.
+    // A picture kept, its bytes, and whether the frame being drawn has used it.
     private struct Kept<Key, Value> {
         let key: Key
         let value: Value
+        let bytes: Int
         var isUsed: Bool
     }
 

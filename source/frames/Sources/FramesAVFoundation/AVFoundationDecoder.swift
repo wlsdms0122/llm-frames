@@ -18,14 +18,14 @@ import os
 // `platform` reading instead converts the picture from its file's colour by Core Image's colour management. A page of a
 // PDF is checked and drawn by `PageReader`. A video, a sound track and a PDF are loaded once and kept, and a video read
 // forward has its next frame read ahead by `PictureLookahead`. It keeps readers open within the count `ReaderBound`
-// holds them to and the room the run's budget grants them, and a video past either takes turns (FRAMES-30). Made to convert on the GPU, on a machine with a Metal
-// device, it takes a video's frames read as working values to a surface by `MetalPictureConverter` wherever the
-// conversion's steps and the frame's placement allow, and every other picture on the CPU (FRAMES-21 Pictures). The
-// largest picture it holds is 16384 pixels on a side.
-// It times its reading of pictures and sound as `decode` and its conversion of them as `workingConversion`, that of a
-// frame read ahead apart as well, and tallies how it read each medium: a frame read ahead is decoded where it is read,
-// and read only when it is given (FRAMES-23 Runs). A page's draw is `decode` whole, any colour conversion included,
-// that of Core Graphics and that of a written `colorSpace` alike (FRAMES-21).
+// holds them to and the room the run's budget grants them, and a video past either takes turns (FRAMES-30). Made to
+// convert on the GPU, on a machine with a Metal device, it takes a video's frames read as working values to a surface
+// by `MetalPictureConverter` wherever the conversion's steps and the frame's placement allow, and every other picture
+// on the CPU (FRAMES-21 Pictures). The largest picture it holds is 16384 pixels on a side. It times its reading of
+// pictures and sound as `decode` and its conversion of them as `workingConversion`, that of a frame read ahead apart as
+// well, and tallies how it read each medium: a frame read ahead is decoded where it is read, and read only when it is
+// given (FRAMES-23 Runs). A page's draw is `decode` whole, any colour conversion included, that of Core Graphics and
+// that of a written `colorSpace` alike (FRAMES-21).
 package final class AVFoundationDecoder: Sendable {
     // MARK: - Property
     // The most pixels on a side of a picture this decoder holds: a frame, a still or a region of a page.
@@ -71,7 +71,7 @@ package final class AVFoundationDecoder: Sendable {
     // MARK: - Private
     private func video(at path: String) throws -> VideoReader? {
         if let video = videos.withLock({ $0[path] }) { return video }
-        guard let video = try VideoReader(path: path) else { return nil }
+        guard let video = try VideoReader(path: path, budget: budget) else { return nil }
         videos.withLock { $0[path] = video }
 
         return video

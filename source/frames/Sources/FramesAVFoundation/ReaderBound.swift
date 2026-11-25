@@ -11,12 +11,12 @@ import os
 
 // The videos the decoder keeps a reader open on, at most `count` of them, and together no more than the run's budget
 // grants its `readers`, each at the cost it is admitted with (FRAMES-21 Rules, FRAMES-30 The budget). The budget's
-// floor for readers is raised to each reader admitted, so one reader of the costliest video read is the floor. A video read with no reader open takes one where the bound
-// leaves room, and otherwise closes others first, one at a time: the one read longest ago of those holding frames
-// read in a turn, else the one read longest ago where that read came before the asking video's read before this one,
-// so it was not read since, else the one read last, so videos read in a cycle past the bound keep the rest of their
-// readers. A video whose reader the bound closed takes a turn when it is read again. One reader is open whatever the
-// budget holds, since it lies within the floor. Used from any thread.
+// floor for readers is raised to each reader admitted, so one reader of the costliest video read is the floor. A video
+// read with no reader open takes one where the bound leaves room, and otherwise closes others first, one at a time: the
+// one read longest ago of those holding frames read in a turn, else the one read longest ago where that read came
+// before the asking video's read before this one, so it was not read since, else the one read last, so videos read in a
+// cycle past the bound keep the rest of their readers. A video whose reader the bound closed takes a turn when it is
+// read again. One reader is open whatever the budget holds, since it lies within the floor. Used from any thread.
 final class ReaderBound: Sendable {
     // MARK: - Property
     private let count: Int
