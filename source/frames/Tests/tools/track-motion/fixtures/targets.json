@@ -1,0 +1,282 @@
+{
+ "kind": "sequence",
+ "format": {
+  "size": [
+   1280,
+   720
+  ],
+  "fps": 25
+ },
+ "storyline": [
+  {
+   "id": "shot",
+   "kind": "media",
+   "media": "/media/moving.mp4",
+   "connected": [
+    {
+     "id": "outline",
+     "at": [
+      0.4,
+      0.5
+     ],
+     "kind": "rect",
+     "area": [
+      320,
+      389,
+      272,
+      192
+     ],
+     "stroke": {
+      "width": 4,
+      "paint": "#3DDC84"
+     }
+    },
+    {
+     "id": "cover",
+     "at": [
+      0.4,
+      0.8
+     ],
+     "parent": "shot",
+     "kind": "rect",
+     "area": [
+      160,
+      194,
+      136,
+      96
+     ],
+     "stroke": {
+      "width": 4,
+      "paint": "#FF00FF"
+     },
+     "track": {
+      "tool": "frames/track-motion",
+      "target": {
+       "clip": "outline"
+      }
+     }
+    },
+    {
+     "id": "tilted",
+     "at": [
+      1,
+      1.1
+     ],
+     "kind": "rect",
+     "area": [
+      420,
+      370,
+      272,
+      192
+     ],
+     "rotation": 20,
+     "stroke": {
+      "width": 4,
+      "paint": "#00FFFF"
+     }
+    },
+    {
+     "id": "tiltCover",
+     "at": [
+      1,
+      1.4
+     ],
+     "parent": "shot",
+     "kind": "title",
+     "text": "Card",
+     "style": "subtitle",
+     "position": [
+      288,
+      180
+     ],
+     "track": {
+      "tool": "frames/track-motion",
+      "target": {
+       "clip": "tilted"
+      }
+     }
+    },
+    {
+     "id": "pinned",
+     "at": [
+      1.2,
+      1.3
+     ],
+     "kind": "rect",
+     "width": 272,
+     "height": 192,
+     "cornerPin": [
+      [
+       440,
+       360
+      ],
+      [
+       720,
+       380
+      ],
+      [
+       710,
+       560
+      ],
+      [
+       450,
+       550
+      ]
+     ],
+     "stroke": {
+      "width": 4,
+      "paint": "#FFFF00"
+     }
+    },
+    {
+     "id": "pinCover",
+     "at": [
+      1.2,
+      1.6
+     ],
+     "parent": "shot",
+     "kind": "rect",
+     "area": [
+      220,
+      180,
+      136,
+      96
+     ],
+     "stroke": {
+      "width": 4,
+      "paint": "#0000FF"
+     },
+     "track": {
+      "tool": "frames/track-motion",
+      "target": {
+       "clip": "pinned"
+      }
+     }
+    },
+    {
+     "id": "itself",
+     "at": [
+      0.4,
+      0.8
+     ],
+     "parent": "shot",
+     "kind": "rect",
+     "area": [
+      160,
+      194,
+      136,
+      96
+     ],
+     "stroke": {
+      "width": 4,
+      "paint": "#FF0000"
+     },
+     "track": {
+      "tool": "frames/track-motion",
+      "target": {
+       "clip": "itself"
+      }
+     }
+    },
+    {
+     "id": "masked",
+     "at": [
+      0.4,
+      0.8
+     ],
+     "kind": "media",
+     "media": "/media/moving.mp4",
+     "width": 320,
+     "position": [
+      1100,
+      600
+     ],
+     "mask": {
+      "kind": "ellipse",
+      "area": [
+       130,
+       170,
+       160,
+       130
+      ]
+     },
+     "track": {
+      "tool": "frames/track-motion",
+      "target": "mask"
+     }
+    },
+    {
+     "id": "wash",
+     "at": [
+      0,
+      3
+     ],
+     "kind": "adjustment",
+     "adjust": [
+      "frames/warm"
+     ]
+    }
+   ]
+  }
+ ],
+ "clips": [
+  {
+   "id": "inner",
+   "at": [
+    0,
+    3
+   ],
+   "kind": "media",
+   "width": 400,
+   "position": [
+    200,
+    150
+   ],
+   "media": {
+    "kind": "sequence",
+    "format": {
+     "size": [
+      640,
+      360
+     ],
+     "fps": 25
+    },
+    "storyline": [
+     {
+      "id": "innerShot",
+      "kind": "media",
+      "media": "/media/moving.mp4",
+      "in": 0.5,
+      "connected": [
+       {
+        "id": "innerBox",
+        "at": [
+         0.4,
+         0.8
+        ],
+        "parent": "innerShot",
+        "kind": "rect",
+        "area": [
+         124,
+         202,
+         128,
+         88
+        ],
+        "stroke": {
+         "width": 4,
+         "paint": "#FF00FF"
+        },
+        "track": {
+         "tool": "frames/track-motion",
+         "target": {
+          "clip": "innerBox"
+         }
+        }
+       }
+      ]
+     }
+    ]
+   }
+  }
+ ]
+}

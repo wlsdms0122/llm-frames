@@ -1,0 +1,11620 @@
+[
+ {
+  "arguments": [
+   "timeline",
+   "<document>",
+   "--json"
+  ],
+  "output": {
+   "timeline": "0.1.0",
+   "duration": 3,
+   "storyline": [
+    {
+     "place": "storyline[0]#shot",
+     "id": "shot",
+     "kind": "video",
+     "media": "/media/moving.mp4",
+     "page": null,
+     "edit": [
+      0,
+      3
+     ],
+     "drawn": [
+      0,
+      3
+     ],
+     "clip": [
+      0,
+      3
+     ],
+     "sound": [
+      0,
+      3
+     ],
+     "speed": 1,
+     "timeRemap": false,
+     "transition": null,
+     "fps": null,
+     "instant": 0,
+     "clock": {
+      "clip": "storyline[0]#shot",
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "output",
+      "clip": null
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "storyline[0]#shot"
+     },
+     "tracked": {
+      "clip": "storyline[0]#shot",
+      "first": 0,
+      "last": 2.96
+     }
+    }
+   ],
+   "clips": [
+    {
+     "place": "storyline[0]#shot.connected[0]#outline",
+     "id": "outline",
+     "kind": "rect",
+     "media": null,
+     "page": null,
+     "visible": [
+      0.4,
+      0.5
+     ],
+     "sound": null,
+     "lane": 1,
+     "storyline": "storyline[0]#shot",
+     "parent": null,
+     "animation": null,
+     "fps": null,
+     "instant": 0.4,
+     "clock": {
+      "clip": "storyline[0]#shot",
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "output",
+      "clip": null
+     },
+     "ownSpace": {
+      "kind": "output",
+      "clip": null
+     },
+     "tracked": null
+    },
+    {
+     "place": "storyline[0]#shot.connected[1]#cover",
+     "id": "cover",
+     "kind": "rect",
+     "media": null,
+     "page": null,
+     "visible": [
+      0.4,
+      0.8
+     ],
+     "sound": null,
+     "lane": 1,
+     "storyline": "storyline[0]#shot",
+     "parent": "storyline[0]#shot",
+     "animation": null,
+     "fps": null,
+     "instant": 0.4,
+     "clock": {
+      "clip": "storyline[0]#shot",
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "media",
+      "clip": "storyline[0]#shot"
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "storyline[0]#shot"
+     },
+     "tracked": {
+      "clip": "storyline[0]#shot",
+      "first": 0,
+      "last": 2.96
+     }
+    },
+    {
+     "place": "storyline[0]#shot.connected[2]#tilted",
+     "id": "tilted",
+     "kind": "rect",
+     "media": null,
+     "page": null,
+     "visible": [
+      1,
+      1.1
+     ],
+     "sound": null,
+     "lane": 1,
+     "storyline": "storyline[0]#shot",
+     "parent": null,
+     "animation": null,
+     "fps": null,
+     "instant": 1,
+     "clock": {
+      "clip": "storyline[0]#shot",
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "output",
+      "clip": null
+     },
+     "ownSpace": {
+      "kind": "output",
+      "clip": null
+     },
+     "tracked": null
+    },
+    {
+     "place": "storyline[0]#shot.connected[3]#tiltCover",
+     "id": "tiltCover",
+     "kind": "title",
+     "media": null,
+     "page": null,
+     "visible": [
+      1,
+      1.4
+     ],
+     "sound": null,
+     "lane": 1,
+     "storyline": "storyline[0]#shot",
+     "parent": "storyline[0]#shot",
+     "animation": null,
+     "fps": null,
+     "instant": 1,
+     "clock": {
+      "clip": "storyline[0]#shot",
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "media",
+      "clip": "storyline[0]#shot"
+     },
+     "ownSpace": {
+      "kind": "text",
+      "clip": "storyline[0]#shot.connected[3]#tiltCover"
+     },
+     "tracked": {
+      "clip": "storyline[0]#shot",
+      "first": 0,
+      "last": 2.96
+     }
+    },
+    {
+     "place": "storyline[0]#shot.connected[4]#pinned",
+     "id": "pinned",
+     "kind": "rect",
+     "media": null,
+     "page": null,
+     "visible": [
+      1.2,
+      1.3
+     ],
+     "sound": null,
+     "lane": 1,
+     "storyline": "storyline[0]#shot",
+     "parent": null,
+     "animation": null,
+     "fps": null,
+     "instant": 1.2,
+     "clock": {
+      "clip": "storyline[0]#shot",
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "output",
+      "clip": null
+     },
+     "ownSpace": {
+      "kind": "box",
+      "clip": "storyline[0]#shot.connected[4]#pinned"
+     },
+     "tracked": null
+    },
+    {
+     "place": "storyline[0]#shot.connected[5]#pinCover",
+     "id": "pinCover",
+     "kind": "rect",
+     "media": null,
+     "page": null,
+     "visible": [
+      1.2,
+      1.6
+     ],
+     "sound": null,
+     "lane": 1,
+     "storyline": "storyline[0]#shot",
+     "parent": "storyline[0]#shot",
+     "animation": null,
+     "fps": null,
+     "instant": 1.2,
+     "clock": {
+      "clip": "storyline[0]#shot",
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "media",
+      "clip": "storyline[0]#shot"
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "storyline[0]#shot"
+     },
+     "tracked": {
+      "clip": "storyline[0]#shot",
+      "first": 0,
+      "last": 2.96
+     }
+    },
+    {
+     "place": "storyline[0]#shot.connected[6]#itself",
+     "id": "itself",
+     "kind": "rect",
+     "media": null,
+     "page": null,
+     "visible": [
+      0.4,
+      0.8
+     ],
+     "sound": null,
+     "lane": 1,
+     "storyline": "storyline[0]#shot",
+     "parent": "storyline[0]#shot",
+     "animation": null,
+     "fps": null,
+     "instant": 0.4,
+     "clock": {
+      "clip": "storyline[0]#shot",
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "media",
+      "clip": "storyline[0]#shot"
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "storyline[0]#shot"
+     },
+     "tracked": {
+      "clip": "storyline[0]#shot",
+      "first": 0,
+      "last": 2.96
+     }
+    },
+    {
+     "place": "storyline[0]#shot.connected[7]#masked",
+     "id": "masked",
+     "kind": "video",
+     "media": "/media/moving.mp4",
+     "page": null,
+     "visible": [
+      0.4,
+      0.8
+     ],
+     "sound": [
+      0.4,
+      0.8
+     ],
+     "lane": 1,
+     "storyline": "storyline[0]#shot",
+     "parent": null,
+     "animation": null,
+     "fps": null,
+     "instant": 0.4,
+     "clock": {
+      "clip": "storyline[0]#shot",
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "output",
+      "clip": null
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "storyline[0]#shot.connected[7]#masked"
+     },
+     "tracked": {
+      "clip": "storyline[0]#shot.connected[7]#masked",
+      "first": 0,
+      "last": 0.4
+     }
+    },
+    {
+     "place": "storyline[0]#shot.connected[8]#wash",
+     "id": "wash",
+     "kind": "adjustment",
+     "media": null,
+     "page": null,
+     "visible": [
+      0,
+      3
+     ],
+     "sound": null,
+     "lane": 1,
+     "storyline": "storyline[0]#shot",
+     "parent": null,
+     "animation": null,
+     "fps": null,
+     "instant": 0,
+     "clock": {
+      "clip": "storyline[0]#shot",
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "output",
+      "clip": null
+     },
+     "ownSpace": {
+      "kind": "output",
+      "clip": null
+     },
+     "tracked": null
+    },
+    {
+     "place": "clips[0]#inner",
+     "id": "inner",
+     "kind": "compound",
+     "media": null,
+     "page": null,
+     "visible": [
+      0,
+      3
+     ],
+     "sound": [
+      0,
+      3
+     ],
+     "lane": 1,
+     "storyline": null,
+     "parent": null,
+     "animation": null,
+     "fps": null,
+     "instant": 0,
+     "clock": {
+      "clip": null,
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "output",
+      "clip": null
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "clips[0]#inner"
+     },
+     "tracked": null,
+     "nested": {
+      "timeline": "0.1.0",
+      "duration": 2.5,
+      "storyline": [
+       {
+        "place": "clips[0]#inner.media.storyline[0]#innerShot",
+        "id": "innerShot",
+        "kind": "video",
+        "media": "/media/moving.mp4",
+        "page": null,
+        "edit": [
+         0,
+         2.5
+        ],
+        "drawn": [
+         0,
+         2.5
+        ],
+        "clip": [
+         0.5,
+         3
+        ],
+        "sound": [
+         0,
+         2.5
+        ],
+        "speed": 1,
+        "timeRemap": false,
+        "transition": null,
+        "fps": null,
+        "instant": 0,
+        "clock": {
+         "clip": "clips[0]#inner.media.storyline[0]#innerShot",
+         "origin": -0.5,
+         "speed": 1
+        },
+        "space": {
+         "kind": "output",
+         "clip": null
+        },
+        "ownSpace": {
+         "kind": "media",
+         "clip": "clips[0]#inner.media.storyline[0]#innerShot"
+        },
+        "tracked": {
+         "clip": "clips[0]#inner.media.storyline[0]#innerShot",
+         "first": 0.48,
+         "last": 2.96
+        }
+       }
+      ],
+      "clips": [
+       {
+        "place": "clips[0]#inner.media.storyline[0]#innerShot.connected[0]#innerBox",
+        "id": "innerBox",
+        "kind": "rect",
+        "media": null,
+        "page": null,
+        "visible": [
+         0,
+         0.3
+        ],
+        "sound": null,
+        "lane": 1,
+        "storyline": "clips[0]#inner.media.storyline[0]#innerShot",
+        "parent": "clips[0]#inner.media.storyline[0]#innerShot",
+        "animation": null,
+        "fps": null,
+        "instant": -0.1,
+        "clock": {
+         "clip": "clips[0]#inner.media.storyline[0]#innerShot",
+         "origin": -0.5,
+         "speed": 1
+        },
+        "space": {
+         "kind": "media",
+         "clip": "clips[0]#inner.media.storyline[0]#innerShot"
+        },
+        "ownSpace": {
+         "kind": "media",
+         "clip": "clips[0]#inner.media.storyline[0]#innerShot"
+        },
+        "tracked": {
+         "clip": "clips[0]#inner.media.storyline[0]#innerShot",
+         "first": 0.48,
+         "last": 2.96
+        }
+       }
+      ]
+     }
+    }
+   ]
+  }
+ },
+ {
+  "arguments": [
+   "timeline",
+   "<document>",
+   "--at",
+   "0.4",
+   "--json"
+  ],
+  "output": {
+   "timeline": "0.1.0",
+   "duration": 3,
+   "time": 0.4,
+   "storyline": [
+    {
+     "place": "storyline[0]#shot",
+     "id": "shot",
+     "kind": "video",
+     "media": "/media/moving.mp4",
+     "page": null,
+     "edit": [
+      0,
+      3
+     ],
+     "drawn": [
+      0,
+      3
+     ],
+     "clip": [
+      0,
+      3
+     ],
+     "sound": [
+      0,
+      3
+     ],
+     "speed": 1,
+     "timeRemap": false,
+     "transition": null,
+     "fps": null,
+     "instant": 0,
+     "clock": {
+      "clip": "storyline[0]#shot",
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "output",
+      "clip": null
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "storyline[0]#shot"
+     },
+     "tracked": {
+      "clip": "storyline[0]#shot",
+      "first": 0,
+      "last": 2.96
+     },
+     "clipTime": 0.4,
+     "mediaTime": 0.4,
+     "box": {
+      "rect": [
+       0,
+       0,
+       640,
+       360
+      ],
+      "quad": [
+       [
+        0,
+        0
+       ],
+       [
+        1280,
+        0
+       ],
+       [
+        1280,
+        720
+       ],
+       [
+        0,
+        720
+       ]
+      ]
+     },
+     "masks": []
+    }
+   ],
+   "clips": [
+    {
+     "place": "storyline[0]#shot.connected[0]#outline",
+     "id": "outline",
+     "kind": "rect",
+     "media": null,
+     "page": null,
+     "visible": [
+      0.4,
+      0.5
+     ],
+     "sound": null,
+     "lane": 1,
+     "storyline": "storyline[0]#shot",
+     "parent": null,
+     "animation": null,
+     "fps": null,
+     "instant": 0.4,
+     "clock": {
+      "clip": "storyline[0]#shot",
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "output",
+      "clip": null
+     },
+     "ownSpace": {
+      "kind": "output",
+      "clip": null
+     },
+     "tracked": null,
+     "mediaTime": null,
+     "box": {
+      "rect": [
+       320,
+       389,
+       272,
+       192
+      ],
+      "quad": [
+       [
+        320,
+        389
+       ],
+       [
+        592,
+        389
+       ],
+       [
+        592,
+        581
+       ],
+       [
+        320,
+        581
+       ]
+      ]
+     },
+     "masks": []
+    },
+    {
+     "place": "storyline[0]#shot.connected[1]#cover",
+     "id": "cover",
+     "kind": "rect",
+     "media": null,
+     "page": null,
+     "visible": [
+      0.4,
+      0.8
+     ],
+     "sound": null,
+     "lane": 1,
+     "storyline": "storyline[0]#shot",
+     "parent": "storyline[0]#shot",
+     "animation": null,
+     "fps": null,
+     "instant": 0.4,
+     "clock": {
+      "clip": "storyline[0]#shot",
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "media",
+      "clip": "storyline[0]#shot"
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "storyline[0]#shot"
+     },
+     "tracked": {
+      "clip": "storyline[0]#shot",
+      "first": 0,
+      "last": 2.96
+     },
+     "mediaTime": null,
+     "box": {
+      "rect": [
+       160,
+       194,
+       136,
+       96
+      ],
+      "quad": [
+       [
+        320,
+        388
+       ],
+       [
+        592,
+        388
+       ],
+       [
+        592,
+        580
+       ],
+       [
+        320,
+        580
+       ]
+      ]
+     },
+     "masks": []
+    },
+    {
+     "place": "storyline[0]#shot.connected[2]#tilted",
+     "id": "tilted",
+     "kind": "rect",
+     "media": null,
+     "page": null,
+     "visible": [
+      1,
+      1.1
+     ],
+     "sound": null,
+     "lane": 1,
+     "storyline": "storyline[0]#shot",
+     "parent": null,
+     "animation": null,
+     "fps": null,
+     "instant": 1,
+     "clock": {
+      "clip": "storyline[0]#shot",
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "output",
+      "clip": null
+     },
+     "ownSpace": {
+      "kind": "output",
+      "clip": null
+     },
+     "tracked": null,
+     "mediaTime": null,
+     "box": {
+      "rect": [
+       420,
+       370,
+       272,
+       192
+      ],
+      "quad": [
+       [
+        461.035737,
+        329.274769
+       ],
+       [
+        716.63213,
+        422.304248
+       ],
+       [
+        650.964263,
+        602.725231
+       ],
+       [
+        395.36787,
+        509.695752
+       ]
+      ]
+     },
+     "masks": []
+    },
+    {
+     "place": "storyline[0]#shot.connected[3]#tiltCover",
+     "id": "tiltCover",
+     "kind": "title",
+     "media": null,
+     "page": null,
+     "visible": [
+      1,
+      1.4
+     ],
+     "sound": null,
+     "lane": 1,
+     "storyline": "storyline[0]#shot",
+     "parent": "storyline[0]#shot",
+     "animation": null,
+     "fps": null,
+     "instant": 1,
+     "clock": {
+      "clip": "storyline[0]#shot",
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "media",
+      "clip": "storyline[0]#shot"
+     },
+     "ownSpace": {
+      "kind": "text",
+      "clip": "storyline[0]#shot.connected[3]#tiltCover"
+     },
+     "tracked": {
+      "clip": "storyline[0]#shot",
+      "first": 0,
+      "last": 2.96
+     },
+     "mediaTime": null,
+     "box": {
+      "rect": [
+       0,
+       0,
+       69.344,
+       37.279785
+      ],
+      "quad": [
+       [
+        541.328,
+        341.360107
+       ],
+       [
+        610.672,
+        341.360107
+       ],
+       [
+        610.672,
+        378.639893
+       ],
+       [
+        541.328,
+        378.639893
+       ]
+      ]
+     },
+     "masks": []
+    },
+    {
+     "place": "storyline[0]#shot.connected[4]#pinned",
+     "id": "pinned",
+     "kind": "rect",
+     "media": null,
+     "page": null,
+     "visible": [
+      1.2,
+      1.3
+     ],
+     "sound": null,
+     "lane": 1,
+     "storyline": "storyline[0]#shot",
+     "parent": null,
+     "animation": null,
+     "fps": null,
+     "instant": 1.2,
+     "clock": {
+      "clip": "storyline[0]#shot",
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "output",
+      "clip": null
+     },
+     "ownSpace": {
+      "kind": "box",
+      "clip": "storyline[0]#shot.connected[4]#pinned"
+     },
+     "tracked": null,
+     "mediaTime": null,
+     "box": {
+      "rect": [
+       0,
+       0,
+       272,
+       192
+      ],
+      "quad": [
+       [
+        440,
+        360
+       ],
+       [
+        720,
+        380
+       ],
+       [
+        710,
+        560
+       ],
+       [
+        450,
+        550
+       ]
+      ]
+     },
+     "masks": []
+    },
+    {
+     "place": "storyline[0]#shot.connected[5]#pinCover",
+     "id": "pinCover",
+     "kind": "rect",
+     "media": null,
+     "page": null,
+     "visible": [
+      1.2,
+      1.6
+     ],
+     "sound": null,
+     "lane": 1,
+     "storyline": "storyline[0]#shot",
+     "parent": "storyline[0]#shot",
+     "animation": null,
+     "fps": null,
+     "instant": 1.2,
+     "clock": {
+      "clip": "storyline[0]#shot",
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "media",
+      "clip": "storyline[0]#shot"
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "storyline[0]#shot"
+     },
+     "tracked": {
+      "clip": "storyline[0]#shot",
+      "first": 0,
+      "last": 2.96
+     },
+     "mediaTime": null,
+     "box": {
+      "rect": [
+       220,
+       180,
+       136,
+       96
+      ],
+      "quad": [
+       [
+        440,
+        360
+       ],
+       [
+        712,
+        360
+       ],
+       [
+        712,
+        552
+       ],
+       [
+        440,
+        552
+       ]
+      ]
+     },
+     "masks": []
+    },
+    {
+     "place": "storyline[0]#shot.connected[6]#itself",
+     "id": "itself",
+     "kind": "rect",
+     "media": null,
+     "page": null,
+     "visible": [
+      0.4,
+      0.8
+     ],
+     "sound": null,
+     "lane": 1,
+     "storyline": "storyline[0]#shot",
+     "parent": "storyline[0]#shot",
+     "animation": null,
+     "fps": null,
+     "instant": 0.4,
+     "clock": {
+      "clip": "storyline[0]#shot",
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "media",
+      "clip": "storyline[0]#shot"
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "storyline[0]#shot"
+     },
+     "tracked": {
+      "clip": "storyline[0]#shot",
+      "first": 0,
+      "last": 2.96
+     },
+     "mediaTime": null,
+     "box": {
+      "rect": [
+       160,
+       194,
+       136,
+       96
+      ],
+      "quad": [
+       [
+        320,
+        388
+       ],
+       [
+        592,
+        388
+       ],
+       [
+        592,
+        580
+       ],
+       [
+        320,
+        580
+       ]
+      ]
+     },
+     "masks": []
+    },
+    {
+     "place": "storyline[0]#shot.connected[7]#masked",
+     "id": "masked",
+     "kind": "video",
+     "media": "/media/moving.mp4",
+     "page": null,
+     "visible": [
+      0.4,
+      0.8
+     ],
+     "sound": [
+      0.4,
+      0.8
+     ],
+     "lane": 1,
+     "storyline": "storyline[0]#shot",
+     "parent": null,
+     "animation": null,
+     "fps": null,
+     "instant": 0.4,
+     "clock": {
+      "clip": "storyline[0]#shot",
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "output",
+      "clip": null
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "storyline[0]#shot.connected[7]#masked"
+     },
+     "tracked": {
+      "clip": "storyline[0]#shot.connected[7]#masked",
+      "first": 0,
+      "last": 0.4
+     },
+     "mediaTime": 0,
+     "box": {
+      "rect": [
+       0,
+       0,
+       640,
+       360
+      ],
+      "quad": [
+       [
+        940,
+        510
+       ],
+       [
+        1260,
+        510
+       ],
+       [
+        1260,
+        690
+       ],
+       [
+        940,
+        690
+       ]
+      ]
+     },
+     "masks": [
+      [
+       [
+        1005,
+        595
+       ],
+       [
+        1085,
+        595
+       ],
+       [
+        1085,
+        660
+       ],
+       [
+        1005,
+        660
+       ]
+      ]
+     ]
+    },
+    {
+     "place": "storyline[0]#shot.connected[8]#wash",
+     "id": "wash",
+     "kind": "adjustment",
+     "media": null,
+     "page": null,
+     "visible": [
+      0,
+      3
+     ],
+     "sound": null,
+     "lane": 1,
+     "storyline": "storyline[0]#shot",
+     "parent": null,
+     "animation": null,
+     "fps": null,
+     "instant": 0,
+     "clock": {
+      "clip": "storyline[0]#shot",
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "output",
+      "clip": null
+     },
+     "ownSpace": {
+      "kind": "output",
+      "clip": null
+     },
+     "tracked": null,
+     "mediaTime": null,
+     "box": null,
+     "masks": []
+    },
+    {
+     "place": "clips[0]#inner",
+     "id": "inner",
+     "kind": "compound",
+     "media": null,
+     "page": null,
+     "visible": [
+      0,
+      3
+     ],
+     "sound": [
+      0,
+      3
+     ],
+     "lane": 1,
+     "storyline": null,
+     "parent": null,
+     "animation": null,
+     "fps": null,
+     "instant": 0,
+     "clock": {
+      "clip": null,
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "output",
+      "clip": null
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "clips[0]#inner"
+     },
+     "tracked": null,
+     "mediaTime": 0.4,
+     "box": {
+      "rect": [
+       0,
+       0,
+       640,
+       360
+      ],
+      "quad": [
+       [
+        0,
+        37.5
+       ],
+       [
+        400,
+        37.5
+       ],
+       [
+        400,
+        262.5
+       ],
+       [
+        0,
+        262.5
+       ]
+      ]
+     },
+     "masks": [],
+     "nested": {
+      "timeline": "0.1.0",
+      "duration": 2.5,
+      "time": 0.4,
+      "storyline": [
+       {
+        "place": "clips[0]#inner.media.storyline[0]#innerShot",
+        "id": "innerShot",
+        "kind": "video",
+        "media": "/media/moving.mp4",
+        "page": null,
+        "edit": [
+         0,
+         2.5
+        ],
+        "drawn": [
+         0,
+         2.5
+        ],
+        "clip": [
+         0.5,
+         3
+        ],
+        "sound": [
+         0,
+         2.5
+        ],
+        "speed": 1,
+        "timeRemap": false,
+        "transition": null,
+        "fps": null,
+        "instant": 0,
+        "clock": {
+         "clip": "clips[0]#inner.media.storyline[0]#innerShot",
+         "origin": -0.5,
+         "speed": 1
+        },
+        "space": {
+         "kind": "output",
+         "clip": null
+        },
+        "ownSpace": {
+         "kind": "media",
+         "clip": "clips[0]#inner.media.storyline[0]#innerShot"
+        },
+        "tracked": {
+         "clip": "clips[0]#inner.media.storyline[0]#innerShot",
+         "first": 0.48,
+         "last": 2.96
+        },
+        "clipTime": 0.9,
+        "mediaTime": 0.88,
+        "box": {
+         "rect": [
+          0,
+          0,
+          640,
+          360
+         ],
+         "quad": [
+          [
+           0,
+           0
+          ],
+          [
+           640,
+           0
+          ],
+          [
+           640,
+           360
+          ],
+          [
+           0,
+           360
+          ]
+         ]
+        },
+        "masks": []
+       }
+      ],
+      "clips": [
+       {
+        "place": "clips[0]#inner.media.storyline[0]#innerShot.connected[0]#innerBox",
+        "id": "innerBox",
+        "kind": "rect",
+        "media": null,
+        "page": null,
+        "visible": [
+         0,
+         0.3
+        ],
+        "sound": null,
+        "lane": 1,
+        "storyline": "clips[0]#inner.media.storyline[0]#innerShot",
+        "parent": "clips[0]#inner.media.storyline[0]#innerShot",
+        "animation": null,
+        "fps": null,
+        "instant": -0.1,
+        "clock": {
+         "clip": "clips[0]#inner.media.storyline[0]#innerShot",
+         "origin": -0.5,
+         "speed": 1
+        },
+        "space": {
+         "kind": "media",
+         "clip": "clips[0]#inner.media.storyline[0]#innerShot"
+        },
+        "ownSpace": {
+         "kind": "media",
+         "clip": "clips[0]#inner.media.storyline[0]#innerShot"
+        },
+        "tracked": {
+         "clip": "clips[0]#inner.media.storyline[0]#innerShot",
+         "first": 0.48,
+         "last": 2.96
+        },
+        "mediaTime": null,
+        "box": {
+         "rect": [
+          124,
+          202,
+          128,
+          88
+         ],
+         "quad": [
+          [
+           124,
+           202
+          ],
+          [
+           252,
+           202
+          ],
+          [
+           252,
+           290
+          ],
+          [
+           124,
+           290
+          ]
+         ]
+        },
+        "masks": []
+       }
+      ]
+     }
+    }
+   ]
+  }
+ },
+ {
+  "arguments": [
+   "track",
+   "/media/moving.mp4",
+   "--at",
+   "0.4",
+   "--quad",
+   "[[160, 194.5], [296, 194.5], [296, 290.5], [160, 290.5]]",
+   "--to",
+   "0"
+  ],
+  "output": {
+   "track": "0.1.0",
+   "time": 0.4,
+   "frames": [
+    {
+     "time": 0,
+     "quad": [
+      [
+       120.000599,
+       199.791293
+      ],
+      [
+       255.99896,
+       199.790864
+      ],
+      [
+       255.999262,
+       295.789708
+      ],
+      [
+       120.000901,
+       295.790136
+      ]
+     ]
+    },
+    {
+     "time": 0.04,
+     "quad": [
+      [
+       124.001487,
+       199.292144
+      ],
+      [
+       259.998088,
+       199.291659
+      ],
+      [
+       259.99843,
+       295.28926
+      ],
+      [
+       124.001829,
+       295.289744
+      ]
+     ]
+    },
+    {
+     "time": 0.08,
+     "quad": [
+      [
+       128.001271,
+       198.735488
+      ],
+      [
+       263.998228,
+       198.734849
+      ],
+      [
+       263.99868,
+       294.732702
+      ],
+      [
+       128.001722,
+       294.733341
+      ]
+     ]
+    },
+    {
+     "time": 0.12,
+     "quad": [
+      [
+       132.001309,
+       198.222679
+      ],
+      [
+       267.99813,
+       198.221974
+      ],
+      [
+       267.998628,
+       294.219729
+      ],
+      [
+       132.001807,
+       294.220434
+      ]
+     ]
+    },
+    {
+     "time": 0.16,
+     "quad": [
+      [
+       136.001405,
+       197.678116
+      ],
+      [
+       271.998026,
+       197.677387
+      ],
+      [
+       271.99854,
+       293.675002
+      ],
+      [
+       136.001919,
+       293.67573
+      ]
+     ]
+    },
+    {
+     "time": 0.2,
+     "quad": [
+      [
+       140.001206,
+       197.146959
+      ],
+      [
+       275.998231,
+       197.146227
+      ],
+      [
+       275.998747,
+       293.144127
+      ],
+      [
+       140.001722,
+       293.144859
+      ]
+     ]
+    },
+    {
+     "time": 0.24,
+     "quad": [
+      [
+       144.001732,
+       196.62
+      ],
+      [
+       279.997733,
+       196.619321
+      ],
+      [
+       279.998212,
+       292.616498
+      ],
+      [
+       144.002211,
+       292.617177
+      ]
+     ]
+    },
+    {
+     "time": 0.28,
+     "quad": [
+      [
+       148.00108,
+       196.081984
+      ],
+      [
+       283.99842,
+       196.081429
+      ],
+      [
+       283.998812,
+       292.079552
+      ],
+      [
+       148.001471,
+       292.080107
+      ]
+     ]
+    },
+    {
+     "time": 0.32,
+     "quad": [
+      [
+       152.001678,
+       195.562747
+      ],
+      [
+       287.997967,
+       195.562413
+      ],
+      [
+       287.998203,
+       291.559794
+      ],
+      [
+       152.001914,
+       291.560128
+      ]
+     ]
+    },
+    {
+     "time": 0.36,
+     "quad": [
+      [
+       156.000944,
+       194.975866
+      ],
+      [
+       291.998874,
+       194.975711
+      ],
+      [
+       291.998983,
+       290.97425
+      ],
+      [
+       156.001053,
+       290.974405
+      ]
+     ]
+    },
+    {
+     "time": 0.4,
+     "quad": [
+      [
+       160,
+       194.5
+      ],
+      [
+       296,
+       194.5
+      ],
+      [
+       296,
+       290.5
+      ],
+      [
+       160,
+       290.5
+      ]
+     ]
+    }
+   ]
+  }
+ },
+ {
+  "arguments": [
+   "track",
+   "/media/moving.mp4",
+   "--at",
+   "0.4",
+   "--quad",
+   "[[160, 194.5], [296, 194.5], [296, 290.5], [160, 290.5]]",
+   "--to",
+   "2.96"
+  ],
+  "output": {
+   "track": "0.1.0",
+   "time": 0.4,
+   "frames": [
+    {
+     "time": 0.4,
+     "quad": [
+      [
+       160,
+       194.5
+      ],
+      [
+       296,
+       194.5
+      ],
+      [
+       296,
+       290.5
+      ],
+      [
+       160,
+       290.5
+      ]
+     ]
+    },
+    {
+     "time": 0.44,
+     "quad": [
+      [
+       164.001561,
+       193.902087
+      ],
+      [
+       299.999692,
+       193.903948
+      ],
+      [
+       299.998378,
+       289.902629
+      ],
+      [
+       164.000247,
+       289.900768
+      ]
+     ]
+    },
+    {
+     "time": 0.48,
+     "quad": [
+      [
+       168.003832,
+       193.43159
+      ],
+      [
+       304.000093,
+       193.437339
+      ],
+      [
+       303.996035,
+       289.434699
+      ],
+      [
+       167.999774,
+       289.428951
+      ]
+     ]
+    },
+    {
+     "time": 0.52,
+     "quad": [
+      [
+       172.004304,
+       192.864065
+      ],
+      [
+       308.002927,
+       192.874485
+      ],
+      [
+       307.995571,
+       288.873513
+      ],
+      [
+       171.996949,
+       288.863093
+      ]
+     ]
+    },
+    {
+     "time": 0.56,
+     "quad": [
+      [
+       176.020309,
+       192.352298
+      ],
+      [
+       312.01671,
+       192.404889
+      ],
+      [
+       311.979587,
+       288.402348
+      ],
+      [
+       175.983186,
+       288.349757
+      ]
+     ]
+    },
+    {
+     "time": 0.6,
+     "quad": [
+      [
+       180.059724,
+       191.737841
+      ],
+      [
+       316.058636,
+       191.905749
+      ],
+      [
+       315.940112,
+       287.904981
+      ],
+      [
+       179.9412,
+       287.737073
+      ]
+     ]
+    },
+    {
+     "time": 0.64,
+     "quad": [
+      [
+       184.117342,
+       191.158795
+      ],
+      [
+       320.112833,
+       191.487278
+      ],
+      [
+       319.880963,
+       287.484095
+      ],
+      [
+       183.885472,
+       287.155612
+      ]
+     ]
+    },
+    {
+     "time": 0.68,
+     "quad": [
+      [
+       188.188236,
+       190.515598
+      ],
+      [
+       324.184862,
+       191.047162
+      ],
+      [
+       323.80964,
+       287.044781
+      ],
+      [
+       187.813014,
+       286.513216
+      ]
+     ]
+    },
+    {
+     "time": 0.72,
+     "quad": [
+      [
+       192.271665,
+       189.889613
+      ],
+      [
+       328.265843,
+       190.65429
+      ],
+      [
+       327.726072,
+       286.65018
+      ],
+      [
+       191.731894,
+       285.885504
+      ]
+     ]
+    },
+    {
+     "time": 0.76,
+     "quad": [
+      [
+       196.338484,
+       189.252945
+      ],
+      [
+       332.336287,
+       190.213812
+      ],
+      [
+       331.658028,
+       286.212261
+      ],
+      [
+       195.660225,
+       285.251395
+      ]
+     ]
+    },
+    {
+     "time": 0.8,
+     "quad": [
+      [
+       200.39483,
+       188.64591
+      ],
+      [
+       336.382525,
+       189.751107
+      ],
+      [
+       335.602386,
+       285.742422
+      ],
+      [
+       199.61469,
+       284.637224
+      ]
+     ]
+    },
+    {
+     "time": 0.84,
+     "quad": [
+      [
+       204.416275,
+       188.099147
+      ],
+      [
+       340.410323,
+       189.271392
+      ],
+      [
+       339.582856,
+       285.26719
+      ],
+      [
+       203.588808,
+       284.094946
+      ]
+     ]
+    },
+    {
+     "time": 0.88,
+     "quad": [
+      [
+       208.423081,
+       187.54554
+      ],
+      [
+       344.408618,
+       188.725651
+      ],
+      [
+       343.575598,
+       284.715442
+      ],
+      [
+       207.590061,
+       283.53533
+      ]
+     ]
+    },
+    {
+     "time": 0.92,
+     "quad": [
+      [
+       212.385818,
+       187.0748
+      ],
+      [
+       348.387226,
+       188.177804
+      ],
+      [
+       347.608635,
+       284.178798
+      ],
+      [
+       211.607227,
+       283.075793
+      ]
+     ]
+    },
+    {
+     "time": 0.96,
+     "quad": [
+      [
+       216.341051,
+       186.586631
+      ],
+      [
+       352.323859,
+       187.537524
+      ],
+      [
+       351.65264,
+       283.525388
+      ],
+      [
+       215.669833,
+       282.574495
+      ]
+     ]
+    },
+    {
+     "time": 1,
+     "quad": [
+      [
+       220.247124,
+       186.172794
+      ],
+      [
+       356.255681,
+       186.900985
+      ],
+      [
+       355.741664,
+       282.907025
+      ],
+      [
+       219.733107,
+       282.178835
+      ]
+     ]
+    },
+    {
+     "time": 1.04,
+     "quad": [
+      [
+       224.17092,
+       185.732222
+      ],
+      [
+       360.159143,
+       186.214964
+      ],
+      [
+       359.818383,
+       282.206651
+      ],
+      [
+       223.83016,
+       281.723908
+      ]
+     ]
+    },
+    {
+     "time": 1.08,
+     "quad": [
+      [
+       228.086093,
+       185.360814
+      ],
+      [
+       364.080347,
+       185.609998
+      ],
+      [
+       363.904452,
+       281.605943
+      ],
+      [
+       227.910197,
+       281.356758
+      ]
+     ]
+    },
+    {
+     "time": 1.12,
+     "quad": [
+      [
+       232.00502,
+       184.902434
+      ],
+      [
+       368.014827,
+       184.954759
+      ],
+      [
+       367.977891,
+       280.961682
+      ],
+      [
+       231.968084,
+       280.909357
+      ]
+     ]
+    },
+    {
+     "time": 1.16,
+     "quad": [
+      [
+       235.968607,
+       184.475359
+      ],
+      [
+       371.957034,
+       184.392673
+      ],
+      [
+       372.0154,
+       280.384504
+      ],
+      [
+       236.026973,
+       280.46719
+      ]
+     ]
+    },
+    {
+     "time": 1.2,
+     "quad": [
+      [
+       239.940072,
+       183.940226
+      ],
+      [
+       375.929434,
+       183.769082
+      ],
+      [
+       376.050241,
+       279.761572
+      ],
+      [
+       240.06088,
+       279.932716
+      ]
+     ]
+    },
+    {
+     "time": 1.24,
+     "quad": [
+      [
+       243.931278,
+       183.445414
+      ],
+      [
+       379.920182,
+       183.243123
+      ],
+      [
+       380.062975,
+       279.235291
+      ],
+      [
+       244.074071,
+       279.437581
+      ]
+     ]
+    },
+    {
+     "time": 1.28,
+     "quad": [
+      [
+       247.925185,
+       182.875818
+      ],
+      [
+       383.927863,
+       182.684412
+      ],
+      [
+       384.062973,
+       278.686302
+      ],
+      [
+       248.060295,
+       278.877708
+      ]
+     ]
+    },
+    {
+     "time": 1.32,
+     "quad": [
+      [
+       251.947856,
+       182.360719
+      ],
+      [
+       387.93555,
+       182.214757
+      ],
+      [
+       388.038582,
+       278.20607
+      ],
+      [
+       252.050889,
+       278.352033
+      ]
+     ]
+    },
+    {
+     "time": 1.36,
+     "quad": [
+      [
+       255.95021,
+       181.781541
+      ],
+      [
+       391.963407,
+       181.694407
+      ],
+      [
+       392.024914,
+       277.703722
+      ],
+      [
+       256.011717,
+       277.790857
+      ]
+     ]
+    },
+    {
+     "time": 1.4,
+     "quad": [
+      [
+       259.995737,
+       181.223735
+      ],
+      [
+       395.969453,
+       181.198973
+      ],
+      [
+       395.986933,
+       277.180419
+      ],
+      [
+       260.013217,
+       277.205182
+      ]
+     ]
+    },
+    {
+     "time": 1.44,
+     "quad": [
+      [
+       264.019562,
+       180.643901
+      ],
+      [
+       399.997624,
+       180.675477
+      ],
+      [
+       399.975335,
+       276.659991
+      ],
+      [
+       263.997273,
+       276.628415
+      ]
+     ]
+    },
+    {
+     "time": 1.48,
+     "quad": [
+      [
+       268.040745,
+       180.046062
+      ],
+      [
+       404.017314,
+       180.123655
+      ],
+      [
+       403.962542,
+       276.107116
+      ],
+      [
+       267.985973,
+       276.029522
+      ]
+     ]
+    },
+    {
+     "time": 1.52,
+     "quad": [
+      [
+       272.051196,
+       179.518386
+      ],
+      [
+       408.028199,
+       179.622926
+      ],
+      [
+       407.954406,
+       275.606692
+      ],
+      [
+       271.977403,
+       275.502152
+      ]
+     ]
+    },
+    {
+     "time": 1.56,
+     "quad": [
+      [
+       276.054861,
+       178.947251
+      ],
+      [
+       412.031665,
+       179.064578
+      ],
+      [
+       411.948846,
+       275.048204
+      ],
+      [
+       275.972042,
+       274.930877
+      ]
+     ]
+    },
+    {
+     "time": 1.6,
+     "quad": [
+      [
+       280.050985,
+       178.452918
+      ],
+      [
+       416.027667,
+       178.563276
+      ],
+      [
+       415.949767,
+       274.546817
+      ],
+      [
+       279.973085,
+       274.436458
+      ]
+     ]
+    },
+    {
+     "time": 1.64,
+     "quad": [
+      [
+       284.043529,
+       177.891549
+      ],
+      [
+       420.020499,
+       177.983995
+      ],
+      [
+       419.955243,
+       273.967738
+      ],
+      [
+       283.978273,
+       273.875292
+      ]
+     ]
+    },
+    {
+     "time": 1.68,
+     "quad": [
+      [
+       288.032122,
+       177.406354
+      ],
+      [
+       424.013041,
+       177.469669
+      ],
+      [
+       423.968349,
+       273.4562
+      ],
+      [
+       287.987429,
+       273.392885
+      ]
+     ]
+    },
+    {
+     "time": 1.72,
+     "quad": [
+      [
+       292.015479,
+       176.842726
+      ],
+      [
+       428.021581,
+       176.872977
+      ],
+      [
+       428.000227,
+       272.877285
+      ],
+      [
+       291.994125,
+       272.847033
+      ]
+     ]
+    },
+    {
+     "time": 1.76,
+     "quad": [
+      [
+       296.011613,
+       176.364947
+      ],
+      [
+       432.017392,
+       176.362514
+      ],
+      [
+       432.01911,
+       272.366593
+      ],
+      [
+       296.013331,
+       272.369026
+      ]
+     ]
+    },
+    {
+     "time": 1.8,
+     "quad": [
+      [
+       300.007421,
+       175.813098
+      ],
+      [
+       436.001817,
+       175.781946
+      ],
+      [
+       436.023807,
+       271.77799
+      ],
+      [
+       300.029411,
+       271.809142
+      ]
+     ]
+    },
+    {
+     "time": 1.84,
+     "quad": [
+      [
+       303.998444,
+       175.318294
+      ],
+      [
+       439.985884,
+       175.266439
+      ],
+      [
+       440.022487,
+       271.257573
+      ],
+      [
+       304.035047,
+       271.309427
+      ]
+     ]
+    },
+    {
+     "time": 1.88,
+     "quad": [
+      [
+       307.991003,
+       174.774344
+      ],
+      [
+       443.971468,
+       174.711277
+      ],
+      [
+       444.015985,
+       270.697488
+      ],
+      [
+       308.035521,
+       270.760554
+      ]
+     ]
+    },
+    {
+     "time": 1.92,
+     "quad": [
+      [
+       311.982864,
+       174.252089
+      ],
+      [
+       447.976089,
+       174.187273
+      ],
+      [
+       448.021842,
+       270.182491
+      ],
+      [
+       312.028616,
+       270.247307
+      ]
+     ]
+    },
+    {
+     "time": 1.96,
+     "quad": [
+      [
+       315.98883,
+       173.71075
+      ],
+      [
+       451.978556,
+       173.653261
+      ],
+      [
+       452.019137,
+       269.646009
+      ],
+      [
+       316.029411,
+       269.703498
+      ]
+     ]
+    },
+    {
+     "time": 2,
+     "quad": [
+      [
+       319.99807,
+       173.171144
+      ],
+      [
+       455.978354,
+       173.127031
+      ],
+      [
+       456.009493,
+       269.113114
+      ],
+      [
+       320.029209,
+       269.157227
+      ]
+     ]
+    },
+    {
+     "time": 2.04,
+     "quad": [
+      [
+       324.003378,
+       172.638283
+      ],
+      [
+       459.983563,
+       172.612245
+      ],
+      [
+       460.001943,
+       268.598257
+      ],
+      [
+       324.021758,
+       268.624295
+      ]
+     ]
+    },
+    {
+     "time": 2.08,
+     "quad": [
+      [
+       328.005477,
+       172.074236
+      ],
+      [
+       464.000097,
+       172.067113
+      ],
+      [
+       464.005126,
+       268.063315
+      ],
+      [
+       328.010505,
+       268.070439
+      ]
+     ]
+    },
+    {
+     "time": 2.12,
+     "quad": [
+      [
+       332.016422,
+       171.560334
+      ],
+      [
+       468.005011,
+       171.570297
+      ],
+      [
+       467.997978,
+       267.562243
+      ],
+      [
+       332.009389,
+       267.552279
+      ]
+     ]
+    },
+    {
+     "time": 2.16,
+     "quad": [
+      [
+       336.01609,
+       170.983462
+      ],
+      [
+       472.026924,
+       171.007489
+      ],
+      [
+       472.009964,
+       267.015137
+      ],
+      [
+       335.999129,
+       266.991109
+      ]
+     ]
+    },
+    {
+     "time": 2.2,
+     "quad": [
+      [
+       340.025006,
+       170.481011
+      ],
+      [
+       476.033458,
+       170.513517
+      ],
+      [
+       476.010513,
+       266.519483
+      ],
+      [
+       340.002061,
+       266.486978
+      ]
+     ]
+    },
+    {
+     "time": 2.24,
+     "quad": [
+      [
+       344.031862,
+       169.914034
+      ],
+      [
+       480.023889,
+       169.950745
+      ],
+      [
+       479.997975,
+       265.945117
+      ],
+      [
+       344.005948,
+       265.908406
+      ]
+     ]
+    },
+    {
+     "time": 2.28,
+     "quad": [
+      [
+       348.019376,
+       169.407624
+      ],
+      [
+       484.037287,
+       169.442336
+      ],
+      [
+       484.012785,
+       265.454979
+      ],
+      [
+       347.994874,
+       265.420267
+      ]
+     ]
+    },
+    {
+     "time": 2.32,
+     "quad": [
+      [
+       352.025731,
+       168.846566
+      ],
+      [
+       488.022641,
+       168.875758
+      ],
+      [
+       488.002034,
+       264.873577
+      ],
+      [
+       352.005125,
+       264.844384
+      ]
+     ]
+    },
+    {
+     "time": 2.36,
+     "quad": [
+      [
+       356.024927,
+       168.36097
+      ],
+      [
+       492.008901,
+       168.381238
+      ],
+      [
+       491.994595,
+       264.369925
+      ],
+      [
+       356.010621,
+       264.349657
+      ]
+     ]
+    },
+    {
+     "time": 2.4,
+     "quad": [
+      [
+       360.032281,
+       167.80005
+      ],
+      [
+       496.00465,
+       167.809862
+      ],
+      [
+       495.997724,
+       263.790358
+      ],
+      [
+       360.025355,
+       263.780546
+      ]
+     ]
+    },
+    {
+     "time": 2.44,
+     "quad": [
+      [
+       364.032972,
+       167.294702
+      ],
+      [
+       500.014237,
+       167.29415
+      ],
+      [
+       500.014626,
+       263.280924
+      ],
+      [
+       364.033362,
+       263.281476
+      ]
+     ]
+    },
+    {
+     "time": 2.48,
+     "quad": [
+      [
+       368.027522,
+       166.74461
+      ],
+      [
+       504.016502,
+       166.735049
+      ],
+      [
+       504.023251,
+       262.72727
+      ],
+      [
+       368.034271,
+       262.736831
+      ]
+     ]
+    },
+    {
+     "time": 2.52,
+     "quad": [
+      [
+       372.012721,
+       166.219114
+      ],
+      [
+       508.031125,
+       166.20279
+      ],
+      [
+       508.042648,
+       262.215781
+      ],
+      [
+       372.024244,
+       262.232105
+      ]
+     ]
+    },
+    {
+     "time": 2.56,
+     "quad": [
+      [
+       376.017227,
+       165.693942
+      ],
+      [
+       512.002316,
+       165.673984
+      ],
+      [
+       512.016404,
+       261.663459
+      ],
+      [
+       376.031315,
+       261.683417
+      ]
+     ]
+    },
+    {
+     "time": 2.6,
+     "quad": [
+      [
+       380.012366,
+       165.160435
+      ],
+      [
+       515.989503,
+       165.139769
+      ],
+      [
+       516.004091,
+       261.123631
+      ],
+      [
+       380.026953,
+       261.144296
+      ]
+     ]
+    },
+    {
+     "time": 2.64,
+     "quad": [
+      [
+       384.006952,
+       164.634074
+      ],
+      [
+       519.987788,
+       164.615959
+      ],
+      [
+       520.000575,
+       260.602431
+      ],
+      [
+       384.019739,
+       260.620546
+      ]
+     ]
+    },
+    {
+     "time": 2.68,
+     "quad": [
+      [
+       388.000764,
+       164.078829
+      ],
+      [
+       523.992006,
+       164.06501
+      ],
+      [
+       524.001761,
+       260.058828
+      ],
+      [
+       388.010519,
+       260.072647
+      ]
+     ]
+    },
+    {
+     "time": 2.72,
+     "quad": [
+      [
+       392.003022,
+       163.568818
+      ],
+      [
+       527.993018,
+       163.56065
+      ],
+      [
+       527.998783,
+       259.553589
+      ],
+      [
+       392.008787,
+       259.561757
+      ]
+     ]
+    },
+    {
+     "time": 2.76,
+     "quad": [
+      [
+       396.016072,
+       163.008466
+      ],
+      [
+       531.993184,
+       163.006173
+      ],
+      [
+       531.994803,
+       258.990017
+      ],
+      [
+       396.01769,
+       258.99231
+      ]
+     ]
+    },
+    {
+     "time": 2.8,
+     "quad": [
+      [
+       400.016529,
+       162.503588
+      ],
+      [
+       536.001497,
+       162.506594
+      ],
+      [
+       535.999375,
+       258.495983
+      ],
+      [
+       400.014408,
+       258.492977
+      ]
+     ]
+    },
+    {
+     "time": 2.84,
+     "quad": [
+      [
+       404.034542,
+       161.938068
+      ],
+      [
+       539.998688,
+       161.94542
+      ],
+      [
+       539.993498,
+       257.920111
+      ],
+      [
+       404.029352,
+       257.912759
+      ]
+     ]
+    },
+    {
+     "time": 2.88,
+     "quad": [
+      [
+       408.035665,
+       161.436788
+      ],
+      [
+       544.005286,
+       161.446612
+      ],
+      [
+       543.998352,
+       257.425168
+      ],
+      [
+       408.028731,
+       257.415345
+      ]
+     ]
+    },
+    {
+     "time": 2.92,
+     "quad": [
+      [
+       412.022868,
+       160.858938
+      ],
+      [
+       548.010417,
+       160.869848
+      ],
+      [
+       548.002716,
+       256.861058
+      ],
+      [
+       412.015168,
+       256.850149
+      ]
+     ]
+    },
+    {
+     "time": 2.96,
+     "quad": [
+      [
+       416.039257,
+       160.37564
+      ],
+      [
+       551.996348,
+       160.385954
+      ],
+      [
+       551.989067,
+       256.355665
+      ],
+      [
+       416.031977,
+       256.34535
+      ]
+     ]
+    }
+   ]
+  }
+ },
+ {
+  "arguments": [
+   "timeline",
+   "<document>",
+   "--at",
+   "1",
+   "--json"
+  ],
+  "output": {
+   "timeline": "0.1.0",
+   "duration": 3,
+   "time": 1,
+   "storyline": [
+    {
+     "place": "storyline[0]#shot",
+     "id": "shot",
+     "kind": "video",
+     "media": "/media/moving.mp4",
+     "page": null,
+     "edit": [
+      0,
+      3
+     ],
+     "drawn": [
+      0,
+      3
+     ],
+     "clip": [
+      0,
+      3
+     ],
+     "sound": [
+      0,
+      3
+     ],
+     "speed": 1,
+     "timeRemap": false,
+     "transition": null,
+     "fps": null,
+     "instant": 0,
+     "clock": {
+      "clip": "storyline[0]#shot",
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "output",
+      "clip": null
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "storyline[0]#shot"
+     },
+     "tracked": {
+      "clip": "storyline[0]#shot",
+      "first": 0,
+      "last": 2.96
+     },
+     "clipTime": 1,
+     "mediaTime": 1,
+     "box": {
+      "rect": [
+       0,
+       0,
+       640,
+       360
+      ],
+      "quad": [
+       [
+        0,
+        0
+       ],
+       [
+        1280,
+        0
+       ],
+       [
+        1280,
+        720
+       ],
+       [
+        0,
+        720
+       ]
+      ]
+     },
+     "masks": []
+    }
+   ],
+   "clips": [
+    {
+     "place": "storyline[0]#shot.connected[0]#outline",
+     "id": "outline",
+     "kind": "rect",
+     "media": null,
+     "page": null,
+     "visible": [
+      0.4,
+      0.5
+     ],
+     "sound": null,
+     "lane": 1,
+     "storyline": "storyline[0]#shot",
+     "parent": null,
+     "animation": null,
+     "fps": null,
+     "instant": 0.4,
+     "clock": {
+      "clip": "storyline[0]#shot",
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "output",
+      "clip": null
+     },
+     "ownSpace": {
+      "kind": "output",
+      "clip": null
+     },
+     "tracked": null,
+     "mediaTime": null,
+     "box": {
+      "rect": [
+       320,
+       389,
+       272,
+       192
+      ],
+      "quad": [
+       [
+        320,
+        389
+       ],
+       [
+        592,
+        389
+       ],
+       [
+        592,
+        581
+       ],
+       [
+        320,
+        581
+       ]
+      ]
+     },
+     "masks": []
+    },
+    {
+     "place": "storyline[0]#shot.connected[1]#cover",
+     "id": "cover",
+     "kind": "rect",
+     "media": null,
+     "page": null,
+     "visible": [
+      0.4,
+      0.8
+     ],
+     "sound": null,
+     "lane": 1,
+     "storyline": "storyline[0]#shot",
+     "parent": "storyline[0]#shot",
+     "animation": null,
+     "fps": null,
+     "instant": 0.4,
+     "clock": {
+      "clip": "storyline[0]#shot",
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "media",
+      "clip": "storyline[0]#shot"
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "storyline[0]#shot"
+     },
+     "tracked": {
+      "clip": "storyline[0]#shot",
+      "first": 0,
+      "last": 2.96
+     },
+     "mediaTime": null,
+     "box": {
+      "rect": [
+       160,
+       194,
+       136,
+       96
+      ],
+      "quad": [
+       [
+        320,
+        388
+       ],
+       [
+        592,
+        388
+       ],
+       [
+        592,
+        580
+       ],
+       [
+        320,
+        580
+       ]
+      ]
+     },
+     "masks": []
+    },
+    {
+     "place": "storyline[0]#shot.connected[2]#tilted",
+     "id": "tilted",
+     "kind": "rect",
+     "media": null,
+     "page": null,
+     "visible": [
+      1,
+      1.1
+     ],
+     "sound": null,
+     "lane": 1,
+     "storyline": "storyline[0]#shot",
+     "parent": null,
+     "animation": null,
+     "fps": null,
+     "instant": 1,
+     "clock": {
+      "clip": "storyline[0]#shot",
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "output",
+      "clip": null
+     },
+     "ownSpace": {
+      "kind": "output",
+      "clip": null
+     },
+     "tracked": null,
+     "mediaTime": null,
+     "box": {
+      "rect": [
+       420,
+       370,
+       272,
+       192
+      ],
+      "quad": [
+       [
+        461.035737,
+        329.274769
+       ],
+       [
+        716.63213,
+        422.304248
+       ],
+       [
+        650.964263,
+        602.725231
+       ],
+       [
+        395.36787,
+        509.695752
+       ]
+      ]
+     },
+     "masks": []
+    },
+    {
+     "place": "storyline[0]#shot.connected[3]#tiltCover",
+     "id": "tiltCover",
+     "kind": "title",
+     "media": null,
+     "page": null,
+     "visible": [
+      1,
+      1.4
+     ],
+     "sound": null,
+     "lane": 1,
+     "storyline": "storyline[0]#shot",
+     "parent": "storyline[0]#shot",
+     "animation": null,
+     "fps": null,
+     "instant": 1,
+     "clock": {
+      "clip": "storyline[0]#shot",
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "media",
+      "clip": "storyline[0]#shot"
+     },
+     "ownSpace": {
+      "kind": "text",
+      "clip": "storyline[0]#shot.connected[3]#tiltCover"
+     },
+     "tracked": {
+      "clip": "storyline[0]#shot",
+      "first": 0,
+      "last": 2.96
+     },
+     "mediaTime": null,
+     "box": {
+      "rect": [
+       0,
+       0,
+       69.344,
+       37.279785
+      ],
+      "quad": [
+       [
+        541.328,
+        341.360107
+       ],
+       [
+        610.672,
+        341.360107
+       ],
+       [
+        610.672,
+        378.639893
+       ],
+       [
+        541.328,
+        378.639893
+       ]
+      ]
+     },
+     "masks": []
+    },
+    {
+     "place": "storyline[0]#shot.connected[4]#pinned",
+     "id": "pinned",
+     "kind": "rect",
+     "media": null,
+     "page": null,
+     "visible": [
+      1.2,
+      1.3
+     ],
+     "sound": null,
+     "lane": 1,
+     "storyline": "storyline[0]#shot",
+     "parent": null,
+     "animation": null,
+     "fps": null,
+     "instant": 1.2,
+     "clock": {
+      "clip": "storyline[0]#shot",
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "output",
+      "clip": null
+     },
+     "ownSpace": {
+      "kind": "box",
+      "clip": "storyline[0]#shot.connected[4]#pinned"
+     },
+     "tracked": null,
+     "mediaTime": null,
+     "box": {
+      "rect": [
+       0,
+       0,
+       272,
+       192
+      ],
+      "quad": [
+       [
+        440,
+        360
+       ],
+       [
+        720,
+        380
+       ],
+       [
+        710,
+        560
+       ],
+       [
+        450,
+        550
+       ]
+      ]
+     },
+     "masks": []
+    },
+    {
+     "place": "storyline[0]#shot.connected[5]#pinCover",
+     "id": "pinCover",
+     "kind": "rect",
+     "media": null,
+     "page": null,
+     "visible": [
+      1.2,
+      1.6
+     ],
+     "sound": null,
+     "lane": 1,
+     "storyline": "storyline[0]#shot",
+     "parent": "storyline[0]#shot",
+     "animation": null,
+     "fps": null,
+     "instant": 1.2,
+     "clock": {
+      "clip": "storyline[0]#shot",
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "media",
+      "clip": "storyline[0]#shot"
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "storyline[0]#shot"
+     },
+     "tracked": {
+      "clip": "storyline[0]#shot",
+      "first": 0,
+      "last": 2.96
+     },
+     "mediaTime": null,
+     "box": {
+      "rect": [
+       220,
+       180,
+       136,
+       96
+      ],
+      "quad": [
+       [
+        440,
+        360
+       ],
+       [
+        712,
+        360
+       ],
+       [
+        712,
+        552
+       ],
+       [
+        440,
+        552
+       ]
+      ]
+     },
+     "masks": []
+    },
+    {
+     "place": "storyline[0]#shot.connected[6]#itself",
+     "id": "itself",
+     "kind": "rect",
+     "media": null,
+     "page": null,
+     "visible": [
+      0.4,
+      0.8
+     ],
+     "sound": null,
+     "lane": 1,
+     "storyline": "storyline[0]#shot",
+     "parent": "storyline[0]#shot",
+     "animation": null,
+     "fps": null,
+     "instant": 0.4,
+     "clock": {
+      "clip": "storyline[0]#shot",
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "media",
+      "clip": "storyline[0]#shot"
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "storyline[0]#shot"
+     },
+     "tracked": {
+      "clip": "storyline[0]#shot",
+      "first": 0,
+      "last": 2.96
+     },
+     "mediaTime": null,
+     "box": {
+      "rect": [
+       160,
+       194,
+       136,
+       96
+      ],
+      "quad": [
+       [
+        320,
+        388
+       ],
+       [
+        592,
+        388
+       ],
+       [
+        592,
+        580
+       ],
+       [
+        320,
+        580
+       ]
+      ]
+     },
+     "masks": []
+    },
+    {
+     "place": "storyline[0]#shot.connected[7]#masked",
+     "id": "masked",
+     "kind": "video",
+     "media": "/media/moving.mp4",
+     "page": null,
+     "visible": [
+      0.4,
+      0.8
+     ],
+     "sound": [
+      0.4,
+      0.8
+     ],
+     "lane": 1,
+     "storyline": "storyline[0]#shot",
+     "parent": null,
+     "animation": null,
+     "fps": null,
+     "instant": 0.4,
+     "clock": {
+      "clip": "storyline[0]#shot",
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "output",
+      "clip": null
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "storyline[0]#shot.connected[7]#masked"
+     },
+     "tracked": {
+      "clip": "storyline[0]#shot.connected[7]#masked",
+      "first": 0,
+      "last": 0.4
+     },
+     "mediaTime": 0.6,
+     "box": {
+      "rect": [
+       0,
+       0,
+       640,
+       360
+      ],
+      "quad": [
+       [
+        940,
+        510
+       ],
+       [
+        1260,
+        510
+       ],
+       [
+        1260,
+        690
+       ],
+       [
+        940,
+        690
+       ]
+      ]
+     },
+     "masks": [
+      [
+       [
+        1005,
+        595
+       ],
+       [
+        1085,
+        595
+       ],
+       [
+        1085,
+        660
+       ],
+       [
+        1005,
+        660
+       ]
+      ]
+     ]
+    },
+    {
+     "place": "storyline[0]#shot.connected[8]#wash",
+     "id": "wash",
+     "kind": "adjustment",
+     "media": null,
+     "page": null,
+     "visible": [
+      0,
+      3
+     ],
+     "sound": null,
+     "lane": 1,
+     "storyline": "storyline[0]#shot",
+     "parent": null,
+     "animation": null,
+     "fps": null,
+     "instant": 0,
+     "clock": {
+      "clip": "storyline[0]#shot",
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "output",
+      "clip": null
+     },
+     "ownSpace": {
+      "kind": "output",
+      "clip": null
+     },
+     "tracked": null,
+     "mediaTime": null,
+     "box": null,
+     "masks": []
+    },
+    {
+     "place": "clips[0]#inner",
+     "id": "inner",
+     "kind": "compound",
+     "media": null,
+     "page": null,
+     "visible": [
+      0,
+      3
+     ],
+     "sound": [
+      0,
+      3
+     ],
+     "lane": 1,
+     "storyline": null,
+     "parent": null,
+     "animation": null,
+     "fps": null,
+     "instant": 0,
+     "clock": {
+      "clip": null,
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "output",
+      "clip": null
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "clips[0]#inner"
+     },
+     "tracked": null,
+     "mediaTime": 1,
+     "box": {
+      "rect": [
+       0,
+       0,
+       640,
+       360
+      ],
+      "quad": [
+       [
+        0,
+        37.5
+       ],
+       [
+        400,
+        37.5
+       ],
+       [
+        400,
+        262.5
+       ],
+       [
+        0,
+        262.5
+       ]
+      ]
+     },
+     "masks": [],
+     "nested": {
+      "timeline": "0.1.0",
+      "duration": 2.5,
+      "time": 1,
+      "storyline": [
+       {
+        "place": "clips[0]#inner.media.storyline[0]#innerShot",
+        "id": "innerShot",
+        "kind": "video",
+        "media": "/media/moving.mp4",
+        "page": null,
+        "edit": [
+         0,
+         2.5
+        ],
+        "drawn": [
+         0,
+         2.5
+        ],
+        "clip": [
+         0.5,
+         3
+        ],
+        "sound": [
+         0,
+         2.5
+        ],
+        "speed": 1,
+        "timeRemap": false,
+        "transition": null,
+        "fps": null,
+        "instant": 0,
+        "clock": {
+         "clip": "clips[0]#inner.media.storyline[0]#innerShot",
+         "origin": -0.5,
+         "speed": 1
+        },
+        "space": {
+         "kind": "output",
+         "clip": null
+        },
+        "ownSpace": {
+         "kind": "media",
+         "clip": "clips[0]#inner.media.storyline[0]#innerShot"
+        },
+        "tracked": {
+         "clip": "clips[0]#inner.media.storyline[0]#innerShot",
+         "first": 0.48,
+         "last": 2.96
+        },
+        "clipTime": 1.5,
+        "mediaTime": 1.48,
+        "box": {
+         "rect": [
+          0,
+          0,
+          640,
+          360
+         ],
+         "quad": [
+          [
+           0,
+           0
+          ],
+          [
+           640,
+           0
+          ],
+          [
+           640,
+           360
+          ],
+          [
+           0,
+           360
+          ]
+         ]
+        },
+        "masks": []
+       }
+      ],
+      "clips": [
+       {
+        "place": "clips[0]#inner.media.storyline[0]#innerShot.connected[0]#innerBox",
+        "id": "innerBox",
+        "kind": "rect",
+        "media": null,
+        "page": null,
+        "visible": [
+         0,
+         0.3
+        ],
+        "sound": null,
+        "lane": 1,
+        "storyline": "clips[0]#inner.media.storyline[0]#innerShot",
+        "parent": "clips[0]#inner.media.storyline[0]#innerShot",
+        "animation": null,
+        "fps": null,
+        "instant": -0.1,
+        "clock": {
+         "clip": "clips[0]#inner.media.storyline[0]#innerShot",
+         "origin": -0.5,
+         "speed": 1
+        },
+        "space": {
+         "kind": "media",
+         "clip": "clips[0]#inner.media.storyline[0]#innerShot"
+        },
+        "ownSpace": {
+         "kind": "media",
+         "clip": "clips[0]#inner.media.storyline[0]#innerShot"
+        },
+        "tracked": {
+         "clip": "clips[0]#inner.media.storyline[0]#innerShot",
+         "first": 0.48,
+         "last": 2.96
+        },
+        "mediaTime": null,
+        "box": {
+         "rect": [
+          124,
+          202,
+          128,
+          88
+         ],
+         "quad": [
+          [
+           124,
+           202
+          ],
+          [
+           252,
+           202
+          ],
+          [
+           252,
+           290
+          ],
+          [
+           124,
+           290
+          ]
+         ]
+        },
+        "masks": []
+       }
+      ]
+     }
+    }
+   ]
+  }
+ },
+ {
+  "arguments": [
+   "track",
+   "/media/moving.mp4",
+   "--at",
+   "1",
+   "--quad",
+   "[[230.517868, 164.637384], [358.316065, 211.152124], [325.482131, 301.362616], [197.683935, 254.847876]]",
+   "--to",
+   "0"
+  ],
+  "output": {
+   "track": "0.1.0",
+   "time": 1,
+   "frames": [
+    {
+     "time": 0,
+     "quad": [
+      [
+       130.516737,
+       177.921077
+      ],
+      [
+       258.321559,
+       224.463367
+      ],
+      [
+       225.468178,
+       314.678536
+      ],
+      [
+       97.663357,
+       268.136246
+      ]
+     ]
+    },
+    {
+     "time": 0.04,
+     "quad": [
+      [
+       134.530801,
+       177.387014
+      ],
+      [
+       262.332587,
+       223.937837
+      ],
+      [
+       229.473183,
+       314.150863
+      ],
+      [
+       101.671397,
+       267.60004
+      ]
+     ]
+    },
+    {
+     "time": 0.08,
+     "quad": [
+      [
+       138.531145,
+       176.863822
+      ],
+      [
+       266.328261,
+       223.418994
+      ],
+      [
+       233.465786,
+       313.628724
+      ],
+      [
+       105.668671,
+       267.073551
+      ]
+     ]
+    },
+    {
+     "time": 0.12,
+     "quad": [
+      [
+       142.528584,
+       176.310371
+      ],
+      [
+       270.336442,
+       222.869502
+      ],
+      [
+       237.471174,
+       313.086813
+      ],
+      [
+       109.663317,
+       266.527683
+      ]
+     ]
+    },
+    {
+     "time": 0.16,
+     "quad": [
+      [
+       146.556286,
+       175.816875
+      ],
+      [
+       274.330872,
+       222.364963
+      ],
+      [
+       241.473398,
+       312.558788
+      ],
+      [
+       113.698813,
+       266.010701
+      ]
+     ]
+    },
+    {
+     "time": 0.2,
+     "quad": [
+      [
+       150.530401,
+       175.231943
+      ],
+      [
+       278.331834,
+       221.78508
+      ],
+      [
+       245.470797,
+       311.997856
+      ],
+      [
+       117.669365,
+       265.444719
+      ]
+     ]
+    },
+    {
+     "time": 0.24,
+     "quad": [
+      [
+       154.527292,
+       174.758121
+      ],
+      [
+       282.325133,
+       221.295826
+      ],
+      [
+       249.474989,
+       311.506067
+      ],
+      [
+       121.677149,
+       264.968362
+      ]
+     ]
+    },
+    {
+     "time": 0.28,
+     "quad": [
+      [
+       158.510943,
+       174.168287
+      ],
+      [
+       286.324621,
+       220.698492
+      ],
+      [
+       253.479771,
+       310.919912
+      ],
+      [
+       125.666094,
+       264.389707
+      ]
+     ]
+    },
+    {
+     "time": 0.32,
+     "quad": [
+      [
+       162.509353,
+       173.713207
+      ],
+      [
+       290.318884,
+       220.213711
+      ],
+      [
+       257.494999,
+       310.432204
+      ],
+      [
+       129.685469,
+       263.931699
+      ]
+     ]
+    },
+    {
+     "time": 0.36,
+     "quad": [
+      [
+       166.487604,
+       173.112413
+      ],
+      [
+       294.312427,
+       219.61298
+      ],
+      [
+       261.488498,
+       309.842267
+      ],
+      [
+       133.663676,
+       263.3417
+      ]
+     ]
+    },
+    {
+     "time": 0.4,
+     "quad": [
+      [
+       170.515563,
+       172.642669
+      ],
+      [
+       298.317395,
+       219.12995
+      ],
+      [
+       265.502844,
+       309.343007
+      ],
+      [
+       137.701013,
+       262.855727
+      ]
+     ]
+    },
+    {
+     "time": 0.44,
+     "quad": [
+      [
+       174.487514,
+       172.045458
+      ],
+      [
+       302.316813,
+       218.560013
+      ],
+      [
+       269.48301,
+       308.79246
+      ],
+      [
+       141.653712,
+       262.277904
+      ]
+     ]
+    },
+    {
+     "time": 0.48,
+     "quad": [
+      [
+       178.531404,
+       171.548879
+      ],
+      [
+       306.326006,
+       218.074369
+      ],
+      [
+       273.484483,
+       308.282323
+      ],
+      [
+       145.689883,
+       261.756833
+      ]
+     ]
+    },
+    {
+     "time": 0.52,
+     "quad": [
+      [
+       182.513332,
+       170.96624
+      ],
+      [
+       310.324374,
+       217.526724
+      ],
+      [
+       277.45815,
+       307.746283
+      ],
+      [
+       149.647109,
+       261.185799
+      ]
+     ]
+    },
+    {
+     "time": 0.56,
+     "quad": [
+      [
+       186.556577,
+       170.455187
+      ],
+      [
+       314.338303,
+       217.032997
+      ],
+      [
+       281.459849,
+       307.231862
+      ],
+      [
+       153.678124,
+       260.654052
+      ]
+     ]
+    },
+    {
+     "time": 0.6,
+     "quad": [
+      [
+       190.554198,
+       169.89366
+      ],
+      [
+       318.335899,
+       216.498306
+      ],
+      [
+       285.438502,
+       306.697154
+      ],
+      [
+       157.656802,
+       260.092508
+      ]
+     ]
+    },
+    {
+     "time": 0.64,
+     "quad": [
+      [
+       194.568973,
+       169.357469
+      ],
+      [
+       322.348157,
+       215.974015
+      ],
+      [
+       289.442359,
+       306.171086
+      ],
+      [
+       161.663177,
+       259.55454
+      ]
+     ]
+    },
+    {
+     "time": 0.68,
+     "quad": [
+      [
+       198.565668,
+       168.838859
+      ],
+      [
+       326.341215,
+       215.451319
+      ],
+      [
+       293.438302,
+       305.645823
+      ],
+      [
+       165.662756,
+       259.033362
+      ]
+     ]
+    },
+    {
+     "time": 0.72,
+     "quad": [
+      [
+       202.550396,
+       168.293818
+      ],
+      [
+       330.345251,
+       214.890145
+      ],
+      [
+       297.453727,
+       305.098278
+      ],
+      [
+       169.658873,
+       258.501951
+      ]
+     ]
+    },
+    {
+     "time": 0.76,
+     "quad": [
+      [
+       206.560332,
+       167.813968
+      ],
+      [
+       334.332375,
+       214.368953
+      ],
+      [
+       301.470032,
+       304.560983
+      ],
+      [
+       173.697991,
+       258.005998
+      ]
+     ]
+    },
+    {
+     "time": 0.8,
+     "quad": [
+      [
+       210.512558,
+       167.245425
+      ],
+      [
+       338.324684,
+       213.768706
+      ],
+      [
+       305.484721,
+       303.98903
+      ],
+      [
+       177.672596,
+       257.465749
+      ]
+     ]
+    },
+    {
+     "time": 0.84,
+     "quad": [
+      [
+       214.486862,
+       166.788437
+      ],
+      [
+       342.309383,
+       213.258552
+      ],
+      [
+       309.506949,
+       303.486214
+      ],
+      [
+       181.684429,
+       257.016098
+      ]
+     ]
+    },
+    {
+     "time": 0.88,
+     "quad": [
+      [
+       218.456642,
+       166.210149
+      ],
+      [
+       346.302762,
+       212.64824
+      ],
+      [
+       313.522933,
+       302.89256
+      ],
+      [
+       185.676814,
+       256.454469
+      ]
+     ]
+    },
+    {
+     "time": 0.92,
+     "quad": [
+      [
+       222.451151,
+       165.748606
+      ],
+      [
+       350.296128,
+       212.160751
+      ],
+      [
+       317.534614,
+       302.404264
+      ],
+      [
+       189.689638,
+       255.992119
+      ]
+     ]
+    },
+    {
+     "time": 0.96,
+     "quad": [
+      [
+       226.442011,
+       165.130803
+      ],
+      [
+       354.291731,
+       211.585944
+      ],
+      [
+       321.499867,
+       301.832806
+      ],
+      [
+       193.650148,
+       255.377664
+      ]
+     ]
+    },
+    {
+     "time": 1,
+     "quad": [
+      [
+       230.517868,
+       164.637384
+      ],
+      [
+       358.316065,
+       211.152124
+      ],
+      [
+       325.482131,
+       301.362616
+      ],
+      [
+       197.683935,
+       254.847876
+      ]
+     ]
+    }
+   ]
+  }
+ },
+ {
+  "arguments": [
+   "track",
+   "/media/moving.mp4",
+   "--at",
+   "1",
+   "--quad",
+   "[[230.517868, 164.637384], [358.316065, 211.152124], [325.482131, 301.362616], [197.683935, 254.847876]]",
+   "--to",
+   "2.96"
+  ],
+  "output": {
+   "track": "0.1.0",
+   "time": 1,
+   "frames": [
+    {
+     "time": 1,
+     "quad": [
+      [
+       230.517868,
+       164.637384
+      ],
+      [
+       358.316065,
+       211.152124
+      ],
+      [
+       325.482131,
+       301.362616
+      ],
+      [
+       197.683935,
+       254.847876
+      ]
+     ]
+    },
+    {
+     "time": 1.04,
+     "quad": [
+      [
+       234.562672,
+       164.035295
+      ],
+      [
+       362.338578,
+       210.619273
+      ],
+      [
+       329.455771,
+       300.814031
+      ],
+      [
+       201.679865,
+       254.230053
+      ]
+     ]
+    },
+    {
+     "time": 1.08,
+     "quad": [
+      [
+       238.576729,
+       163.558393
+      ],
+      [
+       366.343441,
+       210.159364
+      ],
+      [
+       333.448637,
+       300.347631
+      ],
+      [
+       205.681927,
+       253.74666
+      ]
+     ]
+    },
+    {
+     "time": 1.12,
+     "quad": [
+      [
+       242.516026,
+       162.962842
+      ],
+      [
+       370.315848,
+       209.566957
+      ],
+      [
+       337.418826,
+       299.778596
+      ],
+      [
+       209.619005,
+       253.174481
+      ]
+     ]
+    },
+    {
+     "time": 1.16,
+     "quad": [
+      [
+       246.513498,
+       162.477386
+      ],
+      [
+       374.31474,
+       209.034895
+      ],
+      [
+       341.450616,
+       299.247536
+      ],
+      [
+       213.649376,
+       252.690027
+      ]
+     ]
+    },
+    {
+     "time": 1.2,
+     "quad": [
+      [
+       250.459475,
+       161.939576
+      ],
+      [
+       378.293837,
+       208.459583
+      ],
+      [
+       345.456185,
+       298.695603
+      ],
+      [
+       217.621824,
+       252.175596
+      ]
+     ]
+    },
+    {
+     "time": 1.24,
+     "quad": [
+      [
+       254.451136,
+       161.44666
+      ],
+      [
+       382.285746,
+       207.916685
+      ],
+      [
+       349.483376,
+       298.15288
+      ],
+      [
+       221.648767,
+       251.682855
+      ]
+     ]
+    },
+    {
+     "time": 1.28,
+     "quad": [
+      [
+       258.425167,
+       160.934261
+      ],
+      [
+       386.276181,
+       207.370392
+      ],
+      [
+       353.497735,
+       297.618166
+      ],
+      [
+       225.646723,
+       251.182035
+      ]
+     ]
+    },
+    {
+     "time": 1.32,
+     "quad": [
+      [
+       262.437783,
+       160.386867
+      ],
+      [
+       390.288337,
+       206.805653
+      ],
+      [
+       357.522136,
+       297.053102
+      ],
+      [
+       229.671583,
+       250.634317
+      ]
+     ]
+    },
+    {
+     "time": 1.36,
+     "quad": [
+      [
+       266.45437,
+       159.900174
+      ],
+      [
+       394.285101,
+       206.310391
+      ],
+      [
+       361.524947,
+       296.543848
+      ],
+      [
+       233.694218,
+       250.13363
+      ]
+     ]
+    },
+    {
+     "time": 1.4,
+     "quad": [
+      [
+       270.430028,
+       159.313172
+      ],
+      [
+       398.283442,
+       205.742767
+      ],
+      [
+       365.50961,
+       295.992235
+      ],
+      [
+       237.656198,
+       249.56264
+      ]
+     ]
+    },
+    {
+     "time": 1.44,
+     "quad": [
+      [
+       274.483279,
+       158.816549
+      ],
+      [
+       402.298968,
+       205.254719
+      ],
+      [
+       369.519083,
+       295.477558
+      ],
+      [
+       241.703395,
+       249.039389
+      ]
+     ]
+    },
+    {
+     "time": 1.48,
+     "quad": [
+      [
+       278.484779,
+       158.22092
+      ],
+      [
+       406.326607,
+       204.700399
+      ],
+      [
+       373.517563,
+       294.941689
+      ],
+      [
+       245.675736,
+       248.46221
+      ]
+     ]
+    },
+    {
+     "time": 1.52,
+     "quad": [
+      [
+       282.534092,
+       157.734482
+      ],
+      [
+       410.323066,
+       204.240185
+      ],
+      [
+       377.495511,
+       294.444167
+      ],
+      [
+       249.706538,
+       247.938464
+      ]
+     ]
+    },
+    {
+     "time": 1.56,
+     "quad": [
+      [
+       286.53961,
+       157.117262
+      ],
+      [
+       414.331577,
+       203.663224
+      ],
+      [
+       381.475604,
+       293.869319
+      ],
+      [
+       253.683638,
+       247.323356
+      ]
+     ]
+    },
+    {
+     "time": 1.6,
+     "quad": [
+      [
+       290.545044,
+       156.628053
+      ],
+      [
+       418.339349,
+       203.187586
+      ],
+      [
+       385.473796,
+       293.395331
+      ],
+      [
+       257.679491,
+       246.835797
+      ]
+     ]
+    },
+    {
+     "time": 1.64,
+     "quad": [
+      [
+       294.524677,
+       156.027862
+      ],
+      [
+       422.333968,
+       202.605678
+      ],
+      [
+       389.45551,
+       292.824001
+      ],
+      [
+       261.64622,
+       246.246186
+      ]
+     ]
+    },
+    {
+     "time": 1.68,
+     "quad": [
+      [
+       298.552689,
+       155.561037
+      ],
+      [
+       426.331175,
+       202.115077
+      ],
+      [
+       393.4695,
+       292.311655
+      ],
+      [
+       265.691015,
+       245.757616
+      ]
+     ]
+    },
+    {
+     "time": 1.72,
+     "quad": [
+      [
+       302.501747,
+       154.98131
+      ],
+      [
+       430.317023,
+       201.529945
+      ],
+      [
+       397.459163,
+       291.752492
+      ],
+      [
+       269.643889,
+       245.203858
+      ]
+     ]
+    },
+    {
+     "time": 1.76,
+     "quad": [
+      [
+       306.539355,
+       154.493745
+      ],
+      [
+       434.341409,
+       201.021239
+      ],
+      [
+       401.498473,
+       291.234454
+      ],
+      [
+       273.696419,
+       244.70696
+      ]
+     ]
+    },
+    {
+     "time": 1.8,
+     "quad": [
+      [
+       310.504455,
+       153.936216
+      ],
+      [
+       438.321271,
+       200.463236
+      ],
+      [
+       405.478668,
+       290.686872
+      ],
+      [
+       277.661853,
+       244.159851
+      ]
+     ]
+    },
+    {
+     "time": 1.84,
+     "quad": [
+      [
+       314.525053,
+       153.408408
+      ],
+      [
+       442.315503,
+       199.921314
+      ],
+      [
+       409.482863,
+       290.126337
+      ],
+      [
+       281.692415,
+       243.613431
+      ]
+     ]
+    },
+    {
+     "time": 1.88,
+     "quad": [
+      [
+       318.514454,
+       152.890723
+      ],
+      [
+       446.319561,
+       199.398538
+      ],
+      [
+       413.490515,
+       289.613908
+      ],
+      [
+       285.685409,
+       243.106093
+      ]
+     ]
+    },
+    {
+     "time": 1.92,
+     "quad": [
+      [
+       322.514156,
+       152.330966
+      ],
+      [
+       450.333846,
+       198.847683
+      ],
+      [
+       417.498516,
+       289.073347
+      ],
+      [
+       289.678827,
+       242.55663
+      ]
+     ]
+    },
+    {
+     "time": 1.96,
+     "quad": [
+      [
+       326.533437,
+       151.83307
+      ],
+      [
+       454.330352,
+       198.354107
+      ],
+      [
+       421.491973,
+       288.563694
+      ],
+      [
+       293.695059,
+       242.042657
+      ]
+     ]
+    },
+    {
+     "time": 2,
+     "quad": [
+      [
+       330.518343,
+       151.238726
+      ],
+      [
+       458.342402,
+       197.78325
+      ],
+      [
+       425.487444,
+       288.011997
+      ],
+      [
+       297.663386,
+       241.467473
+      ]
+     ]
+    },
+    {
+     "time": 2.04,
+     "quad": [
+      [
+       334.560442,
+       150.760245
+      ],
+      [
+       462.330313,
+       197.303939
+      ],
+      [
+       429.475941,
+       287.494436
+      ],
+      [
+       301.706071,
+       240.950742
+      ]
+     ]
+    },
+    {
+     "time": 2.08,
+     "quad": [
+      [
+       338.539369,
+       150.156332
+      ],
+      [
+       466.342668,
+       196.720525
+      ],
+      [
+       433.473826,
+       286.934618
+      ],
+      [
+       305.670528,
+       240.370425
+      ]
+     ]
+    },
+    {
+     "time": 2.12,
+     "quad": [
+      [
+       342.552589,
+       149.692418
+      ],
+      [
+       470.337841,
+       196.250426
+      ],
+      [
+       437.473365,
+       286.451781
+      ],
+      [
+       309.688113,
+       239.893773
+      ]
+     ]
+    },
+    {
+     "time": 2.16,
+     "quad": [
+      [
+       346.535947,
+       149.079712
+      ],
+      [
+       474.346617,
+       195.654796
+      ],
+      [
+       441.470087,
+       285.874094
+      ],
+      [
+       313.659417,
+       239.299009
+      ]
+     ]
+    },
+    {
+     "time": 2.2,
+     "quad": [
+      [
+       350.562315,
+       148.623798
+      ],
+      [
+       478.341705,
+       195.18271
+      ],
+      [
+       445.47659,
+       285.379927
+      ],
+      [
+       317.697201,
+       238.821014
+      ]
+     ]
+    },
+    {
+     "time": 2.24,
+     "quad": [
+      [
+       354.543516,
+       148.044428
+      ],
+      [
+       482.323192,
+       194.593543
+      ],
+      [
+       449.464993,
+       284.790961
+      ],
+      [
+       321.685319,
+       238.241846
+      ]
+     ]
+    },
+    {
+     "time": 2.28,
+     "quad": [
+      [
+       358.553566,
+       147.555591
+      ],
+      [
+       486.335364,
+       194.078784
+      ],
+      [
+       453.495462,
+       284.2777
+      ],
+      [
+       325.713666,
+       237.754507
+      ]
+     ]
+    },
+    {
+     "time": 2.32,
+     "quad": [
+      [
+       362.507212,
+       146.994633
+      ],
+      [
+       490.320258,
+       193.514111
+      ],
+      [
+       457.48298,
+       283.735085
+      ],
+      [
+       329.669935,
+       237.215607
+      ]
+     ]
+    },
+    {
+     "time": 2.36,
+     "quad": [
+      [
+       366.540574,
+       146.506143
+      ],
+      [
+       494.314621,
+       193.002186
+      ],
+      [
+       461.493884,
+       283.195631
+      ],
+      [
+       333.719838,
+       236.699587
+      ]
+     ]
+    },
+    {
+     "time": 2.4,
+     "quad": [
+      [
+       370.506002,
+       145.963315
+      ],
+      [
+       498.292484,
+       192.449189
+      ],
+      [
+       465.478925,
+       282.651411
+      ],
+      [
+       337.692445,
+       236.165537
+      ]
+     ]
+    },
+    {
+     "time": 2.44,
+     "quad": [
+      [
+       374.503393,
+       145.43018
+      ],
+      [
+       502.301388,
+       191.899818
+      ],
+      [
+       469.499291,
+       282.110167
+      ],
+      [
+       341.701298,
+       235.640529
+      ]
+     ]
+    },
+    {
+     "time": 2.48,
+     "quad": [
+      [
+       378.500039,
+       144.923964
+      ],
+      [
+       506.294455,
+       191.381597
+      ],
+      [
+       473.500832,
+       281.58942
+      ],
+      [
+       345.706417,
+       235.131788
+      ]
+     ]
+    },
+    {
+     "time": 2.52,
+     "quad": [
+      [
+       382.501571,
+       144.37342
+      ],
+      [
+       510.296564,
+       190.828542
+      ],
+      [
+       477.504713,
+       281.036772
+      ],
+      [
+       349.709721,
+       234.58165
+      ]
+     ]
+    },
+    {
+     "time": 2.56,
+     "quad": [
+      [
+       386.501713,
+       143.867188
+      ],
+      [
+       514.298532,
+       190.322802
+      ],
+      [
+       481.506334,
+       280.532321
+      ],
+      [
+       353.709516,
+       234.076707
+      ]
+     ]
+    },
+    {
+     "time": 2.6,
+     "quad": [
+      [
+       390.480538,
+       143.27049
+      ],
+      [
+       518.310373,
+       189.74875
+      ],
+      [
+       485.50219,
+       279.981574
+      ],
+      [
+       357.672356,
+       233.503315
+      ]
+     ]
+    },
+    {
+     "time": 2.64,
+     "quad": [
+      [
+       394.517605,
+       142.798281
+      ],
+      [
+       522.300427,
+       189.279428
+      ],
+      [
+       489.490206,
+       279.479067
+      ],
+      [
+       361.707385,
+       232.99792
+      ]
+     ]
+    },
+    {
+     "time": 2.68,
+     "quad": [
+      [
+       398.520408,
+       142.198895
+      ],
+      [
+       526.303331,
+       188.697056
+      ],
+      [
+       493.4811,
+       278.896767
+      ],
+      [
+       365.698177,
+       232.398605
+      ]
+     ]
+    },
+    {
+     "time": 2.72,
+     "quad": [
+      [
+       402.526375,
+       141.727181
+      ],
+      [
+       530.308847,
+       188.222479
+      ],
+      [
+       497.488637,
+       278.421871
+      ],
+      [
+       369.706165,
+       231.926573
+      ]
+     ]
+    },
+    {
+     "time": 2.76,
+     "quad": [
+      [
+       406.519607,
+       141.128745
+      ],
+      [
+       534.299511,
+       187.632328
+      ],
+      [
+       501.473453,
+       277.829907
+      ],
+      [
+       373.69355,
+       231.326325
+      ]
+     ]
+    },
+    {
+     "time": 2.8,
+     "quad": [
+      [
+       410.517628,
+       140.647829
+      ],
+      [
+       538.316087,
+       187.144886
+      ],
+      [
+       505.494635,
+       277.355564
+      ],
+      [
+       377.696177,
+       230.858507
+      ]
+     ]
+    },
+    {
+     "time": 2.84,
+     "quad": [
+      [
+       414.51112,
+       140.064517
+      ],
+      [
+       542.300323,
+       186.56667
+      ],
+      [
+       509.475274,
+       276.770813
+      ],
+      [
+       381.686072,
+       230.26866
+      ]
+     ]
+    },
+    {
+     "time": 2.88,
+     "quad": [
+      [
+       418.538657,
+       139.578069
+      ],
+      [
+       546.306549,
+       186.063948
+      ],
+      [
+       513.492987,
+       276.253048
+      ],
+      [
+       385.725096,
+       229.767169
+      ]
+     ]
+    },
+    {
+     "time": 2.92,
+     "quad": [
+      [
+       422.499803,
+       139.015835
+      ],
+      [
+       550.293967,
+       185.504997
+      ],
+      [
+       517.478088,
+       275.712642
+      ],
+      [
+       389.683925,
+       229.22348
+      ]
+     ]
+    },
+    {
+     "time": 2.96,
+     "quad": [
+      [
+       426.520702,
+       138.510706
+      ],
+      [
+       554.303685,
+       184.987724
+      ],
+      [
+       521.496378,
+       275.187478
+      ],
+      [
+       393.713396,
+       228.710459
+      ]
+     ]
+    }
+   ]
+  }
+ },
+ {
+  "arguments": [
+   "timeline",
+   "<document>",
+   "--at",
+   "1.2",
+   "--json"
+  ],
+  "output": {
+   "timeline": "0.1.0",
+   "duration": 3,
+   "time": 1.2,
+   "storyline": [
+    {
+     "place": "storyline[0]#shot",
+     "id": "shot",
+     "kind": "video",
+     "media": "/media/moving.mp4",
+     "page": null,
+     "edit": [
+      0,
+      3
+     ],
+     "drawn": [
+      0,
+      3
+     ],
+     "clip": [
+      0,
+      3
+     ],
+     "sound": [
+      0,
+      3
+     ],
+     "speed": 1,
+     "timeRemap": false,
+     "transition": null,
+     "fps": null,
+     "instant": 0,
+     "clock": {
+      "clip": "storyline[0]#shot",
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "output",
+      "clip": null
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "storyline[0]#shot"
+     },
+     "tracked": {
+      "clip": "storyline[0]#shot",
+      "first": 0,
+      "last": 2.96
+     },
+     "clipTime": 1.2,
+     "mediaTime": 1.2,
+     "box": {
+      "rect": [
+       0,
+       0,
+       640,
+       360
+      ],
+      "quad": [
+       [
+        0,
+        0
+       ],
+       [
+        1280,
+        0
+       ],
+       [
+        1280,
+        720
+       ],
+       [
+        0,
+        720
+       ]
+      ]
+     },
+     "masks": []
+    }
+   ],
+   "clips": [
+    {
+     "place": "storyline[0]#shot.connected[0]#outline",
+     "id": "outline",
+     "kind": "rect",
+     "media": null,
+     "page": null,
+     "visible": [
+      0.4,
+      0.5
+     ],
+     "sound": null,
+     "lane": 1,
+     "storyline": "storyline[0]#shot",
+     "parent": null,
+     "animation": null,
+     "fps": null,
+     "instant": 0.4,
+     "clock": {
+      "clip": "storyline[0]#shot",
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "output",
+      "clip": null
+     },
+     "ownSpace": {
+      "kind": "output",
+      "clip": null
+     },
+     "tracked": null,
+     "mediaTime": null,
+     "box": {
+      "rect": [
+       320,
+       389,
+       272,
+       192
+      ],
+      "quad": [
+       [
+        320,
+        389
+       ],
+       [
+        592,
+        389
+       ],
+       [
+        592,
+        581
+       ],
+       [
+        320,
+        581
+       ]
+      ]
+     },
+     "masks": []
+    },
+    {
+     "place": "storyline[0]#shot.connected[1]#cover",
+     "id": "cover",
+     "kind": "rect",
+     "media": null,
+     "page": null,
+     "visible": [
+      0.4,
+      0.8
+     ],
+     "sound": null,
+     "lane": 1,
+     "storyline": "storyline[0]#shot",
+     "parent": "storyline[0]#shot",
+     "animation": null,
+     "fps": null,
+     "instant": 0.4,
+     "clock": {
+      "clip": "storyline[0]#shot",
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "media",
+      "clip": "storyline[0]#shot"
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "storyline[0]#shot"
+     },
+     "tracked": {
+      "clip": "storyline[0]#shot",
+      "first": 0,
+      "last": 2.96
+     },
+     "mediaTime": null,
+     "box": {
+      "rect": [
+       160,
+       194,
+       136,
+       96
+      ],
+      "quad": [
+       [
+        320,
+        388
+       ],
+       [
+        592,
+        388
+       ],
+       [
+        592,
+        580
+       ],
+       [
+        320,
+        580
+       ]
+      ]
+     },
+     "masks": []
+    },
+    {
+     "place": "storyline[0]#shot.connected[2]#tilted",
+     "id": "tilted",
+     "kind": "rect",
+     "media": null,
+     "page": null,
+     "visible": [
+      1,
+      1.1
+     ],
+     "sound": null,
+     "lane": 1,
+     "storyline": "storyline[0]#shot",
+     "parent": null,
+     "animation": null,
+     "fps": null,
+     "instant": 1,
+     "clock": {
+      "clip": "storyline[0]#shot",
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "output",
+      "clip": null
+     },
+     "ownSpace": {
+      "kind": "output",
+      "clip": null
+     },
+     "tracked": null,
+     "mediaTime": null,
+     "box": {
+      "rect": [
+       420,
+       370,
+       272,
+       192
+      ],
+      "quad": [
+       [
+        461.035737,
+        329.274769
+       ],
+       [
+        716.63213,
+        422.304248
+       ],
+       [
+        650.964263,
+        602.725231
+       ],
+       [
+        395.36787,
+        509.695752
+       ]
+      ]
+     },
+     "masks": []
+    },
+    {
+     "place": "storyline[0]#shot.connected[3]#tiltCover",
+     "id": "tiltCover",
+     "kind": "title",
+     "media": null,
+     "page": null,
+     "visible": [
+      1,
+      1.4
+     ],
+     "sound": null,
+     "lane": 1,
+     "storyline": "storyline[0]#shot",
+     "parent": "storyline[0]#shot",
+     "animation": null,
+     "fps": null,
+     "instant": 1,
+     "clock": {
+      "clip": "storyline[0]#shot",
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "media",
+      "clip": "storyline[0]#shot"
+     },
+     "ownSpace": {
+      "kind": "text",
+      "clip": "storyline[0]#shot.connected[3]#tiltCover"
+     },
+     "tracked": {
+      "clip": "storyline[0]#shot",
+      "first": 0,
+      "last": 2.96
+     },
+     "mediaTime": null,
+     "box": {
+      "rect": [
+       0,
+       0,
+       69.344,
+       37.279785
+      ],
+      "quad": [
+       [
+        541.328,
+        341.360107
+       ],
+       [
+        610.672,
+        341.360107
+       ],
+       [
+        610.672,
+        378.639893
+       ],
+       [
+        541.328,
+        378.639893
+       ]
+      ]
+     },
+     "masks": []
+    },
+    {
+     "place": "storyline[0]#shot.connected[4]#pinned",
+     "id": "pinned",
+     "kind": "rect",
+     "media": null,
+     "page": null,
+     "visible": [
+      1.2,
+      1.3
+     ],
+     "sound": null,
+     "lane": 1,
+     "storyline": "storyline[0]#shot",
+     "parent": null,
+     "animation": null,
+     "fps": null,
+     "instant": 1.2,
+     "clock": {
+      "clip": "storyline[0]#shot",
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "output",
+      "clip": null
+     },
+     "ownSpace": {
+      "kind": "box",
+      "clip": "storyline[0]#shot.connected[4]#pinned"
+     },
+     "tracked": null,
+     "mediaTime": null,
+     "box": {
+      "rect": [
+       0,
+       0,
+       272,
+       192
+      ],
+      "quad": [
+       [
+        440,
+        360
+       ],
+       [
+        720,
+        380
+       ],
+       [
+        710,
+        560
+       ],
+       [
+        450,
+        550
+       ]
+      ]
+     },
+     "masks": []
+    },
+    {
+     "place": "storyline[0]#shot.connected[5]#pinCover",
+     "id": "pinCover",
+     "kind": "rect",
+     "media": null,
+     "page": null,
+     "visible": [
+      1.2,
+      1.6
+     ],
+     "sound": null,
+     "lane": 1,
+     "storyline": "storyline[0]#shot",
+     "parent": "storyline[0]#shot",
+     "animation": null,
+     "fps": null,
+     "instant": 1.2,
+     "clock": {
+      "clip": "storyline[0]#shot",
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "media",
+      "clip": "storyline[0]#shot"
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "storyline[0]#shot"
+     },
+     "tracked": {
+      "clip": "storyline[0]#shot",
+      "first": 0,
+      "last": 2.96
+     },
+     "mediaTime": null,
+     "box": {
+      "rect": [
+       220,
+       180,
+       136,
+       96
+      ],
+      "quad": [
+       [
+        440,
+        360
+       ],
+       [
+        712,
+        360
+       ],
+       [
+        712,
+        552
+       ],
+       [
+        440,
+        552
+       ]
+      ]
+     },
+     "masks": []
+    },
+    {
+     "place": "storyline[0]#shot.connected[6]#itself",
+     "id": "itself",
+     "kind": "rect",
+     "media": null,
+     "page": null,
+     "visible": [
+      0.4,
+      0.8
+     ],
+     "sound": null,
+     "lane": 1,
+     "storyline": "storyline[0]#shot",
+     "parent": "storyline[0]#shot",
+     "animation": null,
+     "fps": null,
+     "instant": 0.4,
+     "clock": {
+      "clip": "storyline[0]#shot",
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "media",
+      "clip": "storyline[0]#shot"
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "storyline[0]#shot"
+     },
+     "tracked": {
+      "clip": "storyline[0]#shot",
+      "first": 0,
+      "last": 2.96
+     },
+     "mediaTime": null,
+     "box": {
+      "rect": [
+       160,
+       194,
+       136,
+       96
+      ],
+      "quad": [
+       [
+        320,
+        388
+       ],
+       [
+        592,
+        388
+       ],
+       [
+        592,
+        580
+       ],
+       [
+        320,
+        580
+       ]
+      ]
+     },
+     "masks": []
+    },
+    {
+     "place": "storyline[0]#shot.connected[7]#masked",
+     "id": "masked",
+     "kind": "video",
+     "media": "/media/moving.mp4",
+     "page": null,
+     "visible": [
+      0.4,
+      0.8
+     ],
+     "sound": [
+      0.4,
+      0.8
+     ],
+     "lane": 1,
+     "storyline": "storyline[0]#shot",
+     "parent": null,
+     "animation": null,
+     "fps": null,
+     "instant": 0.4,
+     "clock": {
+      "clip": "storyline[0]#shot",
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "output",
+      "clip": null
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "storyline[0]#shot.connected[7]#masked"
+     },
+     "tracked": {
+      "clip": "storyline[0]#shot.connected[7]#masked",
+      "first": 0,
+      "last": 0.4
+     },
+     "mediaTime": 0.8,
+     "box": {
+      "rect": [
+       0,
+       0,
+       640,
+       360
+      ],
+      "quad": [
+       [
+        940,
+        510
+       ],
+       [
+        1260,
+        510
+       ],
+       [
+        1260,
+        690
+       ],
+       [
+        940,
+        690
+       ]
+      ]
+     },
+     "masks": [
+      [
+       [
+        1005,
+        595
+       ],
+       [
+        1085,
+        595
+       ],
+       [
+        1085,
+        660
+       ],
+       [
+        1005,
+        660
+       ]
+      ]
+     ]
+    },
+    {
+     "place": "storyline[0]#shot.connected[8]#wash",
+     "id": "wash",
+     "kind": "adjustment",
+     "media": null,
+     "page": null,
+     "visible": [
+      0,
+      3
+     ],
+     "sound": null,
+     "lane": 1,
+     "storyline": "storyline[0]#shot",
+     "parent": null,
+     "animation": null,
+     "fps": null,
+     "instant": 0,
+     "clock": {
+      "clip": "storyline[0]#shot",
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "output",
+      "clip": null
+     },
+     "ownSpace": {
+      "kind": "output",
+      "clip": null
+     },
+     "tracked": null,
+     "mediaTime": null,
+     "box": null,
+     "masks": []
+    },
+    {
+     "place": "clips[0]#inner",
+     "id": "inner",
+     "kind": "compound",
+     "media": null,
+     "page": null,
+     "visible": [
+      0,
+      3
+     ],
+     "sound": [
+      0,
+      3
+     ],
+     "lane": 1,
+     "storyline": null,
+     "parent": null,
+     "animation": null,
+     "fps": null,
+     "instant": 0,
+     "clock": {
+      "clip": null,
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "output",
+      "clip": null
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "clips[0]#inner"
+     },
+     "tracked": null,
+     "mediaTime": 1.2,
+     "box": {
+      "rect": [
+       0,
+       0,
+       640,
+       360
+      ],
+      "quad": [
+       [
+        0,
+        37.5
+       ],
+       [
+        400,
+        37.5
+       ],
+       [
+        400,
+        262.5
+       ],
+       [
+        0,
+        262.5
+       ]
+      ]
+     },
+     "masks": [],
+     "nested": {
+      "timeline": "0.1.0",
+      "duration": 2.5,
+      "time": 1.2,
+      "storyline": [
+       {
+        "place": "clips[0]#inner.media.storyline[0]#innerShot",
+        "id": "innerShot",
+        "kind": "video",
+        "media": "/media/moving.mp4",
+        "page": null,
+        "edit": [
+         0,
+         2.5
+        ],
+        "drawn": [
+         0,
+         2.5
+        ],
+        "clip": [
+         0.5,
+         3
+        ],
+        "sound": [
+         0,
+         2.5
+        ],
+        "speed": 1,
+        "timeRemap": false,
+        "transition": null,
+        "fps": null,
+        "instant": 0,
+        "clock": {
+         "clip": "clips[0]#inner.media.storyline[0]#innerShot",
+         "origin": -0.5,
+         "speed": 1
+        },
+        "space": {
+         "kind": "output",
+         "clip": null
+        },
+        "ownSpace": {
+         "kind": "media",
+         "clip": "clips[0]#inner.media.storyline[0]#innerShot"
+        },
+        "tracked": {
+         "clip": "clips[0]#inner.media.storyline[0]#innerShot",
+         "first": 0.48,
+         "last": 2.96
+        },
+        "clipTime": 1.7,
+        "mediaTime": 1.68,
+        "box": {
+         "rect": [
+          0,
+          0,
+          640,
+          360
+         ],
+         "quad": [
+          [
+           0,
+           0
+          ],
+          [
+           640,
+           0
+          ],
+          [
+           640,
+           360
+          ],
+          [
+           0,
+           360
+          ]
+         ]
+        },
+        "masks": []
+       }
+      ],
+      "clips": [
+       {
+        "place": "clips[0]#inner.media.storyline[0]#innerShot.connected[0]#innerBox",
+        "id": "innerBox",
+        "kind": "rect",
+        "media": null,
+        "page": null,
+        "visible": [
+         0,
+         0.3
+        ],
+        "sound": null,
+        "lane": 1,
+        "storyline": "clips[0]#inner.media.storyline[0]#innerShot",
+        "parent": "clips[0]#inner.media.storyline[0]#innerShot",
+        "animation": null,
+        "fps": null,
+        "instant": -0.1,
+        "clock": {
+         "clip": "clips[0]#inner.media.storyline[0]#innerShot",
+         "origin": -0.5,
+         "speed": 1
+        },
+        "space": {
+         "kind": "media",
+         "clip": "clips[0]#inner.media.storyline[0]#innerShot"
+        },
+        "ownSpace": {
+         "kind": "media",
+         "clip": "clips[0]#inner.media.storyline[0]#innerShot"
+        },
+        "tracked": {
+         "clip": "clips[0]#inner.media.storyline[0]#innerShot",
+         "first": 0.48,
+         "last": 2.96
+        },
+        "mediaTime": null,
+        "box": {
+         "rect": [
+          124,
+          202,
+          128,
+          88
+         ],
+         "quad": [
+          [
+           124,
+           202
+          ],
+          [
+           252,
+           202
+          ],
+          [
+           252,
+           290
+          ],
+          [
+           124,
+           290
+          ]
+         ]
+        },
+        "masks": []
+       }
+      ]
+     }
+    }
+   ]
+  }
+ },
+ {
+  "arguments": [
+   "track",
+   "/media/moving.mp4",
+   "--at",
+   "1.2",
+   "--quad",
+   "[[220, 180], [360, 190], [355, 280], [225, 275]]",
+   "--to",
+   "0"
+  ],
+  "output": {
+   "track": "0.1.0",
+   "time": 1.2,
+   "frames": [
+    {
+     "time": 0,
+     "quad": [
+      [
+       100.005261,
+       195.992619
+      ],
+      [
+       240.002247,
+       206.004468
+      ],
+      [
+       234.994608,
+       296.002654
+      ],
+      [
+       104.997039,
+       290.991585
+      ]
+     ]
+    },
+    {
+     "time": 0.04,
+     "quad": [
+      [
+       104.004622,
+       195.462056
+      ],
+      [
+       244.001573,
+       205.472865
+      ],
+      [
+       238.994601,
+       295.471016
+      ],
+      [
+       108.997097,
+       290.46091
+      ]
+     ]
+    },
+    {
+     "time": 0.08,
+     "quad": [
+      [
+       108.00817,
+       194.936905
+      ],
+      [
+       248.002753,
+       204.943905
+      ],
+      [
+       242.998203,
+       294.940498
+      ],
+      [
+       113.003008,
+       289.933848
+      ]
+     ]
+    },
+    {
+     "time": 0.12,
+     "quad": [
+      [
+       112.000173,
+       194.396315
+      ],
+      [
+       251.999119,
+       204.400782
+      ],
+      [
+       246.99624,
+       294.40015
+      ],
+      [
+       116.997081,
+       289.39598
+      ]
+     ]
+    },
+    {
+     "time": 0.16,
+     "quad": [
+      [
+       116.00962,
+       193.882453
+      ],
+      [
+       256.002002,
+       203.882991
+      ],
+      [
+       251.001579,
+       293.878105
+      ],
+      [
+       121.00862,
+       288.877374
+      ]
+     ]
+    },
+    {
+     "time": 0.2,
+     "quad": [
+      [
+       119.995878,
+       193.322975
+      ],
+      [
+       259.996932,
+       203.323259
+      ],
+      [
+       254.99676,
+       293.323939
+      ],
+      [
+       124.995775,
+       288.323708
+      ]
+     ]
+    },
+    {
+     "time": 0.24,
+     "quad": [
+      [
+       124.009181,
+       192.8162
+      ],
+      [
+       264.001764,
+       202.816607
+      ],
+      [
+       259.001427,
+       292.811848
+      ],
+      [
+       129.008285,
+       287.811245
+      ]
+     ]
+    },
+    {
+     "time": 0.28,
+     "quad": [
+      [
+       127.99466,
+       192.25238
+      ],
+      [
+       267.997263,
+       202.256708
+      ],
+      [
+       262.99451,
+       292.258423
+      ],
+      [
+       132.991967,
+       287.254493
+      ]
+     ]
+    },
+    {
+     "time": 0.32,
+     "quad": [
+      [
+       132.011854,
+       191.749398
+      ],
+      [
+       272.003674,
+       201.758828
+      ],
+      [
+       266.997536,
+       291.753671
+      ],
+      [
+       137.004827,
+       286.744686
+      ]
+     ]
+    },
+    {
+     "time": 0.36,
+     "quad": [
+      [
+       135.997835,
+       191.175785
+      ],
+      [
+       276.000078,
+       201.193111
+      ],
+      [
+       270.988976,
+       291.194728
+      ],
+      [
+       140.986369,
+       286.178745
+      ]
+     ]
+    },
+    {
+     "time": 0.4,
+     "quad": [
+      [
+       140.015413,
+       190.6717
+      ],
+      [
+       280.007149,
+       200.696363
+      ],
+      [
+       274.991228,
+       290.691306
+      ],
+      [
+       144.998133,
+       285.668207
+      ]
+     ]
+    },
+    {
+     "time": 0.44,
+     "quad": [
+      [
+       144.004302,
+       190.104797
+      ],
+      [
+       284.004489,
+       200.135788
+      ],
+      [
+       278.984591,
+       290.136222
+      ],
+      [
+       148.983474,
+       285.107518
+      ]
+     ]
+    },
+    {
+     "time": 0.48,
+     "quad": [
+      [
+       148.016012,
+       189.593911
+      ],
+      [
+       288.008737,
+       199.627461
+      ],
+      [
+       282.98712,
+       289.62313
+      ],
+      [
+       152.992838,
+       284.591828
+      ]
+     ]
+    },
+    {
+     "time": 0.52,
+     "quad": [
+      [
+       152.005737,
+       189.043092
+      ],
+      [
+       292.004726,
+       199.074121
+      ],
+      [
+       286.984792,
+       289.073787
+      ],
+      [
+       156.984783,
+       284.045011
+      ]
+     ]
+    },
+    {
+     "time": 0.56,
+     "quad": [
+      [
+       156.011451,
+       188.531756
+      ],
+      [
+       296.00547,
+       198.554806
+      ],
+      [
+       290.990608,
+       288.5512
+      ],
+      [
+       160.995447,
+       283.529664
+      ]
+     ]
+    },
+    {
+     "time": 0.6,
+     "quad": [
+      [
+       160.004365,
+       187.993977
+      ],
+      [
+       300.001633,
+       198.003511
+      ],
+      [
+       294.995483,
+       288.001854
+      ],
+      [
+       164.997724,
+       282.992938
+      ]
+     ]
+    },
+    {
+     "time": 0.64,
+     "quad": [
+      [
+       163.998028,
+       187.471887
+      ],
+      [
+       303.996913,
+       197.465886
+      ],
+      [
+       299.000755,
+       287.465109
+      ],
+      [
+       169.001971,
+       282.470634
+      ]
+     ]
+    },
+    {
+     "time": 0.68,
+     "quad": [
+      [
+       167.995935,
+       186.954892
+      ],
+      [
+       307.994101,
+       196.931059
+      ],
+      [
+       303.009386,
+       286.929639
+      ],
+      [
+       173.011811,
+       281.951662
+      ]
+     ]
+    },
+    {
+     "time": 0.72,
+     "quad": [
+      [
+       171.98426,
+       186.420249
+      ],
+      [
+       311.987544,
+       196.383958
+      ],
+      [
+       307.010881,
+       286.385699
+      ],
+      [
+       177.008944,
+       281.419418
+      ]
+     ]
+    },
+    {
+     "time": 0.76,
+     "quad": [
+      [
+       175.992304,
+       185.90833
+      ],
+      [
+       315.989522,
+       195.864681
+      ],
+      [
+       311.017522,
+       285.862452
+      ],
+      [
+       181.021429,
+       280.902803
+      ]
+     ]
+    },
+    {
+     "time": 0.8,
+     "quad": [
+      [
+       179.981216,
+       185.345186
+      ],
+      [
+       319.986396,
+       195.307682
+      ],
+      [
+       315.010532,
+       285.310627
+      ],
+      [
+       185.006875,
+       280.345529
+      ]
+     ]
+    },
+    {
+     "time": 0.84,
+     "quad": [
+      [
+       184.000701,
+       184.828903
+      ],
+      [
+       323.995945,
+       194.807661
+      ],
+      [
+       319.009537,
+       284.804391
+      ],
+      [
+       189.01459,
+       279.823925
+      ]
+     ]
+    },
+    {
+     "time": 0.88,
+     "quad": [
+      [
+       187.99578,
+       184.250196
+      ],
+      [
+       327.998338,
+       194.258099
+      ],
+      [
+       322.99329,
+       284.259822
+      ],
+      [
+       192.990679,
+       279.252579
+      ]
+     ]
+    },
+    {
+     "time": 0.92,
+     "quad": [
+      [
+       192.024864,
+       183.729188
+      ],
+      [
+       332.012623,
+       193.772406
+      ],
+      [
+       326.984747,
+       283.764985
+      ],
+      [
+       196.99477,
+       278.724575
+      ]
+     ]
+    },
+    {
+     "time": 0.96,
+     "quad": [
+      [
+       196.023624,
+       183.138278
+      ],
+      [
+       336.016936,
+       193.218763
+      ],
+      [
+       330.965187,
+       283.215285
+      ],
+      [
+       200.968931,
+       278.140521
+      ]
+     ]
+    },
+    {
+     "time": 1,
+     "quad": [
+      [
+       200.052143,
+       182.6258
+      ],
+      [
+       340.031056,
+       192.734646
+      ],
+      [
+       334.960949,
+       282.722211
+      ],
+      [
+       204.977168,
+       277.620734
+      ]
+     ]
+    },
+    {
+     "time": 1.04,
+     "quad": [
+      [
+       204.043275,
+       182.061686
+      ],
+      [
+       344.03192,
+       192.183457
+      ],
+      [
+       338.953612,
+       282.177402
+      ],
+      [
+       208.960422,
+       277.064248
+      ]
+     ]
+    },
+    {
+     "time": 1.08,
+     "quad": [
+      [
+       208.040527,
+       181.556074
+      ],
+      [
+       348.032459,
+       191.670711
+      ],
+      [
+       342.958765,
+       281.666694
+      ],
+      [
+       212.962748,
+       276.560249
+      ]
+     ]
+    },
+    {
+     "time": 1.12,
+     "quad": [
+      [
+       211.987857,
+       181.006958
+      ],
+      [
+       352.010427,
+       191.09576
+      ],
+      [
+       346.953633,
+       281.111154
+      ],
+      [
+       216.93002,
+       276.029576
+      ]
+     ]
+    },
+    {
+     "time": 1.16,
+     "quad": [
+      [
+       215.980243,
+       180.518839
+      ],
+      [
+       355.997431,
+       190.564071
+      ],
+      [
+       350.96856,
+       280.575568
+      ],
+      [
+       220.95126,
+       275.534188
+      ]
+     ]
+    },
+    {
+     "time": 1.2,
+     "quad": [
+      [
+       220,
+       180
+      ],
+      [
+       360,
+       190
+      ],
+      [
+       355,
+       280
+      ],
+      [
+       225,
+       275
+      ]
+     ]
+    }
+   ]
+  }
+ },
+ {
+  "arguments": [
+   "track",
+   "/media/moving.mp4",
+   "--at",
+   "1.2",
+   "--quad",
+   "[[220, 180], [360, 190], [355, 280], [225, 275]]",
+   "--to",
+   "2.96"
+  ],
+  "output": {
+   "track": "0.1.0",
+   "time": 1.2,
+   "frames": [
+    {
+     "time": 1.2,
+     "quad": [
+      [
+       220,
+       180
+      ],
+      [
+       360,
+       190
+      ],
+      [
+       355,
+       280
+      ],
+      [
+       225,
+       275
+      ]
+     ]
+    },
+    {
+     "time": 1.24,
+     "quad": [
+      [
+       224.048815,
+       179.503342
+      ],
+      [
+       364.022974,
+       189.543895
+      ],
+      [
+       358.996672,
+       279.527713
+      ],
+      [
+       229.019375,
+       274.489358
+      ]
+     ]
+    },
+    {
+     "time": 1.28,
+     "quad": [
+      [
+       228.084251,
+       178.969239
+      ],
+      [
+       368.0433,
+       189.066559
+      ],
+      [
+       362.980392,
+       279.04125
+      ],
+      [
+       233.015365,
+       273.949847
+      ]
+     ]
+    },
+    {
+     "time": 1.32,
+     "quad": [
+      [
+       232.07034,
+       178.362791
+      ],
+      [
+       372.053383,
+       188.513997
+      ],
+      [
+       366.956117,
+       278.504644
+      ],
+      [
+       236.96722,
+       273.364051
+      ]
+     ]
+    },
+    {
+     "time": 1.36,
+     "quad": [
+      [
+       236.095408,
+       177.816745
+      ],
+      [
+       376.070872,
+       188.013933
+      ],
+      [
+       370.944003,
+       278.00018
+      ],
+      [
+       240.960727,
+       272.816758
+      ]
+     ]
+    },
+    {
+     "time": 1.4,
+     "quad": [
+      [
+       240.047673,
+       177.242141
+      ],
+      [
+       380.057551,
+       187.454257
+      ],
+      [
+       374.921444,
+       277.462754
+      ],
+      [
+       244.905833,
+       272.266551
+      ]
+     ]
+    },
+    {
+     "time": 1.44,
+     "quad": [
+      [
+       244.056626,
+       176.757052
+      ],
+      [
+       384.046548,
+       186.953018
+      ],
+      [
+       378.92061,
+       276.948536
+      ],
+      [
+       248.923977,
+       271.766687
+      ]
+     ]
+    },
+    {
+     "time": 1.48,
+     "quad": [
+      [
+       248.028585,
+       176.215477
+      ],
+      [
+       388.019669,
+       186.367044
+      ],
+      [
+       382.922252,
+       276.362858
+      ],
+      [
+       252.925896,
+       271.222175
+      ]
+     ]
+    },
+    {
+     "time": 1.52,
+     "quad": [
+      [
+       252.038958,
+       175.757756
+      ],
+      [
+       392.016385,
+       185.844636
+      ],
+      [
+       386.960367,
+       275.831023
+      ],
+      [
+       256.978633,
+       270.74985
+      ]
+     ]
+    },
+    {
+     "time": 1.56,
+     "quad": [
+      [
+       255.984607,
+       175.224854
+      ],
+      [
+       395.985099,
+       185.243478
+      ],
+      [
+       390.973145,
+       275.243983
+      ],
+      [
+       260.972122,
+       270.226745
+      ]
+     ]
+    },
+    {
+     "time": 1.6,
+     "quad": [
+      [
+       259.947196,
+       174.741573
+      ],
+      [
+       399.965187,
+       184.693089
+      ],
+      [
+       394.996503,
+       274.704149
+      ],
+      [
+       264.981313,
+       269.749613
+      ]
+     ]
+    },
+    {
+     "time": 1.64,
+     "quad": [
+      [
+       263.95827,
+       174.205553
+      ],
+      [
+       403.961765,
+       184.103288
+      ],
+      [
+       399.027469,
+       274.104494
+      ],
+      [
+       269.027345,
+       269.199339
+      ]
+     ]
+    },
+    {
+     "time": 1.68,
+     "quad": [
+      [
+       267.998223,
+       173.731391
+      ],
+      [
+       407.961108,
+       183.591249
+      ],
+      [
+       403.050721,
+       273.565994
+      ],
+      [
+       273.089372,
+       268.694691
+      ]
+     ]
+    },
+    {
+     "time": 1.72,
+     "quad": [
+      [
+       271.988191,
+       173.18873
+      ],
+      [
+       411.951156,
+       183.037192
+      ],
+      [
+       407.048088,
+       273.011873
+      ],
+      [
+       277.087012,
+       268.151129
+      ]
+     ]
+    },
+    {
+     "time": 1.76,
+     "quad": [
+      [
+       276.041881,
+       172.665483
+      ],
+      [
+       415.959305,
+       182.529169
+      ],
+      [
+       411.045998,
+       272.47476
+      ],
+      [
+       281.126648,
+       267.598526
+      ]
+     ]
+    },
+    {
+     "time": 1.8,
+     "quad": [
+      [
+       279.995651,
+       172.077263
+      ],
+      [
+       419.962737,
+       181.978629
+      ],
+      [
+       415.025738,
+       271.956493
+      ],
+      [
+       285.059234,
+       267.046864
+      ]
+     ]
+    },
+    {
+     "time": 1.84,
+     "quad": [
+      [
+       283.982959,
+       171.499564
+      ],
+      [
+       423.979684,
+       181.45047
+      ],
+      [
+       419.011175,
+       271.447869
+      ],
+      [
+       289.015705,
+       266.493249
+      ]
+     ]
+    },
+    {
+     "time": 1.88,
+     "quad": [
+      [
+       288.009708,
+       170.954861
+      ],
+      [
+       428.004084,
+       180.951355
+      ],
+      [
+       423.006277,
+       270.947708
+      ],
+      [
+       293.011595,
+       265.950784
+      ]
+     ]
+    },
+    {
+     "time": 1.92,
+     "quad": [
+      [
+       292.008403,
+       170.386898
+      ],
+      [
+       432.014089,
+       180.419092
+      ],
+      [
+       426.993473,
+       270.42307
+      ],
+      [
+       296.987226,
+       265.393418
+      ]
+     ]
+    },
+    {
+     "time": 1.96,
+     "quad": [
+      [
+       296.039018,
+       169.861125
+      ],
+      [
+       436.036465,
+       179.914642
+      ],
+      [
+       431.002074,
+       269.913546
+      ],
+      [
+       301.002809,
+       264.86389
+      ]
+     ]
+    },
+    {
+     "time": 2,
+     "quad": [
+      [
+       300.032513,
+       169.292502
+      ],
+      [
+       440.025933,
+       179.354842
+      ],
+      [
+       434.985836,
+       269.35125
+      ],
+      [
+       304.990033,
+       264.293298
+      ]
+     ]
+    },
+    {
+     "time": 2.04,
+     "quad": [
+      [
+       304.044883,
+       168.785322
+      ],
+      [
+       444.024602,
+       178.844476
+      ],
+      [
+       438.986411,
+       268.832053
+      ],
+      [
+       309.003398,
+       263.776636
+      ]
+     ]
+    },
+    {
+     "time": 2.08,
+     "quad": [
+      [
+       308.025864,
+       168.228909
+      ],
+      [
+       448.010533,
+       178.276858
+      ],
+      [
+       442.979587,
+       268.2675
+      ],
+      [
+       312.99233,
+       263.222613
+      ]
+     ]
+    },
+    {
+     "time": 2.12,
+     "quad": [
+      [
+       312.035306,
+       167.744943
+      ],
+      [
+       452.002369,
+       177.774829
+      ],
+      [
+       446.982844,
+       267.753982
+      ],
+      [
+       317.012446,
+       262.725293
+      ]
+     ]
+    },
+    {
+     "time": 2.16,
+     "quad": [
+      [
+       316.0094,
+       167.187838
+      ],
+      [
+       455.989602,
+       177.198979
+      ],
+      [
+       450.982247,
+       267.186378
+      ],
+      [
+       321.000249,
+       262.175455
+      ]
+     ]
+    },
+    {
+     "time": 2.2,
+     "quad": [
+      [
+       320.013859,
+       166.690979
+      ],
+      [
+       459.998495,
+       176.685885
+      ],
+      [
+       455.00161,
+       266.675967
+      ],
+      [
+       325.015999,
+       261.680218
+      ]
+     ]
+    },
+    {
+     "time": 2.24,
+     "quad": [
+      [
+       323.999947,
+       166.141024
+      ],
+      [
+       463.990217,
+       176.124354
+      ],
+      [
+       459.000822,
+       266.117937
+      ],
+      [
+       329.010344,
+       261.133083
+      ]
+     ]
+    },
+    {
+     "time": 2.28,
+     "quad": [
+      [
+       328.005868,
+       165.627104
+      ],
+      [
+       467.998138,
+       175.606501
+      ],
+      [
+       463.011289,
+       265.601328
+      ],
+      [
+       333.019078,
+       260.620179
+      ]
+     ]
+    },
+    {
+     "time": 2.32,
+     "quad": [
+      [
+       331.999177,
+       165.076957
+      ],
+      [
+       471.99694,
+       175.057509
+      ],
+      [
+       467.009406,
+       265.055875
+      ],
+      [
+       337.012071,
+       260.073824
+      ]
+     ]
+    },
+    {
+     "time": 2.36,
+     "quad": [
+      [
+       336.00987,
+       164.555272
+      ],
+      [
+       475.995932,
+       174.542575
+      ],
+      [
+       471.003944,
+       264.533496
+      ],
+      [
+       341.017243,
+       259.544834
+      ]
+     ]
+    },
+    {
+     "time": 2.4,
+     "quad": [
+      [
+       340.004729,
+       164.006078
+      ],
+      [
+       480.010534,
+       174.002327
+      ],
+      [
+       475.013002,
+       264.006016
+      ],
+      [
+       345.007738,
+       259.009668
+      ]
+     ]
+    },
+    {
+     "time": 2.44,
+     "quad": [
+      [
+       344.012409,
+       163.461672
+      ],
+      [
+       484.015709,
+       173.469315
+      ],
+      [
+       479.010835,
+       263.471511
+      ],
+      [
+       349.007545,
+       258.464532
+      ]
+     ]
+    },
+    {
+     "time": 2.48,
+     "quad": [
+      [
+       348.030779,
+       162.936063
+      ],
+      [
+       488.021386,
+       172.952654
+      ],
+      [
+       483.010637,
+       262.946791
+      ],
+      [
+       353.018833,
+       257.931135
+      ]
+     ]
+    },
+    {
+     "time": 2.52,
+     "quad": [
+      [
+       352.029254,
+       162.389502
+      ],
+      [
+       492.007923,
+       172.413204
+      ],
+      [
+       486.992487,
+       262.399747
+      ],
+      [
+       357.011526,
+       257.37714
+      ]
+     ]
+    },
+    {
+     "time": 2.56,
+     "quad": [
+      [
+       356.044956,
+       161.883866
+      ],
+      [
+       495.999079,
+       171.908075
+      ],
+      [
+       490.983068,
+       261.878862
+      ],
+      [
+       361.024831,
+       256.855038
+      ]
+     ]
+    },
+    {
+     "time": 2.6,
+     "quad": [
+      [
+       360.04158,
+       161.32904
+      ],
+      [
+       499.98559,
+       171.348759
+      ],
+      [
+       494.97236,
+       261.313006
+      ],
+      [
+       365.023628,
+       256.293034
+      ]
+     ]
+    },
+    {
+     "time": 2.64,
+     "quad": [
+      [
+       364.070397,
+       160.836985
+      ],
+      [
+       503.983726,
+       170.84661
+      ],
+      [
+       498.976665,
+       260.791054
+      ],
+      [
+       369.056663,
+       255.779497
+      ]
+     ]
+    },
+    {
+     "time": 2.68,
+     "quad": [
+      [
+       368.029811,
+       160.271098
+      ],
+      [
+       507.972871,
+       170.272062
+      ],
+      [
+       502.971674,
+       260.235508
+      ],
+      [
+       373.024394,
+       255.232881
+      ]
+     ]
+    },
+    {
+     "time": 2.72,
+     "quad": [
+      [
+       372.030609,
+       159.773352
+      ],
+      [
+       511.980531,
+       169.765526
+      ],
+      [
+       506.985048,
+       259.733291
+      ],
+      [
+       377.031678,
+       254.739015
+      ]
+     ]
+    },
+    {
+     "time": 2.76,
+     "quad": [
+      [
+       376.001602,
+       159.202461
+      ],
+      [
+       515.981508,
+       169.190095
+      ],
+      [
+       510.989245,
+       259.177066
+      ],
+      [
+       381.008236,
+       254.187911
+      ]
+     ]
+    },
+    {
+     "time": 2.8,
+     "quad": [
+      [
+       380.009303,
+       158.696331
+      ],
+      [
+       519.992368,
+       168.683518
+      ],
+      [
+       515.000424,
+       258.672514
+      ],
+      [
+       385.016502,
+       253.683867
+      ]
+     ]
+    },
+    {
+     "time": 2.84,
+     "quad": [
+      [
+       384.000514,
+       158.137297
+      ],
+      [
+       523.98953,
+       168.127048
+      ],
+      [
+       518.996,
+       258.119891
+      ],
+      [
+       389.006487,
+       253.129051
+      ]
+     ]
+    },
+    {
+     "time": 2.88,
+     "quad": [
+      [
+       388.026748,
+       157.628305
+      ],
+      [
+       527.987446,
+       167.621985
+      ],
+      [
+       522.991105,
+       257.596683
+      ],
+      [
+       393.027707,
+       252.601341
+      ]
+     ]
+    },
+    {
+     "time": 2.92,
+     "quad": [
+      [
+       392.008763,
+       157.072002
+      ],
+      [
+       531.983548,
+       167.070948
+      ],
+      [
+       526.983969,
+       257.054746
+      ],
+      [
+       397.00736,
+       252.054955
+      ]
+     ]
+    },
+    {
+     "time": 2.96,
+     "quad": [
+      [
+       396.031923,
+       156.556369
+      ],
+      [
+       535.983574,
+       166.558572
+      ],
+      [
+       530.981668,
+       256.527548
+      ],
+      [
+       401.026392,
+       251.524034
+      ]
+     ]
+    }
+   ]
+  }
+ },
+ {
+  "arguments": [
+   "track",
+   "/media/moving.mp4",
+   "--at",
+   "0.4",
+   "--quad",
+   "[[160, 194], [296, 194], [296, 290], [160, 290]]",
+   "--to",
+   "0"
+  ],
+  "output": {
+   "track": "0.1.0",
+   "time": 0.4,
+   "frames": [
+    {
+     "time": 0,
+     "quad": [
+      [
+       120.001855,
+       199.313082
+      ],
+      [
+       255.997785,
+       199.312892
+      ],
+      [
+       255.997919,
+       295.31002
+      ],
+      [
+       120.001989,
+       295.31021
+      ]
+     ]
+    },
+    {
+     "time": 0.04,
+     "quad": [
+      [
+       124.002114,
+       198.748272
+      ],
+      [
+       259.997546,
+       198.747975
+      ],
+      [
+       259.997756,
+       294.744751
+      ],
+      [
+       124.002324,
+       294.745048
+      ]
+     ]
+    },
+    {
+     "time": 0.08,
+     "quad": [
+      [
+       128.002236,
+       198.277404
+      ],
+      [
+       263.997335,
+       198.276909
+      ],
+      [
+       263.997684,
+       294.27345
+      ],
+      [
+       128.002585,
+       294.273945
+      ]
+     ]
+    },
+    {
+     "time": 0.12,
+     "quad": [
+      [
+       132.002071,
+       197.676807
+      ],
+      [
+       267.99742,
+       197.676215
+      ],
+      [
+       267.997838,
+       293.672932
+      ],
+      [
+       132.002489,
+       293.673524
+      ]
+     ]
+    },
+    {
+     "time": 0.16,
+     "quad": [
+      [
+       136.001919,
+       197.222985
+      ],
+      [
+       271.997484,
+       197.22229
+      ],
+      [
+       271.997975,
+       293.219159
+      ],
+      [
+       136.00241,
+       293.219854
+      ]
+     ]
+    },
+    {
+     "time": 0.2,
+     "quad": [
+      [
+       140.002012,
+       196.607909
+      ],
+      [
+       275.997384,
+       196.607149
+      ],
+      [
+       275.997921,
+       292.603882
+      ],
+      [
+       140.002548,
+       292.604643
+      ]
+     ]
+    },
+    {
+     "time": 0.24,
+     "quad": [
+      [
+       144.001667,
+       196.123257
+      ],
+      [
+       279.997735,
+       196.122583
+      ],
+      [
+       279.998211,
+       292.119808
+      ],
+      [
+       144.002143,
+       292.120482
+      ]
+     ]
+    },
+    {
+     "time": 0.28,
+     "quad": [
+      [
+       148.0021,
+       195.54237
+      ],
+      [
+       283.997354,
+       195.54186
+      ],
+      [
+       283.997714,
+       291.538509
+      ],
+      [
+       148.00246,
+       291.53902
+      ]
+     ]
+    },
+    {
+     "time": 0.32,
+     "quad": [
+      [
+       152.001599,
+       195.047603
+      ],
+      [
+       287.997964,
+       195.047282
+      ],
+      [
+       287.99819,
+       291.044716
+      ],
+      [
+       152.001826,
+       291.045037
+      ]
+     ]
+    },
+    {
+     "time": 0.36,
+     "quad": [
+      [
+       156.002515,
+       194.483205
+      ],
+      [
+       291.997274,
+       194.483041
+      ],
+      [
+       291.997389,
+       290.479341
+      ],
+      [
+       156.002631,
+       290.479505
+      ]
+     ]
+    },
+    {
+     "time": 0.4,
+     "quad": [
+      [
+       160,
+       194
+      ],
+      [
+       296,
+       194
+      ],
+      [
+       296,
+       290
+      ],
+      [
+       160,
+       290
+      ]
+     ]
+    }
+   ]
+  }
+ },
+ {
+  "arguments": [
+   "track",
+   "/media/moving.mp4",
+   "--at",
+   "0.4",
+   "--quad",
+   "[[160, 194], [296, 194], [296, 290], [160, 290]]",
+   "--to",
+   "2.96"
+  ],
+  "output": {
+   "track": "0.1.0",
+   "time": 0.4,
+   "frames": [
+    {
+     "time": 0.4,
+     "quad": [
+      [
+       160,
+       194
+      ],
+      [
+       296,
+       194
+      ],
+      [
+       296,
+       290
+      ],
+      [
+       160,
+       290
+      ]
+     ]
+    },
+    {
+     "time": 0.44,
+     "quad": [
+      [
+       164.003327,
+       193.425841
+      ],
+      [
+       299.99863,
+       193.428756
+      ],
+      [
+       299.996571,
+       289.425441
+      ],
+      [
+       164.001269,
+       289.422525
+      ]
+     ]
+    },
+    {
+     "time": 0.48,
+     "quad": [
+      [
+       168.004691,
+       192.891205
+      ],
+      [
+       304.000376,
+       192.898636
+      ],
+      [
+       303.995131,
+       288.895589
+      ],
+      [
+       167.999446,
+       288.888159
+      ]
+     ]
+    },
+    {
+     "time": 0.52,
+     "quad": [
+      [
+       172.014828,
+       192.368239
+      ],
+      [
+       308.009488,
+       192.402857
+      ],
+      [
+       307.985052,
+       288.399088
+      ],
+      [
+       171.990392,
+       288.36447
+      ]
+     ]
+    },
+    {
+     "time": 0.56,
+     "quad": [
+      [
+       176.04628,
+       191.794421
+      ],
+      [
+       312.041934,
+       191.918949
+      ],
+      [
+       311.954032,
+       287.915881
+      ],
+      [
+       175.958377,
+       287.791353
+      ]
+     ]
+    },
+    {
+     "time": 0.6,
+     "quad": [
+      [
+       180.089134,
+       191.224476
+      ],
+      [
+       316.084818,
+       191.470271
+      ],
+      [
+       315.911316,
+       287.467224
+      ],
+      [
+       179.915632,
+       287.22143
+      ]
+     ]
+    },
+    {
+     "time": 0.64,
+     "quad": [
+      [
+       184.152806,
+       190.583391
+      ],
+      [
+       320.144885,
+       191.007865
+      ],
+      [
+       319.845257,
+       287.002274
+      ],
+      [
+       183.853177,
+       286.5778
+      ]
+     ]
+    },
+    {
+     "time": 0.68,
+     "quad": [
+      [
+       188.218362,
+       189.995791
+      ],
+      [
+       324.214037,
+       190.609775
+      ],
+      [
+       323.780636,
+       286.606723
+      ],
+      [
+       187.784961,
+       285.992738
+      ]
+     ]
+    },
+    {
+     "time": 0.72,
+     "quad": [
+      [
+       192.280771,
+       189.334932
+      ],
+      [
+       328.273415,
+       190.116695
+      ],
+      [
+       327.721582,
+       286.111503
+      ],
+      [
+       191.728938,
+       285.329739
+      ]
+     ]
+    },
+    {
+     "time": 0.76,
+     "quad": [
+      [
+       196.325012,
+       188.779179
+      ],
+      [
+       332.31926,
+       189.686197
+      ],
+      [
+       331.679013,
+       285.682137
+      ],
+      [
+       195.684764,
+       284.775119
+      ]
+     ]
+    },
+    {
+     "time": 0.8,
+     "quad": [
+      [
+       200.351392,
+       188.173433
+      ],
+      [
+       336.340742,
+       189.145814
+      ],
+      [
+       335.654356,
+       285.138296
+      ],
+      [
+       199.665006,
+       284.165915
+      ]
+     ]
+    },
+    {
+     "time": 0.84,
+     "quad": [
+      [
+       204.355281,
+       187.67955
+      ],
+      [
+       340.34374,
+       188.659527
+      ],
+      [
+       339.651991,
+       284.65138
+      ],
+      [
+       203.663533,
+       283.671403
+      ]
+     ]
+    },
+    {
+     "time": 0.88,
+     "quad": [
+      [
+       208.306661,
+       187.158084
+      ],
+      [
+       344.298739,
+       188.009799
+      ],
+      [
+       343.697528,
+       284.004206
+      ],
+      [
+       207.705451,
+       283.152491
+      ]
+     ]
+    },
+    {
+     "time": 0.92,
+     "quad": [
+      [
+       212.232833,
+       186.791452
+      ],
+      [
+       348.225099,
+       187.44143
+      ],
+      [
+       347.766291,
+       283.435971
+      ],
+      [
+       211.774025,
+       282.785992
+      ]
+     ]
+    },
+    {
+     "time": 0.96,
+     "quad": [
+      [
+       216.139946,
+       186.320593
+      ],
+      [
+       352.132107,
+       186.712269
+      ],
+      [
+       351.85563,
+       282.706736
+      ],
+      [
+       215.863469,
+       282.31506
+      ]
+     ]
+    },
+    {
+     "time": 1,
+     "quad": [
+      [
+       220.047907,
+       185.924217
+      ],
+      [
+       356.051334,
+       186.083456
+      ],
+      [
+       355.938929,
+       282.085875
+      ],
+      [
+       219.935503,
+       281.926635
+      ]
+     ]
+    },
+    {
+     "time": 1.04,
+     "quad": [
+      [
+       223.987793,
+       185.482419
+      ],
+      [
+       359.981827,
+       185.463599
+      ],
+      [
+       359.995112,
+       281.459387
+      ],
+      [
+       224.001078,
+       281.478208
+      ]
+     ]
+    },
+    {
+     "time": 1.08,
+     "quad": [
+      [
+       227.945171,
+       185.033413
+      ],
+      [
+       363.935921,
+       184.887523
+      ],
+      [
+       364.038902,
+       280.880994
+      ],
+      [
+       228.048152,
+       281.026884
+      ]
+     ]
+    },
+    {
+     "time": 1.12,
+     "quad": [
+      [
+       231.917653,
+       184.517482
+      ],
+      [
+       367.920299,
+       184.314277
+      ],
+      [
+       368.063738,
+       280.316145
+      ],
+      [
+       232.061092,
+       280.51935
+      ]
+     ]
+    },
+    {
+     "time": 1.16,
+     "quad": [
+      [
+       235.926734,
+       183.982093
+      ],
+      [
+       371.913982,
+       183.779574
+      ],
+      [
+       372.056936,
+       279.770573
+      ],
+      [
+       236.069688,
+       279.973092
+      ]
+     ]
+    },
+    {
+     "time": 1.2,
+     "quad": [
+      [
+       239.947495,
+       183.442898
+      ],
+      [
+       375.932881,
+       183.287727
+      ],
+      [
+       376.042414,
+       279.277412
+      ],
+      [
+       240.057027,
+       279.432583
+      ]
+     ]
+    },
+    {
+     "time": 1.24,
+     "quad": [
+      [
+       243.977127,
+       182.838232
+      ],
+      [
+       379.96344,
+       182.763591
+      ],
+      [
+       380.016128,
+       278.75393
+      ],
+      [
+       244.029815,
+       278.828571
+      ]
+     ]
+    },
+    {
+     "time": 1.28,
+     "quad": [
+      [
+       247.999376,
+       182.302761
+      ],
+      [
+       383.999794,
+       182.321119
+      ],
+      [
+       383.986835,
+       278.321414
+      ],
+      [
+       247.986417,
+       278.303056
+      ]
+     ]
+    },
+    {
+     "time": 1.32,
+     "quad": [
+      [
+       252.038034,
+       181.690799
+      ],
+      [
+       388.023746,
+       181.798943
+      ],
+      [
+       387.947409,
+       277.788857
+      ],
+      [
+       251.961697,
+       277.680713
+      ]
+     ]
+    },
+    {
+     "time": 1.36,
+     "quad": [
+      [
+       256.045364,
+       181.15788
+      ],
+      [
+       392.054801,
+       181.333257
+      ],
+      [
+       391.931005,
+       277.339919
+      ],
+      [
+       255.921568,
+       277.164542
+      ]
+     ]
+    },
+    {
+     "time": 1.4,
+     "quad": [
+      [
+       260.070205,
+       180.55213
+      ],
+      [
+       396.046248,
+       180.725694
+      ],
+      [
+       395.923732,
+       276.708783
+      ],
+      [
+       259.947689,
+       276.535219
+      ]
+     ]
+    },
+    {
+     "time": 1.44,
+     "quad": [
+      [
+       264.062664,
+       180.093498
+      ],
+      [
+       400.037839,
+       180.231687
+      ],
+      [
+       399.940294,
+       276.214164
+      ],
+      [
+       263.965119,
+       276.075975
+      ]
+     ]
+    },
+    {
+     "time": 1.48,
+     "quad": [
+      [
+       268.039775,
+       179.514316
+      ],
+      [
+       404.015117,
+       179.587591
+      ],
+      [
+       403.963394,
+       275.570185
+      ],
+      [
+       267.988052,
+       275.496911
+      ]
+     ]
+    },
+    {
+     "time": 1.52,
+     "quad": [
+      [
+       272.015411,
+       179.078435
+      ],
+      [
+       407.989648,
+       179.085061
+      ],
+      [
+       407.984971,
+       275.066875
+      ],
+      [
+       272.010734,
+       275.060249
+      ]
+     ]
+    },
+    {
+     "time": 1.56,
+     "quad": [
+      [
+       275.996891,
+       178.51265
+      ],
+      [
+       411.971569,
+       178.469939
+      ],
+      [
+       412.001718,
+       274.452065
+      ],
+      [
+       276.02704,
+       274.494776
+      ]
+     ]
+    },
+    {
+     "time": 1.6,
+     "quad": [
+      [
+       279.98265,
+       178.015609
+      ],
+      [
+       415.957083,
+       177.933946
+      ],
+      [
+       416.014727,
+       273.915899
+      ],
+      [
+       280.040294,
+       273.997562
+      ]
+     ]
+    },
+    {
+     "time": 1.64,
+     "quad": [
+      [
+       283.974592,
+       177.48913
+      ],
+      [
+       419.950263,
+       177.386409
+      ],
+      [
+       420.022772,
+       273.369235
+      ],
+      [
+       284.047101,
+       273.471956
+      ]
+     ]
+    },
+    {
+     "time": 1.68,
+     "quad": [
+      [
+       287.971109,
+       176.964592
+      ],
+      [
+       423.951549,
+       176.854592
+      ],
+      [
+       424.029196,
+       272.840785
+      ],
+      [
+       288.048756,
+       272.950785
+      ]
+     ]
+    },
+    {
+     "time": 1.72,
+     "quad": [
+      [
+       291.96999,
+       176.427362
+      ],
+      [
+       427.974942,
+       176.326443
+      ],
+      [
+       428.046179,
+       272.329938
+      ],
+      [
+       292.041228,
+       272.430858
+      ]
+     ]
+    },
+    {
+     "time": 1.76,
+     "quad": [
+      [
+       295.984575,
+       175.871176
+      ],
+      [
+       431.988354,
+       175.789897
+      ],
+      [
+       432.045728,
+       271.792564
+      ],
+      [
+       296.041948,
+       271.873844
+      ]
+     ]
+    },
+    {
+     "time": 1.8,
+     "quad": [
+      [
+       300.000635,
+       175.354287
+      ],
+      [
+       435.990422,
+       175.300363
+      ],
+      [
+       436.028486,
+       271.293154
+      ],
+      [
+       300.038699,
+       271.347077
+      ]
+     ]
+    },
+    {
+     "time": 1.84,
+     "quad": [
+      [
+       304.008103,
+       174.769753
+      ],
+      [
+       439.994756,
+       174.746609
+      ],
+      [
+       440.011093,
+       270.737187
+      ],
+      [
+       304.024441,
+       270.760332
+      ]
+     ]
+    },
+    {
+     "time": 1.88,
+     "quad": [
+      [
+       308.016391,
+       174.266073
+      ],
+      [
+       443.994721,
+       174.27275
+      ],
+      [
+       443.990008,
+       270.257454
+      ],
+      [
+       308.011677,
+       270.250777
+      ]
+     ]
+    },
+    {
+     "time": 1.92,
+     "quad": [
+      [
+       312.01771,
+       173.668104
+      ],
+      [
+       448.009591,
+       173.699372
+      ],
+      [
+       447.987519,
+       269.693641
+      ],
+      [
+       311.995638,
+       269.662373
+      ]
+     ]
+    },
+    {
+     "time": 1.96,
+     "quad": [
+      [
+       316.028218,
+       173.175521
+      ],
+      [
+       452.016183,
+       173.225658
+      ],
+      [
+       451.980791,
+       269.217163
+      ],
+      [
+       315.992827,
+       269.167025
+      ]
+     ]
+    },
+    {
+     "time": 2,
+     "quad": [
+      [
+       320.031144,
+       172.586893
+      ],
+      [
+       456.010381,
+       172.636656
+      ],
+      [
+       455.975255,
+       268.622
+      ],
+      [
+       319.996017,
+       268.572237
+      ]
+     ]
+    },
+    {
+     "time": 2.04,
+     "quad": [
+      [
+       324.026738,
+       172.135024
+      ],
+      [
+       460.005266,
+       172.174691
+      ],
+      [
+       459.977266,
+       268.159535
+      ],
+      [
+       323.998738,
+       268.119867
+      ]
+     ]
+    },
+    {
+     "time": 2.08,
+     "quad": [
+      [
+       328.018399,
+       171.534379
+      ],
+      [
+       464.007918,
+       171.555195
+      ],
+      [
+       463.993224,
+       267.547797
+      ],
+      [
+       328.003705,
+       267.52698
+      ]
+     ]
+    },
+    {
+     "time": 2.12,
+     "quad": [
+      [
+       332.013846,
+       171.076178
+      ],
+      [
+       468.003128,
+       171.077721
+      ],
+      [
+       468.002038,
+       267.070156
+      ],
+      [
+       332.012756,
+       267.068612
+      ]
+     ]
+    },
+    {
+     "time": 2.16,
+     "quad": [
+      [
+       336.007162,
+       170.487492
+      ],
+      [
+       472.010783,
+       170.474682
+      ],
+      [
+       472.019825,
+       266.477238
+      ],
+      [
+       336.016204,
+       266.490048
+      ]
+     ]
+    },
+    {
+     "time": 2.2,
+     "quad": [
+      [
+       340.004413,
+       169.973274
+      ],
+      [
+       476.016775,
+       169.949116
+      ],
+      [
+       476.033828,
+       265.957842
+      ],
+      [
+       340.021466,
+       265.982
+      ]
+     ]
+    },
+    {
+     "time": 2.24,
+     "quad": [
+      [
+       344.011279,
+       169.449333
+      ],
+      [
+       479.998107,
+       169.418971
+      ],
+      [
+       480.019539,
+       265.409673
+      ],
+      [
+       344.032711,
+       265.440035
+      ]
+     ]
+    },
+    {
+     "time": 2.28,
+     "quad": [
+      [
+       347.995268,
+       168.912102
+      ],
+      [
+       484.01496,
+       168.879668
+      ],
+      [
+       484.037854,
+       264.893568
+      ],
+      [
+       348.018162,
+       264.926002
+      ]
+     ]
+    },
+    {
+     "time": 2.32,
+     "quad": [
+      [
+       352.00749,
+       168.397151
+      ],
+      [
+       487.997397,
+       168.367266
+      ],
+      [
+       488.018492,
+       264.360141
+      ],
+      [
+       352.028586,
+       264.390026
+      ]
+     ]
+    },
+    {
+     "time": 2.36,
+     "quad": [
+      [
+       356.009403,
+       167.850202
+      ],
+      [
+       491.991187,
+       167.826231
+      ],
+      [
+       492.008107,
+       263.813373
+      ],
+      [
+       356.026323,
+       263.837344
+      ]
+     ]
+    },
+    {
+     "time": 2.4,
+     "quad": [
+      [
+       360.024997,
+       167.343354
+      ],
+      [
+       495.991242,
+       167.327571
+      ],
+      [
+       496.002383,
+       263.303744
+      ],
+      [
+       360.036137,
+       263.319527
+      ]
+     ]
+    },
+    {
+     "time": 2.44,
+     "quad": [
+      [
+       364.031064,
+       166.7638
+      ],
+      [
+       500.010923,
+       166.757215
+      ],
+      [
+       500.015571,
+       262.742998
+      ],
+      [
+       364.035712,
+       262.749583
+      ]
+     ]
+    },
+    {
+     "time": 2.48,
+     "quad": [
+      [
+       368.032929,
+       166.265164
+      ],
+      [
+       504.020122,
+       166.267419
+      ],
+      [
+       504.018531,
+       262.258378
+      ],
+      [
+       368.031338,
+       262.256124
+      ]
+     ]
+    },
+    {
+     "time": 2.52,
+     "quad": [
+      [
+       372.023462,
+       165.670638
+      ],
+      [
+       508.039337,
+       165.680171
+      ],
+      [
+       508.032607,
+       261.691377
+      ],
+      [
+       372.016733,
+       261.681843
+      ]
+     ]
+    },
+    {
+     "time": 2.56,
+     "quad": [
+      [
+       376.03086,
+       165.194857
+      ],
+      [
+       512.01442,
+       165.209929
+      ],
+      [
+       512.00378,
+       261.198324
+      ],
+      [
+       376.020221,
+       261.183252
+      ]
+     ]
+    },
+    {
+     "time": 2.6,
+     "quad": [
+      [
+       380.025254,
+       164.60512
+      ],
+      [
+       516.002479,
+       164.619817
+      ],
+      [
+       515.992105,
+       260.60374
+      ],
+      [
+       380.01488,
+       260.589044
+      ]
+     ]
+    },
+    {
+     "time": 2.64,
+     "quad": [
+      [
+       384.020822,
+       164.148893
+      ],
+      [
+       519.999954,
+       164.160305
+      ],
+      [
+       519.991899,
+       260.145575
+      ],
+      [
+       384.012766,
+       260.134163
+      ]
+     ]
+    },
+    {
+     "time": 2.68,
+     "quad": [
+      [
+       388.010675,
+       163.542097
+      ],
+      [
+       523.999859,
+       163.547665
+      ],
+      [
+       523.995929,
+       259.54003
+      ],
+      [
+       388.006745,
+       259.534463
+      ]
+     ]
+    },
+    {
+     "time": 2.72,
+     "quad": [
+      [
+       392.00764,
+       163.076972
+      ],
+      [
+       527.997222,
+       163.076706
+      ],
+      [
+       527.99741,
+       259.069353
+      ],
+      [
+       392.007827,
+       259.069618
+      ]
+     ]
+    },
+    {
+     "time": 2.76,
+     "quad": [
+      [
+       396.015314,
+       162.491939
+      ],
+      [
+       531.994453,
+       162.48751
+      ],
+      [
+       531.997579,
+       258.472785
+      ],
+      [
+       396.01844,
+       258.477214
+      ]
+     ]
+    },
+    {
+     "time": 2.8,
+     "quad": [
+      [
+       400.014917,
+       161.975733
+      ],
+      [
+       535.997039,
+       161.968125
+      ],
+      [
+       536.002409,
+       257.955506
+      ],
+      [
+       400.020287,
+       257.963113
+      ]
+     ]
+    },
+    {
+     "time": 2.84,
+     "quad": [
+      [
+       404.025383,
+       161.445383
+      ],
+      [
+       539.992874,
+       161.436089
+      ],
+      [
+       539.999434,
+       257.413141
+      ],
+      [
+       404.031944,
+       257.422435
+      ]
+     ]
+    },
+    {
+     "time": 2.88,
+     "quad": [
+      [
+       408.032097,
+       160.920909
+      ],
+      [
+       543.994265,
+       160.911151
+      ],
+      [
+       544.001153,
+       256.884446
+      ],
+      [
+       408.038985,
+       256.894204
+      ]
+     ]
+    },
+    {
+     "time": 2.92,
+     "quad": [
+      [
+       412.016124,
+       160.387766
+      ],
+      [
+       548.002833,
+       160.378971
+      ],
+      [
+       548.009041,
+       256.369589
+      ],
+      [
+       412.022332,
+       256.378384
+      ]
+     ]
+    },
+    {
+     "time": 2.96,
+     "quad": [
+      [
+       416.03419,
+       159.851131
+      ],
+      [
+       551.989519,
+       159.844222
+      ],
+      [
+       551.994395,
+       255.812689
+      ],
+      [
+       416.039067,
+       255.819597
+      ]
+     ]
+    }
+   ]
+  }
+ },
+ {
+  "arguments": [
+   "track",
+   "/media/moving.mp4",
+   "--at",
+   "0",
+   "--area",
+   "[130, 170, 160, 130]",
+   "--to",
+   "0"
+  ],
+  "output": {
+   "track": "0.1.0",
+   "time": 0,
+   "frames": [
+    {
+     "time": 0,
+     "quad": [
+      [
+       130,
+       170
+      ],
+      [
+       290,
+       170
+      ],
+      [
+       290,
+       300
+      ],
+      [
+       130,
+       300
+      ]
+     ]
+    }
+   ]
+  }
+ },
+ {
+  "arguments": [
+   "track",
+   "/media/moving.mp4",
+   "--at",
+   "0",
+   "--area",
+   "[130, 170, 160, 130]",
+   "--to",
+   "0.4"
+  ],
+  "output": {
+   "track": "0.1.0",
+   "time": 0,
+   "frames": [
+    {
+     "time": 0,
+     "quad": [
+      [
+       130,
+       170
+      ],
+      [
+       290,
+       170
+      ],
+      [
+       290,
+       300
+      ],
+      [
+       130,
+       300
+      ]
+     ]
+    },
+    {
+     "time": 0.04,
+     "quad": [
+      [
+       134.046084,
+       169.345729
+      ],
+      [
+       294.173167,
+       169.53639
+      ],
+      [
+       294.018255,
+       299.639645
+      ],
+      [
+       133.891172,
+       299.448984
+      ]
+     ]
+    },
+    {
+     "time": 0.08,
+     "quad": [
+      [
+       138.112221,
+       168.657799
+      ],
+      [
+       298.386891,
+       169.096026
+      ],
+      [
+       298.030832,
+       299.319196
+      ],
+      [
+       137.756161,
+       298.880969
+      ]
+     ]
+    },
+    {
+     "time": 0.12,
+     "quad": [
+      [
+       142.207798,
+       167.986848
+      ],
+      [
+       302.532061,
+       168.707082
+      ],
+      [
+       301.946871,
+       298.970545
+      ],
+      [
+       141.622608,
+       298.250311
+      ]
+     ]
+    },
+    {
+     "time": 0.16,
+     "quad": [
+      [
+       146.320906,
+       167.316326
+      ],
+      [
+       306.736237,
+       168.323767
+      ],
+      [
+       305.917692,
+       298.661223
+      ],
+      [
+       145.502361,
+       297.653782
+      ]
+     ]
+    },
+    {
+     "time": 0.2,
+     "quad": [
+      [
+       150.491924,
+       166.775066
+      ],
+      [
+       310.699585,
+       167.9739
+      ],
+      [
+       309.725532,
+       298.142625
+      ],
+      [
+       149.517871,
+       296.943791
+      ]
+     ]
+    },
+    {
+     "time": 0.24,
+     "quad": [
+      [
+       154.644456,
+       166.318116
+      ],
+      [
+       314.641331,
+       167.638879
+      ],
+      [
+       313.568212,
+       297.63634
+      ],
+      [
+       153.571336,
+       296.315577
+      ]
+     ]
+    },
+    {
+     "time": 0.28,
+     "quad": [
+      [
+       158.718867,
+       165.777173
+      ],
+      [
+       318.672361,
+       167.164105
+      ],
+      [
+       317.545478,
+       297.126319
+      ],
+      [
+       157.591985,
+       295.739387
+      ]
+     ]
+    },
+    {
+     "time": 0.32,
+     "quad": [
+      [
+       162.718501,
+       165.247403
+      ],
+      [
+       322.706641,
+       166.661314
+      ],
+      [
+       321.557838,
+       296.651677
+      ],
+      [
+       161.569698,
+       295.237767
+      ]
+     ]
+    },
+    {
+     "time": 0.36,
+     "quad": [
+      [
+       166.691876,
+       164.740864
+      ],
+      [
+       326.559457,
+       166.098968
+      ],
+      [
+       325.455998,
+       295.991378
+      ],
+      [
+       165.588416,
+       294.633274
+      ]
+     ]
+    },
+    {
+     "time": 0.4,
+     "quad": [
+      [
+       170.664548,
+       164.323873
+      ],
+      [
+       330.438402,
+       165.570919
+      ],
+      [
+       329.425177,
+       295.387175
+      ],
+      [
+       169.651323,
+       294.140129
+      ]
+     ]
+    }
+   ]
+  }
+ },
+ {
+  "arguments": [
+   "timeline",
+   "<document>",
+   "--nested",
+   "clips[0]#inner",
+   "--json"
+  ],
+  "output": {
+   "timeline": "0.1.0",
+   "duration": 2.5,
+   "storyline": [
+    {
+     "place": "clips[0]#inner.media.storyline[0]#innerShot",
+     "id": "innerShot",
+     "kind": "video",
+     "media": "/media/moving.mp4",
+     "page": null,
+     "edit": [
+      0,
+      2.5
+     ],
+     "drawn": [
+      0,
+      2.5
+     ],
+     "clip": [
+      0.5,
+      3
+     ],
+     "sound": [
+      0,
+      2.5
+     ],
+     "speed": 1,
+     "timeRemap": false,
+     "transition": null,
+     "fps": null,
+     "instant": 0,
+     "clock": {
+      "clip": "clips[0]#inner.media.storyline[0]#innerShot",
+      "origin": -0.5,
+      "speed": 1
+     },
+     "space": {
+      "kind": "output",
+      "clip": null
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "clips[0]#inner.media.storyline[0]#innerShot"
+     },
+     "tracked": {
+      "clip": "clips[0]#inner.media.storyline[0]#innerShot",
+      "first": 0.48,
+      "last": 2.96
+     }
+    }
+   ],
+   "clips": [
+    {
+     "place": "clips[0]#inner.media.storyline[0]#innerShot.connected[0]#innerBox",
+     "id": "innerBox",
+     "kind": "rect",
+     "media": null,
+     "page": null,
+     "visible": [
+      0,
+      0.3
+     ],
+     "sound": null,
+     "lane": 1,
+     "storyline": "clips[0]#inner.media.storyline[0]#innerShot",
+     "parent": "clips[0]#inner.media.storyline[0]#innerShot",
+     "animation": null,
+     "fps": null,
+     "instant": -0.1,
+     "clock": {
+      "clip": "clips[0]#inner.media.storyline[0]#innerShot",
+      "origin": -0.5,
+      "speed": 1
+     },
+     "space": {
+      "kind": "media",
+      "clip": "clips[0]#inner.media.storyline[0]#innerShot"
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "clips[0]#inner.media.storyline[0]#innerShot"
+     },
+     "tracked": {
+      "clip": "clips[0]#inner.media.storyline[0]#innerShot",
+      "first": 0.48,
+      "last": 2.96
+     }
+    }
+   ]
+  }
+ },
+ {
+  "arguments": [
+   "timeline",
+   "<document>",
+   "--nested",
+   "clips[0]#inner",
+   "--at",
+   "-0.1",
+   "--json"
+  ],
+  "output": {
+   "timeline": "0.1.0",
+   "duration": 2.5,
+   "time": -0.1,
+   "storyline": [
+    {
+     "place": "clips[0]#inner.media.storyline[0]#innerShot",
+     "id": "innerShot",
+     "kind": "video",
+     "media": "/media/moving.mp4",
+     "page": null,
+     "edit": [
+      0,
+      2.5
+     ],
+     "drawn": [
+      0,
+      2.5
+     ],
+     "clip": [
+      0.5,
+      3
+     ],
+     "sound": [
+      0,
+      2.5
+     ],
+     "speed": 1,
+     "timeRemap": false,
+     "transition": null,
+     "fps": null,
+     "instant": 0,
+     "clock": {
+      "clip": "clips[0]#inner.media.storyline[0]#innerShot",
+      "origin": -0.5,
+      "speed": 1
+     },
+     "space": {
+      "kind": "output",
+      "clip": null
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "clips[0]#inner.media.storyline[0]#innerShot"
+     },
+     "tracked": {
+      "clip": "clips[0]#inner.media.storyline[0]#innerShot",
+      "first": 0.48,
+      "last": 2.96
+     },
+     "clipTime": 0.4,
+     "mediaTime": 0.4,
+     "box": {
+      "rect": [
+       0,
+       0,
+       640,
+       360
+      ],
+      "quad": [
+       [
+        0,
+        0
+       ],
+       [
+        640,
+        0
+       ],
+       [
+        640,
+        360
+       ],
+       [
+        0,
+        360
+       ]
+      ]
+     },
+     "masks": []
+    }
+   ],
+   "clips": [
+    {
+     "place": "clips[0]#inner.media.storyline[0]#innerShot.connected[0]#innerBox",
+     "id": "innerBox",
+     "kind": "rect",
+     "media": null,
+     "page": null,
+     "visible": [
+      0,
+      0.3
+     ],
+     "sound": null,
+     "lane": 1,
+     "storyline": "clips[0]#inner.media.storyline[0]#innerShot",
+     "parent": "clips[0]#inner.media.storyline[0]#innerShot",
+     "animation": null,
+     "fps": null,
+     "instant": -0.1,
+     "clock": {
+      "clip": "clips[0]#inner.media.storyline[0]#innerShot",
+      "origin": -0.5,
+      "speed": 1
+     },
+     "space": {
+      "kind": "media",
+      "clip": "clips[0]#inner.media.storyline[0]#innerShot"
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "clips[0]#inner.media.storyline[0]#innerShot"
+     },
+     "tracked": {
+      "clip": "clips[0]#inner.media.storyline[0]#innerShot",
+      "first": 0.48,
+      "last": 2.96
+     },
+     "mediaTime": null,
+     "box": {
+      "rect": [
+       124,
+       202,
+       128,
+       88
+      ],
+      "quad": [
+       [
+        124,
+        202
+       ],
+       [
+        252,
+        202
+       ],
+       [
+        252,
+        290
+       ],
+       [
+        124,
+        290
+       ]
+      ]
+     },
+     "masks": []
+    }
+   ]
+  }
+ },
+ {
+  "arguments": [
+   "track",
+   "/media/moving.mp4",
+   "--at",
+   "0.4",
+   "--quad",
+   "[[124, 202], [252, 202], [252, 290], [124, 290]]",
+   "--to",
+   "0.48"
+  ],
+  "output": {
+   "track": "0.1.0",
+   "time": 0.4,
+   "frames": [
+    {
+     "time": 0.4,
+     "quad": [
+      [
+       124,
+       202
+      ],
+      [
+       252,
+       202
+      ],
+      [
+       252,
+       290
+      ],
+      [
+       124,
+       290
+      ]
+     ]
+    },
+    {
+     "time": 0.44,
+     "quad": [
+      [
+       128.004294,
+       201.427222
+      ],
+      [
+       255.998716,
+       201.427443
+      ],
+      [
+       255.998564,
+       289.423608
+      ],
+      [
+       128.004142,
+       289.423387
+      ]
+     ]
+    },
+    {
+     "time": 0.48,
+     "quad": [
+      [
+       132.007278,
+       200.895456
+      ],
+      [
+       259.998107,
+       200.895798
+      ],
+      [
+       259.997872,
+       288.889493
+      ],
+      [
+       132.007043,
+       288.889151
+      ]
+     ]
+    }
+   ]
+  }
+ },
+ {
+  "arguments": [
+   "track",
+   "/media/moving.mp4",
+   "--at",
+   "0.4",
+   "--quad",
+   "[[124, 202], [252, 202], [252, 290], [124, 290]]",
+   "--to",
+   "2.96"
+  ],
+  "output": {
+   "track": "0.1.0",
+   "time": 0.4,
+   "frames": [
+    {
+     "time": 0.4,
+     "quad": [
+      [
+       124,
+       202
+      ],
+      [
+       252,
+       202
+      ],
+      [
+       252,
+       290
+      ],
+      [
+       124,
+       290
+      ]
+     ]
+    },
+    {
+     "time": 0.44,
+     "quad": [
+      [
+       128.004294,
+       201.427222
+      ],
+      [
+       255.998716,
+       201.427443
+      ],
+      [
+       255.998564,
+       289.423608
+      ],
+      [
+       128.004142,
+       289.423387
+      ]
+     ]
+    },
+    {
+     "time": 0.48,
+     "quad": [
+      [
+       132.007278,
+       200.895456
+      ],
+      [
+       259.998107,
+       200.895798
+      ],
+      [
+       259.997872,
+       288.889493
+      ],
+      [
+       132.007043,
+       288.889151
+      ]
+     ]
+    },
+    {
+     "time": 0.52,
+     "quad": [
+      [
+       136.008495,
+       200.380519
+      ],
+      [
+       263.998113,
+       200.380891
+      ],
+      [
+       263.997857,
+       288.373754
+      ],
+      [
+       136.008239,
+       288.373381
+      ]
+     ]
+    },
+    {
+     "time": 0.56,
+     "quad": [
+      [
+       140.007846,
+       199.836233
+      ],
+      [
+       267.998502,
+       199.83661
+      ],
+      [
+       267.998243,
+       287.830186
+      ],
+      [
+       140.007587,
+       287.829809
+      ]
+     ]
+    },
+    {
+     "time": 0.6,
+     "quad": [
+      [
+       144.006646,
+       199.326777
+      ],
+      [
+       271.998663,
+       199.327017
+      ],
+      [
+       271.998499,
+       287.321529
+      ],
+      [
+       144.006481,
+       287.321289
+      ]
+     ]
+    },
+    {
+     "time": 0.64,
+     "quad": [
+      [
+       148.005746,
+       198.755785
+      ],
+      [
+       275.998687,
+       198.756027
+      ],
+      [
+       275.99852,
+       286.751174
+      ],
+      [
+       148.005579,
+       286.750932
+      ]
+     ]
+    },
+    {
+     "time": 0.68,
+     "quad": [
+      [
+       152.00556,
+       198.263874
+      ],
+      [
+       279.998516,
+       198.264024
+      ],
+      [
+       279.998413,
+       286.259181
+      ],
+      [
+       152.005457,
+       286.259032
+      ]
+     ]
+    },
+    {
+     "time": 0.72,
+     "quad": [
+      [
+       156.005729,
+       197.683395
+      ],
+      [
+       283.998477,
+       197.683605
+      ],
+      [
+       283.998332,
+       285.678619
+      ],
+      [
+       156.005585,
+       285.678409
+      ]
+     ]
+    },
+    {
+     "time": 0.76,
+     "quad": [
+      [
+       160.005818,
+       197.19867
+      ],
+      [
+       287.998491,
+       197.19884
+      ],
+      [
+       287.998374,
+       285.193803
+      ],
+      [
+       160.005701,
+       285.193633
+      ]
+     ]
+    },
+    {
+     "time": 0.8,
+     "quad": [
+      [
+       164.006224,
+       196.606906
+      ],
+      [
+       291.998578,
+       196.607333
+      ],
+      [
+       291.998284,
+       284.602076
+      ],
+      [
+       164.005931,
+       284.601649
+      ]
+     ]
+    },
+    {
+     "time": 0.84,
+     "quad": [
+      [
+       168.006225,
+       196.149486
+      ],
+      [
+       295.998573,
+       196.149782
+      ],
+      [
+       295.99837,
+       284.144521
+      ],
+      [
+       168.006022,
+       284.144226
+      ]
+     ]
+    },
+    {
+     "time": 0.88,
+     "quad": [
+      [
+       172.006246,
+       195.543572
+      ],
+      [
+       299.99858,
+       195.543897
+      ],
+      [
+       299.998357,
+       283.538627
+      ],
+      [
+       172.006023,
+       283.538302
+      ]
+     ]
+    },
+    {
+     "time": 0.92,
+     "quad": [
+      [
+       176.005826,
+       195.075343
+      ],
+      [
+       303.998568,
+       195.075466
+      ],
+      [
+       303.998483,
+       283.070477
+      ],
+      [
+       176.005741,
+       283.070353
+      ]
+     ]
+    },
+    {
+     "time": 0.96,
+     "quad": [
+      [
+       180.006297,
+       194.484965
+      ],
+      [
+       307.99846,
+       194.485242
+      ],
+      [
+       307.998269,
+       282.479854
+      ],
+      [
+       180.006106,
+       282.479577
+      ]
+     ]
+    },
+    {
+     "time": 1,
+     "quad": [
+      [
+       184.0064,
+       193.968052
+      ],
+      [
+       311.998491,
+       193.968385
+      ],
+      [
+       311.998262,
+       281.962947
+      ],
+      [
+       184.006171,
+       281.962614
+      ]
+     ]
+    },
+    {
+     "time": 1.04,
+     "quad": [
+      [
+       188.006374,
+       193.431774
+      ],
+      [
+       315.998523,
+       193.432084
+      ],
+      [
+       315.99831,
+       281.426686
+      ],
+      [
+       188.006161,
+       281.426376
+      ]
+     ]
+    },
+    {
+     "time": 1.08,
+     "quad": [
+      [
+       192.00613,
+       192.905181
+      ],
+      [
+       319.998558,
+       192.905416
+      ],
+      [
+       319.998397,
+       280.90021
+      ],
+      [
+       192.005969,
+       280.899976
+      ]
+     ]
+    },
+    {
+     "time": 1.12,
+     "quad": [
+      [
+       196.00634,
+       192.381196
+      ],
+      [
+       323.998458,
+       192.381384
+      ],
+      [
+       323.998328,
+       280.375965
+      ],
+      [
+       196.00621,
+       280.375777
+      ]
+     ]
+    },
+    {
+     "time": 1.16,
+     "quad": [
+      [
+       200.006283,
+       191.834335
+      ],
+      [
+       327.998486,
+       191.83454
+      ],
+      [
+       327.998345,
+       279.829179
+      ],
+      [
+       200.006142,
+       279.828974
+      ]
+     ]
+    },
+    {
+     "time": 1.2,
+     "quad": [
+      [
+       204.006159,
+       191.326147
+      ],
+      [
+       331.998448,
+       191.326289
+      ],
+      [
+       331.998351,
+       279.320987
+      ],
+      [
+       204.006062,
+       279.320846
+      ]
+     ]
+    },
+    {
+     "time": 1.24,
+     "quad": [
+      [
+       208.006038,
+       190.755972
+      ],
+      [
+       335.998512,
+       190.756198
+      ],
+      [
+       335.998357,
+       278.751024
+      ],
+      [
+       208.005882,
+       278.750798
+      ]
+     ]
+    },
+    {
+     "time": 1.28,
+     "quad": [
+      [
+       212.006095,
+       190.264156
+      ],
+      [
+       339.998497,
+       190.264356
+      ],
+      [
+       339.998359,
+       278.259132
+      ],
+      [
+       212.005958,
+       278.258932
+      ]
+     ]
+    },
+    {
+     "time": 1.32,
+     "quad": [
+      [
+       216.006126,
+       189.683429
+      ],
+      [
+       343.998582,
+       189.683741
+      ],
+      [
+       343.998368,
+       277.678555
+      ],
+      [
+       216.005911,
+       277.678242
+      ]
+     ]
+    },
+    {
+     "time": 1.36,
+     "quad": [
+      [
+       220.006181,
+       189.198386
+      ],
+      [
+       347.998845,
+       189.199327
+      ],
+      [
+       347.998198,
+       277.194284
+      ],
+      [
+       220.005534,
+       277.193342
+      ]
+     ]
+    },
+    {
+     "time": 1.4,
+     "quad": [
+      [
+       224.006927,
+       188.60562
+      ],
+      [
+       351.999342,
+       188.608319
+      ],
+      [
+       351.997486,
+       276.603105
+      ],
+      [
+       224.005071,
+       276.600405
+      ]
+     ]
+    },
+    {
+     "time": 1.44,
+     "quad": [
+      [
+       228.007511,
+       188.147186
+      ],
+      [
+       355.999877,
+       188.151643
+      ],
+      [
+       355.996813,
+       276.146395
+      ],
+      [
+       228.004447,
+       276.141938
+      ]
+     ]
+    },
+    {
+     "time": 1.48,
+     "quad": [
+      [
+       232.008193,
+       187.547514
+      ],
+      [
+       360.000552,
+       187.554051
+      ],
+      [
+       359.996058,
+       275.548798
+      ],
+      [
+       232.003699,
+       275.542262
+      ]
+     ]
+    },
+    {
+     "time": 1.52,
+     "quad": [
+      [
+       236.006263,
+       187.114533
+      ],
+      [
+       363.999008,
+       187.116428
+      ],
+      [
+       363.997705,
+       275.11144
+      ],
+      [
+       236.00496,
+       275.109545
+      ]
+     ]
+    },
+    {
+     "time": 1.56,
+     "quad": [
+      [
+       240.001814,
+       186.539191
+      ],
+      [
+       367.993483,
+       186.524951
+      ],
+      [
+       368.003273,
+       274.519223
+      ],
+      [
+       240.011604,
+       274.533463
+      ]
+     ]
+    },
+    {
+     "time": 1.6,
+     "quad": [
+      [
+       243.984139,
+       186.116201
+      ],
+      [
+       371.984684,
+       186.067782
+      ],
+      [
+       372.017972,
+       274.068156
+      ],
+      [
+       244.017428,
+       274.116576
+      ]
+     ]
+    },
+    {
+     "time": 1.64,
+     "quad": [
+      [
+       247.982791,
+       185.545239
+      ],
+      [
+       375.976083,
+       185.474994
+      ],
+      [
+       376.024377,
+       273.470382
+      ],
+      [
+       248.031085,
+       273.540627
+      ]
+     ]
+    },
+    {
+     "time": 1.68,
+     "quad": [
+      [
+       251.974037,
+       185.033409
+      ],
+      [
+       379.968616,
+       184.938017
+      ],
+      [
+       380.034198,
+       272.934291
+      ],
+      [
+       252.039619,
+       273.029682
+      ]
+     ]
+    },
+    {
+     "time": 1.72,
+     "quad": [
+      [
+       255.968459,
+       184.5188
+      ],
+      [
+       383.964719,
+       184.408475
+      ],
+      [
+       384.040568,
+       272.405904
+      ],
+      [
+       256.044307,
+       272.516229
+      ]
+     ]
+    },
+    {
+     "time": 1.76,
+     "quad": [
+      [
+       259.953833,
+       184.010341
+      ],
+      [
+       387.954853,
+       183.8674
+      ],
+      [
+       388.053124,
+       271.868101
+      ],
+      [
+       260.052105,
+       272.011041
+      ]
+     ]
+    },
+    {
+     "time": 1.8,
+     "quad": [
+      [
+       263.94767,
+       183.503368
+      ],
+      [
+       391.951285,
+       183.346674
+      ],
+      [
+       392.059013,
+       271.349159
+      ],
+      [
+       264.055397,
+       271.505854
+      ]
+     ]
+    },
+    {
+     "time": 1.84,
+     "quad": [
+      [
+       267.947908,
+       182.966237
+      ],
+      [
+       395.93979,
+       182.784624
+      ],
+      [
+       396.06465,
+       270.779043
+      ],
+      [
+       268.072767,
+       270.960656
+      ]
+     ]
+    },
+    {
+     "time": 1.88,
+     "quad": [
+      [
+       271.957567,
+       182.472085
+      ],
+      [
+       399.937288,
+       182.287884
+      ],
+      [
+       400.063927,
+       270.273942
+      ],
+      [
+       272.084205,
+       270.458144
+      ]
+     ]
+    },
+    {
+     "time": 1.92,
+     "quad": [
+      [
+       275.966041,
+       181.885895
+      ],
+      [
+       403.939124,
+       181.709181
+      ],
+      [
+       404.060615,
+       269.690675
+      ],
+      [
+       276.087532,
+       269.867389
+      ]
+     ]
+    },
+    {
+     "time": 1.96,
+     "quad": [
+      [
+       279.97147,
+       181.388915
+      ],
+      [
+       407.943792,
+       181.224895
+      ],
+      [
+       408.056556,
+       269.205867
+      ],
+      [
+       280.084234,
+       269.369887
+      ]
+     ]
+    },
+    {
+     "time": 2,
+     "quad": [
+      [
+       283.972993,
+       180.78477
+      ],
+      [
+       411.947537,
+       180.634011
+      ],
+      [
+       412.051184,
+       268.61651
+      ],
+      [
+       284.07664,
+       268.767269
+      ]
+     ]
+    },
+    {
+     "time": 2.04,
+     "quad": [
+      [
+       287.969668,
+       180.341478
+      ],
+      [
+       415.944206,
+       180.182252
+      ],
+      [
+       416.053673,
+       268.164747
+      ],
+      [
+       288.079136,
+       268.323973
+      ]
+     ]
+    },
+    {
+     "time": 2.08,
+     "quad": [
+      [
+       291.965482,
+       179.740545
+      ],
+      [
+       419.938922,
+       179.56611
+      ],
+      [
+       420.058846,
+       267.54785
+      ],
+      [
+       292.085406,
+       267.722285
+      ]
+     ]
+    },
+    {
+     "time": 2.12,
+     "quad": [
+      [
+       295.956458,
+       179.296339
+      ],
+      [
+       423.937497,
+       179.095387
+      ],
+      [
+       424.075651,
+       267.082351
+      ],
+      [
+       296.094613,
+       267.283303
+      ]
+     ]
+    },
+    {
+     "time": 2.16,
+     "quad": [
+      [
+       299.961463,
+       178.670011
+      ],
+      [
+       427.954484,
+       178.490129
+      ],
+      [
+       428.078152,
+       266.485331
+      ],
+      [
+       300.085131,
+       266.665213
+      ]
+     ]
+    },
+    {
+     "time": 2.2,
+     "quad": [
+      [
+       303.965403,
+       178.134264
+      ],
+      [
+       431.968267,
+       177.972797
+      ],
+      [
+       432.079275,
+       265.974766
+      ],
+      [
+       304.076411,
+       266.136233
+      ]
+     ]
+    },
+    {
+     "time": 2.24,
+     "quad": [
+      [
+       307.971787,
+       177.583975
+      ],
+      [
+       435.966368,
+       177.436842
+      ],
+      [
+       436.067522,
+       265.433116
+      ],
+      [
+       308.072941,
+       265.580249
+      ]
+     ]
+    },
+    {
+     "time": 2.28,
+     "quad": [
+      [
+       311.966008,
+       177.093293
+      ],
+      [
+       439.949967,
+       176.921211
+      ],
+      [
+       440.068273,
+       264.910183
+      ],
+      [
+       312.084314,
+       265.082264
+      ]
+     ]
+    },
+    {
+     "time": 2.32,
+     "quad": [
+      [
+       315.970454,
+       176.557708
+      ],
+      [
+       443.940358,
+       176.383965
+      ],
+      [
+       444.059807,
+       264.363274
+      ],
+      [
+       316.089902,
+       264.537017
+      ]
+     ]
+    },
+    {
+     "time": 2.36,
+     "quad": [
+      [
+       319.970592,
+       176.022333
+      ],
+      [
+       447.929995,
+       175.835688
+      ],
+      [
+       448.058314,
+       263.807778
+      ],
+      [
+       320.09891,
+       263.994423
+      ]
+     ]
+    },
+    {
+     "time": 2.4,
+     "quad": [
+      [
+       323.984663,
+       175.469623
+      ],
+      [
+       451.944077,
+       175.320642
+      ],
+      [
+       452.046502,
+       263.29274
+      ],
+      [
+       324.087087,
+       263.441721
+      ]
+     ]
+    },
+    {
+     "time": 2.44,
+     "quad": [
+      [
+       328.006295,
+       174.829837
+      ],
+      [
+       455.973972,
+       174.751264
+      ],
+      [
+       456.027991,
+       262.729042
+      ],
+      [
+       328.060314,
+       262.807615
+      ]
+     ]
+    },
+    {
+     "time": 2.48,
+     "quad": [
+      [
+       332.028153,
+       174.274659
+      ],
+      [
+       459.99792,
+       174.268689
+      ],
+      [
+       460.002024,
+       262.247903
+      ],
+      [
+       332.032258,
+       262.253874
+      ]
+     ]
+    },
+    {
+     "time": 2.52,
+     "quad": [
+      [
+       336.039046,
+       173.653549
+      ],
+      [
+       464.01494,
+       173.694171
+      ],
+      [
+       463.987012,
+       261.677598
+      ],
+      [
+       336.011118,
+       261.636976
+      ]
+     ]
+    },
+    {
+     "time": 2.56,
+     "quad": [
+      [
+       340.036767,
+       173.192856
+      ],
+      [
+       468.016495,
+       173.233955
+      ],
+      [
+       467.98824,
+       261.220018
+      ],
+      [
+       340.008512,
+       261.178919
+      ]
+     ]
+    },
+    {
+     "time": 2.6,
+     "quad": [
+      [
+       344.029669,
+       172.600903
+      ],
+      [
+       472.003643,
+       172.615091
+      ],
+      [
+       471.993888,
+       260.597199
+      ],
+      [
+       344.019914,
+       260.58301
+      ]
+     ]
+    },
+    {
+     "time": 2.64,
+     "quad": [
+      [
+       348.019719,
+       172.151266
+      ],
+      [
+       476.014672,
+       172.144808
+      ],
+      [
+       476.019112,
+       260.141338
+      ],
+      [
+       348.024159,
+       260.147796
+      ]
+     ]
+    },
+    {
+     "time": 2.68,
+     "quad": [
+      [
+       352.025047,
+       171.553968
+      ],
+      [
+       480.008902,
+       171.545575
+      ],
+      [
+       480.014672,
+       259.534476
+      ],
+      [
+       352.030817,
+       259.542869
+      ]
+     ]
+    },
+    {
+     "time": 2.72,
+     "quad": [
+      [
+       356.028862,
+       171.050791
+      ],
+      [
+       484.009153,
+       171.043544
+      ],
+      [
+       484.014135,
+       259.029994
+      ],
+      [
+       356.033844,
+       259.037241
+      ]
+     ]
+    },
+    {
+     "time": 2.76,
+     "quad": [
+      [
+       360.036644,
+       170.496143
+      ],
+      [
+       488.002136,
+       170.49291
+      ],
+      [
+       488.004359,
+       258.469186
+      ],
+      [
+       360.038867,
+       258.472419
+      ]
+     ]
+    },
+    {
+     "time": 2.8,
+     "quad": [
+      [
+       364.05548,
+       169.995761
+      ],
+      [
+       491.990529,
+       169.996327
+      ],
+      [
+       491.99014,
+       257.951674
+      ],
+      [
+       364.055091,
+       257.951108
+      ]
+     ]
+    },
+    {
+     "time": 2.84,
+     "quad": [
+      [
+       368.076867,
+       169.456104
+      ],
+      [
+       495.982831,
+       169.458637
+      ],
+      [
+       495.981089,
+       257.393987
+      ],
+      [
+       368.075126,
+       257.391454
+      ]
+     ]
+    },
+    {
+     "time": 2.88,
+     "quad": [
+      [
+       372.067809,
+       168.919648
+      ],
+      [
+       499.990875,
+       168.922706
+      ],
+      [
+       499.988773,
+       256.869814
+      ],
+      [
+       372.065706,
+       256.866756
+      ]
+     ]
+    },
+    {
+     "time": 2.92,
+     "quad": [
+      [
+       376.04862,
+       168.392893
+      ],
+      [
+       503.995024,
+       168.395135
+      ],
+      [
+       503.993483,
+       256.358287
+      ],
+      [
+       376.047079,
+       256.356046
+      ]
+     ]
+    },
+    {
+     "time": 2.96,
+     "quad": [
+      [
+       380.027027,
+       167.841338
+      ],
+      [
+       507.996578,
+       167.842387
+      ],
+      [
+       507.995857,
+       255.821453
+      ],
+      [
+       380.026306,
+       255.820404
+      ]
+     ]
+    }
+   ]
+  }
+ }
+]
