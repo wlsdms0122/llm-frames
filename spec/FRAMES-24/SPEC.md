@@ -63,6 +63,7 @@ These are the acceptance tests.
 
 - A renderer against `quartz` on the same display lists and the same decoder, checked on `metal` ([Notes](#notes)): at every pixel each component within 2⁻⁹ × max(1, |v|), and the mean difference of the components within 2⁻¹² over the pixels no edge of a picture, path, mask or glyph and no detail of a picture reaches, and again over the others, and a hard edge of a shape or of a picture at a fractional position lies at the same position within 1/64 of a pixel, its position being where the area of its alpha across the edge puts it.
 - The `avfoundation` decoder's conversion of a video frame on the GPU against its conversion of the same frame on the CPU, which is the reference ([FRAMES-21](../FRAMES-21/SPEC.md#pictures)): each component within 2⁻¹⁰ × max(1, |v|), and the mean difference of the components over the frame within 2⁻¹⁸. Two conversions of the same frame on the GPU give the same bytes.
+- The `avfoundation` encoder's conversion of a frame on the GPU to the output's values against its conversion of the same frame on the CPU, which is the reference ([FRAMES-21](../FRAMES-21/SPEC.md#pictures)): each code value within 1. Two conversions of the same frame on the GPU give the same bytes.
 
 ## Interactions
 
