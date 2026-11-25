@@ -7,10 +7,9 @@
 
 import Frames
 
-// How far a renderer's frame lies from the reference's, by the classes of FRAMES-24 Tolerances. A flat pixel is one
-// whose reference components differ from those of every pixel next to it, diagonals included, by at most 2^-8, so no
-// edge and no detail of a resampled picture reaches it. Every other pixel is held to the bounds of a resampled picture
-// and an edge.
+// How far a renderer's frame lies from the reference's (FRAMES-24 Tolerances), over flat pixels and over the others
+// apart. A flat pixel is one whose reference components differ from those of every pixel next to it, diagonals
+// included, by at most 2^-8, so no edge and no detail of a picture reaches it.
 struct RendererAgreement {
     // MARK: - Property
     private static let flatStep = 1.0 / 256
@@ -18,12 +17,18 @@ struct RendererAgreement {
     // The largest difference of a flat pixel's component over max(1, |v|), and the mean difference over them.
     let flatLargest: Double
     let flatMean: Double
-    // The largest difference of any other pixel's component, of its alpha, and the mean difference over them.
+    // The largest difference of any other pixel's component over max(1, |v|), of its alpha, and the mean difference
+    // over them.
     let otherLargest: Double
     let otherAlphaLargest: Double
     let otherMean: Double
     let flatCount: Int
     let otherCount: Int
+
+    // The mean difference of the components over every pixel.
+    var mean: Double {
+        (flatMean * Double(flatCount) + otherMean * Double(otherCount)) / Double(max(flatCount + otherCount, 1))
+    }
 
     var summary: String {
         "flat \(flatCount) px: largest \(flatLargest), mean \(flatMean); "
@@ -69,7 +74,7 @@ struct RendererAgreement {
                         flatLargest = max(flatLargest, difference / max(1, abs(value)))
                         flatSum += difference
                     } else {
-                        otherLargest = max(otherLargest, difference)
+                        otherLargest = max(otherLargest, difference / max(1, abs(value)))
                         if component == 3 { otherAlphaLargest = max(otherAlphaLargest, difference) }
                         otherSum += difference
                     }
