@@ -440,17 +440,17 @@ struct KeyChecker: Sendable {
 
             return (index, name)
         }
-        if admitting.count > 1, kinds.count == admitting.count, let written = value.objectValue?["kind"]?.stringValue {
-            guard let form = kinds.first(where: { $0.name == written }) else {
-                throw ModelError.unknownValue(
-                    place: place.appending(key: "kind"),
-                    kind: kind,
-                    value: written,
-                    allowed: kinds.map(\.name)
-                )
+        if admitting.count > 1, kinds.count == admitting.count, let object = value.objectValue {
+            guard let written = object["kind"] else {
+                throw ModelError.missingKey(place: place, kind: kind, keys: ["kind"])
             }
 
-            throw failures[form.index]
+            var trial = scope
+            let names = ValueType.literal(kinds.map(\.name))
+            try check(written, as: names, place: place.appending(key: "kind"), kind: kind, scope: &trial)
+            // `kind` names one of the forms, so its form's own error is the one to give.
+            let form = kinds.first { written.stringValue == $0.name }
+            throw failures[form?.index ?? admitting[0]]
         }
         if admitting.count > 1, let object = value.objectValue {
             let known = admitting.map { index -> (index: Int, count: Int) in
@@ -1729,7 +1729,7 @@ struct KeyChecker: Sendable {
                 : "a list of at least two [offset, colour], each offset from 0 to 1 and at least the one before it"
 
         case .points:
-            "a list of at least two vertices, each a point or {vertex, inTangent, outTangent}"
+            "a list of at least two vertices, each [x, y] or {vertex, inTangent, outTangent}"
 
         case .quad:
             "a list of four points"

@@ -390,7 +390,8 @@ enum ClipKeyTable {
 
     // A look key's type in a keyframe: each leaf may be `null`, and its numbers may be any number, since timing checks
     // a leaf two keyframes write against its sampled domain and one a single keyframe writes against its domain. A
-    // gradient's offsets may be out of order, since sampling raises each to the one before it.
+    // gradient's offsets may be out of order, since sampling raises each to the one before it. A form's `kind`, a
+    // required key of one value, names the form the keyframe moves and is written as it is statically.
     private static func keyframed(_ type: ValueType) -> ValueType {
         switch type {
         case ChoiceKeyTable.filter, ChoiceKeyTable.audioFilter:
@@ -412,7 +413,13 @@ enum ClipKeyTable {
         case let .object(table):
             .object(ObjectTable(
                 kind: table.kind,
-                rules: table.rules.map { KeyRule($0.name, keyframed($0.type)) },
+                rules: table.rules.map { rule in
+                    guard rule.isRequired, case .exactly = rule.type else {
+                        return KeyRule(rule.name, keyframed(rule.type))
+                    }
+
+                    return rule
+                },
                 groups: table.groups
             ))
 
