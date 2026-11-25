@@ -259,7 +259,7 @@ struct DocumentCommandTests {
         #expect(try sut.standardOutput == line(of: master) + line(of: report))
         let text = try String(contentsOfFile: report, encoding: .utf8)
         let object = try #require(JSONSerialization.jsonObject(with: Data(text.utf8)) as? [String: Any])
-        let keys = ["render", "frames", "seconds", "cpuSeconds", "fps", "cores", "peakMemory", "machine", "roles", "stages", "waiting", "other", "media", "files"]
+        let keys = ["render", "frames", "seconds", "cpuSeconds", "fps", "cores", "peakMemory", "machine", "roles", "stages", "readAhead", "waiting", "other", "media", "files"]
         #expect(Set(object.keys) == Set(keys))
         #expect(keys.map { text.range(of: "\"\($0)\":")!.lowerBound } == keys.map { text.range(of: "\"\($0)\":")!.lowerBound }.sorted())
         #expect(object["frames"] as? Int == 3)
@@ -267,9 +267,13 @@ struct DocumentCommandTests {
         #expect(Set(stages.keys) == Set(RunStage.allCases.map(\.rawValue)))
         let seconds = try #require(object["seconds"] as? Double)
         let renderThread = RunStage.allCases.filter(\.isOnRenderThread).reduce(0) { $0 + stages[$1.rawValue]! }
-        let waiting = try #require(object["waiting"] as? Double)
+        let readAhead = try #require(object["readAhead"] as? [String: Double])
+        #expect(Set(readAhead.keys) == ["decode", "workingConversion"])
+        let waiting = try #require(object["waiting"] as? [String: Double])
+        #expect(Set(waiting.keys) == ["encoder", "decoder"])
         let other = try #require(object["other"] as? Double)
-        #expect(abs(renderThread + waiting + other - seconds) < 1e-5)
+        let held = renderThread - readAhead.values.reduce(0, +) + waiting.values.reduce(0, +)
+        #expect(abs(held + other - seconds) < 1e-5)
         #expect(other >= 0)
         let roles = try #require(object["roles"] as? [String: String])
         #expect(roles == ["decoder": "avfoundation", "renderer": "quartz", "mixer": "avfoundation", "encoder": "avfoundation"])

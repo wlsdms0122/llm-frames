@@ -479,7 +479,7 @@ struct RenderPipelineTests {
             frames: 1,
             files: [FileEncoding(path: image, codec: "PNG", usesHardware: false, seconds: StageTimes())]
         ))
-        #expect(recorder.waiting > 0)
+        #expect(recorder.waitingOnEncoder > 0)
     }
 
     // MARK: - Private
