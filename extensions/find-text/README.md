@@ -1,6 +1,6 @@
 # find-text
 
-`frames-find-text` is an extension of frames: it takes a document whose areas and points may name a place by its text on screen, and gives the same document with each of those places written as the rectangle `frames ocr` finds, so the result is a plain frames document that any frames command takes.
+`frames-find-text` is an extension of frames: it takes a document whose areas may hold a request for it, a place named by its text on screen, and gives the same document with each of those requests filled with the rectangle `frames ocr` finds, so once every request in it is filled the result is a plain frames document that any frames command takes.
 
 ```sh
 frames find-text /path/to/edit.json | frames render - -o /path/to/out/edit.mp4
@@ -25,24 +25,27 @@ frames find-text <document.json | -> [--languages <tag>[,<tag>...]]
 - `<document.json>` is an absolute path, or `-` for standard input. The document is printed to standard output, and a stop prints `frames-find-text: <reason>` to standard error and exits with 1.
 - `--languages` gives `frames ocr --languages` the recognition languages, BCP 47 tags in order of preference. Without it the OCR provider detects the language of each picture. Give it for lines that mix scripts, with the non-Latin language first (`ko-KR,en-US`).
 
-## The forms
+## The requests
 
-| Form | Means |
+A request is a hole a tool fills ([FRAMES-25](../../spec/FRAMES-25/SPEC.md#requests)): an object with the key `tool`, which names the tool, and that tool's arguments beside it. This extension fills the requests whose `tool` is `find-text`:
+
+| Request | Means |
 | --- | --- |
-| `{"text": "Total", "nth": 0, "padding": 8}` | the recognised line that contains the text |
-| `{"from": "Sourdough", "to": "Flat white", "fromNth": 0, "toNth": 0, "padding": 8}` | the rectangle around the `from` line, the `to` line and every recognised line whose vertical centre lies between the top of the higher one and the bottom of the lower one |
+| `{"tool": "find-text", "text": "Total", "nth": 0, "padding": 8}` | the recognised line that contains the text |
+| `{"tool": "find-text", "from": "Sourdough", "to": "Flat white", "fromNth": 0, "toNth": 0, "padding": 8}` | the rectangle around the `from` line, the `to` line and every recognised line whose vertical centre lies between the top of the higher one and the bottom of the lower one |
 
-- A form stands wherever an area does, and as the `area` of a point `{"area": <form>, "point": "right"}`, in the places below.
+- A request stands wherever an area does, as a `crop`, an `area` and a mask's `area`, on a clip and in a keyframe, and as the `area` of a point `{"area": <request>, "point": "right"}`, in the places below. Anywhere else it stops.
 - Text is compared with whitespace removed, and a line matches when it contains the text. Case counts.
 - `nth`, `fromNth` and `toNth` pick one match, counted from 0 in the order `frames ocr` lists lines: top to bottom by row and left to right within a row.
-- Without `nth`, text that more than one line contains stops, and the message lists every match with its rectangle and line. The same holds for each end of a `from`/`to` form.
+- Without `nth`, text that more than one line contains stops, and the message lists every match with its rectangle and line. The same holds for each end of a `from`/`to` request.
 - Text that no line contains, or an `nth` past the last match, stops, naming the place, the text, the nth and the media read.
 - `padding` grows the rectangle found on every side, in the pixels of the media searched. It is optional, 0 or more, and 0 by default.
-- An object holds the keys of one form, and any other key stops.
+- A request holds the keys of one of the two, and any other key stops.
+- A request for any other tool is left as written, so this extension and another chain in either order where neither needs a value the other finds. A target for `frames track-motion` named by its text is the clip's own `area` holding a `find-text` request, which the track request names with `"target": "area"` ([its README](../track-motion/README.md)), so this extension runs first: `frames find-text doc.json | frames track-motion - | frames render - -o out.mp4`.
 
 ## Where it works
 
-A form is searched in the pixels its key is written in, which `timeline --json` reports for every clip ([FRAMES-23](../../spec/FRAMES-23/SPEC.md#a-clips-times-and-spaces)): a `crop` or a `mask` in the clip's `ownSpace`, and a `position`, `area`, `points` or `cornerPin` in its `space`. Where that space is the media pixels of a clip whose media is a video, an image, an image sequence or a page of a PDF, the form is searched in that clip's media. So a child of a storyline clip or a media clip is searched in its parent's media, and so is a child of a shape placed by `area` or `points`, of an adjustment clip or of a clip with a corner pin that is itself written in such media, as frames places it.
+A request is searched in the pixels its key is written in, which `timeline --json` reports for every clip ([FRAMES-23](../../spec/FRAMES-23/SPEC.md#a-clips-times-and-spaces)): a `crop` or a `mask` in the clip's `ownSpace`, and a `position`, `area`, `points` or `cornerPin` in its `space`. Where that space is the media pixels of a clip whose media is a video, an image, an image sequence or a page of a PDF, the request is searched in that clip's media. So a child of a storyline clip or a media clip is searched in its parent's media, and so is a child of a shape placed by `area` or `points`, of an adjustment clip or of a clip with a corner pin that is itself written in such media, as frames places it.
 
 Anywhere else it stops, naming the place and the space its entry reports:
 
@@ -50,19 +53,16 @@ Anywhere else it stops, naming the place and the space its entry reports:
 - a box: a child of a title or of a rect or ellipse placed by `width` and `height`, and such a clip's own `mask`;
 - the media pixels of a compound clip or a template instance, whose picture is drawn and not read.
 
-A form also stands as the target of a `track` request, the requests `frames track-motion` follows ([its README](../track-motion/README.md)): `"track": <form>`, and `"track": {"time": t, "area": <form>}`. It becomes the rectangle, and the request stays for `frames track-motion`, so the chain is `frames find-text doc.json | frames track-motion - | frames render - -o out.mp4`. The target is searched in the media of the clip its entry reports as `tracked.clip` ([FRAMES-23](../../spec/FRAMES-23/SPEC.md#a-clips-times-and-spaces)), the media its track follows, and an entry whose `tracked` is `null` stops, since there is no video or image sequence to follow.
-
 ## The frame searched
 
-A still or a page has one picture. On a video or an image sequence the form is searched on the frame the searched clip shows at the sequence time the form takes effect at, read from the entry of the clip that writes it:
+A still or a page has one picture. On a video or an image sequence the request is searched on the frame the searched clip shows at the sequence time its value takes effect at, read from the entry of the clip that writes it:
 
-| Form | Sequence time |
+| Request | Sequence time |
 | --- | --- |
 | a static value | the clip's `instant` |
 | a keyframe's value | its `at` carried by the clip's `clock`, `origin + at / speed` |
-| a `track` request's `area` beside `time` | none: the frame shown at the media time its `time` names |
 
-The extension writes a copy of the document with each form in a placeholder rectangle and without `track`, since a request is no value frames takes, so frames resolves it and times its clips as it times the document before any target is followed. It reads `timeline --json` once, and `timeline --at <t> --json` once for each sequence time, whose entry for the searched clip gives the `mediaTime` of the frame its time map shows there, whether the clip draws anything at t or not and inside the sequence or outside it. So `speed`, `in`, `loop`, `timeRemap` and transitions are applied by frames, and the extension computes no time and follows no parent.
+The extension writes a copy of the document with a value in the place of every request, its own and every other tool's, since frames takes none: a placeholder rectangle where an area stands, and no `track` where a track request stands, since a clip's times and spaces do not depend on its track. So frames resolves it and times its clips as it times the document once its requests are filled. A request of another tool anywhere else has no such value, and stops, naming the tool that fills it first. It reads `timeline --json` once, and `timeline --at <t> --json` once for each sequence time, whose entry for the searched clip gives the `mediaTime` of the frame its time map shows there, whether the clip draws anything at t or not and inside the sequence or outside it. So `speed`, `in`, `loop`, `timeRemap` and transitions are applied by frames, and the extension computes no time and follows no parent.
 
 The media are read with `frames ocr --json` at that media time: the searched clip's `media`, its `page` as `--page`, an image sequence's directory with the `fps` its entry reports as `--fps`, the searched clip's `colorSpace` as `--color-space`, and `--languages` as given. Each distinct media file, time, page, rate, colour space and languages is read once.
 
@@ -83,10 +83,10 @@ A board shown as a still, a box drawn around one of its lines, and a note at its
   "storyline": [
     { "id": "menu", "media": "/path/to/board.png", "duration": 4,
       "connected": [
-        { "id": "box", "parent": "menu", "shape": "rect", "area": { "text": "Cinnamon bun", "padding": 8 },
+        { "id": "box", "parent": "menu", "shape": "rect", "area": { "tool": "find-text", "text": "Cinnamon bun", "padding": 8 },
           "stroke": { "width": 6, "color": "#F2B33D" } },
         { "parent": "menu", "title": "New this week", "style": "subtitle", "anchor": "left",
-          "position": { "area": { "text": "Cinnamon bun", "padding": 28 }, "point": "right" } } ] }
+          "position": { "area": { "tool": "find-text", "text": "Cinnamon bun", "padding": 28 }, "point": "right" } } ] }
   ]
 }
 ```
@@ -96,7 +96,7 @@ frames find-text /path/to/menu.json > /path/to/out/menu.frames.json
 frames still /path/to/out/menu.frames.json --at 1 -o /path/to/out/check.png
 ```
 
-The box's `area` and the note's point are written as `[x, y, w, h]` in the board's pixels, as `frames ocr /path/to/board.png` reports the line, grown by the padding.
+The box's `area` and the note's point are filled with `[x, y, w, h]` in the board's pixels, as `frames ocr /path/to/board.png` reports the line, grown by the padding.
 
 ## Check
 
