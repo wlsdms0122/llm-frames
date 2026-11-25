@@ -588,10 +588,12 @@ class Reading(unittest.TestCase):
     def test_options(self):
         # Given the global options frames passes before the tool's arguments
         # When they are parsed
-        options, document, languages, report = tool.parse(["--theme", "demo/dark", "/a/b.json", "--languages", "en-US"])
+        options, document, languages, report = tool.parse(
+            ["--theme", "demo/dark", "--memory", "4GB", "/a/b.json", "--languages", "en-US"]
+        )
 
         # Then the global options are kept for every frames command and the languages for ocr
-        self.assertEqual(options, ["--theme", "demo/dark"])
+        self.assertEqual(options, ["--theme", "demo/dark", "--memory", "4GB"])
         self.assertEqual(document, "/a/b.json")
         self.assertEqual(languages, "en-US")
         self.assertIsNone(report)

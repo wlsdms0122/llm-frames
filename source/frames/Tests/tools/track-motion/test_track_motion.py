@@ -496,7 +496,10 @@ class Arguments(Case):
 
     def test_global_options(self):
         # Then the global options of frames are passed on
-        self.assertEqual(tool.parse(["--tracker", "planar", "/abs/edit.json"]), (["--tracker", "planar"], "/abs/edit.json"))
+        self.assertEqual(
+            tool.parse(["--tracker", "planar", "--memory", "4GB", "/abs/edit.json"]),
+            (["--tracker", "planar", "--memory", "4GB"], "/abs/edit.json")
+        )
 
 
 class Failure(unittest.TestCase):

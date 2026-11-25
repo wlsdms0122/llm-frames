@@ -18,9 +18,10 @@ import Testing
 @Suite("MemoryLimitRender Tests", .ownThread)
 struct MemoryLimitRenderTests {
     // MARK: - Property
-    // Four videos of 160 by 120 pixels, read as 8-bit Y'CbCr 4:2:0, cost 806 400 bytes a reader; the frames in flight
-    // of a 160 by 120 sequence 460 800 and its 0.4 s of sound 153 600, so a run's floor is 1 420 800 bytes, and at 2 MB
-    // the budget leaves no room for a second reader.
+    // Four videos of 160 by 120 pixels, read as 8-bit Y'CbCr 4:2:0, cost 806 400 bytes a reader; the two frames in
+    // flight of a 160 by 120 sequence 307 200 and its 0.4 s of sound 153 600, so a run's floor is 1 267 200 bytes. The
+    // renderer keeps the four videos' pictures of two frames, 153 600 bytes each, so at 3 MB the budget leaves no room
+    // for a third reader.
     private static let videoCount = 4
 
     // MARK: - Initializer
@@ -30,7 +31,7 @@ struct MemoryLimitRenderTests {
         // Given
         let directory = try TemporaryDirectory()
         let document = try await document(in: directory)
-        let limited = MemoryBudget(limit: try #require(MemorySize("2MB")))
+        let limited = MemoryBudget(limit: try #require(MemorySize("3MB")))
         let unlimited = MemoryBudget(limit: .unlimited)
 
         // When
@@ -40,13 +41,15 @@ struct MemoryLimitRenderTests {
         // Then
         let readers = try #require(limited.usage.holders.first { $0.holder == .readers })
         #expect(readers.refused > 0)
-        #expect(limited.usage.peak <= limited.limit.bytes)
+        let pictures = try #require(limited.usage.holders.first { $0.holder == .pictures })
+        #expect(pictures.peak == 8 * 153_600)
+        #expect(limited.usage.peak <= limited.limit.bytes + pictures.peak)
         #expect(unlimited.usage.holders.first { $0.holder == .readers }?.refused == 0)
         #expect(limitedFrames.count == 12)
         #expect(limitedFrames == unlimitedFrames)
     }
 
-    @Test("a render's floor holds one reader of its costliest video, its frames in flight and its sound")
+    @Test("a render's floor holds one reader of its costliest video, its two frames in flight and its sound")
     func declaresFloor() async throws {
         // Given
         let directory = try TemporaryDirectory()
@@ -58,8 +61,8 @@ struct MemoryLimitRenderTests {
 
         // Then
         let floors = sut.usage.holders.map(\.floor)
-        #expect(floors == [806_400, 0, 460_800, 153_600])
-        #expect(sut.usage.floor == 1_420_800)
+        #expect(floors == [806_400, 0, 0, 0, 307_200, 153_600])
+        #expect(sut.usage.floor == 1_267_200)
     }
 
     @Test("a limit under the run's floor is refused before the first frame, naming the limit, the floor and its holders")
@@ -82,8 +85,8 @@ struct MemoryLimitRenderTests {
 
         // Then
         #expect(error?.description == """
-            memory limit 1MB is under the 1.4 MB this run needs: readers 0.8 MB, readAhead 0 MB, frames 0.4 MB, \
-            sound 0.1 MB
+            memory limit 1MB is under the 1.2 MB this run needs: readers 0.8 MB, readAhead 0 MB, turns 0 MB, \
+            pictures 0 MB, frames 0.3 MB, sound 0.1 MB
             """)
         #expect(encoder.captured.isEmpty)
     }
@@ -143,7 +146,7 @@ struct MemoryLimitRenderTests {
 
         return RenderPipeline(
             decoder: decoder,
-            renderer: QuartzRenderer(decoder: decoder),
+            renderer: QuartzRenderer(decoder: decoder, budget: budget),
             mixer: AVFoundationMixer(decoder: decoder),
             encoder: encoder,
             budget: budget

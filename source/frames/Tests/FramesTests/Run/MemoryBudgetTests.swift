@@ -55,6 +55,25 @@ struct MemoryBudgetTests {
         #expect(sut.usage.peak == 10 * megabyte)
     }
 
+    @Test("a hold is granted whatever the total, and a holder that gives way then finds no room")
+    func grantsHold() throws {
+        // Given
+        let sut = MemoryBudget(limit: try #require(MemorySize("10MB")))
+        sut.require(4 * megabyte, for: .readers)
+
+        // When
+        sut.hold(8 * megabyte, for: .pictures)
+        let refused = sut.take(megabyte, for: .readAhead)
+        sut.give(8 * megabyte, for: .pictures)
+        let granted = sut.take(megabyte, for: .readAhead)
+
+        // Then
+        #expect(!refused && granted)
+        let pictures = try #require(sut.usage.holders.first { $0.holder == .pictures })
+        #expect(pictures.peak == 8 * megabyte && pictures.refused == 0)
+        #expect(sut.usage.peak == 12 * megabyte)
+    }
+
     @Test("a limit under the sum of the floors is refused, naming the limit, the floor and each holder's")
     func refusesUnderFloor() throws {
         // Given
@@ -68,8 +87,8 @@ struct MemoryBudgetTests {
 
         // Then
         #expect(error?.description == """
-            memory limit 1.5GB is under the 2 GB this run needs: readers 1.2 GB, readAhead 0 MB, frames 768 MB, \
-            sound 51.2 MB
+            memory limit 1.5GB is under the 2 GB this run needs: readers 1.2 GB, readAhead 0 MB, turns 0 MB, \
+            pictures 0 MB, frames 768 MB, sound 51.2 MB
             """)
     }
 

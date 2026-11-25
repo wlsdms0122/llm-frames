@@ -149,6 +149,8 @@ struct RunReportTests {
                 holders: [
                     MemoryHolderUsage(holder: .readers, floor: 600, peak: 900, refused: 2),
                     MemoryHolderUsage(holder: .readAhead, floor: 0, peak: 200, refused: 1),
+                    MemoryHolderUsage(holder: .turns, floor: 0, peak: 0, refused: 0),
+                    MemoryHolderUsage(holder: .pictures, floor: 0, peak: 400, refused: 0),
                     MemoryHolderUsage(holder: .frames, floor: 300, peak: 300, refused: 0),
                     MemoryHolderUsage(holder: .sound, floor: 100, peak: 100, refused: 0)
                 ]
@@ -173,7 +175,9 @@ struct RunReportTests {
             {"path": "/abs/out.mp4", "codec": "H.264", "hardware": true, "device": "gpu"}], \#
             "memory": {"limit": 8589934592, "floor": 1000, "peak": 1500, "holders": \#
             {"readers": {"floor": 600, "peak": 900, "refused": 2}, "readAhead": {"floor": 0, "peak": 200, "refused": 1}, \#
-            "frames": {"floor": 300, "peak": 300, "refused": 0}, "sound": {"floor": 100, "peak": 100, "refused": 0}}}}
+            "turns": {"floor": 0, "peak": 0, "refused": 0}, "pictures": {"floor": 0, "peak": 400, "refused": 0}, \#
+            "frames": {"floor": 300, "peak": 300, "refused": 0}, \#
+            "sound": {"floor": 100, "peak": 100, "refused": 0}}}}
             """#
         #expect(sut.machineOutput.written == expected)
     }

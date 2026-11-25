@@ -66,6 +66,22 @@ struct FrameCommandTests {
         #expect(try sut.standardOutput == line(of: documentSheet))
     }
 
+    @Test("sheet with --memory under its cells' pictures stops before a cell is read, naming the pictures' floor")
+    func refusesSheetUnderFloor() async throws {
+        // Given
+        let video = try await movie(named: "clip.mov")
+        let output = sut.directory.file("sheet.png")
+
+        // When
+        let code = sut.run(["--memory", "1MB", "sheet", video, "-o", output, "--step", "0.01"])
+
+        // Then
+        #expect(code == 1)
+        #expect(sut.standardError.hasPrefix("frames: memory limit 1MB is under the "))
+        #expect(sut.standardError.contains(", pictures "))
+        #expect(!FileManager.default.fileExists(atPath: output))
+    }
+
     @Test("extract writes a video's frames as numbered PNGs in a directory it makes, one line for each")
     func extractsFrames() async throws {
         // Given

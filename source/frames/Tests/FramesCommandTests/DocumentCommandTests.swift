@@ -308,7 +308,7 @@ struct DocumentCommandTests {
         let memory = try #require(object["memory"] as? [String: Any])
         #expect(memory["limit"] as? Int == Int(((ProcessInfo.processInfo.physicalMemory / 2) >> 20) << 20))
         let holders = try #require(memory["holders"] as? [String: [String: Int]])
-        #expect(Set(holders.keys) == ["readers", "readAhead", "frames", "sound"])
+        #expect(Set(holders.keys) == ["readers", "readAhead", "turns", "pictures", "frames", "sound"])
         #expect(memory["floor"] as? Int == holders.values.reduce(0) { $0 + ($1["floor"] ?? 0) })
     }
 
@@ -323,11 +323,15 @@ struct DocumentCommandTests {
         let master = sut.directory.file("out.mov")
 
         // When
-        let code = sut.run(["--memory", "16MB", "render", document, "-o", master, "--progress", "none"])
+        let code = sut.run(["--memory", "8MB", "render", document, "-o", master, "--progress", "none"])
 
         // Then
         #expect(code == 1)
-        #expect(sut.standardError.hasPrefix("frames: memory limit 16MB is under the 21.2 MB this run needs: readers 0 MB"))
+        #expect(sut.standardError == """
+            frames: memory limit 8MB is under the 14.2 MB this run needs: readers 0 MB, readAhead 0 MB, turns 0 MB, \
+            pictures 0 MB, frames 14.1 MB, sound 0.1 MB
+
+            """)
         #expect(!FileManager.default.fileExists(atPath: master))
     }
 

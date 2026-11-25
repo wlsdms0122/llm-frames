@@ -5,6 +5,7 @@
 //  Created by JSilver on 11/26/26.
 //
 
+import CoreVideo
 import Foundation
 import Frames
 @testable import FramesAVFoundation
@@ -82,6 +83,35 @@ struct VideoReaderTests {
         #expect(refused == nil)
         #expect(heldAfterRefusal == [2])
         #expect(admitted?.reopened == true)
+    }
+
+    @Test("a turn holds as many of its frames as the budget grants its turns, gives them back as they are let go of, and a frame it does not hold is read from the reader")
+    func holdsTurnFramesWithinBudget() async throws {
+        // Given
+        let directory = try TemporaryDirectory()
+        let movie = try await Self.movie(in: directory)
+        let probe = try #require(try VideoReader(path: movie))
+        let bytes = CVPixelBufferGetDataSize(try #require(try probe.buffer(atFrame: 0, path: movie, turn: 1) { true }).buffer)
+        let budget = MemoryBudget(limit: .unlimited)
+        let limited = MemoryBudget(limit: try #require(MemorySize("1MB")))
+        limited.require(MemorySize.megabyte - 2 * bytes, for: .frames)
+        let sut = try #require(try VideoReader(path: movie, budget: limited))
+        let free = try #require(try VideoReader(path: movie, budget: budget))
+
+        // When
+        _ = try sut.buffer(atFrame: 2, path: movie, turn: 6) { true }
+        let held = (0..<12).filter { sut.holds(frame: $0) }
+        let past = try #require(try sut.buffer(atFrame: 5, path: movie, turn: 1) { true })
+        _ = try free.buffer(atFrame: 2, path: movie, turn: 6) { true }
+        _ = try free.buffer(atFrame: 9, path: movie, turn: 1) { true }
+
+        // Then
+        #expect(held == [3, 4])
+        #expect(!past.reopened)
+        let turns = try #require(limited.usage.holders.first { $0.holder == .turns })
+        #expect(turns.refused == 1 && turns.peak == 2 * bytes)
+        let freeTurns = try #require(budget.usage.holders.first { $0.holder == .turns })
+        #expect(freeTurns.peak == 5 * bytes && freeTurns.refused == 0)
     }
 
     // MARK: - Private

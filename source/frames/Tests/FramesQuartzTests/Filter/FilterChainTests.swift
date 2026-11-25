@@ -20,7 +20,10 @@ struct FilterChainTests {
     private let tolerance: Float = 4 / 65535
     // Core Image's blur of a step edge lies within 0.0018 of the continuous Gaussian at deviations 2, 3 and 5.
     private let blurTolerance: Float = 0.003
-    private let pictures = MediaPictureCache(decoder: AVFoundationDecoder())
+    private let pictures = MediaPictureCache(
+        decoder: AVFoundationDecoder(),
+        budget: MemoryBudget(limit: .unlimited)
+    )
 
     // Unpremultiplied colours with their alpha, one above 1 and below 0, the last one half transparent.
     private let colors: [[Float]] = [

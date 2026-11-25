@@ -325,7 +325,8 @@ struct FrameExporterTests {
             renderer: QuartzRenderer(decoder: decoder),
             encoder: AVFoundationEncoder(),
             mediaFacts: decoder,
-            shaper: CoreTextShaper()
+            shaper: CoreTextShaper(),
+            budget: MemoryBudget(limit: .unlimited)
         )
     }
 
