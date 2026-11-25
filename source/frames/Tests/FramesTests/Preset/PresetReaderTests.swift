@@ -149,8 +149,11 @@ struct PresetReaderTests {
             (#"{ "description": "x", "seconds": 1, "outgoing": { "period": 0.5 } }"#, #"outgoing (outgoing): unknown key "period". Allowed: ease, revealFrom, keys"#),
             (#"{ "description": "x", "seconds": 1, "over": "outgoing", "matte": { "media": "/abs/m.png" } }"#, #"top level (transition): a matte reveals the incoming storyline picture, so it cannot play with "over": "outgoing""#),
             (#"{ "description": "x" }"#, #"top level (transition): missing key "seconds""#),
-            (#"{ "description": "x", "seconds": 1, "cover": { "keys": [] } }"#, "cover (cover): needs one of color, media"),
-            (##"{ "description": "x", "seconds": 1, "cover": { "color": "#000000", "media": "/abs/s.mov" } }"##, #"cover (cover): takes only one of "color", "media""#),
+            (##"{ "description": "x", "seconds": 1, "cover": { "color": "#000000", "keys": [] } }"##, #"cover (cover): missing key "kind""#),
+            (##"{ "description": "x", "seconds": 1, "cover": { "kind": "colour", "color": "#000000" } }"##, #"cover.kind (cover): unknown value "colour". Allowed: media, solid"#),
+            (##"{ "description": "x", "seconds": 1, "cover": { "kind": "solid", "color": "#000000", "media": "/abs/s.mov" } }"##, #"cover (solid cover): unknown key "media". Allowed: kind, color, ease, keys"#),
+            (#"{ "description": "x", "seconds": 1, "cover": { "kind": "media", "keys": [] } }"#, #"cover (media cover): missing key "media""#),
+            (#"{ "description": "x", "seconds": 1, "cover": { "kind": "media", "media": { "kind": "imageSequence", "directory": "/abs/frames", "fps": 30 } } }"#, #"cover.media.kind (media): unknown value "imageSequence". Allowed: page"#),
             (##"{ "description": "x", "seconds": 1, "cover": { "kind": "solid", "color": "#000000", "keys": [ { "t": 0, "scale": 2 } ] } }"##, #"cover.keys[0] (cover key): unknown key "scale". Allowed: t, opacity"#),
             (#"{ "description": "x", "seconds": 1, "matte": { "softness": 0.2 } }"#, #"matte (matte): missing key "media""#),
             (#"{ "description": "x", "seconds": 1, "over": "above" }"#, #"over (transition): unknown value "above". Allowed: incoming, outgoing"#),
@@ -414,13 +417,13 @@ struct PresetReaderTests {
     @Test(
         "a preset's parameter stands only where a value of its type is written, never for a name, a key or a file",
         arguments: [
-            (#""seconds": 1, "cover": { "kind": "solid", "color": { "param": "n" } }"#, #"cover.color (cover): parameter "n" of type number cannot stand where a colour is expected"#),
+            (#""seconds": 1, "cover": { "kind": "solid", "color": { "param": "n" } }"#, #"cover.color (solid cover): parameter "n" of type number cannot stand where a colour is expected"#),
             (#""seconds": { "param": "c" }"#, #"seconds (transition): parameter "c" of type color cannot stand where a number is expected"#),
             (#""seconds": { "param": "e" }"#, #"seconds (transition): parameter "e" of type choice cannot stand where a number is expected"#),
             (#""seconds": 1, "over": { "param": "e" }"#, "over (transition): expected one of incoming, outgoing, found an object"),
             (#""seconds": 1, "audio": { "param": "e" }"#, "audio (transition): expected one of constant-power, constant-gain, found an object"),
             (#""seconds": 1, "incoming": { "revealFrom": { "param": "e" } }"#, "incoming.revealFrom (incoming): expected one of left, right, top, bottom, found an object"),
-            (#""seconds": 1, "matte": { "media": { "param": "n" } }"#, #"matte.media (page): unknown key "param". Allowed: file, page"#),
+            (#""seconds": 1, "matte": { "media": { "param": "n" } }"#, #"matte.media (media): missing key "kind""#),
             (#""seconds": 1, "matte": { "media": "/abs/m.png", "invert": { "param": "n" } }"#, "matte.invert (matte): expected true or false, found an object")
         ]
     )

@@ -149,7 +149,7 @@ struct TemplateCheckTests {
         // When, Then
         try sut.check(document: compound)
         let error = #expect(throws: ModelError.self) { try sut.check(document: unknownKey) }
-        #expect(error?.description == #"storyline[0].media (template instance): unknown key "arguments". Allowed: template, args"#)
+        #expect(error?.description == #"storyline[0].media (template instance): unknown key "arguments". Allowed: kind, template, args"#)
     }
 
     @Test("a document with params used anywhere but as a template instance stops")

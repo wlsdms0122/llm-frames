@@ -208,7 +208,7 @@ struct RenderOutputTests {
         // The avfoundation mixer stretches time from 1/32 to 32 times.
         let document = try DocumentResolver().resolve(#"""
             { "kind": "sequence", "format": { "fps": 10 }, "storyline": [ { "kind": "media", "media": "\#(file)", "duration": 0.5 } ],
-              "clips": [ { "kind": "media", "media": "\#(tone)", "speed": 40 } ] }
+              "clips": [ { "kind": "audio", "media": "\#(tone)", "speed": 40 } ] }
             """#)
         let sut = pipeline()
 

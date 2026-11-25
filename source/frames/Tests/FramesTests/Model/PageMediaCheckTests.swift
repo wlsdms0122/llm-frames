@@ -118,8 +118,8 @@ struct PageMediaCheckTests {
             (#"{ "kind": "page", "file": "/abs/deck.pdf", "page": 0 }"#, "storyline[0].media.page (page): expected a whole number, 1 or more, found 0"),
             (#"{ "kind": "page", "file": "/abs/deck.pdf", "page": 1.5 }"#, "storyline[0].media.page (page): expected a whole number, 1 or more, found 1.5"),
             (#"{ "kind": "page", "file": "/abs/deck.pdf", "page": "2" }"#, #"storyline[0].media.page (page): expected a whole number, 1 or more, found "2""#),
-            (#"{ "file": "/abs/deck.pdf" }"#, #"storyline[0].media (page): missing key "page""#),
-            (#"{ "kind": "page", "file": "/abs/deck.pdf", "page": 2, "fps": 30 }"#, #"storyline[0].media (page): unknown key "fps". Allowed: file, page"#)
+            (#"{ "kind": "page", "file": "/abs/deck.pdf" }"#, #"storyline[0].media (page): missing key "page""#),
+            (#"{ "kind": "page", "file": "/abs/deck.pdf", "page": 2, "fps": 30 }"#, #"storyline[0].media (page): unknown key "fps". Allowed: kind, file, page"#)
         ]
     )
     func refusesMalformedPage(
@@ -134,14 +134,14 @@ struct PageMediaCheckTests {
         #expect(error?.description == message)
     }
 
-    @Test("media written as an object names one of its forms, a page among them")
-    func namesPageAmongForms() throws {
+    @Test("media written as an object says what it is with kind, so a page without one stops")
+    func refusesMediaWithoutKind() throws {
         // Given
-        let document = try Fixture.json(#"{ "kind": "sequence", "storyline": [ { "kind": "media", "media": { "kind": "page", "page": 2 } } ] }"#)
+        let document = try Fixture.json(#"{ "kind": "sequence", "storyline": [ { "kind": "media", "media": { "file": "/abs/deck.pdf", "page": 2 } } ] }"#)
 
         // When, Then
         let error = #expect(throws: ModelError.self) { try sut.check(document: document) }
-        #expect(error?.description == "storyline[0].media (media): needs one of kind, imageSequence, template, file")
+        #expect(error?.description == #"storyline[0].media (media): missing key "kind""#)
     }
 
     @Test("an argument object holding file is media, so its page is checked where it is written")

@@ -275,14 +275,14 @@ struct SequenceCheckTests {
         #expect(error?.description == #"storyline[0].media (storyline clip): media "/abs/unknown.mov" is not there"#)
     }
 
-    @Test("a storyline clip whose media holds only sound stops")
+    @Test("a storyline clip whose media holds only sound stops, naming the kind of a clip of its sound alone")
     func refusesSoundOnStoryline() throws {
         // Given
-        let document = try Fixture.json(#"{ "kind": "sequence", "storyline": [ { "kind": "audio", "media": "/abs/bgm.m4a" } ] }"#)
+        let document = try Fixture.json(#"{ "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/bgm.m4a" } ] }"#)
 
         // When, Then
         let error = #expect(throws: ModelError.self) { try sut.check(document: document) }
-        #expect(error?.description.hasPrefix("storyline[0] (audio):") == true)
+        #expect(error?.description == #"storyline[0].media (media): this media has no picture, and a storyline clip shows one. A clip of its sound alone is a connected or sequence clip of kind "audio""#)
     }
 
     @Test(
@@ -291,8 +291,8 @@ struct SequenceCheckTests {
             (#"{ "storyline": [ { "duration": 2 } ] }"#, #"storyline[0] (storyline clip): missing key "kind""#),
             (#"{ "clips": [ { "at": [0, 1] } ] }"#, #"clips[0] (clip): missing key "kind""#),
             (#"{ "storyline": [ { "kind": "title", "text": "a", "style": "headline" } ] }"#, #"storyline[0].kind (storyline clip): unknown value "title". Allowed: media, solid"#),
-            (##"{ "clips": [ { "kind": "solid", "color": "#000000" } ] }"##, #"clips[0].kind (clip): unknown value "solid". Allowed: media, title, rect, ellipse, path, adjustment, null"#),
-            (#"{ "clips": [ { "kind": "circle" } ] }"#, #"clips[0].kind (clip): unknown value "circle". Allowed: media, title, rect, ellipse, path, adjustment, null"#)
+            (##"{ "clips": [ { "kind": "solid", "color": "#000000" } ] }"##, #"clips[0].kind (clip): unknown value "solid". Allowed: media, audio, title, rect, ellipse, path, adjustment, null"#),
+            (#"{ "clips": [ { "kind": "circle" } ] }"#, #"clips[0].kind (clip): unknown value "circle". Allowed: media, audio, title, rect, ellipse, path, adjustment, null"#)
         ]
     )
     func tellsClipKindsApart(
