@@ -22,8 +22,9 @@ import Frames
 // are released before the next is drawn. The frame is a half float bitmap of encoded working values.
 final class FrameDrawer {
     // MARK: - Property
+    let chain: FilterChain
+
     private let pictures: MediaPictureCache
-    private let chain: FilterChain
     private let glyphDrawer: GlyphDrawer
 
     // A page's whole picture is read where it holds at most this many pixels, a 4096 by 4096 square.
@@ -89,6 +90,61 @@ final class FrameDrawer {
         let bottom = carried.maxY.rounded(.up) + 1
 
         return CGRect(x: left, y: top, width: right - left, height: bottom - top).intersection(raster.bounds)
+    }
+
+    // What the item's masks and track matte multiply its alpha by over `region`, whole pixels of the raster, rows from
+    // the top: the masks' result times the track matte's value, multiplied in floating point and held as eight bits, nil
+    // where the item has neither.
+    func coverage(
+        of item: DisplayItem,
+        over region: CGRect,
+        on raster: Raster
+    ) throws -> CGImage? {
+        let masks = item.mask.isEmpty
+            ? nil
+            : try MaskDrawer().values(of: item.mask, over: region, on: raster.transform)
+        let matte = try item.trackMatte.map { trackMatte in
+            try TrackMatteDrawer().values(
+                of: trackMatte,
+                source: try image(of: trackMatte.source, on: raster),
+                over: region
+            )
+        }
+        let factors = [masks, matte].compactMap { $0 }
+        guard let first = factors.first else { return nil }
+
+        let values = factors.dropFirst().reduce(first) { product, values in zip(product, values).map(*) }
+
+        return try CGImage.coverage(of: values, width: Int(region.width), height: Int(region.height))
+    }
+
+    // `backdrop`, an image of the raster's bounds, through the adjustment's filter, left unrendered. The filter's
+    // lengths are in the list's output pixels, scaled onto the raster.
+    func filtered(
+        _ backdrop: CIImage,
+        by adjust: AdjustItem,
+        on raster: Raster,
+        seed: Int,
+        compositing: Compositing
+    ) throws -> CIImage {
+        // Core Image counts rows from the bottom.
+        let listFrame = CGRect(
+            x: raster.frame.minX,
+            y: CGFloat(raster.height) - raster.frame.maxY,
+            width: raster.frame.width,
+            height: raster.frame.height
+        )
+
+        return try chain
+            .apply(
+                adjust.filter,
+                to: backdrop,
+                seed: seed,
+                scale: raster.transform.lengthScale,
+                frame: listFrame,
+                compositing: compositing
+            )
+            .cropped(to: backdrop.extent)
     }
 
     // MARK: - Private
@@ -258,9 +314,8 @@ final class FrameDrawer {
         try paint(item, of: list, drawing: drawing, casting: shadow, on: raster, in: frame)
     }
 
-    // Multiplies the alpha of what the context draws after it by the item's masks' result and its track matte's value
-    // over `region` of the raster's pixels, which lies at `bounds` of the context's coordinates. Both are multiplied in
-    // floating point, so the context clips once.
+    // Multiplies the alpha of what the context draws after it by the item's coverage over `region` of the raster's
+    // pixels, which lies at `bounds` of the context's coordinates, so the context clips once.
     private func mask(
         _ context: CGContext,
         by item: DisplayItem,
@@ -268,22 +323,8 @@ final class FrameDrawer {
         at bounds: CGRect,
         on raster: Raster
     ) throws {
-        let masks = item.mask.isEmpty
-            ? nil
-            : try MaskDrawer().values(of: item.mask, over: region, on: raster.transform)
-        let matte = try item.trackMatte.map { trackMatte in
-            try TrackMatteDrawer().values(
-                of: trackMatte,
-                source: try image(of: trackMatte.source, on: raster),
-                over: region
-            )
-        }
-        let factors = [masks, matte].compactMap { $0 }
-        guard let first = factors.first else { return }
+        guard let image = try coverage(of: item, over: region, on: raster) else { return }
 
-        let values = factors.dropFirst().reduce(first) { product, values in zip(product, values).map(*) }
-
-        let image = try CGImage.coverage(of: values, width: Int(region.width), height: Int(region.height))
         context.clipUpright(to: bounds, mask: image)
     }
 
@@ -471,7 +512,7 @@ final class FrameDrawer {
     ) throws -> SourceImage? {
         switch picture.source {
         case let .media(frame):
-            guard frame.picture == .page else { return SourceImage(media: try pictures.image(of: frame)) }
+            guard frame.picture == .page else { return try pictures.source(of: frame) }
 
             return try pageImage(of: frame, in: picture, shownBy: matrix, on: raster)
 
@@ -529,7 +570,7 @@ final class FrameDrawer {
         shownBy matrix: CGAffineTransform,
         on raster: Raster
     ) throws -> SourceImage? {
-        guard matte.frame.picture == .page else { return SourceImage(media: try pictures.image(of: matte.frame)) }
+        guard matte.frame.picture == .page else { return try pictures.source(of: matte.frame) }
 
         let size = try pictures.pageSize(of: matte.frame)
         let destination = picture.destination
@@ -741,8 +782,7 @@ final class FrameDrawer {
     }
 
     // The whole backdrop through the adjustment's filter, drawn back over the frame in the raster's pixels, which the
-    // item's matrix, carrying only its reveal, is undone for. The filter's lengths are in the list's output pixels,
-    // scaled onto the raster.
+    // item's matrix, carrying only its reveal, is undone for.
     private func adjusted(
         _ adjust: AdjustItem,
         transform: Frames.AffineTransform,
@@ -755,23 +795,7 @@ final class FrameDrawer {
         guard matrix.a * matrix.d - matrix.b * matrix.c != 0 else { return { _ in } }
 
         let backdrop = try backdrop()
-        // Core Image counts rows from the bottom.
-        let listFrame = CGRect(
-            x: raster.frame.minX,
-            y: CGFloat(raster.height) - raster.frame.maxY,
-            width: raster.frame.width,
-            height: raster.frame.height
-        )
-        let filtered = try chain
-            .apply(
-                adjust.filter,
-                to: backdrop,
-                seed: seed,
-                scale: raster.transform.lengthScale,
-                frame: listFrame,
-                compositing: compositing
-            )
-            .cropped(to: backdrop.extent)
+        let filtered = try self.filtered(backdrop, by: adjust, on: raster, seed: seed, compositing: compositing)
         let image = try FrameContext.cgImage(of: filtered, in: backdrop.extent, compositing: compositing)
 
         return { context in

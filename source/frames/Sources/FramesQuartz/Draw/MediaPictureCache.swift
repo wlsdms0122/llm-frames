@@ -44,6 +44,13 @@ final class MediaPictureCache: Sendable {
         try picture(of: frame).pixels
     }
 
+    // The frame's picture as a source drawn, read where it lies on the GPU where the decoder gave a surface.
+    func source(of frame: MediaFrame) throws -> SourceImage {
+        let picture = try picture(of: frame)
+
+        return SourceImage(media: picture.image, pixels: picture.pixels)
+    }
+
     // `region` of the grid of the frame's page at `scale`, read as the frame says.
     func image(
         of frame: MediaFrame,
