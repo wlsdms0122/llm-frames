@@ -9,7 +9,7 @@
 // outside a sample of a frame with motion blur. In such a sample a stroke that is on is there at any width, 0 included,
 // and its dash at any lengths, all 0 included, since whether they are there is decided at T (FRAMES-29). Resolve
 // completed every leaf, so a leaf is always there, each end off or its head's `points`, `length` and `inset` with its
-// `scale`, and its paint is its `gradient` laid over `box` or its `color`. Its width is drawn in output pixels at the
+// `scale`, and its `paint` is a colour or a gradient laid over `box`. Its width is drawn in output pixels at the
 // clip's scale factor, and its dash lengths and offset are carried by the item's transform, so they are multiplied by
 // `carried`, that factor over the transform's length factor. An odd dash list is taken twice over.
 extension PathStroke {
@@ -25,7 +25,7 @@ extension PathStroke {
         guard
             let width = sampled["width"]?.number,
             width > 0 || isSample,
-            let paint = Paint(sampled: sampled["gradient"], box: box) ?? sampled["color"]?.color.map(Paint.color)
+            let paint = Paint(sampled: sampled["paint"], box: box)
         else { return nil }
 
         let end = { (key: String) in

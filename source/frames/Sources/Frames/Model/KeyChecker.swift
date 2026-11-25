@@ -429,8 +429,29 @@ struct KeyChecker: Sendable {
         }
 
         // When only one alternative takes this kind of value, its own error says more than a list of every form.
-        // Objects of several forms are told apart by the keys they hold: the form that knows the most of them.
+        // Objects of several forms are told apart by the `kind` they write where each form names one, and otherwise
+        // by the keys they hold: the form that knows the most of them.
         var admitting = types.indices.filter { admits(types[$0], value) }
+        let kinds = admitting.compactMap { index -> (index: Int, name: String)? in
+            guard
+                case let .object(table) = types[index],
+                case let .exactly(.string(name))? = table.rule(named: "kind")?.type
+            else { return nil }
+
+            return (index, name)
+        }
+        if admitting.count > 1, kinds.count == admitting.count, let written = value.objectValue?["kind"]?.stringValue {
+            guard let form = kinds.first(where: { $0.name == written }) else {
+                throw ModelError.unknownValue(
+                    place: place.appending(key: "kind"),
+                    kind: kind,
+                    value: written,
+                    allowed: kinds.map(\.name)
+                )
+            }
+
+            throw failures[form.index]
+        }
         if admitting.count > 1, let object = value.objectValue {
             let known = admitting.map { index -> (index: Int, count: Int) in
                 guard case let .object(table) = types[index] else { return (index, 0) }
@@ -617,7 +638,7 @@ struct KeyChecker: Sendable {
         }
     }
 
-    // A mask is checked as each shape its `shape` can be.
+    // A mask is checked as each shape its `kind` can be.
     private func checkMask(
         _ value: JSONValue,
         place: Place,
@@ -625,7 +646,7 @@ struct KeyChecker: Sendable {
         scope: inout DocumentScope
     ) throws {
         guard let object = value.objectValue else { throw wrongType(value, .masks, place, kind) }
-        guard object.contains("shape") else { throw ModelError.missingKey(place: place, kind: "mask", keys: ["shape"]) }
+        guard object.contains("kind") else { throw ModelError.missingKey(place: place, kind: "mask", keys: ["kind"]) }
 
         let shapes = try shapes(of: object, place: place, kind: "mask", scope: &scope)
         try checkEach(shapes, scope: &scope) { shape, scope in
@@ -641,7 +662,7 @@ struct KeyChecker: Sendable {
         scope: inout DocumentScope
     ) throws {
         let table = MaskKeyTable.table(for: shape)
-        try checkObject(object, as: table, place: place, skipping: ["shape"], scope: &scope)
+        try checkObject(object, as: table, place: place, skipping: ["kind"], scope: &scope)
     }
 
     // A mask's geometry is given by the clip's `mask` and its keyframes together: a rect or an ellipse takes `area`
@@ -1197,11 +1218,11 @@ struct KeyChecker: Sendable {
         kind: String,
         scope: inout DocumentScope
     ) throws -> [ShapeKind] {
-        let value = object["shape"] ?? .null
+        let value = object["kind"] ?? .null
         try check(
             value,
             as: .literal(VocabularyTable.shapes),
-            place: place.appending(key: "shape"),
+            place: place.appending(key: "kind"),
             kind: kind,
             scope: &scope
         )

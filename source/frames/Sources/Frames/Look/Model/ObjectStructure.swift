@@ -6,8 +6,8 @@
 //
 
 // An object value's keys in the order it is written out, the keys the merged value requires, the lists of lengths the
-// merged value may not hold as all zeros (a stroke's `dash`), the groups of keys that are one leaf (a stroke's `color`
-// and `gradient`), so writing one replaces the others and each is a form of that leaf, its shorthands, the plain
+// merged value may not hold as all zeros (a stroke's `dash`), the groups of keys that are one leaf (a mask's `area`
+// and `points`), so writing one replaces the others and each is a form of that leaf, its shorthands, the plain
 // value of each key that has one, which timing gives a key no layer writes, as a filter entry's `mix` is 1, and the
 // rule of each static key its structure does not state, as a style's `weight`.
 struct ObjectStructure: Sendable {

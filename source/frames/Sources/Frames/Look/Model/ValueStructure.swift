@@ -8,14 +8,15 @@
 // The type of a value of a look: how it is read, merged and timed. Declaring a keyframable value is declaring its
 // structure; the look merge and timing walk it and hold no code for any one key.
 //
-// A `forms` value is one of several forms, named: a string is the `color` form, and an object of one key that names a
-// form is that form. A `choice` is a preset choice: a string is a preset, an object whose form key names a form is
-// that form, an object naming none is partial and merges over the form below, and `offNames` turn it off. A choice's
-// form keys are `preset`, `op` and the key of each form it declares, a form `<key>:<value>` (an `eq` band's
-// `type:peak`). A form's other keys are its body, whose structure `forms` declares for the forms that are timed, such
-// as a filter's presets and ops, and is otherwise `anyValue`: a value whose structure is not declared, which merges
-// key by key at every depth and is never timed. A `tuple` is a list of a fixed length whose elements each have their
-// own structure, as a gradient stop `[offset, colour]`.
+// A `forms` value is one of several forms, named: a string is the `color` form, and an object is the form its `kind`
+// names, a form `kind:<value>` (a gradient's `kind:linear`), its other keys the form's body. A `choice` is a preset
+// choice: a string is a preset, an object whose form key names a form is that form, an object naming none is partial
+// and merges over the form below, and `offNames` turn it off. A choice's form keys are `preset`, `op` and the key of
+// each form it declares, a form `<key>:<value>` (an `eq` band's `type:peak`). A form's other keys are its body, whose
+// structure `forms` declares for the forms that are timed, such as a filter's presets and ops, and is otherwise
+// `anyValue`: a value whose structure is not declared, which merges key by key at every depth and is never timed. A
+// `tuple` is a list of a fixed length whose elements each have their own structure, as a gradient stop
+// `[offset, colour]`.
 indirect enum ValueStructure: Sendable {
     case anyValue
     case leaf(LeafKind)
@@ -50,12 +51,21 @@ indirect enum ValueStructure: Sendable {
         }
     }
 
-    // The keys of a choice that name its form, those of its declared forms first. Every choice takes `preset` and
-    // `op`, since a choice whose presets are not known declares no forms.
+    // The keys of a choice or of forms that name an object's form, those of its declared forms first. Every choice
+    // takes `preset` and `op`, since a choice whose presets are not known declares no forms.
     var formKeys: [String] {
-        guard case let .choice(_, forms) = self else { return [] }
+        let names: [String]
+        switch self {
+        case let .choice(_, forms):
+            names = forms.map(\.name) + ["preset:", "op:"]
 
-        let names = forms.map(\.name) + ["preset:", "op:"]
+        case let .forms(forms):
+            names = forms.map(\.name)
+
+        case .anyValue, .leaf, .object, .map, .list, .tuple:
+            return []
+        }
+
         return names.reduce(into: [String]()) { keys, name in
             guard let separator = name.firstIndex(of: ":") else { return }
 
@@ -66,8 +76,8 @@ indirect enum ValueStructure: Sendable {
         }
     }
 
-    // The form a choice's object names, by the first of its form keys the object writes as a name, and the object's
-    // other keys as its body.
+    // The form a choice's or a `forms` value's object names, by the first of its form keys the object writes as a
+    // name, and the object's other keys as its body.
     func form(of object: JSONObject) -> (name: String, body: JSONObject)? {
         for key in formKeys {
             guard let name = object[key]?.stringValue else { continue }
