@@ -94,47 +94,6 @@
       }
     ]
   },
-  "keyframed": {
-    "kind": "sequence",
-    "storyline": [
-      {
-        "id": "shot",
-        "media": "/media/moving.mp4",
-        "connected": [
-          {
-            "parent": "shot",
-            "shape": "rect",
-            "fill": "#3DDC84",
-            "at": [
-              0.4,
-              2
-            ],
-            "keyframes": [
-              {
-                "at": 0.4,
-                "area": [
-                  124,
-                  202,
-                  128,
-                  88
-                ]
-              },
-              {
-                "at": 1,
-                "area": [
-                  200,
-                  196,
-                  128,
-                  88
-                ]
-              }
-            ],
-            "track": true
-          }
-        ]
-      }
-    ]
-  },
   "keyframed_time": {
     "kind": "sequence",
     "storyline": [

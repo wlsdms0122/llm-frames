@@ -2,7 +2,7 @@
 
 Run from the repository root: python3 -m unittest discover -s extensions/track-motion
 
-`fixtures/video.json` names its media as `/media/moving.mp4`, `/media/board.png` and `/media/frames`, and each
+`fixtures/video.json` and `fixtures/keyframed.json` name their media as `/media/moving.mp4`, `/media/board.png` and `/media/frames`, and each
 `*.calls.json` holds the frames commands the extension ran on it with what frames printed, the document it asks about
 written as `<document>`. `moving.mp4` is a 3 second 640 by 360 video at 25 frames a second, rendered by frames, of a
 title `Total 42,000` and an orange card with a white stroke moving right over a dark solid, `frames` an image sequence
@@ -152,6 +152,44 @@ class Recorded(Case):
         self.assertEqual(self.commands("evaluate") + self.commands("render") + self.commands("resolve"), [])
 
 
+class Keyframed(Case):
+    """`fixtures/keyframed.json`: a shot after a half second solid, from media second 0.2 at half speed, so its clock
+    is `origin 0.1, speed 0.5`, with a box and a corner pin whose keyframes write their targets."""
+
+    def setUp(self):
+        super().setUp()
+        self.result = self.run_document(fixture("keyframed.json"), fixture("keyframed.calls.json"))
+        self.clips = {clip["id"]: clip for clip in self.result["storyline"][1]["connected"]}
+
+    def test_keyframed(self):
+        # Given keyframed targets with `"track": true`
+        # When the extension runs
+        # Then every request is the track data frames printed, and nothing else of the document changes
+        self.assertEqual(self.result, fixture("keyframed.expected.json"))
+
+    def test_first_keyframe_on_its_clock(self):
+        # Given a box whose first keyframe writes its area at clip time 0.6
+        box = self.clips["box"]["track"]
+
+        # Then the frame is the one timeline --at shows at 0.1 + 0.6 / 0.5, and the first keyframe's area is followed
+        self.assertIn(["timeline", "<document>", "--at", "1.3", "--json"], Replay.log)
+        self.assertEqual(box["time"], 0.6)
+        self.assertIn(
+            ["track", "/media/moving.mp4", "--at", "0.6", "--area", "[148, 200, 128, 88]", "--to", "0.2"],
+            Replay.log
+        )
+        self.assertEqual(box["frames"][[frame["time"] for frame in box["frames"]].index(0.6)]["quad"], [[148, 200], [276, 200], [276, 288], [148, 288]])
+
+    def test_earliest_keyframe_written_last(self):
+        # Given a corner pin keyframed at clip time 1, and twice at 0.6, written out of time order
+        # Then the quadrilateral followed is the one written last at the earliest time
+        self.assertEqual(self.clips["pin"]["track"]["time"], 0.6)
+        self.assertIn(
+            ["track", "/media/moving.mp4", "--at", "0.6", "--quad", "[[148, 200], [276, 200], [276, 288], [148, 288]]", "--to", "2.96"],
+            Replay.log
+        )
+
+
 class Places(Case):
     """Documents of `fixtures/places.json`, each with the frames commands the extension ran on it in
     `fixtures/places.calls.json`."""
@@ -182,11 +220,20 @@ class Places(Case):
         # Then it stops, since no report gives the bounds of a mask
         self.assertIn("it follows the bounds of the clip's masks, which no report gives", self.place("mask_target"))
 
-    def test_keyframed(self):
-        # Given a keyframed area with `true` and with `{"time": t}`
-        # Then each stops: the first keyframe's sequence time is in no report, and no keyframe is on the frame t names
-        self.assertIn("no report gives a keyframe's sequence time", self.place("keyframed"))
+    def test_keyframed_time(self):
+        # Given a keyframed area with `{"time": t}`
+        # Then it stops, since no keyframe is written on the frame t names
         self.assertIn("none is written on the frame time names", self.place("keyframed_time"))
+
+    def test_keyframe_without_time(self):
+        # Given a keyframed area with `true` whose keyframe has no number at
+        document = copy.deepcopy(self.documents["keyframed_time"])
+        clip = document["storyline"][0]["connected"][0]
+        clip["track"] = True
+        clip["keyframes"][1]["at"] = "1"
+
+        # Then it stops, naming the keyframe
+        self.assertIn("storyline[0]#shot.connected[0]: keyframes[1] needs a number at", self.stop(document, self.calls["keyframed_time"]))
 
     def test_text_and_clip_targets(self):
         # Given a target named by its text and one named as another clip's box
