@@ -163,7 +163,7 @@ struct SequenceReaderTests {
         let document = try Fixture.json(##"""
             { "kind": "sequence", "clips": [
               { "shape": "rect", "style": "outline", "width": 100, "height": 50, "radius": 8, "outset": 4, "fill": false,
-                "stroke": { "width": 2, "join": "bevel", "end": "arrow" }, "shadow": true, "scale": 2, "rotation": 30 },
+                "stroke": { "width": 2, "join": "bevel", "end": "frames/arrow" }, "shadow": true, "scale": 2, "rotation": 30 },
               { "shape": "path", "points": [[0, 0], { "area": [0, 0, 10, 10], "point": "right" }], "closed": true,
                 "fill": "#FF0000", "stroke": false, "shadow": { "radius": 4, "color": "accent" },
                 "keyframes": [ { "at": 1, "trim": [0, 0.5] }, { "at": 2, "trim": [0, 1], "ease": "ease-in" } ] },
@@ -182,7 +182,7 @@ struct SequenceReaderTests {
             radius: LookProperty(written: .number(8)),
             outset: LookProperty(written: .number(4)),
             fill: LookProperty(written: .bool(false)),
-            stroke: LookProperty(written: try Fixture.json(#"{ "width": 2, "join": "bevel", "end": "arrow" }"#)),
+            stroke: LookProperty(written: try Fixture.json(#"{ "width": 2, "join": "bevel", "end": "frames/arrow" }"#)),
             shadow: LookProperty(written: .bool(true))
         )))
         #expect(sequence.clips[0].scale == .value(Scale(2)))

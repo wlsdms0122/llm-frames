@@ -9,6 +9,7 @@ import Foundation
 import Testing
 
 @testable import Frames
+import FramesTestMedia
 
 // Shapes are sequence clips in a 200 x 100 frame. A shape placed by `width` and `height` is 40 by 20 with its top left
 // at (40, 20), as the rect given by `area` is.

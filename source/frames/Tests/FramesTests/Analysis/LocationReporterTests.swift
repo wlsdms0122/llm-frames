@@ -8,6 +8,7 @@
 import Testing
 
 @testable import Frames
+import FramesTestMedia
 
 @Suite("LocationReporter Tests")
 struct LocationReporterTests {

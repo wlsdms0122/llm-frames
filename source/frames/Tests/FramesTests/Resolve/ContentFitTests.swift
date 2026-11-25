@@ -382,24 +382,24 @@ struct ContentFitTests {
             // The page is 300 wide, so a stroke of 64 is 10 output pixels and its arrowhead 40 long and 40 wide.
             (#"{ "shape": "rect", "area": [400, 0, 100, 50], "stroke": { "width": 64 }, "at": [0, 1] }"#, Size(width: 506, height: 206)),
             // A whole closed outline has no ends, so its arrowhead is drawn only where a trim leaves part of it undrawn.
-            (#"{ "shape": "rect", "area": [400, 0, 100, 50], "stroke": { "width": 64, "end": "arrow" }, "at": [0, 1] }"#, Size(width: 506, height: 206)),
+            (#"{ "shape": "rect", "area": [400, 0, 100, 50], "stroke": { "width": 64, "end": "frames/arrow" }, "at": [0, 1] }"#, Size(width: 506, height: 206)),
             // Ending at the bottom right corner, the head points down from (500, 50), its base corners at (480, 10) and
             // (520, 10), so nothing of it lies above the stroked outline.
-            (#"{ "shape": "rect", "area": [400, 0, 100, 50], "stroke": { "width": 64, "end": "arrow" }, "trim": [0, 0.5], "at": [0, 1] }"#, Size(width: 520, height: 206)),
+            (#"{ "shape": "rect", "area": [400, 0, 100, 50], "stroke": { "width": 64, "end": "frames/arrow" }, "trim": [0, 0.5], "at": [0, 1] }"#, Size(width: 520, height: 206)),
             // Ending 1 below the top right corner at the tip (500, 1), the head's base lies 40 back along the stroke at
             // (461, 0), so the head runs along the chord between them, a base corner at (461.5, -20.0).
-            (#"{ "shape": "rect", "area": [400, 0, 100, 50], "stroke": { "width": 64, "end": "arrow" }, "trim": [0, 0.3366666666666667], "at": [0, 1] }"#, Size(width: 506, height: 220)),
+            (#"{ "shape": "rect", "area": [400, 0, 100, 50], "stroke": { "width": 64, "end": "frames/arrow" }, "trim": [0, 0.3366666666666667], "at": [0, 1] }"#, Size(width: 506, height: 220)),
             // A fifth of the way round from its top, the ellipse's head runs along the chord from its base 40 back
             // along the curve, at (458.4, 0.4), to its tip at (495.1, 14.2), a base corner at (465.5, -18.3).
-            (#"{ "shape": "ellipse", "area": [400, 0, 100, 50], "stroke": { "width": 64, "end": "arrow" }, "trim": [0, 0.2], "at": [0, 1] }"#, Size(width: 506, height: 220)),
+            (#"{ "shape": "ellipse", "area": [400, 0, 100, 50], "stroke": { "width": 64, "end": "frames/arrow" }, "trim": [0, 0.2], "at": [0, 1] }"#, Size(width: 506, height: 220)),
             (#"{ "shape": "path", "points": [[400, 0], [400, 100]], "stroke": { "width": 64 }, "at": [0, 1] }"#, Size(width: 406, height: 206)),
-            (#"{ "shape": "path", "points": [[400, 0], [400, 100]], "stroke": { "width": 64, "end": "arrow" }, "at": [0, 1] }"#, Size(width: 420, height: 206)),
+            (#"{ "shape": "path", "points": [[400, 0], [400, 100]], "stroke": { "width": 64, "end": "frames/arrow" }, "at": [0, 1] }"#, Size(width: 420, height: 206)),
             // At scale 2 the arrowhead is 80 long and 80 wide, and a bar is 40 across the end.
-            (#"{ "shape": "path", "points": [[400, 0], [400, 100]], "stroke": { "width": 64, "end": { "shape": "arrow", "scale": 2 } }, "at": [0, 1] }"#, Size(width: 440, height: 206)),
-            (#"{ "shape": "path", "points": [[400, 0], [400, 100]], "stroke": { "width": 64, "end": "bar" }, "at": [0, 1] }"#, Size(width: 420, height: 206)),
+            (#"{ "shape": "path", "points": [[400, 0], [400, 100]], "stroke": { "width": 64, "end": { "preset": "frames/arrow", "scale": 2 } }, "at": [0, 1] }"#, Size(width: 440, height: 206)),
+            (#"{ "shape": "path", "points": [[400, 0], [400, 100]], "stroke": { "width": 64, "end": "frames/bar" }, "at": [0, 1] }"#, Size(width: 420, height: 206)),
             // A circle at scale 2 is 80 across with its tip at the end (400, 250), its centre 40 back: it reaches down to
             // y = 290 and no further along the line than its end, which the stroke's half width reaches past.
-            (#"{ "shape": "path", "points": [[100, 250], [400, 250]], "stroke": { "width": 64, "end": { "shape": "circle", "scale": 2 } }, "at": [0, 1] }"#, Size(width: 406, height: 290)),
+            (#"{ "shape": "path", "points": [[100, 250], [400, 250]], "stroke": { "width": 64, "end": { "preset": "frames/circle", "scale": 2 } }, "at": [0, 1] }"#, Size(width: 406, height: 290)),
             // Both tangents (100, 0) bulge the segment right to x = 475 at its middle, where the stroke reaches 480.
             (#"{ "shape": "path", "points": [{ "vertex": [400, 0], "outTangent": [100, 0] }, { "vertex": [400, 100], "inTangent": [100, 0] }], "stroke": { "width": 64 }, "at": [0, 1] }"#, Size(width: 480, height: 206)),
             (#"{ "shape": "rect", "area": [400, 0, 100, 50], "fill": "accent", "scale": 2, "at": [0, 1] }"#, Size(width: 550, height: 226)),
