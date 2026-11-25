@@ -36,12 +36,12 @@ struct ClipAnimationTests {
         #expect(plan.clips.map { $0.animation.exit?.preset } == ["frames/pulse", "frames/pulse", "frames/pulse"])
     }
 
-    @Test("a clip that names no animation takes the theme's default for its kind, and a title the one for its style")
+    @Test("a clip that names no animation takes the theme's default for its kind, a title the one for its style and every shape the one for shapes")
     func takesDefaultAnimation() throws {
         // Given
         let document = try Fixture.json(#"""
             { "kind": "sequence",
-              "theme": { "defaults": { "animation": { "title": { "subtitle": "frames/pop" }, "shape": "frames/wipe", "media": "frames/fade" } } },
+              "theme": { "defaults": { "animation": { "title": { "subtitle": "frames/pop" }, "shape": "frames/wipe", "media": "frames/fade", "adjustment": "frames/pop" } } },
               "storyline": [ { "kind": "media", "media": "/abs/run.mp4" } ],
               "clips": [
                 { "at": [0, 1], "kind": "title", "text": "a", "style": "subtitle" },
@@ -49,7 +49,10 @@ struct ClipAnimationTests {
                 { "at": [0, 1], "kind": "rect", "stroke": { "width": 8 }, "area": [0, 0, 10, 10] },
                 { "at": [0, 1], "kind": "media", "media": "/abs/log.png" },
                 { "at": [0, 1], "kind": "media", "media": "/abs/log.png", "animation": "none" },
-                { "kind": "media", "media": "/abs/bgm.m4a" }
+                { "kind": "media", "media": "/abs/bgm.m4a" },
+                { "at": [0, 1], "kind": "ellipse", "fill": "accent", "area": [0, 0, 10, 10] },
+                { "at": [0, 1], "kind": "path", "stroke": { "width": 8 }, "points": [[0, 0], [10, 10]] },
+                { "at": [0, 1], "kind": "adjustment", "adjust": "frames/vivid" }
               ] }
             """#)
 
@@ -57,7 +60,9 @@ struct ClipAnimationTests {
         let plan = try sut.plan(document: document)
 
         // Then
-        #expect(plan.clips.map { $0.animation.entrance?.preset } == ["frames/pop", nil, "frames/wipe", "frames/fade", nil, nil])
+        #expect(plan.clips.map { $0.animation.entrance?.preset } == [
+            "frames/pop", nil, "frames/wipe", "frames/fade", nil, nil, "frames/wipe", "frames/wipe", "frames/pop"
+        ])
         #expect(plan.clips[5].animation == .none)
     }
 
