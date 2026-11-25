@@ -72,7 +72,7 @@ The target is followed with `frames track` from the track's frame to `first`, an
 ## What it does not cover
 
 - A sequence document named as media by its file is a document of its own, which the tool does not write: run the tool on it first.
-- The clips of a template instance are its template's, which hold no request.
+- A request among a template instance's arguments stops, a sequence argument's clips included, since the clips of a template instance are its template's and where an argument lies is the template's.
 
 ## Example
 

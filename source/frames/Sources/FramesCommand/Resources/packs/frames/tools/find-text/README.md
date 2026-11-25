@@ -66,6 +66,8 @@ Anywhere else it stops, naming the place and the space its entry reports:
 - a box: a child of a title or of a rect or ellipse placed by `width` and `height`, and such a clip's own `mask`;
 - the media pixels of a compound clip or a template instance, whose picture is drawn and not read.
 
+A request inside a compound clip the document writes as a sequence object (`{"kind": "sequence", ...}`), at any depth, is searched as one outside it, in the report of the nested sequence at the compound clip's place on its own clock: `timeline --nested <place> --json` and `timeline --nested <place> --at <t> --json` ([FRAMES-23](../../../../../../../../../spec/FRAMES-23/SPEC.md#a-clips-times-and-spaces)), where `<place>` is the compound clip's place as `timeline` prints it (`storyline[0]#frame`, deeper `storyline[0]#frame.media.storyline[1]#inner`). So its spaces are the nested sequence's, with its theme merged over the outer one, and its frame is the one its instant or keyframe shows on the nested clock, which may be a time the outer sequence never shows it at. Its messages and its report name it by that place, `storyline[0]#frame.media.storyline[0]#shot.connected[0]: area`.
+
 Under a rect or ellipse placed by `width` and `height`, an `area` or the area of a point is in the box its parent gives its children, which is that parent's clip area ([FRAMES-2](../../../../../../../../../spec/FRAMES-2/SPEC.md#clip-areas)), so the stop says how to write it: `{"clip": "<the parent's id>"}` for an area and `{"area": {"clip": "<the parent's id>"}, "point": "bottom-right"}` for a point, with the parent's id and the point as written. A crop or a mask in a clip's own box, where a clip area stops, and a place in a title's box, whose text `evaluate` reports, get no such form.
 
 ## The frame searched
@@ -77,14 +79,15 @@ A still or a page has one picture. On a video or an image sequence the request i
 | a static value | the clip's `instant` |
 | a keyframe's value | its `at` carried by the clip's `clock`, `origin + at / speed` |
 
-The tool writes a copy of the document with a value in the place of every request, its own and every other tool's, since frames takes none: a placeholder rectangle where an area stands, and no `track` where a track request stands, since a clip's times and spaces do not depend on its track. So frames resolves it and times its clips as it times the document once its requests are filled. A request of another tool anywhere else has no such value, and stops, naming the tool that fills it first. It reads `timeline --json` once, and `timeline --at <t> --json` once for each sequence time, whose entry for the searched clip gives the `mediaTime` of the frame its time map shows there, whether the clip draws anything at t or not and inside the sequence or outside it. So `speed`, `in`, `loop`, `timeRemap` and transitions are applied by frames, and the tool computes no time and follows no parent.
+The tool writes a copy of the document with a value in the place of every request, its own and every other tool's, since frames takes none: a placeholder rectangle where an area stands, and no `track` where a track request stands, since a clip's times and spaces do not depend on its track. So frames resolves it and times its clips as it times the document once its requests are filled. A request of another tool anywhere else has no such value, and stops, naming the tool that fills it first. It reads `timeline --json` once, and `timeline --at <t> --json` once for each sequence time, for the document's sequence and for each compound clip that holds a request (with `--nested <place>`), whose entry for the searched clip gives the `mediaTime` of the frame its time map shows there, whether the clip draws anything at t or not and inside the sequence or outside it. So `speed`, `in`, `loop`, `timeRemap` and transitions are applied by frames, and the tool computes no time and follows no parent.
 
 The media are read with `frames ocr --json` at that media time: the searched clip's `media`, its `page` as `--page`, an image sequence's directory with the `fps` its entry reports as `--fps`, the searched clip's `colorSpace` as `--color-space`, and `--languages` as given. Each distinct media file, time, page, rate, colour space and languages is read once.
 
 ## What it does not cover
 
 - Text drawn by frames (titles), which `evaluate` reports exactly in `texts` and `characters`.
-- Places inside a compound clip or template instance, or inside a sequence document named as media by its file: their instants are on the nested sequence's time, and `timeline --at` gives a nested document's clips only at the outer sequence's times. Run the tool on the nested document first.
+- A sequence document named as media by its file is a document of its own, which the tool does not read or write: run the tool on it first. A request left in it stops the frames command that reads it.
+- A request among a template instance's arguments stops, a sequence argument's clips included, since the clips of a template instance are its template's and where an argument lies is the template's: `storyline[0]#card: media.args.screen.storyline[0].crop: a frames/find-text request stands among the arguments of a template instance, whose clips are its template's, so it is not filled: write the rectangle`.
 - A template with `--args`.
 
 ## Example
