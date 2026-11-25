@@ -9,6 +9,8 @@ import Foundation
 
 // Appends each frame to every writer while the next frame is drawn. Each writer takes its frames in order on a queue
 // of its own, and `append` waits while `depth` frames are still being written, so the frames held at once are bounded.
+// The queues are serial, so Dispatch runs each on a thread outside the 64 its concurrent queues share, which a writer
+// waiting on AVFoundation would otherwise hold while AVFoundation finishes its work there.
 // A writer's failure stops every writer, and the next `append` or `finish` throws it. After `finish` or `cancel`
 // returns, nothing of the queue holds a writer.
 final class FrameWriteQueue: @unchecked Sendable {
