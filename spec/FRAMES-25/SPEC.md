@@ -125,7 +125,7 @@ frames ships no form, since a form is a purpose. Forms are packs kept outside fr
 
 First how-tos:
 
-- **motion-graphics:** making graphics outside frames. Write HTML, render it to a PNG sequence with alpha in a headless browser, and bring it in as `{"imageSequence": ...}` media.
+- **motion-graphics:** making graphics outside frames. Write HTML, render it to a PNG sequence with alpha in a headless browser, and bring it in as `{"kind": "imageSequence", "directory": ..., "fps": ...}` media.
 - **effects:** an effect beyond the filter ops (particles, a glitch, a shader of one's own) is made outside. Render it as a video with alpha and lay it over with a `blend`, or `extract` the frames of the clip's media file over its range, process them, and point the clip's `media` at the result.
 
 ### Requests
