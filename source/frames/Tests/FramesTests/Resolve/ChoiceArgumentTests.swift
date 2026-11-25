@@ -27,7 +27,7 @@ struct ChoiceArgumentTests {
                 "length": { "type": "number", "default": 0.7, "description": "seconds the dip lasts" } },
               "seconds": { "param": "length" },
               "incoming": { "keys": [ { "t": 0, "opacity": 0 }, { "t": 0.5, "opacity": 0 }, { "t": 0.5, "opacity": 1 } ] },
-              "cover": { "color": { "param": "color" }, "keys": [ { "t": 0, "opacity": 0 }, { "t": 0.5, "opacity": 1 }, { "t": 1, "opacity": 0 } ] } }
+              "cover": { "kind": "solid", "color": { "param": "color" }, "keys": [ { "t": 0, "opacity": 0 }, { "t": 0.5, "opacity": 1 }, { "t": 1, "opacity": 0 } ] } }
             """##,
             in: "studio",
             at: "presets/transition/dip.json"

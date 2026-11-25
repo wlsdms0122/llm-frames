@@ -27,11 +27,11 @@ struct TransitionColorTests {
     func readsPresetColorSpace() throws {
         // Given
         let named = try Fixture.json(#"""
-            { "description": "", "seconds": 1, "cover": { "media": "/abs/leak.mov", "colorSpace": "rec709" },
+            { "description": "", "seconds": 1, "cover": { "kind": "media", "media": "/abs/leak.mov", "colorSpace": "rec709" },
               "matte": { "media": "/abs/matte.png", "colorSpace": "display-p3" } }
             """#)
         let unnamed = try Fixture.json(#"""
-            { "description": "", "seconds": 1, "cover": { "media": "/abs/leak.mov" }, "matte": { "media": "/abs/matte.png" } }
+            { "description": "", "seconds": 1, "cover": { "kind": "media", "media": "/abs/leak.mov" }, "matte": { "media": "/abs/matte.png" } }
             """#)
 
         // When
@@ -48,7 +48,7 @@ struct TransitionColorTests {
     @Test(
         "a colour cover's colour space and a name outside the table stop",
         arguments: [
-            (##"{ "description": "", "seconds": 1, "cover": { "color": "#000000", "colorSpace": "rec709" } }"##, #"cover (cover): takes only one of "color", "colorSpace""#),
+            (##"{ "description": "", "seconds": 1, "cover": { "kind": "solid", "color": "#000000", "colorSpace": "rec709" } }"##, #"cover (cover): takes only one of "color", "colorSpace""#),
             (#"{ "description": "", "seconds": 1, "matte": { "media": "/abs/matte.png", "colorSpace": "p3" } }"#, #"matte.colorSpace (matte): unknown value "p3". Allowed: srgb, display-p3, rec2020, rec709, rec2100-pq, rec2100-hlg"#)
         ]
     )

@@ -73,7 +73,7 @@ struct TrackMatteFinderTests {
             ),
             (
                 #"""
-                { "id": "sound", "kind": "media", "media": "/abs/bgm.m4a", "at": [0, 1] },
+                { "id": "sound", "kind": "audio", "media": "/abs/bgm.m4a", "at": [0, 1] },
                 { "kind": "media", "media": "/abs/card.png", "at": [0, 1], "trackMatte": { "clip": "sound", "mode": "alpha" } }
                 """#,
                 #"clips[1].trackMatte.clip (image): "sound" is an audio clip, and a track matte is a connected or sequence media clip, title or shape"#

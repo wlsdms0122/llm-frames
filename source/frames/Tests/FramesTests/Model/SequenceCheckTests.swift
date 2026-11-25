@@ -44,8 +44,8 @@ struct SequenceCheckTests {
                   "animation": { "entrance": "frames/pop", "exit": "frames/fade" }, "lane": 5,
                   "keyframes": [ { "at": 3, "position": [600, 500], "ease": "ease-in-out" }, { "at": 4, "position": [330, 900], "scale": 1.5 } ] },
                 { "at": [0, 4], "kind": "media", "media": "/abs/light-leak.mov", "blend": "screen", "lane": 3 },
-                { "kind": "media", "media": "/abs/bgm.m4a", "volume": 0.3, "loop": true, "fadeOut": 1 },
-                { "at": 1.0, "kind": "media", "media": "/abs/ding.wav", "in": 0, "out": 1.5 }
+                { "kind": "audio", "media": "/abs/bgm.m4a", "volume": 0.3, "loop": true, "fadeOut": 1 },
+                { "at": 1.0, "kind": "audio", "media": "/abs/ding.wav", "in": 0, "out": 1.5 }
               ]
             }
             """#)
@@ -205,7 +205,7 @@ struct SequenceCheckTests {
     @Test("a number does not stand for a boolean")
     func refusesNumberForBool() throws {
         // Given
-        let document = try Fixture.json(#"{ "kind": "sequence", "clips": [ { "kind": "media", "media": "/abs/bgm.m4a", "loop": 1 } ] }"#)
+        let document = try Fixture.json(#"{ "kind": "sequence", "clips": [ { "kind": "audio", "media": "/abs/bgm.m4a", "loop": 1 } ] }"#)
 
         // When, Then
         let error = #expect(throws: ModelError.self) { try sut.check(document: document) }
@@ -228,7 +228,7 @@ struct SequenceCheckTests {
             (#"{ "kind": "media", "media": "/abs/card.png", "duration": 2, "in": 1 }"#, "storyline", #"storyline[0] (image): unknown key "in""#),
             (#"{ "kind": "media", "media": "/abs/run.mp4", "duration": 2 }"#, "storyline", #"storyline[0] (video): unknown key "duration""#),
             (##"{ "kind": "solid", "color": "#000000", "duration": 2, "crop": [0, 0, 1, 1] }"##, "storyline", #"storyline[0] (solid): unknown key "crop""#),
-            (#"{ "kind": "media", "media": "/abs/bgm.m4a", "lane": 2 }"#, "clips", #"clips[0] (audio): unknown key "lane""#),
+            (#"{ "kind": "audio", "media": "/abs/bgm.m4a", "lane": 2 }"#, "clips", #"clips[0] (audio): unknown key "lane""#),
             (#"{ "kind": "media", "media": "/abs/log.png", "at": [0, 1], "loop": true }"#, "clips", #"clips[0] (image): unknown key "loop""#),
             (#"{ "kind": "title", "text": "a", "style": "headline", "crop": [0, 0, 1, 1] }"#, "clips", #"clips[0] (title): unknown key "crop""#),
             (#"{ "kind": "rect", "stroke": { "width": 8 }, "area": [0, 0, 1, 1], "side": "left" }"#, "clips", #"clips[0] (rect): unknown key "side""#),
@@ -237,7 +237,7 @@ struct SequenceCheckTests {
             (#"{ "id": "a", "kind": "media", "media": "/abs/run.mp4", "parent": "b" }"#, "storyline", #"storyline[0]#a (video): unknown key "parent""#),
             (##"{ "kind": "solid", "color": "#000000", "duration": 2, "parent": "b" }"##, "storyline", #"storyline[0] (solid): unknown key "parent""#),
             (#"{ "kind": "media", "media": "/abs/run.mp4", "placement": "top" }"#, "storyline", #"storyline[0] (video): unknown key "placement""#),
-            (#"{ "kind": "media", "media": "/abs/bgm.m4a", "parent": "b" }"#, "clips", #"clips[0] (audio): unknown key "parent""#)
+            (#"{ "kind": "audio", "media": "/abs/bgm.m4a", "parent": "b" }"#, "clips", #"clips[0] (audio): unknown key "parent""#)
         ]
     )
     func picksRowByMedia(
@@ -278,7 +278,7 @@ struct SequenceCheckTests {
     @Test("a storyline clip whose media holds only sound stops")
     func refusesSoundOnStoryline() throws {
         // Given
-        let document = try Fixture.json(#"{ "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/bgm.m4a" } ] }"#)
+        let document = try Fixture.json(#"{ "kind": "sequence", "storyline": [ { "kind": "audio", "media": "/abs/bgm.m4a" } ] }"#)
 
         // When, Then
         let error = #expect(throws: ModelError.self) { try sut.check(document: document) }
@@ -534,7 +534,7 @@ struct SequenceCheckTests {
             (#"{ "kind": "path", "points": [[0, 0], [1, 1]], "keyframes": [ { "at": 1, "area": [0, 0, 1, 1] } ] }"#, #"clips[0].keyframes[0] (keyframe): unknown key "area". Allowed: at, ease, points, position, scale, rotation, opacity, trim, fill, stroke, shadow, mask"#),
             (#"{ "kind": "ellipse", "keyframes": [ { "at": 1, "radius": 2 } ] }"#, #"clips[0].keyframes[0] (keyframe): unknown key "radius". Allowed: at, ease, area, width, height, position, scale, rotation, cornerPin, opacity, trim, outset, fill, stroke, shadow, mask"#),
             (#"{ "kind": "title", "text": "a", "style": "headline", "keyframes": [ { "at": 1, "crop": [0, 0, 1, 1] } ] }"#, #"clips[0].keyframes[0] (keyframe): unknown key "crop". Allowed: at, ease, position, scale, rotation, cornerPin, opacity, mask, character, paragraph"#),
-            (#"{ "kind": "media", "media": "/abs/bgm.m4a", "keyframes": [ { "at": 1, "opacity": 0 } ] }"#, #"clips[0].keyframes[0] (keyframe): unknown key "opacity". Allowed: at, ease, volume, pan, audioFilter"#),
+            (#"{ "kind": "audio", "media": "/abs/bgm.m4a", "keyframes": [ { "at": 1, "opacity": 0 } ] }"#, #"clips[0].keyframes[0] (keyframe): unknown key "opacity". Allowed: at, ease, volume, pan, audioFilter"#),
             (#"{ "kind": "media", "media": "/abs/log.png", "at": [0, 1], "keyframes": [ { "at": 1, "volume": 0 } ] }"#, #"clips[0].keyframes[0] (keyframe): unknown key "volume". Allowed: at, ease, position, scale, rotation, cornerPin, opacity, crop, mask, filter, radius, border, shadow"#),
             (#"{ "kind": "media", "media": "/abs/log.png", "at": [0, 1], "keyframes": [ { "at": 1 } ] }"#, "clips[0].keyframes[0] (keyframe): needs one of position, scale, rotation, cornerPin, opacity, crop, mask, filter, radius, border, shadow"),
             (#"{ "kind": "media", "media": "/abs/log.png", "at": [0, 1], "keyframes": [ { "scale": 1 } ] }"#, #"clips[0].keyframes[0] (keyframe): missing key "at""#)
@@ -572,7 +572,7 @@ struct SequenceCheckTests {
                 { "kind": "media", "media": "/abs/run.mp4", "at": [0, 1], "keyframes": [ { "at": 0, "pan": -1 }, { "at": 1, "pan": 1 } ] }
               ], "keyframes": [] }
             ], "clips": [
-              { "kind": "media", "media": "/abs/bgm.m4a", "keyframes": [ { "at": 0, "pan": -0.5, "ease": "ease-in-out" }, { "at": 2, "pan": 0.5 } ] }
+              { "kind": "audio", "media": "/abs/bgm.m4a", "keyframes": [ { "at": 0, "pan": -0.5, "ease": "ease-in-out" }, { "at": 2, "pan": 0.5 } ] }
             ] }
             """#)
 
@@ -583,7 +583,7 @@ struct SequenceCheckTests {
     @Test("a `pan` outside -1 to 1 stops as a value of the wrong type")
     func refusesPanOutOfRange() throws {
         // Given
-        let document = try Fixture.json(#"{ "kind": "sequence", "clips": [ { "kind": "media", "media": "/abs/bgm.m4a", "pan": 1.5 } ] }"#)
+        let document = try Fixture.json(#"{ "kind": "sequence", "clips": [ { "kind": "audio", "media": "/abs/bgm.m4a", "pan": 1.5 } ] }"#)
 
         // When, Then
         let error = #expect(throws: ModelError.self) { try sut.check(document: document) }
@@ -807,7 +807,7 @@ struct SequenceCheckTests {
             #"{ "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "crop": { "scale": 0 } } ] }"#,
             #"{ "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "crop": { "scale": -1 } } ] }"#,
             #"{ "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "keyframes": [ { "at": 0, "crop": { "scale": 0 } } ] } ] }"#,
-            #"{ "storyline": [ { "kind": "media", "media": { "imageSequence": "/abs/frames" } } ] }"#,
+            #"{ "storyline": [ { "kind": "media", "media": { "kind": "imageSequence", "directory": "/abs/frames" } } ] }"#,
             #"{ "format": { "size": [1080] } }"#,
             #"{ "format": { "conform": "stretch" } }"#
         ]
@@ -917,7 +917,7 @@ struct SequenceCheckTests {
             #"{ "clips": [ { "kind": "title", "text": "a", "style": "s", "parent": "run", "position": { "area": [400, 1200, 200, 60], "point": "left" } }, { "kind": "rect", "stroke": { "width": 8 }, "parent": "run", "area": [400, 1200, 200, 60] } ] }"#,
             #"{ "clips": [ { "id": "box", "kind": "rect", "stroke": { "width": 8 }, "area": [0, 0, 10, 10] }, { "kind": "rect", "stroke": { "width": 8 }, "area": { "clip": "box", "padding": 40 } } ] }"#,
             #"{ "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "crop": [0, 0, 540, 960], "track": { "time": 0, "frames": [ { "time": 0, "quad": [[0, 0], [0.5, 0], [0.5, 0.5], [0, 0.5]] } ] } } ] }"#,
-            #"{ "storyline": [ { "kind": "media", "media": { "imageSequence": "/abs/frames", "fps": 30 }, "in": 0, "out": 2 } ] }"#,
+            #"{ "storyline": [ { "kind": "media", "media": { "kind": "imageSequence", "directory": "/abs/frames", "fps": 30 }, "in": 0, "out": 2 } ] }"#,
             #"{ "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "filter": ["frames/vivid", "pack/warm", "/abs/f.json"], "transition": "cut" } ] }"#,
             #"{ "clips": [ { "kind": "rect", "stroke": { "width": 8 }, "keyframes": [ { "at": 0, "opacity": 1, "ease": [0.25, 0.1, 0.25, 1] }, { "at": 1, "opacity": 0 } ] } ] }"#,
             #"{ "clips": [ { "kind": "path", "points": [[0, 0], [10, 10]], "stroke": { "width": 4, "end": "frames/arrow" }, "animation": { "entrance": "frames/pop", "exit": "none" } } ] }"#,
@@ -1057,11 +1057,11 @@ struct SequenceCheckTests {
         "a rate of 0 or less stops where it is written",
         arguments: [
             (
-                #"{ "kind": "sequence", "storyline": [ { "kind": "media", "media": { "imageSequence": "/abs/frames", "fps": 0 } } ] }"#,
+                #"{ "kind": "sequence", "storyline": [ { "kind": "media", "media": { "kind": "imageSequence", "directory": "/abs/frames", "fps": 0 } } ] }"#,
                 "storyline[0].media.fps (image sequence): 0 is not above 0"
             ),
             (
-                #"{ "kind": "sequence", "storyline": [ { "kind": "media", "media": { "imageSequence": "/abs/frames", "fps": -24 } } ] }"#,
+                #"{ "kind": "sequence", "storyline": [ { "kind": "media", "media": { "kind": "imageSequence", "directory": "/abs/frames", "fps": -24 } } ] }"#,
                 "storyline[0].media.fps (image sequence): -24 is not above 0"
             ),
             (
@@ -1297,7 +1297,7 @@ struct SequenceCheckTests {
         arguments: [
             (
                 "clips",
-                #"{ "kind": "media", "media": "/abs/bgm.m4a", "mask": { "shape": "rect", "area": [0, 0, 10, 10] } }"#,
+                #"{ "kind": "audio", "media": "/abs/bgm.m4a", "mask": { "shape": "rect", "area": [0, 0, 10, 10] } }"#,
                 #"clips[0] (audio): unknown key "mask". Allowed: "#
             ),
             (
@@ -1464,7 +1464,7 @@ struct SequenceCheckTests {
         arguments: [
             (
                 "clips",
-                #"{ "kind": "media", "media": "/abs/bgm.m4a", "trackMatte": { "clip": "matte", "mode": "alpha" } }"#,
+                #"{ "kind": "audio", "media": "/abs/bgm.m4a", "trackMatte": { "clip": "matte", "mode": "alpha" } }"#,
                 #"clips[0] (audio): unknown key "trackMatte". Allowed: "#
             ),
             (

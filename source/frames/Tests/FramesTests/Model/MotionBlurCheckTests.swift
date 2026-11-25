@@ -169,7 +169,7 @@ struct MotionBlurCheckTests {
         "motionBlur stops as an unknown key on an audio clip, in a keyframe, and in a theme's defaults and styles",
         arguments: [
             (
-                #"{ "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4" } ], "clips": [ { "kind": "media", "media": "/abs/bgm.m4a", "motionBlur": true } ] }"#,
+                #"{ "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4" } ], "clips": [ { "kind": "audio", "media": "/abs/bgm.m4a", "motionBlur": true } ] }"#,
                 #"clips[0] (audio): unknown key "motionBlur"."#
             ),
             (

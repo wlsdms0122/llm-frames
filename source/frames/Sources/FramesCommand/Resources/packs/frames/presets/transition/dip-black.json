@@ -3,5 +3,5 @@
   "seconds": 0.7,
   "ease": "linear",
   "incoming": { "keys": [ { "t": 0, "opacity": 0 }, { "t": 0.5, "opacity": 0 }, { "t": 0.5, "opacity": 1 } ] },
-  "cover": { "color": "#000000", "keys": [ { "t": 0, "opacity": 0 }, { "t": 0.4, "opacity": 1 }, { "t": 0.6, "opacity": 1 }, { "t": 1, "opacity": 0 } ] }
+  "cover": { "kind": "solid", "color": "#000000", "keys": [ { "t": 0, "opacity": 0 }, { "t": 0.4, "opacity": 1 }, { "t": 0.6, "opacity": 1 }, { "t": 1, "opacity": 0 } ] }
 }

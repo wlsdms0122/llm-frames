@@ -143,8 +143,8 @@ struct TemplateCheckTests {
     @Test("a template instance takes template and args")
     func checksTemplateInstance() throws {
         // Given
-        let compound = try Fixture.json(#"{ "kind": "sequence", "storyline": [ { "kind": "media", "media": { "template": "pack/intro", "args": { "name": "Ada" } }, "in": 0, "out": 3 } ] }"#)
-        let unknownKey = try Fixture.json(#"{ "kind": "sequence", "storyline": [ { "kind": "media", "media": { "template": "pack/intro", "arguments": {} } } ] }"#)
+        let compound = try Fixture.json(#"{ "kind": "sequence", "storyline": [ { "kind": "media", "media": { "kind": "template", "template": "pack/intro", "args": { "name": "Ada" } }, "in": 0, "out": 3 } ] }"#)
+        let unknownKey = try Fixture.json(#"{ "kind": "sequence", "storyline": [ { "kind": "media", "media": { "kind": "template", "template": "pack/intro", "arguments": {} } } ] }"#)
 
         // When, Then
         try sut.check(document: compound)
@@ -168,7 +168,7 @@ struct TemplateCheckTests {
     func checksDocumentArgument() throws {
         // Given
         let document = try Fixture.json(#"""
-            { "kind": "sequence", "storyline": [ { "kind": "media", "media": { "template": "pack/intro", "args": { "shot": { "kind": "sequence", "storyline": [], "opz": [] } } } } ] }
+            { "kind": "sequence", "storyline": [ { "kind": "media", "media": { "kind": "template", "template": "pack/intro", "args": { "shot": { "kind": "sequence", "storyline": [], "opz": [] } } } } ] }
             """#)
 
         // When, Then
@@ -181,7 +181,7 @@ struct TemplateCheckTests {
         // Given
         let document = try Fixture.json(#"""
             { "kind": "sequence", "params": { "t": { "type": "choice", "options": ["pack/intro", "pack/outro"], "description": "the t" } },
-              "storyline": [ { "kind": "media", "media": { "template": { "param": "t" }, "args": {} }, "in": 0, "out": 2 } ] }
+              "storyline": [ { "kind": "media", "media": { "kind": "template", "template": { "param": "t" }, "args": {} }, "in": 0, "out": 2 } ] }
             """#)
         let checker = KeyChecker(mediaKinds: MediaKindTable(templates: ["pack/intro", "pack/outro"]))
 
@@ -194,7 +194,7 @@ struct TemplateCheckTests {
         // Given
         let document = try Fixture.json(#"""
             { "kind": "sequence", "params": { "p": { "type": "text", "description": "the p" } },
-              "storyline": [ { "kind": "media", "media": { "template": "pack/intro", "args": { "x": { "template": "pack/card", "args": { "y": { "param": "p" } } } } } } ] }
+              "storyline": [ { "kind": "media", "media": { "kind": "template", "template": "pack/intro", "args": { "x": { "kind": "template", "template": "pack/card", "args": { "y": { "param": "p" } } } } } } ] }
             """#)
 
         // When, Then
@@ -205,7 +205,7 @@ struct TemplateCheckTests {
     func checksMediaArgument() throws {
         // Given
         let document = try Fixture.json(#"""
-            { "kind": "sequence", "storyline": [ { "kind": "media", "media": { "template": "pack/intro", "args": { "frames": { "imageSequence": "/abs/frames" } } } } ] }
+            { "kind": "sequence", "storyline": [ { "kind": "media", "media": { "kind": "template", "template": "pack/intro", "args": { "frames": { "kind": "imageSequence", "directory": "/abs/frames" } } } } ] }
             """#)
 
         // When, Then

@@ -99,7 +99,7 @@ struct ResolvedSequenceWriterTests {
     func pinsImageSequence() throws {
         // Given
         let document = #"""
-            { "kind": "sequence", "storyline": [ { "kind": "media", "media": { "imageSequence": "/abs/frames", "fps": 12 } } ] }
+            { "kind": "sequence", "storyline": [ { "kind": "media", "media": { "kind": "imageSequence", "directory": "/abs/frames", "fps": 12 } } ] }
             """#
 
         // When
@@ -467,7 +467,7 @@ struct ResolvedSequenceWriterTests {
         // Given
         let document = #"""
             { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "in": 0, "out": 3 } ],
-              "clips": [ { "kind": "media", "media": "/abs/bgm.m4a", "at": 1, "loop": true,
+              "clips": [ { "kind": "audio", "media": "/abs/bgm.m4a", "at": 1, "loop": true,
                            "keyframes": [ { "at": 0, "volume": 0.3, "pan": -1 }, { "at": 1, "volume": 0, "pan": 1 } ] } ] }
             """#
 

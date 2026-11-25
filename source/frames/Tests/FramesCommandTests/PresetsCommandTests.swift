@@ -109,7 +109,7 @@ struct PresetsCommandTests {
             { "description": "dips to a colour",
               "params": { "color": { "type": "color", "default": "#000000", "description": "colour of the dip" } },
               "seconds": 0.7,
-              "cover": { "color": { "param": "color" }, "keys": [ { "t": 0, "opacity": 0 }, { "t": 0.5, "opacity": 1 }, { "t": 1, "opacity": 0 } ] } }
+              "cover": { "kind": "solid", "color": { "param": "color" }, "keys": [ { "t": 0, "opacity": 0 }, { "t": 0.5, "opacity": 1 }, { "t": 1, "opacity": 0 } ] } }
 
             """#
         try sut.write(text, to: sut.installed.appendingPathComponent("shorts/presets/transition/dip.json"))

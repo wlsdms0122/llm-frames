@@ -90,7 +90,7 @@ struct PresetReaderTests {
               "seconds": 0.45, "ease": "ease-in-out", "over": "incoming", "audio": "constant-gain",
               "incoming": { "keys": [ { "t": 0, "y": 1 }, { "t": 1, "y": 0 } ] },
               "outgoing": { "ease": "linear", "keys": [ { "t": 0, "y": 0 }, { "t": 1, "y": -1 } ] },
-              "cover":    { "color": "#FFFFFF", "keys": [ { "t": 0, "opacity": 0 }, { "t": 0.4, "opacity": 1 }, { "t": 1, "opacity": 0 } ] } }
+              "cover":    { "kind": "solid", "color": "#FFFFFF", "keys": [ { "t": 0, "opacity": 0 }, { "t": 0.4, "opacity": 1 }, { "t": 1, "opacity": 0 } ] } }
             """##)
 
         // When
@@ -151,7 +151,7 @@ struct PresetReaderTests {
             (#"{ "description": "x" }"#, #"top level (transition): missing key "seconds""#),
             (#"{ "description": "x", "seconds": 1, "cover": { "keys": [] } }"#, "cover (cover): needs one of color, media"),
             (##"{ "description": "x", "seconds": 1, "cover": { "color": "#000000", "media": "/abs/s.mov" } }"##, #"cover (cover): takes only one of "color", "media""#),
-            (##"{ "description": "x", "seconds": 1, "cover": { "color": "#000000", "keys": [ { "t": 0, "scale": 2 } ] } }"##, #"cover.keys[0] (cover key): unknown key "scale". Allowed: t, opacity"#),
+            (##"{ "description": "x", "seconds": 1, "cover": { "kind": "solid", "color": "#000000", "keys": [ { "t": 0, "scale": 2 } ] } }"##, #"cover.keys[0] (cover key): unknown key "scale". Allowed: t, opacity"#),
             (#"{ "description": "x", "seconds": 1, "matte": { "softness": 0.2 } }"#, #"matte (matte): missing key "media""#),
             (#"{ "description": "x", "seconds": 1, "over": "above" }"#, #"over (transition): unknown value "above". Allowed: incoming, outgoing"#),
             (#"{ "description": "x", "seconds": 1, "audio": "linear" }"#, #"audio (transition): unknown value "linear". Allowed: constant-power, constant-gain"#),
@@ -326,7 +326,7 @@ struct PresetReaderTests {
                 "bounce": { "type": "choice", "options": [{ "spring": { "bounce": 0.2 } }, "ease-out"], "default": { "spring": { "bounce": 0.2 } }, "description": "the bounce" } },
               "seconds": { "param": "length" }, "ease": { "param": "curve" },
               "incoming": { "ease": { "param": "bounce" }, "keys": [ { "t": 0, "opacity": 0 }, { "t": 0.5, "opacity": 0 }, { "t": 0.5, "opacity": 1 } ] },
-              "cover": { "color": { "param": "color" },
+              "cover": { "kind": "solid", "color": { "param": "color" },
                          "keys": [ { "t": 0, "opacity": 0 }, { "t": 0.4, "opacity": 1 }, { "t": 0.6, "opacity": 1 }, { "t": 1, "opacity": 0 } ] } }
             """##)
 
@@ -414,7 +414,7 @@ struct PresetReaderTests {
     @Test(
         "a preset's parameter stands only where a value of its type is written, never for a name, a key or a file",
         arguments: [
-            (#""seconds": 1, "cover": { "color": { "param": "n" } }"#, #"cover.color (cover): parameter "n" of type number cannot stand where a colour is expected"#),
+            (#""seconds": 1, "cover": { "kind": "solid", "color": { "param": "n" } }"#, #"cover.color (cover): parameter "n" of type number cannot stand where a colour is expected"#),
             (#""seconds": { "param": "c" }"#, #"seconds (transition): parameter "c" of type color cannot stand where a number is expected"#),
             (#""seconds": { "param": "e" }"#, #"seconds (transition): parameter "e" of type choice cannot stand where a number is expected"#),
             (#""seconds": 1, "over": { "param": "e" }"#, "over (transition): expected one of incoming, outgoing, found an object"),

@@ -68,7 +68,7 @@ struct DocumentPlannerTests {
     func plansTemplateInstance() throws {
         // Given
         let document = try Fixture.json(#"""
-            { "kind": "sequence", "storyline": [ { "kind": "media", "media": { "template": "shorts/leak", "args": { "clip": "shorts/leak.mov" } } } ] }
+            { "kind": "sequence", "storyline": [ { "kind": "media", "media": { "kind": "template", "template": "shorts/leak", "args": { "clip": "shorts/leak.mov" } } } ] }
             """#)
 
         // When
@@ -90,7 +90,7 @@ struct DocumentPlannerTests {
         // Given
         let document = try Fixture.json(#"""
             { "kind": "sequence", "theme": { "defaults": { "transition": "frames/flash" } },
-              "storyline": [ { "kind": "media", "media": { "template": "shorts/leak", "args": { "clip": "shorts/leak.mov", "intro": \#(intro) } } } ] }
+              "storyline": [ { "kind": "media", "media": { "kind": "template", "template": "shorts/leak", "args": { "clip": "shorts/leak.mov", "intro": \#(intro) } } } ] }
             """#)
 
         // When
@@ -108,7 +108,7 @@ struct DocumentPlannerTests {
         // Given
         let document = try Fixture.json(#"""
             { "kind": "sequence", "theme": { "defaults": { "transition": "frames/flash" } },
-              "storyline": [ { "kind": "media", "media": { "template": "shorts/leak", "args": { "clip": "shorts/leak.mov" } } } ] }
+              "storyline": [ { "kind": "media", "media": { "kind": "template", "template": "shorts/leak", "args": { "clip": "shorts/leak.mov" } } } ] }
             """#)
 
         // When
@@ -140,7 +140,7 @@ struct DocumentPlannerTests {
     func probesPackMedia() throws {
         // Given
         let document = try Fixture.json(#"""
-            { "kind": "sequence", "storyline": [ { "kind": "media", "media": "shorts/leak.mov" }, { "kind": "media", "media": { "imageSequence": "shorts/frames", "fps": 12 } } ] }
+            { "kind": "sequence", "storyline": [ { "kind": "media", "media": "shorts/leak.mov" }, { "kind": "media", "media": { "kind": "imageSequence", "directory": "shorts/frames", "fps": 12 } } ] }
             """#)
 
         // When
@@ -201,7 +201,7 @@ struct DocumentPlannerTests {
             at: "templates/voiced.json"
         )
         let instance = { (clip: String) in
-            try Fixture.json(#"{ "kind": "sequence", "storyline": [ { "kind": "media", "media": { "template": "shorts/voiced", "args": { "clip": "\#(clip)" } } } ] }"#)
+            try Fixture.json(#"{ "kind": "sequence", "storyline": [ { "kind": "media", "media": { "kind": "template", "template": "shorts/voiced", "args": { "clip": "\#(clip)" } } } ] }"#)
         }
 
         // When
@@ -223,7 +223,7 @@ struct DocumentPlannerTests {
             at: "templates/late.json"
         )
         let document = try Fixture.json(#"""
-            { "kind": "sequence", "storyline": [ { "kind": "media", "media": { "template": "shorts/late", "args": { "clip": "shorts/leak.mov" } } } ] }
+            { "kind": "sequence", "storyline": [ { "kind": "media", "media": { "kind": "template", "template": "shorts/late", "args": { "clip": "shorts/leak.mov" } } } ] }
             """#)
 
         // When, Then
@@ -240,7 +240,7 @@ struct DocumentPlannerTests {
             at: "templates/still.json"
         )
         let document = try Fixture.json(#"""
-            { "kind": "sequence", "storyline": [ { "kind": "media", "media": { "template": "shorts/still", "args": { "still": { "file": "/abs/deck.pdf", "page": 2 } } } } ] }
+            { "kind": "sequence", "storyline": [ { "kind": "media", "media": { "kind": "template", "template": "shorts/still", "args": { "still": { "kind": "page", "file": "/abs/deck.pdf", "page": 2 } } } } ] }
             """#)
 
         // When, Then
@@ -301,7 +301,7 @@ struct DocumentPlannerTests {
             at: "templates/wrap.json"
         )
         try directory.write(
-            #"{ "kind": "sequence", "storyline": [ { "kind": "media", "media": { "template": "shorts/wrap", "args": { "clip": "shorts/loop.json" } } } ] }"#,
+            #"{ "kind": "sequence", "storyline": [ { "kind": "media", "media": { "kind": "template", "template": "shorts/wrap", "args": { "clip": "shorts/loop.json" } } } ] }"#,
             in: "shorts",
             at: "media/loop.json"
         )
@@ -322,12 +322,12 @@ struct DocumentPlannerTests {
             at: "templates/wrap.json"
         )
         try directory.write(
-            #"{ "kind": "sequence", "storyline": [ { "kind": "media", "media": { "template": "shorts/wrap", "args": { "clip": "shorts/intro.json" } } } ] }"#,
+            #"{ "kind": "sequence", "storyline": [ { "kind": "media", "media": { "kind": "template", "template": "shorts/wrap", "args": { "clip": "shorts/intro.json" } } } ] }"#,
             in: "shorts",
             at: "media/outro.json"
         )
         let document = try Fixture.json(#"""
-            { "kind": "sequence", "storyline": [ { "kind": "media", "media": { "template": "shorts/wrap", "args": { "clip": "shorts/outro.json" } } } ] }
+            { "kind": "sequence", "storyline": [ { "kind": "media", "media": { "kind": "template", "template": "shorts/wrap", "args": { "clip": "shorts/outro.json" } } } ] }
             """#)
 
         // When
@@ -349,7 +349,7 @@ struct DocumentPlannerTests {
             at: "templates/wrap.json"
         )
         try directory.write(
-            #"{ "kind": "sequence", "storyline": [ { "kind": "media", "media": { "template": "shorts/wrap" } } ] }"#,
+            #"{ "kind": "sequence", "storyline": [ { "kind": "media", "media": { "kind": "template", "template": "shorts/wrap" } } ] }"#,
             in: "shorts",
             at: "media/loop.json"
         )
@@ -366,13 +366,13 @@ struct DocumentPlannerTests {
         // Given
         try directory.write(
             #"""
-            { "kind": "sequence", "params": { "m": { "type": "sequence", "default": { "template": "shorts/self" }, "description": "the m" } },
+            { "kind": "sequence", "params": { "m": { "type": "sequence", "default": { "kind": "template", "template": "shorts/self" }, "description": "the m" } },
               "storyline": [ { "kind": "media", "media": { "param": "m" } } ] }
             """#,
             in: "shorts",
             at: "templates/self.json"
         )
-        let document = try Fixture.json(#"{ "kind": "sequence", "storyline": [ { "kind": "media", "media": { "template": "shorts/self" } } ] }"#)
+        let document = try Fixture.json(#"{ "kind": "sequence", "storyline": [ { "kind": "media", "media": { "kind": "template", "template": "shorts/self" } } ] }"#)
 
         // When, Then
         let error = #expect(throws: PackError.self) { try sut.plan(document) }
@@ -385,12 +385,12 @@ struct DocumentPlannerTests {
         try directory.write(
             #"""
             { "kind": "sequence", "params": { "m": { "type": "sequence", "default": "shorts/intro.json", "description": "the m" } },
-              "storyline": [ { "kind": "media", "media": { "template": "shorts/self", "args": { "m": { "param": "m" } } } } ] }
+              "storyline": [ { "kind": "media", "media": { "kind": "template", "template": "shorts/self", "args": { "m": { "param": "m" } } } } ] }
             """#,
             in: "shorts",
             at: "templates/self.json"
         )
-        let document = try Fixture.json(#"{ "kind": "sequence", "storyline": [ { "kind": "media", "media": { "template": "shorts/self" } } ] }"#)
+        let document = try Fixture.json(#"{ "kind": "sequence", "storyline": [ { "kind": "media", "media": { "kind": "template", "template": "shorts/self" } } ] }"#)
         let file = directory.installed.appendingPathComponent("shorts/templates/self.json").path
 
         // When, Then
@@ -401,7 +401,7 @@ struct DocumentPlannerTests {
     @Test("an unknown template stops where it is named")
     func refusesUnknownTemplate() throws {
         // Given
-        let document = try Fixture.json(#"{ "kind": "sequence", "storyline": [ { "kind": "media", "media": { "template": "shorts/none" } } ] }"#)
+        let document = try Fixture.json(#"{ "kind": "sequence", "storyline": [ { "kind": "media", "media": { "kind": "template", "template": "shorts/none" } } ] }"#)
 
         // When, Then
         let error = #expect(throws: ModelError.self) { try sut.plan(document) }
@@ -420,7 +420,7 @@ struct DocumentPlannerTests {
             in: "shorts",
             at: "templates/card.json"
         )
-        let document = try Fixture.json(#"{ "kind": "sequence", "storyline": [ { "kind": "media", "media": { "template": "shorts/card" } } ] }"#)
+        let document = try Fixture.json(#"{ "kind": "sequence", "storyline": [ { "kind": "media", "media": { "kind": "template", "template": "shorts/card" } } ] }"#)
 
         // When
         let plan = try sut.plan(document)

@@ -69,7 +69,7 @@ struct ResolvedDocumentReaderTests {
                            "keyframes": [ { "at": 2, "crop": [0, 0, 1080, 1920] }, { "at": 8, "crop": [45, 97, 990, 1760] } ] } ],
           "clips": [ { "kind": "title", "text": "Hi", "style": "title", "at": [0, 3], "animation": "frames/pop", "position": [75.4, 1709.8] },
                      { "kind": "media", "media": "/abs/page.png", "at": [0, 3], "width": 200, "border": { "align": "outside" }, "shadow": true, "radius": 12 },
-                     { "kind": "media", "media": "/abs/bgm.m4a", "at": 0, "loop": true,
+                     { "kind": "audio", "media": "/abs/bgm.m4a", "at": 0, "loop": true,
                        "keyframes": [ { "at": 0, "volume": 0.3, "pan": -0.5, "ease": "ease-in" }, { "at": 2, "volume": 0.3 },
                                       { "at": 3, "volume": 0, "pan": 0.5 } ] } ] }
         """#,
@@ -77,7 +77,7 @@ struct ResolvedDocumentReaderTests {
         #"""
         { "kind": "sequence", "storyline": [
             { "kind": "solid", "color": "accent", "duration": 2 },
-            { "kind": "media", "media": { "imageSequence": "/abs/frames", "fps": 12 }, "filter": "film", "transition": "reveal" },
+            { "kind": "media", "media": { "kind": "imageSequence", "directory": "/abs/frames", "fps": 12 }, "filter": "film", "transition": "reveal" },
             { "kind": "media", "media": { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "in": 0, "out": 2 } ] }, "transition": "dip" } ] }
         """#,
         // Shapes, tracked areas, an adjustment, a timed media clip, a title parented to a shape and sound with fades.
@@ -157,7 +157,7 @@ struct ResolvedDocumentReaderTests {
         #"""
         { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "in": 0, "out": 3,
             "audioFilter": [ { "op": "gate", "threshold": -50 }, { "op": "compressor", "threshold": -18, "ratio": 3, "mix": 0.5 } ] } ],
-          "clips": [ { "kind": "media", "media": "/abs/bgm.m4a", "at": 0, "audioFilter": { "op": "eq", "bands": [ { "type": "peak", "gain": 6 } ] },
+          "clips": [ { "kind": "audio", "media": "/abs/bgm.m4a", "at": 0, "audioFilter": { "op": "eq", "bands": [ { "type": "peak", "gain": 6 } ] },
                        "keyframes": [ { "at": 0, "audioFilter": { "bands": [ { "frequency": 100, "q": 2 } ] } },
                                       { "at": 2, "audioFilter": { "bands": [ { "frequency": 8000, "q": 0.5 } ] } } ] } ] }
         """#,
@@ -167,9 +167,9 @@ struct ResolvedDocumentReaderTests {
         // sequence's audio filter beside its own.
         #"""
         { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "in": 0, "out": 3 } ],
-          "clips": [ { "kind": "media", "media": { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "out": 2 } ],
+          "clips": [ { "kind": "audio", "media": { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "out": 2 } ],
                                   "audioFilter": { "op": "limiter", "ceiling": -6, "lookahead": 0.01 } },
-                       "picture": false, "at": 1, "audioFilter": { "op": "gate", "threshold": -50 } } ],
+                       "at": 1, "audioFilter": { "op": "gate", "threshold": -50 } } ],
           "audioFilter": [ { "op": "gate", "threshold": -60 }, { "op": "limiter", "ceiling": -1 } ],
           "keyframes": [ { "at": 0, "audioFilter": [ { "mix": 0 }, { "gain": 0 } ], "ease": "ease-in" },
                          { "at": 2, "audioFilter": [ { "mix": 1 }, { "gain": 2 } ] } ] }
@@ -189,9 +189,9 @@ struct ResolvedDocumentReaderTests {
         #"""
         { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "in": 0, "out": 3,
             "audioFilter": { "op": "convolve", "file": "/abs/ding.wav", "mix": 0.4 } } ],
-          "clips": [ { "kind": "media", "media": { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "out": 2 } ],
+          "clips": [ { "kind": "audio", "media": { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "out": 2 } ],
                                   "audioFilter": { "op": "convolve", "file": "/abs/bgm.m4a" } },
-                       "picture": false, "at": 1, "audioFilter": { "op": "convolve", "file": "/abs/ding.wav" },
+                       "at": 1, "audioFilter": { "op": "convolve", "file": "/abs/ding.wav" },
                        "keyframes": [ { "at": 0, "audioFilter": { "gain": -12 } }, { "at": 1, "audioFilter": { "gain": 0 } } ] } ],
           "audioFilter": [ { "op": "convolve", "file": "/abs/ding.wav", "gain": -6 }, { "op": "limiter" } ] }
         """#,
@@ -621,7 +621,7 @@ struct ResolvedDocumentReaderTests {
             { "kind": "sequence", "storyline": [ { "id": "screen", "kind": "media", "media": "/abs/screen.mp4", "in": 0, "out": 2 } ],
               "clips": [ { "id": "a", "kind": "rect", "stroke": { "width": 8 }, "area": [0, 0, 10, 10], "at": [0, 1], "parent": "screen" },
                          { "id": "b", "kind": "rect", "stroke": { "width": 8 }, "area": [0, 0, 10, 10], "at": [0, 1], "parent": "a" },
-                         { "id": "sound", "kind": "media", "media": "/abs/bgm.m4a", "at": [0, 1] } ] }
+                         { "id": "sound", "kind": "audio", "media": "/abs/bgm.m4a", "at": [0, 1] } ] }
             """#
         let text = try replacingFirst(written, with: replacement, in: self.written(document))
 
@@ -1592,7 +1592,7 @@ struct ResolvedDocumentReaderTests {
                 { "kind": "media", "media": "/abs/short.mp4", "in": 1, "out": 3, "speed": 2, "at": 1, "width": 300, "conform": "fill",
                   "keyframes": [ { "at": 1, "opacity": 0, "ease": { "spring": { "bounce": 0.3 } } }, { "at": 1.5, "opacity": 1 } ] },
                 { "kind": "title", "text": "Hi", "style": "title", "at": [1, 2], "parent": "dim", "position": [50, 50] },
-                { "kind": "media", "media": "/abs/ding.wav", "at": 1.5, "fadeIn": 0.25, "fadeOut": 0.5 } ] } ] }
+                { "kind": "audio", "media": "/abs/ding.wav", "at": 1.5, "fadeIn": 0.25, "fadeOut": 0.5 } ] } ] }
             """#
     }
 
