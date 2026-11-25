@@ -1,10 +1,10 @@
-# FRAMES-11: Titles, shapes, media and adjustment clips
+# FRAMES-11: Titles, shapes, media, adjustment and null clips
 
 Status: accepted
 
 ## Summary
 
-The clip kinds that draw on a sequence: titles with styled runs, the three shapes (rect, ellipse and path, whose segments are cubic Bézier curves) with fill, stroke, gradients, dashes, arrowheads and trim, media clips (picture in picture and graphics made elsewhere), adjustment clips, the masks and track mattes any picture takes, and blend modes.
+The clip kinds that draw on a sequence: titles with styled runs, the three shapes (rect, ellipse and path, whose segments are cubic Bézier curves) with fill, stroke, gradients, dashes, arrowheads and trim, media clips (picture in picture and graphics made elsewhere), adjustment clips, null clips, which draw nothing and carry a transform for other clips, the masks and track mattes any picture takes, and blend modes.
 
 ## Motivation
 
@@ -124,6 +124,17 @@ Titles and shapes are the basics of any NLE. A lower third is a name and a role 
 
 An adjustment clip applies a filter choice (`adjust`, [FRAMES-15](../FRAMES-15/SPEC.md)) to everything drawn below it in its frame, as an NLE's adjustment layer: over the whole frame, or inside its `mask` when it has one. It takes `trackMatte` as every clip with a picture does ([below](#masks-and-track-mattes)), and its coverage, the part of the frame its filtered result is drawn over, is multiplied by its masks' result and by its matte's value, so an adjustment whose track matte is a clip with a corner pin filters a plane in perspective ([FRAMES-27](../FRAMES-27/SPEC.md)). Its `opacity` blends the filtered result with what is below, and its `blend` composites the filtered result onto the unfiltered one. Inside a compound clip it reaches only the clips of that compound clip. It takes no keyframed transform: its mask is in the space its parent gives, or in output pixels without one ([FRAMES-10](../FRAMES-10/SPEC.md)), and it moves with its tracked motion and its animation.
 
+### Null clips
+
+A null clip, `{"null": true}`, draws nothing. It is a box with a transform, which other clips follow as their parent ([FRAMES-10](../FRAMES-10/SPEC.md)) and name in a clip area or a point ([FRAMES-2](../FRAMES-2/SPEC.md)), as an After Effects null object carries the layers parented to it. `null` is `true`, and any other value stops as a value of the wrong type.
+
+- Its box is given as a rect's is ([Shapes](#shapes)): exactly one of `area` and the pair `width` and `height`. Given `width` and `height`, the box is placed by `placement` or `position` about its `anchor`; given `area`, it is placed by its area, and its `anchor` names a point of that area. The stops of a rect's geometry are the null's: both `area` and `width`, a `width` without a `height`, no box at all, and `placement` beside `area`. Its box is as written, with no outset.
+- It takes the keys that place and move a clip: `at`, `parent`, `track` ([FRAMES-12](../FRAMES-12/SPEC.md)), `position`, `anchor`, `scale`, `rotation`, `animation`, `motionBlur` ([FRAMES-29](../FRAMES-29/SPEC.md)), and keyframes of `area`, `width`, `height`, `position`, `scale` and `rotation`. Its transform is a rect's placed the same way ([FRAMES-10](../FRAMES-10/SPEC.md)), and the space it gives its children is a rect's: its box, origin at the box's top left, when placed by `width` and `height`, and the space its area is written in when placed by `area`.
+- Its `animation` moves it by the transform part of its spans, `scale`, `rotation`, `x` and `y` on its box ([FRAMES-14](../FRAMES-14/SPEC.md)), which carries its children. The opacity and reveal of a span act on a picture, and a null has none, so they act on nothing. No theme default animation names a null, so an `animation` it does not write is `"none"`, and a choice written as an object without `preset` stops, as there is no default to merge over ([FRAMES-22](../FRAMES-22/SPEC.md)).
+- It takes no key of appearance or compositing: `lane`, `opacity`, `blend`, `mask`, `trackMatte`, `filter`, `style`, `fill`, `stroke`, `shadow`, `radius`, `outset` and `trim` stop as keys it does not take ([FRAMES-7](../FRAMES-7/SPEC.md#keys)), and so does `cornerPin`, since a corner pin places a picture on a plane and carries no children ([FRAMES-27](../FRAMES-27/SPEC.md)).
+- It is a connected or a sequence clip, and `null` on a storyline clip stops as a key that clip does not take: the storyline shows its clips' pictures one after another, and a null has none to show.
+- It is not a clip with a picture ([FRAMES-7](../FRAMES-7/SPEC.md)). Where a clip's box and transform are read, a null serves as any clip: as a parent, and as the clip a clip area or a point names. Where a clip's picture is read, naming a null stops: a track matte's `clip` ([below](#masks-and-track-mattes)). It draws no item ([FRAMES-20](../FRAMES-20/SPEC.md)), so nothing is under a point of it, and content fit does not measure it ([FRAMES-6](../FRAMES-6/SPEC.md)).
+
 ### Masks and track mattes
 
 `mask` is taken by every clip with a picture: a storyline clip with media, a media clip, a title, a shape and an adjustment clip. Its value is a mask or a list of masks, combined in list order.
@@ -146,7 +157,7 @@ An adjustment clip applies a filter choice (`adjust`, [FRAMES-15](../FRAMES-15/S
 
 `trackMatte` is taken by every clip with a picture, an adjustment clip included: `{clip: "<id>", mode: "alpha" | "luma", invert: false}`. `mode` is required and `invert` defaults to `false`.
 
-- `clip` names, by its `id` ([FRAMES-7](../FRAMES-7/SPEC.md)), a connected or sequence media clip, title or shape in the same document. Any other clip named (a storyline clip, an adjustment clip, an audio clip, a clip in another document), or an id that names no clip, stops.
+- `clip` names, by its `id` ([FRAMES-7](../FRAMES-7/SPEC.md)), a connected or sequence media clip, title or shape in the same document. Any other clip named (a storyline clip, an adjustment clip, a null, an audio clip, a clip in another document), or an id that names no clip, stops.
 - The named clip is the matte and is not drawn itself. Its picture at t is what it would draw at t (with its transform, parent, animation, opacity, mask and its own track matte, and without its blend), on a transparent frame, and nothing outside its visible window. A media clip's picture there is drawn with its own `crop`, `filter`, `radius`, `border` and `shadow`, so a matte clip graded by its `filter`, as by `levels`, gives the matte of the graded picture.
 - `alpha` multiplies the clip's alpha by the matte's alpha. `luma` multiplies it by the matte's luma ([FRAMES-26](../FRAMES-26/SPEC.md)) clamped to 0 to 1, times its alpha, so a transparent matte counts as black and a part brighter than reference white counts as white. `invert` uses 1 minus that value. The matte is a drawn picture, not an analysis picture, so a matte clip of HDR media weighs as its `toneMap` and the sequence bring its media in ([FRAMES-26](../FRAMES-26/SPEC.md#notes)).
 - The matte cuts the clip where its mask does: on a storyline clip, before the transition motion ([FRAMES-9](../FRAMES-9/SPEC.md)).
@@ -169,6 +180,8 @@ Light leaks and film burns come in this way, as media with `screen`, `plus-light
 Placement, anchor points and theme lengths are [FRAMES-1](../FRAMES-1/SPEC.md). Areas and points are [FRAMES-2](../FRAMES-2/SPEC.md). Text layout and runs are [FRAMES-5](../FRAMES-5/SPEC.md). Keys are [FRAMES-7](../FRAMES-7/SPEC.md), `timeRemap` is [FRAMES-8](../FRAMES-8/SPEC.md), the storyline and stacking are [FRAMES-9](../FRAMES-9/SPEC.md), and parents are [FRAMES-10](../FRAMES-10/SPEC.md). Corner pins are [FRAMES-27](../FRAMES-27/SPEC.md). Tracked masks are [FRAMES-12](../FRAMES-12/SPEC.md). Animations, reveal and transitions are [FRAMES-14](../FRAMES-14/SPEC.md), filters [FRAMES-15](../FRAMES-15/SPEC.md). Text styles, shape styles, the border and the shadow are [FRAMES-22](../FRAMES-22/SPEC.md). Display list items, the mask and track matte fields among them, are [FRAMES-20](../FRAMES-20/SPEC.md). The forms colours are composited, interpolated and measured in are [FRAMES-26](../FRAMES-26/SPEC.md).
 
 ## Alternatives considered
+
+A clip that only carries motion written as a shape: a rect at opacity 0, or a rect with neither a fill nor a stroke. The first says that a rectangle is drawn and hidden, and it is still composited, stacked in a lane and open to a mask and a track matte, all to no effect. The second is the shape that draws nothing, which stops because an unpainted shape is a mistake, and a reader could not tell one written on purpose from one whose style lost its paint. A null says outright that nothing is drawn, takes only the keys that place and move a box, and draws no item. Its key is `"null": true` and not `"shape": "null"`, which would make it a shape, a clip that takes a style, a fill and a stroke, nor an empty object, which reads as a value to fill in. Each other kind key carries what its kind is made of, a media, runs, a shape kind, a filter or a colour, and a null is made of nothing but the box and transform keys a rect writes, so its key says only what the clip is, as `"kind": "sequence"` says what a document is.
 
 Corners cut one by one, each to half the box's shorter side, as one radius is cut: two large corners on one side would still overlap, and a corner would keep its radius while its neighbour's ran past the middle of the side. One factor for every radius, as CSS scales them, keeps the corners from meeting and keeps their proportions, and with one radius for every corner it is the same cut.
 
