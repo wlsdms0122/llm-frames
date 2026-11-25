@@ -133,7 +133,11 @@ struct ThemeValidator: Sendable {
         )
         guard case let .preset(instance, _) = choice else { return choice }
         guard let preset = try presets.transition(instance) else {
-            throw ThemeError.unknownPreset(place: instance.place, kind: kind, presetKind: "transition", name: instance.name)
+            throw ThemeError.unknownPreset(
+                place: instance.place,
+                kind: kind,
+                preset: try presets.unknown(.transition, named: instance.name)
+            )
         }
         if case let .color(color) = preset.cover?.source {
             _ = try theme.presetColor(color, place: instance.place, kind: .themeDefaults)
@@ -157,8 +161,7 @@ struct ThemeValidator: Sendable {
                 throw ThemeError.unknownPreset(
                     place: instance.place,
                     kind: ThemeKeyTable.defaults.kind,
-                    presetKind: "filter",
-                    name: instance.name
+                    preset: try presets.unknown(.filter, named: instance.name)
                 )
             }
 
@@ -185,8 +188,7 @@ struct ThemeValidator: Sendable {
                 throw ThemeError.unknownPreset(
                     place: theme.place(of: place.appending(key: key)),
                     kind: ShapeKeyTable.style.kind,
-                    presetKind: PresetKind.head.rawValue,
-                    name: name
+                    preset: try presets.unknown(.head, named: name)
                 )
             }
         }
@@ -225,8 +227,7 @@ struct ThemeValidator: Sendable {
                 throw ThemeError.unknownPreset(
                     place: theme.place(of: place.appending(key: key)),
                     kind: kind,
-                    presetKind: "animation",
-                    name: instance.name
+                    preset: try presets.unknown(.animation, named: instance.name)
                 )
             }
         }

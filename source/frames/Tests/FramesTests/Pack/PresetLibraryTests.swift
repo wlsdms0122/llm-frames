@@ -57,6 +57,26 @@ struct PresetLibraryTests {
         #expect(filter?.description == "warm")
     }
 
+    @Test("an unknown preset in a pack that is there names the nearest of its kind there and lists them all")
+    func describesUnknownPresetInPack() throws {
+        // Given
+        try directory.addPack("shorts")
+        try directory.write(#"{ "description": "a hook", "points": [[0, 0], [1, 1]], "length": 1 }"#, in: "shorts", at: "presets/head/hook.json")
+        try directory.write(#"{ "description": "a tick", "points": [[0, 0], [1, 1]], "length": 1 }"#, in: "shorts", at: "presets/head/tick.json")
+
+        // When
+        let near = try sut.unknown(.head, named: "shorts/hok")
+        let far = try sut.unknown(.head, named: "shorts/spiral")
+        let empty = try sut.unknown(.transition, named: "shorts/flash")
+        let missing = try sut.unknown(.head, named: "nopack/hook")
+
+        // Then
+        #expect(near.description == #"unknown head preset "shorts/hok". Did you mean "shorts/hook"? The pack "shorts" holds the head presets shorts/hook, shorts/tick"#)
+        #expect(far.description == #"unknown head preset "shorts/spiral". The pack "shorts" holds the head presets shorts/hook, shorts/tick"#)
+        #expect(empty.description == #"unknown transition preset "shorts/flash". The pack "shorts" holds no transition presets"#)
+        #expect(missing.description == #"unknown head preset "nopack/hook". A preset is named <pack>/<name>, and the ones frames ships are frames/<name>"#)
+    }
+
     @Test("a preset that is not there, or in a pack that is not there, is none", arguments: ["flash", "shorts/flash", "nopack/flash", "/abs/flash.json", "a/b/c"])
     func findsNoMissingPreset(name: String) throws {
         // Given

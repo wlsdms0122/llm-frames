@@ -401,7 +401,11 @@ struct TimePlanner: Sendable {
         theme: MergedTheme
     ) throws -> TransitionPreset {
         guard let preset = try presets.transition(instance) else {
-            throw ResolveError.unknownPreset(place: place, kind: .clip(kind), presetKind: "transition", name: instance.name)
+            throw ResolveError.unknownPreset(
+                place: place,
+                kind: .clip(kind),
+                preset: try presets.unknown(.transition, named: instance.name)
+            )
         }
 
         return try values.transition(preset, theme: theme, place: place, kind: .clip(kind))
@@ -816,7 +820,11 @@ struct TimePlanner: Sendable {
         kind: ClipKind
     ) throws -> AnimationPreset {
         guard let preset = try presets.animation(instance) else {
-            throw ResolveError.unknownPreset(place: place, kind: .clip(kind), presetKind: "animation", name: instance.name)
+            throw ResolveError.unknownPreset(
+                place: place,
+                kind: .clip(kind),
+                preset: try presets.unknown(.animation, named: instance.name)
+            )
         }
 
         return preset

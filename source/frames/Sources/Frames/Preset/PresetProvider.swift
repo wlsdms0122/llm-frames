@@ -19,4 +19,20 @@ protocol PresetProvider: Sendable {
     func publishedAudio(named name: String) throws -> PublishedPreset<AudioPreset>?
     // A head preset, which publishes no parameters and so is found by its name alone.
     func head(named name: String) throws -> StrokeHead?
+    // The presets of `kind` the pack `pack` holds, by the names a document gives them, in name order, or nil where no
+    // pack has that name.
+    func names(
+        of kind: PresetKind,
+        inPack pack: String
+    ) throws -> [String]?
+}
+
+extension PresetProvider {
+    // The stop for `name`, which finds no preset of `kind`, with what the presets that are there say about it.
+    func unknown(
+        _ kind: PresetKind,
+        named name: String
+    ) throws -> UnknownPreset {
+        try UnknownPreset(kind: kind, name: name) { pack in try names(of: kind, inPack: pack) }
+    }
 }

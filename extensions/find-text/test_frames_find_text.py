@@ -60,11 +60,16 @@ class Case(unittest.TestCase):
         extension.Frames = self.original
 
     def run_document(self, document, calls, *options):
+        return self.run_with_report(document, calls, *options)[0]
+
+    def run_with_report(self, document, calls, *options):
+        """The filled document and the report of each request filled."""
         Replay.calls = calls
         path = os.path.join(self.directory(), "document.json")
         with open(path, "w", encoding="utf-8") as file:
             json.dump(document, file)
-        return extension.run([path, *options])
+        filled, _, report = extension.run([path, *options])
+        return filled, report
 
     def directory(self):
         directory = tempfile.mkdtemp(prefix="frames-find-text-test-")
@@ -148,7 +153,7 @@ class Recorded(Case):
         ])
 
     def test_track_requests_kept(self):
-        # Given track-motion requests that name a find-text request's key, an area and a frame
+        # Given track-motion requests that name a find-text request's key and an area
         document = fixture("video.json")
 
         # When the extension writes the rectangles
@@ -159,6 +164,45 @@ class Recorded(Case):
         self.assertEqual(shot["track"], document["storyline"][0]["track"])
         self.assertEqual([clip["track"] for clip in shot["connected"][1:]], [clip["track"] for clip in document["storyline"][0]["connected"][1:]])
         self.assertEqual(shot["connected"][1]["area"], [99.90329, 118, 146.19342, 23])
+
+    def test_report_still(self):
+        # Given the still fixture
+        document = fixture("still.json")
+
+        # When the extension writes the rectangles with their report
+        result, report = self.run_with_report(copy.deepcopy(document), fixture("still.calls.json"))
+
+        # Then each request filled is reported in the order of the document, with its place, its request as written,
+        # the still read, the lines it matched and the rectangle written
+        self.assertEqual([(entry["place"], entry["key"]) for entry in report], [
+            ("storyline[0]#board.connected[0]#sour", "area"),
+            ("storyline[0]#board.connected[1]#total", "area"),
+            ("storyline[0]#board.connected[2]#range", "area"),
+            ("storyline[0]#board.connected[3]#note", "position.area"),
+            ("storyline[1]#zoom", "crop")
+        ])
+        self.assertEqual(report[1], {
+            "place": "storyline[0]#board.connected[1]#total", "key": "area",
+            "request": {"tool": "find-text", "text": "Total", "nth": 1, "padding": 8},
+            "media": "/media/board.png", "mediaTime": None, "page": None,
+            "lines": [{"text": "Total saved 1.00", "rect": [77.795659, 483, 238.387482, 23]}],
+            "rect": result["storyline"][0]["connected"][1]["area"]
+        })
+        self.assertEqual([line["text"] for line in report[2]["lines"]], ["Flat white 4.50", "Sourdough 6.00", "Total 10.50"])
+        self.assertEqual(report[3]["rect"], result["storyline"][0]["connected"][3]["position"]["area"])
+
+    def test_report_video(self):
+        # Given the video fixture
+        # When the extension writes the rectangles with their report
+        result, report = self.run_with_report(fixture("video.json"), fixture("video.calls.json"), "--languages", "en-US")
+
+        # Then each keyframe's request names the frame read by its media time and the line shown on it
+        keyframes = [entry for entry in report if entry["place"] == "storyline[0]#v.connected[0]#k"]
+        self.assertEqual([(entry["key"], entry["media"], entry["mediaTime"], entry["page"]) for entry in keyframes], [
+            ("keyframes[0].area", "/media/clip.mp4", 0.48, None), ("keyframes[1].area", "/media/clip.mp4", 3, None)
+        ])
+        self.assertEqual([[line["text"] for line in entry["lines"]] for entry in keyframes], [["Price 4.50"], ["Price 6.00"]])
+        self.assertEqual([entry["rect"] for entry in keyframes], [keyframe["area"] for keyframe in result["storyline"][0]["connected"][0]["keyframes"]])
 
     def test_no_text_forms(self):
         # Given a document whose areas are rectangles
@@ -174,10 +218,11 @@ class Recorded(Case):
 
 class Matching(unittest.TestCase):
     lines = fixture("still.calls.json")
-    lines = next(call for call in lines if call["arguments"][0] == "ocr")["output"]["frames"][0]["lines"]
+    output = next(call for call in lines if call["arguments"][0] == "ocr")["output"]
+    reading = extension.Reading(output["size"], output["frames"][0]["lines"])
 
     def find(self, form):
-        return extension.find(form, self.lines, "place", "board.png")
+        return extension.find(form, self.reading, "place", "board.png")[0]
 
     def test_whitespace(self):
         # Given text written without its spaces
@@ -225,6 +270,44 @@ class Matching(unittest.TestCase):
         # Then it covers both and every line whose centre lies between them, grown by the padding
         self.assertEqual(rect, [65.792892, 201, 258.207108, 227])
 
+    def test_aspect_ratio(self):
+        # Given a line of the 1280 by 720 board, padded by 8 to [69.792892, 385, 178.414215, 39]
+        # When it is grown to a landscape ratio and to a portrait one
+        landscape = self.find({"text": "Total 10", "padding": 8, "aspectRatio": [16, 9]})
+        portrait = self.find({"text": "Total 10", "padding": 8, "aspectRatio": [9, 16]})
+
+        # Then each keeps the padded width, grows its height about the centre to the ratio and holds the text
+        self.assertEqual(landscape, [69.792892, 354.321002, 178.414215, 100.357996])
+        self.assertEqual(portrait, [69.792892, 245.909587, 178.414215, 317.180827])
+
+    def test_aspect_ratio_slides_inside(self):
+        # Given the top line, whose portrait rectangle about its centre reaches above the picture, and a line whose
+        # padding reaches past the left edge
+        top = self.find({"text": "Receipt", "aspectRatio": [9, 16]})
+        edge = self.find({"text": "Flat white", "padding": 90, "aspectRatio": [1, 1]})
+
+        # When each is grown, Then it slides down to the top edge, and the part inside the picture is grown
+        self.assertEqual(top, [83.274157, 0, 237.365555, 421.983209])
+        self.assertEqual(edge, [0, 33.5, 382.000001, 382.000001])
+
+    def test_aspect_ratio_too_wide(self):
+        # Given lines from the top of the board to its bottom, padded
+        # When they are grown to a ratio the board cannot hold around them
+        with self.assertRaises(extension.Stop) as raised:
+            self.find({"from": "Receipt", "to": "Total saved", "padding": 8, "aspectRatio": [16, 1]})
+
+        # Then it stops naming the picture, its size, the ratio and the padded text
+        self.assertIn("place: board.png is 1280x720, which holds no rectangle of aspect ratio 16:1 around", str(raised.exception))
+        self.assertIn("the padded text inside it", str(raised.exception))
+
+    def test_aspect_ratio_form(self):
+        # Given aspect ratios written as a number, a list of one, and with a part at 0
+        # When each request is checked, Then each stops naming the form
+        for ratio in (1.78, [16], [16, 0], [16, True]):
+            with self.assertRaises(extension.Stop) as raised:
+                extension.check_text_form({"tool": "find-text", "text": "Total", "aspectRatio": ratio}, "place")
+            self.assertEqual(str(raised.exception), "place: aspectRatio is [w, h], two numbers above 0")
+
 
 class Places(Case):
     """Documents of `fixtures/places.json`, each with the frames commands the extension ran on it in
@@ -264,8 +347,31 @@ class Places(Case):
         # Then each stops on the space its entry reports, the title's box and output pixels
         self.assertIn("storyline[0]#b.connected[1]: area: the place is not in a medium's pixels", title)
         self.assertIn("it is written in the box of storyline[0]#b.connected[0]#t", title)
+        self.assertNotIn("clip's area", title)
         self.assertIn("storyline[0]#s.connected[0]: area: the place is not in a medium's pixels", solid)
         self.assertIn("it is written in output pixels", solid)
+
+    def test_parent_shape(self):
+        # Given the parent title case with its parent written as a rect placed by width and height, whose box timeline
+        # reports as it reports the title's, and the child's area or point naming text
+        calls = copy.deepcopy(self.calls["parent_title"])
+        parent = next(call for call in calls if call["arguments"][0] == "timeline")["output"]["clips"][0]
+        parent["kind"] = "rect"
+        document = copy.deepcopy(self.documents["parent_title"])
+        connected = document["storyline"][0]["connected"]
+        connected[0] = {"id": "t", "parent": "b", "shape": "rect", "width": 200, "height": 80, "position": [10, 10]}
+        pointed = copy.deepcopy(document)
+        pointed["storyline"][0]["connected"][1] = {"parent": "t", "title": "y", "style": "title", "anchor": "left",
+            "position": {"area": {"tool": "find-text", "text": "Total"}, "point": "bottom-right"}}
+
+        # When the extension runs on each
+        area = self.stop(document, calls)
+        point = self.stop(pointed, calls)
+
+        # Then each stops naming the parent's box and how the place is written as the parent's clip area
+        self.assertIn("it is written in the box of storyline[0]#b.connected[0]#t, a rect placed by width and height, "
+                      'so write the place as that clip\'s area: {"clip": "t"}', area)
+        self.assertIn('write the place as that clip\'s area: {"area": {"clip": "t"}, "point": "bottom-right"}', point)
 
     def test_parent_corner_pin(self):
         # Given a shape parented to a clip with a corner pin, which is parented to a still
@@ -363,7 +469,7 @@ class Reading(unittest.TestCase):
         # Given frames whose report records what it is asked
         asked = []
         frames = extension.Frames("frames", ["--ocr", "vision"])
-        frames.report = lambda arguments: asked.append(arguments) or {"frames": [{"time": 0, "lines": []}]}
+        frames.report = lambda arguments: asked.append(arguments) or {"size": [612, 792], "frames": [{"time": 0, "lines": []}]}
 
         # When a page is read twice in a colour space with languages
         page = extension.Picture("/media/deck.pdf", None, 3, None)
@@ -375,15 +481,73 @@ class Reading(unittest.TestCase):
             "ocr", "/media/deck.pdf", "--json", "--page", "3", "--color-space", "display-p3", "--languages", "ko-KR,en-US"
         ]])
 
+    def test_failed_command(self):
+        # Given a frames that stops on every command, run with a theme and without
+        directory = tempfile.mkdtemp(prefix="frames-find-text-test-")
+        self.addCleanup(shutil.rmtree, directory, True)
+        executable = os.path.join(directory, "frames")
+        with open(executable, "w", encoding="utf-8") as file:
+            file.write('#!/bin/sh\necho \'frames: shape style "outline" is not in shapes\' >&2\nexit 1\n')
+        os.chmod(executable, 0o755)
+
+        # When each runs timeline
+        messages = []
+        for options in (["--theme", "shorts/shorts", "--ocr", "vision"], []):
+            with self.assertRaises(extension.Stop) as raised:
+                extension.Frames(executable, options).report(["timeline", "/tmp/a b/document.json", "--json"])
+            messages.append(str(raised.exception))
+
+        # Then each names the command line it ran, its global options included, and what frames said
+        self.assertEqual(messages, [
+            f"{executable} --theme shorts/shorts --ocr vision timeline '/tmp/a b/document.json' --json failed: "
+            'frames: shape style "outline" is not in shapes',
+            f"{executable} timeline '/tmp/a b/document.json' --json failed: frames: shape style \"outline\" is not in shapes"
+        ])
+
     def test_options(self):
         # Given the global options frames passes before the extension's arguments
         # When they are parsed
-        options, document, languages = extension.parse(["--theme", "demo/dark", "/a/b.json", "--languages", "en-US"])
+        options, document, languages, report = extension.parse(["--theme", "demo/dark", "/a/b.json", "--languages", "en-US"])
 
         # Then the global options are kept for every frames command and the languages for ocr
         self.assertEqual(options, ["--theme", "demo/dark"])
         self.assertEqual(document, "/a/b.json")
         self.assertEqual(languages, "en-US")
+        self.assertIsNone(report)
+
+    def test_report_path(self):
+        # Given a report path with an extension in upper case
+        # When it is parsed
+        report = extension.parse(["/a/b.json", "--report", "/a/b.report.JSON"])[3]
+
+        # Then it is kept
+        self.assertEqual(report, "/a/b.report.JSON")
+
+        # And a relative path, another extension and the document's own path each stop before the document is read
+        for path, message in (
+            ("b.report.json", '--report "b.report.json" is not an absolute path, and paths are absolute'),
+            ("/a/b.txt", '--report "/a/b.txt": a report is written to a .json file'),
+            ("/a/b.json", '--report "/a/b.json": the report would be written over the document')
+        ):
+            with self.assertRaises(extension.Stop) as raised:
+                extension.parse(["/nowhere/b.json" if path == "b.report.json" else "/a/b.json", "--report", path])
+            self.assertEqual(str(raised.exception), message)
+
+    def test_write_report(self):
+        # Given a request filled
+        directory = tempfile.mkdtemp(prefix="frames-find-text-test-")
+        self.addCleanup(shutil.rmtree, directory, True)
+        path = os.path.join(directory, "report.json")
+        filled = [{"place": "clips[0]", "key": "area", "rect": [1, 2, 3, 4]}]
+
+        # When the report is written
+        extension.write_report(path, filled)
+
+        # Then its first key names the tool and its version, and it holds the requests
+        with open(path, encoding="utf-8") as file:
+            text = file.read()
+        self.assertTrue(text.startswith('{\n  "find-text": "0.1.0",'))
+        self.assertEqual(json.loads(text), {"find-text": "0.1.0", "requests": filled})
 
 
 if __name__ == "__main__":

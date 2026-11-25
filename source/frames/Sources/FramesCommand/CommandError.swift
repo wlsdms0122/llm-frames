@@ -33,7 +33,7 @@ enum CommandError: Error, Equatable, CustomStringConvertible, Sendable {
     case reportExtension(path: String)
     case reportOverOutput(path: String)
     case unknownPresetKind(kind: String, known: [String])
-    case unknownPreset(kind: String, name: String)
+    case unknownPreset(UnknownPreset)
     case unknownPack(name: String)
     case missingLabelFace(name: String, file: String)
     case argumentsOfMedium(command: String, path: String)
@@ -116,9 +116,8 @@ enum CommandError: Error, Equatable, CustomStringConvertible, Sendable {
         case let .unknownPresetKind(kind, known):
             "presets: unknown kind \(quoted(kind)). Known: \(known.joined(separator: ", "))"
 
-        case let .unknownPreset(kind, name):
-            "presets: unknown \(kind) preset \(quoted(name))"
-                + ". A preset is named <pack>/<name>, and the ones frames ships are frames/<name>"
+        case let .unknownPreset(preset):
+            "presets: \(preset)"
 
         case let .unknownPack(name):
             "packs: unknown pack \(quoted(name))"

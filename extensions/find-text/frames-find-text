@@ -4,24 +4,26 @@
 A request is an object with the key `tool` that stands where a value is still to be found, and the requests this
 extension fills are those whose `tool` is `find-text`, standing where an area does. It asks frames where and when each
 one is searched, reads the media with `frames ocr --json`, and prints the same document with each of its requests
-replaced by a rectangle in the media pixels it is written in. A request for any other tool is left as written. It
-reads only frames' machine output and never a resolved document.
+replaced by a rectangle in the media pixels it is written in, and with `--report` writes what it filled. A request
+for any other tool is left as written. It reads only frames' machine output and never a resolved document.
 """
 
 import json
 import os
+import shlex
 import subprocess
 import sys
 import tempfile
 
 SUPPORTED_MAJOR = 0
+VERSION = "0.1.0"
 GLOBAL_OPTIONS = ("--theme", "--decoder", "--renderer", "--mixer", "--encoder", "--shaper", "--tracker", "--ocr")
 TOOL = "find-text"
-TEXT_KEYS = {"tool", "text", "nth", "padding"}
-RANGE_KEYS = {"tool", "from", "to", "fromNth", "toNth", "padding"}
+TEXT_KEYS = {"tool", "text", "nth", "padding", "aspectRatio"}
+RANGE_KEYS = {"tool", "from", "to", "fromNth", "toNth", "padding", "aspectRatio"}
 AREA_KEYS = ("area", "crop")
 PLACEHOLDER = [0, 0, 1, 1]
-USAGE = """frames find-text <document.json | -> [--languages <tag>[,<tag>...]]
+USAGE = """frames find-text <document.json | -> [--languages <tag>[,<tag>...]] [--report <report.json>]
 
 Prints the document with every request for find-text, standing where an area does, replaced by the rectangle
 `frames ocr` finds, in the media pixels the area is written in:
@@ -30,10 +32,14 @@ Prints the document with every request for find-text, standing where an area doe
   {"tool": "find-text", "from": a, "to": b, "fromNth": n, "toNth": m, "padding": p}
                                                                     the lines from the one with a to the one with b
 
+Either takes "aspectRatio": [w, h], which grows the padded rectangle to that ratio inside the picture searched.
+
 A request for any other tool is left as written.
 
   <document.json | ->           The document, as an absolute path, or - for standard input.
   --languages <tag>[,<tag>...]  The recognition languages passed to `frames ocr --languages`. Default: detected.
+  --report <report.json>        Writes each request filled with the media, frame and lines it matched, as an
+                                absolute .json path. Default: none.
   --help                        Prints this help.
 
 The global options of frames given before `find-text` are passed to every frames command it runs. The frames it
@@ -55,12 +61,11 @@ class Frames:
         self.readings = {}
 
     def report(self, arguments):
-        completed = subprocess.run(
-            [self.executable] + self.options + arguments, capture_output=True, text=True
-        )
+        command = [self.executable] + self.options + arguments
+        completed = subprocess.run(command, capture_output=True, text=True)
         if completed.returncode != 0:
             message = completed.stderr.strip() or f"exit {completed.returncode}"
-            raise Stop(f"frames {arguments[0]} failed: {message}")
+            raise Stop(f"{shlex.join(command)} failed: {message}")
         output = json.loads(completed.stdout)
         version = output.get(arguments[0])
         if major(version) != SUPPORTED_MAJOR:
@@ -77,6 +82,7 @@ class Frames:
             raise Stop(f"{self.executable} --version is {version!r}, and this extension is written for {SUPPORTED_MAJOR}.x")
 
     def ocr(self, picture, color_space, languages):
+        """What `ocr --json` reads in a picture: its size and the lines of its one frame."""
         key = (picture.path, picture.time, picture.page, picture.fps, color_space, languages)
         if key not in self.readings:
             arguments = ["ocr", picture.path, "--json"]
@@ -90,8 +96,17 @@ class Frames:
                 arguments += ["--color-space", color_space]
             if languages is not None:
                 arguments += ["--languages", languages]
-            self.readings[key] = self.report(arguments)["frames"][0]["lines"]
+            report = self.report(arguments)
+            self.readings[key] = Reading(report["size"], report["frames"][0]["lines"])
         return self.readings[key]
+
+
+class Reading:
+    """The lines `ocr` recognises in one picture, and the picture's size, in the pixels the lines are in."""
+
+    def __init__(self, size, lines):
+        self.size = size
+        self.lines = lines
 
 
 def major(version):
@@ -133,8 +148,15 @@ def check_text_form(value, where):
         if key in value and (not isinstance(value[key], int) or isinstance(value[key], bool) or value[key] < 0):
             raise Stop(f"{where}: {key} is a whole number, 0 or more")
     padding = value.get("padding", 0)
-    if not isinstance(padding, (int, float)) or isinstance(padding, bool) or padding < 0:
+    if not is_number(padding) or padding < 0:
         raise Stop(f"{where}: padding is a number, 0 or more")
+    ratio = value.get("aspectRatio", [1, 1])
+    if not isinstance(ratio, list) or len(ratio) != 2 or not all(is_number(part) and part > 0 for part in ratio):
+        raise Stop(f"{where}: aspectRatio is [w, h], two numbers above 0")
+
+
+def is_number(value):
+    return isinstance(value, (int, float)) and not isinstance(value, bool) and value == value and abs(value) != float("inf")
 
 
 def squeeze(text):
@@ -160,21 +182,47 @@ def pick(lines, text, nth, where, source):
     return found[nth]
 
 
-def find(form, lines, where, source):
-    """The rectangle a request names among the lines of one picture, padding included."""
+def find(form, reading, where, source):
+    """The rectangle a request names among the lines of one picture, padding and aspect ratio included, and the
+    lines it matched, in `ocr`'s order."""
+    lines = reading.lines
     if text_form_kind(form) == "text":
-        rect = pick(lines, form["text"], form.get("nth"), where, source)["rect"]
+        matched = [pick(lines, form["text"], form.get("nth"), where, source)]
     else:
-        first = pick(lines, form["from"], form.get("fromNth"), f"{where} (from)", source)["rect"]
-        last = pick(lines, form["to"], form.get("toNth"), f"{where} (to)", source)["rect"]
-        top = min(first[1], last[1])
-        bottom = max(first[1] + first[3], last[1] + last[3])
-        rects = [first, last] + [
-            line["rect"] for line in lines if top <= line["rect"][1] + line["rect"][3] / 2 <= bottom
+        first = pick(lines, form["from"], form.get("fromNth"), f"{where} (from)", source)
+        last = pick(lines, form["to"], form.get("toNth"), f"{where} (to)", source)
+        top = min(first["rect"][1], last["rect"][1])
+        bottom = max(first["rect"][1] + first["rect"][3], last["rect"][1] + last["rect"][3])
+        matched = [
+            line for line in lines
+            if line is first or line is last or top <= line["rect"][1] + line["rect"][3] / 2 <= bottom
         ]
-        rect = bounding(rects)
+    rect = bounding([line["rect"] for line in matched])
     padding = form.get("padding", 0)
-    return [rounded(rect[0] - padding), rounded(rect[1] - padding), rounded(rect[2] + 2 * padding), rounded(rect[3] + 2 * padding)]
+    rect = [rect[0] - padding, rect[1] - padding, rect[2] + 2 * padding, rect[3] + 2 * padding]
+    if "aspectRatio" in form:
+        rect = fitted(rect, form["aspectRatio"], reading.size, where, source)
+    return [rounded(value) for value in rect], matched
+
+
+def fitted(rect, ratio, size, where, source):
+    """The part of a rectangle inside a picture of `size`, grown about its centre along one axis to `ratio`, then
+    slid to lie inside the picture."""
+    width, height = size
+    left, top = max(rect[0], 0), max(rect[1], 0)
+    right, bottom = min(rect[0] + rect[2], width), min(rect[1] + rect[3], height)
+    inside = [left, top, right - left, bottom - top]
+    wanted = ratio[0] / ratio[1]
+    if inside[2] / inside[3] < wanted:
+        grown = [inside[3] * wanted, inside[3]]
+    else:
+        grown = [inside[2], inside[2] / wanted]
+    if rounded(grown[0]) > width or rounded(grown[1]) > height:
+        raise Stop(f"{where}: {source} is {number_text(width)}x{number_text(height)}, which holds no rectangle of aspect ratio {number_text(ratio[0])}:{number_text(ratio[1])} around {rect_text(inside)}, the padded text inside it")
+    grown = [min(grown[0], width), min(grown[1], height)]
+    x = min(max(left + inside[2] / 2 - grown[0] / 2, 0), width - grown[0])
+    y = min(max(top + inside[3] / 2 - grown[1] / 2, 0), height - grown[1])
+    return [x, y, grown[0], grown[1]]
 
 
 def bounding(rects):
@@ -344,10 +392,32 @@ def searched_place(found, times):
     if space["kind"] == "output":
         refuse(found, "it is written in output pixels")
     if space["kind"] == "box":
-        refuse(found, f"it is written in the box of {space['clip']}")
+        refuse(found, f"it is written in the box of {space['clip']}" + clip_area_hint(found, times.entry(space["clip"])))
     if times.entry(space["clip"])["kind"] == "compound":
         refuse(found, f"it is written in the media pixels of {space['clip']}, a compound clip or template instance, whose picture is drawn, not read")
     return space["clip"]
+
+
+def clip_area_hint(found, parent):
+    """How a place in the box of a parent rect or ellipse is written: as that parent's clip area, which an area and
+    the area of a point take in the space a parent gives its children. A crop and a mask lie in the clip's own box,
+    where a clip area stops, so they get none, and so does a title's box, whose text `evaluate` reports. A parent is
+    named by its id, so it has one."""
+    if found.role != "space" or parent["kind"] not in ("rect", "ellipse"):
+        return ""
+    area = {"clip": parent["id"]}
+    if is_point(found):
+        written = {"area": area, "point": found.holder["point"]} if "point" in found.holder else {"area": area}
+    else:
+        written = area
+    return f", a {parent['kind']} placed by width and height, so write the place as that clip's area: {json.dumps(written, ensure_ascii=False)}"
+
+
+def is_point(found):
+    """Whether a request stands as the area of a point, held by the point and not by the clip or a keyframe."""
+    keyframes = found.clip.value.get("keyframes") or []
+    keyframe = keyframes[found.keyframe] if found.keyframe is not None else None
+    return found.holder is not found.clip.value and found.holder is not keyframe
 
 
 # MARK: - The frame searched
@@ -461,17 +531,20 @@ def parse(arguments):
     options = []
     document = None
     languages = None
+    report = None
     index = 0
     while index < len(arguments):
         argument = arguments[index]
         if argument in ("--help", "-h"):
             print(USAGE)
             sys.exit(0)
-        if argument in GLOBAL_OPTIONS or argument == "--languages":
+        if argument in GLOBAL_OPTIONS or argument in ("--languages", "--report"):
             if index + 1 >= len(arguments):
                 raise Stop(f"{argument} needs a value")
             if argument == "--languages":
                 languages = arguments[index + 1]
+            elif argument == "--report":
+                report = arguments[index + 1]
             else:
                 options += [argument, arguments[index + 1]]
             index += 2
@@ -486,7 +559,13 @@ def parse(arguments):
         raise Stop("a document is needed, as an absolute path or -")
     if document != "-" and not document.startswith("/"):
         raise Stop(f"<document.json> {json.dumps(document)} is not an absolute path, and paths are absolute")
-    return options, document, languages
+    if report is not None and not report.startswith("/"):
+        raise Stop(f"--report {json.dumps(report)} is not an absolute path, and paths are absolute")
+    if report is not None and not report.lower().endswith(".json"):
+        raise Stop(f"--report {json.dumps(report)}: a report is written to a .json file")
+    if report is not None and os.path.abspath(report) == os.path.abspath(document):
+        raise Stop(f"--report {json.dumps(report)}: the report would be written over the document")
+    return options, document, languages, report
 
 
 def load(document):
@@ -508,7 +587,8 @@ def load(document):
 
 
 def run(arguments):
-    options, path, languages = parse(arguments)
+    """The document with every request of this tool filled, and the report of each, in the order of the document."""
+    options, path, languages, report_path = parse(arguments)
     document = load(path)
     clips = clips_of(document)
     found = [entry for clip in clips for entry in text_forms(clip)]
@@ -523,7 +603,7 @@ def run(arguments):
     for entry in found:
         check_text_form(entry.form, entry.where)
     if not found:
-        return document
+        return document, report_path, []
 
     frames = Frames(os.environ.get("FRAMES_EXECUTABLE") or "frames", options)
     frames.check_version()
@@ -534,19 +614,45 @@ def run(arguments):
             json.dump(probe_document(document), file)
         times = Times(frames, probe_path, clips)
         searched = [searched_place(entry, times) for entry in found]
-        rects = []
+        filled = []
         for entry, place in zip(found, searched):
             read = picture_of(entry, place, times)
-            lines = frames.ocr(read, times.written(place).value.get("colorSpace"), languages)
-            rects.append(find(entry.form, lines, entry.where, read.describe()))
-    for entry, rect in zip(found, rects):
-        entry.holder[entry.key] = rect
-    return document
+            reading = frames.ocr(read, times.written(place).value.get("colorSpace"), languages)
+            rect, lines = find(entry.form, reading, entry.where, read.describe())
+            filled.append(report_entry(entry, read, lines, rect))
+    for entry, item in zip(found, filled):
+        entry.holder[entry.key] = item["rect"]
+    return document, report_path, filled
+
+
+def report_entry(found, read, lines, rect):
+    """What the report gives for one request filled, the request as written before it is replaced."""
+    return {
+        "place": found.clip.place,
+        "key": found.path,
+        "request": json.loads(json.dumps(found.form)),
+        "media": read.path,
+        "mediaTime": read.time,
+        "page": read.page,
+        "lines": [{"text": line["text"], "rect": line["rect"]} for line in lines],
+        "rect": rect,
+    }
+
+
+def write_report(path, filled):
+    try:
+        with open(path, "w", encoding="utf-8") as file:
+            json.dump({"find-text": VERSION, "requests": filled}, file, ensure_ascii=False, indent=2)
+            file.write("\n")
+    except OSError as error:
+        raise Stop(f"--report {json.dumps(path)}: cannot write it: {error.strerror}")
 
 
 def main():
     try:
-        document = run(sys.argv[1:])
+        document, report_path, filled = run(sys.argv[1:])
+        if report_path is not None:
+            write_report(report_path, filled)
     except Stop as stop:
         print(f"frames-find-text: {stop}", file=sys.stderr)
         return 1

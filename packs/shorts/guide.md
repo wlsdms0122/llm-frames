@@ -31,7 +31,7 @@ Viewers scrolling a vertical feed on a phone watch it: YouTube Shorts, Instagram
 
 **Labels.** A title in the `label` style on lane 2, parented to its outline (`"parent": "<the outline's id>"`) and set at a point of the outline's box: `"position": { "area": { "clip": "<the outline's id>" }, "point": "bottom-left" }, "anchor": "top-left"`. It hangs below the outline's left end and stays left of x 960, out of the platform's buttons.
 
-**Zoom.** A crop keyframe from `{ "scale": 1 }` to an area around the subject, a request for `frames find-text` or the rectangle `frames ocr` reports, zooms a scene. Use it on a landscape recording where the subject is a part of its width. A portrait screenshot already fills the picture zone's width, so it is shown whole and the outline carries the eye.
+**Zoom.** A crop keyframe from `{ "scale": 1 }` to an area around the subject, a request for `frames find-text` or the rectangle `frames ocr` reports, zooms a scene. Give the request `"aspectRatio": [1080, 1920]`, the frame's ratio, which a scene's box has, so the zoomed crop lies inside the recording and fills the frame with no empty band above or below it. A subject wider than the recording holds at that ratio stops, and is zoomed less. Use it on a landscape recording where the subject is a part of its width. A portrait screenshot already fills the picture zone's width, so it is shown whole and the outline carries the eye.
 
 ## Rules
 

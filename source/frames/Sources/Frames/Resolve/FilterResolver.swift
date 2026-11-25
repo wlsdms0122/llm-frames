@@ -81,7 +81,11 @@ struct FilterResolver: Sendable {
     ) throws -> PublishedPreset<FilterPreset> {
         guard let preset = try presets.filter(instance), let published = try presets.publishedFilter(named: instance.name)
         else {
-            throw ResolveError.unknownPreset(place: instance.place, kind: kind, presetKind: "filter", name: instance.name)
+            throw ResolveError.unknownPreset(
+                place: instance.place,
+                kind: kind,
+                preset: try presets.unknown(.filter, named: instance.name)
+            )
         }
 
         for operation in preset.operations {

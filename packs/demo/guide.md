@@ -48,7 +48,7 @@ Each card is a black 1920 by 1080 solid with one centred title in the `title` st
 
 **Labels.** A title in the `label` style parented to its outline (`"parent": "<the outline's id>"`) and set at a point of the outline's box: `"position": { "area": { "clip": "<the outline's id>" }, "point": "bottom-right" }, "anchor": "top-right"`. It hangs below the outline's right end.
 
-**Zoom.** Crop keyframes zoom a step onto what it uses: `{ "scale": 1 }` first, so the viewer sees where it is, then an area around it, a request for `frames find-text` or the rectangle `frames ocr` reports.
+**Zoom.** Crop keyframes zoom a step onto what it uses: `{ "scale": 1 }` first, so the viewer sees where it is, then an area around it, a request for `frames find-text` or the rectangle `frames ocr` reports. Give the request `"aspectRatio": [1920, 1080]`, the frame's ratio, so the zoomed crop lies inside the recording and fills the frame with no empty band at its sides.
 
 ## Rules
 

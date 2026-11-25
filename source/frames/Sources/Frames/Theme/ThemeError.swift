@@ -9,7 +9,7 @@ enum ThemeError: Error, Equatable, CustomStringConvertible, Sendable {
     case unknownColor(place: Place, kind: String, name: String)
     case unknownStyle(place: Place, kind: String, name: String, styles: [String])
     case unknownShapeStyle(place: Place, kind: String, name: String, styles: [String])
-    case unknownPreset(place: Place, kind: String, presetKind: String, name: String)
+    case unknownPreset(place: Place, kind: String, preset: UnknownPreset)
     case styleWithoutSize(place: Place, kind: String, name: String)
 
     // MARK: - Property
@@ -26,9 +26,8 @@ enum ThemeError: Error, Equatable, CustomStringConvertible, Sendable {
             "\(place) (\(kind)): shape style \"\(name)\" is not in shapes, which hold "
                 + (styles.isEmpty ? "none" : styles.map { "\"\($0)\"" }.joined(separator: ", "))
 
-        case let .unknownPreset(place, kind, presetKind, name):
-            "\(place) (\(kind)): unknown \(presetKind) preset \"\(name)\""
-                + ". A preset is named <pack>/<name>, and the ones frames ships are frames/<name>"
+        case let .unknownPreset(place, kind, preset):
+            "\(place) (\(kind)): \(preset)"
 
         case let .styleWithoutSize(place, kind, name):
             "\(place) (\(kind)): style \"\(name)\" has no size, and text is set only in a style with one"
