@@ -19,11 +19,27 @@ ln -s "$PWD/extensions/find-text/frames-find-text" /usr/local/bin/frames-find-te
 `frames find-text` then runs it, with the global options written before `find-text` (`--theme`, `--ocr` and the other role options) passed to every frames command it runs. It runs the `frames` on `PATH`, or the executable the environment variable `FRAMES_EXECUTABLE` names. It is written for frames 0.x and stops on another major version. A frames command that fails stops the extension with the command line it ran, the global options it passed included, and what frames printed, so a theme left out shows: `frames-find-text: frames timeline /tmp/frames-find-text-1a2b/document.json --json failed: frames: ...`.
 
 ```
-frames find-text <document.json | -> [--languages <tag>[,<tag>...]]
+frames find-text <document.json | -> [--languages <tag>[,<tag>...]] [--report <report.json>]
 ```
 
 - `<document.json>` is an absolute path, or `-` for standard input. The document is printed to standard output, and a stop prints `frames-find-text: <reason>` to standard error and exits with 1.
 - `--languages` gives `frames ocr --languages` the recognition languages, BCP 47 tags in order of preference. Without it the OCR provider detects the language of each picture. Give it for lines that mix scripts, with the non-Latin language first (`ko-KR,en-US`).
+- `--report` writes what was filled to a `.json` file, so a rectangle of the filled document can be traced back to its text ([FRAMES-25](../../spec/FRAMES-25/SPEC.md#requests)). The path is absolute and ends in `.json`, compared ignoring case, as `frames render --report`'s does, and another path, or the document's own, stops before the document is read. The report is written before the document is printed, and a stop writes none. Its first key names the extension and its version, as frames' machine output names its command, and `requests` holds each request filled, in the order of the document:
+
+```json
+{
+  "find-text": "0.1.0",
+  "requests": [
+    { "place": "storyline[0]#menu.connected[0]#box", "key": "area",
+      "request": { "tool": "find-text", "text": "Cinnamon bun", "padding": 8 },
+      "media": "/path/to/board.png", "mediaTime": null, "page": null,
+      "lines": [ { "text": "Cinnamon bun 3.80", "rect": [212, 418, 236.5, 31] } ],
+      "rect": [204, 410, 252.5, 47] }
+  ]
+}
+```
+
+  `place` and `key` are the clip and the key the request stands at, as the extension's messages name them. `media`, `mediaTime` and `page` are the picture read: the media time of the frame, `null` for a still or a page, and the page, `null` for any medium but a PDF. `lines` are the recognised lines the request matched, in `ocr`'s order, as `frames ocr --json` gives them: one for `text`, and for `from` and `to` both ends and every line between them. `rect` is the rectangle written, padding and aspect ratio included.
 
 ## The requests
 
