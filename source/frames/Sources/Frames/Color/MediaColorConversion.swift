@@ -60,7 +60,9 @@ package struct MediaColorConversion: Sendable {
 
             default:
                 form = .transfer(
-                    TransferFunction(transferCharacteristics: codePoints.transferCharacteristics) ?? .sRGB,
+                    TransferDecodeTable(
+                        TransferFunction(transferCharacteristics: codePoints.transferCharacteristics) ?? .sRGB
+                    ),
                     toLinearSRGB: ColorMatrix(from: chromaticities, to: .bt709)
                 )
             }
@@ -104,8 +106,8 @@ package struct MediaColorConversion: Sendable {
 
             return conversion.toneMapped(encoded, by: toneMapping)
 
-        case let .transfer(transfer, toLinearSRGB):
-            return TransferFunction.sRGB.encode(toLinearSRGB.applied(to: transfer.decode(encoded)))
+        case let .transfer(decodeTable, toLinearSRGB):
+            return TransferFunction.sRGB.encode(toLinearSRGB.applied(to: decodeTable.decode(encoded)))
 
         case let .profile(profile, toLinearSRGB):
             let linear = RGB(
@@ -133,7 +135,7 @@ package struct MediaColorConversion: Sendable {
 extension MediaColorConversion {
     private enum Form: Sendable {
         case space(ColorConversion)
-        case transfer(TransferFunction, toLinearSRGB: ColorMatrix)
+        case transfer(TransferDecodeTable, toLinearSRGB: ColorMatrix)
         case profile(MatrixProfile, toLinearSRGB: ColorMatrix)
         case perceptualQuantizer(toBT2020: ColorMatrix)
         case hybridLogGamma(toBT2020: ColorMatrix, luminance: RGB)
