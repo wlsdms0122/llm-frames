@@ -72,5 +72,21 @@ struct ResolvedClip: Equatable, Sendable {
     }
 
     // MARK: - Public
+    // The same clip with `animation` in place of its own.
+    func with(animation: ResolvedAnimation) -> ResolvedClip {
+        ResolvedClip(
+            place: place,
+            id: id,
+            content: content,
+            start: start,
+            end: end,
+            storyline: storyline,
+            parent: parent,
+            track: track,
+            isMotionBlurred: isMotionBlurred,
+            animation: animation
+        )
+    }
+
     // MARK: - Private
 }

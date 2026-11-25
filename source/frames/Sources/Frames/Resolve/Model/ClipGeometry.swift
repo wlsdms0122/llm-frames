@@ -32,14 +32,14 @@ struct ClipGeometry: Equatable, Sendable {
     // MARK: - Initializer
     init(
         area: PropertyValue<AreaValue>?,
-        points: [PathVertex<FollowedValue<GeometryPoint>, FollowedValue<Point>>]? = nil,
+        points: [PathVertex<FollowedValue<GeometryPoint>, FollowedValue<Point>>]?,
         position: PropertyValue<GeometryPoint>?,
         box: ClipBox?,
-        cornerPin: ClipCornerPin? = nil,
+        cornerPin: ClipCornerPin?,
         crop: PropertyValue<Rectangle>?,
         mask: [ResolvedMask]?,
         track: TrackedMedia?,
-        onTrackFrame: Set<FollowedKey> = [],
+        onTrackFrame: Set<FollowedKey>,
         isInOutputPixels: Bool,
         title: TitlePlan?,
         nested: SequencePlan?,
@@ -61,5 +61,31 @@ struct ClipGeometry: Equatable, Sendable {
     }
 
     // MARK: - Public
+    // The same geometry with what places it, and its mask, in place of its own.
+    func with(
+        area: PropertyValue<AreaValue>?,
+        points: [PathVertex<FollowedValue<GeometryPoint>, FollowedValue<Point>>]?,
+        position: PropertyValue<GeometryPoint>?,
+        box: ClipBox?,
+        cornerPin: ClipCornerPin?,
+        mask: [ResolvedMask]?
+    ) -> ClipGeometry {
+        ClipGeometry(
+            area: area,
+            points: points,
+            position: position,
+            box: box,
+            cornerPin: cornerPin,
+            crop: crop,
+            mask: mask,
+            track: track,
+            onTrackFrame: onTrackFrame,
+            isInOutputPixels: isInOutputPixels,
+            title: title,
+            nested: nested,
+            appearance: appearance
+        )
+    }
+
     // MARK: - Private
 }

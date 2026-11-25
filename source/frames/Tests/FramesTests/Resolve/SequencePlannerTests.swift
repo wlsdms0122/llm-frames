@@ -581,6 +581,7 @@ struct SequencePlannerTests {
         // Then
         #expect(plan.storyline[0].appearance == StorylineAppearance(
             box: ClipBox(size: Size(width: 1080, height: 1920), position: .value(Point(x: 540, y: 960)), anchor: Point(x: 540, y: 960)),
+            cornerPin: nil,
             opacity: .value(1),
             scale: .value(.identity),
             rotation: .value(0),

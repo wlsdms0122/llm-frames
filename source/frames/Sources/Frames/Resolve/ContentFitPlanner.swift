@@ -77,45 +77,8 @@ struct ContentFitPlanner: Sendable {
     private func still(_ sequence: ResolvedSequence) -> ResolvedSequence {
         ResolvedSequence(
             format: sequence.format,
-            storyline: sequence.storyline.map { entry in
-                ResolvedStorylineClip(
-                    place: entry.place,
-                    id: entry.id,
-                    content: entry.content,
-                    in: entry.in,
-                    out: entry.out,
-                    speed: entry.speed,
-                    start: entry.start,
-                    end: entry.end,
-                    crop: entry.crop,
-                    mask: entry.mask,
-                    trackMatte: entry.trackMatte,
-                    track: entry.track,
-                    filter: entry.filter,
-                    placement: entry.placement,
-                    opacity: entry.opacity,
-                    blend: entry.blend,
-                    isMotionBlurred: entry.isMotionBlurred,
-                    radius: entry.radius,
-                    border: entry.border,
-                    shadow: entry.shadow,
-                    transition: nil
-                )
-            },
-            clips: sequence.clips.map { clip in
-                ResolvedClip(
-                    place: clip.place,
-                    id: clip.id,
-                    content: clip.content,
-                    start: clip.start,
-                    end: clip.end,
-                    storyline: clip.storyline,
-                    parent: clip.parent,
-                    track: clip.track,
-                    isMotionBlurred: clip.isMotionBlurred,
-                    animation: .none
-                )
-            },
+            storyline: sequence.storyline.map { $0.with(transition: nil) },
+            clips: sequence.clips.map { $0.with(animation: .none) },
             audio: sequence.audio,
             audioFilter: sequence.audioFilter
         )
@@ -266,24 +229,7 @@ struct ContentFitPlanner: Sendable {
             ClipCornerPin(size: pin.size, points: pin.points.map { $0.map { moved($0, by: offset) } })
         }
 
-        return StorylineGeometry(
-            crop: geometry.crop,
-            mask: geometry.mask,
-            track: geometry.track,
-            filter: geometry.filter,
-            content: geometry.content,
-            appearance: StorylineAppearance(
-                box: box,
-                cornerPin: cornerPin,
-                opacity: appearance.opacity,
-                scale: appearance.scale,
-                rotation: appearance.rotation,
-                blend: appearance.blend,
-                radius: appearance.radius,
-                border: appearance.border,
-                shadow: appearance.shadow
-            )
-        )
+        return geometry.with(appearance: appearance.with(box: box, cornerPin: cornerPin))
     }
 
     // A mask moves with the content only where it is in the clip's parent's space: an adjustment's, or a shape's placed
@@ -296,7 +242,7 @@ struct ContentFitPlanner: Sendable {
         by offset: Point,
         onto frame: Rectangle
     ) -> ClipGeometry {
-        ClipGeometry(
+        geometry.with(
             area: geometry.area?.map { area in
                 area.map { moved($0, by: offset) }
             },
@@ -308,7 +254,6 @@ struct ContentFitPlanner: Sendable {
             cornerPin: geometry.cornerPin.map { pin in
                 ClipCornerPin(size: pin.size, points: pin.points.map { $0.map { moved($0, by: offset) } })
             },
-            crop: geometry.crop,
             mask: space == .parent
                 ? geometry.mask?.map { mask in
                     mask.carried(
@@ -318,12 +263,7 @@ struct ContentFitPlanner: Sendable {
                         scale: { _ in 1 }
                     )
                 }
-                : geometry.mask,
-            track: geometry.track,
-            isInOutputPixels: geometry.isInOutputPixels,
-            title: geometry.title,
-            nested: geometry.nested,
-            appearance: geometry.appearance
+                : geometry.mask
         )
     }
 

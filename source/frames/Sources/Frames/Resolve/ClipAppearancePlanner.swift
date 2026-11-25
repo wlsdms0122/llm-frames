@@ -322,6 +322,7 @@ struct ClipAppearancePlanner: Sendable {
         guard let box else {
             return StorylineAppearance(
                 box: nil,
+                cornerPin: nil,
                 opacity: .value(1),
                 scale: .value(.identity),
                 rotation: .value(0),

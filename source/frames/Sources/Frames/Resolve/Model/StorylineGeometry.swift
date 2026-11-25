@@ -31,8 +31,8 @@ struct StorylineGeometry: Equatable, Sendable {
         crop: PropertyValue<Rectangle>?,
         mask: [ResolvedMask]?,
         track: Track?,
-        isCropOnTrackFrame: Bool = false,
-        filter: TimedValue = .off,
+        isCropOnTrackFrame: Bool,
+        filter: TimedValue,
         content: StorylineContent,
         appearance: StorylineAppearance
     ) {
@@ -46,5 +46,18 @@ struct StorylineGeometry: Equatable, Sendable {
     }
 
     // MARK: - Public
+    // The same geometry drawn with `appearance`.
+    func with(appearance: StorylineAppearance) -> StorylineGeometry {
+        StorylineGeometry(
+            crop: crop,
+            mask: mask,
+            track: track,
+            isCropOnTrackFrame: isCropOnTrackFrame,
+            filter: filter,
+            content: content,
+            appearance: appearance
+        )
+    }
+
     // MARK: - Private
 }

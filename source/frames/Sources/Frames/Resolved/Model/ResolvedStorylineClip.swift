@@ -102,5 +102,32 @@ struct ResolvedStorylineClip: Equatable, Sendable {
         clock?.mediaTime(atSequenceTime: time) ?? 0
     }
 
+    // The same entry with `transition` in place of its own.
+    func with(transition: ResolvedTransition?) -> ResolvedStorylineClip {
+        ResolvedStorylineClip(
+            place: place,
+            id: id,
+            content: content,
+            in: self.in,
+            out: out,
+            speed: speed,
+            start: start,
+            end: end,
+            crop: crop,
+            mask: mask,
+            trackMatte: trackMatte,
+            track: track,
+            filter: filter,
+            placement: placement,
+            opacity: opacity,
+            blend: blend,
+            isMotionBlurred: isMotionBlurred,
+            radius: radius,
+            border: border,
+            shadow: shadow,
+            transition: transition
+        )
+    }
+
     // MARK: - Private
 }
