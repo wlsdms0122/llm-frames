@@ -16,7 +16,7 @@ import Testing
 
 // Connected and sequence clips drawn by the real decoder and renderer from documents resolved on the real providers,
 // read as frames before encoding. Serialized, since AVAssetReader needs a free thread of the shared pool.
-@Suite("Connected Clip Render Tests", .serialized)
+@Suite("Connected Clip Render Tests", .serialized, .blockingLimit)
 struct ConnectedClipRenderTests {
     // MARK: - Property
     // Pixels and their colours at the middle of each transition into the green picture, whose magenta stripe covers

@@ -14,7 +14,7 @@ import Testing
 @testable import Frames
 
 // The same display lists drawn by `metal` again give the same bytes (FRAMES-24 Tolerances).
-@Suite("Metal Determinism Tests", .serialized)
+@Suite("Metal Determinism Tests", .serialized, .blockingLimit)
 struct MetalDeterminismTests {
     // MARK: - Property
     // MARK: - Initializer

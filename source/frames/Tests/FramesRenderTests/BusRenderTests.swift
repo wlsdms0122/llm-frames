@@ -16,7 +16,7 @@ import Testing
 // The sound of compound clips, resolved from documents and mixed on the real decoder and mixer, and rendered to a
 // master read back through the decoder. Serialized, since AVAssetReader needs a free thread of the shared pool and a
 // test encodes.
-@Suite("Bus Render Tests", .serialized)
+@Suite("Bus Render Tests", .serialized, .blockingLimit)
 struct BusRenderTests {
     // MARK: - Property
     // The rounding of 24-bit PCM, twice over for a sample read back against one mixed.

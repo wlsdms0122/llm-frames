@@ -14,7 +14,7 @@ import Testing
 
 // Titles animated by word drawn by the real renderer from documents resolved on the real shaper, against the same
 // titles not animated by unit. Serialized, since AVAssetReader needs a free thread of the shared pool.
-@Suite("Title Unit Render Tests", .serialized)
+@Suite("Title Unit Render Tests", .serialized, .blockingLimit)
 struct TitleUnitRenderTests {
     // MARK: - Property
     private let presets = [
