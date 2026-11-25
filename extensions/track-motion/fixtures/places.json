@@ -268,5 +268,36 @@
         ]
       }
     ]
+  },
+  "pin_output": {
+    "kind": "sequence",
+    "storyline": [
+      {
+        "id": "shot",
+        "media": "/media/moving.mp4",
+        "cornerPin": [
+          [
+            0,
+            0
+          ],
+          [
+            640,
+            0
+          ],
+          [
+            640,
+            360
+          ],
+          [
+            0,
+            360
+          ]
+        ],
+        "track": {
+          "tool": "track-motion",
+          "target": "cornerPin"
+        }
+      }
+    ]
   }
 }

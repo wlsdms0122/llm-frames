@@ -222,6 +222,15 @@ class Places(Case):
         )
         self.assertIn("storyline[0]#shot: track (area): the clip writes no area", self.place("two_targets"))
 
+    def test_target_outside_followed_pixels(self):
+        # Given a storyline clip whose track request names its corner pin, which is written in output pixels
+        # Then it stops, naming the space the key is written in
+        self.assertEqual(
+            self.place("pin_output"),
+            "storyline[0]#shot: track (cornerPin): the clip writes its cornerPin in output pixels, not in the media pixels "
+            "of storyline[0]#shot, which its track follows"
+        )
+
     def test_mask(self):
         # Given a storyline clip whose one target is its mask
         # Then it stops, since no report gives the bounds of a mask
