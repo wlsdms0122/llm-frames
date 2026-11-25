@@ -129,16 +129,6 @@ struct ShapeAppearanceTests {
         #expect(error?.description == #"clips[0].style (rect): shape style "outline" is not in shapes, which hold none"#)
     }
 
-    @Test("a path's point found by text stops on a clip whose space is output pixels")
-    func stopsOnTextPointInOutputPixels() throws {
-        // Given
-        let document = document(#"{ "shape": "path", "points": [[0, 0], { "area": { "text": "Total" }, "point": "left" }], "fill": "accent" }"#)
-
-        // When, Then
-        let error = #expect(throws: ResolveError.self) { try plan(document) }
-        #expect(error?.description.hasPrefix("clips[0].points[1] (path): ") == true, "\(error?.description ?? "no error")")
-    }
-
     @Test("a style gives every property the clip does not write, its lengths scaled and its shadow the theme's")
     func takesStyle() throws {
         // When
@@ -330,13 +320,13 @@ struct ShapeAppearanceTests {
         ))
     }
 
-    @Test("a path's points are found as positions are, a named point of an area found by text in its parent's media")
+    @Test("a path's points are found as positions are, a named point of an area at that point of the area")
     func findsPathPoints() throws {
         // Given
         let document = #"""
             { "kind": "sequence", "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "connected": [
-                { "shape": "rect", "area": { "text": "Total" }, "parent": "screen", "fill": "accent" },
-                { "shape": "path", "parent": "screen", "points": [[10, 20], { "area": { "text": "Total" }, "point": "left" }],
+                { "shape": "rect", "area": [100, 100, 200, 40], "parent": "screen", "fill": "accent" },
+                { "shape": "path", "parent": "screen", "points": [[10, 20], { "area": [100, 100, 200, 40], "point": "left" }],
                   "closed": true, "stroke": { "width": 4, "end": "arrow" } } ] } ] }
             """#
 

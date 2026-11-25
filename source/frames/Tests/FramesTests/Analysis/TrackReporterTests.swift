@@ -9,7 +9,6 @@ import Foundation
 import FramesAVFoundation
 import FramesTestMedia
 import FramesTracker
-import FramesVision
 import Testing
 
 @testable import Frames
@@ -32,18 +31,6 @@ struct TrackReporterTests {
         ),
         "/abs/card.png": ProbedMedia(kind: .image, size: Size(width: 400, height: 300))
     ], pages: ["/abs/deck.pdf": [Size(width: 612, height: 792)]])
-    private let total = Rectangle(x: 100, y: 100, width: 200, height: 40)
-    private let sends = [
-        Rectangle(x: 20, y: 200, width: 80, height: 30),
-        Rectangle(x: 220, y: 200, width: 80, height: 30)
-    ]
-    private var ocr: OCRTable {
-        OCRTable(file: "/abs/clip.mov", lines: [
-            RecognisedLine(text: "Total", rectangle: total),
-            RecognisedLine(text: "Send", rectangle: sends[1]),
-            RecognisedLine(text: "Send", rectangle: sends[0])
-        ])
-    }
     private var tracker: TrackerTable {
         TrackerTable(frameTimes: ["/abs/clip.mov": times], drift: Point(x: 0, y: -40))
     }
@@ -53,7 +40,7 @@ struct TrackReporterTests {
     @Test("the machine output is the track object FRAMES-23 gives, a rectangle followed over the whole video")
     func writesMachineOutput() throws {
         // Given
-        let sut = TrackReporter(mediaFacts: facts, ocr: OCRTable([:]), languages: nil, tracker: tracker)
+        let sut = TrackReporter(mediaFacts: facts, tracker: tracker)
 
         // When
         let report = try sut.report(of: "/abs/clip.mov", area: "[10, 20, 100, 50]", at: 0.25)
@@ -74,8 +61,6 @@ struct TrackReporterTests {
         // Given
         let sut = TrackReporter(
             mediaFacts: facts,
-            ocr: OCRTable([:]),
-            languages: nil,
             tracker: TrackerTable(frameTimes: ["/abs/clip.mov": [0, 0.25]], turn: 360)
         )
 
@@ -97,8 +82,6 @@ struct TrackReporterTests {
         let noisy = Rectangle(x: 93.99999999268294, y: 99.99999997439016, width: 200.00000000000003, height: 42)
         let sut = TrackReporter(
             mediaFacts: facts,
-            ocr: OCRTable([:]),
-            languages: nil,
             tracker: TrackerTable(frameTimes: ["/abs/clip.mov": [0]])
         )
 
@@ -118,24 +101,6 @@ struct TrackReporterTests {
         #expect(report.machineOutput.written == expected)
     }
 
-    @Test(
-        "a text area is found by OCR at `--at` and followed before padding",
-        arguments: [(#"{"text": "Total"}"#, 0), (#"{"text": "Total", "padding": 20}"#, 0), (#"{"text": "Send", "nth": 1}"#, 2)]
-    )
-    func followsFoundArea(area: String, line: Int) throws {
-        // Given
-        let sut = TrackReporter(mediaFacts: facts, ocr: ocr, languages: nil, tracker: tracker)
-        let found = [total, sends[0], sends[1]][line]
-
-        // When
-        let report = try sut.report(of: "/abs/clip.mov", area: area, at: 0.5)
-
-        // Then
-        #expect(report.track.samples.map(\.time) == times)
-        #expect(report.track.target == Quad(found))
-        #expect(report.track.samples.first(where: { $0.time == 0.5 })?.quad == Quad(found))
-    }
-
     @Test("with `--to` only the frames shown between it and `--at` are followed, either way", arguments: [
         (0.25, 0.5, [0.25, 0.5]),
         (0.25, 0.6, [0.25, 0.5]),
@@ -144,27 +109,26 @@ struct TrackReporterTests {
     ])
     func followsToTime(at: Double, to: Double, followed: [Double]) throws {
         // Given
-        let sut = TrackReporter(mediaFacts: facts, ocr: ocr, languages: nil, tracker: tracker)
+        let sut = TrackReporter(mediaFacts: facts, tracker: tracker)
 
         // When
-        let report = try sut.report(of: "/abs/clip.mov", area: #"{"text": "Total"}"#, at: at, to: to)
+        let report = try sut.report(of: "/abs/clip.mov", area: "[100, 100, 200, 40]", at: at, to: to)
 
         // Then
         #expect(report.track.samples.map(\.time) == followed)
     }
 
-    @Test("a bad or unmatched area stops, naming `--area`, and so do an image, a page and times outside the video", arguments: [
+    @Test("a bad area or a clip area stops, naming `--area`, and so do an image, a page and times outside the video", arguments: [
         ("/abs/clip.mov", "Total", 0.5, nil, "--area: line 1, column 1: "),
-        ("/abs/clip.mov", #"{"text": "Total", "nht": 1}"#, 0.5, nil, #"--area (text area): unknown key "nht". "#),
+        ("/abs/clip.mov", #"{"clip": "card", "nht": 1}"#, 0.5, nil, #"--area (clip area): unknown key "nht". "#),
         ("/abs/clip.mov", #""Total""#, 0.5, nil, #"--area (area): expected an area, found "Total""#),
-        ("/abs/clip.mov", #"{"band": {"text": "Total"}}"#, 0.5, nil, "--area (area): needs one of text, from, clip"),
-        ("/abs/clip.mov", #"{"text": "Missing"}"#, 0.5, nil, #"--area (area): no line of "/abs/clip.mov" at media second 0.5 "#),
-        ("/abs/clip.mov", #"{"text": "Send"}"#, 0.5, nil, #"--area (area): "Send" matches 2 lines: [20, 200, 80, 30] "Send""#),
-        ("/abs/card.png", #"{"text": "Total"}"#, 0, nil, #"media "/abs/card.png" is a still, and only a video has frames"#),
-        ("/abs/deck.pdf", #"{"text": "Total"}"#, 0, nil, #"media "/abs/deck.pdf" is a still, and only a video has frames"#),
-        ("/abs/clip.mov", #"{"text": "Total"}"#, 1, nil, #"--at: media second 1 is at or after the end of "/abs/clip.mov" at 1"#),
-        ("/abs/clip.mov", #"{"text": "Total"}"#, 0.5, 1.5, #"--to: media second 1.5 is after the end of "/abs/clip.mov" at 1"#),
-        ("/abs/absent.mov", #"{"text": "Total"}"#, 0, nil, #"media "/abs/absent.mov" is not there"#)
+        ("/abs/clip.mov", #"{"padding": 4}"#, 0.5, nil, #"--area (clip area): missing key "clip""#),
+        ("/abs/clip.mov", #"{"clip": "card"}"#, 0.5, nil, "--area (area): a clip area is the box of another clip"),
+        ("/abs/card.png", "[100, 100, 200, 40]", 0, nil, #"media "/abs/card.png" is a still, and only a video has frames"#),
+        ("/abs/deck.pdf", "[100, 100, 200, 40]", 0, nil, #"media "/abs/deck.pdf" is a still, and only a video has frames"#),
+        ("/abs/clip.mov", "[100, 100, 200, 40]", 1, nil, #"--at: media second 1 is at or after the end of "/abs/clip.mov" at 1"#),
+        ("/abs/clip.mov", "[100, 100, 200, 40]", 0.5, 1.5, #"--to: media second 1.5 is after the end of "/abs/clip.mov" at 1"#),
+        ("/abs/absent.mov", "[100, 100, 200, 40]", 0, nil, #"media "/abs/absent.mov" is not there"#)
     ] as [(String, String, Double, Double?, String)])
     func refusesBadArguments(
         file: String,
@@ -174,7 +138,7 @@ struct TrackReporterTests {
         message: String
     ) {
         // Given
-        let sut = TrackReporter(mediaFacts: facts, ocr: ocr, languages: nil, tracker: tracker)
+        let sut = TrackReporter(mediaFacts: facts, tracker: tracker)
 
         // When
         let error = #expect(throws: (any Error).self) { try sut.report(of: file, area: area, at: at, to: to) }
@@ -184,33 +148,24 @@ struct TrackReporterTests {
         #expect(description.hasPrefix(message), "\(description)")
     }
 
-    @Test("a failing tracker or OCR provider stops, naming `--area`, the video and the media time of `--at`")
+    @Test("a failing tracker stops, naming `--area`, the video and the media time of `--at`")
     func namesFailingProvider() {
         // Given
-        let failure = ProviderFailure("no model")
-        let failingTracker = TrackReporter(mediaFacts: facts, ocr: ocr, languages: nil, tracker: FailingTracker(failure))
-        let failingOCR = TrackReporter(mediaFacts: facts, ocr: FailingOCR(failure), languages: nil, tracker: tracker)
+        let sut = TrackReporter(mediaFacts: facts, tracker: FailingTracker(ProviderFailure("no model")))
 
         // When
-        let trackerError = #expect(throws: ProviderError.self) {
-            try failingTracker.report(of: "/abs/clip.mov", area: #"{"text": "Total"}"#, at: 0.5)
-        }
-        let ocrError = #expect(throws: ProviderError.self) {
-            try failingOCR.report(of: "/abs/clip.mov", area: #"{"text": "Total"}"#, at: 0.5)
+        let error = #expect(throws: ProviderError.self) {
+            try sut.report(of: "/abs/clip.mov", area: "[100, 100, 200, 40]", at: 0.5)
         }
 
         // Then
         #expect(
-            trackerError?.description
+            error?.description
                 == #"--area (area): the tracker failed on "/abs/clip.mov" at media second 0.5: no model"#
-        )
-        #expect(
-            ocrError?.description
-                == #"--area (area): the OCR provider failed on "/abs/clip.mov" at media second 0.5: no model"#
         )
     }
 
-    @Test("a real scrolling line is found by Vision and followed by the point tracker over every frame")
+    @Test("a real scrolling line is followed by the point tracker over every frame")
     func followsRealLine() async throws {
         // Given
         let directory = try TemporaryDirectory()
@@ -219,13 +174,13 @@ struct TrackReporterTests {
         let decoder = AVFoundationDecoder()
         let sut = TrackReporter(
             mediaFacts: decoder,
-            ocr: VisionOCR(decoder: decoder),
-            languages: nil,
             tracker: PointTracker(decoder: decoder)
         )
 
+        let line = drawn[15]
+
         // When
-        let report = try sut.report(of: video, area: #"{"text": "Total"}"#, at: 0.5)
+        let report = try sut.report(of: video, area: "[\(line.x), \(line.y), \(line.width), \(line.height)]", at: 0.5)
 
         // Then
         #expect(report.track.samples.map(\.time) == ScreenRecording.frameTimes)

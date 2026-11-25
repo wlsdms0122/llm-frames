@@ -29,13 +29,13 @@ struct SequenceCheckTests {
                   "keyframes": [ { "at": 2, "crop": { "scale": 1 } }, { "at": 8, "crop": { "scale": 1.08 } } ],
                   "connected": [ { "at": [2, 8], "title": "Subtitle", "style": "subtitle" } ] },
                 { "media": "/abs/run.mp4", "in": 17.5, "out": 23, "transition": "frames/flash", "volume": 0,
-                  "keyframes": [ { "at": 18, "crop": { "scale": 1 }, "ease": "ease-in-out" }, { "at": 19, "crop": { "from": "Enter your password", "to": "3" } } ],
-                  "connected": [ { "at": [19, 22], "shape": "rect", "stroke": { "width": 8 }, "area": { "text": "Sent" }, "animation": "frames/stamp" },
-                                 { "shape": "rect", "stroke": { "width": 8 }, "area": { "text": "Account 110-" }, "track": true } ] },
+                  "keyframes": [ { "at": 18, "crop": { "scale": 1 }, "ease": "ease-in-out" }, { "at": 19, "crop": [40, 300, 1000, 400] } ],
+                  "connected": [ { "at": [19, 22], "shape": "rect", "stroke": { "width": 8 }, "area": [380, 900, 320, 120], "animation": "frames/stamp" },
+                                 { "shape": "rect", "stroke": { "width": 8 }, "area": [120, 1200, 840, 100], "track": true } ] },
                 { "media": "/abs/card.png", "duration": 2.5,
                   "transition": { "preset": "frames/wipe-right", "seconds": 0.5 },
                   "connected": [ { "shape": "rect", "stroke": { "width": 8 },
-                                   "keyframes": [ { "at": 1.2, "area": { "text": "First line" } }, { "at": 1.65, "area": { "text": "Second line" } } ] } ] }
+                                   "keyframes": [ { "at": 1.2, "area": [60, 400, 600, 80] }, { "at": 1.65, "area": [60, 500, 600, 80] } ] } ] }
               ],
               "clips": [
                 { "at": [0, 30], "title": "Top title\nSecond line", "style": "headline", "lane": 2 },
@@ -675,8 +675,6 @@ struct SequenceCheckTests {
             #"{ "clips": [ { "shape": "rect", "stroke": { "width": 8 }, "keyframes": [ { "at": 0, "opacity": 1, "ease": [1.2, 0, 0.5, 1] } ] } ] }"#,
             #"{ "storyline": [ { "media": "/abs/run.mp4", "transition": { "preset": "frames/flash" } } ] }"#,
             #"{ "storyline": [ { "media": "/abs/run.mp4", "filter": ["frames/vivid", 2] } ] }"#,
-            #"{ "storyline": [ { "media": "/abs/run.mp4", "crop": { "text": "a", "nth": "1" } } ] }"#,
-            #"{ "storyline": [ { "media": "/abs/run.mp4", "crop": { "from": "a" } } ] }"#,
             #"{ "storyline": [ { "media": "/abs/run.mp4", "crop": { "middle": "a" } } ] }"#,
             #"{ "storyline": [ { "media": "/abs/run.mp4", "crop": { "scale": 0 } } ] }"#,
             #"{ "storyline": [ { "media": "/abs/run.mp4", "crop": { "scale": -1 } } ] }"#,
@@ -714,7 +712,7 @@ struct SequenceCheckTests {
             ),
             (
                 #"{ "storyline": [ { "media": "/abs/run.mp4", "crop": { "band": { "text": "Total" } } } ] }"#,
-                "storyline[0].crop (area): needs one of text, from, clip"
+                #"storyline[0].crop (clip area): unknown key "band". Allowed: clip, padding"#
             ),
             (
                 #"{ "clips": [ { "shape": "rect", "stroke": { "width": 8 }, "area": [0, 0, 0, 10] } ] }"#,
@@ -725,12 +723,8 @@ struct SequenceCheckTests {
                 "clips[0].keyframes[0].area[3] (keyframe): -1 is not above 0"
             ),
             (
-                #"{ "storyline": [ { "media": "/abs/run.mp4", "track": { "text": "a", "padding": -1 } } ] }"#,
-                "storyline[0].track.padding (text area): -1 is not 0 or more"
-            ),
-            (
-                #"{ "storyline": [ { "media": "/abs/run.mp4", "crop": { "from": "a", "to": "b", "toNth": -1 } } ] }"#,
-                "storyline[0].crop.toNth (text range area): expected a whole number, 0 or more, found -1"
+                #"{ "storyline": [ { "media": "/abs/run.mp4", "track": { "clip": "a", "padding": -1 } } ] }"#,
+                "storyline[0].track.padding (clip area): -1 is not 0 or more"
             ),
             (
                 #"{ "clips": [ { "title": "a", "style": "s", "position": { "area": "Send", "point": "left" } } ] }"#,
@@ -748,6 +742,19 @@ struct SequenceCheckTests {
         // When, Then
         let error = #expect(throws: ModelError.self) { try sut.check(document: document) }
         #expect(error?.description == message)
+    }
+
+    @Test("an area that names a place by its text stops at the key check, its text key unknown to a clip area")
+    func refusesTextArea() throws {
+        // Given
+        let document = try Fixture.json(#"""
+            { "kind": "sequence", "storyline": [ { "id": "screen", "media": "/abs/run.mp4", "connected": [
+                { "shape": "rect", "stroke": { "width": 8 }, "parent": "screen", "area": { "text": "Total" } } ] } ] }
+            """#)
+
+        // When, Then
+        let error = #expect(throws: ModelError.self) { try sut.check(document: document) }
+        #expect(error?.description == #"storyline[0]#screen.connected[0].area (clip area): unknown key "text". Allowed: clip, padding"#)
     }
 
     @Test(
@@ -782,10 +789,10 @@ struct SequenceCheckTests {
         arguments: [
             #"{ "clips": [ { "media": "/abs/run.mp4", "at": 2 } ] }"#,
             #"{ "clips": [ { "media": "/abs/log.png", "at": [0, 1], "border": "accent", "conform": "fill", "anchor": "top-left" } ] }"#,
-            #"{ "storyline": [ { "id": "run", "media": "/abs/run.mp4", "connected": [ { "title": "a", "style": "s", "parent": "run", "position": { "area": { "text": "Send" }, "point": "left" }, "anchor": "right" } ] } ] }"#,
-            #"{ "clips": [ { "title": "a", "style": "s", "parent": "run", "position": { "area": { "text": "Send" }, "point": "left" } }, { "shape": "rect", "stroke": { "width": 8 }, "parent": "run", "area": { "text": "Send" } } ] }"#,
-            #"{ "storyline": [ { "media": "/abs/run.mp4", "crop": { "text": "a", "nth": 1, "padding": 40 }, "track": { "from": "a", "to": "b", "fromNth": 0, "toNth": 1 } } ] }"#,
-            #"{ "storyline": [ { "media": "/abs/run.mp4", "crop": { "from": "a", "to": "b", "padding": 0 }, "track": [0, 0, 0.5, 0.5] } ] }"#,
+            #"{ "storyline": [ { "id": "run", "media": "/abs/run.mp4", "connected": [ { "title": "a", "style": "s", "parent": "run", "position": { "area": [400, 1200, 200, 60], "point": "left" }, "anchor": "right" } ] } ] }"#,
+            #"{ "clips": [ { "title": "a", "style": "s", "parent": "run", "position": { "area": [400, 1200, 200, 60], "point": "left" } }, { "shape": "rect", "stroke": { "width": 8 }, "parent": "run", "area": [400, 1200, 200, 60] } ] }"#,
+            #"{ "clips": [ { "id": "box", "shape": "rect", "stroke": { "width": 8 }, "area": [0, 0, 10, 10] }, { "shape": "rect", "stroke": { "width": 8 }, "area": { "clip": "box", "padding": 40 } } ] }"#,
+            #"{ "storyline": [ { "media": "/abs/run.mp4", "crop": [0, 0, 540, 960], "track": [0, 0, 0.5, 0.5] } ] }"#,
             #"{ "storyline": [ { "media": { "imageSequence": "/abs/frames", "fps": 30 }, "in": 0, "out": 2 } ] }"#,
             #"{ "storyline": [ { "media": "/abs/run.mp4", "filter": ["frames/vivid", "pack/warm", "/abs/f.json"], "transition": "cut" } ] }"#,
             #"{ "clips": [ { "shape": "rect", "stroke": { "width": 8 }, "keyframes": [ { "at": 0, "opacity": 1, "ease": [0.25, 0.1, 0.25, 1] }, { "at": 1, "opacity": 0 } ] } ] }"#,

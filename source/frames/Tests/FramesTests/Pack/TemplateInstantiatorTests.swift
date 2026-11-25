@@ -25,7 +25,7 @@ struct TemplateInstantiatorTests {
           },
           "storyline": [ { "media": { "param": "clip" }, "filter": { "param": "tone" },
                            "connected": [ { "title": { "param": "title" }, "style": "title" },
-                                          { "shape": "rect", "stroke": { "width": 8 }, "area": { "text": "Send" }, "fill": { "param": "tint" }, "opacity": { "param": "size" } } ] } ] }
+                                          { "shape": "rect", "stroke": { "width": 8 }, "area": [400, 1200, 200, 60], "fill": { "param": "tint" }, "opacity": { "param": "size" } } ] } ] }
         """##
 
     // MARK: - Initializer
@@ -44,7 +44,7 @@ struct TemplateInstantiatorTests {
             { "kind": "sequence",
               "storyline": [ { "media": "/abs/run.mp4", "filter": "frames/cool",
                                "connected": [ { "title": "New feature", "style": "title" },
-                                              { "shape": "rect", "stroke": { "width": 8 }, "area": { "text": "Send" }, "fill": "#FF0000", "opacity": 0.5 } ] } ] }
+                                              { "shape": "rect", "stroke": { "width": 8 }, "area": [400, 1200, 200, 60], "fill": "#FF0000", "opacity": 0.5 } ] } ] }
             """##)
         #expect(instance.document == expected)
         #expect(instance.arguments.map(\.place) == [Place(components: [.key("storyline"), .index(0, id: nil), .key("media")])])

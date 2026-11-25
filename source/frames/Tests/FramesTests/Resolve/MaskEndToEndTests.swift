@@ -107,15 +107,14 @@ struct MaskEndToEndTests {
             """#)))
     }
 
-    @Test("a text mask keyframe under a scaled parent shape is drawn on the text, and a keyframe of numbers in the parent's space")
-    func drawsTextMaskUnderParent() throws {
+    @Test("a mask keyframe under a scaled parent shape is in the parent's space, drawn at the parent's scale")
+    func drawsMaskUnderParent() throws {
         // Given
-        // The screen fills the output, so "Total" at `Fixture.total` in its media pixels is there in output pixels too.
         let sut = try resolved(#"""
             { "kind": "sequence", "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "connected": [
                 { "id": "box", "shape": "rect", "stroke": { "width": 8 }, "parent": "screen", "area": [0, 0, 600, 600], "scale": 2, "at": [0, 4] },
                 { "adjust": "frames/warm", "parent": "box", "at": [0, 4], "mask": { "shape": "rect" }, "keyframes": [
-                    { "at": 0, "mask": { "area": { "text": "Total" } } },
+                    { "at": 0, "mask": { "area": [0, 0, 100, 100] } },
                     { "at": 2, "mask": { "area": [0, 0, 50, 50] } } ] } ] } ] }
             """#)
 
@@ -124,8 +123,9 @@ struct MaskEndToEndTests {
         let last = try #require(try masks(of: sut, at: 2).first)
 
         // Then
-        #expect(isClose(drawn(first), Fixture.total), "drawn at \(drawn(first)), the text is at \(Fixture.total)")
-        // The keyframe of numbers is in the box's space, drawn at twice its size.
+        // Each keyframe is in the box's space, drawn at twice its size.
+        #expect(first.geometry == .rect(Rectangle(x: 0, y: 0, width: 100, height: 100), radius: 0))
+        #expect(abs(drawn(first).width - 200) < 1e-6 && abs(drawn(first).height - 200) < 1e-6)
         #expect(last.geometry == .rect(Rectangle(x: 0, y: 0, width: 50, height: 50), radius: 0))
         #expect(abs(drawn(last).width - 100) < 1e-6 && abs(drawn(last).height - 100) < 1e-6)
     }
@@ -192,13 +192,5 @@ struct MaskEndToEndTests {
         guard case let .rect(rectangle, _) = mask.geometry else { return Rectangle(x: 0, y: 0, width: 0, height: 0) }
 
         return Rectangle(bounding: mask.transform.apply(toCornersOf: rectangle))
-    }
-
-    private func isClose(
-        _ rectangle: Rectangle,
-        _ other: Rectangle
-    ) -> Bool {
-        [rectangle.x - other.x, rectangle.y - other.y, rectangle.width - other.width, rectangle.height - other.height]
-            .allSatisfy { abs($0) < 1e-6 }
     }
 }

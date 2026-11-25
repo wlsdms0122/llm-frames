@@ -24,8 +24,7 @@ struct CommandUsageTests {
         // Then
         #expect(text == """
             frames [--theme <pack/name | /abs/theme.json>] [--decoder <name>] [--renderer <name>] [--mixer <name>] \
-            [--encoder <name>] [--shaper <name>] [--tracker <name>] [--ocr <name>] [--ocr-languages <tag>[,<tag>...]] \
-            <command> ...
+            [--encoder <name>] [--shaper <name>] [--tracker <name>] [--ocr <name>] <command> ...
 
             render    <document.json> -o <out.mov | out.mp4 | out.png> [--at <t>] [--deliver <out.mp4>] [--args <args.json>]
             still     <document.json> --at <t>[,<t>...] -o <out.png> [--args <args.json>]

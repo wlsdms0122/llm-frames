@@ -10,11 +10,10 @@ import FramesAVFoundation
 import FramesCoreText
 import FramesTestMedia
 import FramesTracker
-import FramesVision
 
 @testable import Frames
 
-// Resolves a document on the real decoder, OCR, tracker and shaper, with the shipped `frames` pack holding `pop` alone
+// Resolves a document on the real decoder, tracker and shaper, with the shipped `frames` pack holding `pop` alone
 // and the presets a test gives in an installed pack `mine`, as `render` would before it hands the document to the
 // roles.
 struct DocumentResolver {
@@ -64,8 +63,6 @@ struct DocumentResolver {
         return DocumentPlanner(
             mediaFacts: decoder,
             presets: PresetLibrary(packs: packs),
-            ocr: VisionOCR(decoder: decoder),
-            languages: nil,
             tracker: PointTracker(decoder: decoder),
             shaper: CoreTextShaper(),
             library: library

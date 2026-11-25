@@ -206,7 +206,7 @@ struct ClipWindowTests {
             { "kind": "sequence", "storyline": [
               { "solid": "#000000", "duration": 2 },
               { "id": "run", "media": "/abs/run.mp4", "in": 2, "out": 8, "speed": 2,
-                "connected": [ { "at": [2, 8], "shape": "rect", "stroke": { "width": 8 }, "parent": "run", "keyframes": [ { "at": 4, "area": { "text": "A" } }, { "at": 6, "area": { "text": "B" } } ] } ] }
+                "connected": [ { "at": [2, 8], "shape": "rect", "stroke": { "width": 8 }, "parent": "run", "keyframes": [ { "at": 4, "area": [0, 0, 10, 10] }, { "at": 6, "area": [0, 0, 20, 20] } ] } ] }
             ], "clips": [ { "at": [0, 5], "media": "/abs/log.png", "keyframes": [ { "at": 1, "scale": 1 }, { "at": 2, "scale": 2 } ] } ] }
             """##)
 

@@ -412,22 +412,6 @@ struct ClipAreaEndToEndTests {
         #expect(description.hasPrefix("storyline[0].position"), "\(description)")
     }
 
-    @Test("text found under a shape placed by a clip area stops, since its map moves with the named clip")
-    func stopsTextUnderClipArea() throws {
-        // Given
-        let document = ##"""
-            { "kind": "sequence", "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "connected": [
-                { "id": "name", "title": "a", "style": "title", "parent": "screen", "at": [0, 4], "position": [100, 100] },
-                { "id": "card", "shape": "rect", "fill": "accent", "parent": "screen", "at": [0, 4], "area": { "clip": "name" } },
-                { "shape": "rect", "fill": "accent", "parent": "card", "at": [0, 4], "area": { "text": "Total" } } ] } ] }
-            """##
-
-        // When, Then
-        let error = #expect(throws: (any Error).self) { try resolved(document) }
-        let description = (error as? CustomStringConvertible)?.description ?? ""
-        #expect(description.hasPrefix("storyline[0]#screen.connected[2].area (rect): text found under \"card\""), "\(description)")
-    }
-
     // MARK: - Private
     private var movingTitle: String {
         #"""

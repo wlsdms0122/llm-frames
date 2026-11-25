@@ -17,7 +17,7 @@ struct TimelineReporterTests {
         { "kind": "sequence",
           "storyline": [
             { "id": "intro", "media": "/abs/short.mp4", "in": 1, "out": 3,
-              "connected": [ { "shape": "rect", "stroke": { "width": 8 }, "area": { "text": "Send" }, "parent": "intro", "animation": "frames/pulse" } ] },
+              "connected": [ { "shape": "rect", "stroke": { "width": 8 }, "area": [400, 1200, 200, 60], "parent": "intro", "animation": "frames/pulse" } ] },
             { "solid": "#000000", "duration": 2, "transition": { "preset": "frames/flash", "seconds": 1 } }
           ],
           "clips": [
@@ -26,14 +26,12 @@ struct TimelineReporterTests {
           ] }
         """##
 
-    // "Total" is followed in `/abs/screen.mp4` up to media second 1.9, so a box on it from clip second 1.5 is visible
+    // The target is followed in `/abs/screen.mp4` up to media second 1.9, so a box on it from clip second 1.5 is visible
     // until the frame shown then ends.
     private let trackingReporter = TimelineReporter(
         planner: DocumentPlanner(
             mediaFacts: Fixture.mediaFacts,
             presets: Fixture.presets,
-            ocr: Fixture.ocr,
-            languages: nil,
             tracker: TrackerTable(
                 frameTimes: ["/abs/screen.mp4": Fixture.screenFrameTimes],
                 followed: ["/abs/screen.mp4": 0...1.9]
@@ -208,8 +206,6 @@ struct TimelineReporterTests {
             planner: DocumentPlanner(
                 mediaFacts: mediaFacts,
                 presets: Fixture.presets,
-                ocr: Fixture.ocr,
-                languages: nil,
                 tracker: Fixture.tracker,
                 shaper: Fixture.shaper,
                 library: directory.library(mediaFacts: mediaFacts)
@@ -262,8 +258,6 @@ struct TimelineReporterTests {
             planner: DocumentPlanner(
                 mediaFacts: Fixture.mediaFacts,
                 presets: Fixture.presets,
-                ocr: Fixture.ocr,
-                languages: nil,
                 tracker: Fixture.tracker,
                 shaper: Fixture.shaper,
                 library: directory.library()
@@ -313,8 +307,6 @@ struct TimelineReporterTests {
             planner: DocumentPlanner(
                 mediaFacts: Fixture.mediaFacts,
                 presets: Fixture.presets,
-                ocr: Fixture.ocr,
-                languages: nil,
                 tracker: Fixture.tracker,
                 shaper: Fixture.shaper,
                 library: directory.library()
@@ -484,12 +476,12 @@ struct TimelineReporterTests {
     }
 
     // MARK: - Private
-    // A box on the text "Total", tracked, and a title over the whole sequence.
+    // A box on [100, 100, 200, 40], tracked, and a title over the whole sequence.
     private var tracked: String {
         #"""
         { "kind": "sequence", "theme": { "baseWidth": 1206 },
           "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "in": 1, "out": 3,
-            "connected": [ { "shape": "rect", "stroke": { "width": 8 }, "area": { "text": "Total" }, "parent": "screen", "at": [1.5, 3], "track": { "text": "Total" } } ] } ],
+            "connected": [ { "shape": "rect", "stroke": { "width": 8 }, "area": [100, 100, 200, 40], "parent": "screen", "at": [1.5, 3], "track": [100, 100, 200, 40] } ] } ],
           "clips": [ { "at": [0, 2], "title": "Pay now", "style": "title" } ] }
         """#
     }

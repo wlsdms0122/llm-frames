@@ -25,7 +25,7 @@ struct SequenceReaderTests {
                 { "id": "run", "media": "/abs/run.mp4", "in": 2, "out": 8, "speed": 2,
                   "keyframes": [ { "at": 2, "crop": { "scale": 1 }, "ease": "ease-in-out" } ],
                   "connected": [ { "at": [2, 8], "title": "a", "style": "subtitle" },
-                                 { "shape": "rect", "stroke": { "width": 8 }, "parent": "run", "keyframes": [ { "at": 1.2, "area": { "text": "First line" } } ] } ] },
+                                 { "shape": "rect", "stroke": { "width": 8 }, "parent": "run", "keyframes": [ { "at": 1.2, "area": [60, 400, 600, 80] } ] } ] },
                 { "media": "/abs/card.png", "duration": 2.5, "transition": { "preset": "frames/wipe-right", "seconds": 0.5 } },
                 { "solid": "#000000", "duration": 1, "transition": "cut" }
               ],
@@ -134,9 +134,9 @@ struct SequenceReaderTests {
         let document = try Fixture.json(#"""
             { "kind": "sequence", "format": { "size": [1080, 1920], "conform": "fill" },
               "storyline": [ { "media": "/abs/screen.mp4", "track": true, "crop": { "scale": 2 }, "connected": [
-                { "shape": "ellipse", "area": { "from": "a", "to": "b", "toNth": 1, "padding": 6 }, "fill": "accent",
-                  "track": { "text": "c", "nth": 2 } },
-                { "title": "t", "style": "title", "width": 300, "parent": "screen",
+                { "shape": "ellipse", "area": { "clip": "t", "padding": 6 }, "fill": "accent",
+                  "track": [10, 20, 30, 40] },
+                { "id": "t", "title": "t", "style": "title", "width": 300, "parent": "screen",
                   "position": { "area": [1, 2, 3, 4], "point": "top-left" } } ] } ] }
             """#)
 
@@ -150,9 +150,9 @@ struct SequenceReaderTests {
         #expect(sequence.format.conform == .fill)
         #expect(sequence.storyline[0].track == .own(time: nil))
         #expect(sequence.storyline[0].crop == .value(.scale(2)))
-        #expect(ellipse.area == .value(.range(from: "a", fromNth: nil, to: "b", toNth: 1, padding: 6)))
+        #expect(ellipse.area == .value(.clip("t", padding: 6)))
         #expect(ellipse.content == .shape(ClipShape(kind: .ellipse, fill: LookProperty(written: .string("accent")))))
-        #expect(ellipse.track == .area(.text("c", nth: 2, padding: 0), time: nil))
+        #expect(ellipse.track == .area(.rectangle(Rectangle(x: 10, y: 20, width: 30, height: 40)), time: nil))
         #expect(title.width == 300)
         #expect(title.position == .value(.area(.rectangle(Rectangle(x: 1, y: 2, width: 3, height: 4)), point: "top-left")))
     }

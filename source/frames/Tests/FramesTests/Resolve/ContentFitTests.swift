@@ -148,7 +148,7 @@ struct ContentFitTests {
         // Then
         #expect(plan.format.size == Size(width: 450, height: 350))
         #expect(plan.storyline[0].appearance.box?.position == .value(.point(Point(x: 250, y: 200))))
-        #expect(plan.clips[0].area?.firstValue.found?.rectangle == Rectangle(x: 50, y: 50, width: 100, height: 100))
+        #expect(plan.clips[0].area?.firstValue.rectangle == Rectangle(x: 50, y: 50, width: 100, height: 100))
     }
 
     @Test(
@@ -208,7 +208,7 @@ struct ContentFitTests {
         // Then
         #expect(plan.format.size == Size(width: 410, height: 258))
         #expect(plan.storyline[0].appearance.box?.position == .value(.point(Point(x: 255, y: 154))))
-        #expect(plan.clips[0].area?.firstValue.found?.rectangle == Rectangle(x: 4.5, y: 4, width: 50, height: 50))
+        #expect(plan.clips[0].area?.firstValue.rectangle == Rectangle(x: 4.5, y: 4, width: 50, height: 50))
         #expect(plan.clips[1].position == .value(.point(Point(x: 105, y: 54))))
         #expect(plan.clips[1].box?.position == .value(.point(Point(x: 105, y: 54))))
     }
@@ -249,7 +249,7 @@ struct ContentFitTests {
         // Then
         #expect(plan.format.size == Size(width: 408, height: 258))
         #expect(plan.storyline[0].appearance.box?.position == .value(.point(Point(x: 254, y: 154))))
-        #expect(plan.clips[0].area?.firstValue.found?.rectangle == Rectangle(x: 4, y: 4, width: 50, height: 50))
+        #expect(plan.clips[0].area?.firstValue.rectangle == Rectangle(x: 4, y: 4, width: 50, height: 50))
         #expect(space.transform == .identity)
     }
 
@@ -264,7 +264,7 @@ struct ContentFitTests {
 
         // Then
         #expect(plan.format.size == Size(width: 450, height: 200))
-        #expect(plan.clips[0].area?.firstValue.found?.rectangle == Rectangle(x: 400, y: 0, width: 50, height: 50))
+        #expect(plan.clips[0].area?.firstValue.rectangle == Rectangle(x: 400, y: 0, width: 50, height: 50))
     }
 
     @Test("theme lengths take the length scale of the first storyline picture's box")
