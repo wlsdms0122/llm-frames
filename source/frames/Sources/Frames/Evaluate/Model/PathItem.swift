@@ -74,21 +74,22 @@ package struct PathItem: Equatable, Sendable {
     }
 
     // The convex parts of what the stroke draws past its outline grown by its reach, each by its corners in order, in
-    // the item's own coordinates: the heads, a circle by the square it is inscribed in, the points of the miter joins
-    // and the ends of the square caps of the centred stroke it is cut from (`PathOutline.overhangs`), laid in output
-    // pixels on the outline `transform` carries. An inside stroke has none, since it lies inside its outline.
+    // the item's own coordinates: each head by the convex hull of its outline's control points, which holds its curve,
+    // and the points of the miter joins and the ends of the square caps of the centred stroke it is cut from
+    // (`PathOutline.overhangs`), laid in output pixels on the outline `transform` carries. An inside stroke has none,
+    // since it lies inside its outline.
     package func overhangs(carriedBy transform: AffineTransform) -> [[Point]] {
         guard case let (stroke, outline, drawn, back)? = overhanging(carriedBy: transform) else { return [] }
 
-        let circles = outline.arrowheads(of: drawn).filter { $0.circle != nil }.flatMap(\.parts)
-        return (outline.overhangs(of: stroke.traced, drawn: drawn) + circles).map { corners in corners.map(back.apply(to:)) }
+        let heads = outline.arrowheads(of: drawn).map { ConvexPolygon(hullOf: $0.controlPoints).corners }
+        return (outline.overhangs(of: stroke.traced, drawn: drawn) + heads).map { corners in corners.map(back.apply(to:)) }
     }
 
     // The axis-aligned box of what the item draws without its shadow, after `transform`, its stroke drawn in output
     // pixels on the outline `item` carries: its outline grown by the stroke's reach past it, united with its overhangs
-    // and its circle heads. The outline lies within the box of its geometry, and the stroke within a disc about every
-    // point of the carried outline, its radius half the stroke's width for a centred stroke, its width for an outside
-    // one and 0 for an inside one, which lies inside the outline.
+    // and the box of each head's outline. The outline lies within the box of its geometry, and the stroke within a disc
+    // about every point of the carried outline, its radius half the stroke's width for a centred stroke, its width for
+    // an outside one and 0 for an inside one, which lies inside the outline.
     package func drawnBounds(
         carriedBy item: AffineTransform,
         under transform: AffineTransform = .identity
@@ -109,18 +110,9 @@ package struct PathItem: Equatable, Sendable {
 
         let corners = carried.overhangs(of: stroke.traced, drawn: drawn).flatMap { $0 }
             .map { transform.apply(to: back.apply(to: $0)) }
-        let circles = carried.arrowheads(of: drawn).compactMap(\.circle).map { circle in
-            let center = disc.apply(to: circle.center)
-            let reach = disc.reach(ofDisc: circle.radius)
-            return Rectangle(
-                x: center.x - reach.width,
-                y: center.y - reach.height,
-                width: 2 * reach.width,
-                height: 2 * reach.height
-            )
-        }
+        let heads = carried.arrowheads(of: drawn).map { head in head.geometry.bounds(carriedBy: disc) }
 
-        return ([corners.isEmpty ? nil : Rectangle(bounding: corners)].compactMap { $0 } + circles)
+        return ([corners.isEmpty ? nil : Rectangle(bounding: corners)].compactMap { $0 } + heads)
             .reduce(stroked) { bounds, part in bounds.union(part) }
     }
 

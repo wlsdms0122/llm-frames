@@ -49,6 +49,26 @@ enum PresetKeyTable {
             KeyRule("ops", .list(.audioOperation), isRequired: true)
         ]
     )
+    // A head's points are plain numbers in its units, a vertex a point or `{vertex, inTangent, outTangent}`.
+    static let head = ObjectTable(
+        kind: "head",
+        rules: [
+            KeyRule("description", .text, isRequired: true),
+            KeyRule("points", .list(.oneOf([
+                .numbers(2, .any),
+                .object(ObjectTable(
+                    kind: "head vertex",
+                    rules: [
+                        KeyRule("vertex", .numbers(2, .any), isRequired: true),
+                        KeyRule("inTangent", PathKeyTable.tangent),
+                        KeyRule("outTangent", PathKeyTable.tangent)
+                    ]
+                ))
+            ])), isRequired: true),
+            KeyRule("length", .number(.any), isRequired: true),
+            KeyRule("inset", .number(.any), isRequired: true)
+        ]
+    )
     static let spanKey = ObjectTable(
         kind: "span key",
         rules: [KeyRule("t", .number(.any), isRequired: true)] + motionProperties.map { property in

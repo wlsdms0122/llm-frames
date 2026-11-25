@@ -492,7 +492,7 @@ struct ResolvedSequenceReader: Sendable {
                 return Trim(start: ends[0], end: ends[1])
             },
             fill: try values.timed(clip.member("fill"), as: LookStructureTable.fill),
-            stroke: try values.timed(clip.member("stroke"), as: LookStructureTable.stroke, kind: "stroke"),
+            stroke: try values.stroke(clip.member("stroke")),
             shadow: try values.timed(clip.member("shadow"), as: LookStructureTable.shadow, kind: "shadow")
         )
     }

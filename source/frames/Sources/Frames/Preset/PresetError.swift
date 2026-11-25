@@ -11,6 +11,7 @@ enum PresetError: Error, Equatable, CustomStringConvertible, Sendable {
     case nonPositiveLength(place: Place, kind: String, length: Double)
     case parameterOutOfRange(place: Place, kind: String, value: String, range: String)
     case rejectedArguments(place: Place, kind: String, name: String, reason: String)
+    case invalidHead(place: Place, reason: String)
 
     // MARK: - Property
     var description: String {
@@ -29,6 +30,9 @@ enum PresetError: Error, Equatable, CustomStringConvertible, Sendable {
 
         case let .rejectedArguments(place, kind, name, reason):
             "\(place) (\(kind)): its arguments give \(JSONValue.string(name).written) a value it does not take: \(reason)"
+
+        case let .invalidHead(place, reason):
+            "\(place) (head): \(reason)"
         }
     }
 

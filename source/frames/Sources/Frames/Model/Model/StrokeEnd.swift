@@ -5,28 +5,36 @@
 //  Created by JSilver on 11/24/26.
 //
 
-// What a stroke draws at one of its ends: the head `shape` names, its size the stroke's width times `scale`.
+// What a stroke draws at one of its ends: `head`, nil for none, its size the stroke's width times `scale`.
 package struct StrokeEnd: Equatable, Sendable {
     // MARK: - Property
-    package static let none = StrokeEnd(shape: .none)
-    package static let arrow = StrokeEnd(shape: .arrow)
+    package static let none = StrokeEnd(head: nil)
 
-    package let shape: StrokeEndShape
+    package let head: StrokeHead?
     package let scale: Double
 
     // MARK: - Initializer
     package init(
-        shape: StrokeEndShape,
+        head: StrokeHead?,
         scale: Double = 1
     ) {
-        self.shape = shape
+        self.head = head
         self.scale = scale
     }
 
     // MARK: - Public
     // The unit its head is drawn in on a stroke `width` wide, before any shrinking: 0 where it draws no head.
     package func unit(width: Double) -> Double {
-        shape == .none ? 0 : width * scale
+        head == nil ? 0 : width * scale
+    }
+
+    // How long its head is along the stroke and how far back from its tip the line stops, in units, 0 for none.
+    package var length: Double {
+        head?.length ?? 0
+    }
+
+    package var inset: Double {
+        head?.inset ?? 0
     }
 
     // MARK: - Private

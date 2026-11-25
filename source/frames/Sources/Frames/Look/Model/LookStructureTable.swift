@@ -29,34 +29,30 @@ enum LookStructureTable {
 
     static let fill = ValueStructure.forms([(ValueStructure.colorForm, .leaf(.color))] + gradientForms)
 
-    // A stroke's `start` or `end`: its head's `shape` is static and its `scale` a timed number, 1 where no layer writes
-    // it, and a name names the shape alone.
+    // A stroke's `start` or `end` as a document or a theme writes it: the head preset it names, `none` for no head, is
+    // static and its `scale` a timed number, 1 where no layer writes it, and a name names the preset alone.
     static let strokeEnd = ValueStructure.object(ObjectStructure(
         [
-            ("shape", .leaf(.name(among: StrokeEndShape.allCases.map(\.rawValue)))),
+            ("preset", .leaf(.name)),
             ("scale", .leaf(.number(.positive)))
         ],
-        shorthands: [.name(key: "shape")],
+        shorthands: [.name(key: "preset")],
         plain: ["scale": .number(1)]
     ))
 
-    static let stroke = ValueStructure.object(ObjectStructure(
+    // A stroke's end as resolve writes it, off for no head: its head preset's values, static, and its timed `scale`.
+    static let resolvedStrokeEnd = ValueStructure.object(ObjectStructure(
         [
-            ("color", .leaf(.color)),
-            ("gradient", .forms(gradientForms)),
-            ("width", .leaf(.length(.positive))),
-            ("align", .leaf(.name(among: StrokeAlign.allCases.map(\.rawValue)))),
-            ("join", .leaf(.name(among: StrokeJoin.allCases.map(\.rawValue)))),
-            ("cap", .leaf(.name(among: StrokeCap.allCases.map(\.rawValue)))),
-            ("start", strokeEnd),
-            ("end", strokeEnd),
-            ("dash", .list(.leaf(.length()))),
-            ("dashOffset", .leaf(.length(.any)))
-        ],
-        required: ["width"],
-        nonZero: ["dash"],
-        exclusive: [["color", "gradient"]]
+            ("points", .anyValue),
+            ("length", .leaf(.staticNumber)),
+            ("inset", .leaf(.staticNumber)),
+            ("scale", .leaf(.number(.positive)))
+        ]
     ))
+
+    static let stroke = strokeStructure(end: strokeEnd)
+
+    static let resolvedStroke = strokeStructure(end: resolvedStrokeEnd)
 
     static let shadow = ValueStructure.object(ObjectStructure(
         [
@@ -476,4 +472,25 @@ enum LookStructureTable {
         )
         return ("type:" + type.rawValue, .object(body))
     })
+
+    // A stroke whose `start` and `end` take `end`.
+    private static func strokeStructure(end: ValueStructure) -> ValueStructure {
+        .object(ObjectStructure(
+            [
+                ("color", .leaf(.color)),
+                ("gradient", .forms(gradientForms)),
+                ("width", .leaf(.length(.positive))),
+                ("align", .leaf(.name(among: StrokeAlign.allCases.map(\.rawValue)))),
+                ("join", .leaf(.name(among: StrokeJoin.allCases.map(\.rawValue)))),
+                ("cap", .leaf(.name(among: StrokeCap.allCases.map(\.rawValue)))),
+                ("start", end),
+                ("end", end),
+                ("dash", .list(.leaf(.length()))),
+                ("dashOffset", .leaf(.length(.any)))
+            ],
+            required: ["width"],
+            nonZero: ["dash"],
+            exclusive: [["color", "gradient"]]
+        ))
+    }
 }

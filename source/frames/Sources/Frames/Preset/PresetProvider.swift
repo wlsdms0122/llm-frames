@@ -17,4 +17,6 @@ protocol PresetProvider: Sendable {
     func audio(_ instance: PresetInstance) throws -> AudioPreset?
     // An audio preset as published, with its parameters and where its ops refer to them, which a timed argument fills.
     func publishedAudio(named name: String) throws -> PublishedPreset<AudioPreset>?
+    // A head preset, which publishes no parameters and so is found by its name alone.
+    func head(named name: String) throws -> StrokeHead?
 }

@@ -70,6 +70,7 @@ struct ThemeValidator: Sendable {
         let titles = animation["title"]?.objectValue ?? JSONObject()
 
         try checkFilter(defaults["filter"], place: place.appending(key: "filter"), theme: theme, presets: presets)
+        try checkHeads(in: theme, presets: presets)
 
         return ThemeDefaults(
             transition: try transitionChoice(in: defaults, place: place, theme: theme, presets: presets),
@@ -163,6 +164,30 @@ struct ThemeValidator: Sendable {
 
             for case let .bloom(_, _, .some(color)) in preset.operations {
                 _ = try theme.presetColor(color, place: instance.place, kind: .themeDefaults)
+            }
+        }
+    }
+
+    // The head presets a shape style's stroke names at its ends must be there whether or not a clip takes the style.
+    private func checkHeads(
+        in theme: MergedTheme,
+        presets: any PresetProvider
+    ) throws {
+        let shapes = theme.value.objectValue?["shapes"]?.objectValue ?? JSONObject()
+        for style in shapes.members {
+            let stroke = style.value.objectValue?["stroke"]?.objectValue ?? JSONObject()
+            for key in ["start", "end"] {
+                let written = stroke[key]
+                let name = written?.stringValue ?? written?.objectValue?["preset"]?.stringValue
+                guard let name, name != StrokeHeadResolver.none, try presets.head(named: name) == nil else { continue }
+
+                let place = Place.root.appending(key: "shapes").appending(key: style.key).appending(key: "stroke")
+                throw ThemeError.unknownPreset(
+                    place: theme.place(of: place.appending(key: key)),
+                    kind: ShapeKeyTable.style.kind,
+                    presetKind: PresetKind.head.rawValue,
+                    name: name
+                )
             }
         }
     }

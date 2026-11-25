@@ -14,14 +14,15 @@ struct ClipAppearancePlanner: Sendable {
     private let conformer = CropConformer()
     private let cropChecker = CropChecker()
     private let choices = ClipChoiceMerger()
+    private let heads: StrokeHeadResolver
     // What a stroke takes where neither the clip nor its style gives it.
     private static let strokeDefaults = JSONValue.object(JSONObject(members: [
         JSONMember(key: "color", value: .string("accent")),
         JSONMember(key: "align", value: .string(StrokeAlign.center.rawValue)),
         JSONMember(key: "join", value: .string(StrokeJoin.round.rawValue)),
         JSONMember(key: "cap", value: .string(StrokeCap.butt.rawValue)),
-        JSONMember(key: "start", value: .string(StrokeEndShape.none.rawValue)),
-        JSONMember(key: "end", value: .string(StrokeEndShape.none.rawValue)),
+        JSONMember(key: "start", value: .string(StrokeHeadResolver.none)),
+        JSONMember(key: "end", value: .string(StrokeHeadResolver.none)),
         JSONMember(key: "dashOffset", value: .number(0))
     ]))
 
@@ -31,6 +32,7 @@ struct ClipAppearancePlanner: Sendable {
         library: ReferenceLibrary
     ) {
         self.filters = FilterResolver(presets: presets, library: library)
+        self.heads = StrokeHeadResolver(presets: presets)
     }
 
     // MARK: - Public
@@ -239,7 +241,11 @@ struct ClipAppearancePlanner: Sendable {
             )
         }
         let fill = try timed("fill", shape.fill, LookStructureTable.fill, nil)
-        let stroke = try timed("stroke", shape.stroke, LookStructureTable.stroke, Self.strokeDefaults)
+        let stroke = try heads.pinned(
+            timed("stroke", shape.stroke, LookStructureTable.stroke, Self.strokeDefaults),
+            place: written.place.appending(key: "stroke"),
+            kind: kind
+        )
         let shadow = try timed("shadow", shape.shadow, LookStructureTable.shadow, theme.value(at: ["shadow"]))
         guard fill != .off || stroke != .off else {
             throw ResolveError.shapeDrawsNothing(place: written.place, kind: kind)
@@ -698,7 +704,8 @@ struct ClipAppearancePlanner: Sendable {
     }
 
     // A stroke inside or outside its outline needs a closed outline, which a rect and an ellipse always have, and no
-    // head at either end. Its `align` and its ends' shapes are static names of the merged stroke, and `closed` is static.
+    // head at either end, an end with none being off once its head is pinned. Its `align` and its ends' presets are
+    // static names of the merged stroke, and `closed` is static.
     private func checkAlign(
         of stroke: TimedValue,
         shape: ClipShape,
@@ -711,8 +718,7 @@ struct ClipAppearancePlanner: Sendable {
         guard shape.kind != .path || shape.isClosed else {
             throw ResolveError.alignedStrokeOnOpenPath(place: place, kind: kind, align: align)
         }
-        let none = TimedValue.fixed(.string(StrokeEndShape.none.rawValue))
-        guard ["start", "end"].allSatisfy({ stroke[$0]?["shape"] ?? none == none }) else {
+        guard ["start", "end"].allSatisfy({ (stroke[$0] ?? .off) == .off }) else {
             throw ResolveError.alignedStrokeWithArrowhead(place: place, kind: kind, align: align)
         }
     }

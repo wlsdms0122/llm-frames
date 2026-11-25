@@ -399,7 +399,7 @@ package struct DisplayListReader: Sendable {
         if
             let stroke = path.stroke,
             stroke.align != .center,
-            !path.isClosed || stroke.start.shape != .none || stroke.end.shape != .none
+            !path.isClosed || stroke.start.head != nil || stroke.end.head != nil
         {
             let value = try item.member("stroke")
             throw ModelError.invalidValue(
@@ -412,15 +412,39 @@ package struct DisplayListReader: Sendable {
         return path
     }
 
-    // A stroke's end that draws a head, its shape one of the heads, `none` written as `null`.
+    // A stroke's end that draws a head, `null` where it draws none: its head's outline as a closed path in its own
+    // units, with a tangent of each kind for each vertex, beside its `length`, `inset` and `scale`, the head keeping
+    // every rule of a head preset (FRAMES-11 Heads).
     private func end(_ value: PlacedJSONValue) throws -> StrokeEnd {
-        let end = try value.object(keys: ["shape", "scale"])
-        let heads = StrokeEndShape.allCases.filter { $0 != .none }.map(\.rawValue)
+        let end = try value.object(keys: ["vertices", "inTangents", "outTangents", "length", "inset", "scale"])
+        let vertices = try end.member("vertices").elements().map(values.point)
+        let tangents = { (key: String) throws -> [Point] in
+            let written = try end.member(key)
+            let tangents = try written.elements().map(self.values.point)
+            guard tangents.count == vertices.count else {
+                throw ModelError.invalidValue(
+                    place: written.place,
+                    kind: written.kind,
+                    reason: "a head has a tangent for each of its \(vertices.count) vertices, found \(tangents.count)"
+                )
+            }
 
-        return StrokeEnd(
-            shape: try end.member("shape").name(among: heads) { heads.contains($0) ? StrokeEndShape(rawValue: $0) : nil },
-            scale: try end.member("scale").number()
+            return tangents
+        }
+        let inTangents = try tangents("inTangents")
+        let outTangents = try tangents("outTangents")
+        let head = StrokeHead(
+            outline: vertices.indices.map { index in
+                PathVertex(vertex: vertices[index], inTangent: inTangents[index], outTangent: outTangents[index])
+            },
+            length: try end.member("length").number(),
+            inset: try end.member("inset").number()
         )
+        if let refusal = head.refusal {
+            throw ModelError.invalidValue(place: value.place, kind: value.kind, reason: refusal)
+        }
+
+        return StrokeEnd(head: head, scale: try end.member("scale").number())
     }
 
     // Four points the corners of `dest` go to, a corner pin a display list holds (`Quad.isCornerPin(inSampleList:)`).

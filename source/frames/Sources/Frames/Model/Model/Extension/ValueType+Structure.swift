@@ -32,7 +32,7 @@ extension ValueType {
         case let .leaf(leaf):
             self = Self.type(of: leaf, checksDomain: checksDomains)
 
-        // An object with a name shorthand also takes the names of the key it names, as a stroke's end takes its shape.
+        // An object with a name shorthand also takes the names of the key it names, as a stroke's end takes its preset.
         case let .object(object):
             let table = ValueType.object(ObjectTable(structure: object, kind: kind, checksDomains: checksDomains))
             let names = object.shorthands.compactMap { shorthand -> ValueType? in

@@ -189,27 +189,31 @@ struct PathDrawer {
         )
     }
 
-    // A head as one shape: a circle, or the union of its convex parts.
+    // A head as one shape: its outline, a closed path through its vertices, straight where a segment's two tangents
+    // are 0 and a cubic segment elsewhere.
     private func path(of head: Arrowhead) -> CGPath {
-        if let circle = head.circle {
-            let rectangle = CGRect(
-                x: circle.center.x - circle.radius,
-                y: circle.center.y - circle.radius,
-                width: 2 * circle.radius,
-                height: 2 * circle.radius
+        let path = CGMutablePath()
+        guard case let .path(vertices, _) = head.geometry, let first = vertices.first else { return path }
+
+        let zero = Point(x: 0, y: 0)
+        path.move(to: CGPoint(x: first.vertex.x, y: first.vertex.y))
+        for (index, start) in vertices.enumerated() {
+            let end = vertices[(index + 1) % vertices.count]
+            let target = CGPoint(x: end.vertex.x, y: end.vertex.y)
+            guard start.outTangent != zero || end.inTangent != zero else {
+                path.addLine(to: target)
+                continue
+            }
+
+            path.addCurve(
+                to: target,
+                control1: CGPoint(x: start.vertex.x + start.outTangent.x, y: start.vertex.y + start.outTangent.y),
+                control2: CGPoint(x: end.vertex.x + end.inTangent.x, y: end.vertex.y + end.inTangent.y)
             )
-            return CGPath(ellipseIn: rectangle, transform: nil)
         }
+        path.closeSubpath()
 
-        let parts = head.parts.map { corners in
-            let path = CGMutablePath()
-            path.addLines(between: corners.map { CGPoint(x: $0.x, y: $0.y) })
-            path.closeSubpath()
-            return path as CGPath
-        }
-        guard let first = parts.first else { return CGMutablePath() }
-
-        return parts.dropFirst().reduce(first) { shape, part in shape.union(part, using: .winding) }
+        return path
     }
 
     private func lineCap(of cap: StrokeCap) -> CGLineCap {
