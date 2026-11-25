@@ -341,7 +341,7 @@
    }
   }
  ],
- "keyframed_time": [
+ "keyframed": [
   {
    "arguments": [
     "--version"
