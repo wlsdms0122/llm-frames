@@ -469,7 +469,7 @@ struct TimePlanner: Sendable {
         theme: MergedTheme
     ) throws -> ClipSource {
         switch clip.content {
-        case let .media(clipMedia):
+        case let .media(clipMedia), let .audio(clipMedia):
             let place = clip.place.appending(key: "media")
             let media = try resolver.media(
                 of: clipMedia.source,
@@ -478,7 +478,7 @@ struct TimePlanner: Sendable {
                 theme: theme
             )
             .read(by: clipMedia)
-            let kind = try kind(of: clipMedia, media: media, place: clip.place)
+            let kind = try kind(of: clip, media: media)
             // An audio clip reads no picture of its media.
             if kind != .media(.audio) {
                 try resolver.checkReading(of: media, by: clipMedia, clip: clip.place, in: clip.clipPlace)
@@ -509,18 +509,15 @@ struct TimePlanner: Sendable {
         }
     }
 
-    // A clip that takes only its media's sound is an audio clip, and stops where the media holds none.
+    // A media clip is of its media's kind. An audio clip takes its media's sound alone, so it stops where the media
+    // holds none, which only the media read here knows of a video, an image sequence and a compound clip.
     private func kind(
-        of clipMedia: ClipMedia,
-        media: MediaPlan,
-        place: Place
+        of clip: Clip,
+        media: MediaPlan
     ) throws -> ClipKind {
-        guard clipMedia.picture == false else { return .media(media.kind) }
+        guard case .audio = clip.content else { return .media(media.kind) }
         guard media.hasSound else {
-            throw ResolveError.pictureOffWithoutSound(
-                place: place.appending(key: "picture"),
-                kind: .clip(.media(media.kind))
-            )
+            throw ResolveError.audioWithoutSound(place: clip.place.appending(key: "media"), kind: .clip(.media(.audio)))
         }
 
         return .media(.audio)
@@ -708,7 +705,8 @@ struct TimePlanner: Sendable {
         return try animationPlan(AnimationChoice(value: merged, place: place) ?? .none, of: clip, place: clip.place, kind: kind)
     }
 
-    // The path of the theme's default animation a clip takes, nil for a null, which no theme default names.
+    // The path of the theme's default animation a clip takes, nil for an audio clip and a null, which no theme default
+    // names.
     private func defaultAnimationPath(for content: ClipContent) -> [String]? {
         switch content {
         case let .title(title):
@@ -723,7 +721,7 @@ struct TimePlanner: Sendable {
         case .adjust:
             ["defaults", "animation", "adjustment"]
 
-        case .null:
+        case .audio, .null:
             nil
         }
     }
@@ -745,7 +743,7 @@ struct TimePlanner: Sendable {
         case .adjust:
             defaults.adjustmentAnimation
 
-        case .null:
+        case .audio, .null:
             nil
         }
     }

@@ -554,7 +554,7 @@ struct ClipAppearancePlanner: Sendable {
                 height: value(of: property(height, plain: 0, clock: plan.clock), at: plan.instant)
             )
 
-        case .adjust:
+        case .audio, .adjust:
             return nil
         }
     }

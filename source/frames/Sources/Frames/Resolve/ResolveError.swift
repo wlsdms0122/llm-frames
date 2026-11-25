@@ -19,7 +19,7 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
     case nonPositiveSpeed(place: Place, kind: PlaceKind, speed: Double)
     case speedWithTimeRemap(place: Place, kind: PlaceKind)
     case soundWithTimeRemap(place: Place, kind: PlaceKind, key: String)
-    case pictureOffWithoutSound(place: Place, kind: PlaceKind)
+    case audioWithoutSound(place: Place, kind: PlaceKind)
     case audioFilterWithoutSound(place: Place, kind: PlaceKind)
     case splitWithoutSound(place: Place, kind: PlaceKind)
     // `place` names the edge, `split.before` or `split.after`.
@@ -145,9 +145,9 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
             "\(place) (\(kind.label)): a clip with \"timeRemap\" plays no sound, so \"\(key)\" would do nothing. "
                 + "Place the shot's sound as an audio clip of its own"
 
-        case let .pictureOffWithoutSound(place, kind):
-            "\(place) (\(kind.label)): \"picture\": false takes only the media's sound, and this media holds none, so "
-                + "the clip would play nothing"
+        case let .audioWithoutSound(place, kind):
+            "\(place) (\(kind.label)): an audio clip takes its media's sound, and this media holds none, so the clip "
+                + "would play nothing"
 
         case let .audioFilterWithoutSound(place, kind):
             "\(place) (\(kind.label)): this clip plays no sound, so \"audioFilter\" would do nothing"

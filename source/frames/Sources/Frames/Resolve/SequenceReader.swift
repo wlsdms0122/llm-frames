@@ -147,6 +147,9 @@ struct SequenceReader: Sendable {
         if kind == "media", let media = object["media"] {
             return .media(self.media(media, of: object, place: place.appending(key: "media")))
         }
+        if kind == "audio", let media = object["media"] {
+            return .audio(self.media(media, of: object, place: place.appending(key: "media")))
+        }
         if let shape = kind.flatMap(ShapeKind.init(rawValue:)) {
             return .shape(self.shape(shape, of: object))
         }
@@ -214,7 +217,6 @@ struct SequenceReader: Sendable {
             pan: property("pan", of: clip, read: \.numberValue),
             fadeIn: clip["fadeIn"]?.numberValue,
             fadeOut: clip["fadeOut"]?.numberValue,
-            picture: clip["picture"]?.boolValue,
             audioFilter: look("audioFilter", of: clip),
             split: clip["split"]?.objectValue.map(SplitEdit.init)
         )
@@ -226,20 +228,30 @@ struct SequenceReader: Sendable {
     ) -> MediaSource {
         guard let object = value.objectValue else { return .file(value.stringValue ?? "") }
 
-        if let template = object["template"]?.stringValue {
+        // The key tables let only the kinds of media through, and the one left after the others is a document.
+        switch object["kind"]?.stringValue {
+        case "template":
             return .template(
-                name: template,
+                name: object["template"]?.stringValue ?? "",
                 arguments: object["args"]?.objectValue ?? JSONObject(),
                 passedOnThemes: argumentThemes.passedOnThemes(inArgumentsAt: place.appending(key: "args"))
             )
+
+        case "imageSequence":
+            return .imageSequence(
+                directory: object["directory"]?.stringValue ?? "",
+                fps: object["fps"]?.numberValue ?? 0
+            )
+
+        case "page":
+            return .page(
+                file: object["file"]?.stringValue ?? "",
+                page: object["page"]?.numberValue.flatMap { Int(exactly: $0) } ?? 0
+            )
+
+        default:
+            return .compound(sequence(from: value, place: place))
         }
-        if let directory = object["imageSequence"]?.stringValue, let fps = object["fps"]?.numberValue {
-            return .imageSequence(directory: directory, fps: fps)
-        }
-        if let file = object["file"]?.stringValue, let page = object["page"]?.numberValue.flatMap({ Int(exactly: $0) }) {
-            return .page(file: file, page: page)
-        }
-        return .compound(sequence(from: value, place: place))
     }
 
     private func format(_ object: JSONObject) -> SequenceFormat {

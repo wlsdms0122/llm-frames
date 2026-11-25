@@ -114,7 +114,7 @@ struct SoundPlanner: Sendable {
         nested: SequencePlan?,
         time: TimePlan
     ) throws -> SoundPlan? {
-        guard case let .media(clipMedia) = written.content else { return nil }
+        guard let clipMedia = written.content.playedMedia else { return nil }
         guard let media = plan.media, let played = plan.timing?.played, media.hasSound else {
             try checkSilent(clipMedia, place: plan.place, kind: plan.kind)
             return nil
