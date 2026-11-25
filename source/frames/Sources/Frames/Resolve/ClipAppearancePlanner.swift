@@ -393,7 +393,7 @@ struct ClipAppearancePlanner: Sendable {
             scale: 1,
             theme: theme
         )
-        guard case let .track(keyframes) = try looks.timed(solid, key: "solid", as: LookStructureTable.solid) else {
+        guard case let .track(keyframes) = try looks.timed(solid, key: "color", as: LookStructureTable.solid) else {
             return nil
         }
 
