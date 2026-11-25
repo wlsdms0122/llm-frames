@@ -10,9 +10,9 @@ This is not part of the specification. It is the structure of the implementation
               media facts (probe), then the media rows of the key tables
 3. plan time  storyline clips end to end, transitions, edit and drawn ranges, clip time maps and timeRemap,
               the window of every other clip, lanes
-4. plan       nested documents and template instances, the format and content fit, areas and points found
-              (OCR provider), crops conformed, tracks (tracker provider), parents and track mattes, titles set
-              (shaping provider), where each clip is placed and how it is drawn, theme lengths scaled, the sound.
+4. plan       nested documents and template instances, the format and content fit, areas and points, crops
+              conformed, tracks (tracker provider), parents and track mattes, titles set (shaping provider),
+              where each clip is placed and how it is drawn, theme lengths scaled, the sound.
               timeline reports here, resolve writes the resolved document with every file pinned by hash
 5. evaluate   the display list at a time, the mix plan
 6. roles      decoder (media to working values), renderer, mixer, encoder (working values to the sequence's
@@ -129,7 +129,7 @@ frames/
 ## Order of work
 
 1. The contract as data: key tables, the base theme, presets, spans and easing. Pure data with easy unit tests.
-2. Resolve and `timeline`: templates, packs, text areas, text layout and the time plan without rendering, tested against [FRAMES-8](../spec/FRAMES-8/SPEC.md).
+2. Resolve and `timeline`: templates, packs, areas and points, text layout and the time plan without rendering, tested against [FRAMES-8](../spec/FRAMES-8/SPEC.md).
 3. Evaluate: display lists at a time and the mix plan, tested as data without drawing.
 4. The first roles, `avfoundation` and `quartz`: the decoder, the renderer (pictures, paths, glyphs, adjustments, filters, LUTs, blend modes, masks, mattes and track mattes), the mixer, and the encoder for ProRes and H.264. Checked against [FRAMES-24](../spec/FRAMES-24/SPEC.md) with `still` and `sheet`.
 5. `transcode`, `probe`, `extract`, `sheet`, `ocr`, `track`, `evaluate`, `locate`, `packs`, and the machine output of [FRAMES-23](../spec/FRAMES-23/SPEC.md).
