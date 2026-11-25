@@ -344,10 +344,32 @@ def searched_place(found, times):
     if space["kind"] == "output":
         refuse(found, "it is written in output pixels")
     if space["kind"] == "box":
-        refuse(found, f"it is written in the box of {space['clip']}")
+        refuse(found, f"it is written in the box of {space['clip']}" + clip_area_hint(found, times.entry(space["clip"])))
     if times.entry(space["clip"])["kind"] == "compound":
         refuse(found, f"it is written in the media pixels of {space['clip']}, a compound clip or template instance, whose picture is drawn, not read")
     return space["clip"]
+
+
+def clip_area_hint(found, parent):
+    """How a place in the box of a parent rect or ellipse is written: as that parent's clip area, which an area and
+    the area of a point take in the space a parent gives its children. A crop and a mask lie in the clip's own box,
+    where a clip area stops, so they get none, and so does a title's box, whose text `evaluate` reports. A parent is
+    named by its id, so it has one."""
+    if found.role != "space" or parent["kind"] not in ("rect", "ellipse"):
+        return ""
+    area = {"clip": parent["id"]}
+    if is_point(found):
+        written = {"area": area, "point": found.holder["point"]} if "point" in found.holder else {"area": area}
+    else:
+        written = area
+    return f", a {parent['kind']} placed by width and height, so write the place as that clip's area: {json.dumps(written, ensure_ascii=False)}"
+
+
+def is_point(found):
+    """Whether a request stands as the area of a point, held by the point and not by the clip or a keyframe."""
+    keyframes = found.clip.value.get("keyframes") or []
+    keyframe = keyframes[found.keyframe] if found.keyframe is not None else None
+    return found.holder is not found.clip.value and found.holder is not keyframe
 
 
 # MARK: - The frame searched
