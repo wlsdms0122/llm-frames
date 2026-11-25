@@ -6,11 +6,13 @@ This is not part of the specification. It is the structure of the implementation
 
 ```mermaid
 flowchart TB
-    subgraph toolLayer["Tools"]
-        tools["programs that read media and reports and write values"]
-    end
-    subgraph vocabularyLayer["Vocabulary"]
-        vocabulary["presets, themes, templates, LUTs, fonts and media, in packs"]
+    subgraph packs["Packs: the one unit what is added from outside is installed in"]
+        subgraph toolLayer["Tools"]
+            tools["programs that read media and reports and write values, run when a command names them"]
+        end
+        subgraph vocabularyLayer["Vocabulary"]
+            vocabulary["presets, themes, templates, LUTs, fonts and media"]
+        end
     end
     media["media"]
     document["document"]
@@ -34,7 +36,7 @@ flowchart TB
     evaluation --> reports
 ```
 
-The layers are those of [FRAMES-25](../spec/FRAMES-25/SPEC.md#layers). The engine is the target `Frames` with the backends of its roles and of the shaping provider: resolve is stages 1 to 4 below, and evaluation and the roles are stages 5 and 6. Vocabulary is data: packs found by the `Pack` folder, and the pack `frames` in `FramesCommand`. Tools sit outside the engine: the extensions in `extensions/`, and the `ocr` and `track` commands with their providers, which give values a document holds. `timeline`, `evaluate` and `locate` report what stages 3 to 5 compute, and `probe` the media facts stage 2 reads.
+The layers are those of [FRAMES-25](../spec/FRAMES-25/SPEC.md#layers). The engine is the target `Frames` with the backends of its roles and of the shaping provider: resolve is stages 1 to 4 below, and evaluation and the roles are stages 5 and 6. Vocabulary and tools come in packs, the one unit what is added from outside is installed in: packs found by the `Pack` folder, which reads their data and finds their tools, and the pack `frames` in `FramesCommand`, which holds the presets and the tools `frames/find-text` and `frames/track-motion`. Tools sit outside the engine. `ToolLauncher` in `FramesCommand` runs a pack's tool when a command names it, and no stage below runs anything from a pack. The `ocr` and `track` commands with their providers are tools frames ships as commands, which give values a document holds. `timeline`, `evaluate` and `locate` report what stages 3 to 5 compute, and `probe` the media facts stage 2 reads.
 
 ## Stages
 
@@ -102,7 +104,7 @@ The package `Frames` is split into one target for the engine, one per backend of
 | `FramesVision` | the `vision` OCR provider |
 | `FramesCoreText` | the `coretext` shaping provider |
 | `FramesTracker` | the `point` tracker provider in `PointTracker`, the `planar` tracker provider in `PlanarTracker`, and in `Image` the grey images, pyramids and sampling they read frames with |
-| `FramesCommand` | the commands, their arguments and messages, the role table that builds each role by name, extensions, and the pack `frames` in `Resources/packs/frames` |
+| `FramesCommand` | the commands, their arguments and messages, the role table that builds each role by name, running a pack's tool (`ToolLauncher`), and the pack `frames` in `Resources/packs/frames` with its presets and tools |
 | `FramesTool` | the `frames` executable |
 
 Inside `Frames`, one folder per module:
@@ -117,7 +119,7 @@ Inside `Frames`, one folder per module:
 | `Color` | colour spaces, their primaries, transfers and H.273 code points, conversions between working values and a colour space, media colour outside the table (ICC matrix profiles and tone curves), tone mapping and the compositing form: the one place for the colour formulas |
 | `Filter` | the filter ops' colour science and reading `.cube` LUTs |
 | `Loudness` | the loudness meter over a range of a stereo 48 kHz mix: K-weighting, integrated loudness, loudness range, momentary and short-term maxima, sample peak, and true peak by the peak detector and its interpolating filter, which the `avfoundation` limiter also reads |
-| `Pack` | finding packs and their manifests, presets, themes, media and templates by name, and instantiating templates |
+| `Pack` | finding packs and their manifests, presets, themes, media, templates and tools by name, reading a tool's `tool.json`, the name hints, and instantiating templates |
 | `Area` | finding areas and points, reading order, and the OCR and tracker provider interfaces |
 | `Text` | text layout (fonts, line breaking, wrapping, boxes) and the shaping provider interface |
 | `Resolve` | the time plan and the sequence plan: media facts, content fit, crops, geometry, parents, track mattes, tracks, appearance, sound, presets with their arguments, and file hashes |
@@ -140,27 +142,28 @@ frames/
   spec/                    the specification
   document/
     ARCHITECTURE.md        this document
-    GUIDE.md               the editing loop, and how to write a guide, a how-to or an extension
+    GUIDE.md               the editing loop, and how to write a guide, a how-to or a tool
     PRESET.md              how to write a preset
-    PACK.md                how to make a pack, a form and a template
+    PACK.md                how to make a pack, a form, a template and a tool
     howto/<name>.md
-  packs/<name>/            packs kept beside the tool and installed by copying, not part of it
-  extensions/<name>/       first-party extensions, frames-<name> with its README and check, installed by putting
-                           frames-<name> on PATH, not part of the tool
+  packs/<name>/            packs kept beside frames and installed by copying, not part of it
   source/frames/           the Swift package
     Package.swift
     Sources/Frames/                the engine
     Sources/FramesAVFoundation/    Sources/FramesQuartz/    Sources/FramesVision/
     Sources/FramesCoreText/        Sources/FramesTracker/
     Sources/FramesCommand/         the commands
-      Resources/packs/frames/      the pack that ships with frames, its presets named frames/<name>
+      Resources/packs/frames/      the pack that ships with frames, its presets and tools named frames/<name>
         pack.json
         presets/transition/*.json
         presets/animation/*.json
         presets/filter/*.json
         presets/head/*.json
+        tools/find-text/           tool.json, the program find-text and its README
+        tools/track-motion/        tool.json, the program track-motion and its README
     Sources/FramesTool/            the `frames` executable
     Tests/
+      tools/<name>/                the check of each shipped tool, run with python3 on recorded frames output
 ```
 
 ## Order of work
@@ -170,4 +173,4 @@ frames/
 3. Evaluate: display lists at a time and the mix plan, tested as data without drawing.
 4. The first roles, `avfoundation` and `quartz`: the decoder, the renderer (pictures, paths, glyphs, adjustments, filters, LUTs, blend modes, masks, mattes and track mattes), the mixer, and the encoder for ProRes and H.264. Checked against [FRAMES-24](../spec/FRAMES-24/SPEC.md) with `still` and `sheet`.
 5. `transcode`, `probe`, `extract`, `sheet`, `ocr`, `track`, `evaluate`, `locate`, `packs`, and the machine output of [FRAMES-23](../spec/FRAMES-23/SPEC.md).
-6. The presets of the pack `frames`, the base theme, the packs in `packs/` and the how-tos.
+6. The presets and tools of the pack `frames`, the base theme, the packs in `packs/` and the how-tos.

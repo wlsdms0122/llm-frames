@@ -1,6 +1,6 @@
 # Making a pack
 
-A pack is a directory of looks and pieces made to share or sell: presets, themes, templates, LUTs, media and fonts, and for a form its guide and examples. frames reads it as data, so a pack never needs a change to frames, and nothing in a pack is code. The rules are [FRAMES-17](../spec/FRAMES-17/SPEC.md), forms are [FRAMES-25](../spec/FRAMES-25/SPEC.md), and how to write a preset is [PRESET.md](PRESET.md).
+A pack is a directory of looks, pieces and programs made to share or sell, and the one unit everything added to frames from outside is installed in: presets, themes, templates, LUTs, media and fonts, which frames reads as data, tools, programs a command names, and for a form its guide and examples. A pack never needs a change to frames. frames runs a pack's tool only when a command names it, and resolve and render read a pack's data and run nothing from a pack. The rules are [FRAMES-17](../spec/FRAMES-17/SPEC.md), forms and tools are [FRAMES-25](../spec/FRAMES-25/SPEC.md), and how to write a preset is [PRESET.md](PRESET.md).
 
 ## What is in a pack
 
@@ -14,6 +14,7 @@ A pack is a directory with a `pack.json` at its root and any of these folders:
 | `luts/` | `.cube` LUTs | `<pack>/<name>` in a filter's `lut` op |
 | `media/` | mattes, overlays, stingers, logos, music and other media: image sequences as folders, sequence documents as `.json` files (without `params`) | `<pack>/<name.ext>` for a file, `<pack>/<dir>` for an image sequence |
 | `fonts/` | font files | by family, in the `font` list of the pack's themes |
+| `tools/<name>/` | a tool: a `tool.json` and the program it runs ([A tool](#a-tool)) | `<pack>/<name>` as the command word of `frames <pack>/<name>`, and in a request's `tool` |
 | `guide.md`, `examples/` | a form's guide and example documents | read by people and agents, not by frames |
 
 The pack `mine` used on this page:
@@ -31,12 +32,14 @@ mine/
   luts/film.cube                     mine/film, in a lut op
   media/logo.png                     mine/logo.png
   media/light-leak/0000.png ...      mine/light-leak, an image sequence
+  tools/number/tool.json             mine/number, run as frames mine/number
+  tools/number/number
 ```
 
 `pack.json` says which versions of frames the pack is written for, and what `frames packs` shows:
 
 ```json
-{ "engine": "^0.1", "name": "Mine", "version": "1.0.0", "description": "A dark look, a dip, two grades and three templates for an interview series" }
+{ "engine": "^0.1", "name": "Mine", "version": "1.0.0", "description": "A dark look, a dip, two grades, three templates and a clip counter for an interview series" }
 ```
 
 - `engine` is required. `^0.1` is 0.1.0 or later before 1.0.0, and `^1` is any 1.x. Outside its range the pack stops when it is used, naming both versions: `pack "mine" is written for frames ^1, and this is frames 0.1.0`.
@@ -44,7 +47,7 @@ mine/
 
 ## Installing
 
-Installing a pack is copying its directory into `$FRAMES_HOME/packs/`. `FRAMES_HOME` defaults to `~/.config/frames`. frames has no network command.
+Installing a pack is copying its directory into `$FRAMES_HOME/packs/`, its tools with it, and installing runs nothing. `FRAMES_HOME` defaults to `~/.config/frames`. frames has no network command.
 
 ```sh
 mkdir -p ~/.config/frames/packs
@@ -53,8 +56,8 @@ frames packs
 ```
 
 ```
-frames  Frames  0.1.0  Dissolves, dips, pushes, slides, wipes and zooms between clips, animations that bring a clip in, keep it moving and take it out, colour and detail filters, and heads that end a stroke.
-mine  Mine  1.0.0  A dark look, a dip, two grades and three templates for an interview series
+frames  Frames  0.1.0  Dissolves, dips, pushes, slides, wipes and zooms between clips, animations that bring a clip in, keep it moving and take it out, colour and detail filters, heads that end a stroke, and the tools find-text and track-motion, which fill requests for a place named by its text on screen and for a target to follow.
+mine  Mine  1.0.0  A dark look, a dip, two grades, three templates and a clip counter for an interview series
 ```
 
 To update a pack, replace its directory. A resolved document keeps what it took from the pack, presets, themes and templates as values and media, LUTs and fonts pinned by hash ([FRAMES-19](../spec/FRAMES-19/SPEC.md)), so it does not change when the pack does. While you work on a pack, point `FRAMES_HOME` at a folder of your own, so you try it without touching your installed packs:
@@ -67,7 +70,7 @@ FRAMES_HOME=/path/to/try frames packs mine
 ## Naming
 
 - **The directory is the pack's name.** `mine/dip` is `presets/transition/dip.json` in `$FRAMES_HOME/packs/mine/`. The `name` in `pack.json` is only what the pack calls itself and need not match.
-- **A name has one `/`.** `mine/dip` names something in the pack `mine`, and `frames/fade` something in the pack `frames`, which ships with frames and holds its presets. Any other spelling (`dip`, `mine/sub/dip`, `./dip`) names nothing, and an unknown pack or a name a pack does not hold stops. An absolute path is the other way to name a file.
+- **A name has one `/`.** `mine/dip` names something in the pack `mine`, and `frames/fade` something in the pack `frames`, which ships with frames and holds its presets and its tools. Any other spelling (`dip`, `mine/sub/dip`, `./dip`) names nothing, and an unknown pack or a name a pack does not hold stops. An absolute path is the other way to name a file.
 - **A pack names its own files like anyone else does.** A template in `mine` that uses its own theme writes `"theme": "mine/dark"`, and a filter preset writes its LUT as `mine/film`, not as a relative path. So every file has one spelling, and the pack works wherever `FRAMES_HOME` is.
 - **The kind comes from where the name is written.** A transition and an animation may both be called `pop`, since `"transition"` and `"animation"` look in different folders, and `mine/film` is a filter preset in a filter choice and a LUT in a `lut` op.
 - **Name a thing for what it looks like, not where it is used.** `dip`, `warm-screen` and `lower-third` say what you get, and `episode-3-intro` says nothing to the next reader. Use lowercase words joined by `-`, as the `frames` pack does.
@@ -253,9 +256,35 @@ A template is checked once against its parameter types, before any argument: eac
 
 Values that depend on an argument are checked for each use, where they stand: a number its place does not take, the length of a text, how long a video is, what a text area finds in a media. Check a template with `timeline` and its defaults, then with arguments that push it: the longest name it should hold, the shortest `length`, the smallest picture.
 
+## A tool
+
+A tool is a program a pack carries that takes a document and gives a document, the tools layer of [FRAMES-25](../spec/FRAMES-25/SPEC.md#tools): it reads media and what frames reports, and writes values into a document before resolve. It lives in `tools/<name>/`, a directory that holds a `tool.json` and the program:
+
+```
+mine/
+  pack.json
+  tools/number/tool.json
+  tools/number/number
+```
+
+`tool.json` gives the tool's `description`, which `frames packs` shows, and `run`, the name of the file in the tool's directory that is executed:
+
+```json
+{ "description": "Puts 1/3, 2/3, ... in the top right corner over each storyline clip", "run": "number" }
+```
+
+- **Both keys are required strings**, and any other key stops. Where the tool is named or listed, a tool directory without a `tool.json` stops, and so does a `run` that is not the name of an executable file in the tool's directory. The program is any executable file, a script with its `#!` line or a binary, so keep its executable bit when you copy the pack.
+- **It is named `<pack>/<name>`**, `<name>` its directory's name, and run as `frames <pack>/<name> [arguments]`: `frames mine/number /path/to/work/edit.json`. A command word with a `/` names a tool and any other word a command of frames, so a tool and a command never share a name. A request names the tool that fills it the same way, `{"tool": "mine/<name>", ...}`. A name that finds no tool stops with the tools its pack holds: `unknown tool "frames/find-txt". Did you mean "frames/find-text"? The pack "frames" holds the tools frames/find-text, frames/track-motion`.
+- **What frames gives it.** frames runs the file `run` names with the global options written before the tool's name and then the arguments after it, unchanged, with standard input, output and error passed through and the environment variable `FRAMES_EXECUTABLE` set to the path of the frames executable that runs it. frames waits for the tool and exits with its exit code.
+- **What it does.** It reads frames' reports about the document and its media (`timeline`, `evaluate`, `locate`, `probe`, `ocr`, `track`, each with its machine output) by running `$FRAMES_EXECUTABLE` with the global options it was given, so the tool and the commands it runs are one frames. It writes a document to standard output, which `timeline` checks like any other, so tools chain into `frames render -`.
+- **Its version is its pack's.** The pack's `version` is the tool's, and the pack's `engine` the frames it is written for. frames checks `engine` before it runs the tool, so a tool written for another frames stops before it runs.
+- **Installing a pack runs nothing.** A tool is copied with its pack, and frames runs it only when a command names it. Resolve, the checks, evaluation and render read a pack's data and run nothing from a pack, so a resolved document is still enough to make its result again.
+
+The pack `frames` holds the tools [`frames/find-text`](../source/frames/Sources/FramesCommand/Resources/packs/frames/tools/find-text/README.md) and [`frames/track-motion`](../source/frames/Sources/FramesCommand/Resources/packs/frames/tools/track-motion/README.md), which fill requests for a place named by its text on screen and for a target to follow ([FRAMES-25](../spec/FRAMES-25/SPEC.md#requests)). [GUIDE.md](GUIDE.md#writing-a-tool) shows how to write a tool, with `mine/number` in full.
+
 ## What `frames packs <pack>` prints
 
-`frames packs <pack>` lists what one pack holds, one line each: the kind, the name a document gives it and, for a preset, its description. Under a preset or a template that publishes parameters, it prints one indented line for each parameter in the order they are declared: its name, its type, its default as JSON (`-` when it has none) and its description.
+`frames packs <pack>` lists what one pack holds, one line each: the kind, the name a document or a command gives it and, for a preset or a tool, its description. Under a preset or a template that publishes parameters, it prints one indented line for each parameter in the order they are declared: its name, its type, its default as JSON (`-` when it has none) and its description.
 
 ```sh
 frames packs mine
@@ -288,6 +317,7 @@ template  mine/lower-third
 lut  mine/film
 media  mine/light-leak
 media  mine/logo.png
+tool  mine/number  Puts 1/3, 2/3, ... in the top right corner over each storyline clip
 ```
 
 A template's lines come from its `params` alone, so a template whose media is not there still lists them, and a broken declaration stops the listing, naming its place. `frames presets` lists the presets of every pack by kind, and `frames presets <kind> <name>` prints one preset's JSON, its `params` included.
