@@ -95,6 +95,32 @@ struct PacksCommandTests {
             """)
     }
 
+    @Test("packs frames lists the heads the shipped pack holds after its other presets, each by the name a document gives it")
+    func listsShippedHeads() throws {
+        // Given
+        try sut.write(
+            #"{ "description": "a filled triangle", "points": [[-4, 2], [0, 0], [-4, -2]], "length": 4, "inset": 4 }"#,
+            to: sut.framesPresets.appendingPathComponent("head/arrow.json")
+        )
+        try sut.write(
+            #"{ "description": "a filled bar", "points": [[0, 2], [0, -2], [-1, -2], [-1, 2]], "length": 1, "inset": 0.5 }"#,
+            to: sut.framesPresets.appendingPathComponent("head/bar.json")
+        )
+
+        // When
+        let code = sut.run(["packs", "frames"])
+
+        // Then
+        #expect(code == 0)
+        #expect(sut.standardOutput == """
+            frames  Frames  -  -
+            animation  frames/pop  pops in
+            head  frames/arrow  a filled triangle
+            head  frames/bar  a filled bar
+
+            """)
+    }
+
     @Test("packs <pack> lists the parameters a template declares when the media it names is not there")
     func listsTemplateWithoutMedia() throws {
         // Given

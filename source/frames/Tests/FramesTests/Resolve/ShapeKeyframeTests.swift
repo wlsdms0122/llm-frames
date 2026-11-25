@@ -222,6 +222,21 @@ struct ShapeKeyframeTests {
         #expect(shape.stroke.stroke(at: 1)?.end == StrokeEnd(head: .diamond, scale: 2))
     }
 
+    @Test("an end the clip names by a preset alone grows by its keyframed scale, the head the named preset's throughout")
+    func movesNamedEndScale() throws {
+        // When
+        let shape = try resolvedShape(##"""
+            { "shape": "path", "points": [[0, 0], [100, 0]], "stroke": { "width": 4, "end": "frames/arrow" },
+              "keyframes": [ { "at": 0, "stroke": { "end": { "scale": 0 } } }, { "at": 1, "stroke": { "end": { "scale": 3 } } } ] }
+            """##)
+
+        // Then
+        #expect(shape.stroke.stroke(at: 0)?.end == StrokeEnd(head: .arrow, scale: 0))
+        #expect(shape.stroke.stroke(at: 0.5)?.end == StrokeEnd(head: .arrow, scale: 1.5))
+        #expect(shape.stroke.stroke(at: 1)?.end == StrokeEnd(head: .arrow, scale: 3))
+        #expect(shape.stroke.stroke(at: 1)?.start == StrokeEnd.none)
+    }
+
     @Test("a gradient's leaf written statically and in every keyframe stops, naming the leaf under its gradient")
     func refusesStaticGradientLeaf() throws {
         // Given
