@@ -508,9 +508,10 @@ struct ResolvedValueWriter: Sendable {
         ]))
     }
 
+    // A resolved mask's geometry, its form named by its `kind` with the form's keys beside it.
     private func geometry(_ geometry: ResolvedMaskGeometry) -> JSONValue {
-        let form = { (name: String, members: [JSONMember]) in
-            JSONValue.object(JSONObject(members: [JSONMember(key: name, value: .object(JSONObject(members: members)))]))
+        let form = { (kind: String, members: [JSONMember]) in
+            JSONValue.object(JSONObject(members: [JSONMember(key: "kind", value: .string(kind))] + members))
         }
 
         switch geometry {

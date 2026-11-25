@@ -681,30 +681,23 @@ struct ResolvedValueReader: Sendable {
         )
     }
 
-    // A resolved mask's geometry, one member named by its form, each number a keyframe list: a rect or an ellipse by
-    // its `rect` or its box `width`, `height` and `position`, and a path as a closed path through at least two
-    // vertices, with an in and an out tangent for each.
+    // A resolved mask's geometry, its form named by its `kind`, each number a keyframe list: a rect or an ellipse by its
+    // `rect` or its box `width`, `height` and `position`, and a path as a closed path through at least two vertices,
+    // with an in and an out tangent for each.
     private func timedMaskGeometry(_ value: PlacedJSONValue) throws -> ResolvedMaskGeometry {
-        let geometry = try value.object(keys: Self.geometryForms)
-        let written = Self.geometryForms.filter(geometry.contains)
-        guard let name = written.first else {
-            throw ModelError.missingKey(place: value.place, kind: value.kind, keys: Self.geometryForms)
-        }
-        guard written.count == 1 else {
-            throw ModelError.conflictingKeys(place: value.place, kind: value.kind, keys: written)
-        }
+        let forms = Self.geometryForms
+        let name = try member("kind", of: value, kind: value.kind).name(among: forms) { forms.contains($0) ? $0 : nil }
 
-        let form = try geometry.member(name)
         switch name {
         case "rect":
-            let rect = try form.object(keys: ["rect", "width", "height", "position", "radius"])
+            let rect = try value.object(keys: ["kind", "rect", "width", "height", "position", "radius"])
             return .rect(try maskRectangle(rect), radius: try followedKeyframes(rect.member("radius"), read: cornerRadii))
 
         case "ellipse":
-            return .ellipse(try maskRectangle(form.object(keys: ["rect", "width", "height", "position"])))
+            return .ellipse(try maskRectangle(value.object(keys: ["kind", "rect", "width", "height", "position"])))
 
         default:
-            let path = try form.object(keys: ["vertices", "inTangents", "outTangents", "closed"])
+            let path = try value.object(keys: ["kind", "vertices", "inTangents", "outTangents", "closed"])
             let vertices = try path.member("vertices").elements().map { try followedKeyframes($0, read: geometryPoint) }
             let inTangents = try path.member("inTangents").elements().map { try followedKeyframes($0, read: point) }
             let outTangents = try path.member("outTangents").elements().map { try followedKeyframes($0, read: point) }
