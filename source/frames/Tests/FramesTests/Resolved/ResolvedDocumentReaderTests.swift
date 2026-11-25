@@ -762,6 +762,35 @@ struct ResolvedDocumentReaderTests {
         #expect(error?.description == message)
     }
 
+    @Test(
+        "a solid's entry whose picture is not its frame's stops, since a solid takes no key that places or draws it",
+        arguments: [
+            ("scale", #"[ { "at": 0, "value": [2, 2], "ease": "linear" } ]"#),
+            ("opacity", #"[ { "at": 0, "value": 0.5, "ease": "linear" } ]"#),
+            ("blend", #""multiply""#)
+        ]
+    )
+    func refusesSolidPicture(
+        key: String,
+        value: String
+    ) throws {
+        // Given
+        let root = try #require(try JSONReader().read(written(Self.documents[1])).objectValue)
+        var storyline = try #require(root["storyline"]?.arrayValue)
+        let solid = try #require(storyline[0].objectValue)
+        storyline[0] = .object(solid.setting(key, to: try Fixture.json(value)))
+        let text = JSONWriter().write(.object(root.setting("storyline", to: .array(storyline))))
+
+        // When
+        let error = #expect(throws: ModelError.self) { try sut.read(text) }
+
+        // Then
+        #expect(
+            error?.description
+                == "storyline[0] (storyline clip): a solid fills its frame, so its entry holds the frame's picture, found another"
+        )
+    }
+
     @Test("a media clip's null crop stops, since a media clip carries its crops, the whole picture where none is written")
     func refusesNullMediaCrop() throws {
         // Given
