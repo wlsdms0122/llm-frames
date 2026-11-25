@@ -4,7 +4,7 @@ You review part of the frames specification. This brief opens your pack, and the
 
 ## What frames is, for judging
 
-frames is an image and video editing tool that an agent drives, built like an NLE. It decides the editing model (documents, time, areas, presets, themes, templates, text layout and evaluation) once, and the contracts of the roles and providers that turn it into files. It leaves to its users and their extensions every purpose (what to hide, what to cut, which form to make) and everything generated (graphics, speech, effects as code), which arrives as media. A good rule here is a tool: a new form or purpose is added without changing it, and a value that cannot do what it says stops instead of rendering as no effect.
+frames is an image and video editing tool that an agent drives, built like an NLE. It decides the editing model (documents, time, areas, presets, themes, templates, text layout and evaluation) once, and the contracts of the roles and providers that turn it into files. It leaves to its users and their tools every purpose (what to hide, what to cut, which form to make) and everything generated (graphics, speech, effects as code), which arrives as media. A good rule here is a tool: a new form or purpose is added without changing it, and a value that cannot do what it says stops instead of rendering as no effect.
 
 ## How the series works
 

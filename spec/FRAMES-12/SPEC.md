@@ -93,7 +93,7 @@ The frames are cut short. The clip's written values are true on media second 2.0
 
 ## Interactions
 
-The track's frame is the frame track data's `time` names, and a clip's instant is [FRAMES-8](../FRAMES-8/SPEC.md#a-clips-instant). Time maps and windows are [FRAMES-8](../FRAMES-8/SPEC.md). Parenting is [FRAMES-10](../FRAMES-10/SPEC.md), and masks are [FRAMES-11](../FRAMES-11/SPEC.md). Keyframed values interpolate as [FRAMES-4](../FRAMES-4/SPEC.md) says. The resolved document pins the track the data gave ([FRAMES-19](../FRAMES-19/SPEC.md)). The homography and a tracked corner pin are [FRAMES-27](../FRAMES-27/SPEC.md). Track data is the object `track` prints ([FRAMES-23](../FRAMES-23/SPEC.md)) with the tracker provider ([FRAMES-21](../FRAMES-21/SPEC.md)), and a document that asks for a target to be followed is turned into one that writes track data by an extension ([FRAMES-25](../FRAMES-25/SPEC.md)).
+The track's frame is the frame track data's `time` names, and a clip's instant is [FRAMES-8](../FRAMES-8/SPEC.md#a-clips-instant). Time maps and windows are [FRAMES-8](../FRAMES-8/SPEC.md). Parenting is [FRAMES-10](../FRAMES-10/SPEC.md), and masks are [FRAMES-11](../FRAMES-11/SPEC.md). Keyframed values interpolate as [FRAMES-4](../FRAMES-4/SPEC.md) says. The resolved document pins the track the data gave ([FRAMES-19](../FRAMES-19/SPEC.md)). The homography and a tracked corner pin are [FRAMES-27](../FRAMES-27/SPEC.md). Track data is the object `track` prints ([FRAMES-23](../FRAMES-23/SPEC.md)) with the tracker provider ([FRAMES-21](../FRAMES-21/SPEC.md)), and a document that asks for a target to be followed is turned into one that writes track data by a tool ([FRAMES-25](../FRAMES-25/SPEC.md)).
 
 ## Alternatives considered
 

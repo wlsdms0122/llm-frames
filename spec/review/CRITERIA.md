@@ -11,7 +11,7 @@ A no that shows the work is not this specification's rejects the spec, whatever 
 - **A1. It could not be done without this.** For each thing the spec adds, its Motivation names what could not be done with the live set alone. A thing its users could build out of what exists fails.
 - **A2. It is general.** One rule covers the feature. A rule that adds a branch for one shape, where a general rule would cover it, fails until the general rule is found.
 
-- **A3. It is a tool, not a purpose.** A new form or purpose is added without changing it. A rule that serves one form or purpose fails, and belongs in a pack, a guide or an extension.
+- **A3. It is a tool, not a purpose.** A new form or purpose is added without changing it. A rule that serves one form or purpose fails, and belongs in a pack, a guide or a tool.
 - **A4. It composites and does not generate.** Anything beyond titles and shapes arrives as media.
 - **A5. It is the editing model's or a role's.** Behaviour above pixels is decided once, in resolve or evaluation. A rule that a role must carry out itself, beyond drawing, mixing, decoding or encoding what it is given, fails.
 
