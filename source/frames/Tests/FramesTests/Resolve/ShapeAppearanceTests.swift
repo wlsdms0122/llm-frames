@@ -77,15 +77,15 @@ struct ShapeAppearanceTests {
             ),
             (
                 #"{ "shape": "rect", "area": [0, 0, 10, 10], "style": "outline", "stroke": { "align": "outside" } }"#,
-                #"clips[0].stroke (rect): a stroke "outside" its outline takes no arrowhead, which is centred on the end of the stroke"#
+                #"clips[0].stroke (rect): a stroke "outside" its outline takes no arrowhead, which lies across the outline with its tip at the end while the stroke lies on one side of it"#
             ),
             (
                 #"{ "shape": "rect", "area": [0, 0, 10, 10], "stroke": { "width": 2, "align": "inside", "start": { "preset": "frames/bar", "scale": 2 } } }"#,
-                #"clips[0].stroke (rect): a stroke "inside" its outline takes no arrowhead, which is centred on the end of the stroke"#
+                #"clips[0].stroke (rect): a stroke "inside" its outline takes no arrowhead, which lies across the outline with its tip at the end while the stroke lies on one side of it"#
             ),
             (
                 #"{ "shape": "ellipse", "area": [0, 0, 10, 10], "stroke": { "width": 2, "align": "outside", "end": "frames/circle" } }"#,
-                #"clips[0].stroke (ellipse): a stroke "outside" its outline takes no arrowhead, which is centred on the end of the stroke"#
+                #"clips[0].stroke (ellipse): a stroke "outside" its outline takes no arrowhead, which lies across the outline with its tip at the end while the stroke lies on one side of it"#
             ),
             (
                 #"{ "shape": "path", "points": [[0, 0], [10, 0]], "stroke": { "width": 2, "end": "arrow" } }"#,
