@@ -4,7 +4,7 @@ Status: draft
 
 ## Summary
 
-A limit on the memory one run of frames holds, set with the global option `--memory` and by default half of the machine's memory, as DaVinci Resolve limits its own memory and After Effects and Premiere Pro keep memory for other programs. The limit is one budget for the run, which the holders of large memory it counts draw from: the decoder's readers, the frames it reads ahead and those its turns hold, and the frames the encoder holds, which hold less where the budget is short, and the media pictures the renderer keeps and the mixed sound, which the document fixes. A limit under what the run cannot work without is refused before the first frame. The limit changes how long a run takes and never its frames, and the run report gives what the budget saw.
+A limit on the memory one run of frames holds, set with the global option `--memory` and by default three eighths of the machine's memory, as DaVinci Resolve limits its own memory and After Effects and Premiere Pro keep memory for other programs. The limit is one budget for the run, which the holders of large memory it counts draw from: the decoder's readers, the frames it reads ahead and those its turns hold, and the frames the encoder holds, which hold less where the budget is short, and the media pictures the renderer keeps and the mixed sound, which the document fixes. A limit under what the run cannot work without is refused before the first frame. The limit changes how long a run takes and never its frames, and the run report gives what the budget saw.
 
 ## Motivation
 
@@ -24,7 +24,7 @@ unit   = "MB" | "GB"
 
 `MB` is 2^20 bytes and `GB` 2^30 bytes, the units the system states a machine's memory in. A size is written with no space, its unit in capitals, and is at least 1 MB: `6GB`, `1.5GB`, `512MB`. Its bytes are the number times the unit, rounded down to a whole byte. A size that is not of this form, or under 1 MB, stops naming `--memory`. A size above the machine's memory is the limit as written.
 
-Without `--memory` the limit is half of the machine's physical memory, rounded down to a whole MB ([Notes](#notes)).
+Without `--memory` the limit is three eighths of the machine's physical memory, rounded down to a whole MB, the largest share at which the heaviest render measured on the reference machine held its memory without swapping beside the programs open, with a third of the machine's memory left free at its lowest ([Notes](#notes)).
 
 ### The budget
 
@@ -45,7 +45,7 @@ The decoder keeps its count of open readers ([FRAMES-21](../FRAMES-21/SPEC.md#ru
 
 ### What it counts
 
-The budget counts what frames itself holds of the frames in flight, the frames read ahead, the frames turns hold, the media pictures the renderer keeps and the mixed sound, by their sizes, and what the decoding service holds outside the process by a model, the decoder's cost of a reader, whose constants are the most measured on the reference machine ([FRAMES-21](../FRAMES-21/SPEC.md#notes)). The model errs high for the videos measured. The rest of what a run holds lies outside the limit: the renderer's working memory (its layers, masks, nested rasters and motion blur's sums), the memory a reader holds in the process, the encoder's own buffers and a provider's pictures. So the memory a run holds is more than the budget counts by those.
+The budget counts what frames itself holds of the frames in flight, the frames read ahead, the frames turns hold, the media pictures the renderer keeps and the mixed sound, by their sizes, and what the decoding service holds outside the process by a model, the decoder's cost of a reader, whose constants are the most measured on the reference machine ([FRAMES-21](../FRAMES-21/SPEC.md#notes)). The model errs high for the videos measured. The rest of what a run holds lies outside the limit: the renderer's working memory (its layers, masks, nested rasters and motion blur's sums), the memory a reader holds in the process, the encoder's own buffers and a provider's pictures. So the memory a run holds is more than the budget counts by those: on the reference machine the decoding service and the process held together 1.2 to 1.4 times the budget's peak in the renders measured ([Notes](#notes)).
 
 ### Frames are the same at any limit
 
@@ -78,6 +78,23 @@ An environment variable or a configuration file for the limit: frames takes ever
 
 A bound on the decoder's readers alone, at a fixed quarter of the machine's memory: it left the frames read ahead and the frames in flight uncounted, no one chose it, and a user could not move it. Measured on the reference machine it never closed a reader in a real render: 32 videos of 1206 by 2622 pixels cost 4.25 GB against a bound of 4.29 GB ([FRAMES-21](../FRAMES-21/SPEC.md#notes)).
 
+Reading a decoded frame on the GPU through a Core Video texture cache, which keeps a texture made on a frame until it ages out a second after it was last used, and only when the cache is next used: every texture kept holds its frame in the decoding service, so a reader closed for a turn left its frames there, and a render of 8 videos at a limit of 2 GB held 7.0 GB in the service while the budget counted 1.98 GB, the more the smaller the limit, since every turn's reader decodes into new frames.
+
 Counting the decoding service by what the system reports it holds, read while the run goes: the service serves every process that decodes, its footprint moves after a reader opens and not when, and a run that read it would make its turns depend on other programs, so the same document would take different turns on two runs.
 
 ## Notes
+
+Measured on the reference machine (M1 Pro, 16 GB), a render of N videos at once at a 1280 by 720 sequence, 6 seconds at 30 fps, each video ProRes 4444 of 1206 by 2622 pixels read as `16-bit float RGBA` from a file of its own, with the programs of a working day open. The decoding service's and the process's footprints are the largest of a sample every 2 seconds, and a render was stopped where the system began to swap.
+
+| Limit | Videos | Budget's peak | Decoding service | Process | Both over the peak | Readers closed | Seconds |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 2 GB | 8 | 2.05 GB | 1.90 GB | 0.89 GB | 1.36 | 321 | 13.6 |
+| 2 GB | 16 | 2.17 GB | 1.26 GB | 1.49 GB | 1.27 | 2310 | 47.1 |
+| 4 GB | 8 | 4.09 GB | 4.37 GB | 1.17 GB | 1.35 | 0 | 10.3 |
+| 4 GB | 16 | 4.03 GB | 3.45 GB | 1.76 GB | 1.29 | 549 | 22.1 |
+| 6 GB | 8 | 4.17 GB | 4.39 GB | 1.38 GB | 1.38 | 0 | 7.7 |
+| 6 GB | 16 | 6.20 GB | 5.43 GB | 2.01 GB | 1.20 | 295 | 19.5 |
+| 8 GB | 8 | 4.17 GB | 4.41 GB | 1.41 GB | 1.40 | 0 | 7.9 |
+| 8 GB | 16 | | 6.81 GB at 6 s | 2.13 GB | | | swapped, stopped |
+
+The budget counts what the run holds within 1.2 to 1.4 times: the service alone holds 0.6 to 1.1 times the budget's peak, below it where many readers take turns, since the reader model errs high, and the process holds the uncounted rest. The budget's peak passes the limit by up to 0.2 GB, the renderer's pictures, which do not give way. At 6 GB, three eighths of the machine, 16 videos left a third of the memory free at its lowest, and at 8 GB, half of it, the system began to swap 6 seconds in, so the default is three eighths.
