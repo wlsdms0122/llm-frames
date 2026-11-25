@@ -728,7 +728,7 @@ struct AVFoundationDecoderTests {
         // Then
         let first = try #require(readings.media.first)
         #expect(readings.media.map(\.path) == [video, still])
-        #expect(first.page == nil && first.conversion == .identity && first.pixelFormat == "16-bit float RGBA")
+        #expect(first.page == nil && first.conversion == .identity && first.pixelFormat == "8-bit integer Y'CbCr 4:2:0")
         #expect(first.framesRead == 6)
         #expect(first.framesDecoded >= 22)
         #expect(first.reopened == 2)

@@ -12,9 +12,9 @@ import Frames
 import VideoToolbox
 
 // Writes a video of one colour in one frame, or of the colours a function gives each pixel of each frame at 30
-// frames a second, its R'G'B' values encoded in `colorSpace` and tagged with that space's code points. `srgb` and
-// `rec709` are H.264 from 8-bit 32BGRA, each value taken to the nearest code value; the other spaces are HEVC Main 10
-// from 64RGBAHalf.
+// frames a second, its R'G'B' values encoded in `colorSpace` and tagged with that space's code points, by `codec`:
+// H.264 from 8-bit 32BGRA, each value taken to the nearest code value, and every other codec from 64RGBAHalf, HEVC as
+// Main 10. A writer made with no codec writes `srgb` and `rec709` as H.264 and the other spaces as HEVC.
 package struct ColorMovieWriter {
     // MARK: - Property
     private static let timescale: Int32 = 600
@@ -22,9 +22,10 @@ package struct ColorMovieWriter {
 
     private let size: Size
     private let colorSpace: ColorSpace
+    private let codec: AVVideoCodecType
 
     private var isEightBit: Bool {
-        colorSpace == .srgb || colorSpace == .rec709
+        codec == .h264
     }
 
     // The primaries, transfer function and Y'CbCr matrix as Core Video names them.
@@ -71,8 +72,17 @@ package struct ColorMovieWriter {
         size: Size,
         colorSpace: ColorSpace
     ) {
+        self.init(size: size, colorSpace: colorSpace, codec: [.srgb, .rec709].contains(colorSpace) ? .h264 : .hevc)
+    }
+
+    package init(
+        size: Size,
+        colorSpace: ColorSpace,
+        codec: AVVideoCodecType
+    ) {
         self.size = size
         self.colorSpace = colorSpace
+        self.codec = codec
     }
 
     // MARK: - Public
@@ -95,21 +105,26 @@ package struct ColorMovieWriter {
         let url = URL(fileURLWithPath: path)
         let writer = try AVAssetWriter(outputURL: url, fileType: url.pathExtension == "mp4" ? .mp4 : .mov)
         let tags = tags
-        var compression: [String: Any] = [AVVideoAllowFrameReorderingKey: false]
-        if !isEightBit {
-            compression[AVVideoProfileLevelKey] = kVTProfileLevel_HEVC_Main10_AutoLevel as String
-        }
-        let video = AVAssetWriterInput(mediaType: .video, outputSettings: [
-            AVVideoCodecKey: isEightBit ? AVVideoCodecType.h264 : AVVideoCodecType.hevc,
+        var settings: [String: Any] = [
+            AVVideoCodecKey: codec,
             AVVideoWidthKey: Int(size.width),
             AVVideoHeightKey: Int(size.height),
             AVVideoColorPropertiesKey: [
                 AVVideoColorPrimariesKey: tags.primaries as String,
                 AVVideoTransferFunctionKey: tags.transfer as String,
                 AVVideoYCbCrMatrixKey: tags.matrix as String
-            ],
-            AVVideoCompressionPropertiesKey: compression
-        ])
+            ]
+        ]
+        // ProRes takes no compression properties.
+        if codec == .h264 {
+            settings[AVVideoCompressionPropertiesKey] = [AVVideoAllowFrameReorderingKey: false]
+        } else if codec == .hevc {
+            settings[AVVideoCompressionPropertiesKey] = [
+                AVVideoAllowFrameReorderingKey: false,
+                AVVideoProfileLevelKey: kVTProfileLevel_HEVC_Main10_AutoLevel as String
+            ]
+        }
+        let video = AVAssetWriterInput(mediaType: .video, outputSettings: settings)
         video.mediaTimeScale = Self.timescale
         video.expectsMediaDataInRealTime = false
         let adaptor = AVAssetWriterInputPixelBufferAdaptor(assetWriterInput: video, sourcePixelBufferAttributes: [
