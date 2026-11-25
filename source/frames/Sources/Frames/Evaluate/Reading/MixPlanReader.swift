@@ -12,12 +12,12 @@ package struct MixPlanReader: Sendable {
     private static let planKeys = ["mixPlan", "length", "segments", "buses", "filter"]
     private static let segmentKeys = ["media", "mediaStart", "speed", "start", "end", "filter", "envelope", "pan"]
     private static let busKeys = ["start", "end", "segments", "buses", "filter", "envelope"]
-    private static let compressorKeys = ["op", "threshold", "ratio", "knee", "attack", "release", "makeup"]
-    private static let gateKeys = ["op", "threshold", "range", "attack", "hold", "release"]
-    private static let limiterKeys = ["op", "gain", "ceiling", "lookahead", "release"]
-    private static let convolutionKeys = ["op", "file", "sha256", "gain"]
+    private static let compressorKeys = ["kind", "threshold", "ratio", "knee", "attack", "release", "makeup"]
+    private static let gateKeys = ["kind", "threshold", "range", "attack", "hold", "release"]
+    private static let limiterKeys = ["kind", "gain", "ceiling", "lookahead", "release"]
+    private static let convolutionKeys = ["kind", "file", "sha256", "gain"]
     private static let operationKeys = [
-        "op", "bands", "threshold", "ratio", "knee", "range", "attack", "hold", "release", "makeup", "gain", "ceiling",
+        "kind", "bands", "threshold", "ratio", "knee", "range", "attack", "hold", "release", "makeup", "gain", "ceiling",
         "lookahead", "file", "sha256"
     ]
 
@@ -102,12 +102,12 @@ package struct MixPlanReader: Sendable {
 
     // The op's name is read first, so a key stops by the keys of the op it is written in.
     private func operation(_ value: PlacedJSONValue) throws -> MixFilterOperation {
-        let name = try value.object(kind: "audio op", keys: Self.operationKeys).member("op")
+        let name = try value.object(kind: "audio op", keys: Self.operationKeys).member("kind")
             .name(among: MixFilterOperation.names) { MixFilterOperation.names.contains($0) ? $0 : nil }
 
         switch name {
         case "eq":
-            let eq = try value.object(kind: "eq", keys: ["op", "bands"])
+            let eq = try value.object(kind: "eq", keys: ["kind", "bands"])
             return .eq(bands: try eq.member("bands").elements().map(band))
 
         case "compressor":
@@ -150,9 +150,9 @@ package struct MixPlanReader: Sendable {
     }
 
     private func band(_ value: PlacedJSONValue) throws -> MixBand {
-        let type = try value.object(kind: "band", keys: ["type", "frequency", "gain", "q"]).member("type")
+        let type = try value.object(kind: "band", keys: ["kind", "frequency", "gain", "q"]).member("kind")
             .name(among: MixBandType.allCases.map(\.rawValue)) { MixBandType(rawValue: $0) }
-        let keys = type.takesGain ? ["type", "frequency", "gain", "q"] : ["type", "frequency", "q"]
+        let keys = type.takesGain ? ["kind", "frequency", "gain", "q"] : ["kind", "frequency", "q"]
         let band = try value.object(kind: "\(type.rawValue) band", keys: keys)
 
         return MixBand(

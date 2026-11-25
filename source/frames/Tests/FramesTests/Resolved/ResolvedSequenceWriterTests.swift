@@ -63,7 +63,8 @@ struct ResolvedSequenceWriterTests {
 
         // Then
         #expect(entry["place"] == .string("storyline[0]"))
-        #expect(entry["media"]?.objectValue?.keys == ["file", "sha256"])
+        #expect(entry["media"]?.objectValue?.keys == ["kind", "file", "sha256", "frames"])
+        #expect(entry["media"]?.objectValue?["kind"] == .string("file"))
         #expect(entry["media"]?.objectValue?["sha256"] == .string("9f2c41d07b3e"))
         #expect(entry["in"] == .number(2))
         #expect(entry["out"] == .number(8))
@@ -106,8 +107,9 @@ struct ResolvedSequenceWriterTests {
         let media = try #require(try write(document)["storyline"]?.arrayValue?.first?.objectValue?["media"]?.objectValue)
 
         // Then
-        let frames = try #require(media["imageSequence"]?.arrayValue)
-        #expect(media.keys == ["imageSequence", "frames"])
+        let frames = try #require(media["files"]?.arrayValue)
+        #expect(media.keys == ["kind", "files", "frames"])
+        #expect(media["kind"] == .string("imageSequence"))
         #expect(frames.compactMap { $0.objectValue?["file"]?.stringValue } == Fixture.imageSequenceFiles)
         #expect(frames.compactMap { $0.objectValue?["sha256"]?.stringValue } == Fixture.imageSequenceFiles.map { "sha256-of-" + $0 })
         #expect(media["frames"]?.arrayValue?.count == 12)
@@ -365,12 +367,20 @@ struct ResolvedSequenceWriterTests {
         #expect(transition["end"] == .number(3.5))
         #expect(incoming["ease"] == .string("ease-out"))
         #expect(incoming["keys"]?.arrayValue?.first?.objectValue?.keys == ["t", "opacity", "scale"])
-        #expect(transition["cover"]?.objectValue?.keys == ["file", "sha256", "frames", "colorSpace", "duration", "ease", "revealFrom", "keys"])
-        #expect(transition["cover"]?.objectValue?["sha256"] == .string("sha256-of-/abs/leak.mov"))
-        #expect(transition["cover"]?.objectValue?["frames"] == .array([0, 0.5, 1, 1.5].map(JSONValue.number)))
-        #expect(transition["cover"]?.objectValue?["duration"] == .number(2))
-        #expect(transition["matte"]?.objectValue?.keys == ["file", "sha256", "colorSpace", "duration", "softness", "invert", "ease"])
-        #expect(transition["matte"]?.objectValue?["duration"] == .number(0))
+        let cover = try #require(transition["cover"]?.objectValue)
+        let coverMedia = try #require(cover["media"]?.objectValue)
+        let matte = try #require(transition["matte"]?.objectValue)
+        let matteMedia = try #require(matte["media"]?.objectValue)
+        #expect(cover.keys == ["kind", "media", "colorSpace", "duration", "ease", "revealFrom", "keys"])
+        #expect(cover["kind"] == .string("media"))
+        #expect(coverMedia.keys == ["kind", "file", "sha256", "frames"])
+        #expect(coverMedia["sha256"] == .string("sha256-of-/abs/leak.mov"))
+        #expect(coverMedia["frames"] == .array([0, 0.5, 1, 1.5].map(JSONValue.number)))
+        #expect(cover["duration"] == .number(2))
+        #expect(matte.keys == ["media", "colorSpace", "duration", "softness", "invert", "ease"])
+        #expect(matteMedia.keys == ["kind", "file", "sha256", "frames"])
+        #expect(matteMedia["frames"] == .null)
+        #expect(matte["duration"] == .number(0))
         let entry = storyline[0].objectValue?["filter"]?.arrayValue?.first?.objectValue
         #expect(entry?.keys == ["ops", "mix"])
         #expect(entry?["ops"]?.arrayValue?.first?.objectValue?.keys == ["kind", "file", "sha256", "amount"])
@@ -633,22 +643,22 @@ struct ResolvedSequenceWriterTests {
             #expect(Array(entry.keys[crop...].prefix(4)) == ["crop", "mask", "trackMatte", "track"])
         }
         #expect(storyline["mask"] == (try Fixture.json(#"""
-            [ { "geometry": { "ellipse": { "rect": [ { "at": 0, "value": [16, 16, 480, 480], "ease": "linear" } ] } },
+            [ { "geometry": { "kind": "ellipse", "rect": [ { "at": 0, "value": [16, 16, 480, 480], "ease": "linear" } ] },
                 "feather": [ { "at": 0, "value": 6, "ease": "linear" } ], "invert": false, "mode": "add" } ]
             """#)))
         #expect(clips[0]["mask"] == (try Fixture.json(#"""
-            [ { "geometry": { "rect": { "width": [ { "at": 0, "value": 100, "ease": "linear" } ], "height": [ { "at": 0, "value": 40, "ease": "linear" } ],
-                  "position": [ { "at": 0, "value": [200, 300], "ease": "linear" } ], "radius": [ { "at": 0, "value": [4, 4, 4, 4], "ease": "linear" } ] } },
+            [ { "geometry": { "kind": "rect", "width": [ { "at": 0, "value": 100, "ease": "linear" } ], "height": [ { "at": 0, "value": 40, "ease": "linear" } ],
+                  "position": [ { "at": 0, "value": [200, 300], "ease": "linear" } ], "radius": [ { "at": 0, "value": [4, 4, 4, 4], "ease": "linear" } ] },
                 "feather": [ { "at": 0, "value": 0, "ease": "linear" } ], "invert": true, "mode": "intersect" },
-              { "geometry": { "path": { "vertices": [ [ { "at": 0, "value": [0, 0], "ease": "linear" } ], [ { "at": 0, "value": [10, 0], "ease": "linear" } ],
+              { "geometry": { "kind": "path", "vertices": [ [ { "at": 0, "value": [0, 0], "ease": "linear" } ], [ { "at": 0, "value": [10, 0], "ease": "linear" } ],
                   [ { "at": 0, "value": [5, 10], "ease": "linear" } ] ],
-                  "inTangents": [ [ { "at": 0, "value": [0, 0], "ease": "linear" } ], [ { "at": 0, "value": [0, 0], "ease": "linear" } ], [ { "at": 0, "value": [0, 0], "ease": "linear" } ] ], "outTangents": [ [ { "at": 0, "value": [0, 0], "ease": "linear" } ], [ { "at": 0, "value": [0, 0], "ease": "linear" } ], [ { "at": 0, "value": [0, 0], "ease": "linear" } ] ], "closed": true } },
+                  "inTangents": [ [ { "at": 0, "value": [0, 0], "ease": "linear" } ], [ { "at": 0, "value": [0, 0], "ease": "linear" } ], [ { "at": 0, "value": [0, 0], "ease": "linear" } ] ], "outTangents": [ [ { "at": 0, "value": [0, 0], "ease": "linear" } ], [ { "at": 0, "value": [0, 0], "ease": "linear" } ], [ { "at": 0, "value": [0, 0], "ease": "linear" } ] ], "closed": true },
                 "feather": [ { "at": 0, "value": 0, "ease": "linear" } ], "invert": false, "mode": "add" } ]
             """#)))
         #expect(clips[1]["mask"] == (try Fixture.json(#"""
-            [ { "geometry": { "rect": {
+            [ { "geometry": { "kind": "rect",
                   "rect": [ { "at": 1, "value": [0, 0, 10, 10], "ease": "ease-out" }, { "at": 3, "value": [0, 0, 20, 20], "ease": "linear" } ],
-                  "radius": [ { "at": 0, "value": [0, 0, 0, 0], "ease": "linear" } ] } },
+                  "radius": [ { "at": 0, "value": [0, 0, 0, 0], "ease": "linear" } ] },
                 "feather": [ { "at": 3, "value": 2, "ease": "linear" } ], "invert": false, "mode": "add" } ]
             """#)))
         #expect(clips[2]["mask"] == .null)

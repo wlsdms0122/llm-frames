@@ -10,8 +10,8 @@
 // files.
 struct ResolvedValueReader: Sendable {
     // MARK: - Property
-    // The keys of pinned media, which an object holding it carries beside its own.
-    static let mediaKeys = ["file", "sha256", "page", "imageSequence", "frames"]
+    // The kinds pinned media names, which a nested sequence's `kind` is not.
+    static let mediaKinds = ["file", "imageSequence", "page"]
     static let spanKeys = ["ease", "revealFrom", "keys"]
     static let geometryForms = ["rect", "ellipse", "path"]
 
@@ -43,24 +43,34 @@ struct ResolvedValueReader: Sendable {
         PinnedFile(path: try object.member("file").string(), sha256: try object.member("sha256").string())
     }
 
-    // An image sequence is its frame files in order, a page of a PDF its file with its number from 1, and the frame
-    // times are written only for a video or image sequence.
-    func media(_ object: PlacedJSONObject) throws -> PinnedMedia {
-        let source: PinnedSource = if object.contains("imageSequence") {
-            .imageSequence(try object.member("imageSequence").elements().map { element in
-                try pinned(element.object(keys: ["file", "sha256"]))
-            })
-        } else if let page = object.optionalMember("page") {
-            .page(try pinned(object), page: try pageNumber(page))
-        } else {
-            .file(try pinned(object))
-        }
-
-        return PinnedMedia(source: source, frameTimes: try object.optionalMember("frames")?.numbers() ?? [])
-    }
-
+    // Pinned media by its `kind`: a file with its frame times, null for an image or a sound file, an image sequence as
+    // its frame files in order with their frame times, and a page of a PDF as its file with its number from 1.
     func media(_ value: PlacedJSONValue) throws -> PinnedMedia {
-        try media(value.object(keys: Self.mediaKeys))
+        let kind = try member("kind", of: value, kind: value.kind)
+            .name(among: Self.mediaKinds) { Self.mediaKinds.contains($0) ? $0 : nil }
+
+        switch kind {
+        case "imageSequence":
+            let media = try value.object(keys: ["kind", "files", "frames"])
+            let files = try media.member("files").elements().map { element in
+                try pinned(element.object(keys: ["file", "sha256"]))
+            }
+
+            return PinnedMedia(source: .imageSequence(files), frameTimes: try media.member("frames").numbers())
+
+        case "page":
+            let media = try value.object(keys: ["kind", "file", "sha256", "page"])
+
+            return PinnedMedia(source: .page(try pinned(media), page: try pageNumber(media.member("page"))))
+
+        default:
+            let media = try value.object(keys: ["kind", "file", "sha256", "frames"])
+
+            return PinnedMedia(
+                source: .file(try pinned(media)),
+                frameTimes: try media.member("frames").optional { try $0.numbers() } ?? []
+            )
+        }
     }
 
     func rectangle(_ value: PlacedJSONValue) throws -> Rectangle {
@@ -116,23 +126,16 @@ struct ResolvedValueReader: Sendable {
         return Quad(topLeft: points[0], topRight: points[1], bottomRight: points[2], bottomLeft: points[3])
     }
 
-    // A path item's fill or stroke paint: a colour, or a gradient as one member named by its kind, `linear` or
-    // `radial` of a radius 0 or more, its stops at least two `[offset, colour]` with offsets from 0 to 1 in order.
+    // A path item's fill or stroke paint: a colour, or a gradient its `kind` names, `linear` or `radial` of a radius 0
+    // or more, its stops at least two `[offset, colour]` with offsets from 0 to 1 in order.
     func paint(_ value: PlacedJSONValue) throws -> Paint {
         guard value.value.objectValue != nil else { return .color(try color(value)) }
 
-        let forms = ["linear", "radial"]
-        let paint = try value.object(keys: forms)
-        let written = forms.filter(paint.contains)
-        guard let name = written.first else {
-            throw ModelError.missingKey(place: value.place, kind: value.kind, keys: forms)
-        }
-        guard written.count == 1 else {
-            throw ModelError.conflictingKeys(place: value.place, kind: value.kind, keys: written)
-        }
-
-        let form = try paint.member(name)
-        let body = try form.object(keys: name == "linear" ? ["from", "to", "stops"] : ["center", "radius", "stops"])
+        let kinds = ["linear", "radial"]
+        let name = try member("kind", of: value, kind: value.kind).name(among: kinds) { kinds.contains($0) ? $0 : nil }
+        let body = try value.object(
+            keys: ["kind"] + (name == "linear" ? ["from", "to", "stops"] : ["center", "radius", "stops"])
+        )
         let shape: GradientShape
         if name == "linear" {
             shape = .linear(from: try point(body.member("from")), to: try point(body.member("to")))
@@ -167,30 +170,22 @@ struct ResolvedValueReader: Sendable {
         return .gradient(Gradient(shape: shape, stops: stops))
     }
 
-    // A path item's or a mask's geometry, one member named by its form: `rect`, `ellipse` or `path`, which runs
+    // A path item's or a mask's geometry, its form named by its `kind`: `rect`, `ellipse` or `path`, which runs
     // through at least two vertices, with an in and an out tangent for each.
     func geometry(_ value: PlacedJSONValue) throws -> PathGeometry {
-        let geometry = try value.object(keys: Self.geometryForms)
-        let written = Self.geometryForms.filter(geometry.contains)
-        guard let name = written.first else {
-            throw ModelError.missingKey(place: value.place, kind: value.kind, keys: Self.geometryForms)
-        }
-        guard written.count == 1 else {
-            throw ModelError.conflictingKeys(place: value.place, kind: value.kind, keys: written)
-        }
-
-        let form = try geometry.member(name)
+        let forms = Self.geometryForms
+        let name = try member("kind", of: value, kind: value.kind).name(among: forms) { forms.contains($0) ? $0 : nil }
         switch name {
         case "rect":
-            let rect = try form.object(keys: ["rect", "radius"])
+            let rect = try value.object(keys: ["kind", "rect", "radius"])
 
             return .rect(try rectangle(rect.member("rect")), radius: try cornerRadii(rect.member("radius")))
 
         case "ellipse":
-            return .ellipse(try rectangle(form.object(keys: ["rect"]).member("rect")))
+            return .ellipse(try rectangle(value.object(keys: ["kind", "rect"]).member("rect")))
 
         default:
-            let path = try form.object(keys: ["vertices", "inTangents", "outTangents", "closed"])
+            let path = try value.object(keys: ["kind", "vertices", "inTangents", "outTangents", "closed"])
             let written = try path.member("vertices")
             let vertices = try written.elements().map(point)
             guard vertices.count >= 2 else {
@@ -226,7 +221,7 @@ struct ResolvedValueReader: Sendable {
         }
     }
 
-    // A mask's geometry, in a resolved document and a display list: a path mask is a closed path.
+    // A display list mask's geometry: a path mask is a closed path.
     func maskGeometry(_ value: PlacedJSONValue) throws -> PathGeometry {
         let geometry = try geometry(value)
         if case let .path(_, isClosed) = geometry, !isClosed {
@@ -686,30 +681,23 @@ struct ResolvedValueReader: Sendable {
         )
     }
 
-    // A resolved mask's geometry, one member named by its form, each number a keyframe list: a rect or an ellipse by
-    // its `rect` or its box `width`, `height` and `position`, and a path as a closed path through at least two
-    // vertices, with an in and an out tangent for each.
+    // A resolved mask's geometry, its form named by its `kind`, each number a keyframe list: a rect or an ellipse by its
+    // `rect` or its box `width`, `height` and `position`, and a path as a closed path through at least two vertices,
+    // with an in and an out tangent for each.
     private func timedMaskGeometry(_ value: PlacedJSONValue) throws -> ResolvedMaskGeometry {
-        let geometry = try value.object(keys: Self.geometryForms)
-        let written = Self.geometryForms.filter(geometry.contains)
-        guard let name = written.first else {
-            throw ModelError.missingKey(place: value.place, kind: value.kind, keys: Self.geometryForms)
-        }
-        guard written.count == 1 else {
-            throw ModelError.conflictingKeys(place: value.place, kind: value.kind, keys: written)
-        }
+        let forms = Self.geometryForms
+        let name = try member("kind", of: value, kind: value.kind).name(among: forms) { forms.contains($0) ? $0 : nil }
 
-        let form = try geometry.member(name)
         switch name {
         case "rect":
-            let rect = try form.object(keys: ["rect", "width", "height", "position", "radius"])
+            let rect = try value.object(keys: ["kind", "rect", "width", "height", "position", "radius"])
             return .rect(try maskRectangle(rect), radius: try followedKeyframes(rect.member("radius"), read: cornerRadii))
 
         case "ellipse":
-            return .ellipse(try maskRectangle(form.object(keys: ["rect", "width", "height", "position"])))
+            return .ellipse(try maskRectangle(value.object(keys: ["kind", "rect", "width", "height", "position"])))
 
         default:
-            let path = try form.object(keys: ["vertices", "inTangents", "outTangents", "closed"])
+            let path = try value.object(keys: ["kind", "vertices", "inTangents", "outTangents", "closed"])
             let vertices = try path.member("vertices").elements().map { try followedKeyframes($0, read: geometryPoint) }
             let inTangents = try path.member("inTangents").elements().map { try followedKeyframes($0, read: point) }
             let outTangents = try path.member("outTangents").elements().map { try followedKeyframes($0, read: point) }
@@ -1064,17 +1052,17 @@ struct ResolvedValueReader: Sendable {
         }
     }
 
-    // `op` names the operation, and the rest of its keys are its values.
+    // `kind` names the operation, and the rest of its keys are its values.
     private func operation(
         _ value: PlacedJSONValue,
         grainKeys: [String]
     ) throws -> ResolvedFilterOperation {
         let names = FilterKeyTable.operations
-        let name = try value.object(keys: ["op", "ev", "amount", "kelvin", "degrees", "input", "output", "file", "sha256",
+        let name = try value.object(keys: ["kind", "ev", "amount", "kelvin", "degrees", "input", "output", "file", "sha256",
                                             "space", "radius", "color", "offset", "size"] + grainKeys)
-            .member("op")
+            .member("kind")
             .name(among: names) { names.contains($0) ? $0 : nil }
-        let keys = { (keys: [String]) in try value.object(keys: ["op"] + keys) }
+        let keys = { (keys: [String]) in try value.object(keys: ["kind"] + keys) }
         let number = { (object: PlacedJSONObject, key: String) in try object.member(key).number() }
 
         switch name {

@@ -63,7 +63,7 @@ package struct DisplayListWriter: Sendable {
             ]))
         }
         let members = [
-            JSONMember(key: "item", value: .string(name(of: item.content))),
+            JSONMember(key: "kind", value: .string(name(of: item.content))),
             JSONMember(key: "origin", value: origin ?? .null),
             JSONMember(key: "transform", value: values.numbers(item.transform.matrix)),
             JSONMember(key: "opacity", value: .number(item.opacity)),
@@ -144,7 +144,7 @@ package struct DisplayListWriter: Sendable {
         }
         let matte = picture.matte.map { matte in
             JSONValue.object(JSONObject(members: [
-                JSONMember(key: "source", value: .object(JSONObject(members: values.media(matte.frame.media)))),
+                JSONMember(key: "source", value: values.media(matte.frame.media)),
                 JSONMember(key: "frame", value: frame(of: matte.frame)),
                 JSONMember(key: "colorSpace", value: colorSpace(of: matte.frame.reading)),
                 JSONMember(key: "progress", value: .number(matte.progress)),
@@ -215,9 +215,12 @@ package struct DisplayListWriter: Sendable {
         ]))
     }
 
+    // A track matte's source is always a nested list, so it writes no `kind`.
     private func trackMatte(_ trackMatte: ItemTrackMatte) -> JSONValue {
         .object(JSONObject(members: [
-            JSONMember(key: "source", value: source(of: .displayList(trackMatte.source))),
+            JSONMember(key: "source", value: .object(JSONObject(members: [
+                JSONMember(key: "list", value: .object(JSONObject(members: members(of: trackMatte.source))))
+            ]))),
             JSONMember(key: "mode", value: .string(trackMatte.mode.rawValue)),
             JSONMember(key: "invert", value: .bool(trackMatte.isInverted))
         ]))
@@ -233,11 +236,13 @@ package struct DisplayListWriter: Sendable {
         ]))
     }
 
+    // A picture's source named by its `kind`, `media` or `list`.
     private func source(of source: PictureItemSource) -> JSONValue {
         switch source {
         case let .media(frame):
             .object(JSONObject(members: [
-                JSONMember(key: "media", value: .object(JSONObject(members: values.media(frame.media)))),
+                JSONMember(key: "kind", value: .string("media")),
+                JSONMember(key: "media", value: values.media(frame.media)),
                 JSONMember(key: "frame", value: self.frame(of: frame)),
                 JSONMember(key: "colorSpace", value: colorSpace(of: frame.reading)),
                 JSONMember(key: "targetPeak", value: targetPeak(of: frame.reading))
@@ -245,6 +250,7 @@ package struct DisplayListWriter: Sendable {
 
         case let .displayList(list):
             .object(JSONObject(members: [
+                JSONMember(key: "kind", value: .string("list")),
                 JSONMember(key: "list", value: .object(JSONObject(members: members(of: list))))
             ]))
         }

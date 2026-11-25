@@ -38,7 +38,7 @@ struct PagePinningTests {
         #expect(resolved.storyline[0].end == 2)
     }
 
-    @Test("a PDF of one page named as a file and as {file, page: 1} are written in one form, {file, sha256, page}")
+    @Test("a PDF of one page named as a file and as a page 1 are written in one form, a pinned page")
     func writesOnePageFileAsPage() throws {
         // Given
         let named = #"{ "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/logo.pdf", "duration": 2 } ] }"#
@@ -50,16 +50,17 @@ struct PagePinningTests {
 
         // Then
         #expect(namedMedia == pageMedia)
-        #expect(namedMedia.map(\.key) == ["file", "sha256", "page"])
-        #expect(namedMedia.last?.value == .number(1))
+        #expect(namedMedia.objectValue?.keys == ["kind", "file", "sha256", "page"])
+        #expect(namedMedia.objectValue?["kind"] == .string("page"))
+        #expect(namedMedia.objectValue?["page"] == .number(1))
     }
 
     @Test("a pinned page reads back as written, and a page that is not a whole number from 1 stops")
     func readsPinnedPage() throws {
         // Given
         let sut = ResolvedValueReader()
-        let pinned = try Fixture.json(#"{ "file": "/abs/deck.pdf", "sha256": "abc", "page": 3 }"#)
-        let zero = try Fixture.json(#"{ "file": "/abs/deck.pdf", "sha256": "abc", "page": 0 }"#)
+        let pinned = try Fixture.json(#"{ "kind": "page", "file": "/abs/deck.pdf", "sha256": "abc", "page": 3 }"#)
+        let zero = try Fixture.json(#"{ "kind": "page", "file": "/abs/deck.pdf", "sha256": "abc", "page": 0 }"#)
 
         // When
         let media = try sut.media(PlacedJSONValue(pinned, place: .root, kind: "clip"))
@@ -224,10 +225,10 @@ struct PagePinningTests {
             .checkMediaColorSpaces(taggedColorSpaces: plan.time.taggedColorSpaces)
     }
 
-    private func writtenMedia(of resolved: ResolvedSequence) throws -> [JSONMember] {
+    private func writtenMedia(of resolved: ResolvedSequence) throws -> JSONValue {
         guard case let .pinned(media)? = resolved.storyline.first?.media else {
             Issue.record("no pinned media")
-            return []
+            return .null
         }
 
         return ResolvedValueWriter().media(media)

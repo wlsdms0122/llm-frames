@@ -62,8 +62,10 @@ struct ResolvedDocumentWriterTests {
               "id": null,
               "kind": "media",
               "media": {
+                "kind": "file",
                 "file": "/abs/run.mp4",
-                "sha256": "9f2c41d07b3e"
+                "sha256": "9f2c41d07b3e",
+                "frames": null
               },
               "color": null,
               "colorSpace": null,
@@ -339,8 +341,10 @@ struct ResolvedDocumentWriterTests {
               "id": null,
               "kind": "media",
               "media": {
+                "kind": "file",
                 "file": "/abs/page.png",
-                "sha256": "5d17e0a9b2c4"
+                "sha256": "5d17e0a9b2c4",
+                "frames": null
               },
               "filter": null,
               "conform": "fit",
@@ -427,8 +431,10 @@ struct ResolvedDocumentWriterTests {
             {
               "place": "storyline[0]",
               "media": {
+                "kind": "file",
                 "file": "/abs/run.mp4",
-                "sha256": "9f2c41d07b3e"
+                "sha256": "9f2c41d07b3e",
+                "frames": null
               },
               "nested": null,
               "in": 2,
@@ -462,8 +468,10 @@ struct ResolvedDocumentWriterTests {
             {
               "place": "clips[2]",
               "media": {
+                "kind": "file",
                 "file": "/abs/bgm.m4a",
-                "sha256": "c07d9a1e44f2"
+                "sha256": "c07d9a1e44f2",
+                "frames": null
               },
               "nested": null,
               "in": 0,

@@ -99,10 +99,10 @@ struct MaskEndToEndTests {
         #expect(width < 200)
         #expect(middle.map(\.geometry) == [.ellipse(Rectangle(center: Point(x: 500, y: 300), width: width, height: 40))])
         #expect(written["mask"] == (try Fixture.json(#"""
-            [ { "geometry": { "ellipse": {
+            [ { "geometry": { "kind": "ellipse",
                   "width": [ { "at": 0, "value": 100, "ease": "ease-in" }, { "at": 2, "value": 300, "ease": "linear" } ],
                   "height": [ { "at": 0, "value": 40, "ease": "linear" } ],
-                  "position": [ { "at": 0, "value": [500, 300], "ease": "linear" } ] } },
+                  "position": [ { "at": 0, "value": [500, 300], "ease": "linear" } ] },
                 "feather": [ { "at": 0, "value": 0, "ease": "linear" } ], "invert": false, "mode": "add" } ]
             """#)))
     }

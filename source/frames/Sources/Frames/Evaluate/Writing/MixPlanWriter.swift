@@ -43,7 +43,7 @@ package struct MixPlanWriter: Sendable {
 
     private func segment(_ segment: MixSegment) -> JSONValue {
         .object(JSONObject(members: [
-            JSONMember(key: "media", value: .object(JSONObject(members: media(segment.media)))),
+            JSONMember(key: "media", value: media(segment.media)),
             JSONMember(key: "mediaStart", value: .number(segment.mediaStart)),
             JSONMember(key: "speed", value: .number(segment.speed)),
             JSONMember(key: "start", value: .number(segment.start)),
@@ -54,14 +54,20 @@ package struct MixPlanWriter: Sendable {
         ]))
     }
 
-    // Pinned media as a resolved document writes it, and a file nothing pins as its path alone.
-    private func media(_ media: MixMedia) -> [JSONMember] {
+    // Pinned media as a resolved document writes it, and a file nothing pins in the form of a pinned file, its hash and
+    // frame times null.
+    private func media(_ media: MixMedia) -> JSONValue {
         switch media {
         case let .pinned(media):
             values.media(media)
 
         case let .unpinned(path):
-            [JSONMember(key: "file", value: .string(path))]
+            .object(JSONObject(members: [
+                JSONMember(key: "kind", value: .string("file")),
+                JSONMember(key: "file", value: .string(path)),
+                JSONMember(key: "sha256", value: .null),
+                JSONMember(key: "frames", value: .null)
+            ]))
         }
     }
 
@@ -73,7 +79,7 @@ package struct MixPlanWriter: Sendable {
     }
 
     private func operation(_ operation: MixFilterOperation) -> JSONValue {
-        let name = JSONMember(key: "op", value: .string(operation.name))
+        let name = JSONMember(key: "kind", value: .string(operation.name))
         let members: [JSONMember] = switch operation {
         case let .eq(bands):
             [JSONMember(key: "bands", value: .array(bands.map(band)))]
@@ -116,7 +122,7 @@ package struct MixPlanWriter: Sendable {
         let gain = band.gain.map { [JSONMember(key: "gain", value: value($0))] } ?? []
 
         return .object(JSONObject(members: [
-            JSONMember(key: "type", value: .string(band.type.rawValue)),
+            JSONMember(key: "kind", value: .string(band.type.rawValue)),
             JSONMember(key: "frequency", value: value(band.frequency))
         ] + gain + [
             JSONMember(key: "q", value: value(band.q))

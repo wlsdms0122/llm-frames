@@ -16,7 +16,7 @@ package struct DisplayListReader: Sendable {
     // MARK: - Property
     private static let listKeys = ["size", "background", "compositing", "items"]
     private static let outermostKeys = ["size", "background", "colorSpace", "peak", "compositing", "items", "samples"]
-    private static let itemKeys = ["item", "origin", "transform", "opacity", "blend", "mask", "trackMatte", "reveal"]
+    private static let itemKeys = ["kind", "origin", "transform", "opacity", "blend", "mask", "trackMatte", "reveal"]
     private static let itemNames = ["picture", "path", "glyphs", "adjust"]
 
     private let checker: ResolvedDocumentChecker
@@ -98,7 +98,7 @@ package struct DisplayListReader: Sendable {
             let item = PlacedJSONValue(
                 element.value,
                 place: element.place,
-                kind: element.value.objectValue?["item"]?.stringValue ?? "display item"
+                kind: element.value.objectValue?["kind"]?.stringValue ?? "display item"
             )
             let trackMatte = (try? values.member("trackMatte", of: item, kind: item.kind))
                 .flatMap { try? values.member("source", of: $0, kind: "track matte") }
@@ -123,7 +123,7 @@ package struct DisplayListReader: Sendable {
     }
 
     private func isGrain(_ operation: PlacedJSONValue) -> Bool {
-        operation.value.objectValue?["op"]?.stringValue == "grain"
+        operation.value.objectValue?["kind"]?.stringValue == "grain"
     }
 
     private func list(
@@ -213,7 +213,7 @@ package struct DisplayListReader: Sendable {
         in size: Size,
         seed: Int
     ) throws -> DisplayItem {
-        let name = try values.member("item", of: value, kind: "display item")
+        let name = try values.member("kind", of: value, kind: "display item")
             .name(among: Self.itemNames) { Self.itemNames.contains($0) ? $0 : nil }
         let item = try value.object(kind: name, keys: Self.itemKeys + keys(of: name))
         let blends = VocabularyTable.blendModes
@@ -283,7 +283,7 @@ package struct DisplayListReader: Sendable {
     ) throws -> ItemTrackMatte {
         let trackMatte = try value.object(keys: ["source", "mode", "invert"])
         let written = try trackMatte.member("source")
-        let source = try nestedList(written, seed: seed)
+        let source = try nestedList(written.object(keys: ["list"]).member("list"), seed: seed)
         guard source.size == size else {
             throw EvaluateError.trackMatteSize(place: written.place, kind: written.kind, size: source.size, listSize: size)
         }
@@ -497,12 +497,17 @@ package struct DisplayListReader: Sendable {
         try value.name(among: Literal.allCases.map(\.rawValue), Literal.init(rawValue:))
     }
 
+    // A picture's source by its `kind`: a frame of pinned media, or a nested list.
     private func source(
         _ value: PlacedJSONValue,
         seed: Int
     ) throws -> PictureItemSource {
-        guard value.value.objectValue?.contains("list") == true else {
-            let source = try value.object(keys: ["media", "frame", "colorSpace", "targetPeak"])
+        let kinds = ["media", "list"]
+        let kind = try values.member("kind", of: value, kind: value.kind)
+            .name(among: kinds) { kinds.contains($0) ? $0 : nil }
+
+        guard kind == "list" else {
+            let source = try value.object(keys: ["kind", "media", "frame", "colorSpace", "targetPeak"])
             let reading = PictureReading.working(
                 colorSpace: try colorSpace(source.member("colorSpace")),
                 targetPeak: try source.member("targetPeak").optional(targetPeak)
@@ -511,14 +516,16 @@ package struct DisplayListReader: Sendable {
             return .media(try frame(of: source, mediaKey: "media", reading: reading))
         }
 
-        return .displayList(try nestedList(value, seed: seed))
+        return .displayList(try nestedList(
+            value.object(keys: ["kind", "list"]).member("list"),
+            seed: seed
+        ))
     }
 
     private func nestedList(
-        _ value: PlacedJSONValue,
+        _ written: PlacedJSONValue,
         seed: Int
     ) throws -> DisplayList {
-        let written = try value.object(keys: ["list"]).member("list")
         guard written.value.objectValue?.contains("samples") != true else {
             throw ModelError.invalidValue(
                 place: written.place.appending(key: "samples"),

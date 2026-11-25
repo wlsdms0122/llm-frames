@@ -161,7 +161,7 @@ struct DisplayListColorTests {
         let nested = try #require(written["items"]?.arrayValue?.first?.objectValue?["source"]?.objectValue?["list"]?.objectValue)
         #expect(nested.keys == ["size", "background", "compositing", "items"])
         let source = try #require(nested["items"]?.arrayValue?.first?.objectValue?["source"]?.objectValue)
-        #expect(source.keys == ["media", "frame", "colorSpace", "targetPeak"])
+        #expect(source.keys == ["kind", "media", "frame", "colorSpace", "targetPeak"])
         #expect(source["colorSpace"] == .string("rec709"))
         #expect(source["targetPeak"] == .null)
         // A list with no grain reads back with seed 0, so it is compared by the bytes it writes.

@@ -21,22 +21,30 @@ struct ResolvedValueWriter: Sendable {
         ]
     }
 
-    // A video or image file with its frame times, none for a still or sound. An image sequence is its frame files in
-    // order, each pinned, and a page of a PDF its file with `page`.
-    func media(_ media: PinnedMedia) -> [JSONMember] {
-        let pinned = switch media.source {
+    // Pinned media named by its `kind`: a file with its frame times, null for an image or a sound file, an image
+    // sequence as its frame files in order, each pinned, with their frame times, and a page of a PDF as its file with
+    // `page`.
+    func media(_ media: PinnedMedia) -> JSONValue {
+        let members = switch media.source {
         case let .file(file):
-            self.pinned(file)
+            [JSONMember(key: "kind", value: .string("file"))] + pinned(file) + [
+                JSONMember(key: "frames", value: media.frameTimes.isEmpty ? .null : numbers(media.frameTimes))
+            ]
 
         case let .imageSequence(files):
-            [JSONMember(key: "imageSequence", value: .array(files.map { .object(JSONObject(members: self.pinned($0))) }))]
+            [
+                JSONMember(key: "kind", value: .string("imageSequence")),
+                JSONMember(key: "files", value: .array(files.map { .object(JSONObject(members: pinned($0))) })),
+                JSONMember(key: "frames", value: numbers(media.frameTimes))
+            ]
 
         case let .page(file, page):
-            self.pinned(file) + [JSONMember(key: "page", value: .number(Double(page)))]
+            [JSONMember(key: "kind", value: .string("page"))] + pinned(file) + [
+                JSONMember(key: "page", value: .number(Double(page)))
+            ]
         }
-        let frames = media.frameTimes.isEmpty ? [] : [JSONMember(key: "frames", value: numbers(media.frameTimes))]
 
-        return pinned + frames
+        return .object(JSONObject(members: members))
     }
 
     func numbers(_ numbers: [Double]) -> JSONValue {
@@ -89,8 +97,7 @@ struct ResolvedValueWriter: Sendable {
         .array(quad.corners.map(point))
     }
 
-    // A path item's fill or stroke paint: a colour, or a gradient as one member named by its kind, its stops
-    // `[offset, colour]`.
+    // A path item's fill or stroke paint: a colour, or a gradient its `kind` names, its stops `[offset, colour]`.
     func paint(_ paint: Paint) -> JSONValue {
         switch paint {
         case let .color(color):
@@ -111,14 +118,14 @@ struct ResolvedValueWriter: Sendable {
                 )
             }
 
-            return .object(JSONObject(members: [JSONMember(key: name, value: .object(JSONObject(members: members)))]))
+            return .object(JSONObject(members: [JSONMember(key: "kind", value: .string(name))] + members))
         }
     }
 
-    // A path item's or a mask's geometry, one member named by its form.
+    // A path item's or a mask's geometry, its form named by its `kind`.
     func geometry(_ geometry: PathGeometry) -> JSONValue {
-        let form = { (name: String, members: [JSONMember]) in
-            JSONValue.object(JSONObject(members: [JSONMember(key: name, value: .object(JSONObject(members: members)))]))
+        let form = { (kind: String, members: [JSONMember]) in
+            JSONValue.object(JSONObject(members: [JSONMember(key: "kind", value: .string(kind))] + members))
         }
 
         switch geometry {
@@ -310,7 +317,7 @@ struct ResolvedValueWriter: Sendable {
         }
     }
 
-    // A display list's filter: each entry its ops, each `op` followed by its values with a LUT's file pinned and a
+    // A display list's filter: each entry its ops, each `kind` followed by its values with a LUT's file pinned and a
     // `grain`'s `seed`, the number of the output frame it is drawn in, then its `mix`.
     func filter(
         _ entries: [FilterEntry],
@@ -501,9 +508,10 @@ struct ResolvedValueWriter: Sendable {
         ]))
     }
 
+    // A resolved mask's geometry, its form named by its `kind` with the form's keys beside it.
     private func geometry(_ geometry: ResolvedMaskGeometry) -> JSONValue {
-        let form = { (name: String, members: [JSONMember]) in
-            JSONValue.object(JSONObject(members: [JSONMember(key: name, value: .object(JSONObject(members: members)))]))
+        let form = { (kind: String, members: [JSONMember]) in
+            JSONValue.object(JSONObject(members: [JSONMember(key: "kind", value: .string(kind))] + members))
         }
 
         switch geometry {
@@ -572,7 +580,7 @@ struct ResolvedValueWriter: Sendable {
     }
 
     private func members(of operation: ResolvedFilterOperation) -> [JSONMember] {
-        let kind = { (name: String) in JSONMember(key: "op", value: .string(name)) }
+        let kind = { (name: String) in JSONMember(key: "kind", value: .string(name)) }
         let value = { (key: String, number: Double) in JSONMember(key: key, value: .number(number)) }
 
         switch operation {

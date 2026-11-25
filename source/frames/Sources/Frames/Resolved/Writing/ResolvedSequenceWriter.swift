@@ -318,7 +318,7 @@ struct ResolvedSequenceWriter: Sendable {
     private func sound(_ sound: ResolvedSound) -> JSONValue {
         .object(JSONObject(members: [
             JSONMember(key: "place", value: .string(sound.place)),
-            JSONMember(key: "media", value: sound.media.map { .object(JSONObject(members: values.media($0))) } ?? .null),
+            JSONMember(key: "media", value: sound.media.map(values.media) ?? .null),
             JSONMember(key: "nested", value: nested(of: sound)),
             JSONMember(key: "in", value: .number(sound.played.in)),
             JSONMember(key: "origin", value: .number(sound.played.origin)),
@@ -361,7 +361,7 @@ struct ResolvedSequenceWriter: Sendable {
     private func media(_ content: ResolvedMediaContent) -> JSONValue {
         switch content {
         case let .pinned(media):
-            .object(JSONObject(members: values.media(media)))
+            values.media(media)
 
         case let .nested(nested):
             document(nested)
@@ -386,7 +386,7 @@ struct ResolvedSequenceWriter: Sendable {
         let track = resolved.track
 
         return .object(JSONObject(members: [
-            JSONMember(key: "media", value: .object(JSONObject(members: values.media(resolved.media)))),
+            JSONMember(key: "media", value: values.media(resolved.media)),
             JSONMember(key: "time", value: .number(track.mediaTime)),
             JSONMember(key: "target", value: values.quad(track.target)),
             JSONMember(key: "frames", value: .array(track.samples.map { sample in
@@ -399,9 +399,10 @@ struct ResolvedSequenceWriter: Sendable {
         ]))
     }
 
-    // A cover's or matte's media keys, its colour space, then its length in media seconds.
+    // A cover's or matte's pinned media under `media`, its colour space, then its length in media seconds.
     private func transitionMedia(_ media: ResolvedTransitionMedia) -> [JSONMember] {
-        values.media(media.media) + [
+        [
+            JSONMember(key: "media", value: values.media(media.media)),
             JSONMember(key: "colorSpace", value: media.colorSpace.map { .string($0.rawValue) } ?? .null),
             JSONMember(key: "duration", value: .number(media.duration))
         ]
@@ -412,10 +413,13 @@ struct ResolvedSequenceWriter: Sendable {
         let cover = transition.cover.map { cover in
             let source = switch cover.source {
             case let .color(color):
-                [JSONMember(key: "color", value: values.color(color))]
+                [
+                    JSONMember(key: "kind", value: .string("solid")),
+                    JSONMember(key: "color", value: values.color(color))
+                ]
 
             case let .media(media):
-                transitionMedia(media)
+                [JSONMember(key: "kind", value: .string("media"))] + transitionMedia(media)
             }
 
             return JSONValue.object(JSONObject(members: source + values.span(cover.span)))

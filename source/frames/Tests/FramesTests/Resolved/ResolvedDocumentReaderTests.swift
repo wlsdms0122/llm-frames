@@ -660,31 +660,39 @@ struct ResolvedDocumentReaderTests {
     private static let rect = #"[ { "at": 0, "value": [0, 0, 10, 10], "ease": "linear" } ]"#
 
     @Test(
-        "a mask that is not a closed path through two vertices with a tangent of each kind for each, has a negative feather, an unknown mode or both a rect and a box stops",
+        "a mask that is not a closed path through two vertices with a tangent of each kind for each, has a negative feather, an unknown mode, both a rect and a box, or a geometry without its kind stops",
         arguments: [
             (
-                #"{ "path": { "vertices": [\#(Self.point), \#(Self.point)], "inTangents": [\#(Self.point), \#(Self.point)], "outTangents": [\#(Self.point), \#(Self.point)], "closed": false } }"#, "0", #""add""#,
+                #"{ "kind": "path", "vertices": [\#(Self.point), \#(Self.point)], "inTangents": [\#(Self.point), \#(Self.point)], "outTangents": [\#(Self.point), \#(Self.point)], "closed": false }"#, "0", #""add""#,
                 "clips[0].mask[0].geometry (mask): a path mask is a closed path through at least two vertices, with an in and an out tangent for each"
             ),
             (
-                #"{ "path": { "vertices": [\#(Self.point)], "inTangents": [\#(Self.point)], "outTangents": [\#(Self.point)], "closed": true } }"#, "0", #""add""#,
+                #"{ "kind": "path", "vertices": [\#(Self.point)], "inTangents": [\#(Self.point)], "outTangents": [\#(Self.point)], "closed": true }"#, "0", #""add""#,
                 "clips[0].mask[0].geometry (mask): a path mask is a closed path through at least two vertices, with an in and an out tangent for each"
             ),
             (
-                #"{ "path": { "vertices": [\#(Self.point), \#(Self.point)], "inTangents": [\#(Self.point)], "outTangents": [\#(Self.point), \#(Self.point)], "closed": true } }"#, "0", #""add""#,
+                #"{ "kind": "path", "vertices": [\#(Self.point), \#(Self.point)], "inTangents": [\#(Self.point)], "outTangents": [\#(Self.point), \#(Self.point)], "closed": true }"#, "0", #""add""#,
                 "clips[0].mask[0].geometry (mask): a path mask is a closed path through at least two vertices, with an in and an out tangent for each"
             ),
             (
-                #"{ "rect": { "rect": \#(Self.rect), "radius": [ { "at": 0, "value": [0, 0, 0, 0], "ease": "linear" } ] } }"#, "-1", #""add""#,
+                #"{ "kind": "rect", "rect": \#(Self.rect), "radius": [ { "at": 0, "value": [0, 0, 0, 0], "ease": "linear" } ] }"#, "-1", #""add""#,
                 "clips[0].mask[0].feather[0].value (mask): a feather is 0 or more, found -1"
             ),
             (
-                #"{ "ellipse": { "rect": \#(Self.rect) } }"#, "0", #""multiply""#,
+                #"{ "kind": "ellipse", "rect": \#(Self.rect) }"#, "0", #""multiply""#,
                 #"clips[0].mask[0].mode (mask): unknown value "multiply". Allowed: add, subtract, intersect"#
             ),
             (
-                #"{ "ellipse": { "rect": \#(Self.rect), "width": [ { "at": 0, "value": 10, "ease": "linear" } ] } }"#, "0", #""add""#,
-                #"clips[0].mask[0].geometry.ellipse (mask): takes only one of "rect", "width""#
+                #"{ "kind": "ellipse", "rect": \#(Self.rect), "width": [ { "at": 0, "value": 10, "ease": "linear" } ] }"#, "0", #""add""#,
+                #"clips[0].mask[0].geometry (mask): takes only one of "rect", "width""#
+            ),
+            (
+                #"{ "ellipse": { "rect": \#(Self.rect) } }"#, "0", #""add""#,
+                #"clips[0].mask[0].geometry (mask): missing key "kind""#
+            ),
+            (
+                #"{ "kind": "circle", "rect": \#(Self.rect) }"#, "0", #""add""#,
+                #"clips[0].mask[0].geometry.kind (mask): unknown value "circle". Allowed: rect, ellipse, path"#
             )
         ]
     )
@@ -901,6 +909,63 @@ struct ResolvedDocumentReaderTests {
         let track = try #require(entry["track"]?.objectValue)
         entries[index] = .object(entry.setting("track", to: .object(track.setting("media", to: media))))
         let text = JSONWriter().write(.object(root.setting(list, to: .array(entries))))
+
+        // When
+        let error = #expect(throws: ModelError.self) { try sut.read(text) }
+
+        // Then
+        #expect(error?.description == message)
+    }
+
+    @Test(
+        "pinned media and a cover without their kind, of another kind, or with a key their kind does not hold, and a matte with media keys of its own, stop",
+        arguments: [
+            (1, "media", "kind", nil, #"storyline[1].media (storyline clip): missing key "kind""#),
+            (
+                1,
+                "media",
+                "kind",
+                #""video""#,
+                #"storyline[1].media.kind (storyline clip): unknown value "video". Allowed: file, imageSequence, page, sequence"#
+            ),
+            (1, "media", "imageSequence", "[]", #"storyline[1].media (storyline clip): unknown key "imageSequence". Allowed: kind, files, frames"#),
+            (1, "cover", "kind", nil, #"storyline[1].transition.cover (cover): missing key "kind""#),
+            (2, "cover", "kind", #""color""#, #"storyline[2].transition.cover.kind (cover): unknown value "color". Allowed: solid, media"#),
+            (
+                1,
+                "cover",
+                "file",
+                #""/abs/leak.mov""#,
+                #"storyline[1].transition.cover (cover): unknown key "file". Allowed: kind, media, colorSpace, duration, ease, revealFrom, keys"#
+            ),
+            (
+                1,
+                "matte",
+                "file",
+                #""/abs/matte.png""#,
+                #"storyline[1].transition.matte (matte): unknown key "file". Allowed: media, colorSpace, duration, softness, invert, ease"#
+            )
+        ] as [(Int, String, String, String?, String)]
+    )
+    func refusesMediaWithoutKind(
+        index: Int,
+        key: String,
+        member: String,
+        replacement: String?,
+        message: String
+    ) throws {
+        // Given
+        let root = try #require(try JSONReader().read(written(Self.documents[1])).objectValue)
+        var entries = try #require(root["storyline"]?.arrayValue)
+        let entry = try #require(entries[index].objectValue)
+        let transition = try #require(entry["transition"]?.objectValue)
+        let object = try #require((key == "media" ? entry[key] : transition[key])?.objectValue)
+        let edited = try replacement.map { object.setting(member, to: try JSONReader().read($0)) }
+            ?? JSONObject(members: object.members.filter { $0.key != member })
+        entries[index] = key == "media"
+            ? .object(entry.setting(key, to: .object(edited)))
+            : .object(entry.setting("transition", to: .object(transition.setting(key, to: .object(edited)))))
+        let text = JSONWriter().write(.object(root.setting("storyline", to: .array(entries))))
 
         // When
         let error = #expect(throws: ModelError.self) { try sut.read(text) }
