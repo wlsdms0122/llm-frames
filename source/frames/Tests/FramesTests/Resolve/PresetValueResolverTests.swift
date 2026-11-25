@@ -89,7 +89,7 @@ struct PresetValueResolverTests {
         let storyline = resolved.objectValue?["storyline"]?.arrayValue ?? []
         let entry = storyline.first?.objectValue?["filter"]?.arrayValue?.first?.objectValue
         let lut = entry?["ops"]?.arrayValue?.first?.objectValue
-        let matte = storyline.last?.objectValue?["transition"]?.objectValue?["matte"]?.objectValue
+        let matte = storyline.last?.objectValue?["transition"]?.objectValue?["matte"]?.objectValue?["media"]?.objectValue
         #expect(lut?["file"] == .string(pack.appendingPathComponent("luts/film.cube").standardizedFileURL.path))
         #expect(matte?["file"] == .string(pack.appendingPathComponent("media/wipe.png").standardizedFileURL.path))
     }

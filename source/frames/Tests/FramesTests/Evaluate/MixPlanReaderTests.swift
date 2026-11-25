@@ -213,7 +213,9 @@ struct MixPlanReaderTests {
             (#""mixPlan": "0.1.0","#, #""mixPlan": "0.1.0", "duration": 4,"#, #"top level (mix plan): unknown key "duration". Allowed: mixPlan, length, segments, buses, filter"#),
             (#""length": 192000,"#, "", #"top level (mix plan): missing key "length""#),
             (#""length": 192000,"#, #""length": 192000.5,"#, #"length (mix plan): expected a whole number, found 192000.5"#),
-            (#""end": 3,"#, #""end": "3","#, #"segments[0].end (segment): expected a number, found "3""#)
+            (#""end": 3,"#, #""end": "3","#, #"segments[0].end (segment): expected a number, found "3""#),
+            (#""kind": "file","#, "", #"segments[0].media (segment): missing key "kind""#),
+            (#""kind": "file","#, #""kind": "video","#, #"segments[0].media.kind (segment): unknown value "video". Allowed: file, imageSequence, page"#)
         ]
     )
     func refusesUnreadableMember(
@@ -243,6 +245,8 @@ struct MixPlanReaderTests {
 
         // Then
         #expect(segment?.keys == ["media", "mediaStart", "speed", "start", "end", "filter", "envelope", "pan"])
+        #expect(segment?["media"]?.objectValue?.keys == ["kind", "file", "sha256", "frames"])
+        #expect(segment?["media"]?.objectValue?["kind"] == .string("file"))
         #expect(band?.objectValue?.keys == ["kind", "frequency", "q"])
         #expect(band?.objectValue?["frequency"] == .array([.array([.number(0), .number(80)]), .array([.number(1), .number(160)])]))
         #expect(band?.objectValue?["q"] == .number(0.7071))
@@ -357,7 +361,7 @@ struct MixPlanReaderTests {
         #expect(error?.description == message)
     }
 
-    @Test("a segment of a file nothing pins writes its media as the file alone")
+    @Test("a segment of a file nothing pins writes its media as a file with its hash and frame times null")
     func writesUnpinnedMedia() throws {
         // Given
         let plan = MixPlanner().mix(ofMedium: "/abs/tone.wav", duration: 1)
@@ -366,7 +370,12 @@ struct MixPlanReaderTests {
         let segment = writer.document(plan).objectValue?["segments"]?.arrayValue?.first?.objectValue
 
         // Then
-        #expect(segment?["media"] == .object(JSONObject(members: [JSONMember(key: "file", value: .string("/abs/tone.wav"))])))
+        #expect(segment?["media"] == .object(JSONObject(members: [
+            JSONMember(key: "kind", value: .string("file")),
+            JSONMember(key: "file", value: .string("/abs/tone.wav")),
+            JSONMember(key: "sha256", value: .null),
+            JSONMember(key: "frames", value: .null)
+        ])))
     }
 
     // MARK: - Private

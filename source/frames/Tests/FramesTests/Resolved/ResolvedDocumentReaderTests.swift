@@ -909,6 +909,63 @@ struct ResolvedDocumentReaderTests {
         #expect(error?.description == message)
     }
 
+    @Test(
+        "pinned media and a cover without their kind, of another kind, or with a key their kind does not hold, and a matte with media keys of its own, stop",
+        arguments: [
+            (1, "media", "kind", nil, #"storyline[1].media (storyline clip): missing key "kind""#),
+            (
+                1,
+                "media",
+                "kind",
+                #""video""#,
+                #"storyline[1].media.kind (storyline clip): unknown value "video". Allowed: file, imageSequence, page, sequence"#
+            ),
+            (1, "media", "imageSequence", "[]", #"storyline[1].media (storyline clip): unknown key "imageSequence". Allowed: kind, files, frames"#),
+            (1, "cover", "kind", nil, #"storyline[1].transition.cover (cover): missing key "kind""#),
+            (2, "cover", "kind", #""color""#, #"storyline[2].transition.cover.kind (cover): unknown value "color". Allowed: solid, media"#),
+            (
+                1,
+                "cover",
+                "file",
+                #""/abs/leak.mov""#,
+                #"storyline[1].transition.cover (cover): unknown key "file". Allowed: kind, media, colorSpace, duration, ease, revealFrom, keys"#
+            ),
+            (
+                1,
+                "matte",
+                "file",
+                #""/abs/matte.png""#,
+                #"storyline[1].transition.matte (matte): unknown key "file". Allowed: media, colorSpace, duration, softness, invert, ease"#
+            )
+        ] as [(Int, String, String, String?, String)]
+    )
+    func refusesMediaWithoutKind(
+        index: Int,
+        key: String,
+        member: String,
+        replacement: String?,
+        message: String
+    ) throws {
+        // Given
+        let root = try #require(try JSONReader().read(written(Self.documents[1])).objectValue)
+        var entries = try #require(root["storyline"]?.arrayValue)
+        let entry = try #require(entries[index].objectValue)
+        let transition = try #require(entry["transition"]?.objectValue)
+        let object = try #require((key == "media" ? entry[key] : transition[key])?.objectValue)
+        let edited = try replacement.map { object.setting(member, to: try JSONReader().read($0)) }
+            ?? JSONObject(members: object.members.filter { $0.key != member })
+        entries[index] = key == "media"
+            ? .object(entry.setting(key, to: .object(edited)))
+            : .object(entry.setting("transition", to: .object(transition.setting(key, to: .object(edited)))))
+        let text = JSONWriter().write(.object(root.setting("storyline", to: .array(entries))))
+
+        // When
+        let error = #expect(throws: ModelError.self) { try sut.read(text) }
+
+        // Then
+        #expect(error?.description == message)
+    }
+
     @Test("a title read back from a file keeps its static tracking and draws each mark where the font places it")
     func drawsMarksReadFromFile() throws {
         // Given

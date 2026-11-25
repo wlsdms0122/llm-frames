@@ -10,7 +10,7 @@ import Testing
 @testable import Frames
 
 // A transition's cover and matte name their file's colour space as a media clip does: the preset reads it, resolve
-// writes it after the media keys, the display list carries it on the cover's source and the matte, and every place
+// writes it after the media, the display list carries it on the cover's source and the matte, and every place
 // that names a file reads it in one colour space.
 @Suite("Transition Color Tests")
 struct TransitionColorTests {
@@ -64,7 +64,7 @@ struct TransitionColorTests {
         #expect(error.map { "\($0)" } == message)
     }
 
-    @Test("a cover and a matte write their colour space after their media keys, null where they name none, and read back")
+    @Test("a cover and a matte write their colour space after their media, null where they name none, and read back")
     func writesResolvedColorSpace() throws {
         // Given
         let resolved = try resolved(cover: "rec709", matte: nil)
@@ -78,9 +78,9 @@ struct TransitionColorTests {
         )
         let cover = try #require(transition["cover"]?.objectValue)
         let matte = try #require(transition["matte"]?.objectValue)
-        #expect(cover.keys == ["file", "sha256", "frames", "colorSpace", "duration", "ease", "revealFrom", "keys"])
+        #expect(cover.keys == ["kind", "media", "colorSpace", "duration", "ease", "revealFrom", "keys"])
         #expect(cover["colorSpace"] == .string("rec709"))
-        #expect(matte.keys == ["file", "sha256", "colorSpace", "duration", "softness", "invert", "ease"])
+        #expect(matte.keys == ["media", "colorSpace", "duration", "softness", "invert", "ease"])
         #expect(matte["colorSpace"] == .null)
         #expect(try reader.read(writer.write(resolved)) == resolved)
     }

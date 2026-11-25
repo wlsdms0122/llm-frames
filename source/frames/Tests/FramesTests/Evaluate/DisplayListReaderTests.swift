@@ -571,6 +571,7 @@ struct DisplayListReaderTests {
 
         // Then
         #expect(written.contains(#""page": 3"#))
+        #expect(written.ranges(of: #""kind": "page""#).count == 2)
         #expect(written.ranges(of: #""frame": null"#).count == 2)
         #expect(written.contains(#""targetPeak": 203"#) == false)
         #expect(read == list)
@@ -671,7 +672,7 @@ struct DisplayListReaderTests {
     }
 
     @Test(
-        "a picture's source without its kind or with a key of the other kind, and a track matte's source with a kind, stop",
+        "a picture's source or its pinned media without its kind or with a key of another kind, and a track matte's source with a kind, stop",
         arguments: [
             (
                 #"{ "list": \#(Self.emptyList) }"#,
@@ -682,6 +683,16 @@ struct DisplayListReaderTests {
                 #"{ "kind": "media", "list": \#(Self.emptyList) }"#,
                 "null",
                 #"items[0].source (picture): unknown key "list". Allowed: kind, media, frame, colorSpace, targetPeak"#
+            ),
+            (
+                #"{ "kind": "media", "media": { "file": "/abs/a.png", "sha256": "\#(Self.hash)", "frames": null }, "frame": 0, "colorSpace": null, "targetPeak": null }"#,
+                "null",
+                #"items[0].source.media (picture): missing key "kind""#
+            ),
+            (
+                #"{ "kind": "media", "media": { "kind": "file", "files": [], "frames": null }, "frame": 0, "colorSpace": null, "targetPeak": null }"#,
+                "null",
+                #"items[0].source.media (picture): unknown key "files". Allowed: kind, file, sha256, frames"#
             ),
             (
                 #"{ "kind": "list", "list": \#(Self.emptyList) }"#,
