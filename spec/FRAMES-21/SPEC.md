@@ -8,7 +8,7 @@ The four roles that read media and make pixels, sound and files, the providers r
 
 ## Motivation
 
-The engine is meant to be swapped, as an NLE swaps its playback engine or a compositing tool its GPU back end: Apple's frameworks first, Skia or ffmpeg later. Without a fixed contract for what each role takes and gives, and for what two of them must agree on (which frame a time names, what colour space blending happens in, how a mono source is spread over two speakers), two implementations would each be right and give different results. Fixing those is what lets one replace another, and keeping text shaping, tracking and text recognition as providers called before evaluation keeps every value a role sees fixed in the resolved document.
+The engine is meant to be swapped, as an NLE swaps its playback engine or a compositing tool its GPU back end: Apple's frameworks first, Skia or ffmpeg later. Without a fixed contract for what each role takes and gives, and for what two of them must agree on (which frame a time names, what colour space blending happens in, how a mono source is spread over two speakers), two implementations would each be right and give different results. Fixing those is what lets one replace another, and keeping text shaping as a provider resolve calls, and tracking and text recognition as providers whose results the document writes as values, keeps every value a role sees fixed in the resolved document.
 
 ## Rules
 
@@ -60,7 +60,7 @@ The `avfoundation` decoder holds a picture of at most 16384 pixels on a side. It
 
 ## Interactions
 
-Roles take what [FRAMES-20](../FRAMES-20/SPEC.md) gives, and a renderer draws a corner pin as [FRAMES-27](../FRAMES-27/SPEC.md#what-a-renderer-holds) holds. Working values, colour spaces, tone mapping, output encoding and analysis pictures are [FRAMES-26](../FRAMES-26/SPEC.md). Providers are called by resolve for text layout ([FRAMES-5](../FRAMES-5/SPEC.md)), tracking ([FRAMES-12](../FRAMES-12/SPEC.md)) and text areas ([FRAMES-2](../FRAMES-2/SPEC.md)), and by the analysis commands ([FRAMES-23](../FRAMES-23/SPEC.md)). The pan law is [FRAMES-13](../FRAMES-13/SPEC.md). The buses the mixer sums, and the loudness meter that measures the mix, are [FRAMES-28](../FRAMES-28/SPEC.md).
+Roles take what [FRAMES-20](../FRAMES-20/SPEC.md) gives, and a renderer draws a corner pin as [FRAMES-27](../FRAMES-27/SPEC.md#what-a-renderer-holds) holds. Working values, colour spaces, tone mapping, output encoding and analysis pictures are [FRAMES-26](../FRAMES-26/SPEC.md). Resolve calls the shaping provider for text layout ([FRAMES-5](../FRAMES-5/SPEC.md)), and the analysis commands ([FRAMES-23](../FRAMES-23/SPEC.md)) call the tracker, `track`, and OCR, `ocr`, whose results a document writes as track data ([FRAMES-12](../FRAMES-12/SPEC.md#track-data)) and rect areas ([FRAMES-2](../FRAMES-2/SPEC.md)). The pan law is [FRAMES-13](../FRAMES-13/SPEC.md). The buses the mixer sums, and the loudness meter that measures the mix, are [FRAMES-28](../FRAMES-28/SPEC.md).
 
 The exposure a renderer averages and the samples it is given are [FRAMES-29](../FRAMES-29/SPEC.md).
 

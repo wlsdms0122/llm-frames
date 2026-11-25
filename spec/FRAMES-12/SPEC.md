@@ -55,7 +55,7 @@ Each frame of the data gives the target's quadrilateral (quad) on that frame: fo
 
 ### Track data
 
-Track data is the value of `track`: an object `{time, frames}`, both keys required and no other key, the object `track --json` prints without its first key, the version ([FRAMES-23](../FRAMES-23/SPEC.md)). Any other value of `track` stops at `resolve`, naming `...track`.
+Track data is the value of `track`: an object `{time, frames}`, both keys required and no other key, the object `track` prints without its first key, the version ([FRAMES-23](../FRAMES-23/SPEC.md)). Any other value of `track` stops at `resolve`, naming `...track`.
 
 | Key | Form | Meaning |
 | --- | --- | --- |
@@ -117,6 +117,6 @@ The homography carrying a path's points, or every tracked value: a homography ta
 
 Tracking any clip's picture: only media has frames for a tracker to follow. A drawn picture moves by its own keyframes.
 
-A request for a target still to be followed written as `track`, `true` for the clip's own geometry, an area, or a `time` with either, which resolve answers by calling the tracker provider on the media: a value in the document would not be the value, and resolve would carry rules kept for that one feature, how a target is found from a clip's area, mask, crop or corner pin, which frame the search starts on, which frames the tracker must cover, and the tracker settings of resolve. `track --json` prints track data, one value for one fact ([FRAMES-23](../FRAMES-23/SPEC.md)), so a document whose clips ask for a target to be followed is turned into a frames document by an extension before resolve ([FRAMES-25](../FRAMES-25/SPEC.md)).
+A request for a target still to be followed written as `track`, `true` for the clip's own geometry, an area, or a `time` with either, which resolve answers by calling the tracker provider on the media: a value in the document would not be the value, and resolve would carry rules kept for that one feature, how a target is found from a clip's area, mask, crop or corner pin, which frame the search starts on, which frames the tracker must cover, and the tracker settings of resolve. `track` prints track data, one value for one fact ([FRAMES-23](../FRAMES-23/SPEC.md)), so a document whose clips ask for a target to be followed is turned into a frames document by an extension before resolve ([FRAMES-25](../FRAMES-25/SPEC.md)).
 
 ## Notes

@@ -42,10 +42,11 @@ theme.json, packs ──┐
 presets/ ───────────┤
                     ▼
 document.json ─▶ resolve ─▶ resolved document ─▶ evaluate ─┬─▶ display lists ─▶ renderer ─┐
-                  ▲   ▲                                    └─▶ mix plan ──────▶ mixer ────┴─▶ encoder ─▶ PNG / MOV / MP4
-      OCR, shaping and tracker providers
+                    ▲                                      └─▶ mix plan ──────▶ mixer ────┴─▶ encoder ─▶ PNG / MOV / MP4
+            shaping provider
 
-analysis: probe, loudness, ocr, track, extract, sheet, timeline, evaluate, locate          delivery: transcode (decoder, encoder)
+analysis: probe, loudness, ocr (OCR provider), track (tracker provider), extract, sheet, timeline, evaluate, locate
+delivery: transcode (decoder, encoder)
 every media file is read through the decoder
 ```
 
@@ -54,7 +55,7 @@ every media file is read through the decoder
 - **Evaluate:** turns a resolved document and a time into a display list (what to draw at that instant, with every keyframe, animation, transition, parent, mask, track matte and time remap already applied), and a resolved sequence into one mix plan for its sound. It is deterministic, calls no provider, and is shared by every role. Both build on `geometry(clip, t)`, a clip's keyframed geometry at t with its tracked motion and its parent's geometry, without animation. It takes a clip whose areas are found and whose theme lengths are scaled, so resolve calls it before the resolved document exists to measure a content-fit frame ([FRAMES-6](FRAMES-6/SPEC.md)).
 - **Motion blur:** a frame in which a clip with motion blur draws is an exposure of the whole picture, the mean of N sample lists of the frame that the renderer draws. Each sample is one instant of the exposure, the same for the whole frame, at which every parameter that takes time and that a clip with motion blur owns is read, clamped to the frame's instant's side of every jump the document writes on it, and every other as at the frame's instant. Clocks (`in`, `speed`, `loop`, `timeRemap`) carry each instant into compound clips. A sample moves pose and holds content (media frames, tracked motion, the grain seed) and which clips draw ([FRAMES-29](FRAMES-29/SPEC.md)).
 - **Decoder, renderer, mixer, encoder:** the four roles that read media and make pixels, sound and files ([FRAMES-21](FRAMES-21/SPEC.md)). Between the decoder and the encoder every picture holds working values, one extended-range sRGB for every sequence with one set of formulas. The sequence's colour space decides how its output is encoded and clipped, and by its peak, for `rec2100-pq` its `format.peak`, with each media clip's `toneMap`, whether an HDR picture brighter than that peak is tone mapped down to it on the way in ([FRAMES-26](FRAMES-26/SPEC.md)).
-- **Providers:** shaping and tracking, which resolve and the analysis tools call, and OCR, which the `ocr` command calls ([FRAMES-21](FRAMES-21/SPEC.md)). They read media files (through the decoder) and fonts, never drawn pixels, so no resolved value depends on a renderer. A resolved document needs neither again.
+- **Providers:** shaping, which resolve calls, and tracking and OCR, which the `track` and `ocr` commands call, and whose results a document writes as track data and rect areas ([FRAMES-21](FRAMES-21/SPEC.md)). They read media files (through the decoder) and fonts, never drawn pixels, so no resolved value depends on a renderer. A resolved document needs none of them again.
 - **Analysis:** commands that give the agent and extensions facts to write a document with, as versioned JSON ([FRAMES-23](FRAMES-23/SPEC.md)). They take no part in rendering.
 - **Transcode:** writes a delivery file at a quality level from a still, an audio file or a video file with the encoder role. It is not part of rendering.
 
