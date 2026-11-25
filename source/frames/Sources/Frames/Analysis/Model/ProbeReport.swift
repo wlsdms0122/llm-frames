@@ -77,7 +77,7 @@ package struct ProbeReport: Equatable, Sendable {
             fps: nil,
             hasAlpha: true,
             colorSpace: ProbedColorSpace(
-                reading: .formulas(.srgb),
+                conversion: .identity,
                 primaries: 1,
                 transfer: 13,
                 matrix: nil,

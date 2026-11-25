@@ -16,6 +16,8 @@ final class FrameReader {
     private(set) var index: Int
     private(set) var time: CMTime
     private(set) var picture: CVImageBuffer?
+    // The samples decoded since the reader was opened, those read past on the way to a later frame included.
+    private(set) var decoded = 0
 
     private let reader: AVAssetReader
     private let output: AVAssetReaderTrackOutput
@@ -62,6 +64,7 @@ final class FrameReader {
                 pending = sample
                 break
             }
+            decoded += 1
             picture = CMSampleBufferGetImageBuffer(sample) ?? picture
         }
         guard reader.status != .failed else { throw DecoderError.unreadable(file: path) }

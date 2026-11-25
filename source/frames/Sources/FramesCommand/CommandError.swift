@@ -30,6 +30,8 @@ enum CommandError: Error, Equatable, CustomStringConvertible, Sendable {
     case missingFile(path: String)
     case unwritableFile(path: String)
     case resolvedExtension(path: String)
+    case reportExtension(path: String)
+    case reportOverOutput(path: String)
     case unknownPresetKind(kind: String, known: [String])
     case unknownPreset(kind: String, name: String)
     case unknownPack(name: String)
@@ -104,6 +106,12 @@ enum CommandError: Error, Equatable, CustomStringConvertible, Sendable {
 
         case let .resolvedExtension(path):
             "resolve: \(quoted(path)): a resolved document is written to a .json file"
+
+        case let .reportExtension(path):
+            "render: --report \(quoted(path)): a run's report is written to a .json file"
+
+        case let .reportOverOutput(path):
+            "render: --report \(quoted(path)): the report would be written over a file the render writes"
 
         case let .unknownPresetKind(kind, known):
             "presets: unknown kind \(quoted(kind)). Known: \(known.joined(separator: ", "))"

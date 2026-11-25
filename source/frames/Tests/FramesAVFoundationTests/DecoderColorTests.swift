@@ -286,7 +286,7 @@ struct DecoderColorTests {
 
         // Then
         #expect(pqFacts == ProbedColorSpace(
-            reading: .formulas(.rec2100PQ),
+            conversion: .space(.rec2100PQ),
             primaries: 9,
             transfer: 16,
             matrix: 9,
@@ -294,7 +294,7 @@ struct DecoderColorTests {
             isHighDynamicRange: true
         ))
         #expect(srgbFacts == ProbedColorSpace(
-            reading: .formulas(.srgb),
+            conversion: .identity,
             primaries: 1,
             transfer: 13,
             matrix: 1,
@@ -302,7 +302,7 @@ struct DecoderColorTests {
             isHighDynamicRange: false
         ))
         #expect(stillFacts == ProbedColorSpace(
-            reading: .formulas(.displayP3),
+            conversion: .space(.displayP3),
             primaries: 12,
             transfer: 13,
             matrix: nil,

@@ -20,6 +20,9 @@ final class VideoReader: Sendable {
     // A later frame further ahead than this, in seconds, restarts the reader at it rather than decoding up to it.
     private static let forwardReach: Double = 1
 
+    // How AVAssetReader gives the decoder a frame's samples, `kCVPixelFormatType_64RGBAHalf` (FRAMES-23 Runs).
+    static let pixelFormat = "16-bit float RGBA"
+
     let frames: [CMTime]
     let displaySize: Size
     let fps: Double
@@ -70,12 +73,15 @@ final class VideoReader: Sendable {
     // MARK: - Public
     // The picture of frame `index` as it is displayed: the last decoded frame presented at or before its presented
     // time, taken to R'G'B' half floats by the matrix and range the file says, with no colour matched, a value beyond
-    // the nominal range kept. Asking for the frame read last decodes nothing.
+    // the nominal range kept. Asking for the frame read last decodes nothing. With it come the samples decoded to give
+    // it and whether a reader was opened again for it.
     func image(
         atFrame index: Int,
         path: String
-    ) throws -> CIImage {
-        displayed(CIImage(cvImageBuffer: try buffer(atFrame: index, path: path), options: [.colorSpace: NSNull()]))
+    ) throws -> (image: CIImage, decoded: Int, reopened: Bool) {
+        let (buffer, decoded, reopened) = try self.buffer(atFrame: index, path: path)
+
+        return (displayed(CIImage(cvImageBuffer: buffer, options: [.colorSpace: NSNull()])), decoded, reopened)
     }
 
     // The picture of frame `index` as it is displayed, tagged with the colour its frame carries, which Core Image's
@@ -84,21 +90,27 @@ final class VideoReader: Sendable {
         atFrame index: Int,
         path: String
     ) throws -> CIImage {
-        displayed(CIImage(cvImageBuffer: try buffer(atFrame: index, path: path)))
+        displayed(CIImage(cvImageBuffer: try buffer(atFrame: index, path: path).buffer))
     }
 
     // MARK: - Private
+    // The buffer of frame `index`, the samples decoded to reach it, and whether a reader was opened again for it, which
+    // the first reader opened on the video is not.
     private func buffer(
         atFrame index: Int,
         path: String
-    ) throws -> CVImageBuffer {
+    ) throws -> (buffer: CVImageBuffer, decoded: Int, reopened: Bool) {
         let time = frames[index]
-        let shown = try open.withLockUnchecked { open -> CVImageBuffer? in
-            if let reader = open, reader.index == index { return reader.picture }
+        let (shown, decoded, reopened) = try open.withLockUnchecked { open -> (CVImageBuffer?, Int, Bool) in
+            if let reader = open, reader.index == index { return (reader.picture, 0, false) }
             if let reader = open, reader.index < index, (time - reader.time).seconds <= Self.forwardReach {
-                return try reader.read(frame: index, at: time, path: path)
+                let before = reader.decoded
+                let picture = try reader.read(frame: index, at: time, path: path)
+
+                return (picture, reader.decoded - before, false)
             }
 
+            let reopened = open != nil
             let reader = try FrameReader(
                 asset: asset,
                 track: track,
@@ -107,12 +119,13 @@ final class VideoReader: Sendable {
                 path: path
             )
             open = reader
+            let picture = try reader.read(frame: index, at: time, path: path)
 
-            return try reader.read(frame: index, at: time, path: path)
+            return (picture, reader.decoded, reopened)
         }
         guard let shown else { throw DecoderError.noFrame(file: path, index: index, count: frames.count) }
 
-        return shown
+        return (shown, decoded, reopened)
     }
 
     private static func facts(

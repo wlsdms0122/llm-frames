@@ -53,7 +53,7 @@ struct AVFoundationDecoderTests {
             frames: evenTimes,
             size: size,
             colorSpace: ProbedColorSpace(
-                reading: .formulas(.srgb),
+                conversion: .identity,
                 primaries: 1,
                 transfer: 13,
                 matrix: 1,
@@ -670,6 +670,82 @@ struct AVFoundationDecoderTests {
         let fresh = try order.map { try AVFoundationDecoder().picture(of: media, atFrame: $0) }
         #expect(pictures == fresh)
         #expect(pictures.map(code) == order.map { $0 % 64 })
+    }
+
+    @Test("the decoder's readings give each medium in the order first read, its pictures given and decoded, its reopenings, frame 2 asked again after frame 3 was read ahead among them, how it is given its samples, and its time decoding and converting")
+    func reportsReadings() async throws {
+        // Given
+        let directory = try TemporaryDirectory()
+        let video = directory.file("even.mp4")
+        try await MovieWriter(size: size, frameTimes: evenTimes, end: 1).write(to: video) { canvas, index in
+            canvas.fill(red: 128, green: 128, blue: 128)
+            canvas.drawCode(index)
+        }
+        let still = directory.file("card.png")
+        try ImageWriter(size: Size(width: 20, height: 10)).write(to: still) { canvas in
+            canvas.fill(red: 128, green: 128, blue: 128)
+        }
+        let sut = AVFoundationDecoder()
+        let media = MediaFile(path: video, size: size, frameTimes: evenTimes)
+
+        // When
+        for index in [0, 1, 2, 2, 20] {
+            _ = try sut.picture(of: media, atFrame: index)
+        }
+        _ = try sut.picture(of: MediaFile(path: still), atFrame: 0)
+        _ = try sut.picture(of: media, atFrame: 5)
+        _ = try sut.picture(of: MediaFile(path: still), atFrame: 0)
+        _ = try sut.picture(of: MediaFile(path: still), atFrame: 0, reading: .platform(colorSpace: .srgb))
+        let readings = sut.readings()
+
+        // Then
+        let first = try #require(readings.media.first)
+        #expect(readings.media.map(\.path) == [video, still])
+        #expect(first.page == nil && first.conversion == .identity && first.pixelFormat == "16-bit float RGBA")
+        #expect(first.framesRead == 6)
+        #expect(first.framesDecoded >= 22)
+        #expect(first.reopened == 2)
+        #expect(readings.media.last == MediumReading(
+            path: still,
+            page: nil,
+            conversion: .identity,
+            pixelFormat: "8-bit integer RGBA",
+            framesRead: 2,
+            framesDecoded: 2,
+            reopened: 1
+        ))
+        #expect(readings.seconds[.decode] > 0)
+        #expect(readings.seconds[.workingConversion] > 0)
+        #expect(readings.seconds[.draw] == 0)
+    }
+
+    @Test("a frame read ahead and never asked for is decoded and not read, its reading is in readAhead and in decode and workingConversion, and a frame asked for while it is read ahead is read once it is")
+    func reportsReadAhead() async throws {
+        // Given
+        let directory = try TemporaryDirectory()
+        let video = directory.file("even.mp4")
+        try await MovieWriter(size: size, frameTimes: evenTimes, end: 1).write(to: video) { canvas, index in
+            canvas.fill(red: 128, green: 128, blue: 128)
+            canvas.drawCode(index)
+        }
+        let sut = AVFoundationDecoder()
+        let media = MediaFile(path: video, size: size, frameTimes: evenTimes)
+
+        // When
+        let pictures = try [0, 1, 0].map { try sut.picture(of: media, atFrame: $0) }
+        let readings = sut.readings()
+
+        // Then
+        #expect(pictures.map(code) == [0, 1, 0])
+        let reading = try #require(readings.media.first)
+        #expect(reading.framesRead == 3)
+        #expect(reading.framesDecoded == 4)
+        #expect(reading.reopened == 1)
+        #expect(readings.readAhead[.decode] > 0)
+        #expect(readings.readAhead[.workingConversion] > 0)
+        #expect(readings.seconds[.decode] > readings.readAhead[.decode])
+        #expect(readings.seconds[.workingConversion] > readings.readAhead[.workingConversion])
+        #expect(readings.waiting >= 0)
     }
 
     // MARK: - Private

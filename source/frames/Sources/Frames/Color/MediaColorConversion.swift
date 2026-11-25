@@ -22,6 +22,26 @@ package struct MediaColorConversion: Sendable {
         color == .space(.srgb)
     }
 
+    // The form a run's report and `probe` name the conversion by (FRAMES-23 Runs).
+    package var workingConversion: WorkingConversion {
+        switch form {
+        case let .space(conversion):
+            conversion.space == .srgb ? .identity : .space(conversion.space)
+
+        case .transfer:
+            .transfer
+
+        case .profile:
+            .profile
+
+        case .perceptualQuantizer:
+            .perceptualQuantizer
+
+        case .hybridLogGamma:
+            .hybridLogGamma
+        }
+    }
+
     package var isHighDynamicRange: Bool {
         switch form {
         case let .space(conversion):

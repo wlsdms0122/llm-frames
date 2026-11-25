@@ -61,5 +61,10 @@ struct HeldSideDecoder: MediaDecoder {
         try decoder.sound(of: file, from: start, to: end)
     }
 
+    // Reports no medium and no time, as a run's report of it would be empty.
+    func readings() -> MediaReadings {
+        MediaReadings(media: [], seconds: StageTimes())
+    }
+
     // MARK: - Private
 }

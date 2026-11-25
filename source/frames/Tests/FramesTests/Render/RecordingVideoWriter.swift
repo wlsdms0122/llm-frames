@@ -29,6 +29,11 @@ struct RecordingVideoWriter: VideoWriter {
     }
 
     // MARK: - Lifecycle
+    // Written as `ProRes 422 HQ` on the processor, in no time.
+    var encoding: FileEncoding {
+        FileEncoding(path: path, codec: "ProRes 422 HQ", usesHardware: false, seconds: StageTimes())
+    }
+
     func append(_ frame: Bitmap) throws {
         log.record(.append(path: path, frame: frame.frame))
     }

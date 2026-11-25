@@ -36,6 +36,11 @@ struct RoleTable<Builder: Sendable>: Sendable {
         )
     }
 
+    // The name of the implementation the option picks.
+    func name(_ name: String?) -> String {
+        name ?? defaultName
+    }
+
     func builder(named name: String?) throws -> Builder {
         let wanted = name ?? defaultName
         guard let builder = builders[wanted] else {

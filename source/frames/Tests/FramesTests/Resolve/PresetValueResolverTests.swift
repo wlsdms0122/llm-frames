@@ -131,7 +131,7 @@ struct PresetValueResolverTests {
     ) throws {
         // Given
         let icc = ProbedColorSpace(
-            reading: .platform,
+            conversion: nil,
             primaries: nil,
             transfer: nil,
             matrix: nil,

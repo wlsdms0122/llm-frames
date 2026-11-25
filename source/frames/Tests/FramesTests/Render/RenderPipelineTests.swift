@@ -446,6 +446,42 @@ struct RenderPipelineTests {
         #expect(log.calls.isEmpty)
     }
 
+    @Test("a video's run gives its frame count and each file's encoding, the output first, and tells the recorder of every frame drawn in order")
+    func reportsVideoRun() throws {
+        // Given
+        let progress = Locked<[RunProgress]>([])
+        let recorder = RunRecorder(progress: { reached in progress.write { $0.append(reached) } })
+        let sut = pipeline(log: RoleCallLog())
+
+        // When
+        let run = try sut.render(sequence(fps: 2, duration: 1.5), to: master, at: nil, delivery: delivery, recorder: recorder)
+
+        // Then
+        #expect(run.frames == 3)
+        #expect(run.files.map(\.path) == [master, delivery])
+        #expect(progress.read { $0.map(\.frame) } == [1, 2, 3])
+        #expect(progress.read { $0.map(\.frames) } == [3, 3, 3])
+    }
+
+    @Test("a PNG's run is one frame and the file the encoder wrote, timed in waiting")
+    func reportsImageRun() throws {
+        // Given
+        let directory = try TemporaryDirectory()
+        let image = directory.file("out.png")
+        let recorder = RunRecorder()
+        let sut = pipeline(log: RoleCallLog())
+
+        // When
+        let run = try sut.render(sequence(fps: 2, duration: 1), to: image, at: 0.5, delivery: nil, recorder: recorder)
+
+        // Then
+        #expect(run == RenderRun(
+            frames: 1,
+            files: [FileEncoding(path: image, codec: "PNG", usesHardware: false, seconds: StageTimes())]
+        ))
+        #expect(recorder.waitingOnEncoder > 0)
+    }
+
     // MARK: - Private
     // The calls a writer of the file at `path` took, in order.
     private func calls(

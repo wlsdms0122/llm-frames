@@ -68,6 +68,16 @@ struct RoleFactory: Sendable {
         [decoders.rule, renderers.rule, mixers.rule, encoders.rule, shapers.rule, trackers.rule, ocrs.rule]
     }
 
+    // The names of the implementations that fill the four roles.
+    func names(for options: GlobalOptions) -> RoleNames {
+        RoleNames(
+            decoder: decoders.name(options.decoder),
+            renderer: renderers.name(options.renderer),
+            mixer: mixers.name(options.mixer),
+            encoder: encoders.name(options.encoder)
+        )
+    }
+
     func roles(for options: GlobalOptions) throws -> Roles {
         let decoder = try decoders.builder(named: options.decoder)()
 

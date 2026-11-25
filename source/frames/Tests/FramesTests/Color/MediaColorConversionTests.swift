@@ -78,6 +78,26 @@ struct MediaColorConversionTests {
         #expect(converted.map(\.bitPattern) == expected.map(\.bitPattern))
     }
 
+    @Test("the form a report names is the one the conversion converts by: srgb as it is, a space of the table, a transfer outside it, PQ for transfer 16, HLG for 18, and a profile", arguments: [
+        (MediaColor.space(.srgb), WorkingConversion.identity),
+        (.space(.displayP3), .space(.displayP3)),
+        (.space(.rec2100PQ), .space(.rec2100PQ)),
+        (codePoints(primaries: 1, transfer: 8), .transfer),
+        (codePoints(primaries: 1, transfer: 16), .perceptualQuantizer),
+        (codePoints(primaries: 12, transfer: 18), .hybridLogGamma),
+        (.profile(MatrixProfile(greyCurve: .gamma(1.8))), .profile)
+    ])
+    func namesForm(
+        color: MediaColor,
+        form: WorkingConversion
+    ) {
+        // Given
+        let sut = MediaColorConversion(color)
+
+        // Then
+        #expect(sut.workingConversion == form)
+    }
+
     // MARK: - Private
     private static func codePoints(
         primaries: Int,

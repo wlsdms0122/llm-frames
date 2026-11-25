@@ -227,7 +227,7 @@ struct MediaResolverTests {
 
     private var platformColor: ProbedColorSpace {
         ProbedColorSpace(
-            reading: .platform,
+            conversion: nil,
             primaries: nil,
             transfer: nil,
             matrix: nil,

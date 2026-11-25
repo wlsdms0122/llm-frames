@@ -56,9 +56,12 @@ struct StillReader {
     }
 
     // MARK: - Public
-    // The picture as it is displayed, its samples as the file stores them, with no colour matched.
-    func image(path: String) throws -> CIImage {
-        CIImage(cgImage: try cgImage(path: path), options: [.colorSpace: NSNull()]).oriented(orientation)
+    // The picture as it is displayed, its samples as the file stores them, with no colour matched, decoded before it
+    // is given, and how ImageIO holds its samples.
+    func image(path: String) throws -> (image: CIImage, pixelFormat: String) {
+        let decoded = try cgImage(path: path, decodesNow: true)
+
+        return (CIImage(cgImage: decoded, options: [.colorSpace: NSNull()]).oriented(orientation), decoded.pixelFormat)
     }
 
     // The picture as it is displayed, tagged with its file's colour space, which Core Image's colour management
@@ -81,8 +84,13 @@ struct StillReader {
     }
 
     // MARK: - Private
-    private func cgImage(path: String) throws -> CGImage {
-        guard let image = CGImageSourceCreateImageAtIndex(source, 0, nil) else {
+    // An image decoded now where `decodesNow` is set, and otherwise when it is first drawn.
+    private func cgImage(
+        path: String,
+        decodesNow: Bool = false
+    ) throws -> CGImage {
+        let options = [kCGImageSourceShouldCacheImmediately: decodesNow] as CFDictionary
+        guard let image = CGImageSourceCreateImageAtIndex(source, 0, options) else {
             throw DecoderError.unreadable(file: path)
         }
 

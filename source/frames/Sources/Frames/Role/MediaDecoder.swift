@@ -52,6 +52,10 @@ package protocol MediaDecoder: Sendable {
         reading: PictureReading?
     ) throws
 
+    // What the decoder has read since it was made, how it read each medium's pictures and its time reading
+    // (FRAMES-23 Runs).
+    func readings() -> MediaReadings
+
     // The first sound track of `file` over media time [start, end) on the file's presentation timeline, at the file's
     // sample rate and channels. A range running past the end of the sound gives the frames there are, and an empty one
     // gives none, with the rate and channels.
