@@ -185,7 +185,7 @@ Feather in the mask's own coordinates: a feather would then soften with a zoom o
 
 A storyline picture and the clips grouped with it drawn as one nested list, moved together by a transition: a parent's transform already carries a clip with its picture, and a compound clip gives a group that must leave as one picture. The storyline picture alone is nested, inside its transition motion, because its own transform and the motion are two coordinate stages that one item's transform cannot hold. A transition field on the picture item: the order of the common fields would then differ for one kind of item. Both items keep the clip as their origin, as a compound clip's do, so `evaluate` and `locate` still see one place.
 
-A decoder that takes a page's whole map to the output, and not a region at a scale: a page would be drawn as its paths are in place, but every frame of a pan would draw it again, 1 to 2 s for a dense page ([FRAMES-21](../FRAMES-21/SPEC.md#notes)), and its thin lines would shimmer as the offset moves.
+A decoder that takes a page's whole map to the output, and not a region at a scale: a page would be drawn as its paths are in place, but every frame of a pan would draw it again, on the order of a second for a dense page ([FRAMES-21](../FRAMES-21/SPEC.md#notes)), and its thin lines would shimmer as the offset moves.
 
 A compound clip with an empty chain folded into the bus that holds it, its level multiplied into its sounds' gain envelopes: a compound clip's level would then reach its sounds by two paths, and their samples differ where an inner gain and the level both move, so adding an entry that changes nothing to a chain would change the sound. Every compound clip is a bus, and its level is applied to its sum.
 

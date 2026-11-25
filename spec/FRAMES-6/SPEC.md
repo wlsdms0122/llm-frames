@@ -22,7 +22,7 @@ Every document is a JSON object with a `kind`. `kind` is required and its only v
 
 ### Stills
 
-A still result is a sequence rendered as one frame. `render` with a `.png` output writes the frame at `--at <t>` in sequence seconds, default 0 ([FRAMES-23](../FRAMES-23/SPEC.md)). Any sequence gives a still. A sequence made to be one is usually a single still storyline clip with clips connected to it.
+A still result is a sequence rendered as one frame. `render` with a `.png` output writes the frame at `--at <t>` in sequence seconds, default 0 ([FRAMES-23](../FRAMES-23/SPEC.md)). Any sequence gives a still. A sequence made to be one is, for example, a single still storyline clip with clips connected to it.
 
 A still is edited as a sequence of still clips, with the keys a video uses:
 
