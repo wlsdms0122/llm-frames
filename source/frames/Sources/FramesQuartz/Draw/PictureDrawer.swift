@@ -10,8 +10,11 @@ import CoreImage
 import Frames
 
 // Draws a picture item in its item's own coordinates: the source region scaled into the destination, filtered,
-// masked by its matte, its corners rounded, and its border over it along the destination's edge. A picture with no
-// filter or matte is drawn straight from its source, so it is resampled once on its way to the output. A filtered
+// masked by its matte, its corners rounded, and its border over it along the destination's edge. Every source is
+// resampled onto the context's pixels by `PictureResampler` (FRAMES-21 Rules) and drawn there on whole pixels, covered
+// once at each edge: by the resampler where the destination's corners are square, and by a clip to the destination
+// with its corners rounded where they are not, the source then extended past the destination. A picture with no
+// filter or matte is resampled from its source straight onto the output. A filtered
 // picture is filtered at the scale the context shows its destination at, held to the pixel limit, its filter's
 // lengths scaled with it, so it is as sharp as the source it is drawn from. It is filtered over the part of its
 // destination that reaches the context, grown by how far its filter reads, on the pixel grid of the whole
@@ -48,11 +51,17 @@ struct PictureDrawer {
             placement = placed
         }
         guard !item.filter.isEmpty || item.matte != nil else {
-            framed(item, in: context) { context in
-                guard let source else { return }
-
-                context.concatenate(placement)
-                source.draw(in: context)
+            if let source {
+                if item.radius == 0 {
+                    if let shown = item.shownSource(ofSourceSized: source.size) {
+                        try resampled(source, placedBy: placement, covering: shown, compositing: compositing, in: context)
+                    }
+                } else {
+                    let extended = item.extendedSource(ofSourceSized: source.size)
+                    try framed(item, in: context) { context in
+                        try resampled(source, placedBy: placement, covering: extended, compositing: compositing, in: context)
+                    }
+                }
             }
             border(of: item, carriedBy: transform, in: context)
 
@@ -78,10 +87,15 @@ struct PictureDrawer {
             .concatenating(CGAffineTransform(translationX: -part.minX, y: -part.minY))
         let scaled = try FrameContext(holding: partSize, compositing: compositing)
         scaled.context.concatenate(local)
-        scaled.context.clip(to: destination)
+        // The source reaches past the destination, as a filter reads past its edge, and is cut to it after the filter.
         if let source {
-            scaled.context.concatenate(placement)
-            source.draw(in: scaled.context)
+            try resampled(
+                source,
+                placedBy: placement,
+                covering: item.extendedSource(ofSourceSized: source.size),
+                compositing: compositing,
+                in: scaled.context
+            )
         }
 
         // Core Image counts rows from the bottom, so the part lies at its place in the whole destination's image, and
@@ -107,10 +121,19 @@ struct PictureDrawer {
         )
         let finished = try FrameContext(holding: partSize, compositing: compositing)
         finished.context.concatenate(local)
-        framed(item, in: finished.context) { context in
+        try framed(item, in: finished.context) { context in
             context.drawUpright(filtered, in: bounds)
         }
-        context.drawUpright(try finished.image(), in: bounds)
+        // The finished part's pixels, in units of the item's coordinates from the part's top left, covered by their own
+        // bounds, whose alpha already holds the destination's edge.
+        let finishedPart = SourceImage(try finished.image(), of: bounds.size, transform: CGAffineTransform(scaleX: scale, y: scale))
+        try resampled(
+            finishedPart,
+            placedBy: CGAffineTransform(translationX: bounds.minX, y: bounds.minY),
+            covering: CGRect(origin: .zero, size: bounds.size),
+            compositing: compositing,
+            in: context
+        )
         border(of: item, carriedBy: transform, in: context)
     }
 
@@ -157,13 +180,60 @@ struct PictureDrawer {
     private func framed(
         _ item: PictureItem,
         in context: CGContext,
-        drawing: (CGContext) -> Void
-    ) {
+        drawing: (CGContext) throws -> Void
+    ) throws {
         context.saveGState()
+        defer { context.restoreGState() }
+
         context.addPath(PathOutline(.rect(item.destination, radius: item.radius)).path)
         context.clip()
-        drawing(context)
-        context.restoreGState()
+        try drawing(context)
+    }
+
+    // Draws `source`, carried into the item's coordinates by `placement`, resampled onto the context's pixels and
+    // covered by `cover`, a rectangle of the source's coordinates, over the part of the context its clip leaves. A
+    // source moved by whole pixels at its own size, cut on whole pixels inside it, is its own pixels, which Core
+    // Graphics copies as they are.
+    private func resampled(
+        _ source: SourceImage,
+        placedBy placement: CGAffineTransform,
+        covering cover: CGRect,
+        compositing: Compositing,
+        in context: CGContext
+    ) throws {
+        // Core Image counts the source's rows from the bottom, as the context's device space counts its own.
+        let device = context.ctm
+        let imageBounds = CGRect(x: 0, y: 0, width: source.image.width, height: source.image.height)
+        let flip = CGAffineTransform(a: 1, b: 0, c: 0, d: -1, tx: 0, ty: imageBounds.height)
+        let map = flip.concatenating(source.transform.inverted()).concatenating(placement).concatenating(device)
+        let covered = cover.applying(source.transform).applying(flip)
+        let area = context.boundingBoxOfClipPath
+            .applying(device)
+            .integral
+            .intersection(CGRect(x: 0, y: 0, width: context.width, height: context.height))
+        guard !area.isNull, !area.isEmpty else { return }
+
+        let resampler = PictureResampler()
+        context.saveGState()
+        defer { context.restoreGState() }
+
+        if let landed = resampler.wholePixels(of: map, covering: covered, within: area),
+           imageBounds.applying(map).contains(landed) {
+            context.concatenate(device.inverted())
+            context.clip(to: landed)
+            context.interpolationQuality = .none
+            context.draw(source.image, in: imageBounds.applying(map))
+
+            return
+        }
+
+        let image = try resampler.resample(CIImage(cgImage: source.image), through: map, covering: covered, within: area)
+        guard !image.extent.isEmpty else { return }
+
+        let drawn = try FrameContext.cgImage(of: image, in: image.extent, compositing: compositing)
+        context.concatenate(device.inverted())
+        context.interpolationQuality = .none
+        context.draw(drawn, in: image.extent)
     }
 
     // The border along the carried outline of the destination with its corners rounded, a stroke with miter joins on

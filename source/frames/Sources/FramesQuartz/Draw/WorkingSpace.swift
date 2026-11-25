@@ -11,7 +11,7 @@ import Frames
 
 // The two forms of the working values (FRAMES-26) as Core Graphics colour spaces, extended sRGB for the encoded form
 // and extended linear sRGB for the linear one, and a Core Image context working in each. A list is drawn in the form
-// its `compositing` names, so Core Graphics composites, covers edges and resamples in it, and Core Image blurs and
+// its `compositing` names, so Core Graphics composites and covers edges in it, and Core Image resamples, blurs and
 // mixes in it; a formula with a home of its own converts to that home inside its kernel.
 enum WorkingSpace {
     static let encoded = CGColorSpace(name: CGColorSpace.extendedSRGB)!
