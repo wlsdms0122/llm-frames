@@ -92,9 +92,9 @@ struct SequenceAudioFilterTests {
         // When
         let plan = try plan(#"""
             { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "out": 4 } ],
-              "clips": [ { "kind": "media", "media": { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "out": 2 } ],
+              "clips": [ { "kind": "audio", "media": { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "out": 2 } ],
                                       "audioFilter": { "op": "limiter", "ceiling": -6 } },
-                           "picture": false, "at": 1, "audioFilter": { "op": "gate", "threshold": -50 } } ] }
+                           "at": 1, "audioFilter": { "op": "gate", "threshold": -50 } } ] }
             """#)
 
         // Then
@@ -148,9 +148,9 @@ struct SequenceAudioFilterTests {
         // Given
         let plan = try Fixture.documentPlanner.plan(Fixture.json(#"""
             { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "out": 4 } ],
-              "clips": [ { "kind": "media", "media": { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "out": 2 } ],
+              "clips": [ { "kind": "audio", "media": { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "out": 2 } ],
                                       "audioFilter": { "op": "limiter", "ceiling": -6 } },
-                           "picture": false, "at": 1 } ],
+                           "at": 1 } ],
               "audioFilter": { "op": "limiter", "lookahead": 0.01 } }
             """#))
 

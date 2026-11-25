@@ -24,7 +24,7 @@ struct ResolvedMotionBlurTests {
           "clips": [ { "at": [0, 1], "kind": "rect", "area": [0, 0, 10, 10], "fill": "accent" },
                      { "at": [0, 1], "kind": "adjustment", "adjust": "mine/grade" },
                      { "at": [0, 1], "kind": "media", "media": "/abs/page.png", "width": 20 },
-                     { "kind": "media", "media": "/abs/bgm.m4a", "at": 0 } ] }
+                     { "kind": "audio", "media": "/abs/bgm.m4a", "at": 0 } ] }
         """#
 
     // MARK: - Initializer

@@ -30,8 +30,8 @@ struct SequenceReaderTests {
                 { "kind": "solid", "color": "#000000", "duration": 1, "transition": "cut" }
               ],
               "clips": [
-                { "at": 1.0, "kind": "media", "media": "/abs/ding.wav", "in": 0, "out": 1.5 },
-                { "kind": "media", "media": { "imageSequence": "/abs/frames", "fps": 30 }, "loop": true, "lane": -1, "parent": "run", "placement": "top" },
+                { "at": 1.0, "kind": "audio", "media": "/abs/ding.wav", "in": 0, "out": 1.5 },
+                { "kind": "media", "media": { "kind": "imageSequence", "directory": "/abs/frames", "fps": 30 }, "loop": true, "lane": -1, "parent": "run", "placement": "top" },
                 { "kind": "adjustment", "adjust": "frames/vivid", "animation": { "entrance": "frames/pop", "exit": "none" } },
                 { "kind": "title", "text": [ { "text": "Ana\n" }, { "text": "Director", "style": "role" } ], "style": "name" }
               ] }
@@ -77,7 +77,7 @@ struct SequenceReaderTests {
     @Test("a page of a PDF reads as its file and its page number")
     func readsPage() throws {
         // Given
-        let document = try Fixture.json(#"{ "kind": "sequence", "storyline": [ { "kind": "media", "media": { "file": "/abs/deck.pdf", "page": 3 }, "colorSpace": "rec709" } ] }"#)
+        let document = try Fixture.json(#"{ "kind": "sequence", "storyline": [ { "kind": "media", "media": { "kind": "page", "file": "/abs/deck.pdf", "page": 3 }, "colorSpace": "rec709" } ] }"#)
 
         // When
         let sequence = sut.sequence(from: document)
@@ -111,7 +111,7 @@ struct SequenceReaderTests {
         // Given
         let document = try Fixture.json(#"""
             { "kind": "sequence", "storyline": [
-              { "kind": "media", "media": { "template": "shorts/leak", "args": { "clip": "/abs/run.mp4" } } },
+              { "kind": "media", "media": { "kind": "template", "template": "shorts/leak", "args": { "clip": "/abs/run.mp4" } } },
               { "kind": "media", "media": "/abs/run.mp4" }
             ] }
             """#)

@@ -234,7 +234,7 @@ struct ReferenceLibraryTests {
     func refusesSelfInstance() throws {
         // Given
         try directory.write(
-            #"{ "kind": "sequence", "params": {}, "storyline": [ { "kind": "media", "media": { "template": "shorts/loop" } } ] }"#,
+            #"{ "kind": "sequence", "params": {}, "storyline": [ { "kind": "media", "media": { "kind": "template", "template": "shorts/loop" } } ] }"#,
             in: "shorts",
             at: "templates/loop.json"
         )

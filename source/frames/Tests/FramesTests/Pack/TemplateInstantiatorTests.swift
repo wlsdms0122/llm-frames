@@ -99,14 +99,14 @@ struct TemplateInstantiatorTests {
     func takesImageSequenceAsVideo() throws {
         // Given
         let template = try template(template)
-        let arguments = try Fixture.object(#"{ "clip": { "imageSequence": "/abs/frames", "fps": 12 } }"#)
+        let arguments = try Fixture.object(#"{ "clip": { "kind": "imageSequence", "directory": "/abs/frames", "fps": 12 } }"#)
 
         // When
         let instance = try sut.instance(of: template, arguments: arguments, place: place)
 
         // Then
         let media = instance.document.objectValue?["storyline"]?.arrayValue?[0].objectValue?["media"]
-        #expect(media == (try Fixture.json(#"{ "imageSequence": "/abs/frames", "fps": 12 }"#)))
+        #expect(media == (try Fixture.json(#"{ "kind": "imageSequence", "directory": "/abs/frames", "fps": 12 }"#)))
     }
 
     @Test("a default media of another kind than its parameter stops at the default in the template")
@@ -224,7 +224,7 @@ struct TemplateInstantiatorTests {
 
     @Test(
         "an image parameter takes every still, an image or a page of a PDF",
-        arguments: [#""/abs/card.png""#, #""/abs/logo.pdf""#, #"{ "file": "/abs/deck.pdf", "page": 4 }"#]
+        arguments: [#""/abs/card.png""#, #""/abs/logo.pdf""#, #"{ "kind": "page", "file": "/abs/deck.pdf", "page": 4 }"#]
     )
     func takesPageAsImage(argument: String) throws {
         // Given
@@ -243,7 +243,7 @@ struct TemplateInstantiatorTests {
     func refusesPageAsVideo() throws {
         // Given
         let template = try template(template)
-        let arguments = try Fixture.object(#"{ "clip": { "file": "/abs/deck.pdf", "page": 4 } }"#)
+        let arguments = try Fixture.object(#"{ "clip": { "kind": "page", "file": "/abs/deck.pdf", "page": 4 } }"#)
 
         // When, Then
         let error = #expect(throws: PackError.self) { try sut.instance(of: template, arguments: arguments, place: place) }

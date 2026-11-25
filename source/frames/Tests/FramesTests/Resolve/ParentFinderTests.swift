@@ -46,7 +46,7 @@ struct ParentFinderTests {
             ),
             (
                 #"""
-                { "id": "sound", "kind": "media", "media": "/abs/bgm.m4a", "at": [0, 1] },
+                { "id": "sound", "kind": "audio", "media": "/abs/bgm.m4a", "at": [0, 1] },
                 { "kind": "rect", "stroke": { "width": 8 }, "area": [0, 0, 10, 10], "at": [0, 1], "parent": "sound" }
                 """#,
                 #"clips[1].parent (rect): "sound" is an audio clip, which has no picture to be a parent"#

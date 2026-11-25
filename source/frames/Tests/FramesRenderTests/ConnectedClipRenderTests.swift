@@ -34,7 +34,7 @@ struct ConnectedClipRenderTests {
     private let presets = [
         "transition/dip": #"""
             { "description": "a dip to white", "seconds": 1, "ease": "linear",
-              "cover": { "color": "#FFFFFF", "keys": [ { "t": 0, "opacity": 0 }, { "t": 0.5, "opacity": 1 }, { "t": 1, "opacity": 0 } ] } }
+              "cover": { "kind": "solid", "color": "#FFFFFF", "keys": [ { "t": 0, "opacity": 0 }, { "t": 0.5, "opacity": 1 }, { "t": 1, "opacity": 0 } ] } }
             """#,
         "transition/wipe": #"""
             { "description": "the incoming clip wiped in from the left", "seconds": 1, "ease": "linear",

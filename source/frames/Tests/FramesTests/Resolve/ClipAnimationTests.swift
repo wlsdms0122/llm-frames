@@ -49,7 +49,7 @@ struct ClipAnimationTests {
                 { "at": [0, 1], "kind": "rect", "stroke": { "width": 8 }, "area": [0, 0, 10, 10] },
                 { "at": [0, 1], "kind": "media", "media": "/abs/log.png" },
                 { "at": [0, 1], "kind": "media", "media": "/abs/log.png", "animation": "none" },
-                { "kind": "media", "media": "/abs/bgm.m4a" },
+                { "kind": "audio", "media": "/abs/bgm.m4a" },
                 { "at": [0, 1], "kind": "ellipse", "fill": "accent", "area": [0, 0, 10, 10] },
                 { "at": [0, 1], "kind": "path", "stroke": { "width": 8 }, "points": [[0, 0], [10, 10]] },
                 { "at": [0, 1], "kind": "adjustment", "adjust": "frames/vivid" }

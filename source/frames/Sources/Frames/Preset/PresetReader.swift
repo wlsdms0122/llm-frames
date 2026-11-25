@@ -382,10 +382,13 @@ struct PresetReader: Sendable {
         ease: Ease
     ) throws -> Cover {
         let object = value.objectValue ?? JSONObject()
-        let source: CoverSource = if let page = object["media"]?.objectValue {
+        let media = object["media"]
+        let source: CoverSource = if object["kind"]?.stringValue == "solid" {
+            .color(object["color"]?.stringValue ?? "")
+        } else if let page = media?.objectValue {
             .page(page["file"]?.stringValue ?? "", page: Self.page(of: page))
         } else {
-            object["media"]?.stringValue.map(CoverSource.media) ?? .color(object["color"]?.stringValue ?? "")
+            .media(media?.stringValue ?? "")
         }
         return Cover(
             source: source,
@@ -410,7 +413,7 @@ struct PresetReader: Sendable {
         )
     }
 
-    // The number of a page `{file, page}` names, which the key check found a whole number from 1.
+    // The number a page of a PDF names in its `page`, which the key check found a whole number from 1.
     private static func page(of object: JSONObject) -> Int {
         object["page"]?.numberValue.flatMap { Int(exactly: $0) } ?? 1
     }

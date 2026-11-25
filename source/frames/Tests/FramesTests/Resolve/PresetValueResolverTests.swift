@@ -47,20 +47,20 @@ struct PresetValueResolverTests {
             at: "presets/transition/wipe.json"
         )
         try directory.write(
-            #"{ "description": "stinger", "seconds": 1, "cover": { "media": "/abs/stinger.mov", "keys": [] } }"#,
+            #"{ "description": "stinger", "seconds": 1, "cover": { "kind": "media", "media": "/abs/stinger.mov", "keys": [] } }"#,
             in: "shorts",
             at: "presets/transition/stinger.json"
         )
         try directory.write(
             #"""
-            { "description": "deck", "seconds": 1, "cover": { "media": { "file": "shorts/deck.pdf", "page": 2 } },
-              "matte": { "media": { "file": "/abs/logo.pdf", "page": 1 } } }
+            { "description": "deck", "seconds": 1, "cover": { "kind": "media", "media": { "kind": "page", "file": "shorts/deck.pdf", "page": 2 } },
+              "matte": { "media": { "kind": "page", "file": "/abs/logo.pdf", "page": 1 } } }
             """#,
             in: "shorts",
             at: "presets/transition/deck.json"
         )
         try directory.write(
-            #"{ "description": "zero", "seconds": 1, "matte": { "media": { "file": "/abs/logo.pdf", "page": 0 } } }"#,
+            #"{ "description": "zero", "seconds": 1, "matte": { "media": { "kind": "page", "file": "/abs/logo.pdf", "page": 0 } } }"#,
             in: "shorts",
             at: "presets/transition/zero.json"
         )
@@ -178,7 +178,7 @@ struct PresetValueResolverTests {
         // Given
         let document = try Fixture.json(#"""
             { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "in": 0, "out": 2 } ],
-              "clips": [ { "kind": "media", "media": "/abs/bgm.m4a", "audioFilter": "shorts/room" } ] }
+              "clips": [ { "kind": "audio", "media": "/abs/bgm.m4a", "audioFilter": "shorts/room" } ] }
             """#)
         let hall = directory.installed.appendingPathComponent("shorts/media/hall.wav").standardizedFileURL.path
 

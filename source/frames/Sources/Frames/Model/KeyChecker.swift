@@ -263,6 +263,15 @@ struct KeyChecker: Sendable {
                 try checkShutter(object, place: place)
             }
 
+        case let .kinds(table):
+            guard let object = value.objectValue else { throw wrongType(value, type, place, kind) }
+
+            let name = try writtenKind(of: object, among: table.names, place: place, kind: table.kind, scope: &scope)
+            // The check lets only the names of the table through.
+            if let kindTable = table.tables[name] {
+                try checkObject(object, as: kindTable, place: place, skipping: ["kind"], scope: &scope)
+            }
+
         case let .oneOf(types):
             try checkAlternatives(value, as: types, place: place, kind: kind, scope: &scope)
 
@@ -768,24 +777,41 @@ struct KeyChecker: Sendable {
             try checkParameterReference(object, as: .media, place: place, kind: kind, scope: &scope)
             _ = try parameterKind(of: object, place: place, kind: kind, scope: scope)
 
-        case let .object(object) where object.contains("kind"):
-            try checkDocument(value, place: place, kind: kind, isNested: true, scope: &scope)
+        case let .object(object):
+            switch try writtenKind(of: object, among: MediaKeyTable.kinds, place: place, kind: "media", scope: &scope) {
+            case "page":
+                try checkObject(object, as: MediaKeyTable.page, place: place, skipping: ["kind"], scope: &scope)
 
-        case let .object(object) where object.contains("imageSequence"):
-            try checkObject(object, as: MediaKeyTable.imageSequence, place: place, scope: &scope)
+            case "imageSequence":
+                try checkObject(object, as: MediaKeyTable.imageSequence, place: place, skipping: ["kind"], scope: &scope)
 
-        case let .object(object) where object.contains("template"):
-            try checkObject(object, as: TemplateKeyTable.instance, place: place, scope: &scope)
+            case "template":
+                try checkObject(object, as: TemplateKeyTable.instance, place: place, skipping: ["kind"], scope: &scope)
 
-        case let .object(object) where object.contains("file"):
-            try checkObject(object, as: MediaKeyTable.page, place: place, scope: &scope)
-
-        case .object:
-            throw ModelError.missingKey(place: place, kind: "media", keys: MediaKeyTable.keys)
+            default:
+                try checkDocument(value, place: place, kind: kind, isNested: true, scope: &scope)
+            }
 
         default:
             throw wrongType(value, .media, place, kind)
         }
+    }
+
+    // The kind an object of several kinds names with `kind`, one of `names`.
+    private func writtenKind(
+        of object: JSONObject,
+        among names: [String],
+        place: Place,
+        kind: String,
+        scope: inout DocumentScope
+    ) throws -> String {
+        guard let written = object["kind"] else {
+            throw ModelError.missingKey(place: place, kind: kind, keys: ["kind"])
+        }
+
+        try check(written, as: .literal(names), place: place.appending(key: "kind"), kind: kind, scope: &scope)
+        // The check lets only a string through.
+        return written.stringValue ?? ""
     }
 
     private func probeMedia(
@@ -806,29 +832,34 @@ struct KeyChecker: Sendable {
         scope: DocumentScope
     ) throws -> MediaKind {
         switch value {
-        case let .string(reference):
-            return try probedKind(of: reference, place: place, kind: kind)
-
         case let .object(object) where object.contains("param"):
             return try parameterKind(of: object, place: place, kind: kind, scope: scope)
 
-        case let .object(object) where object.contains("kind"):
-            return .sequence
+        case let .object(object):
+            // The shape check lets through only the kinds of media, and the one left after the others is a document.
+            switch object["kind"]?.stringValue {
+            case "page":
+                return try pageKind(
+                    of: object["file"]?.stringValue ?? "",
+                    page: object["page"]?.numberValue.flatMap { Int(exactly: $0) } ?? 0,
+                    place: place,
+                    kind: kind
+                )
 
-        case let .object(object) where object.contains("template"):
-            return try templateKind(of: object["template"] ?? .null, place: place, kind: kind, scope: scope)
+            case "imageSequence":
+                // An image sequence plays as video.
+                return .video
 
-        case let .object(object) where object.contains("file"):
-            return try pageKind(
-                of: object["file"]?.stringValue ?? "",
-                page: object["page"]?.numberValue.flatMap { Int(exactly: $0) } ?? 0,
-                place: place,
-                kind: kind
-            )
+            case "template":
+                return try templateKind(of: object["template"] ?? .null, place: place, kind: kind, scope: scope)
+
+            default:
+                return .sequence
+            }
 
         default:
-            // The only other value the shape check lets through is an image sequence, which plays as video.
-            return .video
+            // The only other value the shape check lets through is a reference.
+            return try probedKind(of: value.stringValue ?? "", place: place, kind: kind)
         }
     }
 
@@ -1028,18 +1059,11 @@ struct KeyChecker: Sendable {
 
         let clipKinds = try clipKinds(of: object, written: written, place: place, in: clipPlace, scope: &scope)
         try checkEach(clipKinds, scope: &scope) { clipKind, scope in
-            let takesSound = clipPlace != .storyline && object["picture"] == .bool(false)
-                && (clipKind == .media(.video) || clipKind == .media(.sequence))
-            let table = if takesSound {
-                ClipKeyTable.soundTable(in: clipPlace)
-            } else {
-                ClipKeyTable.table(for: clipKind, in: clipPlace)
-            }
-            let checkedKind = takesSound ? ClipKind.media(.audio) : clipKind
-            try checkKeyframedOnly(object, kind: checkedKind, place: place, in: clipPlace)
+            let table = ClipKeyTable.table(for: clipKind, in: clipPlace)
+            try checkKeyframedOnly(object, kind: clipKind, place: place, in: clipPlace)
             try checkObject(object, as: table, place: place, skipping: ["kind", "media"], scope: &scope)
-            try checkColor(of: object, kind: checkedKind, place: place)
-            try checkStaticAndKeyframed(object, kind: checkedKind, place: place, in: clipPlace)
+            try checkColor(of: object, kind: clipKind, place: place)
+            try checkStaticAndKeyframed(object, kind: clipKind, place: place, in: clipPlace)
             try checkMaskGeometry(object, place: place, scope: scope)
         }
 
@@ -1080,25 +1104,36 @@ struct KeyChecker: Sendable {
         let kind = written.stringValue ?? ""
         switch kind {
         case "media":
-            guard object.contains("media") else {
-                throw ModelError.missingKey(place: place, kind: "media", keys: ["media"])
-            }
-
-            let mediaKind = try probeMedia(
-                object["media"] ?? .null,
-                place: place.appending(key: "media"),
-                kind: generic,
-                scope: &scope
-            )
-            guard clipPlace != .storyline || mediaKind != .audio else {
+            let mediaKind = try probeMedia(of: object, kind: kind, place: place, in: clipPlace, scope: &scope)
+            // A media clip shows its media's picture.
+            guard mediaKind != .audio else {
                 throw ModelError.misplacedMedia(
-                    place: place,
-                    kind: ClipKind.media(.audio).label,
-                    reason: "a storyline clip needs a picture, and this media holds only sound"
+                    place: place.appending(key: "media"),
+                    kind: kind,
+                    reason: clipPlace == .storyline
+                        ? "this media has no picture, and a storyline clip shows one. A clip of its sound alone is a "
+                            + "connected or sequence clip of kind \"audio\""
+                        : "this media has no picture, and a media clip shows one. A clip of its sound alone is of kind "
+                            + "\"audio\""
                 )
             }
 
             return [.media(mediaKind)]
+
+        case "audio":
+            // An audio clip takes its media's sound alone, so its kind picks its keys whatever the media is, and the
+            // probe only finds media with no sound. A still has none, and a video or a compound clip without sound is
+            // known only where its media is read.
+            let mediaKind = try probeMedia(of: object, kind: kind, place: place, in: clipPlace, scope: &scope)
+            guard !mediaKind.isStill else {
+                throw ModelError.misplacedMedia(
+                    place: place.appending(key: "media"),
+                    kind: kind,
+                    reason: "a still has no sound, and an audio clip takes its media's sound"
+                )
+            }
+
+            return [.media(.audio)]
 
         case "title":
             return [.title]
@@ -1115,6 +1150,19 @@ struct KeyChecker: Sendable {
         default:
             return [.shape(kind)]
         }
+    }
+
+    // The kind of the media a clip of kind `kind` plays, which it requires.
+    private func probeMedia(
+        of clip: JSONObject,
+        kind: String,
+        place: Place,
+        in clipPlace: ClipPlace,
+        scope: inout DocumentScope
+    ) throws -> MediaKind {
+        guard let media = clip["media"] else { throw ModelError.missingKey(place: place, kind: kind, keys: ["media"]) }
+
+        return try probeMedia(media, place: place.appending(key: "media"), kind: clipPlace.label, scope: &scope)
     }
 
     // A solid's colour is one leaf, written statically or in its keyframes.
@@ -1620,7 +1668,7 @@ struct KeyChecker: Sendable {
              (.clips, .array), (.dash, .array), (.stops, .array):
             true
 
-        case (.anyObject, .object), (.map, .object), (.object, .object), (.parameters, .object),
+        case (.anyObject, .object), (.map, .object), (.object, .object), (.kinds, .object), (.parameters, .object),
              (.filterOperation, .object), (.audioOperation, .object), (.document, .object):
             true
 
@@ -1662,6 +1710,9 @@ struct KeyChecker: Sendable {
             "an object"
 
         case let .object(table):
+            "an object (\(table.kind))"
+
+        case let .kinds(table):
             "an object (\(table.kind))"
 
         case let .exactly(value):

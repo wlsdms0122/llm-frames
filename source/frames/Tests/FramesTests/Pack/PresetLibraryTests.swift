@@ -334,7 +334,7 @@ struct PresetLibraryTests {
                 "peak":   { "type": "number", "default": 1, "description": "opacity of the colour at its fullest" } },
               "seconds": { "param": "length" }, "ease": { "param": "curve" },
               "incoming": { "keys": [ { "t": 0, "opacity": 0 }, { "t": 0.5, "opacity": 0 }, { "t": 0.5, "opacity": 1 } ] },
-              "cover": { "color": { "param": "color" },
+              "cover": { "kind": "solid", "color": { "param": "color" },
                          "keys": [ { "t": 0, "opacity": 0 }, { "t": 0.5, "opacity": { "param": "peak" } }, { "t": 1, "opacity": 0 } ] } }
             """##,
             in: "studio",

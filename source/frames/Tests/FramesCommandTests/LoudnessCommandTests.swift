@@ -72,7 +72,7 @@ struct LoudnessCommandTests {
         let tone = try await sound(named: "tone.wav", end: 1)
         let document = try sut.write(#"""
             { "kind": "sequence", "format": { "size": [160, 90], "fps": 10 }, "storyline": [ { "kind": "solid", "color": "#000000", "duration": 1 } ],
-              "clips": [ { "kind": "media", "media": "\#(tone)", "at": [0, 1] } ] }
+              "clips": [ { "kind": "audio", "media": "\#(tone)", "at": [0, 1] } ] }
             """#, named: "doc.json")
         _ = sut.run(["loudness", tone, "--json", "--from", "0.25"])
         let medium = sut.standardOutput
@@ -107,7 +107,7 @@ struct LoudnessCommandTests {
         let tone = try await sound(named: "tone.wav", end: 2)
         let document = try sut.write(#"""
             { "kind": "sequence", "format": { "size": [160, 90], "fps": 10 }, "storyline": [ { "kind": "solid", "color": "#000000", "duration": 2 } ],
-              "clips": [ { "kind": "media", "media": "\#(tone)", "at": [0, 2] }, { "kind": "media", "media": "\#(tone)", "at": [0.5, 2] } ],
+              "clips": [ { "kind": "audio", "media": "\#(tone)", "at": [0, 2] }, { "kind": "audio", "media": "\#(tone)", "at": [0.5, 2] } ],
               "audioFilter": { "op": "limiter", "gain": 12, "ceiling": -1 } }
             """#, named: "doc.json")
 
@@ -192,7 +192,7 @@ struct LoudnessCommandTests {
         let tone = try await sound(named: "tone.wav", end: 1)
         let document = try sut.write(#"""
             { "kind": "sequence", "format": { "size": [160, 90], "fps": 10 }, "storyline": [ { "kind": "solid", "color": "#000000", "duration": 1 } ],
-              "clips": [ { "kind": "media", "media": "\#(tone)", "at": [0, 1] } ] }
+              "clips": [ { "kind": "audio", "media": "\#(tone)", "at": [0, 1] } ] }
             """#, named: "doc.json")
 
         for input in [tone, document] {

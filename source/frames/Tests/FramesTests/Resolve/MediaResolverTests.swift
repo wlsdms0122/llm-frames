@@ -162,7 +162,7 @@ struct MediaResolverTests {
         // Given
         let document = try Fixture.json(#"""
             { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "out": 6 } ],
-              "clips": [ { "kind": "media", "media": "/abs/reserved.mov", "picture": false, "at": 1, "out": 2 } ] }
+              "clips": [ { "kind": "audio", "media": "/abs/reserved.mov", "at": 1, "out": 2 } ] }
             """#)
 
         // When
@@ -172,15 +172,12 @@ struct MediaResolverTests {
         #expect(time.clips[0].kind == .media(.audio))
     }
 
-    @Test(
-        "a clip that shows the picture of a video no fixed formula converts stops where it writes no colour space",
-        arguments: [#", "picture": true"#, ""]
-    )
-    func refusesPictureOfUnconvertibleColor(picture: String) throws {
+    @Test("a clip that shows the picture of a video no fixed formula converts stops where it writes no colour space")
+    func refusesPictureOfUnconvertibleColor() throws {
         // Given
         let document = try Fixture.json(#"""
             { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "out": 6 } ],
-              "clips": [ { "kind": "media", "media": "/abs/reserved.mov"\#(picture), "at": 1, "out": 2 } ] }
+              "clips": [ { "kind": "media", "media": "/abs/reserved.mov", "at": 1, "out": 2 } ] }
             """#)
 
         // When

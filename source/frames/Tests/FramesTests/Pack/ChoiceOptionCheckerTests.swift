@@ -24,7 +24,7 @@ struct ChoiceOptionCheckerTests {
               "params": { "color": { "type": "color", "default": "#000000", "description": "colour of the dip" } },
               "seconds": 0.7,
               "incoming": { "keys": [ { "t": 0, "opacity": 0 }, { "t": 0.5, "opacity": 0 }, { "t": 0.5, "opacity": 1 } ] },
-              "cover": { "color": { "param": "color" }, "keys": [ { "t": 0, "opacity": 0 }, { "t": 0.5, "opacity": 1 }, { "t": 1, "opacity": 0 } ] } }
+              "cover": { "kind": "solid", "color": { "param": "color" }, "keys": [ { "t": 0, "opacity": 0 }, { "t": 0.5, "opacity": 1 }, { "t": 1, "opacity": 0 } ] } }
             """##,
             in: "studio",
             at: "presets/transition/dip.json"
@@ -106,7 +106,7 @@ struct ChoiceOptionCheckerTests {
         let sut = planner()
         let document = try Fixture.json(##"""
             { "kind": "sequence", "format": { "size": [1920, 1080] },
-              "storyline": [ { "kind": "media", "media": { "template": "studio/join", "args": { "join": "studio/dip", "unknown": 1 } } } ] }
+              "storyline": [ { "kind": "media", "media": { "kind": "template", "template": "studio/join", "args": { "join": "studio/dip", "unknown": 1 } } } ] }
             """##)
 
         // When

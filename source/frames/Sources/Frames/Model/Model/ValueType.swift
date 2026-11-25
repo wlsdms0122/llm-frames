@@ -43,6 +43,8 @@ indirect enum ValueType: Equatable, Sendable {
     case list(ValueType)
     case map(ValueType, kind: String)
     case object(ObjectTable)
+    // An object of one of the kinds of the table, which its `kind` names.
+    case kinds(KindTable)
     case oneOf([ValueType])
     case area
     case crop
