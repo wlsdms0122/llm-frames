@@ -13,8 +13,8 @@ import os
 
 // A video file's first picture track, loaded once. `frames` holds the time each presented frame is presented at, in
 // order, and frame i is `frames[i]`. `frameTimes` and `duration` are on the file's presentation timeline, which every
-// track of the file shares. One reader stays open after the last frame read, so frames in order decode forward from it
-// instead of from the previous sync sample each time.
+// track of the file shares. One reader stays open after the last frame read, until it is closed, so frames in order
+// decode forward from it instead of from the previous sync sample each time.
 final class VideoReader: Sendable {
     // MARK: - Property
     // A later frame further ahead than this, in seconds, restarts the reader at it rather than decoding up to it.
@@ -134,6 +134,12 @@ final class VideoReader: Sendable {
         guard let shown else { throw DecoderError.noFrame(file: path, index: index, count: frames.count) }
 
         return (shown, decoded, reopened)
+    }
+
+    // Lets go of the reader open on the video, so the next frame read opens one at that frame. A read in progress
+    // ends first.
+    func close() {
+        open.withLockUnchecked { $0 = nil }
     }
 
     // MARK: - Private

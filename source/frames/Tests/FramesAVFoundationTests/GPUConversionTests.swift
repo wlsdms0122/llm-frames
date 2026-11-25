@@ -12,11 +12,12 @@ import FramesTestMedia
 import Metal
 import Testing
 
-// Serialized, since AVAssetReader needs a free thread of the shared pool, which tests reading video at once can
-// all hold.
+// Serialized, so that the tests running at once read far fewer files with AVFoundation than the 64 at once at which its
+// reads stop finishing (FRAMES-21 Notes).
 @Suite(
     "GPU Conversion Tests",
     .serialized,
+    .ownThread,
     .enabled(if: MTLCreateSystemDefaultDevice() != nil, "the GPU conversion needs a Metal device")
 )
 struct GPUConversionTests {

@@ -12,9 +12,9 @@ import Testing
 
 @testable import FramesCommand
 
-// `still`, `sheet` and `extract` run end to end on the real roles. Serialized, since AVAssetReader needs a free thread
-// of the shared pool.
-@Suite("FrameCommand Tests", .serialized)
+// `still`, `sheet` and `extract` run end to end on the real roles. Serialized, so that the tests running at once read
+// far fewer files with AVFoundation than the 64 at once at which its reads stop finishing (FRAMES-21 Notes).
+@Suite("FrameCommand Tests", .serialized, .ownThread)
 struct FrameCommandTests {
     // MARK: - Property
     private let sut: TestShell

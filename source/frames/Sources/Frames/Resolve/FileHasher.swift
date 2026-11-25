@@ -8,8 +8,8 @@
 import CryptoKit
 import Foundation
 
-// Hashes each file once per resolve: it reads the file in chunks, so a long video is never held in memory, and keeps
-// the digest by path, since media, fonts and frames are named many times in one document.
+// Hashes each file once per resolve: it reads the file in chunks and holds one at a time, so a long video is never
+// held in memory, and keeps the digest by path, since media, fonts and frames are named many times in one document.
 final class FileHasher: FileHashProvider, @unchecked Sendable {
     // MARK: - Property
     private static let chunkSize = 1 << 20
@@ -48,7 +48,9 @@ final class FileHasher: FileHashProvider, @unchecked Sendable {
         while true {
             let chunk: Data?
             do {
-                chunk = try handle.read(upToCount: Self.chunkSize)
+                // Foundation hands each chunk over through a pool of objects let go of later, which a thread that
+                // drains none of its own would keep to its end, so the chunk's pool is drained once it is read.
+                chunk = try autoreleasepool { try handle.read(upToCount: Self.chunkSize) }
             } catch {
                 throw ResolveError.unreadableFile(path: path)
             }

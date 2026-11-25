@@ -15,7 +15,7 @@ import Testing
 
 // Clips with corner pins resolved on the real providers, evaluated, and drawn by the real decoder and renderer
 // (FRAMES-24). Serialized, since the stills are large and the reference mean takes every processor.
-@Suite("Corner Pin Render Tests", .serialized, .blockingLimit)
+@Suite("Corner Pin Render Tests", .serialized, .ownThread)
 struct CornerPinRenderTests {
     // MARK: - Property
     private static let mild = Quad(

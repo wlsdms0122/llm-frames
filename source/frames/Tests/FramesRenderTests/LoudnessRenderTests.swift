@@ -13,9 +13,10 @@ import Testing
 
 @testable import Frames
 
-// The loudness of a document against that of the master it renders to, on the real roles. Serialized, since
-// AVAssetReader needs a free thread of the shared pool and each test encodes.
-@Suite("Loudness Render Tests", .serialized, .blockingLimit)
+// The loudness of a document against that of the master it renders to, on the real roles. Serialized, so that the tests
+// running at once read far fewer files with AVFoundation than the 64 at once at which its reads stop finishing
+// (FRAMES-21 Notes), and since each test encodes.
+@Suite("Loudness Render Tests", .serialized, .ownThread)
 struct LoudnessRenderTests {
     // MARK: - Property
     // MARK: - Initializer

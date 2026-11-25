@@ -8,14 +8,16 @@
 import Foundation
 import FramesAVFoundation
 import FramesQuartz
+import FramesTestMedia
 import Testing
 
 @testable import Frames
 
 // A run's stroke width is written in output pixels at the title's scale factor and its unit's, and not its parent's: an
-// "I", white with a red stroke 10 wide on black, shows half the stroke drawn of red on each side of its stem across
-// and on each end of it down. Serialized, since AVAssetReader needs a free thread of the shared pool.
-@Suite("Title Stroke Render Tests", .serialized, .blockingLimit)
+// "I", white with a red stroke 10 wide on black, shows half the stroke drawn of red on each side of its stem across and
+// on each end of it down. Serialized, so that the tests running at once read far fewer files with AVFoundation than the
+// 64 at once at which its reads stop finishing (FRAMES-21 Notes).
+@Suite("Title Stroke Render Tests", .serialized, .ownThread)
 struct TitleStrokeRenderTests {
     // MARK: - Property
     private let presets = [

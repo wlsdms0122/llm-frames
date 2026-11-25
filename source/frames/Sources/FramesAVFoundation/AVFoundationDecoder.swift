@@ -17,10 +17,11 @@ import os
 // their colour by the fixed formulas of FRAMES-26: in the colour space a reading names, or the one its tags name. A
 // `platform` reading instead converts the picture from its file's colour by Core Image's colour management. A page of a
 // PDF is checked and drawn by `PageReader`. A video, a sound track and a PDF are loaded once and kept, and a video read
-// forward has its next frame read ahead by `PictureLookahead`. Made to convert on the GPU, on a machine with a Metal
-// device, it takes a video's frames read as working values to a surface by `MetalPictureConverter` wherever the
-// conversion's steps and the frame's placement allow, and every other picture on the CPU (FRAMES-21 Pictures). The
-// largest picture it holds is 16384 pixels on a side.
+// forward has its next frame read ahead by `PictureLookahead`. It keeps a reader open on the 48 videos read last, and
+// closes the reader of a video read longer ago. Made to convert on the GPU, on a machine with a Metal device, it takes
+// a video's frames read as working values to a surface by `MetalPictureConverter` wherever the conversion's steps and
+// the frame's placement allow, and every other picture on the CPU (FRAMES-21 Pictures). The largest picture it holds is
+// 16384 pixels on a side.
 // It times its reading of pictures and sound as `decode` and its conversion of them as `workingConversion`, that of a
 // frame read ahead apart as well, and tallies how it read each medium: a frame read ahead is decoded where it is read,
 // and read only when it is given (FRAMES-23 Runs). A page's draw is `decode` whole, any colour conversion included,
@@ -34,8 +35,15 @@ package final class AVFoundationDecoder: Sendable {
     // Nil for a decoder made to convert on the CPU, and on a machine with no Metal device.
     private let metal: MetalPictureConverter?
     private let managedConverter = ManagedPictureConverter()
+    // The most videos the decoder keeps a reader open on. AVFoundation decodes no frame for a 65th reader decoding at
+    // once in one process (FRAMES-21 Notes), and a video read by one of the reads ahead and callers at once may open a
+    // reader past this count.
+    private static let openReaders = 48
+
     private let lookahead = PictureLookahead()
     private let videos = OSAllocatedUnfairLock<[String: VideoReader]>(initialState: [:])
+    // The videos a frame was read from, read longest ago first, of which only the last `openReaders` keep a reader.
+    private let readOrder = OSAllocatedUnfairLock<[String]>(initialState: [])
     private let sounds = OSAllocatedUnfairLock<[String: SoundReader]>(initialState: [:])
     private let documents = OSAllocatedUnfairLock<[String: PageReader]>(initialState: [:])
     // The stages run on a caller's thread, and those run on the lookahead's threads reading ahead.
@@ -58,6 +66,23 @@ package final class AVFoundationDecoder: Sendable {
         videos.withLock { $0[path] = video }
 
         return video
+    }
+
+    // Counts the video at `path` read last, and closes the reader of each video read longer ago than the last
+    // `openReaders`, holding no video's lock while it does.
+    private func recordRead(of path: String) {
+        let closing = readOrder.withLock { order -> [String] in
+            order.removeAll { $0 == path }
+            order.append(path)
+            let closing = Array(order.prefix(max(order.count - Self.openReaders, 0)))
+            order.removeFirst(closing.count)
+
+            return closing
+        }
+        let readers = videos.withLock { videos in closing.compactMap { videos[$0] } }
+        for reader in readers {
+            reader.close()
+        }
     }
 
     // Nil for a file that is no PDF.
@@ -432,6 +457,7 @@ extension AVFoundationDecoder: MediaDecoder {
             reading: reading
         ) { [self] index, isAhead in
             let clock = isAhead ? self.aheadClock : self.clock
+            recordRead(of: path)
             if case .platform = reading {
                 let image = try clock.measure(.decode) { try video.taggedImage(atFrame: index, path: path) }
 

@@ -14,8 +14,9 @@ import Testing
 @testable import Frames
 
 // Storyline pictures drawn by the real decoder and renderer from documents resolved on the real providers, read as
-// frames before encoding. Serialized, since AVAssetReader needs a free thread of the shared pool.
-@Suite("Storyline Render Tests", .serialized, .blockingLimit)
+// frames before encoding. Serialized, so that the tests running at once read far fewer files with AVFoundation than the
+// 64 at once at which its reads stop finishing (FRAMES-21 Notes).
+@Suite("Storyline Render Tests", .serialized, .ownThread)
 struct StorylineRenderTests {
     // MARK: - Property
     // A half float has 11 significant bits, so a value from 0.5 to 1 lies 2^-11 from the next one, the widest step

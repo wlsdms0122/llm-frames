@@ -12,9 +12,10 @@ import Testing
 @testable import Frames
 @testable import FramesCommand
 
-// `probe`, `ocr`, `track`, `evaluate` and `locate` run end to end on the real roles and providers. Serialized, since
-// AVAssetReader needs a free thread of the shared pool.
-@Suite("AnalysisCommand Tests", .serialized)
+// `probe`, `ocr`, `track`, `evaluate` and `locate` run end to end on the real roles and providers. Serialized, so that
+// the tests running at once read far fewer files with AVFoundation than the 64 at once at which its reads stop
+// finishing (FRAMES-21 Notes).
+@Suite("AnalysisCommand Tests", .serialized, .ownThread)
 struct AnalysisCommandTests {
     // MARK: - Property
     private let sut: TestShell

@@ -12,9 +12,10 @@ import Testing
 @testable import Frames
 @testable import FramesCommand
 
-// `ocr`, `track`, `extract` and `sheet` read an image sequence's directory at the rate `--fps` gives it, end to end on the real
-// roles and providers. Serialized, as the other end to end suites are.
-@Suite("ImageSequenceCommand Tests", .serialized)
+// `ocr`, `track`, `extract` and `sheet` read an image sequence's directory at the rate `--fps` gives it, end to end on
+// the real roles and providers. Serialized, so that the tests running at once read far fewer files with AVFoundation
+// than the 64 at once at which its reads stop finishing (FRAMES-21 Notes).
+@Suite("ImageSequenceCommand Tests", .serialized, .ownThread)
 struct ImageSequenceCommandTests {
     // MARK: - Property
     private let sut: TestShell

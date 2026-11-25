@@ -13,9 +13,9 @@ import Testing
 
 @testable import Frames
 
-// Serialized, since AVAssetReader needs a free thread of the shared pool, which tests reading video at once can
-// all hold.
-@Suite("OCRReporter Tests", .serialized)
+// Serialized, so that the tests running at once read far fewer files with AVFoundation than the 64 at once at which its
+// reads stop finishing (FRAMES-21 Notes).
+@Suite("OCRReporter Tests", .serialized, .ownThread)
 struct OCRReporterTests {
     // MARK: - Property
     // `/abs/clip.mov` has four frames a second for a second. Its OCR finds "Second" from media second 0.5 on.

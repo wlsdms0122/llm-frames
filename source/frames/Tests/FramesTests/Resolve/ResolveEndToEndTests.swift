@@ -15,9 +15,9 @@ import Testing
 
 @testable import Frames
 
-// Serialized, since AVAssetReader needs a free thread of the shared pool, which tests reading video at once can
-// all hold.
-@Suite("Resolve End To End Tests", .serialized)
+// Serialized, so that the tests running at once read far fewer files with AVFoundation than the 64 at once at which its
+// reads stop finishing (FRAMES-21 Notes).
+@Suite("Resolve End To End Tests", .serialized, .ownThread)
 struct ResolveEndToEndTests {
     // MARK: - Property
     // How far each followed rectangle's centre may lie from where the drawn line moved it, in media pixels.
