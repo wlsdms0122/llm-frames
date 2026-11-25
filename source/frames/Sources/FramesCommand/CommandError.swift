@@ -14,6 +14,7 @@ enum CommandError: Error, Equatable, CustomStringConvertible, Sendable {
     case missingValue(command: String?, option: String, placeholder: String)
     case repeatedOption(command: String?, option: String)
     case missingOption(command: String, option: String, placeholder: String?)
+    case missingEitherOption(command: String, option: String, other: String)
     case missingArgument(command: String, placeholder: String)
     case unexpectedArgument(command: String, argument: String)
     case relativePath(command: String, option: String, path: String)
@@ -52,6 +53,9 @@ enum CommandError: Error, Equatable, CustomStringConvertible, Sendable {
 
         case let .missingOption(command, option, placeholder):
             "\(command): missing \([option, placeholder].compactMap(\.self).joined(separator: " "))"
+
+        case let .missingEitherOption(command, option, other):
+            "\(command): missing \(option) or \(other)"
 
         case let .missingArgument(command, placeholder):
             "\(command): missing \(placeholder)"

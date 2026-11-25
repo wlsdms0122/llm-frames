@@ -10,7 +10,9 @@ enum AnalysisError: Error, Equatable, CustomStringConvertible, Sendable {
     case unreadableMedia(file: String, reason: String)
     case noPicture(file: String)
     case notVideo(file: String, kind: MediaKind)
-    case areaNotFollowed(time: Double, file: String)
+    case targetNotFollowed(option: String, time: Double, file: String)
+    case quadForm
+    case quadNotConvex
     case timeOnStill(file: String)
     case beforeMediaStart(option: String, time: Double, file: String)
     case atOrAfterMediaEnd(option: String, time: Double, file: String, end: Double)
@@ -46,9 +48,16 @@ enum AnalysisError: Error, Equatable, CustomStringConvertible, Sendable {
         case let .notVideo(file, kind):
             "media \(quoted(file)) is \(kind == .audio ? "sound" : "a still"), and only a video has frames to follow"
 
-        case let .areaNotFollowed(time, file):
-            "--area: the tracker follows the area on no frame of \(quoted(file)) from media second \(number(time)), "
+        case let .targetNotFollowed(option, time, file):
+            "\(option): the tracker follows the target on no frame of \(quoted(file)) from media second \(number(time)), "
                 + "since none of it lies inside the picture or the tracker loses it there"
+
+        case .quadForm:
+            "--quad: a quadrilateral is four points [x, y] of numbers, its top left, top right, bottom right and bottom "
+                + "left corners"
+
+        case .quadNotConvex:
+            "--quad: the quadrilateral is not strictly convex, so it is no plane to follow"
 
         case let .timeOnStill(file):
             "media \(quoted(file)) is a still, whose one picture is at time 0, so it takes neither --at nor a range"
