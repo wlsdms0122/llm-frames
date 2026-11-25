@@ -330,8 +330,8 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
             "\(place) (\(kind.label)): a stroke \"\(align)\" its outline needs a closed outline, and the path is open"
 
         case let .alignedStrokeWithArrowhead(place, kind, align):
-            "\(place) (\(kind.label)): a stroke \"\(align)\" its outline takes no arrowhead, which is centred on the "
-                + "end of the stroke"
+            "\(place) (\(kind.label)): a stroke \"\(align)\" its outline takes no arrowhead, which lies across the "
+                + "outline with its tip at the end while the stroke lies on one side of it"
 
         case let .unknownParent(place, kind, id):
             "\(place) (\(kind.label)): no clip in the document has the id \(quoted(id))"
