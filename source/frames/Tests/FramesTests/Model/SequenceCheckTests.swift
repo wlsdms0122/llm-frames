@@ -289,10 +289,10 @@ struct SequenceCheckTests {
         "a clip is exactly one kind, told apart by its keys",
         arguments: [
             (#"{ "storyline": [ { "duration": 2 } ] }"#, "storyline[0] (storyline clip): needs one of media, solid"),
-            (#"{ "clips": [ { "at": [0, 1] } ] }"#, "clips[0] (clip): needs one of media, title, shape, adjust"),
+            (#"{ "clips": [ { "at": [0, 1] } ] }"#, "clips[0] (clip): needs one of media, title, shape, adjust, null"),
             (#"{ "clips": [ { "title": "a", "shape": "rect", "stroke": { "width": 8 } } ] }"#, #"clips[0] (clip): takes only one of "title", "shape""#),
             (#"{ "storyline": [ { "title": "a", "style": "headline" } ] }"#, #"storyline[0] (storyline clip): unknown key "title". Allowed: media, solid"#),
-            (##"{ "clips": [ { "solid": "#000000" } ] }"##, #"clips[0] (clip): unknown key "solid". Allowed: media, title, shape, adjust"#),
+            (##"{ "clips": [ { "solid": "#000000" } ] }"##, #"clips[0] (clip): unknown key "solid". Allowed: media, title, shape, adjust, null"#),
             (#"{ "clips": [ { "shape": "circle" } ] }"#, #"clips[0].shape (shape): unknown value "circle". Allowed: rect, ellipse, path"#)
         ]
     )
