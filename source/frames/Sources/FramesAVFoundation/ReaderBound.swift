@@ -70,6 +70,11 @@ final class ReaderBound: Sendable {
         }
     }
 
+    // Whether the video at `path` has a reader the bound admitted and has not closed since.
+    func isOpen(_ path: String) -> Bool {
+        state.withLock { $0.open[path] != nil }
+    }
+
     // MARK: - Private
 }
 

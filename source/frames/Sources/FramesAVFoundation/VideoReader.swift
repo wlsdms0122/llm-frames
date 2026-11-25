@@ -96,14 +96,10 @@ final class VideoReader: Sendable {
         ))
     }
 
-    // The picture of frame `index` as it is displayed, tagged with the colour its frame carries, which Core Image's
-    // colour management converts from.
-    func taggedImage(
-        atFrame index: Int,
-        path: String,
-        turn: Int
-    ) throws -> CIImage {
-        displayed(CIImage(cvImageBuffer: try buffer(atFrame: index, path: path, turn: turn).buffer))
+    // A buffer `buffer(atFrame:path:turn:isAdmitted:)` gave as it is displayed, tagged with the colour its frame
+    // carries, which Core Image's colour management converts from.
+    func taggedImage(of buffer: CVImageBuffer) -> CIImage {
+        displayed(CIImage(cvImageBuffer: buffer))
     }
 
     // Whether the buffer of a frame a reader read past the frame it was opened for is held.
@@ -120,14 +116,22 @@ final class VideoReader: Sendable {
     // whether a reader was opened again for it, which the first reader opened on the video is not. A reader opened for
     // it reads `turn` frames, frame `index` and the frames after it by the step from the frame asked before, within
     // `forwardReach` of it, and holds the buffers of the others, which later asks give with no reader. Every buffer
-    // held of a frame up to `index` is let go of.
+    // held of a frame up to `index` is let go of. A reader is opened only where `isAdmitted` holds, asked under the lock
+    // `close()` takes, so a close that follows the admission it asks about closes the reader it opens. Nil where the
+    // frame needs a reader opened and `isAdmitted` does not hold: nothing is read and nothing is let go of.
     func buffer(
         atFrame index: Int,
         path: String,
-        turn: Int
-    ) throws -> (buffer: CVImageBuffer, decoded: Int, reopened: Bool) {
+        turn: Int,
+        isAdmitted: () -> Bool
+    ) throws -> (buffer: CVImageBuffer, decoded: Int, reopened: Bool)? {
         let time = frames[index]
-        let (shown, decoded, reopened) = try state.withLockUnchecked { state -> (CVImageBuffer?, Int, Bool) in
+        let read = try state.withLockUnchecked { state -> (CVImageBuffer?, Int, Bool)? in
+            let readsOn = state.reader.map {
+                $0.index == index || $0.index < index && (time - $0.time).seconds <= Self.forwardReach
+            } ?? false
+            guard readsOn || state.held.contains(where: { $0.index == index }) || isAdmitted() else { return nil }
+
             let step = state.asked.map { index - $0 }.flatMap { $0 > 0 ? $0 : nil } ?? 1
             state.asked = index
             let held = state.held.first { $0.index == index }
@@ -164,6 +168,7 @@ final class VideoReader: Sendable {
 
             return (picture, reader.decoded, reopened)
         }
+        guard let (shown, decoded, reopened) = read else { return nil }
         guard let shown else { throw DecoderError.noFrame(file: path, index: index, count: frames.count) }
 
         return (shown, decoded, reopened)

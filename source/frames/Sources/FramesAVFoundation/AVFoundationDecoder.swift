@@ -98,6 +98,21 @@ package final class AVFoundationDecoder: Sendable {
         return isTurn ? Self.turnFrames : 1
     }
 
+    // The buffer of frame `index` of the video at `path` as `VideoReader` gives it, read by a reader the bound holds
+    // open: a read whose reader the bound closed between its record and its read, from another thread, or whose held
+    // frame a read ahead let go of in between, is recorded again, so every reader open is one the budget counts.
+    private func admittedBuffer(
+        of video: VideoReader,
+        at path: String,
+        frame index: Int
+    ) throws -> (buffer: CVImageBuffer, decoded: Int, reopened: Bool) {
+        while true {
+            let turn = try recordRead(of: video, at: path, frame: index)
+            let read = try video.buffer(atFrame: index, path: path, turn: turn) { readers.isOpen(path) }
+            if let read { return read }
+        }
+    }
+
     // The memory VideoToolbox's decoding service holds for a reader decoding the video, by the size of a frame as the
     // file stores it in the form it is given in: 28 frames given as Y'CbCr and 19 given as half floats, the most
     // measured on the reference machine (FRAMES-21 Notes).
@@ -492,18 +507,16 @@ extension AVFoundationDecoder: MediaDecoder {
             reading: reading
         ) { [self] index, isAhead in
             let clock = isAhead ? self.aheadClock : self.clock
-            let turn = try recordRead(of: video, at: path, frame: index)
+            let (buffer, decoded, reopened) = try clock.measure(.decode) {
+                try admittedBuffer(of: video, at: path, frame: index)
+            }
             if case .platform = reading {
-                let image = try clock.measure(.decode) { try video.taggedImage(atFrame: index, path: path, turn: turn) }
-
+                let image = video.taggedImage(of: buffer)
                 let (picture, _) = try picture(from: image, tagged: tagged, path: path, reading: reading, clock: clock)
 
                 return .bitmap(picture)
             }
 
-            let (buffer, decoded, reopened) = try clock.measure(.decode) {
-                try video.buffer(atFrame: index, path: path, turn: turn)
-            }
             let surface = try surface(of: buffer, in: video, tagged: tagged, path: path, reading: reading, clock: clock)
             if let surface {
                 record(
