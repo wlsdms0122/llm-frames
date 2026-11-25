@@ -266,12 +266,13 @@ struct EvaluatorTests {
         let clip = ResolvedStorylineClip(
             place: "storyline",
             id: nil,
-            media: .pinned(first),
-            color: nil,
+            content: .media(ResolvedStorylineMedia(
+                media: .pinned(first),
+                timeRemap: [Keyframe(at: 0, value: 4), Keyframe(at: 2, value: 0)]
+            )),
             in: 0,
             out: 2,
             speed: 1,
-            timeRemap: [Keyframe(at: 0, value: 4), Keyframe(at: 2, value: 0)],
             start: 0,
             end: 2,
             crop: .keyframes([Keyframe(at: 0, value: Crop(whole))]),
@@ -1288,8 +1289,8 @@ struct EvaluatorTests {
         ResolvedStorylineClip(
             place: "storyline",
             id: id,
-            media: media,
-            color: color.map { [Keyframe(at: start, value: $0)] },
+            content: media.map { .media(ResolvedStorylineMedia(media: $0)) }
+                ?? .solid(color.map { [Keyframe(at: start, value: $0)] } ?? []),
             in: `in`,
             out: `in` + (end - start) * speed,
             speed: speed,
@@ -1321,12 +1322,10 @@ struct EvaluatorTests {
         return ResolvedStorylineClip(
             place: entry.place,
             id: entry.id,
-            media: entry.media,
-            color: entry.color,
+            content: entry.content,
             in: entry.in,
             out: entry.out,
             speed: entry.speed,
-            timeRemap: entry.timeRemap,
             start: entry.start,
             end: entry.end,
             crop: entry.crop,

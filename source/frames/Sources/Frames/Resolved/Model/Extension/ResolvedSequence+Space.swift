@@ -24,7 +24,11 @@ extension ResolvedSequence {
         if let clip = clips.first(where: { $0.id == id }) {
             return clip.space == .box ? .box(clip.place) : .media(clip.place)
         }
-        guard let clip = storyline.first(where: { $0.id == id }), clip.media != nil, clip.cornerPin == nil else {
+        guard
+            let clip = storyline.first(where: { $0.id == id }),
+            case .media = clip.content,
+            clip.cornerPin == nil
+        else {
             return .output
         }
 
@@ -48,7 +52,13 @@ extension ResolvedSequence {
 
     // A storyline clip's own space is its media, and a solid's output pixels.
     func ownSpace(of clip: ResolvedStorylineClip) -> CoordinateSpace {
-        clip.media == nil ? .output : .media(clip.place)
+        switch clip.content {
+        case .solid:
+            .output
+
+        case .media:
+            .media(clip.place)
+        }
     }
 
     // MARK: - Private

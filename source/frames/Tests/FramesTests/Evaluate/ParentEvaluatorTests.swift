@@ -399,8 +399,7 @@ struct ParentEvaluatorTests {
                 ResolvedStorylineClip(
                     place: "storyline[0]",
                     id: "shot",
-                    media: .pinned(media),
-                    color: nil,
+                    content: .media(ResolvedStorylineMedia(media: .pinned(media))),
                     in: 0,
                     out: 2,
                     speed: 1,
@@ -415,8 +414,7 @@ struct ParentEvaluatorTests {
                 ResolvedStorylineClip(
                     place: "storyline[1]",
                     id: "next",
-                    media: nil,
-                    color: [Keyframe(at: 2, value: red)],
+                    content: .solid([Keyframe(at: 2, value: red)]),
                     in: 0,
                     out: 2,
                     speed: 1,

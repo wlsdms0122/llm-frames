@@ -62,7 +62,6 @@ struct ClipWindowTests {
         // Then
         #expect(plan.clips[0].window == TimeRange(start: 2, end: 3.5))
         #expect(plan.clips[0].mediaClock?.mediaTime(atSequenceTime: 3) == 1)
-        #expect(plan.clips[0].lane == nil)
     }
 
     @Test("a connected clip without at spans its storyline clip's edit range, whether it has a parent or not")
@@ -218,20 +217,15 @@ struct ClipWindowTests {
         #expect(plan.clips[1].keyframes.map(\.at) == [1, 2])
     }
 
-    @Test("every clip with a picture has lane 1 unless it says otherwise, and lane 0 stops")
-    func givesLanes() throws {
+    @Test("a clip in lane 0 stops")
+    func stopsZeroLane() throws {
         // Given
-        let document = try sequence(connected: #"""
-            { "kind": "title", "text": "a", "style": "subtitle" }, { "kind": "title", "text": "b", "style": "subtitle", "lane": -2 }
-            """#)
         let zero = try sequence(connected: #"{ "kind": "title", "text": "a", "style": "subtitle", "lane": 0 }"#)
 
         // When
-        let plan = try sut.plan(document: document)
+        let error = #expect(throws: ResolveError.self) { try sut.plan(document: zero) }
 
         // Then
-        #expect(plan.clips.map(\.lane) == [1, -2])
-        let error = #expect(throws: ResolveError.self) { try sut.plan(document: zero) }
         #expect(error?.description == "storyline[1]#run.connected[0].lane (title): lane 0 is the storyline. A clip takes a lane above or below it")
     }
 

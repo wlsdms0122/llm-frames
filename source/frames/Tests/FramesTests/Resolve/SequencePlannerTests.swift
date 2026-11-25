@@ -499,6 +499,25 @@ struct SequencePlannerTests {
         #expect(sut.clips[0].appearance.drawing == .sound)
     }
 
+    @Test("every clip with a picture composites in lane 1 unless it says otherwise")
+    func plansLanes() throws {
+        // Given
+        let document = #"""
+            { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4" } ],
+              "clips": [ { "kind": "rect", "fill": "#FFFFFF", "area": [0, 0, 10, 10], "at": [0, 1] },
+                         { "kind": "rect", "fill": "#FFFFFF", "area": [0, 0, 10, 10], "at": [0, 1], "lane": -2 } ] }
+            """#
+
+        // When
+        let sut = try plan(document)
+
+        // Then
+        #expect(sut.clips.map(\.appearance.drawing) == [
+            .picture(ClipComposite(lane: 1, opacity: .value(1), blend: "normal")),
+            .picture(ClipComposite(lane: -2, opacity: .value(1), blend: "normal"))
+        ])
+    }
+
     @Test("how each clip is drawn is planned, with keyframes in sequence time and filter lengths scaled")
     func plansAppearance() throws {
         // Given
@@ -522,6 +541,7 @@ struct SequencePlannerTests {
         let title = plan.clips[0].appearance
         #expect(plan.storyline[0].filter.filter() == graded)
         #expect(title.drawing == .picture(ClipComposite(
+            lane: 1,
             opacity: .keyframes([
                 PropertyKeyframe(index: 0, at: 1, value: 0, ease: .linear),
                 PropertyKeyframe(index: 1, at: 2, value: 1, ease: .easeIn)
@@ -531,7 +551,7 @@ struct SequencePlannerTests {
         #expect(title.scale == .value(Scale(2)))
         #expect(title.rotation == .value(0))
         #expect(title.shape == nil)
-        #expect(plan.clips[1].appearance.drawing == .picture(ClipComposite(opacity: .value(1), blend: "normal")))
+        #expect(plan.clips[1].appearance.drawing == .picture(ClipComposite(lane: 1, opacity: .value(1), blend: "normal")))
         #expect(plan.clips[1].appearance.shape == ShapeAppearance(
             kind: .rect,
             geometry: .area(outset: .off, anchor: nil),

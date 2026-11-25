@@ -550,9 +550,7 @@ struct RenderPipelineTests {
         let entry = ResolvedStorylineClip(
             place: "storyline[0]",
             id: nil,
-            media: .pinned(media ?? video),
-            color: nil,
-            colorSpace: mediaColorSpace,
+            content: .media(ResolvedStorylineMedia(media: .pinned(media ?? video), colorSpace: mediaColorSpace)),
             in: 0,
             out: duration,
             speed: 1,

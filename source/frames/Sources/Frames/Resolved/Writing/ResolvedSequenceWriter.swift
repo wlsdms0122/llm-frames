@@ -62,19 +62,21 @@ struct ResolvedSequenceWriter: Sendable {
             values.followed(pin.points) { points in .array(points.corners.map(values.geometryPoint)) }
         }
         let size = entry.box?.size ?? entry.cornerPin?.size
+        let shown: ResolvedStorylineMedia? = if case let .media(media) = entry.content { media } else { nil }
+        let color: [Keyframe<Color>]? = if case let .solid(color) = entry.content { color } else { nil }
 
         return .object(JSONObject(members: [
             JSONMember(key: "place", value: .string(entry.place)),
             JSONMember(key: "id", value: entry.id.map(JSONValue.string) ?? .null),
-            JSONMember(key: "kind", value: .string(entry.media == nil ? "solid" : "media")),
-            JSONMember(key: "media", value: entry.media.map(media) ?? .null),
-            JSONMember(key: "color", value: entry.color.map { values.keyframes($0, value: values.color) } ?? .null),
-            JSONMember(key: "colorSpace", value: entry.colorSpace.map { .string($0.rawValue) } ?? .null),
-            JSONMember(key: "toneMap", value: entry.isToneMapped.map(JSONValue.bool) ?? .null),
+            JSONMember(key: "kind", value: .string(shown == nil ? "solid" : "media")),
+            JSONMember(key: "media", value: shown.map { media($0.media) } ?? .null),
+            JSONMember(key: "color", value: color.map { values.keyframes($0, value: values.color) } ?? .null),
+            JSONMember(key: "colorSpace", value: shown?.colorSpace.map { .string($0.rawValue) } ?? .null),
+            JSONMember(key: "toneMap", value: shown?.isToneMapped.map(JSONValue.bool) ?? .null),
             JSONMember(key: "in", value: .number(entry.in)),
             JSONMember(key: "out", value: .number(entry.out)),
             JSONMember(key: "speed", value: .number(entry.speed)),
-            JSONMember(key: "timeRemap", value: entry.timeRemap.map(values.numbers) ?? .null),
+            JSONMember(key: "timeRemap", value: shown?.timeRemap.map(values.numbers) ?? .null),
             JSONMember(key: "start", value: .number(entry.start)),
             JSONMember(key: "end", value: .number(entry.end)),
             JSONMember(key: "size", value: size.map(values.size) ?? .null),
@@ -83,7 +85,7 @@ struct ResolvedSequenceWriter: Sendable {
                 value: entry.box.map { values.followed($0.position, value: values.geometryPoint) } ?? .null
             ),
             JSONMember(key: "anchor", value: entry.box.map { values.point($0.anchor) } ?? .null)
-        ] + (entry.media == nil ? [] : [JSONMember(key: "cornerPin", value: cornerPin ?? .null)]) + [
+        ] + (shown == nil ? [] : [JSONMember(key: "cornerPin", value: cornerPin ?? .null)]) + [
             JSONMember(key: "crop", value: crops(entry.crop)),
             JSONMember(key: "mask", value: values.masks(entry.mask)),
             JSONMember(key: "trackMatte", value: entry.trackMatte.map(trackMatte) ?? .null),

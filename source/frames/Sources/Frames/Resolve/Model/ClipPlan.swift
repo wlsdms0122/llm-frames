@@ -9,8 +9,8 @@
 // which it gives its children, except that a clip with a corner pin (`isPinned`) gives its children the space its
 // corner pin is written in (FRAMES-10). `window` is where its `at` puts it, and `visible` is the part of the window it is seen
 // or heard in. `storyline` is the index of the storyline clip a connected clip belongs to, and `clock` maps its
-// instants to sequence time. `instant`, the start of its window, is where its areas take effect. `lane` is the lane it
-// is stacked in, nil for an audio clip and a null, which draw no picture. `keyframes` are in sequence time.
+// instants to sequence time. `instant`, the start of its window, is where its areas take effect. `keyframes` are in
+// sequence time.
 struct ClipPlan: Equatable, Sendable {
     // MARK: - Property
     let place: Place
@@ -22,7 +22,6 @@ struct ClipPlan: Equatable, Sendable {
     let parent: ClipParent?
     let trackMatte: TrackMatte?
     let isMotionBlurred: Bool
-    let lane: Int?
     let clock: TimeMap
     let window: TimeRange
     let visible: TimeRange
@@ -48,7 +47,6 @@ struct ClipPlan: Equatable, Sendable {
         parent: ClipParent? = nil,
         trackMatte: TrackMatte?,
         isMotionBlurred: Bool = false,
-        lane: Int?,
         clock: TimeMap,
         window: TimeRange,
         visible: TimeRange,
@@ -67,7 +65,6 @@ struct ClipPlan: Equatable, Sendable {
         self.parent = parent
         self.trackMatte = trackMatte
         self.isMotionBlurred = isMotionBlurred
-        self.lane = lane
         self.clock = clock
         self.window = window
         self.visible = visible
@@ -90,7 +87,6 @@ struct ClipPlan: Equatable, Sendable {
             parent: parent,
             trackMatte: trackMatte,
             isMotionBlurred: isMotionBlurred,
-            lane: lane,
             clock: clock,
             window: window,
             visible: visible,
@@ -113,7 +109,6 @@ struct ClipPlan: Equatable, Sendable {
             parent: parent,
             trackMatte: trackMatte,
             isMotionBlurred: isMotionBlurred,
-            lane: lane,
             clock: clock,
             window: window,
             visible: visible,
