@@ -100,7 +100,7 @@ Their outlines, in the head's own coordinates with the tip at the origin and the
 | `diamond` | `[0, 0]`, `[-2, -2]`, `[-4, 0]`, `[-2, 2]` |
 | `bar` | `[0, 2]`, `[0, -2]`, `[-1, -2]`, `[-1, 2]` |
 
-**Note.** A circle has no exact form in cubic Bézier segments. Four segments whose tangents are 4/3 × (√2 - 1) of the radius long, the circle Core Graphics and Skia draw for an ellipse, lie at most 0.027% of the radius off it, about a thousandth of a pixel for a head 4 pixels across, and pass through it at the four vertices.
+**Note.** A circle has no exact form in cubic Bézier segments. Four segments whose tangents are 4/3 × (√2 - 1) of the radius long, the circle Core Graphics and Skia draw for an ellipse, lie at most 0.027% of the radius off it, under 6e-4 of a pixel for a head 4 pixels across, and pass through it at the four vertices.
 
 frames ships no audio preset. Audio filters are written in place or come from packs ([FRAMES-13](../FRAMES-13/SPEC.md)).
 
@@ -110,8 +110,8 @@ Their format is [FRAMES-14](../FRAMES-14/SPEC.md) and [FRAMES-15](../FRAMES-15/S
 
 ## Alternatives considered
 
-Shipping no presets: every pack would carry its own cross dissolve, and two packs' fades would differ. Presets made for one purpose, such as one that traces one kind of shape's outline in: a purpose is not frames's to ship (Tools, not purposes, README), and a shape's `trim` keyframes draw any stroke on ([FRAMES-11](../FRAMES-11/SPEC.md)). Descriptions that say when to use a preset: when to use one is a guide's judgement and differs by result, while how it looks is the same everywhere.
+Shipping no presets: every pack would carry its own cross dissolve, and two packs' fades would differ. Presets made for one purpose, such as one that traces one kind of shape's outline in: a purpose is not frames's to ship (Capabilities, not purposes, in the [README](../README.md#principles)), and a shape's `trim` keyframes draw any stroke on ([FRAMES-11](../FRAMES-11/SPEC.md)). Descriptions that say when to use a preset: when to use one is a guide's judgement and differs by result, while how it looks is the same everywhere.
 
-An open arrow stroked as a polyline, two lines with the stroke's join at the tip: a miter would reach about 1.1 stroke widths past the end of the outline and a round join would round the tip. Bands lying inside the triangle keep the tip at the end.
+An open arrow stroked as a polyline, two lines with the stroke's join at the tip: a miter would reach √5 / 2 stroke widths past the end of the outline and a round join would round the tip. Bands lying inside the triangle keep the tip at the end.
 
 ## Notes
