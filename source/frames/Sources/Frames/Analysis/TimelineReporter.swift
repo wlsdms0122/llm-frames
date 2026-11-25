@@ -42,7 +42,12 @@ package struct TimelineReporter: Sendable {
             time: time,
             storyline: timePlan.storyline.indices.map { index in
                 let clip = timePlan.storyline[index]
-                return entry(of: clip, geometry: plan.storyline[index], sound: sound(at: clip.place, in: plan), at: time)
+                return entry(
+                    of: clip,
+                    geometry: plan.storyline[index],
+                    sound: sound(at: clip.place, in: plan),
+                    at: time
+                )
             },
             clips: timePlan.clips.indices.map { index in
                 let clip = timePlan.clips[index]
@@ -82,7 +87,6 @@ package struct TimelineReporter: Sendable {
         plan.sound.first { $0.place == place }?.range
     }
 
-    // A still shows its one picture at media time 0 at every instant.
     private func entry(
         of clip: StorylinePlan,
         geometry: StorylineGeometry,
@@ -93,7 +97,7 @@ package struct TimelineReporter: Sendable {
         let shown = time.map { time in
             TimelineStorylineTime(
                 clipTime: clip.map.clipTime(atSequenceTime: time),
-                mediaTime: media.map { $0.kind.isStill ? 0 : clip.mediaTime(atSequenceTime: time) }
+                mediaTime: media.map { shownTime(of: $0, at: clip.mediaTime(atSequenceTime: time)) }
             )
         }
 
@@ -115,7 +119,7 @@ package struct TimelineReporter: Sendable {
         )
     }
 
-    // A media clip without a clock is a still, which shows media time 0 at every instant.
+    // A media clip without a clock is a still.
     private func entry(
         of clip: ClipPlan,
         geometry: ClipGeometry,
@@ -135,7 +139,9 @@ package struct TimelineReporter: Sendable {
             nil
         }
         let shown = time.map { time in
-            TimelineClipTime(mediaTime: clip.media.map { _ in clip.mediaClock?.mediaTime(atSequenceTime: time) ?? 0 })
+            TimelineClipTime(mediaTime: clip.media.map { media in
+                shownTime(of: media, at: clip.mediaClock?.mediaTime(atSequenceTime: time) ?? 0)
+            })
         }
 
         return TimelineClipEntry(
@@ -174,8 +180,7 @@ package struct TimelineReporter: Sendable {
         sequence.audio.first { $0.place == place }.map { TimeRange(start: $0.start, end: $0.end) }
     }
 
-    // A clip is drawn from the start of its incoming transition to the end of its outgoing one. A still shows its one
-    // picture at media time 0 at every instant.
+    // A clip is drawn from the start of its incoming transition to the end of its outgoing one.
     private func entry(
         of clip: ResolvedStorylineClip,
         outgoing: ResolvedStorylineClip?,
@@ -190,7 +195,7 @@ package struct TimelineReporter: Sendable {
         let shown = time.map { time in
             TimelineStorylineTime(
                 clipTime: clip.map.clipTime(atSequenceTime: time),
-                mediaTime: clip.media.map { kind(of: $0).isStill ? 0 : clip.mediaTime(at: time) }
+                mediaTime: clip.media.map { shownTime(of: $0, at: clip.mediaTime(at: time)) }
             )
         }
 
@@ -222,7 +227,9 @@ package struct TimelineReporter: Sendable {
             sequence.storyline.first { $0.id == id }?.place ?? sequence.clips.first { $0.id == id }?.place
         }
         let media: ResolvedMediaClip? = if case let .media(media) = clip.content { media } else { nil }
-        let shown = time.map { time in TimelineClipTime(mediaTime: media?.mediaTime(at: time)) }
+        let shown = time.map { time in
+            TimelineClipTime(mediaTime: media.map { shownTime(of: $0.media, at: $0.mediaTime(at: time)) })
+        }
 
         return TimelineClipEntry(
             place: clip.place,
@@ -301,6 +308,27 @@ package struct TimelineReporter: Sendable {
         case let .page(file, _):
             return file.path
         }
+    }
+
+    // The media time an entry gives where its time map gives `mediaTime`: the pinned time of the frame shown there, the
+    // one `evaluate` names (FRAMES-23), 0 for a still, which has one picture, and `mediaTime` itself for a nested
+    // sequence, which picks no frame of its own, and for sound, which has no frames.
+    private func shownTime(
+        of media: MediaPlan,
+        at mediaTime: Double
+    ) -> Double {
+        guard case let .file(file) = media.source, media.kind != .audio else { return mediaTime }
+
+        return file.frameTime(at: mediaTime) ?? 0
+    }
+
+    private func shownTime(
+        of media: ResolvedMediaContent,
+        at mediaTime: Double
+    ) -> Double {
+        guard case let .pinned(pinned) = media else { return mediaTime }
+
+        return pinned.frameTime(at: mediaTime) ?? 0
     }
 
     // A nested sequence has no file of its own.
