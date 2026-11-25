@@ -56,8 +56,8 @@ struct DefaultChoiceTests {
         // Given
         let document = try Fixture.json(#"""
             { "kind": "sequence", "theme": { "defaults": { "animation": { "shape": "frames/pulse" } } },
-              "storyline": [ { "solid": "#000000", "duration": 3 } ],
-              "clips": [ { "shape": "rect", "area": [0, 0, 10, 10], "fill": "#FFFFFF", "at": [0, 3], "animation": { "args": {} } } ] }
+              "storyline": [ { "kind": "solid", "color": "#000000", "duration": 3 } ],
+              "clips": [ { "kind": "rect", "area": [0, 0, 10, 10], "fill": "#FFFFFF", "at": [0, 3], "animation": { "args": {} } } ] }
             """#)
 
         // When
@@ -89,27 +89,27 @@ struct DefaultChoiceTests {
         "a filter without a preset, its arguments or its mix, stops over a default list, over none, and on an adjustment",
         arguments: [
             (
-                #"{ "media": "/abs/card.png", "at": [0, 1], "filter": { "args": {} } }"#,
+                #"{ "kind": "media", "media": "/abs/card.png", "at": [0, 1], "filter": { "args": {} } }"#,
                 #"["frames/warm", "frames/warm"]"#,
                 "clips[0].filter (image): a choice without a preset over the theme's default list (theme.defaults.filter), where which entry it changes is ambiguous"
             ),
             (
-                #"{ "media": "/abs/card.png", "at": [0, 1], "filter": { "args": {} } }"#,
+                #"{ "kind": "media", "media": "/abs/card.png", "at": [0, 1], "filter": { "args": {} } }"#,
                 #""none""#,
                 "clips[0].filter (image): a choice without a preset changes the theme's default, which is none here (theme.defaults.filter)"
             ),
             (
-                #"{ "media": "/abs/card.png", "at": [0, 1], "filter": { "mix": 0.5 } }"#,
+                #"{ "kind": "media", "media": "/abs/card.png", "at": [0, 1], "filter": { "mix": 0.5 } }"#,
                 #"["frames/warm", "frames/warm"]"#,
                 "clips[0].filter (image): a choice without a preset over the theme's default list (theme.defaults.filter), where which entry it changes is ambiguous"
             ),
             (
-                #"{ "media": "/abs/card.png", "at": [0, 1], "filter": { "mix": 0.5 } }"#,
+                #"{ "kind": "media", "media": "/abs/card.png", "at": [0, 1], "filter": { "mix": 0.5 } }"#,
                 #""none""#,
                 "clips[0].filter (image): a choice without a preset changes the theme's default, which is none here (theme.defaults.filter)"
             ),
             (
-                #"{ "adjust": { "args": {} }, "at": [0, 1] }"#,
+                #"{ "kind": "adjustment", "adjust": { "args": {} }, "at": [0, 1] }"#,
                 #""frames/warm""#,
                 "clips[0].adjust (adjustment): a choice without a preset changes the theme's default, and this clip takes none"
             )
@@ -123,7 +123,7 @@ struct DefaultChoiceTests {
         // Given
         let document = try Fixture.json(#"""
             { "kind": "sequence", "theme": { "defaults": { "filter": \#(defaults) } },
-              "storyline": [ { "media": "/abs/run.mp4", "in": 0, "out": 3 } ], "clips": [ \#(clip) ] }
+              "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "in": 0, "out": 3 } ], "clips": [ \#(clip) ] }
             """#)
 
         // When, Then
@@ -138,7 +138,7 @@ struct DefaultChoiceTests {
         // Given
         let document = try Fixture.json(#"""
             { "kind": "sequence", "theme": { "defaults": { "filter": "frames/warm" } },
-              "storyline": [ { "media": "/abs/run.mp4", "in": 0, "out": 3, "filter": { "args": {} } } ] }
+              "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "in": 0, "out": 3, "filter": { "args": {} } } ] }
             """#)
 
         // When
@@ -155,7 +155,7 @@ struct DefaultChoiceTests {
     ) throws -> JSONValue {
         try Fixture.json(#"""
             { "kind": "sequence", "theme": { "defaults": { "transition": \#(defaults) } },
-              "storyline": [ { "solid": "#000000", "duration": 3 }, { "solid": "#FFFFFF", "duration": 3, "transition": \#(choice) } ] }
+              "storyline": [ { "kind": "solid", "color": "#000000", "duration": 3 }, { "kind": "solid", "color": "#FFFFFF", "duration": 3, "transition": \#(choice) } ] }
             """#)
     }
 }

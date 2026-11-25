@@ -232,7 +232,7 @@ struct ShippedFilterPresetTests {
         let document = try shell.write(
             #"""
             { "kind": "sequence", "format": { "size": [1206, 400], "fps": 10 },
-              "storyline": [ { "media": "\#(image)", "duration": 1, "filter": "frames/\#(name)" } ] }
+              "storyline": [ { "kind": "media", "media": "\#(image)", "duration": 1, "filter": "frames/\#(name)" } ] }
             """#,
             named: "\(name).json"
         )

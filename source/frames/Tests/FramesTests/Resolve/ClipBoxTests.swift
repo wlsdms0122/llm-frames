@@ -40,7 +40,7 @@ struct ClipBoxTests {
         anchor: Point
     ) throws {
         // Given
-        let clip = #"{ "media": "/abs/card.png", "at": [0, 3], "width": 300, "placement": "\#(placement)" }"#
+        let clip = #"{ "kind": "media", "media": "/abs/card.png", "at": [0, 3], "width": 300, "placement": "\#(placement)" }"#
 
         // When
         let box = try box(of: clip)
@@ -57,7 +57,7 @@ struct ClipBoxTests {
     @Test("a media clip without a placement or position sits in the centre of the output frame")
     func centresMediaByDefault() throws {
         // When
-        let box = try box(of: #"{ "media": "/abs/card.png", "at": [0, 3], "width": 300 }"#)
+        let box = try box(of: #"{ "kind": "media", "media": "/abs/card.png", "at": [0, 3], "width": 300 }"#)
 
         // Then
         #expect(box?.position == .value(.point(Point(x: 603, y: 1311))))
@@ -67,7 +67,7 @@ struct ClipBoxTests {
     @Test("a title without a placement takes its style's, with the style's offset in place of the bottom padding")
     func placesTitleByStyle() throws {
         // When
-        let geometry = try geometry(of: #"{ "title": "Hello", "style": "subtitle", "at": [0, 3] }"#)
+        let geometry = try geometry(of: #"{ "kind": "title", "text": "Hello", "style": "subtitle", "at": [0, 3] }"#)
 
         // Then
         let size = try #require(geometry.title?.layout.size)
@@ -95,7 +95,7 @@ struct ClipBoxTests {
         topLeft: Point
     ) throws {
         // Given
-        let clip = #"{ "media": "/abs/card.png", "at": [0, 3], "width": 300, "position": [600, 1000], "anchor": "\#(anchor)" }"#
+        let clip = #"{ "kind": "media", "media": "/abs/card.png", "at": [0, 3], "width": 300, "position": [600, 1000], "anchor": "\#(anchor)" }"#
 
         // When
         let box = try box(of: clip)
@@ -109,7 +109,7 @@ struct ClipBoxTests {
     func movesKeyframedPosition() throws {
         // Given
         let clip = #"""
-            { "media": "/abs/card.png", "at": [0, 3], "width": 300,
+            { "kind": "media", "media": "/abs/card.png", "at": [0, 3], "width": 300,
               "keyframes": [ { "at": 0, "position": [100, 200] }, { "at": 1, "position": [300, 400], "ease": "ease-in" } ] }
             """#
 
@@ -127,8 +127,8 @@ struct ClipBoxTests {
     func keepsParentedPositionInMedia() throws {
         // Given
         let document = #"""
-            { "kind": "sequence", "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "connected": [
-                { "media": "/abs/card.png", "at": [0, 3], "parent": "screen", "width": 200, "height": 100,
+            { "kind": "sequence", "storyline": [ { "id": "screen", "kind": "media", "media": "/abs/screen.mp4", "connected": [
+                { "kind": "media", "media": "/abs/card.png", "at": [0, 3], "parent": "screen", "width": 200, "height": 100,
                   "position": [500, 600], "anchor": "bottom-right" } ] } ] }
             """#
 
@@ -155,7 +155,7 @@ struct ClipBoxTests {
     ) throws {
         // Given
         let clip = #"""
-            { "media": "/abs/card.png", "at": [0, 3], \#(keys),
+            { "kind": "media", "media": "/abs/card.png", "at": [0, 3], \#(keys),
               "keyframes": [ { "at": 1, "crop": [0, 0, 200, 200] }, { "at": 0, "crop": [0, 0, 400, 200] } ] }
             """#
 
@@ -169,8 +169,8 @@ struct ClipBoxTests {
     @Test("a media clip given neither width nor height fits the output frame, scaled up or down")
     func fitsMediaToFrame() throws {
         // Given
-        let tall = #"{ "media": "/abs/card.png", "at": [0, 3] }"#
-        let small = #"{ "media": "/abs/card.png", "at": [0, 3], "crop": [0, 0, 201, 20] }"#
+        let tall = #"{ "kind": "media", "media": "/abs/card.png", "at": [0, 3] }"#
+        let small = #"{ "kind": "media", "media": "/abs/card.png", "at": [0, 3], "crop": [0, 0, 201, 20] }"#
 
         // When
         let tallBox = try box(of: tall)
@@ -194,7 +194,7 @@ struct ClipBoxTests {
     ) throws {
         // Given
         let clip = #"""
-            { "media": "/abs/card.png", "at": [0, 3], "width": 300, "conform": "\#(conform.rawValue)",
+            { "kind": "media", "media": "/abs/card.png", "at": [0, 3], "width": 300, "conform": "\#(conform.rawValue)",
               "keyframes": [ { "at": 0, "crop": [0, 0, 400, 200] }, { "at": 1, "crop": [0, 0, 200, 200] } ] }
             """#
 
@@ -212,7 +212,7 @@ struct ClipBoxTests {
     @Test("a shape is placed by its area and has no box of its own")
     func leavesShapeWithoutBox() throws {
         // When
-        let box = try box(of: #"{ "shape": "rect", "stroke": { "width": 8 }, "at": [0, 3], "area": [10, 10, 100, 100] }"#)
+        let box = try box(of: #"{ "kind": "rect", "stroke": { "width": 8 }, "at": [0, 3], "area": [10, 10, 100, 100] }"#)
 
         // Then
         #expect(box == nil)
@@ -222,7 +222,7 @@ struct ClipBoxTests {
     func refusesPlacementWithPosition() throws {
         // When, Then
         let error = #expect(throws: ResolveError.self) {
-            try box(of: #"{ "media": "/abs/card.png", "at": [0, 3], "placement": "top", "position": [10, 10] }"#)
+            try box(of: #"{ "kind": "media", "media": "/abs/card.png", "at": [0, 3], "placement": "top", "position": [10, 10] }"#)
         }
         #expect(error == .placementWithPosition(place: Place.root.appending(key: "clips").appending(index: 0), kind: .clip(.media(.image))))
     }
@@ -231,8 +231,8 @@ struct ClipBoxTests {
     func refusesParentedClipWithoutPosition() throws {
         // Given
         let document = #"""
-            { "kind": "sequence", "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "connected": [
-                { "media": "/abs/card.png", "at": [0, 3], "parent": "screen" } ] } ] }
+            { "kind": "sequence", "storyline": [ { "id": "screen", "kind": "media", "media": "/abs/screen.mp4", "connected": [
+                { "kind": "media", "media": "/abs/card.png", "at": [0, 3], "parent": "screen" } ] } ] }
             """#
         let place = Place.root.appending(key: "storyline").appending(index: 0, id: "screen").appending(key: "connected")
             .appending(index: 0)
@@ -246,15 +246,15 @@ struct ClipBoxTests {
         "a parented box clip with a placement or without a position stops, connected or sequence clip alike",
         arguments: [
             (
-                #"{ "kind": "sequence", "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "connected": [ { "title": "a", "style": "subtitle", "parent": "screen", "placement": "top" } ] } ] }"#,
+                #"{ "kind": "sequence", "storyline": [ { "id": "screen", "kind": "media", "media": "/abs/screen.mp4", "connected": [ { "kind": "title", "text": "a", "style": "subtitle", "parent": "screen", "placement": "top" } ] } ] }"#,
                 #"storyline[0]#screen.connected[0] (title): a parented clip cannot take "placement", since placement names the frame and not its parent's space"#
             ),
             (
-                #"{ "kind": "sequence", "storyline": [ { "id": "screen", "media": "/abs/screen.mp4" } ], "clips": [ { "at": [0, 1], "media": "/abs/card.png", "parent": "screen", "placement": "top" } ] }"#,
+                #"{ "kind": "sequence", "storyline": [ { "id": "screen", "kind": "media", "media": "/abs/screen.mp4" } ], "clips": [ { "at": [0, 1], "kind": "media", "media": "/abs/card.png", "parent": "screen", "placement": "top" } ] }"#,
                 #"clips[0] (image): a parented clip cannot take "placement", since placement names the frame and not its parent's space"#
             ),
             (
-                #"{ "kind": "sequence", "storyline": [ { "id": "screen", "media": "/abs/screen.mp4" } ], "clips": [ { "at": [0, 1], "title": "a", "style": "title", "parent": "screen" } ] }"#,
+                #"{ "kind": "sequence", "storyline": [ { "id": "screen", "kind": "media", "media": "/abs/screen.mp4" } ], "clips": [ { "at": [0, 1], "kind": "title", "text": "a", "style": "title", "parent": "screen" } ] }"#,
                 #"clips[0] (title): a parented clip has no default place, so it needs "position""#
             )
         ]
@@ -272,9 +272,9 @@ struct ClipBoxTests {
     func placesSequenceClipInParent() throws {
         // Given
         let document = #"""
-            { "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4" } ], "clips": [
-                { "id": "card", "media": "/abs/card.png", "at": [0, 3], "width": 300, "position": [600, 1300] },
-                { "media": "/abs/card.png", "at": [0, 3], "parent": "card", "width": 200, "height": 100,
+            { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/screen.mp4" } ], "clips": [
+                { "id": "card", "kind": "media", "media": "/abs/card.png", "at": [0, 3], "width": 300, "position": [600, 1300] },
+                { "kind": "media", "media": "/abs/card.png", "at": [0, 3], "parent": "card", "width": 200, "height": 100,
                   "position": [500, 600], "anchor": "top-left" } ] }
             """#
 
@@ -289,7 +289,7 @@ struct ClipBoxTests {
     func refusesCropOutsideMedia() throws {
         // When, Then
         let error = #expect(throws: ResolveError.self) {
-            try box(of: #"{ "media": "/abs/card.png", "at": [0, 3], "width": 300, "height": 300, "crop": [2000, 100, 200, 100] }"#)
+            try box(of: #"{ "kind": "media", "media": "/abs/card.png", "at": [0, 3], "width": 300, "height": 300, "crop": [2000, 100, 200, 100] }"#)
         }
         #expect(error == .cropOutsideMedia(
             place: Place.root.appending(key: "clips").appending(index: 0).appending(key: "crop"),
@@ -304,7 +304,7 @@ struct ClipBoxTests {
     func refusesTitleWithoutPlacement() throws {
         // When, Then
         let error = #expect(throws: ResolveError.self) {
-            try labelBox(of: #"{ "title": "Hello", "style": "label", "at": [0, 3] }"#)
+            try labelBox(of: #"{ "kind": "title", "text": "Hello", "style": "label", "at": [0, 3] }"#)
         }
         #expect(error == .titleWithoutPlacement(
             place: Place.root.appending(key: "clips").appending(index: 0),
@@ -317,8 +317,8 @@ struct ClipBoxTests {
     @Test("a title in a style without a placement is placed by its own placement or position")
     func placesUnstyledTitle() throws {
         // When
-        let placed = try labelBox(of: #"{ "title": "Hello", "style": "label", "at": [0, 3], "placement": "top-left" }"#)
-        let positioned = try labelBox(of: #"{ "title": "Hello", "style": "label", "at": [0, 3], "position": [100, 100] }"#)
+        let placed = try labelBox(of: #"{ "kind": "title", "text": "Hello", "style": "label", "at": [0, 3], "placement": "top-left" }"#)
+        let positioned = try labelBox(of: #"{ "kind": "title", "text": "Hello", "style": "label", "at": [0, 3], "position": [100, 100] }"#)
 
         // Then
         #expect(placed?.position == .value(.point(Point(x: ClipBoxTests.padding, y: ClipBoxTests.padding))))
@@ -334,14 +334,14 @@ struct ClipBoxTests {
     private func labelBox(of clip: String) throws -> ClipBox? {
         let document = #"""
             { "kind": "sequence", "theme": { "styles": { "label": { "size": 36 } } },
-              "storyline": [ { "media": "/abs/screen.mp4" } ], "clips": [ \#(clip) ] }
+              "storyline": [ { "kind": "media", "media": "/abs/screen.mp4" } ], "clips": [ \#(clip) ] }
             """#
 
         return try plan(document).clips[0].box
     }
 
     private func geometry(of clip: String) throws -> ClipGeometry {
-        try plan(#"{ "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4" } ], "clips": [ \#(clip) ] }"#).clips[0]
+        try plan(#"{ "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/screen.mp4" } ], "clips": [ \#(clip) ] }"#).clips[0]
     }
 
     private func plan(_ document: String) throws -> SequencePlan {

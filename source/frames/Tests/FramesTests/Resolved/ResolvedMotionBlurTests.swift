@@ -18,13 +18,13 @@ struct ResolvedMotionBlurTests {
     // A storyline video and a solid, a connected title, a shape, an adjustment, a still media clip and a sound.
     private static let document = #"""
         { "kind": "sequence", "format": { "size": [160, 90] },
-          "storyline": [ { "media": "/abs/short.mp4", "in": 0, "out": 2,
-                           "connected": [ { "at": [0, 1], "title": "Hi", "style": "title" } ] },
-                         { "solid": "#000000", "duration": 1 } ],
-          "clips": [ { "at": [0, 1], "shape": "rect", "area": [0, 0, 10, 10], "fill": "accent" },
-                     { "at": [0, 1], "adjust": "mine/grade" },
-                     { "at": [0, 1], "media": "/abs/page.png", "width": 20 },
-                     { "media": "/abs/bgm.m4a", "at": 0 } ] }
+          "storyline": [ { "kind": "media", "media": "/abs/short.mp4", "in": 0, "out": 2,
+                           "connected": [ { "at": [0, 1], "kind": "title", "text": "Hi", "style": "title" } ] },
+                         { "kind": "solid", "color": "#000000", "duration": 1 } ],
+          "clips": [ { "at": [0, 1], "kind": "rect", "area": [0, 0, 10, 10], "fill": "accent" },
+                     { "at": [0, 1], "kind": "adjustment", "adjust": "mine/grade" },
+                     { "at": [0, 1], "kind": "media", "media": "/abs/page.png", "width": 20 },
+                     { "kind": "media", "media": "/abs/bgm.m4a", "at": 0 } ] }
         """#
 
     // MARK: - Initializer
@@ -86,7 +86,7 @@ struct ResolvedMotionBlurTests {
         // Given
         let document = #"""
             { "kind": "sequence", "format": { "size": [160, 90], "motionBlur": \#(shutter) },
-              "storyline": [ { "media": "/abs/short.mp4", "in": 0, "out": 2 } ] }
+              "storyline": [ { "kind": "media", "media": "/abs/short.mp4", "in": 0, "out": 2 } ] }
             """#
 
         // When
@@ -101,11 +101,11 @@ struct ResolvedMotionBlurTests {
         // Given
         let document = #"""
             { "kind": "sequence", "format": { "size": [160, 90] },
-              "storyline": [ { "media": "/abs/short.mp4", "in": 0, "out": 2, "motionBlur": true,
-                               "connected": [ { "at": [0, 1], "title": "Hi", "style": "title", "motionBlur": true } ] },
-                             { "solid": "#000000", "duration": 1, "motionBlur": true } ],
-              "clips": [ { "at": [0, 1], "shape": "rect", "area": [0, 0, 10, 10], "fill": "accent" },
-                         { "at": [0, 1], "adjust": "mine/grade", "motionBlur": true } ] }
+              "storyline": [ { "kind": "media", "media": "/abs/short.mp4", "in": 0, "out": 2, "motionBlur": true,
+                               "connected": [ { "at": [0, 1], "kind": "title", "text": "Hi", "style": "title", "motionBlur": true } ] },
+                             { "kind": "solid", "color": "#000000", "duration": 1, "motionBlur": true } ],
+              "clips": [ { "at": [0, 1], "kind": "rect", "area": [0, 0, 10, 10], "fill": "accent" },
+                         { "at": [0, 1], "kind": "adjustment", "adjust": "mine/grade", "motionBlur": true } ] }
             """#
 
         // When
@@ -121,8 +121,8 @@ struct ResolvedMotionBlurTests {
         // Given
         let document = #"""
             { "kind": "sequence", "format": { "size": [160, 90], "motionBlur": { "shutterAngle": 270.5, "shutterPhase": -135.25, "samplesPerFrame": 32 } },
-              "storyline": [ { "media": "/abs/short.mp4", "in": 0, "out": 2, "motionBlur": true } ],
-              "clips": [ { "at": [0, 1], "shape": "rect", "area": [0, 0, 10, 10], "fill": "accent", "motionBlur": true } ] }
+              "storyline": [ { "kind": "media", "media": "/abs/short.mp4", "in": 0, "out": 2, "motionBlur": true } ],
+              "clips": [ { "at": [0, 1], "kind": "rect", "area": [0, 0, 10, 10], "fill": "accent", "motionBlur": true } ] }
             """#
         let sequence = try resolved(document)
 
@@ -139,8 +139,8 @@ struct ResolvedMotionBlurTests {
         // Given
         let document = #"""
             { "kind": "sequence", "format": { "size": [160, 90] },
-              "storyline": [ { "media": { "kind": "sequence", "format": { "size": [160, 90], "motionBlur": { "shutterAngle": 90 } },
-                                          "storyline": [ { "media": "/abs/short.mp4", "in": 0, "out": 2 } ] } } ] }
+              "storyline": [ { "kind": "media", "media": { "kind": "sequence", "format": { "size": [160, 90], "motionBlur": { "shutterAngle": 90 } },
+                                          "storyline": [ { "kind": "media", "media": "/abs/short.mp4", "in": 0, "out": 2 } ] } } ] }
             """#
 
         // When

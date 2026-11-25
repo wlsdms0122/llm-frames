@@ -20,10 +20,10 @@ struct ClipAnimationTests {
     func keepsEntranceAndExitWithoutAt() throws {
         // Given
         let document = try Fixture.json(#"""
-            { "kind": "sequence", "storyline": [ { "id": "run", "media": "/abs/run.mp4", "connected": [
-              { "shape": "rect", "stroke": { "width": 8 }, "area": [0, 0, 10, 10], "parent": "run", "animation": "frames/pulse" },
-              { "shape": "rect", "stroke": { "width": 8 }, "area": [0, 0, 10, 10], "animation": "frames/pulse" },
-              { "title": "a", "style": "subtitle", "parent": "run", "position": [0, 0], "animation": "frames/pulse" }
+            { "kind": "sequence", "storyline": [ { "id": "run", "kind": "media", "media": "/abs/run.mp4", "connected": [
+              { "kind": "rect", "stroke": { "width": 8 }, "area": [0, 0, 10, 10], "parent": "run", "animation": "frames/pulse" },
+              { "kind": "rect", "stroke": { "width": 8 }, "area": [0, 0, 10, 10], "animation": "frames/pulse" },
+              { "kind": "title", "text": "a", "style": "subtitle", "parent": "run", "position": [0, 0], "animation": "frames/pulse" }
             ] } ] }
             """#)
 
@@ -42,14 +42,14 @@ struct ClipAnimationTests {
         let document = try Fixture.json(#"""
             { "kind": "sequence",
               "theme": { "defaults": { "animation": { "title": { "subtitle": "frames/pop" }, "shape": "frames/wipe", "media": "frames/fade" } } },
-              "storyline": [ { "media": "/abs/run.mp4" } ],
+              "storyline": [ { "kind": "media", "media": "/abs/run.mp4" } ],
               "clips": [
-                { "at": [0, 1], "title": "a", "style": "subtitle" },
-                { "at": [0, 1], "title": "b", "style": "headline" },
-                { "at": [0, 1], "shape": "rect", "stroke": { "width": 8 }, "area": [0, 0, 10, 10] },
-                { "at": [0, 1], "media": "/abs/log.png" },
-                { "at": [0, 1], "media": "/abs/log.png", "animation": "none" },
-                { "media": "/abs/bgm.m4a" }
+                { "at": [0, 1], "kind": "title", "text": "a", "style": "subtitle" },
+                { "at": [0, 1], "kind": "title", "text": "b", "style": "headline" },
+                { "at": [0, 1], "kind": "rect", "stroke": { "width": 8 }, "area": [0, 0, 10, 10] },
+                { "at": [0, 1], "kind": "media", "media": "/abs/log.png" },
+                { "at": [0, 1], "kind": "media", "media": "/abs/log.png", "animation": "none" },
+                { "kind": "media", "media": "/abs/bgm.m4a" }
               ] }
             """#)
 
@@ -65,9 +65,9 @@ struct ClipAnimationTests {
     func splitsAnimationChoice() throws {
         // Given
         let document = try Fixture.json(#"""
-            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4" } ], "clips": [
-              { "at": [0, 1], "media": "/abs/log.png", "animation": { "entrance": "frames/pop", "exit": "frames/fade" } },
-              { "at": [0, 1], "media": "/abs/log.png", "animation": { "entrance": "none", "exit": "frames/pulse" } }
+            { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4" } ], "clips": [
+              { "at": [0, 1], "kind": "media", "media": "/abs/log.png", "animation": { "entrance": "frames/pop", "exit": "frames/fade" } },
+              { "at": [0, 1], "kind": "media", "media": "/abs/log.png", "animation": { "entrance": "none", "exit": "frames/pulse" } }
             ] }
             """#)
 
@@ -88,12 +88,12 @@ struct ClipAnimationTests {
         let document = try Fixture.json(#"""
             { "kind": "sequence",
               "theme": { "defaults": { "animation": { "title": { "subtitle": "frames/pop" } } } },
-              "storyline": [ { "media": "/abs/run.mp4" } ],
+              "storyline": [ { "kind": "media", "media": "/abs/run.mp4" } ],
               "clips": [
-                { "at": [0, 1], "title": "a", "style": "subtitle", "animation": { "by": "word" } },
-                { "at": [0, 1], "title": "b", "style": "headline", "animation": { "preset": "frames/fade", "by": "character", "stagger": 0.1 } },
-                { "at": [0, 1], "title": "c", "style": "headline", "animation": { "preset": "frames/fade", "by": "line" } },
-                { "at": [0, 1], "title": "d", "style": "headline", "animation": "frames/fade" }
+                { "at": [0, 1], "kind": "title", "text": "a", "style": "subtitle", "animation": { "by": "word" } },
+                { "at": [0, 1], "kind": "title", "text": "b", "style": "headline", "animation": { "preset": "frames/fade", "by": "character", "stagger": 0.1 } },
+                { "at": [0, 1], "kind": "title", "text": "c", "style": "headline", "animation": { "preset": "frames/fade", "by": "line" } },
+                { "at": [0, 1], "kind": "title", "text": "d", "style": "headline", "animation": "frames/fade" }
               ] }
             """#)
 
@@ -116,12 +116,12 @@ struct ClipAnimationTests {
         let document = try Fixture.json(#"""
             { "kind": "sequence",
               "theme": { "defaults": { "animation": { "title": { "subtitle": { "entrance": "frames/pop", "exit": "frames/fade" } } } } },
-              "storyline": [ { "media": "/abs/run.mp4" } ],
+              "storyline": [ { "kind": "media", "media": "/abs/run.mp4" } ],
               "clips": [
-                { "at": [0, 1], "title": "a", "style": "headline", "animation": { "entrance": "frames/pop", "exit": "frames/fade", "by": "character", "stagger": 0.1 } },
-                { "at": [0, 1], "title": "b", "style": "headline", "animation": { "entrance": "frames/pop", "exit": "none", "by": "word" } },
-                { "at": [0, 1], "title": "c", "style": "subtitle", "animation": { "by": "line" } },
-                { "at": [0, 1], "title": "d", "style": "headline", "animation": { "entrance": "frames/pop", "exit": "frames/fade" } }
+                { "at": [0, 1], "kind": "title", "text": "a", "style": "headline", "animation": { "entrance": "frames/pop", "exit": "frames/fade", "by": "character", "stagger": 0.1 } },
+                { "at": [0, 1], "kind": "title", "text": "b", "style": "headline", "animation": { "entrance": "frames/pop", "exit": "none", "by": "word" } },
+                { "at": [0, 1], "kind": "title", "text": "c", "style": "subtitle", "animation": { "by": "line" } },
+                { "at": [0, 1], "kind": "title", "text": "d", "style": "headline", "animation": { "entrance": "frames/pop", "exit": "frames/fade" } }
               ] }
             """#)
 
@@ -143,10 +143,10 @@ struct ClipAnimationTests {
     func ordersUnits() throws {
         // Given
         let document = try Fixture.json(#"""
-            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4" } ], "clips": [
-              { "at": [0, 1], "title": "a", "style": "headline", "animation": { "preset": "frames/fade", "by": "word", "order": "center" } },
-              { "at": [0, 1], "title": "b", "style": "headline", "animation": { "entrance": "frames/pop", "exit": "frames/fade", "by": "line", "stagger": 0.2, "order": "random" } },
-              { "at": [0, 1], "title": "c", "style": "headline", "animation": { "preset": "frames/fade", "by": "character" } }
+            { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4" } ], "clips": [
+              { "at": [0, 1], "kind": "title", "text": "a", "style": "headline", "animation": { "preset": "frames/fade", "by": "word", "order": "center" } },
+              { "at": [0, 1], "kind": "title", "text": "b", "style": "headline", "animation": { "entrance": "frames/pop", "exit": "frames/fade", "by": "line", "stagger": 0.2, "order": "random" } },
+              { "at": [0, 1], "kind": "title", "text": "c", "style": "headline", "animation": { "preset": "frames/fade", "by": "character" } }
             ] }
             """#)
 
@@ -169,11 +169,11 @@ struct ClipAnimationTests {
               "theme": { "defaults": { "animation": { "title": {
                 "subtitle": { "preset": "frames/pop", "by": "word", "stagger": 0.2 },
                 "title": { "entrance": "frames/pop", "exit": "frames/fade", "by": "character", "order": "edges" } } } } },
-              "storyline": [ { "media": "/abs/run.mp4" } ],
+              "storyline": [ { "kind": "media", "media": "/abs/run.mp4" } ],
               "clips": [
-                { "at": [0, 1], "title": "a", "style": "subtitle", "animation": { "order": "backward" } },
-                { "at": [0, 1], "title": "b", "style": "title", "animation": { "order": "backward" } },
-                { "at": [0, 1], "title": "c", "style": "title" }
+                { "at": [0, 1], "kind": "title", "text": "a", "style": "subtitle", "animation": { "order": "backward" } },
+                { "at": [0, 1], "kind": "title", "text": "b", "style": "title", "animation": { "order": "backward" } },
+                { "at": [0, 1], "kind": "title", "text": "c", "style": "title" }
               ] }
             """#)
 
@@ -194,35 +194,35 @@ struct ClipAnimationTests {
         "`by` on a clip that is not a title, `stagger` or `order` without `by` and `by` over a preset with neither an entrance nor an exit stop",
         arguments: [
             (
-                #"{ "at": [0, 1], "shape": "rect", "stroke": { "width": 8 }, "area": [0, 0, 10, 10], "animation": { "preset": "frames/fade", "by": "word" } }"#,
+                #"{ "at": [0, 1], "kind": "rect", "stroke": { "width": 8 }, "area": [0, 0, 10, 10], "animation": { "preset": "frames/fade", "by": "word" } }"#,
                 "clips[0].animation (rect): `by` plays a title's animation by unit, and this clip is not a title"
             ),
             (
-                #"{ "at": [0, 1], "title": "a", "style": "headline", "animation": { "preset": "frames/fade", "stagger": 0.1 } }"#,
+                #"{ "at": [0, 1], "kind": "title", "text": "a", "style": "headline", "animation": { "preset": "frames/fade", "stagger": 0.1 } }"#,
                 "clips[0].animation (title): `stagger` spaces a title's units, and the choice names no unit with `by`"
             ),
             (
-                #"{ "at": [0, 1], "title": "a", "style": "headline", "animation": { "preset": "frames/fade", "order": "center" } }"#,
+                #"{ "at": [0, 1], "kind": "title", "text": "a", "style": "headline", "animation": { "preset": "frames/fade", "order": "center" } }"#,
                 "clips[0].animation (title): `order` orders a title's units, and the choice names no unit with `by`"
             ),
             (
-                #"{ "at": [0, 1], "title": "a", "style": "headline", "animation": { "entrance": "frames/fade", "exit": "frames/fade", "order": "backward" } }"#,
+                #"{ "at": [0, 1], "kind": "title", "text": "a", "style": "headline", "animation": { "entrance": "frames/fade", "exit": "frames/fade", "order": "backward" } }"#,
                 "clips[0].animation (title): `order` orders a title's units, and the choice names no unit with `by`"
             ),
             (
-                #"{ "at": [0, 1], "title": "a", "style": "headline", "animation": { "preset": "frames/none", "by": "word" } }"#,
+                #"{ "at": [0, 1], "kind": "title", "text": "a", "style": "headline", "animation": { "preset": "frames/none", "by": "word" } }"#,
                 "clips[0].animation (title): `by` plays the entrance and the exit by unit, and the choice has neither"
             ),
             (
-                #"{ "at": [0, 1], "shape": "rect", "stroke": { "width": 8 }, "area": [0, 0, 10, 10], "animation": { "entrance": "frames/fade", "exit": "none", "by": "word" } }"#,
+                #"{ "at": [0, 1], "kind": "rect", "stroke": { "width": 8 }, "area": [0, 0, 10, 10], "animation": { "entrance": "frames/fade", "exit": "none", "by": "word" } }"#,
                 "clips[0].animation (rect): `by` plays a title's animation by unit, and this clip is not a title"
             ),
             (
-                #"{ "at": [0, 1], "title": "a", "style": "headline", "animation": { "entrance": "frames/fade", "exit": "frames/fade", "stagger": 0.1 } }"#,
+                #"{ "at": [0, 1], "kind": "title", "text": "a", "style": "headline", "animation": { "entrance": "frames/fade", "exit": "frames/fade", "stagger": 0.1 } }"#,
                 "clips[0].animation (title): `stagger` spaces a title's units, and the choice names no unit with `by`"
             ),
             (
-                #"{ "at": [0, 1], "title": "a", "style": "headline", "animation": { "entrance": "none", "exit": "none", "by": "word" } }"#,
+                #"{ "at": [0, 1], "kind": "title", "text": "a", "style": "headline", "animation": { "entrance": "none", "exit": "none", "by": "word" } }"#,
                 "clips[0].animation (title): `by` plays the entrance and the exit by unit, and the choice has neither"
             )
         ]
@@ -233,7 +233,7 @@ struct ClipAnimationTests {
     ) throws {
         // Given
         let document = try Fixture.json(#"""
-            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4" } ], "clips": [ \#(clip) ] }
+            { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4" } ], "clips": [ \#(clip) ] }
             """#)
 
         // When, Then
@@ -247,8 +247,8 @@ struct ClipAnimationTests {
         let document = try Fixture.json(#"""
             { "kind": "sequence",
               "theme": { "defaults": { "animation": { "title": { "subtitle": { "preset": "frames/fade", "order": "center" } } } } },
-              "storyline": [ { "media": "/abs/run.mp4" } ],
-              "clips": [ { "at": [0, 1], "title": "a", "style": "subtitle" } ] }
+              "storyline": [ { "kind": "media", "media": "/abs/run.mp4" } ],
+              "clips": [ { "at": [0, 1], "kind": "title", "text": "a", "style": "subtitle" } ] }
             """#)
 
         // When, Then
@@ -260,8 +260,8 @@ struct ClipAnimationTests {
     func refusesUnknownAnimation() throws {
         // Given
         let document = try Fixture.json(#"""
-            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4" } ], "clips": [
-              { "at": [0, 1], "title": "a", "style": "headline", "animation": { "entrance": "frames/pop", "exit": "mine/spin" } }
+            { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4" } ], "clips": [
+              { "at": [0, 1], "kind": "title", "text": "a", "style": "headline", "animation": { "entrance": "frames/pop", "exit": "mine/spin" } }
             ] }
             """#)
 
@@ -289,7 +289,7 @@ struct ClipAnimationTests {
     ) throws {
         // Given
         let document = try Fixture.json(#"""
-            { "kind": "sequence", "theme": { "defaults": \#(defaults) }, "storyline": [ { "media": "/abs/run.mp4" } ] }
+            { "kind": "sequence", "theme": { "defaults": \#(defaults) }, "storyline": [ { "kind": "media", "media": "/abs/run.mp4" } ] }
             """#)
 
         // When, Then

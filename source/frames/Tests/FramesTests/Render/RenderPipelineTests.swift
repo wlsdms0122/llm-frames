@@ -97,8 +97,8 @@ struct RenderPipelineTests {
         )
         let sequence = try ResolvedSequence(plan: Fixture.documentPlanner.plan(Fixture.json(#"""
             { "kind": "sequence", "format": { "size": [40, 30], "fps": 4 },
-              "storyline": [ { "solid": "#000000", "duration": 1 } ],
-              "clips": [ { "shape": "rect", "fill": "#FF0000", "at": [0.5, 1], "width": 10, "height": 10, "motionBlur": true,
+              "storyline": [ { "kind": "solid", "color": "#000000", "duration": 1 } ],
+              "clips": [ { "kind": "rect", "fill": "#FF0000", "at": [0.5, 1], "width": 10, "height": 10, "motionBlur": true,
                            "keyframes": [ { "at": 0.5, "position": [10, 15] }, { "at": 1, "position": [30, 15] } ] } ] }
             """#)), hashes: FileHashTable())
 

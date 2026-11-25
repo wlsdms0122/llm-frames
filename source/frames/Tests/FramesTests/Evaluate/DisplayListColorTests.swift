@@ -42,8 +42,8 @@ struct DisplayListColorTests {
         // Given
         let resolved = try resolved(#"""
             { "kind": "sequence", "format": { "colorSpace": "rec2100-hlg", "compositing": "linear" }, "storyline": [
-                { "media": { "kind": "sequence", "format": { "size": [1080, 1920], "colorSpace": "srgb", "compositing": "encoded" },
-                             "storyline": [ { "media": "/abs/run.mp4" } ] } } ] }
+                { "kind": "media", "media": { "kind": "sequence", "format": { "size": [1080, 1920], "colorSpace": "srgb", "compositing": "encoded" },
+                             "storyline": [ { "kind": "media", "media": "/abs/run.mp4" } ] } } ] }
             """#)
 
         // When
@@ -78,9 +78,9 @@ struct DisplayListColorTests {
         // Given
         let resolved = try resolved(#"""
             { "kind": "sequence", "format": { "colorSpace": "\#(colorSpace)" }, "storyline": [
-                { "media": "/abs/run.mp4", "colorSpace": "rec709", "toneMap": \#(toneMap), "connected": [
-                  { "media": { "kind": "sequence", "format": { "size": [1080, 1350], "colorSpace": "srgb" },
-                               "storyline": [ { "media": "/abs/card.png", "duration": 1 } ] }, "at": [0, 1] } ] } ] }
+                { "kind": "media", "media": "/abs/run.mp4", "colorSpace": "rec709", "toneMap": \#(toneMap), "connected": [
+                  { "kind": "media", "media": { "kind": "sequence", "format": { "size": [1080, 1350], "colorSpace": "srgb" },
+                               "storyline": [ { "kind": "media", "media": "/abs/card.png", "duration": 1 } ] }, "at": [0, 1] } ] } ] }
             """#)
 
         // When
@@ -98,7 +98,7 @@ struct DisplayListColorTests {
         // Given
         let resolved = try resolved(#"""
             { "kind": "sequence", "format": { "colorSpace": "rec2100-hlg" }, "storyline": [
-                { "media": "/abs/run.mp4", "connected": [ { "media": "/abs/card.png", "at": [0, 1] } ] } ] }
+                { "kind": "media", "media": "/abs/run.mp4", "connected": [ { "kind": "media", "media": "/abs/card.png", "at": [0, 1] } ] } ] }
             """#)
 
         // When
@@ -117,7 +117,7 @@ struct DisplayListColorTests {
         // Given
         let resolved = try resolved(#"""
             { "kind": "sequence", "format": { "colorSpace": "rec2100-pq" }, "storyline": [
-                { "media": "/abs/run.mp4", "in": 0, "out": 3 }, { "media": "/abs/run.mp4", "in": 0, "out": 3, "transition": "reveal" } ] }
+                { "kind": "media", "media": "/abs/run.mp4", "in": 0, "out": 3 }, { "kind": "media", "media": "/abs/run.mp4", "in": 0, "out": 3, "transition": "reveal" } ] }
             """#)
 
         // When
@@ -147,7 +147,7 @@ struct DisplayListColorTests {
         // Given
         let resolved = try resolved(#"""
             { "kind": "sequence", "format": { "colorSpace": "display-p3", "compositing": "linear" }, "storyline": [
-                { "media": "/abs/run.mp4", "colorSpace": "rec709", "toneMap": false } ] }
+                { "kind": "media", "media": "/abs/run.mp4", "colorSpace": "rec709", "toneMap": false } ] }
             """#)
         let list = sut.displayList(of: resolved, at: 0.5)
 
@@ -181,7 +181,7 @@ struct DisplayListColorTests {
         message: String
     ) throws {
         // Given
-        let resolved = try resolved(#"{ "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4" } ] }"#)
+        let resolved = try resolved(#"{ "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4" } ] }"#)
         let root = try #require(try JSONReader().read(writer.write(sut.displayList(of: resolved, at: 0.5))).objectValue)
         let item = try #require(root["items"]?.arrayValue?.first?.objectValue)
         let source = try #require(item["source"]?.objectValue)

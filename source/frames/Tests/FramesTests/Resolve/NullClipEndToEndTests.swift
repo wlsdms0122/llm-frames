@@ -15,19 +15,19 @@ import Testing
 @Suite("Null Clip End To End Tests")
 struct NullClipEndToEndTests {
     // MARK: - Property
-    private static let rect = ##""shape": "rect", "fill": "#FF0000", "animation": "none""##
+    private static let rect = ##""kind": "rect", "fill": "#FF0000", "animation": "none""##
 
     private let writer = ResolvedDocumentWriter()
     private let reader = ResolvedDocumentReader()
     private let evaluator = Evaluator()
-    private let child = ##"{ "id": "child", "shape": "rect", "fill": "#00FF00", "at": [0, 4], "parent": "carrier", "width": 40, "height": 20, "position": [50, 30] }"##
+    private let child = ##"{ "id": "child", "kind": "rect", "fill": "#00FF00", "at": [0, 4], "parent": "carrier", "width": 40, "height": 20, "position": [50, 30] }"##
 
     // MARK: - Initializer
     // MARK: - Test
     @Test("a null given by width and height resolves to a null entry with its box and transform, and reads back equal")
     func resolvesBoxForm() throws {
         // Given
-        let carrier = #"{ "id": "carrier", "null": true, "at": [0, 4], "width": 200, "height": 100, "position": [600, 400], "rotation": 30 }"#
+        let carrier = #"{ "id": "carrier", "kind": "null", "at": [0, 4], "width": 200, "height": 100, "position": [600, 400], "rotation": 30 }"#
 
         // When
         let sut = try resolved(clips: [carrier])
@@ -47,7 +47,7 @@ struct NullClipEndToEndTests {
     @Test("a null given by an area resolves to a null entry placed by its area, and reads back equal")
     func resolvesAreaForm() throws {
         // Given
-        let carrier = #"{ "id": "carrier", "null": true, "at": [0, 4], "area": [100, 200, 400, 300] }"#
+        let carrier = #"{ "id": "carrier", "kind": "null", "at": [0, 4], "area": [100, 200, 400, 300] }"#
 
         // When
         let sut = try resolved(clips: [carrier])
@@ -65,17 +65,17 @@ struct NullClipEndToEndTests {
         "a null without a box, with both forms, or named by a track matte stops, naming a null",
         arguments: [
             (
-                #"{ "id": "carrier", "null": true, "at": [0, 4] }"#,
+                #"{ "id": "carrier", "kind": "null", "at": [0, 4] }"#,
                 #"clips[0]#carrier (null): a null needs "area", or "width" and "height""#
             ),
             (
-                #"{ "id": "carrier", "null": true, "at": [0, 4], "area": [0, 0, 10, 10], "width": 10, "height": 10 }"#,
+                #"{ "id": "carrier", "kind": "null", "at": [0, 4], "area": [0, 0, 10, 10], "width": 10, "height": 10 }"#,
                 #"clips[0]#carrier (null): a null is given by "area" or by "width" and "height", and this one writes both"#
             ),
             (
                 ##"""
-                { "id": "carrier", "null": true, "at": [0, 4], "width": 10, "height": 10 },
-                { "media": "/abs/card.png", "at": [0, 4], "trackMatte": { "clip": "carrier", "mode": "alpha" } }
+                { "id": "carrier", "kind": "null", "at": [0, 4], "width": 10, "height": 10 },
+                { "kind": "media", "media": "/abs/card.png", "at": [0, 4], "trackMatte": { "clip": "carrier", "mode": "alpha" } }
                 """##,
                 #"clips[1].trackMatte.clip (image): "carrier" is a null, which draws nothing, and a track matte is a connected or sequence media clip, title or shape"#
             )
@@ -87,7 +87,7 @@ struct NullClipEndToEndTests {
     ) throws {
         // Given
         let document = #"""
-            { "kind": "sequence", "format": { "size": [1920, 1080] }, "storyline": [ { "solid": "#202020", "duration": 4 } ],
+            { "kind": "sequence", "format": { "size": [1920, 1080] }, "storyline": [ { "kind": "solid", "color": "#202020", "duration": 4 } ],
               "clips": [ \#(clips) ] }
             """#
 
@@ -108,7 +108,7 @@ struct NullClipEndToEndTests {
         value: String
     ) throws {
         // Given
-        let carrier = #"{ "id": "carrier", "null": true, "at": [0, 4], "width": 200, "height": 100 }"#
+        let carrier = #"{ "id": "carrier", "kind": "null", "at": [0, 4], "width": 200, "height": 100 }"#
         let text = try replacing(key, ofClip: 0, with: value, in: writer.write(resolved(clips: [carrier])))
 
         // When
@@ -131,7 +131,7 @@ struct NullClipEndToEndTests {
     )
     func carriesChild(placement: String) throws {
         // Given
-        let null = try resolved(clips: [#"{ "id": "carrier", "null": true, "at": [0, 4], \#(placement) }"#, child])
+        let null = try resolved(clips: [#"{ "id": "carrier", "kind": "null", "at": [0, 4], \#(placement) }"#, child])
         let rect = try resolved(clips: [#"{ "id": "carrier", \#(Self.rect), "at": [0, 4], \#(placement) }"#, child])
 
         // When
@@ -155,8 +155,8 @@ struct NullClipEndToEndTests {
               { "time": 1.13, "quad": [[102, 100], [302, 100], [302, 140], [102, 140]] },
               { "time": 1.2, "quad": [[104, 101], [304, 101], [304, 141], [104, 141]] } ] }
             """#
-        let child = ##"{ "id": "child", "shape": "rect", "fill": "#00FF00", "at": [1, 3], "parent": "carrier", "area": [10, 10, 20, 20] }"##
-        let null = try resolved(connected: [#"{ "id": "carrier", "null": true, \#(track) }"#, child])
+        let child = ##"{ "id": "child", "kind": "rect", "fill": "#00FF00", "at": [1, 3], "parent": "carrier", "area": [10, 10, 20, 20] }"##
+        let null = try resolved(connected: [#"{ "id": "carrier", "kind": "null", \#(track) }"#, child])
         let rect = try resolved(connected: [#"{ "id": "carrier", \#(Self.rect), \#(track) }"#, child])
 
         // When
@@ -173,12 +173,12 @@ struct NullClipEndToEndTests {
     func namesNullInClipArea() throws {
         // Given
         let placement = #""at": [0, 4], "width": 200, "height": 100, "position": [600, 400], "rotation": 30"#
-        let bar = ##"{ "id": "bar", "shape": "rect", "fill": "#000000", "at": [0, 4], "area": { "clip": "carrier", "padding": 24 } }"##
+        let bar = ##"{ "id": "bar", "kind": "rect", "fill": "#000000", "at": [0, 4], "area": { "clip": "carrier", "padding": 24 } }"##
         let note = ##"""
-            { "id": "note", "shape": "rect", "fill": "#0000FF", "at": [0, 4], "width": 40, "height": 20, "anchor": "left",
+            { "id": "note", "kind": "rect", "fill": "#0000FF", "at": [0, 4], "width": 40, "height": 20, "anchor": "left",
               "position": { "area": { "clip": "carrier" }, "point": "right" } }
             """##
-        let null = try resolved(clips: [#"{ "id": "carrier", "null": true, \#(placement) }"#, bar, note])
+        let null = try resolved(clips: [#"{ "id": "carrier", "kind": "null", \#(placement) }"#, bar, note])
         let rect = try resolved(clips: [#"{ "id": "carrier", \#(Self.rect), \#(placement) }"#, bar, note])
 
         // When
@@ -193,12 +193,12 @@ struct NullClipEndToEndTests {
     @Test("timeline gives a null its kind null and no lane, from the document and from its resolved document")
     func reportsNullKind() throws {
         // Given
-        let document = try Fixture.json(document(clips: [#"{ "id": "carrier", "null": true, "at": [0, 4], "width": 10, "height": 10 }"#, child]))
+        let document = try Fixture.json(document(clips: [#"{ "id": "carrier", "kind": "null", "at": [0, 4], "width": 10, "height": 10 }"#, child]))
         let sut = TimelineReporter(planner: Fixture.documentPlanner)
 
         // When
         let planned = try sut.report(of: document).machineOutput
-        let read = sut.report(of: try resolved(clips: [#"{ "id": "carrier", "null": true, "at": [0, 4], "width": 10, "height": 10 }"#, child])).machineOutput
+        let read = sut.report(of: try resolved(clips: [#"{ "id": "carrier", "kind": "null", "at": [0, 4], "width": 10, "height": 10 }"#, child])).machineOutput
 
         // Then
         for output in [planned, read] {
@@ -213,7 +213,7 @@ struct NullClipEndToEndTests {
     private func document(clips: [String]) -> String {
         #"""
             { "kind": "sequence", "format": { "size": [1920, 1080] },
-              "storyline": [ { "id": "back", "solid": "#202020", "duration": 4 } ], "clips": [ \#(clips.joined(separator: ", ")) ] }
+              "storyline": [ { "id": "back", "kind": "solid", "color": "#202020", "duration": 4 } ], "clips": [ \#(clips.joined(separator: ", ")) ] }
             """#
     }
 
@@ -225,7 +225,7 @@ struct NullClipEndToEndTests {
     private func resolved(connected: [String]) throws -> ResolvedSequence {
         try resolved(#"""
             { "kind": "sequence", "format": { "size": [1920, 1080] },
-              "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "in": 1, "out": 3, "connected": [ \#(connected.joined(separator: ", ")) ] } ] }
+              "storyline": [ { "id": "screen", "kind": "media", "media": "/abs/screen.mp4", "in": 1, "out": 3, "connected": [ \#(connected.joined(separator: ", ")) ] } ] }
             """#)
     }
 

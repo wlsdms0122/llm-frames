@@ -28,7 +28,7 @@ struct CornerPinTests {
     @Test("a corner pin places the clip's box by its four points, so the clip has no anchor point and no position")
     func placesByCornerPin() throws {
         // When
-        let geometry = try geometry(of: #"{ "media": "/abs/card.png", "at": [0, 3], "width": 300, "cornerPin": \#(Self.pin) }"#)
+        let geometry = try geometry(of: #"{ "kind": "media", "media": "/abs/card.png", "at": [0, 3], "width": 300, "cornerPin": \#(Self.pin) }"#)
 
         // Then
         #expect(geometry.box == nil)
@@ -39,7 +39,7 @@ struct CornerPinTests {
     func keepsKeyframes() throws {
         // Given
         let clip = #"""
-            { "media": "/abs/card.png", "at": [1, 3], "width": 300,
+            { "kind": "media", "media": "/abs/card.png", "at": [1, 3], "width": 300,
               "keyframes": [ { "at": 1, "cornerPin": \#(Self.pin) }, { "at": 2, "cornerPin": [[0, 0], [10, 0], [10, 10], [0, 10]] } ] }
             """#
 
@@ -58,7 +58,7 @@ struct CornerPinTests {
     @Test("a title whose style gives a placement is placed by its corner pin, its box its text box")
     func placesTitleByCornerPin() throws {
         // When
-        let geometry = try geometry(of: #"{ "title": "Hello", "style": "subtitle", "at": [0, 3], "cornerPin": \#(Self.pin) }"#)
+        let geometry = try geometry(of: #"{ "kind": "title", "text": "Hello", "style": "subtitle", "at": [0, 3], "cornerPin": \#(Self.pin) }"#)
 
         // Then
         let size = try #require(geometry.title?.layout.size)
@@ -70,9 +70,9 @@ struct CornerPinTests {
     func placesParentedRect() throws {
         // When
         let plan = try plan(#"""
-            { "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4", "connected": [
-              { "id": "card", "media": "/abs/card.png", "at": [0, 3], "width": 300, "position": [600, 600] },
-              { "shape": "rect", "fill": "accent", "width": 40, "height": 20, "at": [0, 3], "parent": "card", "cornerPin": \#(Self.pin) } ] } ] }
+            { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/screen.mp4", "connected": [
+              { "id": "card", "kind": "media", "media": "/abs/card.png", "at": [0, 3], "width": 300, "position": [600, 600] },
+              { "kind": "rect", "fill": "accent", "width": 40, "height": 20, "at": [0, 3], "parent": "card", "cornerPin": \#(Self.pin) } ] } ] }
             """#)
 
         // Then
@@ -97,7 +97,7 @@ struct CornerPinTests {
         name: String
     ) throws {
         // Given
-        let clip = #"{ "media": "/abs/card.png", "at": [0, 3], "width": 300, "cornerPin": \#(Self.pin), \#(key) }"#
+        let clip = #"{ "kind": "media", "media": "/abs/card.png", "at": [0, 3], "width": 300, "cornerPin": \#(Self.pin), \#(key) }"#
 
         // When, Then
         let error = #expect(throws: ResolveError.self) { try geometry(of: clip) }
@@ -116,7 +116,7 @@ struct CornerPinTests {
         place: String
     ) throws {
         // Given
-        let clip = #"{ "shape": "rect", "fill": "accent", "area": [0, 0, 10, 10], "at": [0, 3], \#(pin) }"#
+        let clip = #"{ "kind": "rect", "fill": "accent", "area": [0, 0, 10, 10], "at": [0, 3], \#(pin) }"#
             .replacingOccurrences(of: "PIN", with: Self.pin)
 
         // When, Then
@@ -146,7 +146,7 @@ struct CornerPinTests {
         message: String
     ) throws {
         // Given
-        let clip = #"{ "media": "/abs/card.png", "at": [0, 3], "width": 300, \#(pin) }"#
+        let clip = #"{ "kind": "media", "media": "/abs/card.png", "at": [0, 3], "width": 300, \#(pin) }"#
 
         // When, Then
         let error = #expect(throws: ResolveError.self) { try geometry(of: clip) }
@@ -156,7 +156,7 @@ struct CornerPinTests {
     @Test("a corner pin that runs counterclockwise is strictly convex, and places a mirrored picture")
     func takesMirroredCornerPin() throws {
         // When
-        let geometry = try geometry(of: #"{ "media": "/abs/card.png", "at": [0, 3], "cornerPin": [[10, 0], [0, 0], [0, 10], [10, 10]] }"#)
+        let geometry = try geometry(of: #"{ "kind": "media", "media": "/abs/card.png", "at": [0, 3], "cornerPin": [[10, 0], [0, 0], [0, 10], [10, 10]] }"#)
 
         // Then
         #expect(geometry.cornerPin != nil)
@@ -166,9 +166,9 @@ struct CornerPinTests {
     func keepsClipAreaPoint() throws {
         // When
         let plan = try plan(#"""
-            { "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4", "connected": [
-              { "id": "card", "media": "/abs/card.png", "at": [0, 3], "width": 300, "position": [600, 600] },
-              { "media": "/abs/card.png", "at": [0, 3],
+            { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/screen.mp4", "connected": [
+              { "id": "card", "kind": "media", "media": "/abs/card.png", "at": [0, 3], "width": 300, "position": [600, 600] },
+              { "kind": "media", "media": "/abs/card.png", "at": [0, 3],
                 "cornerPin": [ { "area": { "clip": "card" }, "point": "top-left" }, [500, 120], [480, 400], [120, 380] ] } ] } ] }
             """#)
 
@@ -185,9 +185,9 @@ struct CornerPinTests {
     func refusesClipAreaOnStoryline() throws {
         // Given
         let document = #"""
-            { "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4",
+            { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/screen.mp4",
               "cornerPin": [ { "area": { "clip": "card" }, "point": "top-left" }, [500, 120], [480, 400], [120, 380] ],
-              "connected": [ { "id": "card", "media": "/abs/card.png", "at": [0, 3], "width": 300 } ] } ] }
+              "connected": [ { "id": "card", "kind": "media", "media": "/abs/card.png", "at": [0, 3], "width": 300 } ] } ] }
             """#
 
         // When, Then
@@ -198,7 +198,7 @@ struct CornerPinTests {
     @Test("a storyline clip with a corner pin places its storyline picture's box, the frame, by its four points")
     func placesStorylineByCornerPin() throws {
         // When
-        let plan = try plan(#"{ "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4", "cornerPin": \#(Self.pin) } ] }"#)
+        let plan = try plan(#"{ "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/screen.mp4", "cornerPin": \#(Self.pin) } ] }"#)
 
         // Then
         let appearance = plan.storyline[0].appearance
@@ -221,7 +221,7 @@ struct CornerPinTests {
         name: String
     ) throws {
         // Given
-        let document = #"{ "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4", "cornerPin": \#(Self.pin), \#(key) } ] }"#
+        let document = #"{ "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/screen.mp4", "cornerPin": \#(Self.pin), \#(key) } ] }"#
 
         // When, Then
         let error = #expect(throws: ResolveError.self) { try plan(document) }
@@ -231,7 +231,7 @@ struct CornerPinTests {
     @Test("a storyline clip's corner pin that is not strictly convex stops, naming its place")
     func refusesStorylineNonConvex() throws {
         // Given
-        let document = #"{ "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4", "cornerPin": [[0, 0], [10, 0], [0, 10], [10, 10]] } ] }"#
+        let document = #"{ "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/screen.mp4", "cornerPin": [[0, 0], [10, 0], [0, 10], [10, 10]] } ] }"#
 
         // When, Then
         let error = #expect(throws: ResolveError.self) { try plan(document) }
@@ -242,7 +242,7 @@ struct CornerPinTests {
     func refusesTrackOnStorylineCornerPin() throws {
         // Given
         let track = Fixture.tracker.data(Self.quad, in: "/abs/screen.mp4", atMediaTime: 0)
-        let document = #"{ "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4", "cornerPin": \#(Self.pin), "track": \#(track) } ] }"#
+        let document = #"{ "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/screen.mp4", "cornerPin": \#(Self.pin), "track": \#(track) } ] }"#
 
         // When, Then
         let error = #expect(throws: ResolveError.self) { try plan(document) }
@@ -254,8 +254,8 @@ struct CornerPinTests {
         // Given
         let trackData = Fixture.tracker.data(Self.quad, in: "/abs/screen.mp4", atMediaTime: 0)
         let document = #"""
-            { "kind": "sequence", "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "connected": [
-                { "media": "/abs/short.mp4", "parent": "screen", "at": [0, 3], "width": 300, "cornerPin": \#(Self.pin),
+            { "kind": "sequence", "storyline": [ { "id": "screen", "kind": "media", "media": "/abs/screen.mp4", "connected": [
+                { "kind": "media", "media": "/abs/short.mp4", "parent": "screen", "at": [0, 3], "width": 300, "cornerPin": \#(Self.pin),
                   "track": \#(trackData) } ] } ] }
             """#
 
@@ -274,9 +274,9 @@ struct CornerPinTests {
         // Given
         let track = Fixture.tracker.data(Quad(Rectangle(x: 0, y: 0, width: 100, height: 100)), in: "/abs/short.mp4", atMediaTime: 0)
         let document = #"""
-            { "kind": "sequence", "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "connected": [
-                { "id": "card", "media": "/abs/short.mp4", "parent": "screen", "at": [0, 3], "width": 300, "cornerPin": \#(Self.pin) },
-                { "shape": "rect", "stroke": { "width": 8 }, "parent": "card", "area": [0, 0, 10, 10], "at": [0, 3], "track": \#(track) } ] } ] }
+            { "kind": "sequence", "storyline": [ { "id": "screen", "kind": "media", "media": "/abs/screen.mp4", "connected": [
+                { "id": "card", "kind": "media", "media": "/abs/short.mp4", "parent": "screen", "at": [0, 3], "width": 300, "cornerPin": \#(Self.pin) },
+                { "kind": "rect", "stroke": { "width": 8 }, "parent": "card", "area": [0, 0, 10, 10], "at": [0, 3], "track": \#(track) } ] } ] }
             """#
 
         // When, Then
@@ -294,8 +294,8 @@ struct CornerPinTests {
         let quads = [(0.0, target)] + (1...10).map { (Double($0) / 10, far) }
         let track = QuadTrackerTable(base: target, quads: quads).data(atMediaTime: 0)
         let document = { (far: String) in #"""
-            { "kind": "sequence", "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "out": 1, "connected": [
-                { "media": "/abs/card.png", "parent": "screen", "at": [0, 1], "width": 300, "track": \#(track),
+            { "kind": "sequence", "storyline": [ { "id": "screen", "kind": "media", "media": "/abs/screen.mp4", "out": 1, "connected": [
+                { "kind": "media", "media": "/abs/card.png", "parent": "screen", "at": [0, 1], "width": 300, "track": \#(track),
                   "keyframes": [ { "at": 0, "cornerPin": [[0, 0], [100, 0], [100, 100], [0, 100]] },
                                  { "at": 0.5, "cornerPin": \#(far) } ] } ] } ] }
             """# }
@@ -321,11 +321,11 @@ struct CornerPinTests {
         let quads = [(0.0, target)] + (1...10).map { (Double($0) / 10, far) }
         let track = QuadTrackerTable(base: target, quads: quads).data(atMediaTime: 0)
         let document = { (bottom: Double) in #"""
-            { "kind": "sequence", "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "out": 1, "connected": [
-                { "media": "/abs/card.png", "parent": "screen", "at": [0, 1], "width": 300, "track": \#(track),
+            { "kind": "sequence", "storyline": [ { "id": "screen", "kind": "media", "media": "/abs/screen.mp4", "out": 1, "connected": [
+                { "kind": "media", "media": "/abs/card.png", "parent": "screen", "at": [0, 1], "width": 300, "track": \#(track),
                   "keyframes": [ { "at": 0, "cornerPin": [[0, 0], [100, 0], [100, 100], [0, 100]] },
                                  { "at": 0.5, "cornerPin": [[10, 10], [90, 10], { "area": { "clip": "bar" }, "point": "bottom-right" }, [10, \#(bottom)]] } ] },
-                { "id": "bar", "shape": "rect", "fill": "accent", "area": [20, 20, 60, 30], "parent": "screen", "at": [0, 1] } ] } ] }
+                { "id": "bar", "kind": "rect", "fill": "accent", "area": [20, 20, 60, 30], "parent": "screen", "at": [0, 1] } ] } ] }
             """# }
 
         // When
@@ -349,8 +349,8 @@ struct CornerPinTests {
         let quads = [(0.0, target)] + (1...5).map { (Double($0) / 10, far) }
         let track = QuadTrackerTable(base: target, quads: quads).data(atMediaTime: 0)
         let document = { (bottom: Double) in #"""
-            { "kind": "sequence", "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "out": 1, "connected": [
-                { "media": "/abs/card.png", "parent": "screen", "at": [0, 1], "width": 300, "track": \#(track),
+            { "kind": "sequence", "storyline": [ { "id": "screen", "kind": "media", "media": "/abs/screen.mp4", "out": 1, "connected": [
+                { "kind": "media", "media": "/abs/card.png", "parent": "screen", "at": [0, 1], "width": 300, "track": \#(track),
                   "keyframes": [ { "at": 0, "cornerPin": [[0, 0], [100, 0], [100, 100], [0, 100]] },
                                  { "at": 0.8, "cornerPin": [[10, 10], [90, 10], [90, \#(bottom)], [10, \#(bottom)]] } ] } ] } ] }
             """# }
@@ -368,7 +368,7 @@ struct CornerPinTests {
 
     // MARK: - Private
     private func geometry(of clip: String) throws -> ClipGeometry {
-        try plan(#"{ "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4" } ], "clips": [ \#(clip) ] }"#).clips[0]
+        try plan(#"{ "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/screen.mp4" } ], "clips": [ \#(clip) ] }"#).clips[0]
     }
 
     private func plan(_ document: String) throws -> SequencePlan {

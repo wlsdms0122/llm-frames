@@ -21,8 +21,8 @@ struct PageMediaCheckTests {
         // Given
         let document = try Fixture.json(#"""
             { "kind": "sequence", "storyline": [
-              { "media": { "file": "/abs/deck.pdf", "page": 3 }, "colorSpace": "display-p3", "duration": 2, "crop": [10, 10, 100.5, 50.25],
-                "connected": [ { "at": [0, 2], "media": "/abs/logo.pdf", "colorSpace": "srgb", "width": 200, "placement": "top-right" } ] }
+              { "kind": "media", "media": { "file": "/abs/deck.pdf", "page": 3 }, "colorSpace": "display-p3", "duration": 2, "crop": [10, 10, 100.5, 50.25],
+                "connected": [ { "at": [0, 2], "kind": "media", "media": "/abs/logo.pdf", "colorSpace": "srgb", "width": 200, "placement": "top-right" } ] }
             ] }
             """#)
 
@@ -49,11 +49,11 @@ struct PageMediaCheckTests {
         "a PDF of several pages named as a file stops, naming the file and its page count",
         arguments: [
             (
-                #"{ "storyline": [ { "media": "/abs/deck.pdf" } ] }"#,
+                #"{ "storyline": [ { "kind": "media", "media": "/abs/deck.pdf" } ] }"#,
                 #"storyline[0].media (storyline clip): media "/abs/deck.pdf" is a PDF of 12 pages, more than one picture, so a page of it is named as {"file", "page"}"#
             ),
             (
-                #"{ "storyline": [ { "media": "/abs/run.mp4", "connected": [ { "media": "/abs/deck.pdf" } ] } ] }"#,
+                #"{ "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "connected": [ { "kind": "media", "media": "/abs/deck.pdf" } ] } ] }"#,
                 #"storyline[0].connected[0].media (clip): media "/abs/deck.pdf" is a PDF of 12 pages, more than one picture, so a page of it is named as {"file", "page"}"#
             )
         ]
@@ -76,7 +76,7 @@ struct PageMediaCheckTests {
     )
     func refusesPdfOfNoPages(media: String) throws {
         // Given
-        let document = try Fixture.json(#"{ "kind": "sequence", "storyline": [ { "media": \#(media) } ] }"#)
+        let document = try Fixture.json(#"{ "kind": "sequence", "storyline": [ { "kind": "media", "media": \#(media) } ] }"#)
 
         // When, Then
         let error = #expect(throws: ModelError.self) { try sut.check(document: document) }
@@ -105,7 +105,7 @@ struct PageMediaCheckTests {
         message: String
     ) throws {
         // Given
-        let document = try Fixture.json(#"{ "kind": "sequence", "storyline": [ { "media": \#(media) } ] }"#)
+        let document = try Fixture.json(#"{ "kind": "sequence", "storyline": [ { "kind": "media", "media": \#(media) } ] }"#)
 
         // When, Then
         let error = #expect(throws: ModelError.self) { try sut.check(document: document) }
@@ -127,7 +127,7 @@ struct PageMediaCheckTests {
         message: String
     ) throws {
         // Given
-        let document = try Fixture.json(#"{ "kind": "sequence", "storyline": [ { "media": \#(media) } ] }"#)
+        let document = try Fixture.json(#"{ "kind": "sequence", "storyline": [ { "kind": "media", "media": \#(media) } ] }"#)
 
         // When, Then
         let error = #expect(throws: ModelError.self) { try sut.check(document: document) }
@@ -137,7 +137,7 @@ struct PageMediaCheckTests {
     @Test("media written as an object names one of its forms, a page among them")
     func namesPageAmongForms() throws {
         // Given
-        let document = try Fixture.json(#"{ "kind": "sequence", "storyline": [ { "media": { "page": 2 } } ] }"#)
+        let document = try Fixture.json(#"{ "kind": "sequence", "storyline": [ { "kind": "media", "media": { "page": 2 } } ] }"#)
 
         // When, Then
         let error = #expect(throws: ModelError.self) { try sut.check(document: document) }
@@ -148,7 +148,7 @@ struct PageMediaCheckTests {
     func checksPageArgument() throws {
         // Given
         let document = try Fixture.json(#"""
-            { "kind": "sequence", "storyline": [ { "media": { "template": "pack/card", "args": { "still": { "file": "/abs/deck.pdf", "page": -1 } } } } ] }
+            { "kind": "sequence", "storyline": [ { "kind": "media", "media": { "template": "pack/card", "args": { "still": { "file": "/abs/deck.pdf", "page": -1 } } } } ] }
             """#)
 
         // When, Then

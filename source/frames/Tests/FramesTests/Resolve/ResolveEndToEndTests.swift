@@ -68,8 +68,8 @@ struct ResolveEndToEndTests {
         let document = try Fixture.json(#"""
             { "kind": "sequence", "format": { "size": [1920, 1080] },
               "theme": { "styles": { "name": { "size": 48, "weight": "bold" }, "role": { "size": 36 } } },
-              "storyline": [ { "solid": "#000000", "duration": 1 } ],
-              "clips": [ { "at": [0, 1], "title": [ { "text": "Ana", "style": "name" }, { "text": " Ruiz\nDirector" } ],
+              "storyline": [ { "kind": "solid", "color": "#000000", "duration": 1 } ],
+              "clips": [ { "at": [0, 1], "kind": "title", "text": [ { "text": "Ana", "style": "name" }, { "text": " Ruiz\nDirector" } ],
                            "style": "role", "position": [400, 225] } ] }
             """#)
         let sut = planner(packs: packs)
@@ -164,8 +164,8 @@ struct ResolveEndToEndTests {
             .report(of: file, target: .area("[\(area.x), \(area.y), \(area.width), \(area.height)]"), at: 0)
         let document = try Fixture.json(#"""
             { "kind": "sequence", "format": { "size": [640, 360], "fps": 30 },
-              "storyline": [ { "id": "poster", "media": "\#(file)", "connected": [
-                { "id": "card", "shape": "rect", "fill": "#FF0000", "width": 100, "height": 50, "parent": "poster",
+              "storyline": [ { "id": "poster", "kind": "media", "media": "\#(file)", "connected": [
+                { "id": "card", "kind": "rect", "fill": "#FF0000", "width": 100, "height": 50, "parent": "poster",
                   "cornerPin": [\#(corners)], "track": \#(report.frames.trackData(time: report.time)) } ] } ] }
             """#)
         let resolved = try ResolvedSequence(
@@ -201,8 +201,8 @@ struct ResolveEndToEndTests {
             .report(of: file, target: .area(line), at: 0)
         let document = try Fixture.json(#"""
             { "kind": "sequence",
-              "storyline": [ { "id": "screen", "media": "\#(file)", "connected": [ { "shape": "rect", "stroke": { "width": 8 }, "area": \#(line), "parent": "screen", "track": \#(report.frames.trackData(time: report.time)) } ] } ],
-              "clips": [ { "at": [0, 1], "title": "결제 완료", "style": "title" } ] }
+              "storyline": [ { "id": "screen", "kind": "media", "media": "\#(file)", "connected": [ { "kind": "rect", "stroke": { "width": 8 }, "area": \#(line), "parent": "screen", "track": \#(report.frames.trackData(time: report.time)) } ] } ],
+              "clips": [ { "at": [0, 1], "kind": "title", "text": "결제 완료", "style": "title" } ] }
             """#)
 
         return (document, drawn)

@@ -24,7 +24,7 @@ struct ColorKeyTests {
     @Test("a format without colour keys is srgb and composites on the encoded form, both written out")
     func defaultsFormatColor() throws {
         // When
-        let resolved = try resolved(#"{ "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4" } ] }"#)
+        let resolved = try resolved(#"{ "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4" } ] }"#)
 
         // Then
         #expect(resolved.format.colorSpace == .srgb)
@@ -45,7 +45,7 @@ struct ColorKeyTests {
         // Given
         let document = #"""
             { "kind": "sequence", "format": { "colorSpace": "\#(colorSpace.rawValue)", "compositing": "\#(compositing.rawValue)" },
-              "storyline": [ { "media": "/abs/run.mp4" } ] }
+              "storyline": [ { "kind": "media", "media": "/abs/run.mp4" } ] }
             """#
 
         // When
@@ -71,7 +71,7 @@ struct ColorKeyTests {
         message: String
     ) throws {
         // Given
-        let document = try Fixture.json(#"{ "kind": "sequence", "format": { \#(member) }, "storyline": [ { "media": "/abs/run.mp4" } ] }"#)
+        let document = try Fixture.json(#"{ "kind": "sequence", "format": { \#(member) }, "storyline": [ { "kind": "media", "media": "/abs/run.mp4" } ] }"#)
 
         // When, Then
         let error = #expect(throws: ModelError.self) { try checker.check(document: document) }
@@ -82,7 +82,7 @@ struct ColorKeyTests {
     func defaultsMediaColor() throws {
         // When
         let resolved = try resolved(#"""
-            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "connected": [ { "media": "/abs/card.png", "at": [0, 1] } ] } ] }
+            { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "connected": [ { "kind": "media", "media": "/abs/card.png", "at": [0, 1] } ] } ] }
             """#)
 
         // Then
@@ -99,9 +99,9 @@ struct ColorKeyTests {
         // Given
         let document = #"""
             { "kind": "sequence", "storyline": [
-                { "media": "/abs/run.mp4", "colorSpace": "rec709", "toneMap": false, "connected": [
-                  { "media": "/abs/short.mp4", "colorSpace": "rec2100-hlg", "at": [0, 1] },
-                  { "media": "/abs/card.png", "colorSpace": "display-p3", "toneMap": false, "at": [0, 1] } ] } ] }
+                { "kind": "media", "media": "/abs/run.mp4", "colorSpace": "rec709", "toneMap": false, "connected": [
+                  { "kind": "media", "media": "/abs/short.mp4", "colorSpace": "rec2100-hlg", "at": [0, 1] },
+                  { "kind": "media", "media": "/abs/card.png", "colorSpace": "display-p3", "toneMap": false, "at": [0, 1] } ] } ] }
             """#
 
         // When
@@ -133,8 +133,8 @@ struct ColorKeyTests {
         // Given
         let document = ##"""
             { "kind": "sequence", "format": { "size": [1080, 1920] }, "storyline": [
-                { "solid": "#000000", "duration": 1 },
-                { "media": { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "colorSpace": "rec709" } ] } } ] }
+                { "kind": "solid", "color": "#000000", "duration": 1 },
+                { "kind": "media", "media": { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "colorSpace": "rec709" } ] } } ] }
             """##
 
         // When
@@ -159,18 +159,18 @@ struct ColorKeyTests {
         "colorSpace and toneMap stop on a compound clip, a template instance, an audio clip and a solid",
         arguments: [
             (
-                #"{ "media": { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4" } ] }, "toneMap": false }"#,
+                #"{ "kind": "media", "media": { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4" } ] }, "toneMap": false }"#,
                 #"storyline[0] (compound): unknown key "toneMap""#
             ),
             (
-                #"{ "media": "/abs/run.mp4", "connected": [ { "media": { "template": "pack/intro" }, "at": [0, 1], "colorSpace": "rec709" } ] }"#,
+                #"{ "kind": "media", "media": "/abs/run.mp4", "connected": [ { "kind": "media", "media": { "template": "pack/intro" }, "at": [0, 1], "colorSpace": "rec709" } ] }"#,
                 #"storyline[0].connected[0] (compound): unknown key "colorSpace""#
             ),
             (
-                #"{ "media": "/abs/run.mp4", "connected": [ { "media": "/abs/bgm.m4a", "at": 0, "colorSpace": "rec709" } ] }"#,
+                #"{ "kind": "media", "media": "/abs/run.mp4", "connected": [ { "kind": "media", "media": "/abs/bgm.m4a", "at": 0, "colorSpace": "rec709" } ] }"#,
                 #"storyline[0].connected[0] (audio): unknown key "colorSpace""#
             ),
-            (##"{ "solid": "#000000", "duration": 1, "toneMap": true }"##, #"storyline[0] (solid): unknown key "toneMap""#)
+            (##"{ "kind": "solid", "color": "#000000", "duration": 1, "toneMap": true }"##, #"storyline[0] (solid): unknown key "toneMap""#)
         ]
     )
     func refusesMediaColorOffFiles(
@@ -201,7 +201,7 @@ struct ColorKeyTests {
     ) throws {
         // Given
         let resolved = try resolved(##"""
-            { "kind": "sequence", "storyline": [ { "solid": "#000000", "duration": 1 }, { "media": "/abs/run.mp4" } ] }
+            { "kind": "sequence", "storyline": [ { "kind": "solid", "color": "#000000", "duration": 1 }, { "kind": "media", "media": "/abs/run.mp4" } ] }
             """##)
         let root = try #require(try JSONReader().read(writer.write(resolved)).objectValue)
         var storyline = try #require(root["storyline"]?.arrayValue)
@@ -218,9 +218,9 @@ struct ColorKeyTests {
         // Given
         let document = #"""
             { "kind": "sequence", "storyline": [
-                { "media": "/abs/run.mp4", "filter": { "op": "lut", "file": "/abs/look.cube", "amount": 1 } },
-                { "media": "/abs/run.mp4", "filter": { "op": "lut", "file": "/abs/look.cube", "amount": 1, "space": "rec2100-pq" } },
-                { "media": "/abs/run.mp4", "filter": { "op": "lut", "file": "/abs/look.cube", "amount": 1, "space": "srgb-linear" } } ] }
+                { "kind": "media", "media": "/abs/run.mp4", "filter": { "op": "lut", "file": "/abs/look.cube", "amount": 1 } },
+                { "kind": "media", "media": "/abs/run.mp4", "filter": { "op": "lut", "file": "/abs/look.cube", "amount": 1, "space": "rec2100-pq" } },
+                { "kind": "media", "media": "/abs/run.mp4", "filter": { "op": "lut", "file": "/abs/look.cube", "amount": 1, "space": "srgb-linear" } } ] }
             """#
 
         // When
@@ -243,7 +243,7 @@ struct ColorKeyTests {
     func refusesLUTSpace() throws {
         // Given
         let document = try Fixture.json(#"""
-            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "filter": { "op": "lut", "file": "/abs/look.cube", "amount": 1, "space": "slog3" } } ] }
+            { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "filter": { "op": "lut", "file": "/abs/look.cube", "amount": 1, "space": "slog3" } } ] }
             """#)
 
         // When, Then
@@ -298,9 +298,9 @@ struct ColorKeyTests {
         // Given
         let document = #"""
             { "kind": "sequence", "storyline": [
-                { "media": "/abs/run.mp4", "colorSpace": "rec709", "connected": [
-                  { "media": "/abs/run.mp4", "colorSpace": "rec709", "at": [0, 1], "toneMap": false } ] },
-                { "media": { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "colorSpace": "rec709" } ] } } ] }
+                { "kind": "media", "media": "/abs/run.mp4", "colorSpace": "rec709", "connected": [
+                  { "kind": "media", "media": "/abs/run.mp4", "colorSpace": "rec709", "at": [0, 1], "toneMap": false } ] },
+                { "kind": "media", "media": { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "colorSpace": "rec709" } ] } } ] }
             """#
 
         // When, Then
@@ -311,8 +311,8 @@ struct ColorKeyTests {
     func acceptsTaggedSpaceWrittenOrNot() throws {
         // Given
         let document = #"""
-            { "kind": "sequence", "storyline": [ { "media": "/abs/card.png", "duration": 1, "colorSpace": "srgb", "connected": [
-                { "media": "/abs/card.png", "at": [0, 1] } ] } ] }
+            { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/card.png", "duration": 1, "colorSpace": "srgb", "connected": [
+                { "kind": "media", "media": "/abs/card.png", "at": [0, 1] } ] } ] }
             """#
 
         // When, Then
@@ -323,8 +323,8 @@ struct ColorKeyTests {
     func refusesOtherSpaceThanTagged() throws {
         // Given
         let document = #"""
-            { "kind": "sequence", "storyline": [ { "media": "/abs/card.png", "duration": 1, "colorSpace": "rec709", "connected": [
-                { "media": "/abs/card.png", "at": [0, 1] } ] } ] }
+            { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/card.png", "duration": 1, "colorSpace": "rec709", "connected": [
+                { "kind": "media", "media": "/abs/card.png", "at": [0, 1] } ] } ] }
             """#
 
         // When, Then
@@ -336,7 +336,7 @@ struct ColorKeyTests {
     func acceptsDisplacementMapOfFileInWrittenSpace() throws {
         // Given
         let document = #"""
-            { "kind": "sequence", "storyline": [ { "media": "/abs/card.png", "duration": 1, "colorSpace": "rec709",
+            { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/card.png", "duration": 1, "colorSpace": "rec709",
               "filter": { "op": "displace", "file": "/abs/card.png", "amount": 4 } } ] }
             """#
 

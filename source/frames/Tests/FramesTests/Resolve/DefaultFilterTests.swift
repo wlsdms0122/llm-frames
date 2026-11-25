@@ -27,8 +27,8 @@ struct DefaultFilterTests {
     func appliesDefaultToMedia() throws {
         // When
         let plan = try plan(#"""
-            { "media": "/abs/run.mp4", "in": 0, "out": 3,
-              "connected": [ { "media": "/abs/card.png", "at": [0, 1] }, { "media": "/abs/card.png", "at": [0, 1], "filter": "none" } ] }
+            { "kind": "media", "media": "/abs/run.mp4", "in": 0, "out": 3,
+              "connected": [ { "kind": "media", "media": "/abs/card.png", "at": [0, 1] }, { "kind": "media", "media": "/abs/card.png", "at": [0, 1], "filter": "none" } ] }
             """#)
 
         // Then
@@ -41,7 +41,7 @@ struct DefaultFilterTests {
     func leavesTitleUnfiltered() throws {
         // When
         let plan = try plan(#"""
-            { "media": "/abs/run.mp4", "in": 0, "out": 3, "connected": [ { "title": "Hi", "style": "subtitle", "at": [0, 1] } ] }
+            { "kind": "media", "media": "/abs/run.mp4", "in": 0, "out": 3, "connected": [ { "kind": "title", "text": "Hi", "style": "subtitle", "at": [0, 1] } ] }
             """#)
 
         // Then
@@ -52,7 +52,7 @@ struct DefaultFilterTests {
     func leavesCompoundClipUnfiltered() throws {
         // When
         let plan = try plan(#"""
-            { "media": { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "in": 0, "out": 3 } ] } }
+            { "kind": "media", "media": { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "in": 0, "out": 3 } ] } }
             """#)
 
         // Then
@@ -67,7 +67,7 @@ struct DefaultFilterTests {
         let directory = try PackDirectory()
         try directory.addPack("shorts")
         try directory.write(
-            #"{ "kind": "sequence", "params": { "clip": { "type": "video", "description": "the clip" } }, "storyline": [ { "media": { "param": "clip" }, "in": 0, "out": 3 } ] }"#,
+            #"{ "kind": "sequence", "params": { "clip": { "type": "video", "description": "the clip" } }, "storyline": [ { "kind": "media", "media": { "param": "clip" }, "in": 0, "out": 3 } ] }"#,
             in: "shorts",
             at: "templates/still.json"
         )
@@ -81,7 +81,7 @@ struct DefaultFilterTests {
 
         // When
         let plan = try sut.plan(planner.plan(document: document(
-            #"{ "media": { "template": "shorts/still", "args": { "clip": "/abs/run.mp4" } } }"#
+            #"{ "kind": "media", "media": { "template": "shorts/still", "args": { "clip": "/abs/run.mp4" } } }"#
         )))
 
         // Then
@@ -93,7 +93,7 @@ struct DefaultFilterTests {
         // When
         let plan = try filmPlan(#"""
             { "kind": "sequence", "theme": { "defaults": { "filter": "film" } }, "format": { "size": [1080, 1920] },
-              "storyline": [ { "solid": "#000000", "duration": 3 } ], "clips": [ { "media": "/abs/bgm.m4a", "at": 0 } ] }
+              "storyline": [ { "kind": "solid", "color": "#000000", "duration": 3 } ], "clips": [ { "kind": "media", "media": "/abs/bgm.m4a", "at": 0 } ] }
             """#)
 
         // Then
@@ -105,7 +105,7 @@ struct DefaultFilterTests {
         // Given
         let document = #"""
             { "kind": "sequence", "theme": { "defaults": { "filter": ["film"] } },
-              "storyline": [ { "media": "/abs/run.mp4", "in": 0, "out": 3 } ] }
+              "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "in": 0, "out": 3 } ] }
             """#
         let place = Place.root.appending(key: "theme").appending(key: "defaults").appending(key: "filter").appending(index: 0)
 

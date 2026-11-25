@@ -32,35 +32,35 @@ struct ShapeAppearanceTests {
         "a shape stops where FRAMES-11 says, naming its place",
         arguments: [
             (
-                #"{ "shape": "rect", "area": [0, 0, 10, 10], "width": 10, "height": 10, "fill": "accent" }"#,
+                #"{ "kind": "rect", "area": [0, 0, 10, 10], "width": 10, "height": 10, "fill": "accent" }"#,
                 #"clips[0] (rect): a rect or ellipse is given by "area" or by "width" and "height", and this one writes both"#
             ),
             (
-                #"{ "shape": "ellipse", "fill": "accent" }"#,
+                #"{ "kind": "ellipse", "fill": "accent" }"#,
                 #"clips[0] (ellipse): a rect or ellipse needs "area", or "width" and "height""#
             ),
             (
-                #"{ "shape": "rect", "width": 10, "fill": "accent" }"#,
+                #"{ "kind": "rect", "width": 10, "fill": "accent" }"#,
                 #"clips[0] (rect): missing key "height""#
             ),
             (
-                #"{ "shape": "ellipse", "fill": "accent", "keyframes": [ { "at": 0, "height": 10 } ] }"#,
+                #"{ "kind": "ellipse", "fill": "accent", "keyframes": [ { "at": 0, "height": 10 } ] }"#,
                 #"clips[0] (ellipse): missing key "width""#
             ),
             (
-                #"{ "shape": "path", "fill": "accent" }"#,
+                #"{ "kind": "path", "fill": "accent" }"#,
                 #"clips[0] (path): missing key "points""#
             ),
             (
-                #"{ "shape": "path", "fill": "accent", "keyframes": [ { "at": 0, "points": [[0, 0], [1, 1]] }, { "at": 0.5, "points": [[0, 0], [1, 1], [2, 2]] } ] }"#,
+                #"{ "kind": "path", "fill": "accent", "keyframes": [ { "at": 0, "points": [[0, 0], [1, 1]] }, { "at": 0.5, "points": [[0, 0], [1, 1], [2, 2]] } ] }"#,
                 #"clips[0].keyframes[1].points (path): the values of "points" hold 2 and 3 vertices, and a path interpolates vertex by vertex, so every value has the same number"#
             ),
             (
-                #"{ "shape": "path", "fill": "accent", "points": [[0, 0], [1, 1]], "keyframes": [ { "at": 0.5, "points": [{ "inTangent": [1, 0] }, {}, {}] } ] }"#,
+                #"{ "kind": "path", "fill": "accent", "points": [[0, 0], [1, 1]], "keyframes": [ { "at": 0.5, "points": [{ "inTangent": [1, 0] }, {}, {}] } ] }"#,
                 #"clips[0].keyframes[0].points (path): the values of "points" hold 2 and 3 vertices, and a path interpolates vertex by vertex, so every value has the same number"#
             ),
             (
-                #"{ "shape": "path", "fill": "accent", "keyframes": [ { "at": 0, "points": [[0, 0], { "inTangent": [1, 0] }] }, { "at": 0.5, "points": [[0, 0], {}] } ] }"#,
+                #"{ "kind": "path", "fill": "accent", "keyframes": [ { "at": 0, "points": [[0, 0], { "inTangent": [1, 0] }] }, { "at": 0.5, "points": [[0, 0], {}] } ] }"#,
                 #"clips[0].keyframes[0].points[1] (path): missing key "vertex""#
             ),
             (
@@ -68,51 +68,51 @@ struct ShapeAppearanceTests {
                 #"clips[0] (rect): the shape has neither a fill nor a stroke after its style, so it draws nothing"#
             ),
             (
-                #"{ "shape": "rect", "area": [0, 0, 10, 10], "style": "outline", "fill": false, "stroke": false }"#,
+                #"{ "kind": "rect", "area": [0, 0, 10, 10], "style": "outline", "fill": false, "stroke": false }"#,
                 #"clips[0] (rect): the shape has neither a fill nor a stroke after its style, so it draws nothing"#
             ),
             (
-                #"{ "shape": "path", "points": [[0, 0], [10, 0], [5, 10]], "stroke": { "width": 2, "align": "inside" } }"#,
+                #"{ "kind": "path", "points": [[0, 0], [10, 0], [5, 10]], "stroke": { "width": 2, "align": "inside" } }"#,
                 #"clips[0].stroke (path): a stroke "inside" its outline needs a closed outline, and the path is open"#
             ),
             (
-                #"{ "shape": "rect", "area": [0, 0, 10, 10], "style": "outline", "stroke": { "align": "outside" } }"#,
+                #"{ "kind": "rect", "area": [0, 0, 10, 10], "style": "outline", "stroke": { "align": "outside" } }"#,
                 #"clips[0].stroke (rect): a stroke "outside" its outline takes no arrowhead, which lies across the outline with its tip at the end while the stroke lies on one side of it"#
             ),
             (
-                #"{ "shape": "rect", "area": [0, 0, 10, 10], "stroke": { "width": 2, "align": "inside", "start": { "preset": "frames/bar", "scale": 2 } } }"#,
+                #"{ "kind": "rect", "area": [0, 0, 10, 10], "stroke": { "width": 2, "align": "inside", "start": { "preset": "frames/bar", "scale": 2 } } }"#,
                 #"clips[0].stroke (rect): a stroke "inside" its outline takes no arrowhead, which lies across the outline with its tip at the end while the stroke lies on one side of it"#
             ),
             (
-                #"{ "shape": "ellipse", "area": [0, 0, 10, 10], "stroke": { "width": 2, "align": "outside", "end": "frames/circle" } }"#,
+                #"{ "kind": "ellipse", "area": [0, 0, 10, 10], "stroke": { "width": 2, "align": "outside", "end": "frames/circle" } }"#,
                 #"clips[0].stroke (ellipse): a stroke "outside" its outline takes no arrowhead, which lies across the outline with its tip at the end while the stroke lies on one side of it"#
             ),
             (
-                #"{ "shape": "path", "points": [[0, 0], [10, 0]], "stroke": { "width": 2, "end": "arrow" } }"#,
+                #"{ "kind": "path", "points": [[0, 0], [10, 0]], "stroke": { "width": 2, "end": "arrow" } }"#,
                 #"clips[0].stroke.end (path): unknown head preset "arrow". Did you mean "frames/arrow"? A preset is named <pack>/<name>, and the ones frames ships are frames/<name>"#
             ),
             (
-                #"{ "shape": "path", "points": [[0, 0], [10, 0]], "stroke": { "width": 2, "start": { "preset": "mine/hook", "scale": 2 } } }"#,
+                #"{ "kind": "path", "points": [[0, 0], [10, 0]], "stroke": { "width": 2, "start": { "preset": "mine/hook", "scale": 2 } } }"#,
                 #"clips[0].stroke.start (path): unknown head preset "mine/hook". The pack "mine" holds no head presets"#
             ),
             (
-                #"{ "shape": "path", "points": [[0, 0], [10, 0]], "style": "pointer", "stroke": { "end": "frames/dot" } }"#,
+                #"{ "kind": "path", "points": [[0, 0], [10, 0]], "style": "pointer", "stroke": { "end": "frames/dot" } }"#,
                 #"clips[0].stroke.end (path): unknown head preset "frames/dot". The pack "frames" holds the head presets frames/arrow, frames/bar, frames/circle, frames/diamond, frames/line-arrow, frames/square"#
             ),
             (
-                #"{ "shape": "rect", "area": [0, 0, 10, 10], "style": "box" }"#,
+                #"{ "kind": "rect", "area": [0, 0, 10, 10], "style": "box" }"#,
                 #"clips[0].style (rect): shape style "box" is not in shapes, which hold "outline", "pointer""#
             ),
             (
-                #"{ "shape": "rect", "area": [0, 0, 10, 10], "fill": "ink" }"#,
+                #"{ "kind": "rect", "area": [0, 0, 10, 10], "fill": "ink" }"#,
                 #"clips[0].fill (rect): colour "ink" is not in colors"#
             ),
             (
-                #"{ "shape": "path", "points": [[0, 0], [1, 1]], "stroke": { "width": 2, "color": "ink" } }"#,
+                #"{ "kind": "path", "points": [[0, 0], [1, 1]], "stroke": { "width": 2, "color": "ink" } }"#,
                 #"clips[0].stroke.color (path): colour "ink" is not in colors"#
             ),
             (
-                #"{ "shape": "rect", "area": [0, 0, 10, 10], "placement": "top", "fill": "accent" }"#,
+                #"{ "kind": "rect", "area": [0, 0, 10, 10], "placement": "top", "fill": "accent" }"#,
                 #"clips[0] (rect): "placement" places a box given by "width" and "height", and a shape given by "area" is placed by its area"#
             )
         ]
@@ -133,8 +133,8 @@ struct ShapeAppearanceTests {
     func stopsOnStyleOfBaseTheme() throws {
         // Given
         let document = #"""
-            { "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4" } ],
-              "clips": [ { "shape": "rect", "area": [0, 0, 10, 10], "style": "outline", "at": [0, 1] } ] }
+            { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/screen.mp4" } ],
+              "clips": [ { "kind": "rect", "area": [0, 0, 10, 10], "style": "outline", "at": [0, 1] } ] }
             """#
 
         // When, Then
@@ -145,7 +145,7 @@ struct ShapeAppearanceTests {
     @Test("a style gives every property the clip does not write, its lengths scaled and its shadow the theme's")
     func takesStyle() throws {
         // When
-        let shape = try appearance(#"{ "shape": "rect", "area": [0, 0, 10, 10], "style": "outline" }"#)
+        let shape = try appearance(#"{ "kind": "rect", "area": [0, 0, 10, 10], "style": "outline" }"#)
 
         // Then
         #expect(shape == ShapeAppearance(
@@ -163,7 +163,7 @@ struct ShapeAppearanceTests {
     func mergesClipKeyOverStyle() throws {
         // When
         let shape = try appearance(#"""
-            { "shape": "rect", "area": [0, 0, 10, 10], "style": "outline", "stroke": { "width": 2 }, "fill": false,
+            { "kind": "rect", "area": [0, 0, 10, 10], "style": "outline", "stroke": { "width": 2 }, "fill": false,
               "shadow": { "radius": 4 }, "radius": 0, "outset": 0 }
             """#)
 
@@ -178,9 +178,9 @@ struct ShapeAppearanceTests {
     @Test(
         "a closed path, a rect and an ellipse take a stroke inside or outside their outline, and a stroke is centred where no layer gives its align",
         arguments: [
-            (#"{ "shape": "path", "points": [[0, 0], [10, 0], [5, 10]], "closed": true, "stroke": { "width": 2, "align": "inside" } }"#, StrokeAlign.inside),
-            (#"{ "shape": "rect", "area": [0, 0, 10, 10], "style": "pointer", "stroke": { "align": "outside" } }"#, .outside),
-            (#"{ "shape": "ellipse", "area": [0, 0, 10, 10], "stroke": { "width": 2 } }"#, .center)
+            (#"{ "kind": "path", "points": [[0, 0], [10, 0], [5, 10]], "closed": true, "stroke": { "width": 2, "align": "inside" } }"#, StrokeAlign.inside),
+            (#"{ "kind": "rect", "area": [0, 0, 10, 10], "style": "pointer", "stroke": { "align": "outside" } }"#, .outside),
+            (#"{ "kind": "ellipse", "area": [0, 0, 10, 10], "stroke": { "width": 2 } }"#, .center)
         ]
     )
     func takesAlign(
@@ -200,8 +200,8 @@ struct ShapeAppearanceTests {
         let document = ##"""
             { "kind": "sequence", "format": { "size": [960, 540] },
               "theme": { "shapes": { "bar": { "stroke": false, "fill": "#FFFFFF" } } },
-              "storyline": [ { "media": "/abs/screen.mp4" } ],
-              "clips": [ { "shape": "rect", "area": [0, 0, 10, 10], "style": "bar", "stroke": { "color": "#FF0000" }, "at": [0, 1] } ] }
+              "storyline": [ { "kind": "media", "media": "/abs/screen.mp4" } ],
+              "clips": [ { "kind": "rect", "area": [0, 0, 10, 10], "style": "bar", "stroke": { "color": "#FF0000" }, "at": [0, 1] } ] }
             """##
 
         // When, Then
@@ -213,7 +213,7 @@ struct ShapeAppearanceTests {
     func refusesPartialStrokeWithoutStyle() throws {
         // When, Then
         let error = #expect(throws: (any Error).self) {
-            try plan(document(##"{ "shape": "rect", "area": [0, 0, 10, 10], "stroke": { "color": "#FF0000" } }"##))
+            try plan(document(##"{ "kind": "rect", "area": [0, 0, 10, 10], "stroke": { "color": "#FF0000" } }"##))
         }
         #expect(error.map { "\($0)" } == #"clips[0].stroke (rect): missing key "width", which the clip does not write and no theme layer gives"#)
     }
@@ -221,7 +221,7 @@ struct ShapeAppearanceTests {
     @Test("a shape without a style takes nothing from the theme but colour names, and its stroke the stroke defaults")
     func takesOnlyColourNamesWithoutStyle() throws {
         // When
-        let shape = try appearance(#"{ "shape": "ellipse", "area": [0, 0, 10, 10], "stroke": { "width": 4 }, "fill": "brand" }"#)
+        let shape = try appearance(#"{ "kind": "ellipse", "area": [0, 0, 10, 10], "stroke": { "width": 4 }, "fill": "brand" }"#)
 
         // Then
         #expect(shape == ShapeAppearance(
@@ -238,7 +238,7 @@ struct ShapeAppearanceTests {
     @Test("a rect by its width and height is a box as written, placed as a media clip's box, whatever its outset")
     func placesBoxShape() throws {
         // When
-        let plan = try plan(document(#"{ "shape": "rect", "width": 200, "height": 100, "outset": 10, "placement": "bottom-right", "fill": "accent" }"#))
+        let plan = try plan(document(#"{ "kind": "rect", "width": 200, "height": 100, "outset": 10, "placement": "bottom-right", "fill": "accent" }"#))
 
         // Then
         // The outset of 5 grows only the outline, so the box of 200 by 100 is inset from the bottom right by the
@@ -257,10 +257,10 @@ struct ShapeAppearanceTests {
     func placesOutsetBoxAndAreaAlike() throws {
         // Given
         let document = #"""
-            { "kind": "sequence", "format": { "size": [960, 540] }, "storyline": [ { "media": "/abs/screen.mp4" } ], "clips": [
-              { "shape": "rect", "width": 200, "height": 100, "anchor": "top-left", "position": [300, 200], "outset": 10,
+            { "kind": "sequence", "format": { "size": [960, 540] }, "storyline": [ { "kind": "media", "media": "/abs/screen.mp4" } ], "clips": [
+              { "kind": "rect", "width": 200, "height": 100, "anchor": "top-left", "position": [300, 200], "outset": 10,
                 "fill": "accent", "at": [0, 1] },
-              { "shape": "rect", "area": [0, 0, 200, 100], "anchor": "top-left", "position": [300, 200], "outset": 10,
+              { "kind": "rect", "area": [0, 0, 200, 100], "anchor": "top-left", "position": [300, 200], "outset": 10,
                 "fill": "accent", "at": [0, 1] } ] }
             """#
 
@@ -284,10 +284,10 @@ struct ShapeAppearanceTests {
     func placesChildInBoxAsWritten() throws {
         // Given
         let document = #"""
-            { "kind": "sequence", "format": { "size": [960, 540] }, "storyline": [ { "media": "/abs/screen.mp4" } ], "clips": [
-              { "id": "card", "shape": "rect", "width": 200, "height": 100, "anchor": "top-left", "position": [300, 200],
+            { "kind": "sequence", "format": { "size": [960, 540] }, "storyline": [ { "kind": "media", "media": "/abs/screen.mp4" } ], "clips": [
+              { "id": "card", "kind": "rect", "width": 200, "height": 100, "anchor": "top-left", "position": [300, 200],
                 "outset": 10, "fill": "accent", "at": [0, 1] },
-              { "title": "a", "style": "title", "parent": "card", "anchor": "top-left", "position": [0, 0], "at": [0, 1] } ] }
+              { "kind": "title", "text": "a", "style": "title", "parent": "card", "anchor": "top-left", "position": [0, 0], "at": [0, 1] } ] }
             """#
 
         // When
@@ -307,7 +307,7 @@ struct ShapeAppearanceTests {
     @Test("an ellipse by its width and height turns about its anchor point, which its position puts where it names")
     func placesBoxShapeByPosition() throws {
         // When
-        let plan = try plan(document(#"{ "shape": "ellipse", "width": 200, "height": 100, "anchor": "top-left", "position": [300, 200], "fill": "accent" }"#))
+        let plan = try plan(document(#"{ "kind": "ellipse", "width": 200, "height": 100, "anchor": "top-left", "position": [300, 200], "fill": "accent" }"#))
 
         // Then
         #expect(plan.clips[0].box == ClipBox(
@@ -320,7 +320,7 @@ struct ShapeAppearanceTests {
     @Test("a shape placed by its area writes its area as written and its outset in output pixels, and its anchor a point of its area before the outset")
     func writesGeometryShape() throws {
         // When
-        let shape = try resolvedShape(#"{ "shape": "rect", "area": [100, 100, 200, 100], "outset": 20, "anchor": "bottom-right", "position": [500, 300], "fill": "accent" }"#)
+        let shape = try resolvedShape(#"{ "kind": "rect", "area": [100, 100, 200, 100], "outset": 20, "anchor": "bottom-right", "position": [500, 300], "fill": "accent" }"#)
 
         // Then
         #expect(shape.geometry == .area(
@@ -337,9 +337,9 @@ struct ShapeAppearanceTests {
     func findsPathPoints() throws {
         // Given
         let document = #"""
-            { "kind": "sequence", "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "connected": [
-                { "shape": "rect", "area": [100, 100, 200, 40], "parent": "screen", "fill": "accent" },
-                { "shape": "path", "parent": "screen", "points": [[10, 20], { "area": [100, 100, 200, 40], "point": "left" }],
+            { "kind": "sequence", "storyline": [ { "id": "screen", "kind": "media", "media": "/abs/screen.mp4", "connected": [
+                { "kind": "rect", "area": [100, 100, 200, 40], "parent": "screen", "fill": "accent" },
+                { "kind": "path", "parent": "screen", "points": [[10, 20], { "area": [100, 100, 200, 40], "point": "left" }],
                   "closed": true, "stroke": { "width": 4, "end": "frames/arrow" } } ] } ] }
             """#
 
@@ -381,7 +381,7 @@ struct ShapeAppearanceTests {
     private func document(_ clip: String) -> String {
         #"""
         { "kind": "sequence", "format": { "size": [960, 540] }, "theme": \#(Self.theme),
-          "storyline": [ { "media": "/abs/screen.mp4" } ], "clips": [ \#(clip.dropLast(2)), "at": [0, 1] } ] }
+          "storyline": [ { "kind": "media", "media": "/abs/screen.mp4" } ], "clips": [ \#(clip.dropLast(2)), "at": [0, 1] } ] }
         """#
     }
 

@@ -28,11 +28,11 @@ struct CurvedPathRenderTests {
     func drawsCurveUnderParent() throws {
         // Given
         let parent = ##"""
-            { "id": "frame", "shape": "rect", "area": [40, 40, 240, 160], "fill": "#000000",
+            { "id": "frame", "kind": "rect", "area": [40, 40, 240, 160], "fill": "#000000",
               "scale": [1.3, 0.7], "rotation": 30, "at": [0, 2], "animation": "none" }
             """##
         let curve = ##"""
-            { "id": "curve", "parent": "frame", "shape": "path",
+            { "id": "curve", "parent": "frame", "kind": "path",
               "points": [ { "vertex": [100, 120], "outTangent": [0, 80] },
                           { "vertex": [220, 120], "inTangent": [0, 80] } ],
               "stroke": { "color": "#FFFFFF", "width": 6 }, "fill": false, "at": [0, 2], "animation": "none" }
@@ -60,7 +60,7 @@ struct CurvedPathRenderTests {
     ) throws {
         // Given
         let curve = ##"""
-            { "id": "curve", "shape": "path", "points": [[60, 120], [260, 120]],
+            { "id": "curve", "kind": "path", "points": [[60, 120], [260, 120]],
               "stroke": { "color": "#FFFFFF", "width": 6 }, "fill": false, "at": [0, 2], "animation": "none",
               "keyframes": [
                 { "at": 0, "ease": "linear", "points": [ { "outTangent": [0, 0] }, { "inTangent": [0, 0] } ] },
@@ -82,7 +82,7 @@ struct CurvedPathRenderTests {
     func cutsToFeatheredLens() throws {
         // Given
         let rect = ##"""
-            { "shape": "rect", "area": [0, 0, 320, 240], "fill": "#FFFFFF", "at": [0, 2], "animation": "none",
+            { "kind": "rect", "area": [0, 0, 320, 240], "fill": "#FFFFFF", "at": [0, 2], "animation": "none",
               "mask": { "shape": "path", "feather": 2, "points": [
                 { "vertex": [40, 120], "inTangent": [60, 100], "outTangent": [60, -100] },
                 { "vertex": [280, 120], "inTangent": [-60, -100], "outTangent": [-60, 100] } ] } }
@@ -103,7 +103,7 @@ struct CurvedPathRenderTests {
     private func document(clips: [String]) -> String {
         #"""
             { "kind": "sequence", "format": { "size": [320, 240], "fps": 10 }, "theme": { "baseWidth": 320 },
-              "storyline": [ { "solid": "#000000", "duration": 2 } ],
+              "storyline": [ { "kind": "solid", "color": "#000000", "duration": 2 } ],
               "clips": [ \#(clips.joined(separator: ", ")) ] }
             """#
     }

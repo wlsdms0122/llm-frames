@@ -205,8 +205,8 @@ struct CommandShellTests {
     @Test("a document that is not a template takes no --args, and a template takes no --theme")
     func stopsOnArgumentsAndThemeMismatch() throws {
         // Given
-        let document = try sut.write(##"{ "kind": "sequence", "storyline": [ { "solid": "#000000", "duration": 1 } ] }"##, named: "doc.json")
-        let template = try sut.write(##"{ "kind": "sequence", "params": {}, "storyline": [ { "solid": "#000000", "duration": 1 } ] }"##, named: "template.json")
+        let document = try sut.write(##"{ "kind": "sequence", "storyline": [ { "kind": "solid", "color": "#000000", "duration": 1 } ] }"##, named: "doc.json")
+        let template = try sut.write(##"{ "kind": "sequence", "params": {}, "storyline": [ { "kind": "solid", "color": "#000000", "duration": 1 } ] }"##, named: "template.json")
         let arguments = try sut.write("{}", named: "args.json")
 
         // When

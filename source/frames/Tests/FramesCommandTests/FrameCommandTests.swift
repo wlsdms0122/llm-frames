@@ -100,7 +100,7 @@ struct FrameCommandTests {
     private var sequence: String {
         #"""
         { "kind": "sequence", "format": { "size": [160, 90], "fps": 10 },
-          "storyline": [ { "solid": "#FF8000", "duration": 0.5 }, { "solid": "#0000FF", "duration": 0.5 } ] }
+          "storyline": [ { "kind": "solid", "color": "#FF8000", "duration": 0.5 }, { "kind": "solid", "color": "#0000FF", "duration": 0.5 } ] }
         """#
     }
 

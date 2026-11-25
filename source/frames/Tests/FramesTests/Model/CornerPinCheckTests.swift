@@ -45,8 +45,8 @@ struct CornerPinCheckTests {
     func takesPointForms() throws {
         // Given
         let document = try Fixture.json(#"""
-            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "connected": [
-              { "media": "/abs/card.png", "at": [0, 1],
+            { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "connected": [
+              { "kind": "media", "media": "/abs/card.png", "at": [0, 1],
                 "cornerPin": [ { "area": { "clip": "box" }, "point": "top-left" }, [500, 120], [480, 400], { "area": [0, 0, 10, 10], "point": "bottom" } ] } ] } ] }
             """#)
 
@@ -68,8 +68,8 @@ struct CornerPinCheckTests {
     ) throws {
         // Given
         let document = try Fixture.json(#"""
-            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "connected": [
-              { "media": "/abs/card.png", "at": [0, 1], "cornerPin": \#(pin) } ] } ] }
+            { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "connected": [
+              { "kind": "media", "media": "/abs/card.png", "at": [0, 1], "cornerPin": \#(pin) } ] } ] }
             """#)
 
         // When, Then
@@ -92,7 +92,7 @@ struct CornerPinCheckTests {
     ) throws {
         // Given
         let document = try Fixture.json(#"""
-            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4" }, CLIP ] }
+            { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4" }, CLIP ] }
             """#.replacingOccurrences(of: "CLIP", with: clip).replacingOccurrences(of: "PIN", with: Self.pin))
 
         // When, Then
@@ -104,7 +104,7 @@ struct CornerPinCheckTests {
     func listsCornerPinInOrder() throws {
         // Given
         let document = try Fixture.json(#"""
-            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "connected": [ { "title": "Hi", "at": [0, 1], "pin": 1 } ] } ] }
+            { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "connected": [ { "kind": "title", "text": "Hi", "at": [0, 1], "pin": 1 } ] } ] }
             """#)
 
         // When, Then

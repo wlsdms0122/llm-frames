@@ -76,7 +76,7 @@ struct LocationReporterTests {
         // Given
         let document = try resolved(#"""
             { "kind": "sequence", "format": { "size": [160, 90] },
-              "storyline": [ { "solid": "#FF8000", "duration": 4 } ] }
+              "storyline": [ { "kind": "solid", "color": "#FF8000", "duration": 4 } ] }
             """#)
 
         // When, Then
@@ -442,7 +442,7 @@ struct LocationReporterTests {
         let document = try ResolvedSequence(
             plan: Fixture.documentPlanner.plan(Fixture.json(#"""
                 { "kind": "sequence", "format": { "size": [540, 960] },
-                  "storyline": [ { "media": "/abs/short.mp4", "in": 0, "out": 4 } ] }
+                  "storyline": [ { "kind": "media", "media": "/abs/short.mp4", "in": 0, "out": 4 } ] }
                 """#)),
             hashes: FileHashTable()
         )
@@ -467,8 +467,8 @@ struct LocationReporterTests {
         // from 0.98 to 1.02, so its first and last samples stand 9.375 pixels left and right of where it stands at 1.
         let document = #"""
             { "kind": "sequence", "format": { "size": [1920, 1080], "fps": 25, "motionBlur": { "shutterAngle": 360, "shutterPhase": -180 } },
-              "storyline": [ { "solid": "#202020", "duration": 4 } ],
-              "clips": [ { "id": "slider", "shape": "rect", "fill": "#FF0000", "at": [0, 4], "width": 100, "height": 50, "motionBlur": true,
+              "storyline": [ { "kind": "solid", "color": "#202020", "duration": 4 } ],
+              "clips": [ { "id": "slider", "kind": "rect", "fill": "#FF0000", "at": [0, 4], "width": 100, "height": 50, "motionBlur": true,
                            "keyframes": [ { "at": 0, "position": [100, 500] }, { "at": 2, "position": [1100, 500] } ] } ] }
             """#
         let sequence = try resolved(document)

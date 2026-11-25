@@ -117,8 +117,8 @@ struct MediaClockTests {
     func loopsSequenceSound() throws {
         // Given
         let document = try Fixture.json(##"""
-            { "kind": "sequence", "storyline": [ { "solid": "#000000", "duration": 40 } ],
-              "clips": [ { "media": "/abs/bgm.m4a", "loop": true }, { "at": [1, 5], "media": "/abs/ding.wav" } ] }
+            { "kind": "sequence", "storyline": [ { "kind": "solid", "color": "#000000", "duration": 40 } ],
+              "clips": [ { "kind": "media", "media": "/abs/bgm.m4a", "loop": true }, { "at": [1, 5], "kind": "media", "media": "/abs/ding.wav" } ] }
             """##)
 
         // When
@@ -134,8 +134,8 @@ struct MediaClockTests {
     func timesConnectedCompoundClip() throws {
         // Given
         let document = try Fixture.json(##"""
-            { "kind": "sequence", "storyline": [ { "solid": "#000000", "duration": 10, "connected": [
-              { "at": 1, "media": { "kind": "sequence", "storyline": [ { "solid": "#FFFFFF", "duration": 3 } ] } }
+            { "kind": "sequence", "storyline": [ { "kind": "solid", "color": "#000000", "duration": 10, "connected": [
+              { "at": 1, "kind": "media", "media": { "kind": "sequence", "storyline": [ { "kind": "solid", "color": "#FFFFFF", "duration": 3 } ] } }
             ] } ] }
             """##)
 

@@ -26,7 +26,7 @@ struct AdjustmentTrackMatteRenderTests {
     @Test("an adjustment's filtered backdrop is cut by its track matte, and the backdrop outside the matte is left as it is")
     func cutsAdjustmentByTrackMatte() throws {
         // Given
-        let bitmap = try frame(matte: ##"{ "id": "m", "shape": "rect", "area": [0, 0, 80, 90], "fill": "#FFFFFF", "at": [0, 1] }"##)
+        let bitmap = try frame(matte: ##"{ "id": "m", "kind": "rect", "area": [0, 0, 80, 90], "fill": "#FFFFFF", "at": [0, 1] }"##)
 
         // When
         let inside = bitmap.pixel(x: 40, y: 45)
@@ -41,7 +41,7 @@ struct AdjustmentTrackMatteRenderTests {
     func cutsAdjustmentByCornerPinnedMatte() throws {
         // Given
         let bitmap = try frame(matte: ##"""
-            { "id": "m", "shape": "rect", "width": 100, "height": 50, "fill": "#FFFFFF", "at": [0, 1],
+            { "id": "m", "kind": "rect", "width": 100, "height": 50, "fill": "#FFFFFF", "at": [0, 1],
               "cornerPin": [[20, 10], [140, 20], [130, 80], [30, 70]] }
             """##)
 
@@ -65,9 +65,9 @@ struct AdjustmentTrackMatteRenderTests {
             .write(to: red, codeValues: [255, 0, 0])
         let document = try DocumentResolver(presets: ["filter/grey": Self.grey]).resolve(#"""
             { "kind": "sequence", "format": { "size": [160, 90], "fps": 10 },
-              "storyline": [ { "media": "\#(red)", "duration": 1 } ],
+              "storyline": [ { "kind": "media", "media": "\#(red)", "duration": 1 } ],
               "clips": [ \#(matte),
-                         { "adjust": "mine/grey", "at": [0, 1], "trackMatte": { "clip": "m", "mode": "alpha" } } ] }
+                         { "kind": "adjustment", "adjust": "mine/grey", "at": [0, 1], "trackMatte": { "clip": "m", "mode": "alpha" } } ] }
             """#)
 
         return try QuartzRenderer(decoder: AVFoundationDecoder()).frame(of: Evaluator().displayList(of: document, at: 0.5))

@@ -66,7 +66,7 @@ struct ChoiceOptionCheckerTests {
             { "kind": "sequence", "format": { "size": [1920, 1080] },
               "params": {
                 "join": { "type": "choice", "default": "studio/dip", "options": [ "studio/dip", "studio/nope" ], "description": "how the shots join" } },
-              "storyline": [ { "solid": "#000000", "duration": 1 }, { "solid": "#FFFFFF", "duration": 1, "transition": { "param": "join" } } ] }
+              "storyline": [ { "kind": "solid", "color": "#000000", "duration": 1 }, { "kind": "solid", "color": "#FFFFFF", "duration": 1, "transition": { "param": "join" } } ] }
             """##,
             in: "studio",
             at: "templates/join.json"
@@ -82,7 +82,7 @@ struct ChoiceOptionCheckerTests {
             { "kind": "sequence", "format": { "size": [1920, 1080] },
               "params": {
                 "join": { "type": "choice", "default": "studio/dip", "options": [ "studio/dip", "studio/nope" ], "description": "how the shots join" } },
-              "storyline": [ { "solid": "#000000", "duration": 1 }, { "solid": "#FFFFFF", "duration": 1, "transition": { "param": "join" } } ] }
+              "storyline": [ { "kind": "solid", "color": "#000000", "duration": 1 }, { "kind": "solid", "color": "#FFFFFF", "duration": 1, "transition": { "param": "join" } } ] }
             """##)
         let arguments = ArgumentFile(name: "/abs/args.json", value: try Fixture.json(#"{ "join": "studio/dip" }"#))
 
@@ -106,7 +106,7 @@ struct ChoiceOptionCheckerTests {
         let sut = planner()
         let document = try Fixture.json(##"""
             { "kind": "sequence", "format": { "size": [1920, 1080] },
-              "storyline": [ { "media": { "template": "studio/join", "args": { "join": "studio/dip", "unknown": 1 } } } ] }
+              "storyline": [ { "kind": "media", "media": { "template": "studio/join", "args": { "join": "studio/dip", "unknown": 1 } } } ] }
             """##)
 
         // When
@@ -130,8 +130,8 @@ struct ChoiceOptionCheckerTests {
             { "kind": "sequence", "format": { "size": [1920, 1080] },
               "params": {
                 "move": { "type": "choice", "default": "studio/spring-in", "options": [ "studio/spring-in", "studio/fade-in" ], "description": "how the title comes in" } },
-              "storyline": [ { "solid": "#000000", "duration": 2 } ],
-              "clips": [ { "title": "a", "style": "subtitle", "at": [0, 2],
+              "storyline": [ { "kind": "solid", "color": "#000000", "duration": 2 } ],
+              "clips": [ { "kind": "title", "text": "a", "style": "subtitle", "at": [0, 2],
                            "animation": { "entrance": { "preset": { "param": "move" }, "args": { "bounce": 0.4 } }, "exit": "none" } } ] }
             """##)
 
@@ -152,19 +152,19 @@ struct ChoiceOptionCheckerTests {
         arguments: [
             (
                 #"{ "type": "choice", "default": "name", "options": [ "name", "nope" ], "description": "style" }"#,
-                #"{ "title": "a", "style": { "param": "pick" }, "at": [0, 1] }"#,
+                #"{ "kind": "title", "text": "a", "style": { "param": "pick" }, "at": [0, 1] }"#,
                 "title",
                 "text style"
             ),
             (
                 #"{ "type": "choice", "default": "card", "options": [ "card", "nope" ], "description": "style" }"#,
-                #"{ "shape": "rect", "style": { "param": "pick" }, "area": [0, 0, 10, 10], "at": [0, 1] }"#,
+                #"{ "kind": "rect", "style": { "param": "pick" }, "area": [0, 0, 10, 10], "at": [0, 1] }"#,
                 "rect",
                 "shape style"
             ),
             (
                 ##"{ "type": "choice", "default": "accent", "options": [ "accent", "#FF0000", "nope" ], "description": "fill" }"##,
-                #"{ "shape": "rect", "fill": { "param": "pick" }, "area": [0, 0, 10, 10], "at": [0, 1] }"#,
+                #"{ "kind": "rect", "fill": { "param": "pick" }, "area": [0, 0, 10, 10], "at": [0, 1] }"#,
                 "rect",
                 "theme colour"
             )
@@ -181,7 +181,7 @@ struct ChoiceOptionCheckerTests {
         let document = try Fixture.json(##"""
             { "kind": "sequence", "theme": "studio/look", "format": { "size": [1920, 1080] },
               "params": { "pick": \##(parameter) },
-              "storyline": [ { "solid": "#000000", "duration": 1 } ],
+              "storyline": [ { "kind": "solid", "color": "#000000", "duration": 1 } ],
               "clips": [ \##(clip) ] }
             """##)
 
@@ -206,7 +206,7 @@ struct ChoiceOptionCheckerTests {
         let document = try Fixture.json(##"""
             { "kind": "sequence", "theme": { "param": "look" }, "format": { "size": [1920, 1080] },
               "params": { "look": { "type": "choice", "default": "studio/look", "options": [ "studio/look", "studio/nope" ], "description": "the look" } },
-              "storyline": [ { "solid": "#000000", "duration": 1 } ] }
+              "storyline": [ { "kind": "solid", "color": "#000000", "duration": 1 } ] }
             """##)
 
         // When
@@ -233,8 +233,8 @@ struct ChoiceOptionCheckerTests {
                 "move":   { "type": "choice", "default": "studio/spring-in", "options": [ "studio/spring-in", "studio/bounce-in" ], "description": "how the title comes in" },
                 "bounce": { "type": "number", "description": "how far the title overshoots" },
                 "style":  { "type": "choice", "default": "name", "options": [ "name", "subtitle" ], "description": "style" } },
-              "storyline": [ { "solid": "#000000", "duration": 1 }, { "solid": "#FFFFFF", "duration": 1, "transition": { "param": "join" } } ],
-              "clips": [ { "title": "a", "style": { "param": "style" }, "position": [960, 540], "at": [0, 1],
+              "storyline": [ { "kind": "solid", "color": "#000000", "duration": 1 }, { "kind": "solid", "color": "#FFFFFF", "duration": 1, "transition": { "param": "join" } } ],
+              "clips": [ { "kind": "title", "text": "a", "style": { "param": "style" }, "position": [960, 540], "at": [0, 1],
                            "animation": { "entrance": { "preset": { "param": "move" }, "args": { "bounce": { "param": "bounce" } } }, "exit": "none" } } ] }
             """##)
         let arguments = ArgumentFile(name: "/abs/args.json", value: try Fixture.json(#"{ "move": "studio/bounce-in", "bounce": 0.4 }"#))

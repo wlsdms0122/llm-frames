@@ -82,9 +82,9 @@ The box of the worked example, kept on the moving card:
   "kind": "sequence",
   "format": { "size": [640, 360], "fps": 25 },
   "storyline": [
-    { "id": "shot", "media": "/path/to/shot.mp4",
+    { "id": "shot", "kind": "media", "media": "/path/to/shot.mp4",
       "connected": [
-        { "at": [0.4, 2.6], "parent": "shot", "shape": "rect", "area": [150, 194, 132, 92],
+        { "at": [0.4, 2.6], "parent": "shot", "kind": "rect", "area": [150, 194, 132, 92],
           "stroke": { "width": 4, "color": "#3DDC84" }, "track": { "tool": "frames/track-motion", "target": "area" } } ] }
   ]
 }

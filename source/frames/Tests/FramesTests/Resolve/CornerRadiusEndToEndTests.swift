@@ -30,11 +30,11 @@ struct CornerRadiusEndToEndTests {
         // Given
         let sut = try resolved(#"""
             { "kind": "sequence", "format": { "size": [1920, 1080] },
-              "storyline": [ { "media": "/abs/run.mp4", "in": 0, "out": 4, "scale": 0.5, "radius": [0, 20, 60, 120] } ],
+              "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "in": 0, "out": 4, "scale": 0.5, "radius": [0, 20, 60, 120] } ],
               "clips": [
-                { "shape": "rect", "width": 400, "height": 300, "position": [960, 540], "fill": "accent", "radius": [0, 20, 60, 120], "at": [0, 4] },
-                { "media": "/abs/card.png", "at": [0, 4], "width": 400, "radius": [0, 20, 60, 120] },
-                { "adjust": "frames/warm", "at": [0, 4], "mask": { "shape": "rect", "area": [0, 0, 400, 300], "radius": [0, 20, 60, 120] } } ] }
+                { "kind": "rect", "width": 400, "height": 300, "position": [960, 540], "fill": "accent", "radius": [0, 20, 60, 120], "at": [0, 4] },
+                { "kind": "media", "media": "/abs/card.png", "at": [0, 4], "width": 400, "radius": [0, 20, 60, 120] },
+                { "kind": "adjustment", "adjust": "frames/warm", "at": [0, 4], "mask": { "shape": "rect", "area": [0, 0, 400, 300], "radius": [0, 20, 60, 120] } } ] }
             """#)
 
         // When
@@ -56,8 +56,8 @@ struct CornerRadiusEndToEndTests {
               "theme": { "styles": { "chip": { "size": 40,
                 "background": { "color": "#000000", "padding": [8, 16], "radius": [0, 20, 60, 120] },
                 "highlight": { "color": "#FF0000", "radius": [12, 0, 12, 0] } } } },
-              "storyline": [ { "solid": "#202020", "duration": 4 } ],
-              "clips": [ { "title": "Hi", "style": "chip", "at": [0, 4], "position": [960, 540] } ] }
+              "storyline": [ { "kind": "solid", "color": "#202020", "duration": 4 } ],
+              "clips": [ { "kind": "title", "text": "Hi", "style": "chip", "at": [0, 4], "position": [960, 540] } ] }
             """##)
 
         // When
@@ -73,8 +73,8 @@ struct CornerRadiusEndToEndTests {
     func movesBetweenOneRadiusAndFour() throws {
         // Given
         let sut = try resolved(#"""
-            { "kind": "sequence", "format": { "size": [1920, 1080] }, "storyline": [ { "solid": "#202020", "duration": 4 } ],
-              "clips": [ { "shape": "rect", "width": 400, "height": 300, "position": [960, 540], "fill": "accent", "at": [0, 4],
+            { "kind": "sequence", "format": { "size": [1920, 1080] }, "storyline": [ { "kind": "solid", "color": "#202020", "duration": 4 } ],
+              "clips": [ { "kind": "rect", "width": 400, "height": 300, "position": [960, 540], "fill": "accent", "at": [0, 4],
                 "keyframes": [ { "at": 0, "radius": 4 }, { "at": 2, "radius": [0, 4, 8, 12] }, { "at": 3, "radius": 10 } ] } ] }
             """#)
 
@@ -96,12 +96,12 @@ struct CornerRadiusEndToEndTests {
         let sequence = try resolved(##"""
             { "kind": "sequence", "format": { "size": [1920, 1080] },
               "theme": { "styles": { "chip": { "size": 40, "background": { "color": "#000000", "radius": 6 }, "highlight": { "color": "#FF0000", "radius": 3 } } } },
-              "storyline": [ { "media": "/abs/run.mp4", "in": 0, "out": 4, "radius": 12 } ],
+              "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "in": 0, "out": 4, "radius": 12 } ],
               "clips": [
-                { "shape": "rect", "width": 400, "height": 300, "position": [960, 540], "fill": "accent", "radius": 12, "at": [0, 4] },
-                { "media": "/abs/card.png", "at": [0, 4], "width": 400, "radius": 12 },
-                { "title": "Hi", "style": "chip", "at": [0, 4], "position": [960, 540] },
-                { "adjust": "frames/warm", "at": [0, 4], "mask": { "shape": "rect", "area": [0, 0, 400, 300], "radius": 4 } } ] }
+                { "kind": "rect", "width": 400, "height": 300, "position": [960, 540], "fill": "accent", "radius": 12, "at": [0, 4] },
+                { "kind": "media", "media": "/abs/card.png", "at": [0, 4], "width": 400, "radius": 12 },
+                { "kind": "title", "text": "Hi", "style": "chip", "at": [0, 4], "position": [960, 540] },
+                { "kind": "adjustment", "adjust": "frames/warm", "at": [0, 4], "mask": { "shape": "rect", "area": [0, 0, 400, 300], "radius": 4 } } ] }
             """##)
         let list = evaluator.displayList(of: sequence, at: 1)
         let document = try JSONReader().read(writer.write(sequence))
@@ -122,8 +122,8 @@ struct CornerRadiusEndToEndTests {
     func refusesOtherLengthInDisplayList() throws {
         // Given
         let sequence = try resolved(#"""
-            { "kind": "sequence", "format": { "size": [1920, 1080] }, "storyline": [ { "solid": "#202020", "duration": 4 } ],
-              "clips": [ { "shape": "rect", "width": 400, "height": 300, "position": [960, 540], "fill": "accent", "radius": [0, 20, 60, 120], "at": [0, 4] } ] }
+            { "kind": "sequence", "format": { "size": [1920, 1080] }, "storyline": [ { "kind": "solid", "color": "#202020", "duration": 4 } ],
+              "clips": [ { "kind": "rect", "width": 400, "height": 300, "position": [960, 540], "fill": "accent", "radius": [0, 20, 60, 120], "at": [0, 4] } ] }
             """#)
         let written = try JSONReader().read(listWriter.write(evaluator.displayList(of: sequence, at: 1)))
         let root = try #require(written.objectValue)

@@ -92,10 +92,10 @@ struct TitleUnitRenderTests {
                                                    "highlight": { "color": "#2255FF", "padding": [4, 6], "radius": 6 },
                                                    "underline": { "width": 4, "offset": 6, "color": "#FFCC00" },
                                                    "placement": "center", "offset": 0 } } },
-              "storyline": [ { "solid": "#88AA66", "duration": 2 } ],
+              "storyline": [ { "kind": "solid", "color": "#88AA66", "duration": 2 } ],
               "clips": [
-                { "id": "m", "shape": "rect", "area": [0, 0, 200, 180], "fill": "#B0B0B0", "at": [0, 2] },
-                { "title": "AB CD", "style": "headline", "at": [0, 2], "opacity": 0.5, "blend": "multiply",
+                { "id": "m", "kind": "rect", "area": [0, 0, 200, 180], "fill": "#B0B0B0", "at": [0, 2] },
+                { "kind": "title", "text": "AB CD", "style": "headline", "at": [0, 2], "opacity": 0.5, "blend": "multiply",
                   "mask": { "shape": "ellipse", "area": [0, 0, 160, 70], "feather": 8 },
                   "trackMatte": { "clip": "m", "mode": "luma" }, \#(animation) } ] }
             """#
@@ -109,8 +109,8 @@ struct TitleUnitRenderTests {
                          "styles": { "headline": { "size": 60, "color": "#FFFFFF", "stroke": { "width": 10, "color": "#CC2200" },
                                                    "highlight": { "color": "#2255FF", "padding": [12, 16], "radius": 6 },
                                                    "placement": "center", "offset": 0 } } },
-              "storyline": [ { "solid": "#88AA66", "duration": 2 } ],
-              "clips": [ { "title": "AB CD", "style": "headline", "at": [0, 2], "animation": \#(animation) } ] }
+              "storyline": [ { "kind": "solid", "color": "#88AA66", "duration": 2 } ],
+              "clips": [ { "kind": "title", "text": "AB CD", "style": "headline", "at": [0, 2], "animation": \#(animation) } ] }
             """#
     }
 
@@ -120,8 +120,8 @@ struct TitleUnitRenderTests {
               "theme": { "baseWidth": 320,
                          "styles": { "headline": { "size": 100, "color": "#FFFFFF", "stroke": { "width": 10, "color": "#FF0000" },
                                                    "placement": "center", "offset": 0 } } },
-              "storyline": [ { "solid": "#000000", "duration": 2 } ],
-              "clips": [ { "title": "HI", "style": "headline", "at": [0, 2], "animation": \#(animation) } ] }
+              "storyline": [ { "kind": "solid", "color": "#000000", "duration": 2 } ],
+              "clips": [ { "kind": "title", "text": "HI", "style": "headline", "at": [0, 2], "animation": \#(animation) } ] }
             """#
     }
 

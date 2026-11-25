@@ -21,7 +21,8 @@ struct SolidKeyframeTests {
     func movesColour() throws {
         // Given
         let sequence = try resolved(#"""
-            "solid": "#FF0000", "keyframes": [ { "at": 0, "solid": null }, { "at": 2, "solid": "brand" } ]
+            "kind": "solid",
+            "color": "#FF0000", "keyframes": [ { "at": 0, "color": null }, { "at": 2, "color": "brand" } ]
             """#)
 
         // When
@@ -35,7 +36,7 @@ struct SolidKeyframeTests {
     @Test("a solid without keyframes keeps its colour at every instant")
     func holdsStaticColour() throws {
         // Given
-        let sequence = try resolved(#""solid": "brand""#)
+        let sequence = try resolved(#""kind": "solid", "color": "brand""#)
 
         // When
         let list = sut.displayList(of: sequence, at: 1.5)
@@ -48,7 +49,8 @@ struct SolidKeyframeTests {
     func resolvesColourEveryKeyframeWrites() throws {
         // Given
         let sequence = try resolved(#"""
-            "solid": "#FF0000", "keyframes": [ { "at": 0, "solid": "#000000" }, { "at": 2, "solid": "#FFFFFF" } ]
+            "kind": "solid",
+            "color": "#FF0000", "keyframes": [ { "at": 0, "color": "#000000" }, { "at": 2, "color": "#FFFFFF" } ]
             """#)
 
         // When
@@ -65,7 +67,8 @@ struct SolidKeyframeTests {
     func roundTripsColour() throws {
         // Given
         let sequence = try resolved(#"""
-            "solid": "#FF0000", "keyframes": [ { "at": 0, "solid": null, "ease": "ease-in" }, { "at": 2, "solid": "brand" } ]
+            "kind": "solid",
+            "color": "#FF0000", "keyframes": [ { "at": 0, "color": null, "ease": "ease-in" }, { "at": 2, "color": "brand" } ]
             """#)
 
         // When

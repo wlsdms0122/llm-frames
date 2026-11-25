@@ -22,18 +22,18 @@ struct SequenceReaderTests {
         let document = try Fixture.json(##"""
             { "kind": "sequence", "format": { "fps": 25 }, "theme": { "defaults": { "transition": "frames/push-up" } },
               "storyline": [
-                { "id": "run", "media": "/abs/run.mp4", "in": 2, "out": 8, "speed": 2,
+                { "id": "run", "kind": "media", "media": "/abs/run.mp4", "in": 2, "out": 8, "speed": 2,
                   "keyframes": [ { "at": 2, "crop": { "scale": 1 }, "ease": "ease-in-out" } ],
-                  "connected": [ { "at": [2, 8], "title": "a", "style": "subtitle" },
-                                 { "shape": "rect", "stroke": { "width": 8 }, "parent": "run", "keyframes": [ { "at": 1.2, "area": [60, 400, 600, 80] } ] } ] },
-                { "media": "/abs/card.png", "duration": 2.5, "transition": { "preset": "frames/wipe-right", "seconds": 0.5 } },
-                { "solid": "#000000", "duration": 1, "transition": "cut" }
+                  "connected": [ { "at": [2, 8], "kind": "title", "text": "a", "style": "subtitle" },
+                                 { "kind": "rect", "stroke": { "width": 8 }, "parent": "run", "keyframes": [ { "at": 1.2, "area": [60, 400, 600, 80] } ] } ] },
+                { "kind": "media", "media": "/abs/card.png", "duration": 2.5, "transition": { "preset": "frames/wipe-right", "seconds": 0.5 } },
+                { "kind": "solid", "color": "#000000", "duration": 1, "transition": "cut" }
               ],
               "clips": [
-                { "at": 1.0, "media": "/abs/ding.wav", "in": 0, "out": 1.5 },
-                { "media": { "imageSequence": "/abs/frames", "fps": 30 }, "loop": true, "lane": -1, "parent": "run", "placement": "top" },
-                { "adjust": "frames/vivid", "animation": { "entrance": "frames/pop", "exit": "none" } },
-                { "title": [ { "text": "Ana\n" }, { "text": "Director", "style": "role" } ], "style": "name" }
+                { "at": 1.0, "kind": "media", "media": "/abs/ding.wav", "in": 0, "out": 1.5 },
+                { "kind": "media", "media": { "imageSequence": "/abs/frames", "fps": 30 }, "loop": true, "lane": -1, "parent": "run", "placement": "top" },
+                { "kind": "adjustment", "adjust": "frames/vivid", "animation": { "entrance": "frames/pop", "exit": "none" } },
+                { "kind": "title", "text": [ { "text": "Ana\n" }, { "text": "Director", "style": "role" } ], "style": "name" }
               ] }
             """##)
 
@@ -77,7 +77,7 @@ struct SequenceReaderTests {
     @Test("a page of a PDF reads as its file and its page number")
     func readsPage() throws {
         // Given
-        let document = try Fixture.json(#"{ "kind": "sequence", "storyline": [ { "media": { "file": "/abs/deck.pdf", "page": 3 }, "colorSpace": "rec709" } ] }"#)
+        let document = try Fixture.json(#"{ "kind": "sequence", "storyline": [ { "kind": "media", "media": { "file": "/abs/deck.pdf", "page": 3 }, "colorSpace": "rec709" } ] }"#)
 
         // When
         let sequence = sut.sequence(from: document)
@@ -90,7 +90,7 @@ struct SequenceReaderTests {
     func readsCompoundClip() throws {
         // Given
         let document = try Fixture.json(##"""
-            { "kind": "sequence", "storyline": [ { "media": { "kind": "sequence", "theme": "shorts/shorts", "storyline": [ { "solid": "#000000", "duration": 1 } ] } } ] }
+            { "kind": "sequence", "storyline": [ { "kind": "media", "media": { "kind": "sequence", "theme": "shorts/shorts", "storyline": [ { "kind": "solid", "color": "#000000", "duration": 1 } ] } } ] }
             """##)
 
         // When
@@ -111,8 +111,8 @@ struct SequenceReaderTests {
         // Given
         let document = try Fixture.json(#"""
             { "kind": "sequence", "storyline": [
-              { "media": { "template": "shorts/leak", "args": { "clip": "/abs/run.mp4" } } },
-              { "media": "/abs/run.mp4" }
+              { "kind": "media", "media": { "template": "shorts/leak", "args": { "clip": "/abs/run.mp4" } } },
+              { "kind": "media", "media": "/abs/run.mp4" }
             ] }
             """#)
         let theme = try ThemeMerger().merge([ThemeLayer(value: Fixture.json(#"{ "defaults": { "transition": "frames/flash" } }"#), place: .root)])
@@ -133,10 +133,10 @@ struct SequenceReaderTests {
         // Given
         let document = try Fixture.json(#"""
             { "kind": "sequence", "format": { "size": [1080, 1920], "conform": "fill" },
-              "storyline": [ { "media": "/abs/screen.mp4", "track": { "time": 1, "frames": [] }, "crop": { "scale": 2 }, "connected": [
-                { "shape": "ellipse", "area": { "clip": "t", "padding": 6 }, "fill": "accent",
+              "storyline": [ { "kind": "media", "media": "/abs/screen.mp4", "track": { "time": 1, "frames": [] }, "crop": { "scale": 2 }, "connected": [
+                { "kind": "ellipse", "area": { "clip": "t", "padding": 6 }, "fill": "accent",
                   "track": { "time": 0.5, "frames": [ { "time": 0.5, "quad": [[10, 20], [40, 20], [40, 60], [10, 60]] } ] } },
-                { "id": "t", "title": "t", "style": "title", "width": 300, "parent": "screen",
+                { "id": "t", "kind": "title", "text": "t", "style": "title", "width": 300, "parent": "screen",
                   "position": { "area": [1, 2, 3, 4], "point": "top-left" } } ] } ] }
             """#)
 
@@ -162,12 +162,12 @@ struct SequenceReaderTests {
         // Given
         let document = try Fixture.json(##"""
             { "kind": "sequence", "clips": [
-              { "shape": "rect", "style": "outline", "width": 100, "height": 50, "radius": 8, "outset": 4, "fill": false,
+              { "kind": "rect", "style": "outline", "width": 100, "height": 50, "radius": 8, "outset": 4, "fill": false,
                 "stroke": { "width": 2, "join": "bevel", "end": "frames/arrow" }, "shadow": true, "scale": 2, "rotation": 30 },
-              { "shape": "path", "points": [[0, 0], { "area": [0, 0, 10, 10], "point": "right" }], "closed": true,
+              { "kind": "path", "points": [[0, 0], { "area": [0, 0, 10, 10], "point": "right" }], "closed": true,
                 "fill": "#FF0000", "stroke": false, "shadow": { "radius": 4, "color": "accent" },
                 "keyframes": [ { "at": 1, "trim": [0, 0.5] }, { "at": 2, "trim": [0, 1], "ease": "ease-in" } ] },
-              { "shape": "ellipse", "area": [0, 0, 10, 10], "shadow": false } ] }
+              { "kind": "ellipse", "area": [0, 0, 10, 10], "shadow": false } ] }
             """##)
 
         // When
@@ -220,7 +220,7 @@ struct SequenceReaderTests {
     ) throws {
         // Given
         let document = try Fixture.json(#"""
-            { "kind": "sequence", "format": { "size": \#(size) }, "storyline": [ { "media": "/abs/run.mp4" } ] }
+            { "kind": "sequence", "format": { "size": \#(size) }, "storyline": [ { "kind": "media", "media": "/abs/run.mp4" } ] }
             """#)
 
         // When

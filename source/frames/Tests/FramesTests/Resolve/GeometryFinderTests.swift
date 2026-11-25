@@ -24,7 +24,7 @@ struct GeometryFinderTests {
     func findsKeyframesAtTheirTimes() throws {
         // Given
         let plan = try plan(#"""
-            { "shape": "rect", "stroke": { "width": 8 }, "parent": "screen", "at": [1, 3],
+            { "kind": "rect", "stroke": { "width": 8 }, "parent": "screen", "at": [1, 3],
               "keyframes": [ { "at": 1, "area": [100, 100, 200, 40], "ease": "ease-in-out" }, { "at": 2.5, "area": [100, 700, 200, 40] } ] }
             """#)
         let clip = plan.sequence.storyline[0].connected[0]
@@ -92,7 +92,7 @@ struct GeometryFinderTests {
     func findsPositionOnArea() throws {
         // Given
         let plan = try plan(#"""
-            { "title": "a", "style": "title", "parent": "screen", "position": { "area": [86, 86, 228, 68], "point": "right" } }
+            { "kind": "title", "text": "a", "style": "title", "parent": "screen", "position": { "area": [86, 86, 228, 68], "point": "right" } }
             """#)
         let clip = plan.sequence.storyline[0].connected[0]
 
@@ -123,7 +123,7 @@ struct GeometryFinderTests {
     ) throws {
         // Given
         let plan = try plan(#"""
-            { "title": "a", "style": "title", "parent": "screen", "position": { "area": [90, 90, 220, 60], "point": "\#(name)" } }
+            { "kind": "title", "text": "a", "style": "title", "parent": "screen", "position": { "area": [90, 90, 220, 60], "point": "\#(name)" } }
             """#)
         let clip = plan.sequence.storyline[0].connected[0]
 
@@ -138,7 +138,7 @@ struct GeometryFinderTests {
     func findsPointPastPicture() throws {
         // Given
         let plan = try plan(#"""
-            { "shape": "rect", "stroke": { "width": 8 }, "parent": "screen", "area": [-50, -50, 500, 340],
+            { "kind": "rect", "stroke": { "width": 8 }, "parent": "screen", "area": [-50, -50, 500, 340],
               "position": { "area": [-50, -50, 500, 340], "point": "top-left" } }
             """#)
         let clip = plan.sequence.storyline[0].connected[0]

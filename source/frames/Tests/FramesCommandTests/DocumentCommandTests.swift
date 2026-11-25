@@ -30,7 +30,7 @@ struct DocumentCommandTests {
     func resolvesSequence() throws {
         // Given
         let image = try picture(named: "card.png")
-        let document = try sut.write(#"{ "kind": "sequence", "storyline": [ { "media": "\#(image)", "duration": 1 } ] }"#, named: "card.json")
+        let document = try sut.write(#"{ "kind": "sequence", "storyline": [ { "kind": "media", "media": "\#(image)", "duration": 1 } ] }"#, named: "card.json")
         let output = sut.directory.file("card.resolved.json")
 
         // When
@@ -147,7 +147,7 @@ struct DocumentCommandTests {
             #"""
             { "kind": "sequence", "format": { "size": [160, 90] },
               "params": { "length": { "type": "number", "default": 1, "description": "the length" } },
-              "storyline": [ { "solid": "#000000", "duration": { "param": "length" } } ] }
+              "storyline": [ { "kind": "solid", "color": "#000000", "duration": { "param": "length" } } ] }
             """#,
             to: pack.appendingPathComponent("templates/card.json")
         )
@@ -175,9 +175,9 @@ struct DocumentCommandTests {
         try sut.write(
             #"""
             { "kind": "sequence", "format": { "size": [160, 90] }, "theme": { "font": ["Courier"] },
-              "storyline": [ { "solid": "#000000", "duration": 1 } ],
-              "clips": [ { "title": "a", "style": "title", "position": [80, 45], "at": [0, 1] },
-                         { "title": "b", "style": "title", "character": { "font": ["Courier"] }, "position": [80, 45], "at": [0, 1] } ] }
+              "storyline": [ { "kind": "solid", "color": "#000000", "duration": 1 } ],
+              "clips": [ { "kind": "title", "text": "a", "style": "title", "position": [80, 45], "at": [0, 1] },
+                         { "kind": "title", "text": "b", "style": "title", "character": { "font": ["Courier"] }, "position": [80, 45], "at": [0, 1] } ] }
             """#,
             to: pack.appendingPathComponent("templates/card.json")
         )
@@ -212,7 +212,7 @@ struct DocumentCommandTests {
         // Given
         let image = try picture(named: "frame.png")
         let document = try sut.write(
-            #"{ "kind": "sequence", "format": { "fps": 10 }, "storyline": [ { "media": "\#(image)", "duration": 0.3 } ] }"#,
+            #"{ "kind": "sequence", "format": { "fps": 10 }, "storyline": [ { "kind": "media", "media": "\#(image)", "duration": 0.3 } ] }"#,
             named: "doc.json"
         )
         let resolved = sut.directory.file("resolved.json")
@@ -261,7 +261,7 @@ struct DocumentCommandTests {
         // Given
         let image = try picture(named: "frame.png")
         let document = try sut.write(
-            #"{ "kind": "sequence", "format": { "fps": 10 }, "storyline": [ { "media": "\#(image)", "duration": 0.3 } ] }"#,
+            #"{ "kind": "sequence", "format": { "fps": 10 }, "storyline": [ { "kind": "media", "media": "\#(image)", "duration": 0.3 } ] }"#,
             named: "doc.json"
         )
         let master = sut.directory.file("out.mov")
@@ -350,8 +350,8 @@ struct DocumentCommandTests {
         #"""
         { "kind": "sequence", "format": { "size": [160, 90], "fps": 10 },
           "storyline": [
-            { "solid": "#000000", "duration": 1 },
-            { "id": "end", "solid": "#FFFFFF", "duration": 0.5, "transition": { "preset": "frames/fade", "seconds": 0.5 } }
+            { "kind": "solid", "color": "#000000", "duration": 1 },
+            { "id": "end", "kind": "solid", "color": "#FFFFFF", "duration": 0.5, "transition": { "preset": "frames/fade", "seconds": 0.5 } }
           ] }
         """#
     }

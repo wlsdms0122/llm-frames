@@ -19,23 +19,23 @@ struct TrackPlannerTests {
 
     private static let untrackable: [(String, String)] = [
         (
-            #"{ "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4" } ], "clips": [ { "shape": "rect", "stroke": { "width": 8 }, "area": [0, 0, 10, 10], "at": [0, 1], "track": \#(track) } ] }"#,
+            #"{ "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/screen.mp4" } ], "clips": [ { "kind": "rect", "stroke": { "width": 8 }, "area": [0, 0, 10, 10], "at": [0, 1], "track": \#(track) } ] }"#,
             "clips[0].track (rect): track follows the video or image sequence of the clip or of its parent, and there is none to follow here"
         ),
         (
-            #"{ "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4", "connected": [ { "title": "a", "style": "title", "at": [0, 1], "track": \#(track) } ] } ] }"#,
+            #"{ "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/screen.mp4", "connected": [ { "kind": "title", "text": "a", "style": "title", "at": [0, 1], "track": \#(track) } ] } ] }"#,
             "storyline[0].connected[0].track (title): track follows the video or image sequence of the clip or of its parent, and there is none to follow here"
         ),
         (
-            #"{ "kind": "sequence", "storyline": [ { "id": "page", "media": "/abs/page.png", "duration": 2, "connected": [ { "shape": "rect", "stroke": { "width": 8 }, "area": [100, 100, 200, 40], "parent": "page", "track": \#(track) } ] } ] }"#,
+            #"{ "kind": "sequence", "storyline": [ { "id": "page", "kind": "media", "media": "/abs/page.png", "duration": 2, "connected": [ { "kind": "rect", "stroke": { "width": 8 }, "area": [100, 100, 200, 40], "parent": "page", "track": \#(track) } ] } ] }"#,
             "storyline[0]#page.connected[0].track (rect): track follows the video or image sequence of the clip or of its parent, and there is none to follow here"
         ),
         (
-            ##"{ "kind": "sequence", "storyline": [ { "media": { "kind": "sequence", "storyline": [ { "solid": "#000000", "duration": 2 } ] }, "track": \##(track) } ] }"##,
+            ##"{ "kind": "sequence", "storyline": [ { "kind": "media", "media": { "kind": "sequence", "storyline": [ { "kind": "solid", "color": "#000000", "duration": 2 } ] }, "track": \##(track) } ] }"##,
             "storyline[0].track (compound): track follows the video or image sequence of the clip or of its parent, and there is none to follow here"
         ),
         (
-            #"{ "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4" } ], "clips": [ { "id": "card", "media": "/abs/page.png", "at": [0, 1], "width": 300 }, { "shape": "rect", "stroke": { "width": 8 }, "area": [0, 0, 10, 10], "at": [0, 1], "parent": "card", "track": \#(track) } ] }"#,
+            #"{ "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/screen.mp4" } ], "clips": [ { "id": "card", "kind": "media", "media": "/abs/page.png", "at": [0, 1], "width": 300 }, { "kind": "rect", "stroke": { "width": 8 }, "area": [0, 0, 10, 10], "at": [0, 1], "parent": "card", "track": \#(track) } ] }"#,
             "clips[1].track (rect): track follows the video or image sequence of the clip or of its parent, and there is none to follow here"
         )
     ]
@@ -86,8 +86,8 @@ struct TrackPlannerTests {
         let trackData = data(atMediaTime: 1, followed: 0...3)
         let time = try Fixture.planner.plan(document: Fixture.json(#"""
             { "kind": "sequence", "storyline": [
-                { "media": "/abs/screen.mp4", "in": 1, "out": 3, "track": \#(trackData) },
-                { "solid": "#000000", "duration": 2, "transition": { "preset": "frames/flash", "seconds": 1 } } ] }
+                { "kind": "media", "media": "/abs/screen.mp4", "in": 1, "out": 3, "track": \#(trackData) },
+                { "kind": "solid", "color": "#000000", "duration": 2, "transition": { "preset": "frames/flash", "seconds": 1 } } ] }
             """#))
 
         // When
@@ -129,7 +129,7 @@ struct TrackPlannerTests {
         let time = try plan(
             storyline: #""keyframes": [ { "at": 1, "timeRemap": 3 }, { "at": 3, "timeRemap": 1 } ]"#,
             connected: #"""
-                { "shape": "rect", "stroke": { "width": 8 }, "parent": "screen", "area": [100, 100, 200, 40], "track": \#(trackData) }
+                { "kind": "rect", "stroke": { "width": 8 }, "parent": "screen", "area": [100, 100, 200, 40], "track": \#(trackData) }
                 """#
         )
 
@@ -155,7 +155,7 @@ struct TrackPlannerTests {
         let time = try plan(
             storyline: #""keyframes": [ { "at": 1, "timeRemap": 1 }, { "at": 3, "timeRemap": 3 } ]"#,
             connected: #"""
-                { "shape": "rect", "stroke": { "width": 8 }, "parent": "screen", "area": [100, 100, 200, 40], "at": [1.5, 2.5], "track": \#(trackData) }
+                { "kind": "rect", "stroke": { "width": 8 }, "parent": "screen", "area": [100, 100, 200, 40], "at": [1.5, 2.5], "track": \#(trackData) }
                 """#
         )
 
@@ -180,7 +180,7 @@ struct TrackPlannerTests {
         let time = try plan(
             storyline: #""keyframes": [ { "at": 1, "timeRemap": 1 }, { "at": 3, "timeRemap": 5 } ]"#,
             connected: #"""
-                { "shape": "rect", "stroke": { "width": 8 }, "parent": "screen", "area": [100, 100, 200, 40], "at": [1.31, 2.5], "track": \#(trackData) }
+                { "kind": "rect", "stroke": { "width": 8 }, "parent": "screen", "area": [100, 100, 200, 40], "at": [1.31, 2.5], "track": \#(trackData) }
                 """#
         )
 
@@ -197,7 +197,7 @@ struct TrackPlannerTests {
         // Given
         let sut = TrackPlanner()
         let trackData = data(atMediaTime: 1.5, followed: 0...1.9, over: 1...3)
-        let time = try plan(connected: #"{ "shape": "rect", "stroke": { "width": 8 }, "parent": "screen", "area": [100, 100, 200, 40], "at": [1.5, 2.5], "track": \#(trackData) }"#)
+        let time = try plan(connected: #"{ "kind": "rect", "stroke": { "width": 8 }, "parent": "screen", "area": [100, 100, 200, 40], "at": [1.5, 2.5], "track": \#(trackData) }"#)
 
         // When
         let plan = try sut.plan(time)
@@ -218,9 +218,9 @@ struct TrackPlannerTests {
         let sut = TrackPlanner()
         let trackData = data(atMediaTime: 1, followed: 0...1.3, over: 1...2)
         let time = try Fixture.planner.plan(document: Fixture.json(#"""
-            { "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4", "in": 1, "out": 3 } ], "clips": [
-                { "id": "card", "media": "/abs/screen.mp4", "in": 0.5, "at": [0.5, 2], "width": 300 },
-                { "shape": "rect", "stroke": { "width": 8 }, "parent": "card", "area": [100, 100, 200, 40], "at": [1, 1.5],
+            { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/screen.mp4", "in": 1, "out": 3 } ], "clips": [
+                { "id": "card", "kind": "media", "media": "/abs/screen.mp4", "in": 0.5, "at": [0.5, 2], "width": 300 },
+                { "kind": "rect", "stroke": { "width": 8 }, "parent": "card", "area": [100, 100, 200, 40], "at": [1, 1.5],
                   "track": \#(trackData) } ] }
             """#))
 
@@ -246,8 +246,8 @@ struct TrackPlannerTests {
         let sut = TrackPlanner()
         let trackData = data(atMediaTime: 0.5, followed: 0...1.3, over: 0.5...2)
         let time = try Fixture.planner.plan(document: Fixture.json(#"""
-            { "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4", "in": 1, "out": 3 } ], "clips": [
-                { "media": "/abs/screen.mp4", "in": 0.5, "at": [0.5, 2], "width": 300, "track": \#(trackData) } ] }
+            { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/screen.mp4", "in": 1, "out": 3 } ], "clips": [
+                { "kind": "media", "media": "/abs/screen.mp4", "in": 0.5, "at": [0.5, 2], "width": 300, "track": \#(trackData) } ] }
             """#))
 
         // When
@@ -271,7 +271,7 @@ struct TrackPlannerTests {
         let sut = TrackPlanner()
         let trackData = data(atMediaTime: 0.2)
         let time = try plan(connected: #"""
-            { "media": "/abs/screen.mp4", "parent": "screen", "position": [0, 0], "in": 0.2, "at": [1.5, 2.5], "track": \#(trackData) }
+            { "kind": "media", "media": "/abs/screen.mp4", "parent": "screen", "position": [0, 0], "in": 0.2, "at": [1.5, 2.5], "track": \#(trackData) }
             """#)
 
         // When

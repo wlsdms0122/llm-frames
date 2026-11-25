@@ -43,7 +43,7 @@ struct DisplacementRenderTests {
         let map = try uniformMap(in: directory, red: 65535, green: 0)
         let document = try DocumentResolver(presets: ["filter/shift": shift(map, amount: 3 * lengthsPerPixel)]).resolve(#"""
             { "kind": "sequence", "format": { "fps": 10 },
-              "storyline": [ { "media": "\#(file)", "duration": 1, "filter": "mine/shift" } ] }
+              "storyline": [ { "kind": "media", "media": "\#(file)", "duration": 1, "filter": "mine/shift" } ] }
             """#)
         let sut = QuartzRenderer(decoder: AVFoundationDecoder())
 
@@ -72,7 +72,7 @@ struct DisplacementRenderTests {
         let map = try uniformMap(in: directory, red: 65535, green: 32768)
         let document = try DocumentResolver(presets: ["filter/shift": shift(map, amount: 8 * lengthsPerPixel)]).resolve(#"""
             { "kind": "sequence", "format": { "fps": 10 },
-              "storyline": [ { "media": "\#(halves)", "duration": 1, "filter": "mine/shift", "scale": 0.5 } ] }
+              "storyline": [ { "kind": "media", "media": "\#(halves)", "duration": 1, "filter": "mine/shift", "scale": 0.5 } ] }
             """#)
         let sut = QuartzRenderer(decoder: AVFoundationDecoder())
 
@@ -95,8 +95,8 @@ struct DisplacementRenderTests {
         let map = try uniformMap(in: directory, red: 0, green: 32768)
         let document = try DocumentResolver(presets: ["filter/shift": shift(map, amount: 5 * lengthsPerPixel)]).resolve(#"""
             { "kind": "sequence", "format": { "size": [160, 90], "fps": 10 },
-              "storyline": [ { "media": "\#(halves)", "duration": 1 } ],
-              "clips": [ { "adjust": "mine/shift", "at": [0, 1] } ] }
+              "storyline": [ { "kind": "media", "media": "\#(halves)", "duration": 1 } ],
+              "clips": [ { "kind": "adjustment", "adjust": "mine/shift", "at": [0, 1] } ] }
             """#)
         let sut = QuartzRenderer(decoder: AVFoundationDecoder())
 

@@ -16,9 +16,9 @@ struct ClipWindowTests {
 
     // A clip at speed 2 between two solids, brought in and out by one-second transitions: edit [2, 5), drawn [1.5, 5.5).
     private let fastClip = ##"""
-        { "solid": "#000000", "duration": 2 },
+        { "kind": "solid", "color": "#000000", "duration": 2 },
         { "id": "run", "media": "/abs/run.mp4", "in": 2, "out": 8, "speed": 2, "transition": { "preset": "frames/flash", "seconds": 1 }, "connected": [ %@ ] },
-        { "solid": "#FFFFFF", "duration": 2, "transition": { "preset": "frames/flash", "seconds": 1 } }
+        { "kind": "solid", "color": "#FFFFFF", "duration": 2, "transition": { "preset": "frames/flash", "seconds": 1 } }
         """##
 
     // MARK: - Initializer
@@ -26,7 +26,7 @@ struct ClipWindowTests {
     @Test("a connected clip's at is on its storyline clip's clip time")
     func placesConnectedClipOnClipTime() throws {
         // Given
-        let document = try sequence(connected: #"{ "at": [4, 6], "title": "a", "style": "subtitle" }"#)
+        let document = try sequence(connected: #"{ "at": [4, 6], "kind": "title", "text": "a", "style": "subtitle" }"#)
 
         // When
         let plan = try sut.plan(document: document)
@@ -40,7 +40,7 @@ struct ClipWindowTests {
     func tellsWindowFormsApart() throws {
         // Given
         let document = try sequence(connected: #"""
-            { "at": [2, 6], "media": "/abs/short.mp4" }, { "at": 2, "media": "/abs/short.mp4" }
+            { "at": [2, 6], "kind": "media", "media": "/abs/short.mp4" }, { "at": 2, "kind": "media", "media": "/abs/short.mp4" }
             """#)
 
         // When
@@ -54,7 +54,7 @@ struct ClipWindowTests {
     @Test("a sound connected to a clip at speed 2 plays its full length at its own speed")
     func playsSoundAtItsOwnSpeed() throws {
         // Given
-        let document = try sequence(connected: #"{ "at": 2, "media": "/abs/ding.wav" }"#)
+        let document = try sequence(connected: #"{ "at": 2, "kind": "media", "media": "/abs/ding.wav" }"#)
 
         // When
         let plan = try sut.plan(document: document)
@@ -69,7 +69,7 @@ struct ClipWindowTests {
     func spansStorylineClipWithoutAt() throws {
         // Given
         let document = try sequence(connected: #"""
-            { "shape": "rect", "stroke": { "width": 8 }, "area": [0, 0, 10, 10], "parent": "run" }, { "title": "a", "style": "subtitle" }, { "title": "b", "style": "subtitle", "parent": "run", "position": [0, 0] }
+            { "kind": "rect", "stroke": { "width": 8 }, "area": [0, 0, 10, 10], "parent": "run" }, { "kind": "title", "text": "a", "style": "subtitle" }, { "kind": "title", "text": "b", "style": "subtitle", "parent": "run", "position": [0, 0] }
             """#)
 
         // When
@@ -87,7 +87,7 @@ struct ClipWindowTests {
     @Test("a connected clip whose window starts at its storyline clip's in starts at the edit point, inside the transition")
     func startsWindowAtEditPoint() throws {
         // Given
-        let document = try sequence(connected: #"{ "at": [2, 4], "shape": "rect", "stroke": { "width": 8 }, "area": [0, 0, 10, 10], "parent": "run" }"#)
+        let document = try sequence(connected: #"{ "at": [2, 4], "kind": "rect", "stroke": { "width": 8 }, "area": [0, 0, 10, 10], "parent": "run" }"#)
 
         // When
         let plan = try sut.plan(document: document)
@@ -100,7 +100,7 @@ struct ClipWindowTests {
     @Test("a connected clip parented to its storyline clip is visible over its window cut to the sequence, past the drawn range")
     func cutsParentedClipToSequence() throws {
         // Given
-        let document = try sequence(connected: #"{ "at": [0, 20], "shape": "rect", "stroke": { "width": 8 }, "area": [0, 0, 10, 10], "parent": "run" }"#)
+        let document = try sequence(connected: #"{ "at": [0, 20], "kind": "rect", "stroke": { "width": 8 }, "area": [0, 0, 10, 10], "parent": "run" }"#)
 
         // When
         let plan = try sut.plan(document: document)
@@ -114,7 +114,7 @@ struct ClipWindowTests {
     @Test("an unparented connected clip plays its whole window across edit points, and only the end of the sequence cuts it")
     func playsUnparentedClipAcrossEditPoints() throws {
         // Given
-        let document = try sequence(connected: #"{ "at": [0, 20], "title": "a", "style": "subtitle" }"#)
+        let document = try sequence(connected: #"{ "at": [0, 20], "kind": "title", "text": "a", "style": "subtitle" }"#)
 
         // When
         let plan = try sut.plan(document: document)
@@ -126,7 +126,7 @@ struct ClipWindowTests {
     @Test("a connected clip with a picture whose window does not meet the sequence stops")
     func refusesNeverVisibleClip() throws {
         // Given
-        let document = try sequence(connected: #"{ "at": [12, 20], "shape": "rect", "stroke": { "width": 8 }, "area": [0, 0, 10, 10] }"#)
+        let document = try sequence(connected: #"{ "at": [12, 20], "kind": "rect", "stroke": { "width": 8 }, "area": [0, 0, 10, 10] }"#)
 
         // When, Then
         let error = #expect(throws: ResolveError.self) { try sut.plan(document: document) }
@@ -136,8 +136,8 @@ struct ClipWindowTests {
     @Test("a connected sound plays its window across transitions, but one whose start lies outside the drawn range stops")
     func anchorsConnectedSoundByStart() throws {
         // Given
-        let across = try sequence(connected: #"{ "at": [8, 14], "media": "/abs/ding.wav" }"#)
-        let outside = try sequence(connected: #"{ "at": [12, 14], "media": "/abs/ding.wav" }"#)
+        let across = try sequence(connected: #"{ "at": [8, 14], "kind": "media", "media": "/abs/ding.wav" }"#)
+        let outside = try sequence(connected: #"{ "at": [12, 14], "kind": "media", "media": "/abs/ding.wav" }"#)
 
         // When
         let plan = try sut.plan(document: across)
@@ -152,10 +152,10 @@ struct ClipWindowTests {
     func placesSequenceClips() throws {
         // Given
         let document = try Fixture.json(##"""
-            { "kind": "sequence", "storyline": [ { "solid": "#000000", "duration": 4 } ], "clips": [
-              { "at": [1, 3], "title": "a", "style": "headline" },
-              { "media": "/abs/bgm.m4a" },
-              { "at": 3, "media": "/abs/ding.wav" }
+            { "kind": "sequence", "storyline": [ { "kind": "solid", "color": "#000000", "duration": 4 } ], "clips": [
+              { "at": [1, 3], "kind": "title", "text": "a", "style": "headline" },
+              { "kind": "media", "media": "/abs/bgm.m4a" },
+              { "at": 3, "kind": "media", "media": "/abs/ding.wav" }
             ] }
             """##)
 
@@ -171,10 +171,10 @@ struct ClipWindowTests {
     @Test(
         "a sequence clip that starts at or after the end of the sequence stops, and so does one that ends before it starts",
         arguments: [
-            (#"{ "at": [4, 6], "title": "a", "style": "headline" }"#, "clips[0] (title): starts at 4, at or after the end of the sequence at 4"),
-            (#"{ "at": 5, "media": "/abs/ding.wav" }"#, "clips[0] (audio): starts at 5, at or after the end of the sequence at 4"),
-            (#"{ "at": [-3, -1], "title": "a", "style": "headline" }"#, "clips[0] (title): never visible, since its window [-3, -1) does not meet [0, 4)"),
-            (#"{ "at": [-3, 0], "media": "/abs/ding.wav" }"#, "clips[0] (audio): never plays, since its window [-3, 0) ends before the sequence starts")
+            (#"{ "at": [4, 6], "kind": "title", "text": "a", "style": "headline" }"#, "clips[0] (title): starts at 4, at or after the end of the sequence at 4"),
+            (#"{ "at": 5, "kind": "media", "media": "/abs/ding.wav" }"#, "clips[0] (audio): starts at 5, at or after the end of the sequence at 4"),
+            (#"{ "at": [-3, -1], "kind": "title", "text": "a", "style": "headline" }"#, "clips[0] (title): never visible, since its window [-3, -1) does not meet [0, 4)"),
+            (#"{ "at": [-3, 0], "kind": "media", "media": "/abs/ding.wav" }"#, "clips[0] (audio): never plays, since its window [-3, 0) ends before the sequence starts")
         ]
     )
     func refusesSequenceClipOutsideSequence(
@@ -182,7 +182,7 @@ struct ClipWindowTests {
         message: String
     ) throws {
         // Given
-        let document = try Fixture.json(##"{ "kind": "sequence", "storyline": [ { "solid": "#000000", "duration": 4 } ], "clips": [ \##(clip) ] }"##)
+        let document = try Fixture.json(##"{ "kind": "sequence", "storyline": [ { "kind": "solid", "color": "#000000", "duration": 4 } ], "clips": [ \##(clip) ] }"##)
 
         // When, Then
         let error = #expect(throws: ResolveError.self) { try sut.plan(document: document) }
@@ -192,7 +192,7 @@ struct ClipWindowTests {
     @Test("a window that ends before it starts stops")
     func refusesEmptyWindow() throws {
         // Given
-        let document = try sequence(connected: #"{ "at": [6, 2], "title": "a", "style": "subtitle" }"#)
+        let document = try sequence(connected: #"{ "at": [6, 2], "kind": "title", "text": "a", "style": "subtitle" }"#)
 
         // When, Then
         let error = #expect(throws: ResolveError.self) { try sut.plan(document: document) }
@@ -204,10 +204,10 @@ struct ClipWindowTests {
         // Given
         let document = try Fixture.json(##"""
             { "kind": "sequence", "storyline": [
-              { "solid": "#000000", "duration": 2 },
-              { "id": "run", "media": "/abs/run.mp4", "in": 2, "out": 8, "speed": 2,
-                "connected": [ { "at": [2, 8], "shape": "rect", "stroke": { "width": 8 }, "parent": "run", "keyframes": [ { "at": 4, "area": [0, 0, 10, 10] }, { "at": 6, "area": [0, 0, 20, 20] } ] } ] }
-            ], "clips": [ { "at": [0, 5], "media": "/abs/log.png", "keyframes": [ { "at": 1, "scale": 1 }, { "at": 2, "scale": 2 } ] } ] }
+              { "kind": "solid", "color": "#000000", "duration": 2 },
+              { "id": "run", "kind": "media", "media": "/abs/run.mp4", "in": 2, "out": 8, "speed": 2,
+                "connected": [ { "at": [2, 8], "kind": "rect", "stroke": { "width": 8 }, "parent": "run", "keyframes": [ { "at": 4, "area": [0, 0, 10, 10] }, { "at": 6, "area": [0, 0, 20, 20] } ] } ] }
+            ], "clips": [ { "at": [0, 5], "kind": "media", "media": "/abs/log.png", "keyframes": [ { "at": 1, "scale": 1 }, { "at": 2, "scale": 2 } ] } ] }
             """##)
 
         // When
@@ -222,9 +222,9 @@ struct ClipWindowTests {
     func givesLanes() throws {
         // Given
         let document = try sequence(connected: #"""
-            { "title": "a", "style": "subtitle" }, { "title": "b", "style": "subtitle", "lane": -2 }
+            { "kind": "title", "text": "a", "style": "subtitle" }, { "kind": "title", "text": "b", "style": "subtitle", "lane": -2 }
             """#)
-        let zero = try sequence(connected: #"{ "title": "a", "style": "subtitle", "lane": 0 }"#)
+        let zero = try sequence(connected: #"{ "kind": "title", "text": "a", "style": "subtitle", "lane": 0 }"#)
 
         // When
         let plan = try sut.plan(document: document)
@@ -239,7 +239,7 @@ struct ClipWindowTests {
     func parentsOnlyByName() throws {
         // Given
         let document = try sequence(connected: #"""
-            { "adjust": "frames/vivid", "mask": { "shape": "rect", "area": [0, 0, 10, 10] } }, { "shape": "rect", "stroke": { "width": 8 }, "area": [0, 0, 10, 10] }, { "adjust": "frames/vivid", "mask": { "shape": "rect", "area": [0, 0, 10, 10] }, "parent": "run" }
+            { "kind": "adjustment", "adjust": "frames/vivid", "mask": { "shape": "rect", "area": [0, 0, 10, 10] } }, { "shape": "rect", "stroke": { "width": 8 }, "area": [0, 0, 10, 10] }, { "kind": "adjustment", "adjust": "frames/vivid", "mask": { "shape": "rect", "area": [0, 0, 10, 10] }, "parent": "run" }
             """#)
 
         // When

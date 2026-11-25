@@ -74,12 +74,12 @@ struct MediaAppearanceTests {
     func stopsOnUnknownShadowColor() throws {
         // Given
         let clip = #"""
-            { "kind": "sequence", "format": { "size": [960, 540] }, "storyline": [ { "media": "/abs/screen.mp4" } ],
-              "clips": [ { "media": "/abs/card.png", "at": [0, 1], "shadow": { "color": "ink" } } ] }
+            { "kind": "sequence", "format": { "size": [960, 540] }, "storyline": [ { "kind": "media", "media": "/abs/screen.mp4" } ],
+              "clips": [ { "kind": "media", "media": "/abs/card.png", "at": [0, 1], "shadow": { "color": "ink" } } ] }
             """#
         let storyline = #"""
             { "kind": "sequence", "format": { "size": [960, 540] },
-              "storyline": [ { "media": "/abs/screen.mp4", "shadow": { "color": "ink" } } ] }
+              "storyline": [ { "kind": "media", "media": "/abs/screen.mp4", "shadow": { "color": "ink" } } ] }
             """#
 
         // When, Then
@@ -93,12 +93,12 @@ struct MediaAppearanceTests {
     func stopsOnUnknownBorderColor() throws {
         // Given
         let clip = #"""
-            { "kind": "sequence", "format": { "size": [960, 540] }, "storyline": [ { "media": "/abs/screen.mp4" } ],
-              "clips": [ { "media": "/abs/card.png", "at": [0, 1], "border": "ink" } ] }
+            { "kind": "sequence", "format": { "size": [960, 540] }, "storyline": [ { "kind": "media", "media": "/abs/screen.mp4" } ],
+              "clips": [ { "kind": "media", "media": "/abs/card.png", "at": [0, 1], "border": "ink" } ] }
             """#
         let storyline = #"""
             { "kind": "sequence", "format": { "size": [960, 540] },
-              "storyline": [ { "media": "/abs/screen.mp4", "border": "ink" } ] }
+              "storyline": [ { "kind": "media", "media": "/abs/screen.mp4", "border": "ink" } ] }
             """#
 
         // When, Then
@@ -112,8 +112,8 @@ struct MediaAppearanceTests {
     private func document(_ keys: String) -> String {
         #"""
         { "kind": "sequence", "format": { "size": [960, 540] }, "theme": \#(Self.theme),
-          "storyline": [ { "media": "/abs/screen.mp4", \#(keys) } ],
-          "clips": [ { "media": "/abs/card.png", "at": [0, 1], \#(keys) } ] }
+          "storyline": [ { "kind": "media", "media": "/abs/screen.mp4", \#(keys) } ],
+          "clips": [ { "kind": "media", "media": "/abs/card.png", "at": [0, 1], \#(keys) } ] }
         """#
     }
 

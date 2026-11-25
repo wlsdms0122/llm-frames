@@ -21,9 +21,9 @@ struct StorylineTimeTests {
         // Given
         let document = try Fixture.json(##"""
             { "kind": "sequence", "storyline": [
-              { "media": "/abs/run.mp4", "in": 2, "out": 8, "speed": 2 },
-              { "media": "/abs/card.png", "duration": 2.5 },
-              { "solid": "#000000", "duration": 1 }
+              { "kind": "media", "media": "/abs/run.mp4", "in": 2, "out": 8, "speed": 2 },
+              { "kind": "media", "media": "/abs/card.png", "duration": 2.5 },
+              { "kind": "solid", "color": "#000000", "duration": 1 }
             ] }
             """##)
 
@@ -44,8 +44,8 @@ struct StorylineTimeTests {
         // Given
         let document = try Fixture.json(##"""
             { "kind": "sequence", "storyline": [
-              { "media": "/abs/run.mp4", "in": 2, "out": 8, "speed": 2 },
-              { "media": "/abs/card.png", "duration": 2.5 }
+              { "kind": "media", "media": "/abs/run.mp4", "in": 2, "out": 8, "speed": 2 },
+              { "kind": "media", "media": "/abs/card.png", "duration": 2.5 }
             ] }
             """##)
 
@@ -64,8 +64,8 @@ struct StorylineTimeTests {
         // Given
         let document = try Fixture.json(#"""
             { "kind": "sequence", "storyline": [
-              { "media": "/abs/short.mp4" },
-              { "media": "/abs/short.mp4", "in": 1, "out": 9 }
+              { "kind": "media", "media": "/abs/short.mp4" },
+              { "kind": "media", "media": "/abs/short.mp4", "in": 1, "out": 9 }
             ] }
             """#)
 
@@ -83,9 +83,9 @@ struct StorylineTimeTests {
         // Given
         let document = try Fixture.json(##"""
             { "kind": "sequence", "storyline": [
-              { "media": "/abs/run.mp4", "in": 2, "out": 8, "speed": 2,
+              { "kind": "media", "media": "/abs/run.mp4", "in": 2, "out": 8, "speed": 2,
                 "keyframes": [ { "at": 1, "crop": { "scale": 1 } }, { "at": 8, "crop": { "scale": 1.08 } } ] },
-              { "media": "/abs/card.png", "duration": 2.5,
+              { "kind": "media", "media": "/abs/card.png", "duration": 2.5,
                 "keyframes": [ { "at": 1.5, "crop": { "scale": 1 } }, { "at": 2, "crop": { "scale": 2 } } ] }
             ] }
             """##)
@@ -104,7 +104,7 @@ struct StorylineTimeTests {
     func givesEditPointToIncomingClip() throws {
         // Given
         let document = try Fixture.json(##"""
-            { "kind": "sequence", "storyline": [ { "solid": "#000000", "duration": 2 }, { "solid": "#FFFFFF", "duration": 2 } ] }
+            { "kind": "sequence", "storyline": [ { "kind": "solid", "color": "#000000", "duration": 2 }, { "kind": "solid", "color": "#FFFFFF", "duration": 2 } ] }
             """##)
         let plan = try sut.plan(document: document)
 
@@ -123,7 +123,7 @@ struct StorylineTimeTests {
     func timesImageSequence() throws {
         // Given
         let document = try Fixture.json(#"""
-            { "kind": "sequence", "storyline": [ { "media": { "imageSequence": "/abs/frames", "fps": 4 }, "in": 1 } ] }
+            { "kind": "sequence", "storyline": [ { "kind": "media", "media": { "imageSequence": "/abs/frames", "fps": 4 }, "in": 1 } ] }
             """#)
 
         // When
@@ -138,11 +138,11 @@ struct StorylineTimeTests {
     @Test(
         "fps defaults to the first video's nominal rate rounded to a common rate, the lower on a tie, or 30",
         arguments: [
-            (#"[ { "media": "/abs/card.png", "duration": 1 }, { "media": "/abs/run.mp4" } ]"#, "", 30.0),
-            (#"[ { "media": "/abs/light-leak.mov" }, { "media": "/abs/run.mp4" } ]"#, "", 24.0),
-            (#"[ { "media": "/abs/card.png", "duration": 1 } ]"#, "", 30.0),
-            (#"[ { "media": "/abs/light-leak.mov" } ]"#, #""format": { "fps": 60 }, "#, 60.0),
-            (#"[ { "media": "/abs/halfway.mp4" } ]"#, "", 25.0)
+            (#"[ { "kind": "media", "media": "/abs/card.png", "duration": 1 }, { "kind": "media", "media": "/abs/run.mp4" } ]"#, "", 30.0),
+            (#"[ { "kind": "media", "media": "/abs/light-leak.mov" }, { "kind": "media", "media": "/abs/run.mp4" } ]"#, "", 24.0),
+            (#"[ { "kind": "media", "media": "/abs/card.png", "duration": 1 } ]"#, "", 30.0),
+            (#"[ { "kind": "media", "media": "/abs/light-leak.mov" } ]"#, #""format": { "fps": 60 }, "#, 60.0),
+            (#"[ { "kind": "media", "media": "/abs/halfway.mp4" } ]"#, "", 25.0)
         ]
     )
     func defaultsFrameRate(
@@ -163,12 +163,12 @@ struct StorylineTimeTests {
     @Test(
         "a storyline clip that cannot play stops",
         arguments: [
-            (#"[ { "media": "/abs/short.mp4", "in": 3, "out": 2 } ]"#, "storyline[0] (video): in 3 is not before out 2 of the media"),
-            (#"[ { "media": "/abs/short.mp4", "in": 5 } ]"#, "storyline[0] (video): in 5 is at or after the end of the media at 4"),
-            (#"[ { "media": "/abs/short.mp4", "in": -2, "out": -1 } ]"#, "storyline[0] (video): out -1 is at or before the start of the media"),
-            (#"[ { "media": "/abs/short.mp4", "speed": 0 } ]"#, "storyline[0].speed (video): speed must be above 0, found 0"),
-            (#"[ { "media": "/abs/card.png", "duration": 0 } ]"#, "storyline[0].duration (image): a still or solid clip needs a duration above 0, found 0"),
-            (##"[ { "solid": "#000000" } ]"##, #"storyline[0] (solid): missing key "duration""#),
+            (#"[ { "kind": "media", "media": "/abs/short.mp4", "in": 3, "out": 2 } ]"#, "storyline[0] (video): in 3 is not before out 2 of the media"),
+            (#"[ { "kind": "media", "media": "/abs/short.mp4", "in": 5 } ]"#, "storyline[0] (video): in 5 is at or after the end of the media at 4"),
+            (#"[ { "kind": "media", "media": "/abs/short.mp4", "in": -2, "out": -1 } ]"#, "storyline[0] (video): out -1 is at or before the start of the media"),
+            (#"[ { "kind": "media", "media": "/abs/short.mp4", "speed": 0 } ]"#, "storyline[0].speed (video): speed must be above 0, found 0"),
+            (#"[ { "kind": "media", "media": "/abs/card.png", "duration": 0 } ]"#, "storyline[0].duration (image): a still or solid clip needs a duration above 0, found 0"),
+            (##"[ { "kind": "solid", "color": "#000000" } ]"##, #"storyline[0] (solid): missing key "duration""#),
             ("[]", "storyline (sequence): the storyline is empty, and a sequence needs at least one storyline clip")
         ]
     )
@@ -187,7 +187,7 @@ struct StorylineTimeTests {
     @Test("an in before the start of the media is moved to it")
     func clampsInToMediaStart() throws {
         // Given
-        let document = try Fixture.json(#"{ "kind": "sequence", "storyline": [ { "media": "/abs/short.mp4", "in": -1 } ] }"#)
+        let document = try Fixture.json(#"{ "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/short.mp4", "in": -1 } ] }"#)
 
         // When
         let plan = try sut.plan(document: document)
@@ -201,7 +201,7 @@ struct StorylineTimeTests {
         // Given
         let document = try Fixture.json(##"""
             { "kind": "sequence", "storyline": [
-              { "media": { "kind": "sequence", "storyline": [ { "solid": "#000000", "duration": 2 }, { "media": "/abs/short.mp4" } ] }, "in": 1 }
+              { "kind": "media", "media": { "kind": "sequence", "storyline": [ { "kind": "solid", "color": "#000000", "duration": 2 }, { "kind": "media", "media": "/abs/short.mp4" } ] }, "in": 1 }
             ] }
             """##)
 
@@ -219,7 +219,7 @@ struct StorylineTimeTests {
     @Test("a document named by a path that is not there stops")
     func refusesMissingDocument() throws {
         // Given
-        let document = try Fixture.json(#"{ "kind": "sequence", "storyline": [ { "media": "/abs/intro.json" } ] }"#)
+        let document = try Fixture.json(#"{ "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/intro.json" } ] }"#)
 
         // When, Then
         let error = #expect(throws: ResolveError.self) { try sut.plan(document: document) }

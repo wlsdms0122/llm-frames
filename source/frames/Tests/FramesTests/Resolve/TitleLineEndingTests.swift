@@ -59,7 +59,7 @@ struct TitleLineEndingTests {
         let document = #"""
             { "kind": "sequence", "format": { "size": [1920, 1080] },
               "theme": { "styles": { "caption": { "size": 40, "color": "#000000" } } },
-              "storyline": [ { "media": "/abs/screen.mp4" } ], "clips": [ \#(clip) ] }
+              "storyline": [ { "kind": "media", "media": "/abs/screen.mp4" } ], "clips": [ \#(clip) ] }
             """#
         let plan = try Fixture.documentPlanner.plan(try Fixture.json(document))
         let clips = try ResolvedSequence(plan: plan, hashes: FileHashTable()).clips

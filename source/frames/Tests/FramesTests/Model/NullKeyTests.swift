@@ -23,13 +23,13 @@ struct NullKeyTests {
         // Given
         let document = try Fixture.json(#"""
             { "kind": "sequence",
-              "storyline": [ { "id": "screen", "media": "/abs/run.mp4", "connected": [
-                { "id": "carrier", "null": true, "parent": "screen", "area": [0, 0, 10, 10], "anchor": "center",
+              "storyline": [ { "id": "screen", "kind": "media", "media": "/abs/run.mp4", "connected": [
+                { "id": "carrier", "kind": "null", "parent": "screen", "area": [0, 0, 10, 10], "anchor": "center",
                   "track": { "time": 1, "frames": [ { "time": 1, "quad": [[0, 0], [10, 0], [10, 10], [0, 10]] } ] } } ] } ],
               "clips": [
-                { "id": "box", "metadata": { "note": "a" }, "at": [0, 2], "null": true, "width": 200, "height": 100,
+                { "id": "box", "metadata": { "note": "a" }, "at": [0, 2], "kind": "null", "width": 200, "height": 100,
                   "placement": "center", "anchor": "top-left", "scale": 2, "rotation": 30, "motionBlur": true, "animation": "none" },
-                { "null": true, "parent": "box", "at": [0, 2],
+                { "kind": "null", "parent": "box", "at": [0, 2],
                   "keyframes": [ { "at": 0, "width": 10, "height": 10, "position": [0, 0], "scale": 1, "rotation": 0 },
                                  { "at": 1, "width": 20, "height": 20, "position": [10, 10], "scale": [2, 1], "rotation": 90 } ] }
               ] }
@@ -43,31 +43,31 @@ struct NullKeyTests {
         "a null on the storyline, a key of appearance or compositing on a null and a null that is not true stop",
         arguments: [
             (
-                #"{ "storyline": [ { "null": true, "duration": 2 } ] }"#,
+                #"{ "storyline": [ { "kind": "null", "duration": 2 } ] }"#,
                 #"storyline[0] (storyline clip): unknown key "null". Allowed: media, solid"#
             ),
             (
-                #"{ "clips": [ { "null": true, "width": 10, "height": 10, "opacity": 0 } ] }"#,
+                #"{ "clips": [ { "kind": "null", "width": 10, "height": 10, "opacity": 0 } ] }"#,
                 #"clips[0] (null): unknown key "opacity". Allowed: \#(allowed)"#
             ),
             (
-                #"{ "clips": [ { "null": true, "width": 10, "height": 10, "cornerPin": [[0, 0], [10, 0], [10, 10], [0, 10]] } ] }"#,
+                #"{ "clips": [ { "kind": "null", "width": 10, "height": 10, "cornerPin": [[0, 0], [10, 0], [10, 10], [0, 10]] } ] }"#,
                 #"clips[0] (null): unknown key "cornerPin". Allowed: \#(allowed)"#
             ),
             (
-                #"{ "clips": [ { "null": true, "width": 10, "height": 10, "lane": 2 } ] }"#,
+                #"{ "clips": [ { "kind": "null", "width": 10, "height": 10, "lane": 2 } ] }"#,
                 #"clips[0] (null): unknown key "lane". Allowed: \#(allowed)"#
             ),
             (
-                #"{ "clips": [ { "null": true, "width": 10, "height": 10, "style": "cover" } ] }"#,
+                #"{ "clips": [ { "kind": "null", "width": 10, "height": 10, "style": "cover" } ] }"#,
                 #"clips[0] (null): unknown key "style". Allowed: \#(allowed)"#
             ),
             (
-                #"{ "clips": [ { "null": true, "width": 10, "height": 10, "mask": { "rect": [0, 0, 5, 5] } } ] }"#,
+                #"{ "clips": [ { "kind": "null", "width": 10, "height": 10, "mask": { "rect": [0, 0, 5, 5] } } ] }"#,
                 #"clips[0] (null): unknown key "mask". Allowed: \#(allowed)"#
             ),
             (
-                #"{ "clips": [ { "null": true, "width": 10, "height": 10, "keyframes": [ { "at": 0, "opacity": 0 } ] } ] }"#,
+                #"{ "clips": [ { "kind": "null", "width": 10, "height": 10, "keyframes": [ { "at": 0, "opacity": 0 } ] } ] }"#,
                 #"clips[0].keyframes[0] (keyframe): unknown key "opacity". Allowed: at, ease, area, width, height, position, scale, rotation"#
             ),
             (

@@ -62,9 +62,9 @@ struct ConnectedClipRenderTests {
         }
         let document = try DocumentResolver().resolve(#"""
             { "kind": "sequence", "format": { "fps": 10 },
-              "storyline": [ { "media": "\#(outgoing)", "duration": 1,
-                               "connected": [ { "at": [0.5, 1.5], "media": "\#(code)", "width": 128 } ] },
-                             { "media": "\#(incoming)", "duration": 1 } ] }
+              "storyline": [ { "kind": "media", "media": "\#(outgoing)", "duration": 1,
+                               "connected": [ { "at": [0.5, 1.5], "kind": "media", "media": "\#(code)", "width": 128 } ] },
+                             { "kind": "media", "media": "\#(incoming)", "duration": 1 } ] }
             """#)
         let sut = QuartzRenderer(decoder: AVFoundationDecoder())
 
@@ -105,9 +105,9 @@ struct ConnectedClipRenderTests {
         let incoming = try image(in: directory, named: "green.png", width: 160, height: 90, color: [0, 255, 0])
         let document = try DocumentResolver(presets: presets).resolve(#"""
             { "kind": "sequence", "format": { "fps": 10 },
-              "storyline": [ { "media": "\#(outgoing)", "duration": 1 },
-                             { "id": "green", "media": "\#(incoming)", "duration": 1, "transition": "mine/\#(transition)",
-                               "connected": [ { "shape": "rect", "area": [0, 30, 160, 30], "parent": "green", "fill": "#FF00FF" } ] } ] }
+              "storyline": [ { "kind": "media", "media": "\#(outgoing)", "duration": 1 },
+                             { "id": "green", "kind": "media", "media": "\#(incoming)", "duration": 1, "transition": "mine/\#(transition)",
+                               "connected": [ { "kind": "rect", "area": [0, 30, 160, 30], "parent": "green", "fill": "#FF00FF" } ] } ] }
             """#)
         let sut = QuartzRenderer(decoder: AVFoundationDecoder())
 
@@ -136,9 +136,9 @@ struct ConnectedClipRenderTests {
         }
         let document = try DocumentResolver().resolve(#"""
             { "kind": "sequence", "format": { "size": [160, 90], "fps": 10 },
-              "storyline": [ { "id": "marked", "media": "\#(file)", "duration": 1,
+              "storyline": [ { "id": "marked", "kind": "media", "media": "\#(file)", "duration": 1,
                                "keyframes": [ { "at": 0, "crop": { "scale": 1 } }, { "at": 1, "crop": { "scale": 2 } } ],
-                               "connected": [ { "shape": "rect", "area": [200, 100, 40, 20], "parent": "marked", "fill": "#0000FF" } ] } ] }
+                               "connected": [ { "kind": "rect", "area": [200, 100, 40, 20], "parent": "marked", "fill": "#0000FF" } ] } ] }
             """#)
         let sut = QuartzRenderer(decoder: AVFoundationDecoder())
 
@@ -185,9 +185,9 @@ struct ConnectedClipRenderTests {
         let report = try TrackReporter(mediaFacts: decoder, tracker: PointTracker(decoder: decoder)).report(of: file, target: .area(area), at: 0)
         let document = try DocumentResolver().resolve(#"""
             { "kind": "sequence", "format": { "size": [180, 320] },
-              "storyline": [ { "id": "screen", "media": "\#(file)",
+              "storyline": [ { "id": "screen", "kind": "media", "media": "\#(file)",
                                "keyframes": [ { "at": 0, "crop": { "scale": 1 } }, { "at": 0.9, "crop": { "scale": 1.25 } } ],
-                               "connected": [ { "shape": "rect", "stroke": { "width": 40, "color": "#ED2929" }, "area": \#(area), "parent": "screen", "track": \#(report.trackData) } ] } ] }
+                               "connected": [ { "kind": "rect", "stroke": { "width": 40, "color": "#ED2929" }, "area": \#(area), "parent": "screen", "track": \#(report.trackData) } ] } ] }
             """#)
         let sut = QuartzRenderer(decoder: AVFoundationDecoder())
 
@@ -227,8 +227,8 @@ struct ConnectedClipRenderTests {
             { "kind": "sequence", "format": { "size": [320, 180], "fps": 10 },
               "theme": { "baseWidth": 320,
                          "styles": { "headline": { "size": 80, "stroke": { "width": 12, "color": "#000000" }, "placement": "center", "offset": 0 } } },
-              "storyline": [ { "solid": "#3366CC", "duration": 1 } ],
-              "clips": [ { "title": "WAVE", "style": "headline", "width": 300 } ] }
+              "storyline": [ { "kind": "solid", "color": "#3366CC", "duration": 1 } ],
+              "clips": [ { "kind": "title", "text": "WAVE", "style": "headline", "width": 300 } ] }
             """#)
         let list = Evaluator().displayList(of: document, at: 0.5)
         guard case let .items(items) = list.content else { Issue.record("the list holds samples"); return }
@@ -310,8 +310,8 @@ struct ConnectedClipRenderTests {
     @Test(
         "a frame that fits its content holds a sharp miter join and a square cap on a diagonal end whole, its margin left clear",
         arguments: [
-            ##"{ "shape": "path", "points": [[60, 40], [120, 60], [60, 80]], "stroke": { "width": 10, "color": "#FF0000", "join": "miter" }, "at": [0, 1] }"##,
-            ##"{ "shape": "path", "points": [[60, 60], [100, 100]], "stroke": { "width": 10, "color": "#FF0000", "cap": "square" }, "at": [0, 1] }"##
+            ##"{ "kind": "path", "points": [[60, 40], [120, 60], [60, 80]], "stroke": { "width": 10, "color": "#FF0000", "join": "miter" }, "at": [0, 1] }"##,
+            ##"{ "kind": "path", "points": [[60, 60], [100, 100]], "stroke": { "width": 10, "color": "#FF0000", "cap": "square" }, "at": [0, 1] }"##
         ]
     )
     func fitsJoinAndCap(shape: String) throws {
@@ -321,7 +321,7 @@ struct ConnectedClipRenderTests {
         let document = try DocumentResolver().resolve(#"""
             { "kind": "sequence", "format": { "size": { "fit": "content", "margin": 4 }, "fps": 10 },
               "theme": { "baseWidth": 40 },
-              "storyline": [ { "media": "\#(file)", "duration": 1 } ],
+              "storyline": [ { "kind": "media", "media": "\#(file)", "duration": 1 } ],
               "clips": [ \#(shape) ] }
             """#)
         let sut = QuartzRenderer(decoder: AVFoundationDecoder())
@@ -346,8 +346,8 @@ struct ConnectedClipRenderTests {
         let file = try image(in: directory, named: "white.png", width: 160, height: 90, color: [255, 255, 255])
         let document = try DocumentResolver().resolve(#"""
             { "kind": "sequence", "format": { "fps": 10 },
-              "storyline": [ { "media": "\#(file)", "duration": 1 } ],
-              "clips": [ { "shape": "rect", "area": [0, 0, 160, 90], "fill": "#00000080", "at": [0, 1],
+              "storyline": [ { "kind": "media", "media": "\#(file)", "duration": 1 } ],
+              "clips": [ { "kind": "rect", "area": [0, 0, 160, 90], "fill": "#00000080", "at": [0, 1],
                            "mask": { "shape": "ellipse", "area": [40, 20, 80, 50], "invert": true } } ] }
             """#)
         let sut = QuartzRenderer(decoder: AVFoundationDecoder())
@@ -375,8 +375,8 @@ struct ConnectedClipRenderTests {
         let file = try image(in: directory, named: "red.png", width: 40, height: 40, color: [255, 0, 0])
         let document = try DocumentResolver().resolve(#"""
             { "kind": "sequence", "format": { "fps": 10 }, "theme": { "baseWidth": 160 },
-              "storyline": [ { "media": "\#(below)", "duration": 1 } ],
-              "clips": [ { "media": "\#(file)", "width": 80, "position": [80, 45], "at": [0, 1],
+              "storyline": [ { "kind": "media", "media": "\#(below)", "duration": 1 } ],
+              "clips": [ { "kind": "media", "media": "\#(file)", "width": 80, "position": [80, 45], "at": [0, 1],
                            "mask": { "shape": "ellipse", "area": [0, 0, 40, 40], "feather": 2 } } ] }
             """#)
         let sut = QuartzRenderer(decoder: AVFoundationDecoder())

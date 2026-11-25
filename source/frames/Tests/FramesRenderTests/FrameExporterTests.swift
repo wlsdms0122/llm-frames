@@ -181,7 +181,7 @@ struct FrameExporterTests {
         let file = try image(in: media, named: "orange.png", color: orange)
         let document = try DocumentResolver().resolve(#"""
             { "kind": "sequence", "format": { "fps": 10 },
-              "storyline": [ { "media": "\#(file)", "duration": 1, "motionBlur": true,
+              "storyline": [ { "kind": "media", "media": "\#(file)", "duration": 1, "motionBlur": true,
                                "keyframes": [ { "at": 0, "opacity": 1, "ease": "linear" }, { "at": 1, "opacity": 0 } ] } ] }
             """#)
         let face = try labelFace()
@@ -344,7 +344,7 @@ struct FrameExporterTests {
 
         return try DocumentResolver().resolve(#"""
             { "kind": "sequence", "format": { "fps": 10 }, "theme": \#(theme),
-              "storyline": [ { "media": "\#(first)", "duration": 0.5 }, { "media": "\#(second)", "duration": 0.5 } ] }
+              "storyline": [ { "kind": "media", "media": "\#(first)", "duration": 0.5 }, { "kind": "media", "media": "\#(second)", "duration": 0.5 } ] }
             """#)
     }
 

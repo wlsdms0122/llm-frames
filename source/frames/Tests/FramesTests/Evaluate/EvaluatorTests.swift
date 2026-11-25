@@ -1212,11 +1212,11 @@ struct EvaluatorTests {
     func carriesAlign() throws {
         // Given
         let document = #"""
-            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "in": 0, "out": 2 } ],
-              "clips": [ { "shape": "rect", "area": [100, 100, 200, 100], "stroke": { "width": 8, "align": "inside" }, "at": [0, 2] },
-                         { "shape": "ellipse", "area": [400, 100, 200, 100], "stroke": { "width": 8 }, "at": [0, 2] },
-                         { "media": "/abs/page.png", "width": 300, "border": { "align": "outside" }, "at": [0, 2] },
-                         { "media": "/abs/page.png", "width": 300, "border": true, "at": [0, 2] } ] }
+            { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "in": 0, "out": 2 } ],
+              "clips": [ { "kind": "rect", "area": [100, 100, 200, 100], "stroke": { "width": 8, "align": "inside" }, "at": [0, 2] },
+                         { "kind": "ellipse", "area": [400, 100, 200, 100], "stroke": { "width": 8 }, "at": [0, 2] },
+                         { "kind": "media", "media": "/abs/page.png", "width": 300, "border": { "align": "outside" }, "at": [0, 2] },
+                         { "kind": "media", "media": "/abs/page.png", "width": 300, "border": true, "at": [0, 2] } ] }
             """#
         let sequence = try ResolvedSequence(plan: Fixture.documentPlanner.plan(Fixture.json(document)), hashes: FileHashTable())
 

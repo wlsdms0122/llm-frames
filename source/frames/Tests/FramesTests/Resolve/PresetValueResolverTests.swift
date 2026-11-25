@@ -77,8 +77,8 @@ struct PresetValueResolverTests {
         // Given
         let document = try Fixture.json(#"""
             { "kind": "sequence",
-              "storyline": [ { "media": "/abs/run.mp4", "in": 0, "out": 2, "filter": "shorts/film" },
-                             { "media": "/abs/run.mp4", "in": 2, "out": 4, "transition": "shorts/wipe" } ] }
+              "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "in": 0, "out": 2, "filter": "shorts/film" },
+                             { "kind": "media", "media": "/abs/run.mp4", "in": 2, "out": 4, "transition": "shorts/wipe" } ] }
             """#)
         let pack = directory.installed.appendingPathComponent("shorts", isDirectory: true)
 
@@ -98,7 +98,7 @@ struct PresetValueResolverTests {
     func pinsDisplacementMaps() throws {
         // Given
         let document = try Fixture.json(#"""
-            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "in": 0, "out": 2, "filter": "shorts/ripple" } ] }
+            { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "in": 0, "out": 2, "filter": "shorts/ripple" } ] }
             """#)
         let ripple = directory.installed.appendingPathComponent("shorts/media/ripple.png").standardizedFileURL.path
 
@@ -177,8 +177,8 @@ struct PresetValueResolverTests {
     func pinsImpulseResponses() throws {
         // Given
         let document = try Fixture.json(#"""
-            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "in": 0, "out": 2 } ],
-              "clips": [ { "media": "/abs/bgm.m4a", "audioFilter": "shorts/room" } ] }
+            { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "in": 0, "out": 2 } ],
+              "clips": [ { "kind": "media", "media": "/abs/bgm.m4a", "audioFilter": "shorts/room" } ] }
             """#)
         let hall = directory.installed.appendingPathComponent("shorts/media/hall.wav").standardizedFileURL.path
 

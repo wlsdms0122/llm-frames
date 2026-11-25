@@ -33,7 +33,7 @@ struct TimeRemapRenderTests {
         let code = try await codeMovie(in: directory)
         let document = try DocumentResolver().resolve(#"""
             { "kind": "sequence", "format": { "size": [128, 32], "fps": 10 },
-              "storyline": [ { "media": "\#(code)", "in": 0, "out": 2, "keyframes": [
+              "storyline": [ { "kind": "media", "media": "\#(code)", "in": 0, "out": 2, "keyframes": [
                 { "at": 0, "timeRemap": 0 }, { "at": 0.2, "timeRemap": 0.5 }, { "at": 1.4, "timeRemap": 0.5 },
                 { "at": 2, "timeRemap": 1.1 } ] } ] }
             """#)
@@ -59,7 +59,7 @@ struct TimeRemapRenderTests {
         let code = try await codeMovie(in: directory)
         let document = try DocumentResolver().resolve(#"""
             { "kind": "sequence", "format": { "size": [128, 32], "fps": 10 },
-              "storyline": [ { "media": "\#(code)", "in": 0, "out": 3, "keyframes": [
+              "storyline": [ { "kind": "media", "media": "\#(code)", "in": 0, "out": 3, "keyframes": [
                 { "at": 0, "timeRemap": -1 }, { "at": 1, "timeRemap": 9 }, { "at": 2, "timeRemap": 9 } ] } ] }
             """#)
         let sut = QuartzRenderer(decoder: AVFoundationDecoder())
@@ -81,8 +81,9 @@ struct TimeRemapRenderTests {
         let document = try DocumentResolver().resolve(#"""
             { "kind": "sequence", "format": { "size": [128, 32], "fps": 10 },
               "storyline": [ { "in": 0, "out": 1,
+                "kind": "media",
                 "media": { "kind": "sequence", "format": { "size": [128, 32], "fps": 10 },
-                           "storyline": [ { "media": "\#(code)", "in": 0, "out": 1.2 } ] },
+                           "storyline": [ { "kind": "media", "media": "\#(code)", "in": 0, "out": 1.2 } ] },
                 "keyframes": [ { "at": 0, "timeRemap": 1 }, { "at": 1, "timeRemap": 0 } ] } ] }
             """#)
         let sut = QuartzRenderer(decoder: AVFoundationDecoder())

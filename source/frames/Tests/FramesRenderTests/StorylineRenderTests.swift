@@ -71,7 +71,7 @@ struct StorylineRenderTests {
         let incoming = try image(in: directory, named: "green.png", width: 160, height: 90, color: [0, 255, 0])
         let document = try DocumentResolver(presets: presets).resolve(#"""
             { "kind": "sequence", "format": { "fps": 10 },
-              "storyline": [ { "media": "\#(outgoing)", "duration": 1 },
+              "storyline": [ { "kind": "media", "media": "\#(outgoing)", "duration": 1 },
                              { "media": "\#(incoming)", "duration": 1, "transition": "mine/\#(transition)"\#(transform) } ] }
             """#)
         let sut = QuartzRenderer(decoder: AVFoundationDecoder())
@@ -102,7 +102,7 @@ struct StorylineRenderTests {
             }
         }
         let document = try DocumentResolver().resolve(#"""
-            { "kind": "sequence", "format": { "fps": 10 }, "storyline": [ { "media": "\#(file)", "duration": 1 } ] }
+            { "kind": "sequence", "format": { "fps": 10 }, "storyline": [ { "kind": "media", "media": "\#(file)", "duration": 1 } ] }
             """#)
         let sut = QuartzRenderer(decoder: AVFoundationDecoder())
 
@@ -131,8 +131,8 @@ struct StorylineRenderTests {
         let incoming = try image(in: directory, named: "green.png", width: 160, height: 90, color: [40, 200, 40])
         let document = try DocumentResolver(presets: presets).resolve(#"""
             { "kind": "sequence", "format": { "fps": 10 },
-              "storyline": [ { "media": "\#(outgoing)", "duration": 1, "filter": "mine/grade" },
-                             { "media": "\#(incoming)", "duration": 1, "filter": "mine/grade", "transition": "mine/grow" } ] }
+              "storyline": [ { "kind": "media", "media": "\#(outgoing)", "duration": 1, "filter": "mine/grade" },
+                             { "kind": "media", "media": "\#(incoming)", "duration": 1, "filter": "mine/grade", "transition": "mine/grow" } ] }
             """#)
         let sut = QuartzRenderer(decoder: AVFoundationDecoder())
 

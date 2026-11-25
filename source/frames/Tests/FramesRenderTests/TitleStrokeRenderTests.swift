@@ -63,7 +63,7 @@ struct TitleStrokeRenderTests {
     @Test("a title under a parent at scale 2 strokes its run at its written width")
     func keepsStrokeWidthUnderParentScale() throws {
         // Given
-        let parent = ##"{ "id": "p", "shape": "rect", "area": [0, 0, 320, 240], "fill": "#000000", "scale": 2, "at": [0, 2] }"##
+        let parent = ##"{ "id": "p", "kind": "rect", "area": [0, 0, 320, 240], "fill": "#000000", "scale": 2, "at": [0, 2] }"##
         let title = #""parent": "p", "position": [160, 120]"#
         let sequence = try DocumentResolver().resolve(document(title: title, before: parent))
 
@@ -87,8 +87,8 @@ struct TitleStrokeRenderTests {
                          "styles": { "headline": { "size": 100, "color": "#FFFFFF",
                                                    "stroke": { "width": 10, "color": "#FF0000" },
                                                    "placement": "center", "offset": 0 } } },
-              "storyline": [ { "solid": "#000000", "duration": 2 } ],
-              "clips": [ \#(clip.map { $0 + "," } ?? "") { "title": "I", "style": "headline", "at": [0, 2], \#(keys) } ] }
+              "storyline": [ { "kind": "solid", "color": "#000000", "duration": 2 } ],
+              "clips": [ \#(clip.map { $0 + "," } ?? "") { "kind": "title", "text": "I", "style": "headline", "at": [0, 2], \#(keys) } ] }
             """#
     }
 

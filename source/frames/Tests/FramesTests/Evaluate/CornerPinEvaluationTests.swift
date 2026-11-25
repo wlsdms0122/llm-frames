@@ -54,7 +54,7 @@ struct CornerPinEvaluationTests {
     @Test("a media clip with a corner pin is one group: a picture of a nested list of its box, carried onto its corner pin")
     func drawsGroup() throws {
         // Given
-        let sequence = try resolved(#"{ "id": "card", "media": "/abs/page.png", "width": 300, "at": [0, 4], "cornerPin": \#(Self.pin), "opacity": 0.5, "blend": "screen" }"#)
+        let sequence = try resolved(#"{ "id": "card", "kind": "media", "media": "/abs/page.png", "width": 300, "at": [0, 4], "cornerPin": \#(Self.pin), "opacity": 0.5, "blend": "screen" }"#)
 
         // When
         let list = sut.displayList(of: sequence, at: 1)
@@ -87,7 +87,7 @@ struct CornerPinEvaluationTests {
     @Test("a rect given by width and height with a corner pin is one group whose nested list draws its path in its box")
     func drawsBoxShapeGroup() throws {
         // Given
-        let sequence = try resolved(##"{ "id": "card", "shape": "rect", "width": 300, "height": 240, "fill": "#FFFFFF", "at": [0, 4], "cornerPin": \##(Self.pin) }"##)
+        let sequence = try resolved(##"{ "id": "card", "kind": "rect", "width": 300, "height": 240, "fill": "#FFFFFF", "at": [0, 4], "cornerPin": \##(Self.pin) }"##)
 
         // When
         let list = sut.displayList(of: sequence, at: 1)
@@ -116,7 +116,7 @@ struct CornerPinEvaluationTests {
     @Test("a storyline clip with a corner pin draws its group inside the inner list at opacity 1, its opacity and blend on the outer item")
     func drawsStorylineGroup() throws {
         // Given
-        let sequence = try resolved(document: #"{ "kind": "sequence", "storyline": [ { "id": "shot", "media": "/abs/run.mp4", "cornerPin": \#(Self.pin), "opacity": 0.5, "blend": "screen" } ] }"#)
+        let sequence = try resolved(document: #"{ "kind": "sequence", "storyline": [ { "id": "shot", "kind": "media", "media": "/abs/run.mp4", "cornerPin": \#(Self.pin), "opacity": 0.5, "blend": "screen" } ] }"#)
 
         // When
         let list = sut.displayList(of: sequence, at: 1)
@@ -157,7 +157,7 @@ struct CornerPinEvaluationTests {
     func carriesStorylineMasksInGroup() throws {
         // Given
         let sequence = try resolved(document: ##"""
-            { "kind": "sequence", "storyline": [ { "id": "shot", "media": "/abs/run.mp4", "cornerPin": \##(Self.pin),
+            { "kind": "sequence", "storyline": [ { "id": "shot", "kind": "media", "media": "/abs/run.mp4", "cornerPin": \##(Self.pin),
               "shadow": { "radius": 10, "offset": [0, 0], "color": "#000000" },
               "mask": [ { "shape": "rect", "area": [0, 0, 100, 100] } ] } ] }
             """##)
@@ -190,7 +190,7 @@ struct CornerPinEvaluationTests {
     @Test("a shadow past the box grows the nested list, with the box's top left at minus the list's origin")
     func growsListByShadow() throws {
         // Given
-        let sequence = try resolved(##"{ "id": "card", "media": "/abs/page.png", "width": 300, "at": [0, 4], "cornerPin": \##(Self.pin), "shadow": { "radius": 10, "offset": [0, 0], "color": "#000000" } }"##)
+        let sequence = try resolved(##"{ "id": "card", "kind": "media", "media": "/abs/page.png", "width": 300, "at": [0, 4], "cornerPin": \##(Self.pin), "shadow": { "radius": 10, "offset": [0, 0], "color": "#000000" } }"##)
 
         // When
         let list = sut.displayList(of: sequence, at: 1)
@@ -212,7 +212,7 @@ struct CornerPinEvaluationTests {
         // The ease [0, 4, 1, 4] is 3.125 half way, so the width from 100 to 50 overshoots to -56.25 at 1, and is above
         // 0 near either keyframe.
         let sequence = try resolved(#"""
-            { "id": "card", "shape": "rect", "fill": "accent", "height": 50, "at": [0, 4], "cornerPin": \#(Self.pin), "keyframes": [
+            { "id": "card", "kind": "rect", "fill": "accent", "height": 50, "at": [0, 4], "cornerPin": \#(Self.pin), "keyframes": [
               { "at": 0, "width": 100, "ease": [0, 4, 1, 4] }, { "at": 2, "width": 50 } ] }
             """#)
 
@@ -231,7 +231,7 @@ struct CornerPinEvaluationTests {
     func scalesOnPlane() throws {
         // Given
         let sequence = try resolved(
-            document: #"{ "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4" } ], "clips": [ { "id": "card", "media": "/abs/page.png", "width": 300, "at": [0, 4], "cornerPin": \#(Self.pin), "animation": "mine/grow" } ] }"#,
+            document: #"{ "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4" } ], "clips": [ { "id": "card", "kind": "media", "media": "/abs/page.png", "width": 300, "at": [0, 4], "cornerPin": \#(Self.pin), "animation": "mine/grow" } ] }"#,
             presets: Self.presets
         )
 
@@ -262,8 +262,8 @@ struct CornerPinEvaluationTests {
         // Given
         let sequence = try resolved(
             document: #"""
-                { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "in": 0, "out": 2 },
-                  { "id": "shot", "media": "/abs/run.mp4", "in": 0, "out": 2, "transition": "mine/slide", "cornerPin": \#(Self.pin) } ] }
+                { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "in": 0, "out": 2 },
+                  { "id": "shot", "kind": "media", "media": "/abs/run.mp4", "in": 0, "out": 2, "transition": "mine/slide", "cornerPin": \#(Self.pin) } ] }
                 """#,
             presets: Self.presets
         )
@@ -281,7 +281,7 @@ struct CornerPinEvaluationTests {
     @Test("a clip with a corner pin applies its filter to the item inside its group, on its plane, and its group carries none")
     func filtersOnPlane() throws {
         // Given
-        let sequence = try resolved(#"{ "id": "card", "media": "/abs/page.png", "width": 300, "at": [0, 4], "cornerPin": \#(Self.pin), "filter": "mine/grade" }"#)
+        let sequence = try resolved(#"{ "id": "card", "kind": "media", "media": "/abs/page.png", "width": 300, "at": [0, 4], "cornerPin": \#(Self.pin), "filter": "mine/grade" }"#)
 
         // When
         let list = sut.displayList(of: sequence, at: 1)
@@ -300,7 +300,7 @@ struct CornerPinEvaluationTests {
     @Test("a cropped media clip with a corner pin pins its box by its width and crop, the crop drawn inside its group")
     func pinsCroppedBox() throws {
         // Given
-        let sequence = try resolved(#"{ "id": "card", "media": "/abs/page.png", "width": 300, "crop": [100, 0, 500, 400], "at": [0, 4], "cornerPin": \#(Self.pin) }"#)
+        let sequence = try resolved(#"{ "id": "card", "kind": "media", "media": "/abs/page.png", "width": 300, "crop": [100, 0, 500, 400], "at": [0, 4], "cornerPin": \#(Self.pin) }"#)
 
         // When
         let list = sut.displayList(of: sequence, at: 1)
@@ -322,7 +322,7 @@ struct CornerPinEvaluationTests {
     func drawsNothingWhereFolded() throws {
         // Given
         let sequence = try resolved(#"""
-            { "id": "card", "media": "/abs/page.png", "width": 300, "at": [0, 4], "keyframes": [
+            { "id": "card", "kind": "media", "media": "/abs/page.png", "width": 300, "at": [0, 4], "keyframes": [
               { "at": 0, "cornerPin": [[100, 100], [500, 100], [500, 400], [100, 400]] },
               { "at": 2, "cornerPin": [[500, 100], [100, 100], [100, 400], [500, 400]] } ] }
             """#)
@@ -342,11 +342,11 @@ struct CornerPinEvaluationTests {
         // The bottom right corner is that of "bar", at x = 500 at 0 and 2 and at x = -300 at 1, so it passes the bottom
         // left corner at 0.5 and 1.5 and the corner pin is not strictly convex between them.
         let sequence = try resolved(#"""
-            { "id": "bar", "shape": "rect", "fill": "accent", "at": [0, 4], "keyframes": [
+            { "id": "bar", "kind": "rect", "fill": "accent", "at": [0, 4], "keyframes": [
               { "at": 0, "area": [400, 300, 100, 100], "ease": "linear" },
               { "at": 1, "area": [-400, 300, 100, 100], "ease": "linear" },
               { "at": 2, "area": [400, 300, 100, 100] } ] },
-            { "id": "card", "media": "/abs/page.png", "width": 300, "at": [0, 4],
+            { "id": "card", "kind": "media", "media": "/abs/page.png", "width": 300, "at": [0, 4],
               "cornerPin": [[100, 100], [500, 100], { "area": { "clip": "bar" }, "point": "bottom-right" }, [100, 400]] }
             """#)
 
@@ -365,8 +365,8 @@ struct CornerPinEvaluationTests {
     func takesCornerPinBounds() throws {
         // Given
         let sequence = try resolved(#"""
-            { "id": "card", "media": "/abs/page.png", "width": 300, "at": [0, 4], "cornerPin": \#(Self.pin) },
-            { "id": "frame", "shape": "rect", "area": { "clip": "card", "padding": 10 }, "fill": "#FFFFFF", "at": [0, 4] }
+            { "id": "card", "kind": "media", "media": "/abs/page.png", "width": 300, "at": [0, 4], "cornerPin": \#(Self.pin) },
+            { "id": "frame", "kind": "rect", "area": { "clip": "card", "padding": 10 }, "fill": "#FFFFFF", "at": [0, 4] }
             """#)
 
         // When
@@ -384,8 +384,8 @@ struct CornerPinEvaluationTests {
     func placesChildInWrittenSpace() throws {
         // Given
         let sequence = try resolved(#"""
-            { "id": "card", "media": "/abs/page.png", "width": 300, "at": [0, 4], "cornerPin": \#(Self.pin) },
-            { "id": "dot", "shape": "rect", "area": [10, 20, 30, 40], "fill": "#FFFFFF", "parent": "card", "at": [0, 4] }
+            { "id": "card", "kind": "media", "media": "/abs/page.png", "width": 300, "at": [0, 4], "cornerPin": \#(Self.pin) },
+            { "id": "dot", "kind": "rect", "area": [10, 20, 30, 40], "fill": "#FFFFFF", "parent": "card", "at": [0, 4] }
             """#)
 
         // When
@@ -400,7 +400,7 @@ struct CornerPinEvaluationTests {
     @Test("a title animated by unit with a corner pin draws its units' group as the one item of its own group's list")
     func drawsUnitGroupInGroup() throws {
         // Given
-        let sequence = try resolved(#"{ "id": "card", "title": "ab cd", "style": "title", "at": [0, 4], "cornerPin": \#(Self.pin), "animation": { "preset": "frames/fade", "by": "word" } }"#)
+        let sequence = try resolved(#"{ "id": "card", "kind": "title", "text": "ab cd", "style": "title", "at": [0, 4], "cornerPin": \#(Self.pin), "animation": { "preset": "frames/fade", "by": "word" } }"#)
 
         // When
         let list = sut.displayList(of: sequence, at: 1)
@@ -424,7 +424,7 @@ struct CornerPinEvaluationTests {
     @Test("a clip with a corner pin cuts its item by its masks inside the group, in its box, and the group by none")
     func cutsMasksInsideGroup() throws {
         // Given
-        let sequence = try resolved(#"{ "id": "card", "media": "/abs/page.png", "width": 300, "at": [0, 4], "cornerPin": \#(Self.pin), "mask": [ { "shape": "rect", "area": [0, 0, 500, 400] } ] }"#)
+        let sequence = try resolved(#"{ "id": "card", "kind": "media", "media": "/abs/page.png", "width": 300, "at": [0, 4], "cornerPin": \#(Self.pin), "mask": [ { "shape": "rect", "area": [0, 0, 500, 400] } ] }"#)
 
         // When
         let list = sut.displayList(of: sequence, at: 1)
@@ -446,7 +446,7 @@ struct CornerPinEvaluationTests {
     @Test("a title with a corner pin, a background padding and a mask has its mask in its glyphs item's coordinates, its text box, as without a corner pin, and the text box at the padding in its box")
     func carriesTitleMasksWithGlyphs() throws {
         // Given
-        let title = ##""title": "ab", "style": "title", "at": [0, 4], "paragraph": { "background": { "color": "#FF0000", "padding": [8, 12] } }, "mask": [ { "shape": "rect", "area": [0, 0, 20, 20] } ]"##
+        let title = ##""kind": "title", "text": "ab", "style": "title", "at": [0, 4], "paragraph": { "background": { "color": "#FF0000", "padding": [8, 12] } }, "mask": [ { "shape": "rect", "area": [0, 0, 20, 20] } ]"##
         let pinned = try resolved(#"{ "id": "card", \#(title), "cornerPin": \#(Self.pin) }"#)
         let placed = try resolved(#"{ "id": "card", \#(title), "position": [400, 300] }"#)
 
@@ -489,12 +489,12 @@ struct CornerPinEvaluationTests {
             .map { #"{ "area": { "clip": "bar" }, "point": "\#($0)" }"# }
             .joined(separator: ", ")
         let document = #"""
-            { "kind": "sequence", "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "out": 1, "connected": [
-                { "id": "bar", "shape": "rect", "fill": "accent", "area": [20, 20, 60, 30], "parent": "screen", "at": [0, 1] },
-                { "id": "tracked", "media": "/abs/card.png", "parent": "screen", "at": [0, 1], "width": 300, "track": \#(track),
+            { "kind": "sequence", "storyline": [ { "id": "screen", "kind": "media", "media": "/abs/screen.mp4", "out": 1, "connected": [
+                { "id": "bar", "kind": "rect", "fill": "accent", "area": [20, 20, 60, 30], "parent": "screen", "at": [0, 1] },
+                { "id": "tracked", "kind": "media", "media": "/abs/card.png", "parent": "screen", "at": [0, 1], "width": 300, "track": \#(track),
                   "keyframes": [ { "at": 0.5, "cornerPin": [[10, 10], [90, 10], [90, 40], [10, 40]] },
                                  { "at": 0.9, "cornerPin": [\#(corners)] } ] },
-                { "id": "still", "media": "/abs/card.png", "parent": "screen", "at": [0, 1], "width": 300,
+                { "id": "still", "kind": "media", "media": "/abs/card.png", "parent": "screen", "at": [0, 1], "width": 300,
                   "cornerPin": [[10, 10], [90, 10], [90, 40], [10, 40]] } ] } ] }
             """#
         let sequence = try resolved(document: document)
@@ -530,9 +530,9 @@ struct CornerPinEvaluationTests {
         let track = QuadTrackerTable(base: target, quads: quads).data(atMediaTime: 0)
         let pin = #"[[10, 10], [90, 10], { "area": { "clip": "bar" }, "point": "bottom-right" }, [10, 40]]"#
         let document = #"""
-            { "kind": "sequence", "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "out": 1, "connected": [
-                { "id": "bar", "shape": "rect", "fill": "accent", "area": [20, 20, 60, 30], "parent": "screen", "at": [0, 1] },
-                { "id": "tracked", "media": "/abs/card.png", "parent": "screen", "at": [0, 1], "width": 300, "track": \#(track),
+            { "kind": "sequence", "storyline": [ { "id": "screen", "kind": "media", "media": "/abs/screen.mp4", "out": 1, "connected": [
+                { "id": "bar", "kind": "rect", "fill": "accent", "area": [20, 20, 60, 30], "parent": "screen", "at": [0, 1] },
+                { "id": "tracked", "kind": "media", "media": "/abs/card.png", "parent": "screen", "at": [0, 1], "width": 300, "track": \#(track),
                   "keyframes": [ { "at": 0.5, "cornerPin": \#(pin) }, { "at": 0.9, "cornerPin": \#(pin) } ] } ] } ] }
             """#
         let sequence = try resolved(document: document)
@@ -564,8 +564,8 @@ struct CornerPinEvaluationTests {
         let quads = [(0.0, target)] + (1...10).map { (Double($0) / 10, far) }
         let track = QuadTrackerTable(base: target, quads: quads).data(atMediaTime: 0)
         let document = #"""
-            { "kind": "sequence", "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "out": 1, "connected": [
-                { "id": "pinned", "media": "/abs/card.png", "parent": "screen", "at": [0, 1], "width": 300, "track": \#(track),
+            { "kind": "sequence", "storyline": [ { "id": "screen", "kind": "media", "media": "/abs/screen.mp4", "out": 1, "connected": [
+                { "id": "pinned", "kind": "media", "media": "/abs/card.png", "parent": "screen", "at": [0, 1], "width": 300, "track": \#(track),
                   "cornerPin": [[10, -60], [90, -60], [90, -40], [10, -40]] } ] } ] }
             """#
         let sequence = try resolved(document: document)
@@ -584,8 +584,8 @@ struct CornerPinEvaluationTests {
         // Given
         let sequence = try resolved(document: #"""
             { "kind": "sequence", "format": { "size": [1920, 1080], "fps": 25 },
-              "storyline": [ { "media": "/abs/run.mp4" } ], "clips": [
-              { "id": "card", "media": "/abs/page.png", "width": 300, "at": [0, 4], "motionBlur": true, "keyframes": [
+              "storyline": [ { "kind": "media", "media": "/abs/run.mp4" } ], "clips": [
+              { "id": "card", "kind": "media", "media": "/abs/page.png", "width": 300, "at": [0, 4], "motionBlur": true, "keyframes": [
                 { "at": 0, "cornerPin": [[100, 100], [500, 100], [500, 400], [100, 400]], "ease": "linear" },
                 { "at": 2, "cornerPin": [[300, 100], [700, 100], [700, 400], [300, 400]] } ] } ] }
             """#)
@@ -615,8 +615,8 @@ struct CornerPinEvaluationTests {
         let document = { (isMotionBlurred: Bool) in
             #"""
                 { "kind": "sequence", "format": { "size": [1920, 1080], "fps": 25 },
-                  "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "out": 1, "connected": [
-                    { "id": "pinned", "media": "/abs/card.png", "parent": "screen", "at": [0, 1], "width": 300,
+                  "storyline": [ { "id": "screen", "kind": "media", "media": "/abs/screen.mp4", "out": 1, "connected": [
+                    { "id": "pinned", "kind": "media", "media": "/abs/card.png", "parent": "screen", "at": [0, 1], "width": 300,
                       "motionBlur": \#(isMotionBlurred), "track": \#(track),
                       "keyframes": [ { "at": 0, "cornerPin": [[10, -60], [90, -60], [90, -40], [10, -40]], "ease": "linear" },
                                      { "at": 1, "cornerPin": [[10, 0], [90, 0], [70, 31.25], [30, 31.25]] } ] } ] } ] }
@@ -646,7 +646,7 @@ struct CornerPinEvaluationTests {
         // The frame at 0.99 has its samples at 0.990625 to 1.009375, eight on each side of 1.
         let sequence = try resolved(document: #"""
             { "kind": "sequence", "format": { "size": [1920, 1080], "fps": 25 },
-              "storyline": [ { "id": "shot", "media": "/abs/run.mp4", "motionBlur": true, "keyframes": [
+              "storyline": [ { "id": "shot", "kind": "media", "media": "/abs/run.mp4", "motionBlur": true, "keyframes": [
                 { "at": 0, "cornerPin": [[100, 100], [500, 100], [500, 400], [100, 400]], "ease": "linear" },
                 { "at": 2, "cornerPin": [[500, 100], [100, 100], [200, 400], [400, 400]] } ] } ] }
             """#)
@@ -676,8 +676,8 @@ struct CornerPinEvaluationTests {
         let track = QuadTrackerTable(base: target, quads: quads).data(atMediaTime: 0)
         let sequence = try resolved(document: #"""
             { "kind": "sequence", "format": { "size": [1920, 1080], "fps": 25 },
-              "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "out": 2, "connected": [
-                { "id": "pinned", "media": "/abs/card.png", "parent": "screen", "at": [0, 2], "width": 300, "motionBlur": true,
+              "storyline": [ { "id": "screen", "kind": "media", "media": "/abs/screen.mp4", "out": 2, "connected": [
+                { "id": "pinned", "kind": "media", "media": "/abs/card.png", "parent": "screen", "at": [0, 2], "width": 300, "motionBlur": true,
                   "track": \#(track), "cornerPin": [[10, 10], [90, 10], [90, 40], [10, 40]] } ] } ] }
             """#)
 
@@ -758,7 +758,7 @@ struct CornerPinEvaluationTests {
     }
 
     private func resolved(_ clips: String) throws -> ResolvedSequence {
-        try resolved(document: #"{ "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4" } ], "clips": [ \#(clips) ] }"#)
+        try resolved(document: #"{ "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4" } ], "clips": [ \#(clips) ] }"#)
     }
 
     private func resolved(document: String) throws -> ResolvedSequence {
