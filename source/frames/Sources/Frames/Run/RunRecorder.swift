@@ -6,10 +6,11 @@
 //
 
 // Times a run of `render` on the render's own thread, from when it is made (FRAMES-23 Runs): each stage the render loop
-// runs itself, less what the decoder spent reading inside it, which is the decoder's own `decode` and
-// `workingConversion`; the time spent in the encoder, `waiting`; and how far the run has drawn, which it hands to
-// `progress` for every frame drawn. `clock` gives the seconds of a monotonic clock from an origin of its own. Used from
-// one thread.
+// runs itself, less the time the decoder held the render's thread inside it, which is the decoder's own `decode` and
+// `workingConversion` and its waiting on its reading ahead; the time spent in the encoder; and how far the run has
+// drawn, which it hands to `progress` for every frame drawn. `clock` gives the seconds of a monotonic clock from an
+// origin of its own. Used from the render's thread alone: what the decoder reads ahead on threads of its own runs
+// inside no stage of it, so only the decoder's time on its caller's thread is taken from a stage.
 package final class RunRecorder {
     // MARK: - Property
     private static let origin = ContinuousClock.now
@@ -20,7 +21,7 @@ package final class RunRecorder {
     private let progress: (RunProgress) -> Void
 
     package private(set) var stages = StageTimes()
-    package private(set) var waiting: Double = 0
+    package private(set) var waitingOnEncoder: Double = 0
 
     // The wall time since the run began.
     package var elapsed: Double {
@@ -45,26 +46,26 @@ package final class RunRecorder {
         (ContinuousClock.now - origin).seconds
     }
 
-    // Runs `work` as `stage`, adding its wall time less the decoder's reading inside it.
+    // Runs `work` as `stage`, adding its wall time less the time the decoder held this thread inside it.
     package func measure<Result>(
         _ stage: RunStage,
         reading decoder: any MediaDecoder,
         _ work: () throws -> Result
     ) rethrows -> Result {
-        let read = decoder.readings().seconds.renderThreadSeconds
+        let held = decoder.readings().callerSeconds
         let begin = clock()
         defer {
             let elapsed = clock() - begin
-            stages.add(elapsed - (decoder.readings().seconds.renderThreadSeconds - read), to: stage)
+            stages.add(elapsed - (decoder.readings().callerSeconds - held), to: stage)
         }
 
         return try marker.interval(of: stage, work)
     }
 
     // Runs `work`, a call into the encoder, as time spent waiting on it.
-    package func measureWaiting<Result>(_ work: () throws -> Result) rethrows -> Result {
+    package func measureWaitingOnEncoder<Result>(_ work: () throws -> Result) rethrows -> Result {
         let begin = clock()
-        defer { waiting += clock() - begin }
+        defer { waitingOnEncoder += clock() - begin }
 
         return try work()
     }

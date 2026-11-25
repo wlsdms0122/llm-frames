@@ -113,7 +113,7 @@ package struct RenderPipeline: Sendable {
         }
 
         let frame = try recorder.measure(.draw, reading: decoder) { try renderer.frame(of: list) }
-        let file = try recorder.measureWaiting { try encoder.writeImage(frame, for: target) }
+        let file = try recorder.measureWaitingOnEncoder { try encoder.writeImage(frame, for: target) }
         recorder.drew(frame: 1, of: 1)
 
         return RenderRun(frames: 1, files: [file])
@@ -144,7 +144,7 @@ package struct RenderPipeline: Sendable {
 
         // A sequence without sound mixes to silence, so every master and delivery carries one sound track.
         let sound = try recorder.measure(.mix, reading: decoder) { try mix.mixed() }
-        let writers = try recorder.measureWaiting {
+        let writers = try recorder.measureWaitingOnEncoder {
             try targets.map { target in
                 try encoder.videoWriter(for: target, size: format.size, fps: format.fps, sound: sound)
             }
@@ -157,10 +157,10 @@ package struct RenderPipeline: Sendable {
                     evaluator.displayList(of: sequence, at: time)
                 }
                 let frame = try recorder.measure(.draw, reading: decoder) { try renderer.frame(of: list) }
-                try recorder.measureWaiting { try queue.append(frame) }
+                try recorder.measureWaitingOnEncoder { try queue.append(frame) }
                 recorder.drew(frame: index + 1, of: times.count)
             }
-            try recorder.measureWaiting { try queue.finish() }
+            try recorder.measureWaitingOnEncoder { try queue.finish() }
         } catch {
             queue.cancel()
             throw error

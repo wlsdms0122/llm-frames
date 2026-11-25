@@ -6,7 +6,8 @@
 //
 
 // A stage of a run of `render`, by the work it covers (FRAMES-23 Runs). The cases are in the order a report gives
-// them, and the first seven run on the render's own thread.
+// them, and the first seven run on the render's own thread, `decode` and `workingConversion` also on the threads a
+// decoder reads ahead on.
 package enum RunStage: String, CaseIterable, Sendable {
     case resolve
     case check

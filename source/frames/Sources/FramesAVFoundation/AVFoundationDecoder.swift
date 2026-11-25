@@ -18,8 +18,9 @@ import os
 // `platform` reading instead converts the picture from its file's colour by Core Image's colour management. A page of a
 // PDF is checked and drawn by `PageReader`. A video, a sound track and a PDF are loaded once and kept, and a video read
 // forward has its next frame read ahead by `PictureLookahead`. The largest picture it holds is 16384 pixels on a side.
-// It times its reading of pictures and sound as `decode` and its conversion of them as `workingConversion`, and
-// tallies how it read each medium (FRAMES-23 Runs). A page's draw is `decode` whole, any colour conversion included,
+// It times its reading of pictures and sound as `decode` and its conversion of them as `workingConversion`, that of a
+// frame read ahead apart as well, and tallies how it read each medium: a frame read ahead is decoded where it is read,
+// and read only when it is given (FRAMES-23 Runs). A page's draw is `decode` whole, any colour conversion included,
 // that of Core Graphics and that of a written `colorSpace` alike (FRAMES-21).
 package final class AVFoundationDecoder: Sendable {
     // MARK: - Property
@@ -32,7 +33,9 @@ package final class AVFoundationDecoder: Sendable {
     private let videos = OSAllocatedUnfairLock<[String: VideoReader]>(initialState: [:])
     private let sounds = OSAllocatedUnfairLock<[String: SoundReader]>(initialState: [:])
     private let documents = OSAllocatedUnfairLock<[String: PageReader]>(initialState: [:])
+    // The stages run on a caller's thread, and those run on the lookahead's threads reading ahead.
     private let clock = StageClock(marker: StageSignposter())
+    private let aheadClock = StageClock(marker: StageSignposter())
     private let tallies = OSAllocatedUnfairLock<[ReadingKey: ReadingTally]>(initialState: [:])
 
     // MARK: - Initializer
@@ -100,23 +103,32 @@ package final class AVFoundationDecoder: Sendable {
         if case .platform = reading {
             let image = try clock.measure(.decode) { try still.taggedImage(path: path) }
 
-            return try picture(from: image, tagged: tagged, path: path, reading: reading).picture
+            return try picture(from: image, tagged: tagged, path: path, reading: reading, clock: clock).picture
         }
 
         let (image, pixelFormat) = try clock.measure(.decode) { try still.image(path: path) }
-        let (picture, conversion) = try picture(from: image, tagged: tagged, path: path, reading: reading)
-        record(file, conversion: conversion, pixelFormat: pixelFormat, decoded: 1, reopened: false, readFile: path)
+        let (picture, conversion) = try picture(from: image, tagged: tagged, path: path, reading: reading, clock: clock)
+        record(
+            file,
+            conversion: conversion,
+            pixelFormat: pixelFormat,
+            read: 1,
+            decoded: 1,
+            reopened: false,
+            readFile: path
+        )
 
         return picture
     }
 
-    // A picture of `file` read by `conversion`, nil for a `platform` reading, which only `transcode` makes and no run
-    // reports. A video's reader opened again is `reopened`, and a still's or a frame's file read again is `readFile`
-    // read before.
+    // `read` pictures of `file` given and `decoded` decoded by `conversion`, nil for a `platform` reading, which only
+    // `transcode` makes and no run reports. A video's reader opened again is `reopened`, and a still's or a frame's
+    // file read again is `readFile` read before.
     private func record(
         _ file: MediaFile,
         conversion: WorkingConversion?,
         pixelFormat: String,
+        read: Int,
         decoded: Int,
         reopened: Bool,
         readFile: String?
@@ -127,7 +139,7 @@ package final class AVFoundationDecoder: Sendable {
             let key = ReadingKey(path: file.path, page: file.page, conversion: conversion)
             var tally = tallies[key] ?? ReadingTally(order: tallies.count, pixelFormat: pixelFormat)
             tally.pixelFormat = pixelFormat
-            tally.framesRead += 1
+            tally.framesRead += read
             tally.framesDecoded += decoded
             if reopened { tally.reopened += 1 }
             if let readFile, !tally.filesRead.insert(readFile).inserted { tally.reopened += 1 }
@@ -138,12 +150,13 @@ package final class AVFoundationDecoder: Sendable {
     // `image` is the picture with no colour matched, or tagged with its file's colour for a `platform` reading.
     // `tagged` is the file's colour, which a reading that names a colour space overrides, and its mastering display's
     // peak, which an HDR picture is tone mapped from either way. With the picture comes the form it was converted by,
-    // nil for a `platform` reading.
+    // nil for a `platform` reading. `clock` times the conversion on the thread that runs it.
     private func picture(
         from image: CIImage,
         tagged: TaggedColor,
         path: String,
-        reading: PictureReading
+        reading: PictureReading,
+        clock: StageClock
     ) throws -> (picture: Bitmap, conversion: WorkingConversion?) {
         switch reading {
         case let .working(colorSpace, targetPeak):
@@ -170,6 +183,17 @@ package final class AVFoundationDecoder: Sendable {
         case let .platform(colorSpace):
             return (clock.measure(.workingConversion) { managedConverter.picture(from: image, in: colorSpace) }, nil)
         }
+    }
+
+    // The form a picture read by `reading` is converted by, nil for a `platform` reading.
+    private func workingConversion(
+        of reading: PictureReading,
+        tagged: TaggedColor,
+        path: String
+    ) throws -> WorkingConversion? {
+        if case .platform = reading { return nil }
+
+        return try conversion(in: reading.colorSpace, tagged: tagged, path: path).workingConversion
     }
 
     // The conversion from `colorSpace` where a reading names one, else from the file's tagged colour.
@@ -333,24 +357,33 @@ extension AVFoundationDecoder: MediaDecoder {
         try checkColor(video.taggedColor, in: reading.colorSpace, path: file.path)
 
         let path = file.path
-        return try lookahead.picture(atFrame: index, of: path, count: count, reading: reading) { [self] index in
+        let tagged = video.taggedColor
+        let picture = try lookahead.picture(
+            atFrame: index,
+            of: path,
+            count: count,
+            reading: reading
+        ) { [self] index, isAhead in
+            let clock = isAhead ? self.aheadClock : self.clock
             if case .platform = reading {
                 let image = try clock.measure(.decode) { try video.taggedImage(atFrame: index, path: path) }
 
-                return try picture(from: image, tagged: video.taggedColor, path: path, reading: reading).picture
+                return try picture(from: image, tagged: tagged, path: path, reading: reading, clock: clock).picture
             }
 
             let (image, decoded, reopened) = try clock.measure(.decode) { try video.image(atFrame: index, path: path) }
             let (picture, conversion) = try picture(
                 from: image,
-                tagged: video.taggedColor,
+                tagged: tagged,
                 path: path,
-                reading: reading
+                reading: reading,
+                clock: clock
             )
             record(
                 file,
                 conversion: conversion,
                 pixelFormat: VideoReader.pixelFormat,
+                read: 0,
                 decoded: decoded,
                 reopened: reopened,
                 readFile: nil
@@ -358,6 +391,17 @@ extension AVFoundationDecoder: MediaDecoder {
 
             return picture
         }
+        record(
+            file,
+            conversion: try workingConversion(of: reading, tagged: tagged, path: path),
+            pixelFormat: VideoReader.pixelFormat,
+            read: 1,
+            decoded: 0,
+            reopened: false,
+            readFile: nil
+        )
+
+        return picture
     }
 
     package func picture(
@@ -393,6 +437,7 @@ extension AVFoundationDecoder: MediaDecoder {
             file,
             conversion: conversion,
             pixelFormat: PageReader.pixelFormat,
+            read: 1,
             decoded: 1,
             reopened: false,
             readFile: nil
@@ -485,6 +530,13 @@ extension AVFoundationDecoder: MediaDecoder {
                 )
             }
 
-        return MediaReadings(media: media, seconds: clock.seconds)
+        let readAhead = aheadClock.seconds
+
+        return MediaReadings(
+            media: media,
+            seconds: clock.seconds + readAhead,
+            readAhead: readAhead,
+            waiting: lookahead.waitingSeconds
+        )
     }
 }

@@ -60,6 +60,8 @@ struct RenderCommand: Command {
             delivery: options.delivery,
             recorder: recorder
         )
+        // The decoder's readings are taken as the run ends, so they hold the work that ended within it.
+        let readings = roles.decoder.readings()
         let seconds = recorder.elapsed
         let ended = ProcessUsage()
         for path in outputs {
@@ -75,7 +77,7 @@ struct RenderCommand: Command {
             machine: .current,
             roles: RoleFactory().names(for: context.options),
             recorder: recorder,
-            readings: roles.decoder.readings()
+            readings: readings
         )
         try context.write(JSONWriter().write(written.machineOutput), to: report)
         try context.reportWritten(report)

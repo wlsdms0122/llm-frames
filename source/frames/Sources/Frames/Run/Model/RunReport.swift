@@ -6,8 +6,10 @@
 //
 
 // The report of a run of `render` (FRAMES-23 Runs). `stages` holds every stage: those the render loop timed, the
-// decoder's and the encoder's. `waiting` is the render's thread's time in the encoder, and `other` the rest of
-// `seconds` that no stage of the render's thread and no waiting holds.
+// decoder's and the encoder's, each summed over the threads that ran it. `readAhead` is the part of `decode` and
+// `workingConversion` the decoder ran on threads of its own reading ahead. `waitingOnEncoder` and `waitingOnDecoder`
+// are the render's thread's time in the encoder and waiting on the decoder's reading ahead, and `other` the rest of
+// `seconds` that no stage on the render's thread and no waiting holds.
 package struct RunReport: Equatable, Sendable {
     // MARK: - Property
     package let frames: Int
@@ -17,7 +19,9 @@ package struct RunReport: Equatable, Sendable {
     package let machine: MachineFacts
     package let roles: RoleNames
     package let stages: StageTimes
-    package let waiting: Double
+    package let readAhead: StageTimes
+    package let waitingOnEncoder: Double
+    package let waitingOnDecoder: Double
     package let media: [MediumReading]
     package let files: [FileEncoding]
 
@@ -30,7 +34,7 @@ package struct RunReport: Equatable, Sendable {
     }
 
     package var other: Double {
-        seconds - stages.renderThreadSeconds - waiting
+        seconds - (stages.renderThreadSeconds - readAhead.renderThreadSeconds) - waitingOnEncoder - waitingOnDecoder
     }
 
     // MARK: - Initializer
@@ -51,7 +55,9 @@ package struct RunReport: Equatable, Sendable {
         self.machine = machine
         self.roles = roles
         self.stages = run.files.reduce(recorder.stages + readings.seconds) { $0 + $1.seconds }
-        self.waiting = recorder.waiting
+        self.readAhead = readings.readAhead
+        self.waitingOnEncoder = recorder.waitingOnEncoder
+        self.waitingOnDecoder = readings.waiting
         self.media = readings.media
         self.files = run.files
     }

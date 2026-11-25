@@ -5,9 +5,9 @@
 //  Created by JSilver on 11/25/26.
 //
 
-// `{"render": "0.1.0", frames, seconds, cpuSeconds, fps, cores, peakMemory, machine, roles, stages, waiting, other,
-// media, files}`, the object `render --report` writes (FRAMES-23 Runs). Times are rounded to the microsecond, `fps`
-// and `cores` to the millionth.
+// `{"render": "0.1.0", frames, seconds, cpuSeconds, fps, cores, peakMemory, machine, roles, stages, readAhead,
+// waiting, other, media, files}`, the object `render --report` writes (FRAMES-23 Runs). Times are rounded to the
+// microsecond, `fps` and `cores` to the millionth.
 extension RunReport {
     // MARK: - Property
     package var machineOutput: JSONValue {
@@ -33,7 +33,13 @@ extension RunReport {
             JSONMember(key: "stages", value: .object(JSONObject(members: RunStage.allCases.map { stage in
                 JSONMember(key: stage.rawValue, value: .time(stages[stage]))
             }))),
-            JSONMember(key: "waiting", value: .time(waiting)),
+            JSONMember(key: "readAhead", value: .object(JSONObject(members: [RunStage.decode, .workingConversion].map {
+                JSONMember(key: $0.rawValue, value: .time(readAhead[$0]))
+            }))),
+            JSONMember(key: "waiting", value: .object(JSONObject(members: [
+                JSONMember(key: "encoder", value: .time(waitingOnEncoder)),
+                JSONMember(key: "decoder", value: .time(waitingOnDecoder))
+            ]))),
             JSONMember(key: "other", value: .time(other)),
             JSONMember(key: "media", value: .array(media.map(Self.written))),
             JSONMember(key: "files", value: .array(files.map(Self.written)))

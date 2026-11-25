@@ -10,7 +10,7 @@ package struct StageTimes: Equatable, Sendable {
     // MARK: - Property
     private var seconds: [RunStage: Double]
 
-    // The seconds of the stages the render's own thread runs.
+    // The seconds of the stages the render's own thread runs, summed over every thread that ran them.
     package var renderThreadSeconds: Double {
         RunStage.allCases.filter(\.isOnRenderThread).reduce(0) { $0 + self[$1] }
     }
