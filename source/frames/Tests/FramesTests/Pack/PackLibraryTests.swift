@@ -102,6 +102,38 @@ struct PackLibraryTests {
         #expect(pack == nil)
     }
 
+    @Test("a pack name that finds no pack is stopped with the pack near it, where one is, and the packs there are")
+    func stopsOnUnknownPackName() throws {
+        // Given
+        try directory.addPack("shorts")
+        try directory.addPack("frames", in: directory.shipped)
+        try directory.write("", to: directory.installed.appendingPathComponent(".DS_Store"))
+        let sut = directory.packs
+
+        // When
+        let near = try sut.unknown(packNamed: "shrts")
+        let far = try sut.unknown(packNamed: "grade")
+
+        // Then
+        #expect(near == UnknownPack(name: "shrts", packs: ["frames", "shorts"]))
+        #expect(near.nearest == "shorts")
+        #expect(near.description == #"unknown pack "shrts". Did you mean the pack "shorts"? The packs are frames, shorts"#)
+        #expect(far.nearest == nil)
+        #expect(far.description == #"unknown pack "grade". The packs are frames, shorts"#)
+    }
+
+    @Test("a pack name that finds no pack where there are no packs says so")
+    func stopsOnPackNameWithoutPacks() throws {
+        // Given
+        let sut = directory.packs
+
+        // When
+        let unknown = try sut.unknown(packNamed: "grade")
+
+        // Then
+        #expect(unknown.description == #"unknown pack "grade". There are no packs"#)
+    }
+
     @Test("installed packs live at $FRAMES_HOME/packs, and FRAMES_HOME defaults to ~/.config/frames")
     func findsFramesHome() throws {
         // Given

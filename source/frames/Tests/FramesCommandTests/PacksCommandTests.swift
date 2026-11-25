@@ -190,7 +190,7 @@ struct PacksCommandTests {
         #expect(sut.standardOutput.isEmpty)
     }
 
-    @Test("a pack that is not there, or one without a pack.json, stops")
+    @Test("a pack that is not there stops with the pack near it and the packs there are, and one without a pack.json stops")
     func stopsOnMissingPack() throws {
         // Given
         try FileManager.default.createDirectory(at: sut.installed.appendingPathComponent("broken"), withIntermediateDirectories: true)
@@ -198,12 +198,16 @@ struct PacksCommandTests {
         // When
         let missing = sut.run(["packs", "nothing"])
         let missingError = sut.standardError
+        let near = sut.run(["packs", "frams"])
+        let nearError = sut.standardError
         let broken = sut.run(["packs"])
 
         // Then
         #expect(missing == 1)
+        #expect(near == 1)
         #expect(broken == 1)
-        #expect(missingError == "frames: packs: unknown pack \"nothing\"\n")
+        #expect(missingError == "frames: packs: unknown pack \"nothing\". The packs are broken, frames\n")
+        #expect(nearError == "frames: packs: unknown pack \"frams\". Did you mean the pack \"frames\"? The packs are broken, frames\n")
         #expect(sut.standardError == "frames: \(sut.installed.appendingPathComponent("broken/pack.json").path): top level (manifest): a pack holds a pack.json, and this one has none\n")
     }
 

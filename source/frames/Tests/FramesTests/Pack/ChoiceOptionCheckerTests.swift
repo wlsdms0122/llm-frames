@@ -90,14 +90,49 @@ struct ChoiceOptionCheckerTests {
         let error = #expect(throws: PackError.self) { try sut.plan(document, arguments: arguments) }
 
         // Then
-        #expect(error == .unknownOption(
-            place: Place(components: [.key("storyline"), .index(1, id: nil), .key("transition")]),
+        let place = Place(components: [.key("storyline"), .index(1, id: nil), .key("transition")])
+        #expect(error == .unknownOptionReference(
+            place: place,
             kind: "solid",
             name: "join",
             option: .string("studio/nope"),
-            target: "transition preset"
+            reference: UnknownReference(
+                kind: .preset(.transition),
+                name: "studio/nope",
+                hint: .pack(pack: "studio", names: ["studio/dip"], nearest: nil)
+            )
         ))
-        #expect(error?.description.contains(#"parameter "join" offers "studio/nope""#) == true)
+        #expect(error?.description == #"\#(place) (solid): parameter "join" offers "studio/nope": unknown transition preset "studio/nope". The pack "studio" holds the transition presets studio/dip"#)
+    }
+
+    @Test("an option that writes a preset in an object is stopped by the preset it writes, with the one near it")
+    func stopsOnMissingPresetOfObjectOption() throws {
+        // Given
+        let sut = planner()
+        let document = try Fixture.json(##"""
+            { "kind": "sequence", "format": { "size": [1920, 1080] },
+              "params": {
+                "join": { "type": "choice", "default": "studio/dip", "options": [ "studio/dip", { "preset": "studio/dp", "args": { "color": "#FFFFFF" } } ], "description": "how the shots join" } },
+              "storyline": [ { "kind": "solid", "color": "#000000", "duration": 1 }, { "kind": "solid", "color": "#FFFFFF", "duration": 1, "transition": { "param": "join" } } ] }
+            """##)
+
+        // When
+        let error = #expect(throws: PackError.self) { try sut.plan(document) }
+
+        // Then
+        let place = Place(components: [.key("storyline"), .index(1, id: nil), .key("transition")])
+        #expect(error == .unknownOptionReference(
+            place: place,
+            kind: "solid",
+            name: "join",
+            option: try Fixture.json(##"{ "preset": "studio/dp", "args": { "color": "#FFFFFF" } }"##),
+            reference: UnknownReference(
+                kind: .preset(.transition),
+                name: "studio/dp",
+                hint: .pack(pack: "studio", names: ["studio/dip"], nearest: "studio/dip")
+            )
+        ))
+        #expect(error?.description == ##"\##(place) (solid): parameter "join" offers {"preset": "studio/dp", "args": {"color": "#FFFFFF"}}: unknown transition preset "studio/dp". Did you mean "studio/dip"? The pack "studio" holds the transition presets studio/dip"##)
     }
 
     @Test("a template used as media is checked with every option before its arguments are")
@@ -113,12 +148,16 @@ struct ChoiceOptionCheckerTests {
         let error = #expect(throws: PackError.self) { try sut.plan(document) }
 
         // Then
-        #expect(error == .unknownOption(
+        #expect(error == .unknownOptionReference(
             place: Place(file: "studio/join", components: [.key("storyline"), .index(1, id: nil), .key("transition")]),
             kind: "solid",
             name: "join",
             option: .string("studio/nope"),
-            target: "transition preset"
+            reference: UnknownReference(
+                kind: .preset(.transition),
+                name: "studio/nope",
+                hint: .pack(pack: "studio", names: ["studio/dip"], nearest: nil)
+            )
         ))
     }
 
@@ -199,13 +238,36 @@ struct ChoiceOptionCheckerTests {
         ))
     }
 
-    @Test("an option of a template's theme that names no theme stops")
-    func stopsOnMissingTheme() throws {
+    @Test(
+        "an option of a template's theme that names no theme stops with what the theme's message adds about the name",
+        arguments: [
+            (
+                "studio/nope",
+                NameHint?.some(.pack(pack: "studio", names: ["studio/look"], nearest: nil)),
+                #"unknown theme "studio/nope". The pack "studio" holds the themes studio/look"#
+            ),
+            (
+                "studio/lok",
+                NameHint?.some(.pack(pack: "studio", names: ["studio/look"], nearest: "studio/look")),
+                #"unknown theme "studio/lok". Did you mean "studio/look"? The pack "studio" holds the themes studio/look"#
+            ),
+            (
+                "/abs/nope.json",
+                NameHint?.none,
+                #"theme "/abs/nope.json" is not there"#
+            )
+        ]
+    )
+    func stopsOnMissingTheme(
+        option: String,
+        hint: NameHint?,
+        message: String
+    ) throws {
         // Given
         let sut = planner()
         let document = try Fixture.json(##"""
             { "kind": "sequence", "theme": { "param": "look" }, "format": { "size": [1920, 1080] },
-              "params": { "look": { "type": "choice", "default": "studio/look", "options": [ "studio/look", "studio/nope" ], "description": "the look" } },
+              "params": { "look": { "type": "choice", "default": "studio/look", "options": [ "studio/look", "\##(option)" ], "description": "the look" } },
               "storyline": [ { "kind": "solid", "color": "#000000", "duration": 1 } ] }
             """##)
 
@@ -213,13 +275,15 @@ struct ChoiceOptionCheckerTests {
         let error = #expect(throws: PackError.self) { try sut.plan(document) }
 
         // Then
-        #expect(error == .unknownOption(
-            place: Place(components: [.key("theme")]),
+        let place = Place(components: [.key("theme")])
+        #expect(error == .unknownOptionReference(
+            place: place,
             kind: "sequence",
             name: "look",
-            option: .string("studio/nope"),
-            target: "theme"
+            option: .string(option),
+            reference: UnknownReference(kind: .theme, name: option, hint: hint)
         ))
+        #expect(error?.description == #"\#(place) (sequence): parameter "look" offers "\#(option)": \#(message)"#)
     }
 
     @Test("a template whose every option is there plans, an argument without a default left out of the presets it reaches")
