@@ -28,7 +28,7 @@ final class FrameWriteQueue: @unchecked Sendable {
     }
 
     // MARK: - Public
-    func append(_ frame: Bitmap) throws {
+    func append(_ frame: Pixels) throws {
         slots.wait()
         if let failure = recorded() {
             slots.signal()

@@ -280,11 +280,11 @@ extension AssetVideoWriter: VideoWriter {
         return FileEncoding(path: format.path, codec: format.codecName, usesHardware: usesHardware, seconds: seconds)
     }
 
-    func append(_ frame: Bitmap) throws {
+    func append(_ frame: Pixels) throws {
         do {
             try clock.measure(.encode) {
                 try autoreleasepool {
-                    try appendFrame(frame)
+                    try appendFrame(frame.bitmap)
                 }
             }
         } catch {
