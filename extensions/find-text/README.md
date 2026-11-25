@@ -53,6 +53,8 @@ Anywhere else it stops, naming the place and the space its entry reports:
 - a box: a child of a title or of a rect or ellipse placed by `width` and `height`, and such a clip's own `mask`;
 - the media pixels of a compound clip or a template instance, whose picture is drawn and not read.
 
+Under a rect or ellipse placed by `width` and `height`, an `area` or the area of a point is in the box its parent gives its children, which is that parent's clip area ([FRAMES-2](../../spec/FRAMES-2/SPEC.md#clip-areas)), so the stop says how to write it: `{"clip": "<the parent's id>"}` for an area and `{"area": {"clip": "<the parent's id>"}, "point": "bottom-right"}` for a point, with the parent's id and the point as written. A crop or a mask in a clip's own box, where a clip area stops, and a place in a title's box, whose text `evaluate` reports, get no such form.
+
 ## The frame searched
 
 A still or a page has one picture. On a video or an image sequence the request is searched on the frame the searched clip shows at the sequence time its value takes effect at, read from the entry of the clip that writes it:
