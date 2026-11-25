@@ -22,7 +22,8 @@ USAGE = """frames track-motion <document.json | ->
 
 Prints the document with every clip's track request replaced by the track data `frames track` prints for it:
 
-  "track": true                       the clip's own area, corner pin or crop, on the frame its instant shows
+  "track": true                       the clip's own area, corner pin or crop, on the frame its instant shows,
+                                      or its first keyframe's value on the frame that keyframe's time shows
   "track": [x, y, w, h]               that area, on the frame the clip's instant shows
   "track": {"time": t}                the clip's own area, corner pin or crop, on the frame media time t names
   "track": {"time": t, "area": a}     the area a, on the frame media time t names
@@ -231,9 +232,10 @@ def nested_request(document, place):
 # MARK: - The target
 
 def own_target(request, entry, tracked):
-    """The target `true` and `{"time": t}` follow: of the clip's `area`, `cornerPin`, `crop` and `mask`, the one written
-    in the media pixels its track follows, as its entry reports the space of each, `space` for an area and a corner
-    pin and `ownSpace` for a crop and a mask."""
+    """The target `true` and `{"time": t}` follow and the sequence time whose frame it is on: of the clip's `area`,
+    `cornerPin`, `crop` and `mask`, the one written in the media pixels its track follows, as its entry reports the
+    space of each, `space` for an area and a corner pin and `ownSpace` for a crop and a mask, on the clip's instant,
+    or where it is keyframed, its first keyframe's value on that keyframe's `at` carried by the clip's clock."""
     clip = request.clip
     followed = {"kind": "media", "clip": tracked["clip"]}
     candidates = [key for key in ("area", "cornerPin") if entry["space"] == followed]
@@ -248,21 +250,44 @@ def own_target(request, entry, tracked):
         )
     key = present[0]
     where = f"{request.where} ({key})"
-    if clip.keyframes_writing(key):
-        if request.time is not None:
-            raise Stop(f"{where}: it is keyframed, and a keyframe's value is where it is at its own time, so none is written on the frame time names")
-        raise Stop(
-            f"{where}: it is keyframed, so the track's frame is the one its first keyframe's time shows, and no report "
-            "gives a keyframe's sequence time: name the area and the frame with {\"time\": t, \"area\": a}"
-        )
-    value = clip.value[key]
     if key == "mask":
         raise Stop(f"{where}: it follows the bounds of the clip's masks, which no report gives: name the area to follow")
+    keyframes = clip.keyframes_writing(key)
+    if keyframes and request.time is not None:
+        raise Stop(f"{where}: it is keyframed, and a keyframe's value is where it is at its own time, so none is written on the frame time names")
+    if keyframes:
+        index, first = first_keyframe(clip, key)
+        value = first[key]
+        where = f"{clip.place}: keyframes[{index}].{key}"
+        instant = keyframe_instant(clip, index, entry)
+    else:
+        value = clip.value[key]
+        instant = entry["instant"]
     if key == "cornerPin":
         if not (isinstance(value, list) and len(value) == 4 and all(is_point(point) for point in value)):
             raise Stop(f"{where}: a corner pin is followed from four points [x, y], and a clip area names no point in the media")
-        return Target("--quad", value)
-    return Target("--area", area_of(value, where))
+        return Target("--quad", value), instant
+    return Target("--area", area_of(value, where)), instant
+
+
+def first_keyframe(clip, key):
+    """The index and the keyframe of the value the key takes at its first keyframe's `at`: of the keyframes that write
+    it at the earliest `at`, the one written last, which the leaf takes at that `at`."""
+    keyframes = clip.value["keyframes"]
+    indices = [index for index, keyframe in enumerate(keyframes) if isinstance(keyframe, dict) and key in keyframe]
+    for index in indices:
+        if not is_number(keyframes[index].get("at")):
+            raise Stop(f"{clip.place}: keyframes[{index}] needs a number at")
+    earliest = min(keyframes[index]["at"] for index in indices)
+    index = [index for index in indices if keyframes[index]["at"] == earliest][-1]
+    return index, keyframes[index]
+
+
+def keyframe_instant(clip, index, entry):
+    """The sequence time of a keyframe's `at`, carried by the clock the clip's entry reports, `origin + at / speed`."""
+    at = clip.value["keyframes"][index]["at"]
+    clock = entry["clock"]
+    return rounded(clock["origin"] + at / clock["speed"])
 
 
 def is_scale_crop(clip, key):
@@ -318,12 +343,15 @@ def follow(request, frames, times):
     tracked = entry["tracked"]
     if tracked is None:
         raise Stop(f"{request.where}: timeline reports no video or image sequence for its track to follow")
-    target = Target("--area", request.area) if request.area is not None else own_target(request, entry, tracked)
+    if request.area is not None:
+        target, instant = Target("--area", request.area), entry["instant"]
+    else:
+        target, instant = own_target(request, entry, tracked)
     source = times.entry(tracked["clip"])
     media = Media(source["media"], source["fps"])
     time = request.time
     if time is None:
-        time = times.shown(tracked["clip"], entry["instant"])["mediaTime"]
+        time = times.shown(tracked["clip"], instant)["mediaTime"]
     color_space = times.written(tracked["clip"]).value.get("colorSpace")
     before = frames.track(media, time, target, tracked["first"], color_space)
     after = frames.track(media, time, target, tracked["last"], color_space)
@@ -336,8 +364,14 @@ def follow(request, frames, times):
 # MARK: - The extension
 
 def number_text(value):
-    """A number as frames' machine output wrote it."""
+    """A number as frames' machine output writes it, to the microsecond."""
+    value = rounded(value)
     return str(int(value)) if float(value).is_integer() else repr(value)
+
+
+def rounded(value):
+    value = round(float(value), 6)
+    return int(value) if value.is_integer() else value
 
 
 def probe_document(document):
