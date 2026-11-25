@@ -168,3 +168,29 @@ Supports: the Note that another meter interpolates otherwise than the four point
 On: mixes limited by frames' limiter, read with a 16 times interpolator.
 
 Numbers: the mixes read up to 0.23 dB above their ceiling, and the same mixes limited 0.25 dB lower read under the ceiling there.
+
+## FRAMES-26
+
+### AVFoundation's output of HDR video
+
+Supports: [Media](../spec/FRAMES-26/SPEC.md#media), the decoder reading HDR video as PQ and converting it by frames' formulas, and the Note on AVFoundation's linear output.
+
+On: the reference machine, HDR video read through AVFoundation as linear and as PQ output.
+
+Numbers: in the linear output, PQ at 203 cd/m² read as 2.0 and HLG at 0.75 as 3.17, scene light, where BT.2408 display light gives 1. The PQ output agreed with BT.2408.
+
+### AVFoundation's tone mapping against the BT.2390 EETF
+
+Supports: the alternative of tone mapping by the platform in [Alternatives considered](../spec/FRAMES-26/SPEC.md#alternatives-considered).
+
+On: the reference machine, AVFoundation's conversion of HDR to SDR.
+
+Numbers: it mapped 203 cd/m² to 0.89, where the BT.2390 EETF from 1000 cd/m² gives 0.898.
+
+### Core Graphics drawing a page's colour spaces
+
+Supports: the Note that a page's tagged colour is as exact as its renderer's colour management.
+
+On: the reference machine, Core Graphics drawing into an extended sRGB or an extended linear floating point context.
+
+Numbers: DeviceRGB and DeviceGray within 2e-8 of `srgb`; a Display P3 profile within 6.3e-5 of linear light; the sRGB profile within 6e-8 of `srgb`. A pure power curve at 2.4 drawn with a linear segment at black, max(x^g, x / 16), 3.2e-3 of linear light from the power. An RGB profile whose tone curves are the inverse of BT.709's camera curve drawn as BT.1886, 8.8e-2 from the image formula. Lab taken to XYZ relative to D50 whatever its `WhitePoint`, its `Range` mapped onto [-127.5, 127.5], 0.15 from ISO 32000-1 at the default range.
