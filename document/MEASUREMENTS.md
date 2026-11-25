@@ -194,3 +194,23 @@ Supports: the Note that a page's tagged colour is as exact as its renderer's col
 On: the reference machine, Core Graphics drawing into an extended sRGB or an extended linear floating point context.
 
 Numbers: DeviceRGB and DeviceGray within 2e-8 of `srgb`; a Display P3 profile within 6.3e-5 of linear light; the sRGB profile within 6e-8 of `srgb`. A pure power curve at 2.4 drawn with a linear segment at black, max(x^g, x / 16), 3.2e-3 of linear light from the power. An RGB profile whose tone curves are the inverse of BT.709's camera curve drawn as BT.1886, 8.8e-2 from the image formula. Lab taken to XYZ relative to D50 whatever its `WhitePoint`, its `Range` mapped onto [-127.5, 127.5], 0.15 from ISO 32000-1 at the default range.
+
+## FRAMES-27
+
+### Carrying a picture onto a corner pin
+
+Supports: the corner pin bounds of [FRAMES-24](../spec/FRAMES-24/SPEC.md#rules), "A picture carried onto a corner pin is area sampled", and the Note in [Notes](../spec/FRAMES-27/SPEC.md#notes) on what separates one sample per pixel from area sampling.
+
+On: the reference machine, half float premultiplied pictures, the set FRAMES-24 names, against the mean of [What a renderer holds](../spec/FRAMES-27/SPEC.md#what-a-renderer-holds) taken over at least 16 × 16 samples per output pixel, more where neighbouring samples would land over a quarter of a source pixel apart.
+
+Numbers:
+
+| Method | Worst | Average on the grid under the steep corner pin | Checkerboards, worst and average | Time a frame |
+| --- | --- | --- | --- | --- |
+| Core Image's `CIPerspectiveTransform`, one bilinear sample at each output pixel's centre | 0.246 on the checkerboard under the mild corner pin, 0.444 under the steep one, 0.769 on the grid under the steep one | 0.069 | | |
+| The picture rastered smaller first, or filtered with Lanczos first | | 0.146 to 0.187 | | |
+| A Metal kernel of 4 × 4 subsamples, each a trilinear read from a 2 × 2 box pyramid, levels transparent past the edge | 0.075 on the grid | 0.003 | 0.025 and 0.0002 | 10 to 14 ms |
+| The Quartz renderer's kernel, levels with edge pixels repeated outward and subsamples weighted by coverage, on the set as FRAMES-24 writes it in y-down pixels | 0.077 on the grid | 0.003 | 0.025 and 0.0002 | 17 to 23 ms |
+| An n × n kernel without a pyramid, n adapted to the local shrink | 0.025 on the grid | 0.002 | | up to 48 ms |
+
+The Metal kernel gave the same bytes over 20 renders and three processes. Its levels, transparent past the source's edge, darkened what lies just inside the edge under minification. Through the whole path, with the list that holds the still rastered at the stretch held to the pixel limit, below 1 under the mild corner pin and about 1.41 under the steep one, the result was 0.16 to 0.27 from the mean at worst, and on the grid 0.016 on average under the mild corner pin and 0.008 under the steep one. With the list at its own size, every case was within the bounds.
