@@ -53,7 +53,7 @@ enum ThemeKeyTable {
             KeyRule("title", titleAnimations),
             KeyRule("shape", ChoiceKeyTable.wholeAnimation),
             KeyRule("media", ChoiceKeyTable.wholeAnimation),
-            KeyRule("adjust", ChoiceKeyTable.wholeAnimation)
+            KeyRule("adjustment", ChoiceKeyTable.wholeAnimation)
         ]
     )
     // A map's kind is not readable from its value type, so it is named on its own.

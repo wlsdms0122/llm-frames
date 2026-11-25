@@ -721,7 +721,7 @@ struct TimePlanner: Sendable {
             ["defaults", "animation", "media"]
 
         case .adjust:
-            ["defaults", "animation", "adjust"]
+            ["defaults", "animation", "adjustment"]
 
         case .null:
             nil
@@ -743,7 +743,7 @@ struct TimePlanner: Sendable {
             defaults.mediaAnimation
 
         case .adjust:
-            defaults.adjustAnimation
+            defaults.adjustmentAnimation
 
         case .null:
             nil

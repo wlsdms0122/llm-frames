@@ -14,7 +14,7 @@ struct ThemeDefaults: Equatable, Sendable {
     let titleAnimations: [String: AnimationChoice]
     let shapeAnimation: AnimationChoice
     let mediaAnimation: AnimationChoice
-    let adjustAnimation: AnimationChoice
+    let adjustmentAnimation: AnimationChoice
 
     // MARK: - Initializer
     init(
@@ -22,13 +22,13 @@ struct ThemeDefaults: Equatable, Sendable {
         titleAnimations: [String: AnimationChoice],
         shapeAnimation: AnimationChoice,
         mediaAnimation: AnimationChoice,
-        adjustAnimation: AnimationChoice
+        adjustmentAnimation: AnimationChoice
     ) {
         self.transition = transition
         self.titleAnimations = titleAnimations
         self.shapeAnimation = shapeAnimation
         self.mediaAnimation = mediaAnimation
-        self.adjustAnimation = adjustAnimation
+        self.adjustmentAnimation = adjustmentAnimation
     }
 
     // MARK: - Public
