@@ -15,30 +15,6 @@ struct ResolvedMask: Equatable, Sendable {
     let isInverted: Bool
     let mode: MaskMode
 
-    // The time of every keyframe of its geometry. A static value true on the track's frame has none.
-    var geometryTimes: [Double] {
-        let rectangle = { (rectangle: ResolvedMaskRectangle) -> [Double] in
-            switch rectangle {
-            case let .area(area):
-                area.keyframeTimes
-
-            case let .box(width, height, position):
-                width.keyframeTimes + height.keyframeTimes + position.keyframeTimes
-            }
-        }
-
-        return switch geometry {
-        case let .rect(box, radius):
-            rectangle(box) + radius.keyframeTimes
-
-        case let .ellipse(box):
-            rectangle(box)
-
-        case let .path(vertices):
-            vertices.flatMap { $0.vertex.keyframeTimes + $0.inTangent.keyframeTimes + $0.outTangent.keyframeTimes }
-        }
-    }
-
     // MARK: - Initializer
     init(
         geometry: ResolvedMaskGeometry,

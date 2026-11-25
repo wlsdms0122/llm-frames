@@ -23,14 +23,12 @@ package struct DocumentPlanner: Sendable {
     init(
         mediaFacts: any MediaFactProvider,
         presets: any PresetProvider,
-        tracker: any TrackerProvider,
         shaper: any ShapingProvider,
         library: ReferenceLibrary
     ) {
         self.library = library
         self.planner = TimePlanner(mediaFacts: mediaFacts, presets: presets, library: library)
         self.sequencePlanner = SequencePlanner(
-            tracker: tracker,
             shaper: shaper,
             presets: presets,
             library: library
@@ -47,7 +45,6 @@ package struct DocumentPlanner: Sendable {
     package init(
         mediaFacts: any MediaFactProvider,
         presets: PresetLibrary,
-        tracker: any TrackerProvider,
         shaper: any ShapingProvider,
         packs: PackLibrary,
         pack: String? = nil
@@ -55,7 +52,6 @@ package struct DocumentPlanner: Sendable {
         self.init(
             mediaFacts: mediaFacts,
             presets: presets,
-            tracker: tracker,
             shaper: shaper,
             library: ReferenceLibrary(packs: packs, mediaFacts: mediaFacts, pack: pack)
         )

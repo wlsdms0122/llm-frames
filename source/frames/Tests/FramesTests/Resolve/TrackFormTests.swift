@@ -10,8 +10,7 @@ import Testing
 @testable import Frames
 
 // `/abs/screen.mp4` has a frame every 0.1 media seconds over 4 seconds. Its storyline clip plays media [1, 3) over the
-// edit range [0, 2), and a connected clip's `at` is in that media time, so at sequence time t it shows media time t + 1. The fake tracker moves the target
-// 10 pixels down per media second from the frame it is given.
+// edit range [0, 2), and a connected clip's `at` is in that media time, so at sequence time t it shows media time t + 1.
 @Suite("TrackForm Tests")
 struct TrackFormTests {
     // MARK: - Property
@@ -22,36 +21,33 @@ struct TrackFormTests {
 
     // MARK: - Initializer
     // MARK: - Test
-    @Test(
-        "a track object takes a time and at most one of an area and track data",
-        arguments: [
-            #"{ "time": 1 }"#,
-            #"{ "time": 1, "area": [100, 100, 200, 40] }"#,
-            #"{ "time": 1, "frames": [ { "time": 1, "quad": \#(target) } ] }"#
-        ]
-    )
-    func takesTrackObject(track: String) throws {
+    @Test("track data, a time and its frames, passes the key check")
+    func takesTrackData() throws {
         // Given
-        let document = try document(track: track)
+        let document = try document(track: #"{ "time": 1, "frames": [ { "time": 1, "quad": \#(Self.target) } ] }"#)
 
         // When, Then
         try checker.check(document: document)
     }
 
     @Test(
-        "a track object without a time, with both an area and track data, or with another key stops where it is written",
+        "track data without a time or frames, with another key, or another value stops where it is written",
         arguments: [
             (
-                #"{ "area": [100, 100, 200, 40] }"#,
+                "true",
+                "storyline[0]#screen.connected[0].track (rect): expected an object (track), found true"
+            ),
+            (
+                #"{ "frames": [ { "time": 1, "quad": \#(target) } ] }"#,
                 #"storyline[0]#screen.connected[0].track (track): missing key "time""#
             ),
             (
-                #"{ "time": 1, "area": [100, 100, 200, 40], "frames": [ { "time": 1, "quad": \#(target) } ] }"#,
-                #"storyline[0]#screen.connected[0].track (track): takes only one of "area", "frames""#
+                #"{ "time": 1 }"#,
+                #"storyline[0]#screen.connected[0].track (track): missing key "frames""#
             ),
             (
-                #"{ "time": 1, "speed": 2 }"#,
-                #"storyline[0]#screen.connected[0].track (track): unknown key "speed". Allowed: time, area, frames"#
+                #"{ "time": 1, "frames": [ { "time": 1, "quad": \#(target) } ], "speed": 2 }"#,
+                #"storyline[0]#screen.connected[0].track (track): unknown key "speed". Allowed: time, frames"#
             ),
             (
                 #"{ "time": 1, "frames": [ { "time": 1 } ] }"#,
@@ -83,79 +79,20 @@ struct TrackFormTests {
         #expect(error?.description == message)
     }
 
-    @Test("the reader takes the time of a track object and beside it the own geometry, an area or track data")
-    func readsTrackObject() throws {
+    @Test("the reader takes the time and the frames of track data")
+    func readsTrackData() throws {
         // Given
         let reader = SequenceReader()
-        let quad = Quad(total)
 
         // When
-        let own = try clip(track: #"{ "time": 1.5 }"#, reader: reader)
-        let area = try clip(track: #"{ "time": 1.5, "area": [100, 100, 200, 40] }"#, reader: reader)
-        let data = try clip(track: #"{ "time": 1.5, "frames": [ { "time": 1.5, "quad": \#(Self.target) } ] }"#, reader: reader)
+        let clip = try clip(track: #"{ "time": 1.5, "frames": [ { "time": 1.5, "quad": \#(Self.target) } ] }"#, reader: reader)
 
         // Then
-        #expect(own.track == .own(time: 1.5))
-        #expect(area.track == .area(.rectangle(total), time: 1.5))
-        #expect(data.track == .data(time: 1.5, frames: [TrackDataFrame(time: 1.5, quad: quad)]))
-    }
-
-    @Test("true written as an object with a time follows the clip's own geometry from the frame the time names")
-    func followsOwnFromTime() throws {
-        // Given
-        let sut = planner()
-        let time = try plan(#"{ "shape": "rect", "stroke": { "width": 8 }, "parent": "screen", "area": [100, 100, 200, 40], "at": [1, 3], "track": { "time": 1.54 } }"#)
-
-        // When
-        let plan = try sut.plan(time, storylineCrops: [nil], storylineMasks: [nil], crops: [nil], areas: [.value(.rectangle(total))], masks: [nil], cornerPins: time.clips.map { _ in nil })
-
-        // Then
-        let track = try #require(plan.clips[0]?.track)
-        #expect(track.mediaTime == 1.5)
-        #expect(track.target == Quad(total))
-        #expect(track.samples.first?.time == 1)
-        #expect(track.motion(atMediaTime: 1.5) == TrackMotion(from: Quad(total), to: Quad(total)))
-        #expect(track.samples.first?.quad == Quad(moved(total, down: -5)))
-    }
-
-    @Test("an area written in a track object with a time is found on the frame the time names")
-    func followsAreaFromTime() throws {
-        // Given
-        let sut = planner()
-        let time = try plan(#"{ "shape": "rect", "stroke": { "width": 8 }, "parent": "screen", "area": [0, 0, 10, 10], "at": [1, 3], "track": { "time": 2, "area": [100, 100, 200, 40] } }"#)
-
-        // When
-        let plan = try sut.plan(time, storylineCrops: [nil], storylineMasks: [nil], crops: [nil], areas: [nil], masks: [nil], cornerPins: time.clips.map { _ in nil })
-
-        // Then
-        let track = try #require(plan.clips[0]?.track)
-        #expect(track.mediaTime == 2)
-        #expect(track.target == Quad(total))
-        #expect(track.samples.first?.quad == Quad(moved(total, down: -10)))
-    }
-
-    @Test("a track object with a time stops where the geometry it follows is keyframed")
-    func refusesKeyframedOwnFromTime() throws {
-        // Given
-        let sut = planner()
-        let time = try plan(#"{ "shape": "rect", "stroke": { "width": 8 }, "parent": "screen", "at": [1, 3], "track": { "time": 1 }, "keyframes": [ { "at": 0, "area": [100, 100, 200, 40] }, { "at": 1, "area": [100, 120, 200, 40] } ] }"#)
-        let areas: [PropertyValue<AreaValue>?] = [.keyframes([
-            PropertyKeyframe(index: 0, at: 0, value: .rectangle(total), ease: .linear),
-            PropertyKeyframe(index: 1, at: 1, value: .rectangle(moved(total, down: 20)), ease: .linear)
-        ])]
-
-        // When, Then
-        let error = #expect(throws: ResolveError.self) {
-            try sut.plan(time, storylineCrops: [nil], storylineMasks: [nil], crops: [nil], areas: areas, masks: [nil], cornerPins: time.clips.map { _ in nil })
-        }
-        #expect(error?.description == #"""
-            storyline[0]#screen.connected[0].track (rect): the geometry "track" follows is keyframed, and a keyframe's \#
-            value is where it is at its own time, so none is written on the frame "time" names
-            """#)
+        #expect(clip.track == TrackData(time: 1.5, frames: [TrackDataFrame(time: 1.5, quad: Quad(total))]))
     }
 
     @Test(
-        "a track object whose time names no frame of the tracked media stops, naming the time",
+        "track data whose time names no frame of the tracked media stops, naming the time",
         arguments: [(-0.5, "-0.5"), (4, "4"), (7, "7")]
     )
     func refusesTimeOutside(
@@ -163,37 +100,38 @@ struct TrackFormTests {
         written: String
     ) throws {
         // Given
-        let sut = planner()
-        let time = try plan(#"{ "shape": "rect", "stroke": { "width": 8 }, "parent": "screen", "area": [0, 0, 10, 10], "at": [1, 3], "track": { "time": \#(written), "area": [100, 100, 200, 40] } }"#)
+        let sut = TrackPlanner()
+        let time = try plan(#"{ "shape": "rect", "stroke": { "width": 8 }, "parent": "screen", "area": [0, 0, 10, 10], "at": [1, 3], "track": { "time": \#(written), "frames": [ { "time": 1, "quad": \#(Self.target) } ] } }"#)
 
         // When, Then
         let error = #expect(throws: ResolveError.self) {
-            try sut.plan(time, storylineCrops: [nil], storylineMasks: [nil], crops: [nil], areas: [nil], masks: [nil], cornerPins: time.clips.map { _ in nil })
+            try sut.plan(time)
         }
         #expect(error?.description == "storyline[0]#screen.connected[0].track.time (rect): media time \(written) names no frame of the tracked media")
     }
 
-    @Test("a connected clip whose instant shows a frame the track named by time does not follow stops, naming that media time")
+    @Test("a connected clip whose instant shows a frame the track data does not name stops, naming that media time")
     func refusesUnfollowedInstant() throws {
         // Given
-        let sut = planner(followed: 1.4...2)
-        let time = try plan(#"{ "shape": "rect", "stroke": { "width": 8 }, "parent": "screen", "area": [0, 0, 10, 10], "at": [1, 3], "track": { "time": 1.5, "area": [100, 100, 200, 40] } }"#)
+        let sut = TrackPlanner()
+        let tracker = TrackerTable(frameTimes: ["/abs/screen.mp4": Fixture.screenFrameTimes], followed: ["/abs/screen.mp4": 1.4...2])
+        let trackData = tracker.data(Quad(total), in: "/abs/screen.mp4", atMediaTime: 1.5)
+        let time = try plan(#"{ "shape": "rect", "stroke": { "width": 8 }, "parent": "screen", "area": [0, 0, 10, 10], "at": [1, 3], "track": \#(trackData) }"#)
 
         // When, Then
         let error = #expect(throws: ResolveError.self) {
-            try sut.plan(time, storylineCrops: [nil], storylineMasks: [nil], crops: [nil], areas: [nil], masks: [nil], cornerPins: time.clips.map { _ in nil })
+            try sut.plan(time)
         }
         #expect(error?.description == #"""
-            storyline[0]#screen.connected[0].track (rect): the clip's instant shows media time 1, a frame the track does \#
-            not follow, so its window holds none
+            storyline[0]#screen.connected[0].track (rect): the clip's instant shows media time 1, a frame the track data \#
+            does not name, so its window holds none
             """#)
     }
 
-    @Test("track data gives the track: each frame at the timestamp of the frame it names, the target the quad at time, and no tracker call")
+    @Test("track data gives the track: each frame at the timestamp of the frame it names, and the target the quad at time")
     func followsTrackData() throws {
         // Given
-        // The tracker follows nothing, so a frame followed comes from the data.
-        let sut = planner(followed: 10...11)
+        let sut = TrackPlanner()
         let time = try plan(#"""
             { "shape": "rect", "stroke": { "width": 8 }, "parent": "screen", "area": [0, 0, 10, 10], "at": [1, 3],
               "track": { "time": 1.12, "frames": [
@@ -203,7 +141,7 @@ struct TrackFormTests {
             """#)
 
         // When
-        let plan = try sut.plan(time, storylineCrops: [nil], storylineMasks: [nil], crops: [nil], areas: [nil], masks: [nil], cornerPins: time.clips.map { _ in nil })
+        let plan = try sut.plan(time)
 
         // Then
         let track = try #require(plan.clips[0]?.track)
@@ -254,12 +192,12 @@ struct TrackFormTests {
         message: String
     ) throws {
         // Given
-        let sut = planner()
+        let sut = TrackPlanner()
         let time = try plan(#"{ "shape": "rect", "stroke": { "width": 8 }, "parent": "screen", "area": [0, 0, 10, 10], "at": [1, 3], "track": { "time": 1, "frames": \#(frames) } }"#)
 
         // When, Then
         let error = #expect(throws: ResolveError.self) {
-            try sut.plan(time, storylineCrops: [nil], storylineMasks: [nil], crops: [nil], areas: [nil], masks: [nil], cornerPins: time.clips.map { _ in nil })
+            try sut.plan(time)
         }
         #expect(error?.description == message)
     }
@@ -279,16 +217,6 @@ struct TrackFormTests {
         reader.sequence(from: try document(track: track)).storyline[0].connected[0]
     }
 
-    private func planner(followed: ClosedRange<Double>? = nil) -> TrackPlanner {
-        TrackPlanner(
-            tracker: TrackerTable(
-                frameTimes: ["/abs/screen.mp4": Fixture.screenFrameTimes],
-                followed: followed.map { ["/abs/screen.mp4": $0] } ?? [:],
-                drift: Point(x: 0, y: 10)
-            )
-        )
-    }
-
     private func plan(_ connected: String) throws -> TimePlan {
         try Fixture.planner.plan(document: Fixture.json(#"""
             { "kind": "sequence", "storyline": [
@@ -298,9 +226,8 @@ struct TrackFormTests {
 
     private func moved(
         _ rectangle: Rectangle,
-        down distance: Double = 0,
-        right offset: Double = 0
+        right offset: Double
     ) -> Rectangle {
-        Rectangle(x: rectangle.x + offset, y: rectangle.y + distance, width: rectangle.width, height: rectangle.height)
+        Rectangle(x: rectangle.x + offset, y: rectangle.y, width: rectangle.width, height: rectangle.height)
     }
 }

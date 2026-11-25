@@ -407,10 +407,12 @@ struct ResolvedSequenceWriterTests {
     @Test("a tracked clip writes its track as the media followed, the media time, the target and the frames followed")
     func writesTrack() throws {
         // Given
+        let total = Fixture.tracker.data(Quad(Fixture.total), in: "/abs/screen.mp4", atMediaTime: 1, over: 1...3)
+        let box = Fixture.tracker.data(Quad(Rectangle(x: 86, y: 86, width: 228, height: 68)), in: "/abs/screen.mp4", atMediaTime: 1, over: 1...3)
         let document = #"""
             { "kind": "sequence", "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "in": 1, "out": 3, "connected": [
-                { "shape": "rect", "stroke": { "width": 8 }, "area": [100, 100, 200, 40], "parent": "screen", "track": [100, 100, 200, 40] },
-                { "shape": "rect", "fill": "#FFD43B80", "area": [86, 86, 228, 68], "parent": "screen", "track": true } ] } ] }
+                { "shape": "rect", "stroke": { "width": 8 }, "area": [100, 100, 200, 40], "parent": "screen", "track": \#(total) },
+                { "shape": "rect", "fill": "#FFD43B80", "area": [86, 86, 228, 68], "parent": "screen", "track": \#(box) } ] } ] }
             """#
 
         // When
@@ -708,13 +710,11 @@ struct ResolvedSequenceWriterTests {
     // MARK: - Private
     private func write(
         _ document: String,
-        presets: PresetTable = Fixture.presets,
-        tracker: TrackerTable = Fixture.tracker
+        presets: PresetTable = Fixture.presets
     ) throws -> JSONObject {
         let planner = DocumentPlanner(
             mediaFacts: Fixture.mediaFacts,
             presets: presets,
-            tracker: tracker,
             shaper: Fixture.shaper,
             library: Fixture.library
         )

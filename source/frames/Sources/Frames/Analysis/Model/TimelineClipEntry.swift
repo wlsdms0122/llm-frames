@@ -11,7 +11,8 @@
 // files give its rate, and in a resolved document, which pins its frames' times and no rate. `instant` is where the
 // values it writes without keyframes take effect, in sequence time, nil in a resolved document, which keeps no instant,
 // and `clock` the map of the times it writes to sequence time. `space` is where its `position`, `area`, `points` and
-// `cornerPin` are written, and `ownSpace` where its `crop` and `mask` are. `sound` is the range a visual media clip's
+// `cornerPin` are written, and `ownSpace` where its `crop` and `mask` are. `tracked` is where a track on it follows its
+// target, nil where there is no video or image sequence to follow and in a resolved document. `sound` is the range a visual media clip's
 // sound plays over, its split applied, nil for every other clip and for one that plays no sound. `lane` is nil for a
 // sound, `storyline` is the place of the storyline clip a connected clip belongs to, and `parent` is the place of the
 // clip whose space a parented clip is placed in. `time` is what its time map gives at the time the report is asked at,
@@ -28,6 +29,7 @@ struct TimelineClipEntry: Equatable, Sendable {
     let clock: TimelineClock
     let space: CoordinateSpace?
     let ownSpace: CoordinateSpace?
+    let tracked: TimelineTrack?
     let visible: TimeRange
     let sound: TimeRange?
     let lane: Int?
@@ -49,6 +51,7 @@ struct TimelineClipEntry: Equatable, Sendable {
         clock: TimelineClock,
         space: CoordinateSpace?,
         ownSpace: CoordinateSpace?,
+        tracked: TimelineTrack?,
         visible: TimeRange,
         sound: TimeRange?,
         lane: Int?,
@@ -68,6 +71,7 @@ struct TimelineClipEntry: Equatable, Sendable {
         self.clock = clock
         self.space = space
         self.ownSpace = ownSpace
+        self.tracked = tracked
         self.visible = visible
         self.sound = sound
         self.lane = lane

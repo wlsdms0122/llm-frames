@@ -81,12 +81,8 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
     case clipAreaCycle(place: Place, kind: PlaceKind, ids: [String])
     case clipAreaOnStoryline(place: Place, kind: PlaceKind)
     case trackWithoutVideo(place: Place, kind: PlaceKind)
-    case trackOwnWithoutArea(place: Place, kind: PlaceKind)
-    case trackOwnOnNamingClip(place: Place, kind: PlaceKind)
-    case trackOwnAmbiguous(place: Place, kind: PlaceKind, keys: [String])
     case trackLost(place: Place, kind: PlaceKind, followed: TimeRange, edit: TimeRange)
     case neverFollowed(place: Place, kind: PlaceKind, visible: TimeRange)
-    case trackOwnKeyframed(place: Place, kind: PlaceKind)
     case trackTimeOutside(place: Place, kind: PlaceKind, time: Double)
     case instantNotFollowed(place: Place, kind: PlaceKind, mediaTime: Double)
     case trackData(place: Place, kind: PlaceKind, reason: TrackDataRefusal)
@@ -368,36 +364,20 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
             "\(place) (\(kind.label)): track follows the video or image sequence of the clip or of its parent, "
                 + "and there is none to follow here"
 
-        case let .trackOwnWithoutArea(place, kind):
-            "\(place) (\(kind.label)): \"track\": true follows the clip's own area, mask or crop, "
-                + "and it has none given as an area"
-
-        case let .trackOwnAmbiguous(place, kind, keys):
-            "\(place) (\(kind.label)): \"track\": true follows one of the clip's area, mask and crop, and it has "
-                + keys.map { "\"\($0)\"" }.joined(separator: " and ") + ", so it must name its target"
-
-        case let .trackOwnOnNamingClip(place, kind):
-            "\(place) (\(kind.label)): a title, still or compound clip has no area of its own to follow, so its "
-                + "`track` names the area it tracks in its parent's media"
-
         case let .trackLost(place, kind, followed, edit):
-            "\(place) (\(kind.label)): the tracker follows its target only over \(written(followed)) and loses it "
+            "\(place) (\(kind.label)): the track data follows its target only over \(written(followed)) and loses it "
                 + "inside the edit range \(written(edit))"
 
         case let .neverFollowed(place, kind, visible):
-            "\(place) (\(kind.label)): never visible, since the tracker follows its target on none of the frames "
+            "\(place) (\(kind.label)): never visible, since the track data follows its target on none of the frames "
                 + "of its visible range \(written(visible))"
-
-        case let .trackOwnKeyframed(place, kind):
-            "\(place) (\(kind.label)): the geometry \"track\" follows is keyframed, and a keyframe's value is where it "
-                + "is at its own time, so none is written on the frame \"time\" names"
 
         case let .trackTimeOutside(place, kind, time):
             "\(place) (\(kind.label)): media time \(number(time)) names no frame of the tracked media"
 
         case let .instantNotFollowed(place, kind, mediaTime):
-            "\(place) (\(kind.label)): the clip's instant shows media time \(number(mediaTime)), a frame the track does "
-                + "not follow, so its window holds none"
+            "\(place) (\(kind.label)): the clip's instant shows media time \(number(mediaTime)), a frame the track data "
+                + "does not name, so its window holds none"
 
         case let .trackData(place, kind, reason):
             "\(place) (\(kind.label)): \(words(of: reason))"
@@ -517,8 +497,9 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
         JSONValue.number(number).written
     }
 
+    // A range of time is written as machine output writes times, rounded to the microsecond.
     private func written(_ range: TimeRange) -> String {
-        "[\(number(range.start)), \(number(range.end)))"
+        "[\(JSONValue.time(range.start).written), \(JSONValue.time(range.end).written))"
     }
 
     private func written(_ rectangle: Rectangle) -> String {

@@ -51,7 +51,8 @@
      "ownSpace": {
       "kind": "media",
       "clip": "storyline[0]#board"
-     }
+     },
+     "tracked": null
     },
     {
      "place": "storyline[1]#zoom",
@@ -89,7 +90,8 @@
      "ownSpace": {
       "kind": "media",
       "clip": "storyline[1]#zoom"
-     }
+     },
+     "tracked": null
     }
    ],
    "clips": [
@@ -122,7 +124,8 @@
      "ownSpace": {
       "kind": "media",
       "clip": "storyline[0]#board"
-     }
+     },
+     "tracked": null
     },
     {
      "place": "storyline[0]#board.connected[1]#total",
@@ -153,7 +156,8 @@
      "ownSpace": {
       "kind": "media",
       "clip": "storyline[0]#board"
-     }
+     },
+     "tracked": null
     },
     {
      "place": "storyline[0]#board.connected[2]#range",
@@ -184,7 +188,8 @@
      "ownSpace": {
       "kind": "media",
       "clip": "storyline[0]#board"
-     }
+     },
+     "tracked": null
     },
     {
      "place": "storyline[0]#board.connected[3]#note",
@@ -215,7 +220,8 @@
      "ownSpace": {
       "kind": "box",
       "clip": "storyline[0]#board.connected[3]#note"
-     }
+     },
+     "tracked": null
     }
    ]
   }
@@ -270,6 +276,7 @@
       "kind": "media",
       "clip": "storyline[0]#board"
      },
+     "tracked": null,
      "clipTime": 0,
      "mediaTime": 0
     },
@@ -310,6 +317,7 @@
       "kind": "media",
       "clip": "storyline[1]#zoom"
      },
+     "tracked": null,
      "clipTime": -2,
      "mediaTime": 0
     }
@@ -345,6 +353,7 @@
       "kind": "media",
       "clip": "storyline[0]#board"
      },
+     "tracked": null,
      "mediaTime": null
     },
     {
@@ -377,6 +386,7 @@
       "kind": "media",
       "clip": "storyline[0]#board"
      },
+     "tracked": null,
      "mediaTime": null
     },
     {
@@ -409,6 +419,7 @@
       "kind": "media",
       "clip": "storyline[0]#board"
      },
+     "tracked": null,
      "mediaTime": null
     },
     {
@@ -441,6 +452,7 @@
       "kind": "box",
       "clip": "storyline[0]#board.connected[3]#note"
      },
+     "tracked": null,
      "mediaTime": null
     }
    ]
@@ -572,6 +584,7 @@
       "kind": "media",
       "clip": "storyline[0]#board"
      },
+     "tracked": null,
      "clipTime": 2,
      "mediaTime": 0
     },
@@ -612,6 +625,7 @@
       "kind": "media",
       "clip": "storyline[1]#zoom"
      },
+     "tracked": null,
      "clipTime": 0,
      "mediaTime": 0
     }
@@ -647,6 +661,7 @@
       "kind": "media",
       "clip": "storyline[0]#board"
      },
+     "tracked": null,
      "mediaTime": null
     },
     {
@@ -679,6 +694,7 @@
       "kind": "media",
       "clip": "storyline[0]#board"
      },
+     "tracked": null,
      "mediaTime": null
     },
     {
@@ -711,6 +727,7 @@
       "kind": "media",
       "clip": "storyline[0]#board"
      },
+     "tracked": null,
      "mediaTime": null
     },
     {
@@ -743,6 +760,7 @@
       "kind": "box",
       "clip": "storyline[0]#board.connected[3]#note"
      },
+     "tracked": null,
      "mediaTime": null
     }
    ]

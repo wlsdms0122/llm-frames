@@ -58,7 +58,6 @@ struct DocumentPlannerTests {
         sut = DocumentPlanner(
             mediaFacts: mediaFacts,
             presets: Fixture.presets,
-            tracker: Fixture.tracker,
             shaper: Fixture.shaper,
             library: directory.library(mediaFacts: mediaFacts)
         )

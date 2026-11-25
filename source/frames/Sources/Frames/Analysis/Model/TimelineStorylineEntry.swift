@@ -11,7 +11,8 @@
 // medium, whose files give its rate, and in a resolved document, which pins its frames' times and no rate. `instant`
 // is its `in` in sequence time, nil in a resolved document, which keeps no instant, `clock` the map of the times it
 // writes to sequence time, `space` where its `position` and `cornerPin` are written, output pixels, and `ownSpace`
-// where its `crop` and `mask` are. `clip` is `[in, out)` on its clip time, `sound` the range its sound plays
+// where its `crop` and `mask` are. `tracked` is where a track on it follows its target, nil where it has no video or
+// image sequence of its own and in a resolved document, which holds every track as resolve fitted it. `clip` is `[in, out)` on its clip time, `sound` the range its sound plays
 // over, its split applied, or nil where it plays no sound, and `isTimeRemapped` whether its media time comes from
 // `timeRemap`, when its speed is 1. `time` is what its time map gives at the time the report is asked at, nil for a
 // report asked at none.
@@ -27,6 +28,7 @@ struct TimelineStorylineEntry: Equatable, Sendable {
     let clock: TimelineClock
     let space: CoordinateSpace
     let ownSpace: CoordinateSpace
+    let tracked: TimelineTrack?
     let edit: TimeRange
     let drawn: TimeRange
     let clip: TimeRange
@@ -49,6 +51,7 @@ struct TimelineStorylineEntry: Equatable, Sendable {
         clock: TimelineClock,
         space: CoordinateSpace,
         ownSpace: CoordinateSpace,
+        tracked: TimelineTrack?,
         edit: TimeRange,
         drawn: TimeRange,
         clip: TimeRange,
@@ -69,6 +72,7 @@ struct TimelineStorylineEntry: Equatable, Sendable {
         self.clock = clock
         self.space = space
         self.ownSpace = ownSpace
+        self.tracked = tracked
         self.edit = edit
         self.drawn = drawn
         self.clip = clip

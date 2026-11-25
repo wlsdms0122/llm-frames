@@ -231,7 +231,6 @@ struct DisplayListColorTests {
         let planner = DocumentPlanner(
             mediaFacts: Fixture.mediaFacts,
             presets: presets,
-            tracker: Fixture.tracker,
             shaper: Fixture.shaper,
             library: Fixture.library
         )

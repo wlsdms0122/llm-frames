@@ -117,8 +117,58 @@ struct AnalysisCommandTests {
 
         // Then
         #expect(code == 0, "\(sut.standardError)")
-        #expect(try keys(of: sut.standardOutput) == ["track", "time", "target", "frames"])
+        #expect(try keys(of: sut.standardOutput) == ["track", "time", "frames"])
         #expect(try frameCount(in: sut.standardOutput) == 3)
+    }
+
+    @Test("track --quad follows a quadrilateral in a corner pin's order and prints it as given on the frame at --at")
+    func printsQuadTrack() async throws {
+        // Given
+        let video = sut.directory.file("square.mov")
+        let writer = MovieWriter(size: Size(width: 64, height: 48), frameTimes: [0, 0.1, 0.2], end: 0.3)
+        try await writer.write(to: video) { canvas, _ in
+            canvas.fill(red: 0, green: 0, blue: 0)
+            canvas.fill(Rectangle(x: 24, y: 16, width: 16, height: 16), red: 255, green: 255, blue: 255)
+        }
+
+        // When
+        let code = sut.run(["track", video, "--at", "0", "--quad", "[[24, 16], [40, 16], [40, 32], [24, 32]]"])
+
+        // Then
+        #expect(code == 0, "\(sut.standardError)")
+        let printed = try #require(try JSONReader().read(Data(sut.standardOutput.utf8)).objectValue)
+        let first = try #require(printed["frames"]?.arrayValue?.first?.objectValue)
+        #expect(first["quad"]?.written == "[[24, 16], [40, 16], [40, 32], [24, 32]]")
+        #expect(try frameCount(in: sut.standardOutput) == 3)
+    }
+
+    @Test("the track object without its first key is the track data a clip's track takes, so a document written with it resolves")
+    func resolvesPrintedTrack() async throws {
+        // Given
+        let video = sut.directory.file("square.mov")
+        let writer = MovieWriter(size: Size(width: 64, height: 48), frameTimes: [0, 0.1, 0.2], end: 0.3)
+        try await writer.write(to: video) { canvas, _ in
+            canvas.fill(red: 0, green: 0, blue: 0)
+            canvas.fill(Rectangle(x: 24, y: 16, width: 16, height: 16), red: 255, green: 255, blue: 255)
+        }
+        sut.run(["track", video, "--at", "0", "--area", "[24, 16, 16, 16]"])
+        let printed = try #require(try JSONReader().read(Data(sut.standardOutput.utf8)).objectValue)
+        let track = JSONWriter().write(.object(JSONObject(members: printed.members.filter { $0.key != "track" })))
+        let document = try sut.write(#"""
+            { "kind": "sequence", "format": { "size": [64, 48], "fps": 10 },
+              "storyline": [ { "id": "square", "media": "\#(video)", "connected": [
+                { "shape": "rect", "stroke": { "width": 2 }, "area": [24, 16, 16, 16], "parent": "square", "track": \#(track) } ] } ] }
+            """#, named: "tracked.json")
+        let resolved = sut.directory.file("tracked.resolved.json")
+
+        // When
+        let code = sut.run(["resolve", document, "-o", resolved])
+
+        // Then
+        #expect(code == 0, "\(sut.standardError)")
+        let text = try #require(try JSONReader().read(Data(contentsOf: URL(fileURLWithPath: resolved))).objectValue)
+        let clip = try #require(text["clips"]?.arrayValue?.first?.objectValue)
+        #expect(clip["track"]?.objectValue?["frames"]?.arrayValue?.count == 3)
     }
 
     @Test("evaluate always prints the evaluate object of a document at a time, from the document or its resolved one")

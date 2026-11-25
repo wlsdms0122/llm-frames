@@ -552,7 +552,6 @@ struct ResolvedDocumentWriterTests {
         DocumentPlanner(
             mediaFacts: Fixture.mediaFacts,
             presets: Fixture.presets,
-            tracker: Fixture.tracker,
             shaper: Fixture.shaper,
             library: Fixture.library
         )

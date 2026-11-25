@@ -22,7 +22,7 @@ struct StorylineClip: Equatable, Sendable {
     let crop: PropertyValue<CropForm>?
     let mask: LookProperty?
     let trackMatte: TrackMatte?
-    let track: TrackTarget?
+    let track: TrackData?
     let filter: LookProperty?
     let anchor: String?
     let position: PropertyValue<PositionForm>?
@@ -49,7 +49,7 @@ struct StorylineClip: Equatable, Sendable {
         crop: PropertyValue<CropForm>? = nil,
         mask: LookProperty? = nil,
         trackMatte: TrackMatte? = nil,
-        track: TrackTarget? = nil,
+        track: TrackData? = nil,
         filter: LookProperty? = nil,
         anchor: String? = nil,
         position: PropertyValue<PositionForm>? = nil,

@@ -45,7 +45,7 @@ The layers are those of [FRAMES-25](../spec/FRAMES-25/SPEC.md#layers). The engin
 3. plan time  storyline clips end to end, transitions, edit and drawn ranges, clip time maps and timeRemap,
               the window of every other clip, lanes
 4. plan       nested documents and template instances, the format and content fit, areas and points, crops
-              conformed, tracks (tracker provider), parents and track mattes, titles set (shaping provider),
+              conformed, tracks fitted to their track data, parents and track mattes, titles set (shaping provider),
               where each clip is placed and how it is drawn, theme lengths scaled, the sound.
               timeline reports here, resolve writes the resolved document with every file pinned by hash
 5. evaluate   the display list at a time, the mix plan

@@ -410,7 +410,6 @@ struct PresetValueResolverTests {
         return DocumentPlanner(
             mediaFacts: mediaFacts,
             presets: presets(),
-            tracker: Fixture.tracker,
             shaper: Fixture.shaper,
             library: library
         )

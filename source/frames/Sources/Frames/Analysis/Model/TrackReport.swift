@@ -5,15 +5,20 @@
 //  Created by JSilver on 11/17/26.
 //
 
-// What `track` prints: the area as found at `--at`, before padding, and its quad and fitted motion on every frame the
-// tracker followed it on, in time order.
+// What `track` prints, track data (FRAMES-12 Track data): `time` is the media time of `--at`, and `frames` the area's
+// quad on every frame the tracker followed it on, in time order, the frame at `--at` among them.
 package struct TrackReport: Equatable, Sendable {
     // MARK: - Property
-    let track: Track
+    let time: Double
+    let frames: [TrackedFrame]
 
     // MARK: - Initializer
-    init(track: Track) {
-        self.track = track
+    init(
+        time: Double,
+        frames: [TrackedFrame]
+    ) {
+        self.time = time
+        self.frames = frames
     }
 
     // MARK: - Public

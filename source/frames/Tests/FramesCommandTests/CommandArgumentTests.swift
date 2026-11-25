@@ -40,7 +40,11 @@ struct CommandArgumentTests {
         (["ocr", "/abs/clip.mov", "--to", "1"], "ocr: missing --step <s>"),
         (["ocr", "/abs/deck.pdf", "--page", "1.5"], #"ocr: --page "1.5" is not a whole number from 1"#),
         (["track", "/abs/clip.mov", "--area", "[0, 0, 1, 1]"], "track: missing --at <t>"),
-        (["track", "/abs/clip.mov", "--at", "0"], "track: missing --area <area>"),
+        (["track", "/abs/clip.mov", "--at", "0"], "track: missing --area <area> or --quad <quad>"),
+        (
+            ["track", "/abs/clip.mov", "--at", "0", "--area", "[0, 0, 1, 1]", "--quad", "[[0, 0], [1, 0], [1, 1], [0, 1]]"],
+            "track: --area and --quad are not given together"
+        ),
         (["evaluate", "/abs/doc.json"], "evaluate: missing --at <t>"),
         (["evaluate", "/abs/doc.json", "--at", "soon"], #"evaluate: --at "soon" is not a number of seconds"#),
         (["locate", "/abs/doc.json", "--at", "0"], "locate: missing --point <x,y>"),
