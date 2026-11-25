@@ -22,7 +22,7 @@
           1
         ],
         "track": {
-          "tool": "track-motion",
+          "tool": "frames/track-motion",
           "target": "area"
         }
       }
@@ -48,7 +48,7 @@
               2
             ],
             "track": {
-              "tool": "track-motion",
+              "tool": "frames/track-motion",
               "target": "area"
             }
           }
@@ -78,7 +78,7 @@
           ]
         },
         "track": {
-          "tool": "track-motion",
+          "tool": "frames/track-motion",
           "target": "area"
         }
       }
@@ -100,7 +100,7 @@
           ]
         },
         "track": {
-          "tool": "track-motion",
+          "tool": "frames/track-motion",
           "target": "mask"
         }
       }
@@ -142,7 +142,7 @@
               }
             ],
             "track": {
-              "tool": "track-motion",
+              "tool": "frames/track-motion",
               "target": "area"
             }
           }
@@ -172,9 +172,9 @@
               88
             ],
             "track": {
-              "tool": "track-motion",
+              "tool": "frames/track-motion",
               "target": {
-                "tool": "find-text",
+                "tool": "frames/find-text",
                 "text": "Total"
               }
             }
@@ -221,7 +221,7 @@
               10
             ],
             "track": {
-              "tool": "track-motion",
+              "tool": "frames/track-motion",
               "target": {
                 "clip": "b"
               }
@@ -253,7 +253,7 @@
               88
             ],
             "track": {
-              "tool": "track-motion",
+              "tool": "frames/track-motion",
               "target": [
                 124,
                 202,
@@ -292,7 +292,7 @@
           ]
         ],
         "track": {
-          "tool": "track-motion",
+          "tool": "frames/track-motion",
           "target": "cornerPin"
         }
       }

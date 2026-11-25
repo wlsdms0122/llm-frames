@@ -12,7 +12,7 @@ import FramesTestMedia
 
 // A shell with its own `FRAMES_HOME` and shipped packs in a temporary directory, so a command runs in process without
 // the bundle or what is installed on the machine, and the output of its last run is kept. The shipped `frames` pack
-// holds `pop` alone.
+// holds `pop` alone. The frames executable it gives a tool is a path in the temporary directory, which nothing runs.
 final class TestShell {
     // MARK: - Property
     private static let pop = #"""
@@ -32,6 +32,10 @@ final class TestShell {
 
     var shipped: URL {
         URL(fileURLWithPath: directory.file("shipped"), isDirectory: true)
+    }
+
+    var executable: URL {
+        URL(fileURLWithPath: directory.file("bin/frames"))
     }
 
     // The presets of the shipped `frames` pack, one folder per kind.
@@ -65,6 +69,7 @@ final class TestShell {
     ) -> Int32 {
         let environment = CommandEnvironment(
             variables: ["FRAMES_HOME": home.path, "PATH": "/usr/bin:/bin"].merging(variables) { _, given in given },
+            executable: executable,
             shippedPacks: shipped,
             standardInput: { Data(input.utf8) }
         )
@@ -85,6 +90,21 @@ final class TestShell {
         try write(manifest, to: directory.appendingPathComponent("pack.json"))
 
         return directory
+    }
+
+    // A tool `name` of the pack in `pack`, whose `tool.json` runs `script`, made executable.
+    @discardableResult
+    func addTool(
+        _ name: String,
+        in pack: URL,
+        script: String
+    ) throws -> URL {
+        let directory = pack.appendingPathComponent("tools/\(name)", isDirectory: true)
+        try write(#"{ "description": "a tool for tests", "run": "\#(name).sh" }"#, to: directory.appendingPathComponent("tool.json"))
+        let program = try write(script, to: directory.appendingPathComponent("\(name).sh"))
+        try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: program.path)
+
+        return program
     }
 
     @discardableResult

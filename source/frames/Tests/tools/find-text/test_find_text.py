@@ -1,13 +1,14 @@
-"""Checks frames-find-text against frames output recorded in `fixtures/`, so it runs without frames.
+"""Checks the tool frames/find-text of the pack `frames` against frames output recorded in `fixtures/`, so it runs
+without frames.
 
-Run from the repository root: python3 -m unittest discover -s extensions/find-text
+Run from the repository root: python3 -m unittest discover -s source/frames/Tests/tools/find-text
 
 `fixtures/still.json` and `fixtures/video.json` name their media as `/media/board.png`, `/media/clip.mp4` and
-`/media/frames`, and each `*.calls.json` holds the frames commands the extension ran on them with what frames printed,
+`/media/frames`, and each `*.calls.json` holds the frames commands the tool ran on them with what frames printed,
 the document it asks about written as `<document>`. `board.png` is a still of six lines of text, `clip.mp4` a 4 second
 video at 25 frames a second that shows `Price 4.50` at the top left before 2 seconds and `Price 6.00` at the bottom
 right from 2 seconds, and `frames` an image sequence of its frames every half second, read at 2 frames a second.
-The documents hold `track-motion` requests beside `find-text` ones, which the extension leaves as written.
+The documents hold `frames/track-motion` requests beside `frames/find-text` ones, which the tool leaves as written.
 """
 
 import copy
@@ -16,15 +17,20 @@ import importlib.util
 import json
 import os
 import shutil
+import sys
 import tempfile
 import unittest
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 FIXTURES = os.path.join(HERE, "fixtures")
-loader = importlib.machinery.SourceFileLoader("frames_find_text", os.path.join(HERE, "frames-find-text"))
+PROGRAM = os.path.join(HERE, os.pardir, os.pardir, os.pardir, "Sources", "FramesCommand", "Resources", "packs", "frames", "tools", "find-text", "find-text")
+# The program is one of frames' resources, which the build copies into its bundle, so no bytecode is written
+# beside it.
+sys.dont_write_bytecode = True
+loader = importlib.machinery.SourceFileLoader("frames_find_text", PROGRAM)
 spec = importlib.util.spec_from_loader("frames_find_text", loader)
-extension = importlib.util.module_from_spec(spec)
-loader.exec_module(extension)
+tool = importlib.util.module_from_spec(spec)
+loader.exec_module(tool)
 
 
 def fixture(name):
@@ -32,14 +38,11 @@ def fixture(name):
         return json.load(file)
 
 
-class Replay(extension.Frames):
+class Replay(tool.Frames):
     """Frames that answers each command with what the real one printed for it."""
 
     calls = []
     log = []
-
-    def check_version(self):
-        Replay.log.append(["--version"])
 
     def report(self, arguments):
         arguments = ["<document>" if argument.endswith("/document.json") else argument for argument in arguments]
@@ -52,12 +55,12 @@ class Replay(extension.Frames):
 
 class Case(unittest.TestCase):
     def setUp(self):
-        self.original = extension.Frames
-        extension.Frames = Replay
+        self.original = tool.Frames
+        tool.Frames = Replay
         Replay.log = []
 
     def tearDown(self):
-        extension.Frames = self.original
+        tool.Frames = self.original
 
     def run_document(self, document, calls, *options):
         return self.run_with_report(document, calls, *options)[0]
@@ -68,16 +71,16 @@ class Case(unittest.TestCase):
         path = os.path.join(self.directory(), "document.json")
         with open(path, "w", encoding="utf-8") as file:
             json.dump(document, file)
-        filled, _, report = extension.run([path, *options])
+        filled, _, report = tool.run([path, *options], "frames")
         return filled, report
 
     def directory(self):
-        directory = tempfile.mkdtemp(prefix="frames-find-text-test-")
+        directory = tempfile.mkdtemp(prefix="find-text-test-")
         self.addCleanup(shutil.rmtree, directory, True)
         return directory
 
     def stop(self, document, calls=None, *options):
-        with self.assertRaises(extension.Stop) as raised:
+        with self.assertRaises(tool.Stop) as raised:
             self.run_document(document, calls or [], *options)
         return str(raised.exception)
 
@@ -90,7 +93,7 @@ class Recorded(Case):
         # Given a still under shapes, a point and a crop whose requests name its text
         document = fixture("still.json")
 
-        # When the extension writes the rectangles
+        # When the tool writes the rectangles
         result = self.run_document(document, fixture("still.calls.json"))
 
         # Then each is the rectangle ocr reports, padding included, and the still is read once
@@ -102,7 +105,7 @@ class Recorded(Case):
         # sequence
         document = fixture("video.json")
 
-        # When the extension writes the rectangles
+        # When the tool writes the rectangles
         result = self.run_document(document, fixture("video.calls.json"), "--languages", "en-US")
 
         # Then each is found on the frame its instant shows, and each frame is read once with the languages
@@ -127,7 +130,7 @@ class Recorded(Case):
         # at speed 2 and opacity 0, which draws nothing
         document = fixture("video.json")
 
-        # When the extension writes the rectangles
+        # When the tool writes the rectangles
         result = self.run_document(document, fixture("video.calls.json"), "--languages", "en-US")
 
         # Then each is found on the frame the clip's time map shows there, which timeline --at gives
@@ -139,7 +142,7 @@ class Recorded(Case):
         self.assertEqual(self.commands("evaluate") + self.commands("locate") + self.commands("probe"), [])
 
     def test_image_sequence(self):
-        # Given an image sequence's crop and a child's area, both requests for find-text
+        # Given an image sequence's crop and a child's area, both requests for frames/find-text
         result = self.run_document(fixture("video.json"), fixture("video.calls.json"), "--languages", "en-US")
 
         # When the image sequence is read
@@ -153,10 +156,10 @@ class Recorded(Case):
         ])
 
     def test_track_requests_kept(self):
-        # Given track-motion requests that name a find-text request's key and an area
+        # Given frames/track-motion requests that name a frames/find-text request's key and an area
         document = fixture("video.json")
 
-        # When the extension writes the rectangles
+        # When the tool writes the rectangles
         result = self.run_document(copy.deepcopy(document), fixture("video.calls.json"), "--languages", "en-US")
 
         # Then each track request is left as written, and the area it names is the rectangle found on the clip's instant
@@ -169,7 +172,7 @@ class Recorded(Case):
         # Given the still fixture
         document = fixture("still.json")
 
-        # When the extension writes the rectangles with their report
+        # When the tool writes the rectangles with their report
         result, report = self.run_with_report(copy.deepcopy(document), fixture("still.calls.json"))
 
         # Then each request filled is reported in the order of the document, with its place, its request as written,
@@ -183,7 +186,7 @@ class Recorded(Case):
         ])
         self.assertEqual(report[1], {
             "place": "storyline[0]#board.connected[1]#total", "key": "area",
-            "request": {"tool": "find-text", "text": "Total", "nth": 1, "padding": 8},
+            "request": {"tool": "frames/find-text", "text": "Total", "nth": 1, "padding": 8},
             "media": "/media/board.png", "mediaTime": None, "page": None,
             "lines": [{"text": "Total saved 1.00", "rect": [77.795659, 483, 238.387482, 23]}],
             "rect": result["storyline"][0]["connected"][1]["area"]
@@ -193,7 +196,7 @@ class Recorded(Case):
 
     def test_report_video(self):
         # Given the video fixture
-        # When the extension writes the rectangles with their report
+        # When the tool writes the rectangles with their report
         result, report = self.run_with_report(fixture("video.json"), fixture("video.calls.json"), "--languages", "en-US")
 
         # Then each keyframe's request names the frame read by its media time and the line shown on it
@@ -208,7 +211,7 @@ class Recorded(Case):
         # Given a document whose areas are rectangles
         document = {"kind": "sequence", "storyline": [{"solid": "#000000", "duration": 1}]}
 
-        # When the extension runs
+        # When the tool runs
         result = self.run_document(copy.deepcopy(document), [])
 
         # Then the document is unchanged and frames is not run
@@ -219,10 +222,10 @@ class Recorded(Case):
 class Matching(unittest.TestCase):
     lines = fixture("still.calls.json")
     output = next(call for call in lines if call["arguments"][0] == "ocr")["output"]
-    reading = extension.Reading(output["size"], output["frames"][0]["lines"])
+    reading = tool.Reading(output["size"], output["frames"][0]["lines"])
 
     def find(self, form):
-        return extension.find(form, self.reading, "place", "board.png")[0]
+        return tool.find(form, self.reading, "place", "board.png")[0]
 
     def test_whitespace(self):
         # Given text written without its spaces
@@ -235,7 +238,7 @@ class Matching(unittest.TestCase):
     def test_ambiguous(self):
         # Given text two lines contain
         # When it is found without nth
-        with self.assertRaises(extension.Stop) as raised:
+        with self.assertRaises(tool.Stop) as raised:
             self.find({"text": "Total"})
 
         # Then it stops and lists both with their rectangles
@@ -255,10 +258,10 @@ class Matching(unittest.TestCase):
         # Given text no line contains, and an nth past the matches
         # When each is found
         # Then each stops naming the text, the nth and the media
-        with self.assertRaises(extension.Stop) as raised:
+        with self.assertRaises(tool.Stop) as raised:
             self.find({"text": "Espresso"})
         self.assertIn('"Espresso" (no nth) matches no recognised line in board.png', str(raised.exception))
-        with self.assertRaises(extension.Stop) as raised:
+        with self.assertRaises(tool.Stop) as raised:
             self.find({"text": "Total", "nth": 2})
         self.assertIn('"Total" nth 2 is past the 2 recognised lines that contain it in board.png', str(raised.exception))
 
@@ -293,7 +296,7 @@ class Matching(unittest.TestCase):
     def test_aspect_ratio_too_wide(self):
         # Given lines from the top of the board to its bottom, padded
         # When they are grown to a ratio the board cannot hold around them
-        with self.assertRaises(extension.Stop) as raised:
+        with self.assertRaises(tool.Stop) as raised:
             self.find({"from": "Receipt", "to": "Total saved", "padding": 8, "aspectRatio": [16, 1]})
 
         # Then it stops naming the picture, its size, the ratio and the padded text
@@ -304,13 +307,13 @@ class Matching(unittest.TestCase):
         # Given aspect ratios written as a number, a list of one, and with a part at 0
         # When each request is checked, Then each stops naming the form
         for ratio in (1.78, [16], [16, 0], [16, True]):
-            with self.assertRaises(extension.Stop) as raised:
-                extension.check_text_form({"tool": "find-text", "text": "Total", "aspectRatio": ratio}, "place")
+            with self.assertRaises(tool.Stop) as raised:
+                tool.check_text_form({"tool": "frames/find-text", "text": "Total", "aspectRatio": ratio}, "place")
             self.assertEqual(str(raised.exception), "place: aspectRatio is [w, h], two numbers above 0")
 
 
 class Places(Case):
-    """Documents of `fixtures/places.json`, each with the frames commands the extension ran on it in
+    """Documents of `fixtures/places.json`, each with the frames commands the tool ran on it in
     `fixtures/places.calls.json`."""
 
     board = "/media/board.png"
@@ -322,7 +325,7 @@ class Places(Case):
 
     def test_unparented(self):
         # Given an unparented shape that names text
-        # When the extension runs
+        # When the tool runs
         message = self.place("unparented")
 
         # Then it stops, since its timeline entry reports its space as output pixels
@@ -331,7 +334,7 @@ class Places(Case):
 
     def test_title_mask(self):
         # Given a title whose mask names text
-        # When the extension runs
+        # When the tool runs
         message = self.place("title_mask")
 
         # Then it stops, since its entry reports its own space as its text box
@@ -340,7 +343,7 @@ class Places(Case):
 
     def test_parent_refused_by_space(self):
         # Given a shape parented to a title, and one parented to a solid
-        # When the extension runs on each
+        # When the tool runs on each
         title = self.place("parent_title")
         solid = self.place("parent_solid")
 
@@ -362,9 +365,9 @@ class Places(Case):
         connected[0] = {"id": "t", "parent": "b", "shape": "rect", "width": 200, "height": 80, "position": [10, 10]}
         pointed = copy.deepcopy(document)
         pointed["storyline"][0]["connected"][1] = {"parent": "t", "title": "y", "style": "title", "anchor": "left",
-            "position": {"area": {"tool": "find-text", "text": "Total"}, "point": "bottom-right"}}
+            "position": {"area": {"tool": "frames/find-text", "text": "Total"}, "point": "bottom-right"}}
 
-        # When the extension runs on each
+        # When the tool runs on each
         area = self.stop(document, calls)
         point = self.stop(pointed, calls)
 
@@ -377,7 +380,7 @@ class Places(Case):
         # Given a shape parented to a clip with a corner pin, which is parented to a still
         document = copy.deepcopy(self.documents["parent_corner_pin"])
 
-        # When the extension runs
+        # When the tool runs
         result = self.run_document(document, self.calls["parent_corner_pin"])
 
         # Then it is found in the still's pixels, the space the corner pin is written in, as its entry reports
@@ -386,16 +389,16 @@ class Places(Case):
         self.assertEqual(self.commands("ocr"), [["ocr", self.board, "--json"]])
 
     def test_other_requests_only(self):
-        # Given a document whose only requests are for another tool, one with a find-text request as its argument,
+        # Given a document whose only requests are for another tool, one with a frames/find-text request as its argument,
         # and an area written as text without a tool
         document = {"kind": "sequence", "storyline": [{"id": "b", "media": self.board, "duration": 2, "connected": [
-            {"parent": "b", "shape": "rect", "area": [0, 0, 10, 10], "track": {"tool": "track-motion", "target": "area"}},
+            {"parent": "b", "shape": "rect", "area": [0, 0, 10, 10], "track": {"tool": "frames/track-motion", "target": "area"}},
             {"parent": "b", "shape": "rect", "area": [0, 0, 10, 10],
-             "track": {"tool": "track-motion", "target": {"tool": "find-text", "text": "Total"}}},
+             "track": {"tool": "frames/track-motion", "target": {"tool": "frames/find-text", "text": "Total"}}},
             {"parent": "b", "shape": "rect", "area": {"text": "Total"}}
         ]}]}
 
-        # When the extension runs
+        # When the tool runs
         result = self.run_document(copy.deepcopy(document), [])
 
         # Then the document is printed as written and frames is not run, so frames stops on what is not its own
@@ -403,16 +406,16 @@ class Places(Case):
         self.assertEqual(Replay.log, [])
 
     def test_request_where_no_area_stands(self):
-        # Given a find-text request as a clip's track
+        # Given a frames/find-text request as a clip's track
         document = {"kind": "sequence", "storyline": [{"id": "b", "media": self.board, "duration": 2, "connected": [
-            {"parent": "b", "shape": "rect", "area": [0, 0, 10, 10], "track": {"tool": "find-text", "text": "Total"}}
+            {"parent": "b", "shape": "rect", "area": [0, 0, 10, 10], "track": {"tool": "frames/find-text", "text": "Total"}}
         ]}]}
 
-        # When the extension runs
+        # When the tool runs
         message = self.stop(document)
 
         # Then it stops, since the request stands where no area does
-        self.assertIn("storyline[0]#b.connected[0]: track: a find-text request stands where an area does", message)
+        self.assertIn("storyline[0]#b.connected[0]: track: a frames/find-text request stands where an area does", message)
         self.assertEqual(Replay.log, [])
 
     def test_probe_fills_other_requests(self):
@@ -420,31 +423,31 @@ class Places(Case):
         document = {"kind": "sequence", "storyline": [{"id": "b", "media": self.board, "duration": 2, "connected": [
             {"parent": "b", "shape": "rect", "area": {"tool": "other", "name": "box"},
              "mask": {"shape": "rect", "area": {"tool": "other", "name": "hole"}},
-             "track": {"tool": "track-motion", "target": "area"}}
+             "track": {"tool": "frames/track-motion", "target": "area"}}
         ]}]}
         pointed = copy.deepcopy(document)
         pointed["storyline"][0]["connected"][0]["position"] = {"tool": "other", "name": "pin"}
 
         # When the document frames is asked about is written
-        probe = extension.probe_document(document)
+        probe = tool.probe_document(document)
 
         # Then each area holds a placeholder rectangle, the track request is gone, and the document is as written
         clip = probe["storyline"][0]["connected"][0]
-        self.assertEqual((clip["area"], clip["mask"]["area"], "track" in clip), (extension.PLACEHOLDER, extension.PLACEHOLDER, False))
+        self.assertEqual((clip["area"], clip["mask"]["area"], "track" in clip), (tool.PLACEHOLDER, tool.PLACEHOLDER, False))
         self.assertEqual(document["storyline"][0]["connected"][0]["area"], {"tool": "other", "name": "box"})
 
         # And a request where it has no value to stand in stops, naming its tool
-        with self.assertRaises(extension.Stop) as raised:
-            extension.probe_document(pointed)
-        self.assertIn('storyline[0]#b.connected[0]: position: a request for "other" stands where frames-find-text has no value', str(raised.exception))
+        with self.assertRaises(tool.Stop) as raised:
+            tool.probe_document(pointed)
+        self.assertIn('storyline[0]#b.connected[0]: position: a request for "other" stands where frames/find-text has no value', str(raised.exception))
 
     def test_compound(self):
         # Given a crop that names text inside a compound clip
         document = {"kind": "sequence", "storyline": [{"media": {"kind": "sequence", "storyline": [
-            {"id": "b", "media": self.board, "duration": 2, "crop": {"tool": "find-text", "text": "Total"}}
+            {"id": "b", "media": self.board, "duration": 2, "crop": {"tool": "frames/find-text", "text": "Total"}}
         ]}}]}
 
-        # When the extension runs
+        # When the tool runs
         message = self.stop(document)
 
         # Then it stops naming the place inside the nested document
@@ -452,27 +455,27 @@ class Places(Case):
         self.assertIn("inside a compound clip", message)
 
     def test_mixed_form(self):
-        # Given a find-text request that mixes its text with a clip area's key
+        # Given a frames/find-text request that mixes its text with a clip area's key
         document = {"kind": "sequence", "storyline": [{"id": "b", "media": self.board, "duration": 2, "connected": [
-            {"parent": "b", "shape": "rect", "area": {"tool": "find-text", "text": "Total", "clip": "b"}}
+            {"parent": "b", "shape": "rect", "area": {"tool": "frames/find-text", "text": "Total", "clip": "b"}}
         ]}]}
 
-        # When the extension runs
+        # When the tool runs
         message = self.stop(document)
 
         # Then it stops on the unknown key
-        self.assertIn('unknown key "clip" in a find-text request', message)
+        self.assertIn('unknown key "clip" in a frames/find-text request', message)
 
 
 class Reading(unittest.TestCase):
     def test_ocr_arguments(self):
         # Given frames whose report records what it is asked
         asked = []
-        frames = extension.Frames("frames", ["--ocr", "vision"])
+        frames = tool.Frames("frames", ["--ocr", "vision"])
         frames.report = lambda arguments: asked.append(arguments) or {"size": [612, 792], "frames": [{"time": 0, "lines": []}]}
 
         # When a page is read twice in a colour space with languages
-        page = extension.Picture("/media/deck.pdf", None, 3, None)
+        page = tool.Picture("/media/deck.pdf", None, 3, None)
         frames.ocr(page, "display-p3", "ko-KR,en-US")
         frames.ocr(page, "display-p3", "ko-KR,en-US")
 
@@ -483,7 +486,7 @@ class Reading(unittest.TestCase):
 
     def test_failed_command(self):
         # Given a frames that stops on every command, run with a theme and without
-        directory = tempfile.mkdtemp(prefix="frames-find-text-test-")
+        directory = tempfile.mkdtemp(prefix="find-text-test-")
         self.addCleanup(shutil.rmtree, directory, True)
         executable = os.path.join(directory, "frames")
         with open(executable, "w", encoding="utf-8") as file:
@@ -493,8 +496,8 @@ class Reading(unittest.TestCase):
         # When each runs timeline
         messages = []
         for options in (["--theme", "shorts/shorts", "--ocr", "vision"], []):
-            with self.assertRaises(extension.Stop) as raised:
-                extension.Frames(executable, options).report(["timeline", "/tmp/a b/document.json", "--json"])
+            with self.assertRaises(tool.Stop) as raised:
+                tool.Frames(executable, options).report(["timeline", "/tmp/a b/document.json", "--json"])
             messages.append(str(raised.exception))
 
         # Then each names the command line it ran, its global options included, and what frames said
@@ -505,9 +508,9 @@ class Reading(unittest.TestCase):
         ])
 
     def test_options(self):
-        # Given the global options frames passes before the extension's arguments
+        # Given the global options frames passes before the tool's arguments
         # When they are parsed
-        options, document, languages, report = extension.parse(["--theme", "demo/dark", "/a/b.json", "--languages", "en-US"])
+        options, document, languages, report = tool.parse(["--theme", "demo/dark", "/a/b.json", "--languages", "en-US"])
 
         # Then the global options are kept for every frames command and the languages for ocr
         self.assertEqual(options, ["--theme", "demo/dark"])
@@ -518,7 +521,7 @@ class Reading(unittest.TestCase):
     def test_report_path(self):
         # Given a report path with an extension in upper case
         # When it is parsed
-        report = extension.parse(["/a/b.json", "--report", "/a/b.report.JSON"])[3]
+        report = tool.parse(["/a/b.json", "--report", "/a/b.report.JSON"])[3]
 
         # Then it is kept
         self.assertEqual(report, "/a/b.report.JSON")
@@ -529,25 +532,40 @@ class Reading(unittest.TestCase):
             ("/a/b.txt", '--report "/a/b.txt": a report is written to a .json file'),
             ("/a/b.json", '--report "/a/b.json": the report would be written over the document')
         ):
-            with self.assertRaises(extension.Stop) as raised:
-                extension.parse(["/nowhere/b.json" if path == "b.report.json" else "/a/b.json", "--report", path])
+            with self.assertRaises(tool.Stop) as raised:
+                tool.parse(["/nowhere/b.json" if path == "b.report.json" else "/a/b.json", "--report", path])
             self.assertEqual(str(raised.exception), message)
+
+    def test_without_frames(self):
+        # Given a document with a request, and no frames executable given
+        document = fixture("still.json")
+        path = os.path.join(tempfile.mkdtemp(prefix="find-text-test-"), "document.json")
+        self.addCleanup(shutil.rmtree, os.path.dirname(path), True)
+        with open(path, "w", encoding="utf-8") as file:
+            json.dump(document, file)
+
+        # When the tool runs
+        with self.assertRaises(tool.Stop) as raised:
+            tool.run([path], None)
+
+        # Then it stops, since only frames gives the executable it runs
+        self.assertEqual(str(raised.exception), "FRAMES_EXECUTABLE is not set: the tool is run by frames, as frames frames/find-text")
 
     def test_write_report(self):
         # Given a request filled
-        directory = tempfile.mkdtemp(prefix="frames-find-text-test-")
+        directory = tempfile.mkdtemp(prefix="find-text-test-")
         self.addCleanup(shutil.rmtree, directory, True)
         path = os.path.join(directory, "report.json")
         filled = [{"place": "clips[0]", "key": "area", "rect": [1, 2, 3, 4]}]
 
         # When the report is written
-        extension.write_report(path, filled)
+        tool.write_report(path, filled)
 
-        # Then its first key names the tool and its version, and it holds the requests
+        # Then its first key names the tool and its version, the version of the pack frames, and it holds the requests
         with open(path, encoding="utf-8") as file:
             text = file.read()
-        self.assertTrue(text.startswith('{\n  "find-text": "0.1.0",'))
-        self.assertEqual(json.loads(text), {"find-text": "0.1.0", "requests": filled})
+        self.assertTrue(text.startswith('{\n  "frames/find-text": "0.1.0",'))
+        self.assertEqual(json.loads(text), {"frames/find-text": "0.1.0", "requests": filled})
 
 
 if __name__ == "__main__":

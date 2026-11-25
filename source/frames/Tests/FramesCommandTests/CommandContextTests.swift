@@ -37,6 +37,7 @@ struct CommandContextTests {
             output: recorder.output,
             environment: CommandEnvironment(
                 variables: [:],
+                executable: URL(fileURLWithPath: "/nonexistent/frames"),
                 shippedPacks: URL(fileURLWithPath: "/nonexistent", isDirectory: true),
                 standardInput: { Data() }
             )
