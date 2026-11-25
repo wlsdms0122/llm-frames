@@ -148,7 +148,7 @@ class Recorded(Case):
         ])
 
     def test_track_requests_kept(self):
-        # Given track-motion requests that name a find-text request's key, an area and a frame
+        # Given track-motion requests that name a find-text request's key and an area
         document = fixture("video.json")
 
         # When the extension writes the rectangles
