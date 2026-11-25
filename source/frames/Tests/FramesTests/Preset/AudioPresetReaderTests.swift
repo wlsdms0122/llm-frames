@@ -23,7 +23,7 @@ struct AudioPresetReaderTests {
         // Given
         let published = try sut.publishedAudio(from: json(#"""
             { "description": "voice", "params": { "cut": { "type": "number", "default": 80, "description": "cut" } },
-              "ops": [ { "op": "eq", "bands": [ { "type": "highPass", "frequency": { "param": "cut" } } ] } ] }
+              "ops": [ { "kind": "eq", "bands": [ { "kind": "highPass", "frequency": { "param": "cut" } } ] } ] }
             """#), place: file)
 
         // When
@@ -40,7 +40,7 @@ struct AudioPresetReaderTests {
         // Given
         let preset = #"""
             { "description": "", "params": { "squash": { "type": "number", "default": 3, "description": "ratio" } },
-              "ops": [ { "op": "compressor", "threshold": -20, "ratio": { "param": "squash" } } ] }
+              "ops": [ { "kind": "compressor", "threshold": -20, "ratio": { "param": "squash" } } ] }
             """#
         let published = try sut.publishedAudio(from: json(preset), place: file)
 
@@ -57,7 +57,7 @@ struct AudioPresetReaderTests {
     func refusesBandWithoutGain() throws {
         // Given
         let preset = #"""
-            { "description": "", "ops": [ { "op": "eq", "bands": [ { "type": "peak", "frequency": 3000 } ] } ] }
+            { "description": "", "ops": [ { "kind": "eq", "bands": [ { "kind": "peak", "frequency": 3000 } ] } ] }
             """#
 
         // When, Then
@@ -71,7 +71,7 @@ struct AudioPresetReaderTests {
         // Given
         let preset = #"""
             { "description": "", "params": { "ahead": { "type": "number", "default": 0.01, "description": "look-ahead" } },
-              "ops": [ { "op": "limiter", "ceiling": -2, "lookahead": { "param": "ahead" } } ] }
+              "ops": [ { "kind": "limiter", "ceiling": -2, "lookahead": { "param": "ahead" } } ] }
             """#
 
         // When
@@ -92,11 +92,11 @@ struct AudioPresetReaderTests {
         // Given
         let preset = #"""
             { "description": "", "params": { "wet": { "type": "number", "default": -6, "description": "level" } },
-              "ops": [ { "op": "convolve", "file": "/abs/ding.wav", "gain": { "param": "wet" } } ] }
+              "ops": [ { "kind": "convolve", "file": "/abs/ding.wav", "gain": { "param": "wet" } } ] }
             """#
         let file = #"""
             { "description": "", "params": { "room": { "type": "number", "default": 1, "description": "room" } },
-              "ops": [ { "op": "convolve", "file": { "param": "room" } } ] }
+              "ops": [ { "kind": "convolve", "file": { "param": "room" } } ] }
             """#
 
         // When
@@ -111,10 +111,10 @@ struct AudioPresetReaderTests {
     @Test(
         "a colour or choice parameter, an op's mix and an unknown op stop",
         arguments: [
-            ##"{ "description": "", "params": { "tint": { "type": "color", "default": "#FFFFFF", "description": "tint" } }, "ops": [ { "op": "gate", "threshold": -50 } ] }"##,
-            #"{ "description": "", "params": { "curve": { "type": "choice", "default": "linear", "options": ["linear"], "description": "curve" } }, "ops": [ { "op": "gate", "threshold": -50 } ] }"#,
-            #"{ "description": "", "ops": [ { "op": "gate", "threshold": -50, "mix": 0.5 } ] }"#,
-            #"{ "description": "", "ops": [ { "op": "reverb" } ] }"#
+            ##"{ "description": "", "params": { "tint": { "type": "color", "default": "#FFFFFF", "description": "tint" } }, "ops": [ { "kind": "gate", "threshold": -50 } ] }"##,
+            #"{ "description": "", "params": { "curve": { "type": "choice", "default": "linear", "options": ["linear"], "description": "curve" } }, "ops": [ { "kind": "gate", "threshold": -50 } ] }"#,
+            #"{ "description": "", "ops": [ { "kind": "gate", "threshold": -50, "mix": 0.5 } ] }"#,
+            #"{ "description": "", "ops": [ { "kind": "reverb" } ] }"#
         ]
     )
     func refusesShapes(preset: String) throws {

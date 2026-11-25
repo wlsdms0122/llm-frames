@@ -18,7 +18,7 @@ struct DefaultFilterTests {
     private let presets = PresetTable(
         transitions: Fixture.presets.transitions,
         animations: Fixture.presets.animations,
-        filters: ["film": #"{"description": "", "ops": [{"op": "lut", "file": "film.cube", "amount": 1}]}"#]
+        filters: ["film": #"{"description": "", "ops": [{"kind": "lut", "file": "film.cube", "amount": 1}]}"#]
     )
 
     // MARK: - Initializer

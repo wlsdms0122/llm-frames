@@ -31,7 +31,7 @@ struct ResolvedSequenceWriterTests {
             )
         ],
         animations: Fixture.presets.animations,
-        filters: ["film": #"{"description": "", "ops": [{"op": "lut", "file": "/abs/film.cube", "amount": 0.5}]}"#]
+        filters: ["film": #"{"description": "", "ops": [{"kind": "lut", "file": "/abs/film.cube", "amount": 0.5}]}"#]
     )
 
     // MARK: - Initializer
@@ -382,7 +382,7 @@ struct ResolvedSequenceWriterTests {
         let document = #"""
             { "kind": "sequence", "format": { "size": [1080, 1920] },
               "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "in": 0, "out": 3,
-                               "filter": { "op": "displace", "file": "/abs/matte.png", "amount": 8, "offset": [4, -2] } } ] }
+                               "filter": { "kind": "displace", "file": "/abs/matte.png", "amount": 8, "offset": [4, -2] } } ] }
             """#
 
         // When

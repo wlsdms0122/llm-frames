@@ -20,14 +20,14 @@ struct PresetValueResolverTests {
         directory = try PackDirectory()
         try directory.addPack("shorts")
         try directory.write(
-            #"{ "description": "film", "ops": [ { "op": "lut", "file": "shorts/film", "amount": 1 } ] }"#,
+            #"{ "description": "film", "ops": [ { "kind": "lut", "file": "shorts/film", "amount": 1 } ] }"#,
             in: "shorts",
             at: "presets/filter/film.json"
         )
         try directory.write(
             #"""
-            { "description": "ripple", "ops": [ { "op": "displace", "file": "shorts/ripple.png", "amount": 8 },
-                                                { "op": "displace", "file": "/abs/matte.png", "amount": 4, "offset": [2, -2] } ] }
+            { "description": "ripple", "ops": [ { "kind": "displace", "file": "shorts/ripple.png", "amount": 8 },
+                                                { "kind": "displace", "file": "/abs/matte.png", "amount": 4, "offset": [2, -2] } ] }
             """#,
             in: "shorts",
             at: "presets/filter/ripple.json"
@@ -35,8 +35,8 @@ struct PresetValueResolverTests {
         try directory.write(
             #"""
             { "description": "room", "params": { "wet": { "type": "number", "default": -6, "description": "the level" } },
-              "ops": [ { "op": "convolve", "file": "shorts/hall.wav", "gain": { "param": "wet" } },
-                       { "op": "convolve", "file": "/abs/ding.wav" } ] }
+              "ops": [ { "kind": "convolve", "file": "shorts/hall.wav", "gain": { "param": "wet" } },
+                       { "kind": "convolve", "file": "/abs/ding.wav" } ] }
             """#,
             in: "shorts",
             at: "presets/audio/room.json"

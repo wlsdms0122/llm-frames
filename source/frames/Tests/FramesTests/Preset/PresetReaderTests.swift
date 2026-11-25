@@ -112,11 +112,11 @@ struct PresetReaderTests {
     func readsSpringEases() throws {
         // Given
         let transition = try Fixture.json(#"""
-            { "description": "x", "seconds": 1, "ease": { "spring": { "bounce": 0.2 } },
-              "incoming": { "ease": { "spring": { "bounce": -0.3 } }, "keys": [ { "t": 0, "y": 1 }, { "t": 1, "y": 0 } ] },
+            { "description": "x", "seconds": 1, "ease": { "kind": "spring", "bounce": 0.2 },
+              "incoming": { "ease": { "kind": "spring", "bounce": -0.3 }, "keys": [ { "t": 0, "y": 1 }, { "t": 1, "y": 0 } ] },
               "matte": { "media": "/abs/m.png" } }
             """#)
-        let animation = try Fixture.json(#"{ "description": "x", "entrance": { "seconds": 0.5, "ease": { "spring": { "bounce": 0.5 } } } }"#)
+        let animation = try Fixture.json(#"{ "description": "x", "entrance": { "seconds": 0.5, "ease": { "kind": "spring", "bounce": 0.5 } } }"#)
 
         // When
         let readTransition = try sut.transition(from: transition)
@@ -155,7 +155,7 @@ struct PresetReaderTests {
             (#"{ "description": "x", "seconds": 1, "matte": { "softness": 0.2 } }"#, #"matte (matte): missing key "media""#),
             (#"{ "description": "x", "seconds": 1, "over": "above" }"#, #"over (transition): unknown value "above". Allowed: incoming, outgoing"#),
             (#"{ "description": "x", "seconds": 1, "audio": "linear" }"#, #"audio (transition): unknown value "linear". Allowed: constant-power, constant-gain"#),
-            (#"{ "description": "x", "seconds": 1, "ease": { "spring": { "bounce": 1.5 } } }"#, "ease.spring.bounce (spring): 1.5 is not above -1 and below 1"),
+            (#"{ "description": "x", "seconds": 1, "ease": { "kind": "spring", "bounce": 1.5 } }"#, "ease.spring.bounce (spring): 1.5 is not above -1 and below 1"),
             (#"{ "description": "x", "seconds": 1, "audio": { "param": "curve" } }"#, "audio (transition): expected one of constant-power, constant-gain, found an object")
         ]
     )
@@ -176,9 +176,9 @@ struct PresetReaderTests {
         // Given
         let value = try Fixture.json(##"""
             { "description": "faded warmth", "ops": [
-              { "op": "saturation", "amount": 0 }, { "op": "contrast", "amount": 1.3 },
-              { "op": "levels", "input": [0.1, 0.9], "output": [0, 1] }, { "op": "lut", "file": "pack/warm", "amount": 0.5 },
-              { "op": "bloom", "amount": 0.4, "radius": 12, "color": "#FFAA00" }, { "op": "grain", "amount": 0.2, "size": 2 }
+              { "kind": "saturation", "amount": 0 }, { "kind": "contrast", "amount": 1.3 },
+              { "kind": "levels", "input": [0.1, 0.9], "output": [0, 1] }, { "kind": "lut", "file": "pack/warm", "amount": 0.5 },
+              { "kind": "bloom", "amount": 0.4, "radius": 12, "color": "#FFAA00" }, { "kind": "grain", "amount": 0.2, "size": 2 }
             ] }
             """##)
 
@@ -202,9 +202,9 @@ struct PresetReaderTests {
         // Given
         let value = try Fixture.json(#"""
             { "description": "x", "ops": [
-              { "op": "sepia", "amount": 0 }, { "op": "lut", "file": "/abs/a.cube", "amount": 1 },
-              { "op": "levels", "input": [0, 1], "output": [0.2, 0.8] }, { "op": "vignette", "amount": 0.5, "radius": 0 },
-              { "op": "grain", "amount": 1, "size": 0.5 }, { "op": "pixelate", "size": 8 }
+              { "kind": "sepia", "amount": 0 }, { "kind": "lut", "file": "/abs/a.cube", "amount": 1 },
+              { "kind": "levels", "input": [0, 1], "output": [0.2, 0.8] }, { "kind": "vignette", "amount": 0.5, "radius": 0 },
+              { "kind": "grain", "amount": 1, "size": 0.5 }, { "kind": "pixelate", "size": 8 }
             ] }
             """#)
 
@@ -218,32 +218,32 @@ struct PresetReaderTests {
     @Test(
         "a filter preset with a broken rule stops",
         arguments: [
-            (#"{ "description": "x", "ops": [ { "op": "glow", "amount": 1 } ] }"#, #"ops[0].op (filter operation): unknown value "glow". Allowed: exposure, contrast, saturation, temperature, hue, sepia, levels, lut, blur, sharpen, bloom, vignette, displace, pixelate, grain"#),
+            (#"{ "description": "x", "ops": [ { "kind": "glow", "amount": 1 } ] }"#, #"ops[0].op (filter operation): unknown value "glow". Allowed: exposure, contrast, saturation, temperature, hue, sepia, levels, lut, blur, sharpen, bloom, vignette, displace, pixelate, grain"#),
             (#"{ "description": "x", "ops": [ { "amount": 1 } ] }"#, #"ops[0] (filter operation): missing key "op""#),
-            (#"{ "description": "x", "ops": [ { "op": "blur", "radius": 2, "amount": 1 } ] }"#, #"ops[0] (blur): unknown key "amount". Allowed: op, radius"#),
-            (#"{ "description": "x", "ops": [ { "op": "exposure" } ] }"#, #"ops[0] (exposure): missing key "ev""#),
-            (#"{ "description": "x", "ops": [ { "op": "levels", "input": [0, 1, 2], "output": [0, 1] } ] }"#, "ops[0].input (levels): expected a list of 2 numbers, found a list of 3"),
+            (#"{ "description": "x", "ops": [ { "kind": "blur", "radius": 2, "amount": 1 } ] }"#, #"ops[0] (blur): unknown key "amount". Allowed: op, radius"#),
+            (#"{ "description": "x", "ops": [ { "kind": "exposure" } ] }"#, #"ops[0] (exposure): missing key "ev""#),
+            (#"{ "description": "x", "ops": [ { "kind": "levels", "input": [0, 1, 2], "output": [0, 1] } ] }"#, "ops[0].input (levels): expected a list of 2 numbers, found a list of 3"),
             (#"{ "description": "x" }"#, #"top level (filter): missing key "ops""#),
-            (#"{ "description": "x", "ops": [ { "op": "sepia", "amount": 1.5 } ] }"#, "ops[0].amount (sepia): 1.5 is not within 0 to 1"),
-            (#"{ "description": "x", "ops": [ { "op": "lut", "file": "pack/warm", "amount": -0.1 } ] }"#, "ops[0].amount (lut): -0.1 is not within 0 to 1"),
-            (#"{ "description": "x", "ops": [ { "op": "grain", "amount": 2, "size": 1 } ] }"#, "ops[0].amount (grain): 2 is not within 0 to 1"),
-            (#"{ "description": "x", "ops": [ { "op": "grain", "amount": 0.2, "size": 0 } ] }"#, "ops[0].size (grain): 0 is not above 0"),
-            (#"{ "description": "x", "ops": [ { "op": "levels", "input": [0, 1.2], "output": [0, 1] } ] }"#, "ops[0].input (levels): [0, 1.2] is not within 0 to 1 with black below white"),
-            (#"{ "description": "x", "ops": [ { "op": "levels", "input": [0, 1], "output": [0.9, 0.1] } ] }"#, "ops[0].output (levels): [0.9, 0.1] is not within 0 to 1 with black below white"),
-            (#"{ "description": "x", "ops": [ { "op": "levels", "input": [0.5, 0.5], "output": [0, 1] } ] }"#, "ops[0].input (levels): [0.5, 0.5] is not within 0 to 1 with black below white"),
-            (#"{ "description": "x", "ops": [ { "op": "contrast", "amount": 1 }, { "op": "blur", "radius": -2 } ] }"#, "ops[1].radius (blur): -2 is not above 0"),
-            (#"{ "description": "x", "ops": [ { "op": "sharpen", "amount": 1, "radius": 0 } ] }"#, "ops[0].radius (sharpen): 0 is not above 0"),
-            (#"{ "description": "x", "ops": [ { "op": "bloom", "amount": 1, "radius": 0 } ] }"#, "ops[0].radius (bloom): 0 is not above 0"),
-            (#"{ "description": "x", "ops": [ { "op": "pixelate", "size": -1 } ] }"#, "ops[0].size (pixelate): -1 is not above 0"),
-            (#"{ "description": "x", "ops": [ { "op": "vignette", "amount": 0.5, "radius": 1.1 } ] }"#, "ops[0].radius (vignette): 1.1 is not within 0 to 1"),
-            (#"{ "description": "x", "ops": [ { "op": "displace", "file": "/abs/ripple.png", "amount": 0 } ] }"#, "ops[0].amount (displace): 0 is not above 0"),
-            (#"{ "description": "x", "ops": [ { "op": "displace", "file": "/abs/ripple.png", "amount": -4 } ] }"#, "ops[0].amount (displace): -4 is not above 0"),
-            (#"{ "description": "x", "ops": [ { "op": "displace", "file": "/abs/ripple.png", "amount": 4, "offset": [1] } ] }"#, "ops[0].offset (displace): expected a list of 2 numbers, found a list of 1"),
-            (#"{ "description": "x", "ops": [ { "op": "displace", "file": "/abs/ripple.png", "amount": 4, "offset": [1, 2, 3] } ] }"#, "ops[0].offset (displace): expected a list of 2 numbers, found a list of 3"),
-            (#"{ "description": "x", "ops": [ { "op": "displace", "file": "/abs/ripple.png", "amount": 4, "offset": 1 } ] }"#, "ops[0].offset (displace): expected a list of 2 numbers, found 1"),
-            (#"{ "description": "x", "ops": [ { "op": "displace", "file": "/abs/ripple.png", "amount": 4, "radius": 2 } ] }"#, #"ops[0] (displace): unknown key "radius". Allowed: op, file, amount, offset"#),
-            (#"{ "description": "x", "ops": [ { "op": "displace", "amount": 4 } ] }"#, #"ops[0] (displace): missing key "file""#),
-            (#"{ "description": "x", "ops": [ { "op": "displace", "file": "/abs/ripple.png" } ] }"#, #"ops[0] (displace): missing key "amount""#)
+            (#"{ "description": "x", "ops": [ { "kind": "sepia", "amount": 1.5 } ] }"#, "ops[0].amount (sepia): 1.5 is not within 0 to 1"),
+            (#"{ "description": "x", "ops": [ { "kind": "lut", "file": "pack/warm", "amount": -0.1 } ] }"#, "ops[0].amount (lut): -0.1 is not within 0 to 1"),
+            (#"{ "description": "x", "ops": [ { "kind": "grain", "amount": 2, "size": 1 } ] }"#, "ops[0].amount (grain): 2 is not within 0 to 1"),
+            (#"{ "description": "x", "ops": [ { "kind": "grain", "amount": 0.2, "size": 0 } ] }"#, "ops[0].size (grain): 0 is not above 0"),
+            (#"{ "description": "x", "ops": [ { "kind": "levels", "input": [0, 1.2], "output": [0, 1] } ] }"#, "ops[0].input (levels): [0, 1.2] is not within 0 to 1 with black below white"),
+            (#"{ "description": "x", "ops": [ { "kind": "levels", "input": [0, 1], "output": [0.9, 0.1] } ] }"#, "ops[0].output (levels): [0.9, 0.1] is not within 0 to 1 with black below white"),
+            (#"{ "description": "x", "ops": [ { "kind": "levels", "input": [0.5, 0.5], "output": [0, 1] } ] }"#, "ops[0].input (levels): [0.5, 0.5] is not within 0 to 1 with black below white"),
+            (#"{ "description": "x", "ops": [ { "kind": "contrast", "amount": 1 }, { "kind": "blur", "radius": -2 } ] }"#, "ops[1].radius (blur): -2 is not above 0"),
+            (#"{ "description": "x", "ops": [ { "kind": "sharpen", "amount": 1, "radius": 0 } ] }"#, "ops[0].radius (sharpen): 0 is not above 0"),
+            (#"{ "description": "x", "ops": [ { "kind": "bloom", "amount": 1, "radius": 0 } ] }"#, "ops[0].radius (bloom): 0 is not above 0"),
+            (#"{ "description": "x", "ops": [ { "kind": "pixelate", "size": -1 } ] }"#, "ops[0].size (pixelate): -1 is not above 0"),
+            (#"{ "description": "x", "ops": [ { "kind": "vignette", "amount": 0.5, "radius": 1.1 } ] }"#, "ops[0].radius (vignette): 1.1 is not within 0 to 1"),
+            (#"{ "description": "x", "ops": [ { "kind": "displace", "file": "/abs/ripple.png", "amount": 0 } ] }"#, "ops[0].amount (displace): 0 is not above 0"),
+            (#"{ "description": "x", "ops": [ { "kind": "displace", "file": "/abs/ripple.png", "amount": -4 } ] }"#, "ops[0].amount (displace): -4 is not above 0"),
+            (#"{ "description": "x", "ops": [ { "kind": "displace", "file": "/abs/ripple.png", "amount": 4, "offset": [1] } ] }"#, "ops[0].offset (displace): expected a list of 2 numbers, found a list of 1"),
+            (#"{ "description": "x", "ops": [ { "kind": "displace", "file": "/abs/ripple.png", "amount": 4, "offset": [1, 2, 3] } ] }"#, "ops[0].offset (displace): expected a list of 2 numbers, found a list of 3"),
+            (#"{ "description": "x", "ops": [ { "kind": "displace", "file": "/abs/ripple.png", "amount": 4, "offset": 1 } ] }"#, "ops[0].offset (displace): expected a list of 2 numbers, found 1"),
+            (#"{ "description": "x", "ops": [ { "kind": "displace", "file": "/abs/ripple.png", "amount": 4, "radius": 2 } ] }"#, #"ops[0] (displace): unknown key "radius". Allowed: op, file, amount, offset"#),
+            (#"{ "description": "x", "ops": [ { "kind": "displace", "amount": 4 } ] }"#, #"ops[0] (displace): missing key "file""#),
+            (#"{ "description": "x", "ops": [ { "kind": "displace", "file": "/abs/ripple.png" } ] }"#, #"ops[0] (displace): missing key "amount""#)
         ]
     )
     func refusesBrokenFilter(
@@ -263,8 +263,8 @@ struct PresetReaderTests {
         // Given
         let value = try Fixture.json(#"""
             { "description": "x", "ops": [
-              { "op": "displace", "file": "pack/ripple.png", "amount": 12 },
-              { "op": "displace", "file": "/abs/ripple.png", "amount": 0.5, "offset": [-40, 2.5] }
+              { "kind": "displace", "file": "pack/ripple.png", "amount": 12 },
+              { "kind": "displace", "file": "/abs/ripple.png", "amount": 0.5, "offset": [-40, 2.5] }
             ] }
             """#)
 
@@ -297,12 +297,12 @@ struct PresetReaderTests {
             { "description": "x",
               "params": { "strength": { "type": "number", "default": 6, "description": "the strength" },
                           "drift": { "type": "number", "default": -3, "description": "the drift" } },
-              "ops": [ { "op": "displace", "file": "/abs/ripple.png", "amount": { "param": "strength" },
+              "ops": [ { "kind": "displace", "file": "/abs/ripple.png", "amount": { "param": "strength" },
                          "offset": [{ "param": "drift" }, 0] } ] }
             """#)
         let file = try Fixture.json(#"""
             { "description": "x", "params": { "n": { "type": "number", "default": 1, "description": "the n" } },
-              "ops": [ { "op": "displace", "file": { "param": "n" }, "amount": 4 } ] }
+              "ops": [ { "kind": "displace", "file": { "param": "n" }, "amount": 4 } ] }
             """#)
 
         // When
@@ -323,7 +323,7 @@ struct PresetReaderTests {
                 "color": { "type": "color", "default": "#000000", "description": "colour of the dip" },
                 "curve": { "type": "choice", "options": ["linear", "ease-in-out"], "default": "linear", "description": "pace of the fade" },
                 "length": { "type": "number", "default": 0.7, "description": "the length" },
-                "bounce": { "type": "choice", "options": [{ "spring": { "bounce": 0.2 } }, "ease-out"], "default": { "spring": { "bounce": 0.2 } }, "description": "the bounce" } },
+                "bounce": { "type": "choice", "options": [{ "kind": "spring", "bounce": 0.2 }, "ease-out"], "default": { "kind": "spring", "bounce": 0.2 }, "description": "the bounce" } },
               "seconds": { "param": "length" }, "ease": { "param": "curve" },
               "incoming": { "ease": { "param": "bounce" }, "keys": [ { "t": 0, "opacity": 0 }, { "t": 0.5, "opacity": 0 }, { "t": 0.5, "opacity": 1 } ] },
               "cover": { "color": { "param": "color" },
@@ -346,7 +346,7 @@ struct PresetReaderTests {
         let animation = try Fixture.json(#"""
             { "description": "x",
               "params": { "n": { "type": "number", "default": 0.5, "description": "the n" } },
-              "entrance": { "seconds": { "param": "n" }, "ease": { "spring": { "bounce": { "param": "n" } } },
+              "entrance": { "seconds": { "param": "n" }, "ease": { "kind": "spring", "bounce": { "param": "n" } },
                             "keys": [ { "t": { "param": "n" }, "scale": { "param": "n" } } ] },
               "loop": { "period": { "param": "n" } } }
             """#)
@@ -374,8 +374,8 @@ struct PresetReaderTests {
             { "description": "x",
               "params": { "glow": { "type": "number", "default": 0.4, "description": "the glow" }, "tint": { "type": "color", "default": "#FFAA00", "description": "the tint" },
                           "black": { "type": "number", "default": 0.1, "description": "the black" } },
-              "ops": [ { "op": "bloom", "amount": { "param": "glow" }, "radius": 12, "color": { "param": "tint" } },
-                       { "op": "levels", "input": [{ "param": "black" }, 0.9], "output": [0, 1] } ] }
+              "ops": [ { "kind": "bloom", "amount": { "param": "glow" }, "radius": 12, "color": { "param": "tint" } },
+                       { "kind": "levels", "input": [{ "param": "black" }, 0.9], "output": [0, 1] } ] }
             """##)
 
         // When
@@ -447,7 +447,7 @@ struct PresetReaderTests {
             (#"{ "type": "number", "default": 0, "description": "the p" }"#, #""seconds": { "param": "p" }"#, "seconds (transition): a span runs for more than 0 seconds, found 0"),
             (#"{ "type": "number", "default": 1.5, "description": "the p" }"#, #""seconds": 1, "incoming": { "keys": [ { "t": 0, "opacity": { "param": "p" } } ] }"#, "incoming.keys[0].opacity (span key): 1.5 is not within 0 to 1"),
             (#"{ "type": "number", "default": 2, "description": "the p" }"#, #""seconds": 1, "incoming": { "keys": [ { "t": { "param": "p" } } ] }"#, "incoming.keys[0] (span key): t is progress through the span and lies between 0 and 1, found 2"),
-            (#"{ "type": "number", "default": 1, "description": "the p" }"#, #""seconds": 1, "ease": { "spring": { "bounce": { "param": "p" } } }"#, "ease.spring.bounce (spring): 1 is not above -1 and below 1")
+            (#"{ "type": "number", "default": 1, "description": "the p" }"#, #""seconds": 1, "ease": { "kind": "spring", "bounce": { "param": "p" } }"#, "ease.spring.bounce (spring): 1 is not above -1 and below 1")
         ]
     )
     func refusesBrokenDefault(
@@ -468,11 +468,11 @@ struct PresetReaderTests {
         // Given
         let choice = try Fixture.json(#"""
             { "description": "x", "params": { "p": { "type": "choice", "options": ["linear", "step"], "default": "linear", "description": "the p" } },
-              "ops": [ { "op": "sepia", "amount": 1 } ] }
+              "ops": [ { "kind": "sepia", "amount": 1 } ] }
             """#)
         let range = try Fixture.json(#"""
             { "description": "x", "params": { "p": { "type": "number", "default": 1.5, "description": "the p" } },
-              "ops": [ { "op": "sepia", "amount": { "param": "p" } } ] }
+              "ops": [ { "kind": "sepia", "amount": { "param": "p" } } ] }
             """#)
 
         // When

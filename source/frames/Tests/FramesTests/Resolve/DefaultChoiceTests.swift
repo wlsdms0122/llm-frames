@@ -89,27 +89,27 @@ struct DefaultChoiceTests {
         "a filter without a preset, its arguments or its mix, stops over a default list, over none, and on an adjustment",
         arguments: [
             (
-                #"{ "kind": "media", "media": "/abs/card.png", "at": [0, 1], "filter": { "args": {} } }"#,
+                #"{ "kind": "media", "media": "/abs/card.png", "at": [0, 1], "filter": { "kind": "preset", "args": {} } }"#,
                 #"["frames/warm", "frames/warm"]"#,
                 "clips[0].filter (image): a choice without a preset over the theme's default list (theme.defaults.filter), where which entry it changes is ambiguous"
             ),
             (
-                #"{ "kind": "media", "media": "/abs/card.png", "at": [0, 1], "filter": { "args": {} } }"#,
+                #"{ "kind": "media", "media": "/abs/card.png", "at": [0, 1], "filter": { "kind": "preset", "args": {} } }"#,
                 #""none""#,
                 "clips[0].filter (image): a choice without a preset changes the theme's default, which is none here (theme.defaults.filter)"
             ),
             (
-                #"{ "kind": "media", "media": "/abs/card.png", "at": [0, 1], "filter": { "mix": 0.5 } }"#,
+                #"{ "kind": "media", "media": "/abs/card.png", "at": [0, 1], "filter": { "kind": "preset", "mix": 0.5 } }"#,
                 #"["frames/warm", "frames/warm"]"#,
                 "clips[0].filter (image): a choice without a preset over the theme's default list (theme.defaults.filter), where which entry it changes is ambiguous"
             ),
             (
-                #"{ "kind": "media", "media": "/abs/card.png", "at": [0, 1], "filter": { "mix": 0.5 } }"#,
+                #"{ "kind": "media", "media": "/abs/card.png", "at": [0, 1], "filter": { "kind": "preset", "mix": 0.5 } }"#,
                 #""none""#,
                 "clips[0].filter (image): a choice without a preset changes the theme's default, which is none here (theme.defaults.filter)"
             ),
             (
-                #"{ "kind": "adjustment", "adjust": { "args": {} }, "at": [0, 1] }"#,
+                #"{ "kind": "adjustment", "adjust": { "kind": "preset", "args": {} }, "at": [0, 1] }"#,
                 #""frames/warm""#,
                 "clips[0].adjust (adjustment): a choice without a preset changes the theme's default, and this clip takes none"
             )
@@ -138,7 +138,7 @@ struct DefaultChoiceTests {
         // Given
         let document = try Fixture.json(#"""
             { "kind": "sequence", "theme": { "defaults": { "filter": "frames/warm" } },
-              "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "in": 0, "out": 3, "filter": { "args": {} } } ] }
+              "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "in": 0, "out": 3, "filter": { "kind": "preset", "args": {} } } ] }
             """#)
 
         // When

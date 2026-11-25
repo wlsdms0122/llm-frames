@@ -218,9 +218,9 @@ struct ColorKeyTests {
         // Given
         let document = #"""
             { "kind": "sequence", "storyline": [
-                { "kind": "media", "media": "/abs/run.mp4", "filter": { "op": "lut", "file": "/abs/look.cube", "amount": 1 } },
-                { "kind": "media", "media": "/abs/run.mp4", "filter": { "op": "lut", "file": "/abs/look.cube", "amount": 1, "space": "rec2100-pq" } },
-                { "kind": "media", "media": "/abs/run.mp4", "filter": { "op": "lut", "file": "/abs/look.cube", "amount": 1, "space": "srgb-linear" } } ] }
+                { "kind": "media", "media": "/abs/run.mp4", "filter": { "kind": "lut", "file": "/abs/look.cube", "amount": 1 } },
+                { "kind": "media", "media": "/abs/run.mp4", "filter": { "kind": "lut", "file": "/abs/look.cube", "amount": 1, "space": "rec2100-pq" } },
+                { "kind": "media", "media": "/abs/run.mp4", "filter": { "kind": "lut", "file": "/abs/look.cube", "amount": 1, "space": "srgb-linear" } } ] }
             """#
 
         // When
@@ -243,7 +243,7 @@ struct ColorKeyTests {
     func refusesLUTSpace() throws {
         // Given
         let document = try Fixture.json(#"""
-            { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "filter": { "op": "lut", "file": "/abs/look.cube", "amount": 1, "space": "slog3" } } ] }
+            { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "filter": { "kind": "lut", "file": "/abs/look.cube", "amount": 1, "space": "slog3" } } ] }
             """#)
 
         // When, Then
@@ -255,8 +255,8 @@ struct ColorKeyTests {
     func readsPresetLUTSpace() throws {
         // Given
         let text = #"""
-            { "description": "x", "ops": [ { "op": "lut", "file": "/abs/a.cube", "amount": 1 },
-                                           { "op": "lut", "file": "/abs/b.cube", "amount": 0.5, "space": "rec709" } ] }
+            { "description": "x", "ops": [ { "kind": "lut", "file": "/abs/a.cube", "amount": 1 },
+                                           { "kind": "lut", "file": "/abs/b.cube", "amount": 0.5, "space": "rec709" } ] }
             """#
 
         // When
@@ -337,7 +337,7 @@ struct ColorKeyTests {
         // Given
         let document = #"""
             { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/card.png", "duration": 1, "colorSpace": "rec709",
-              "filter": { "op": "displace", "file": "/abs/card.png", "amount": 4 } } ] }
+              "filter": { "kind": "displace", "file": "/abs/card.png", "amount": 4 } } ] }
             """#
 
         // When

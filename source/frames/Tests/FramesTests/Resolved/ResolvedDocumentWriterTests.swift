@@ -131,7 +131,7 @@ struct ResolvedDocumentWriterTests {
                 {
                   "ops": [
                     {
-                      "op": "saturation",
+                      "kind": "saturation",
                       "amount": [
                         {
                           "at": 0,
@@ -141,7 +141,7 @@ struct ResolvedDocumentWriterTests {
                       ]
                     },
                     {
-                      "op": "blur",
+                      "kind": "blur",
                       "radius": [
                         {
                           "at": 0,

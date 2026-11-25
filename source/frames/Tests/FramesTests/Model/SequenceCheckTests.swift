@@ -760,7 +760,7 @@ struct SequenceCheckTests {
     func refusesRequestAsArgument() throws {
         // Given
         let document = try Fixture.json(#"""
-            { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "filter": { "preset": "frames/vivid", "args": { "amount": { "tool": "studio/grader" } } } } ] }
+            { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "filter": { "kind": "preset", "preset": "frames/vivid", "args": { "amount": { "tool": "studio/grader" } } } } ] }
             """#)
 
         // When, Then
@@ -924,10 +924,10 @@ struct SequenceCheckTests {
             ##"{ "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "transition": { "preset": "studio/dip", "seconds": 1, "args": { "color": "#1B3A6B" } } } ] }"##,
             #"{ "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "transition": { "preset": "studio/dip", "args": { "curve": "linear" } } } ] }"#,
             #"{ "clips": [ { "kind": "title", "text": "a", "style": "s", "animation": { "preset": "studio/spring-in", "args": { "bounce": 0.4 } } } ] }"#,
-            #"{ "clips": [ { "kind": "title", "text": "a", "style": "s", "animation": { "entrance": { "preset": "studio/spring-in", "args": { "ease": { "spring": { "bounce": 0.4 } } } }, "exit": "frames/fade" } } ] }"#,
-            #"{ "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "filter": { "preset": "studio/film", "args": { "grain": 0.02 } } } ] }"#,
-            #"{ "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "filter": ["frames/warm", { "preset": "studio/film", "args": { "grain": 0.02 } }, { "preset": "studio/film", "args": { "grain": 0.04 } }] } ] }"#,
-            ##"{ "theme": { "defaults": { "transition": { "preset": "studio/dip", "args": { "color": "#000000" } }, "filter": { "preset": "studio/film", "args": { "grain": 0.02 } } } } }"##,
+            #"{ "clips": [ { "kind": "title", "text": "a", "style": "s", "animation": { "entrance": { "preset": "studio/spring-in", "args": { "ease": { "kind": "spring", "bounce": 0.4 } } }, "exit": "frames/fade" } } ] }"#,
+            #"{ "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "filter": { "kind": "preset", "preset": "studio/film", "args": { "grain": 0.02 } } } ] }"#,
+            #"{ "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "filter": ["frames/warm", { "kind": "preset", "preset": "studio/film", "args": { "grain": 0.02 } }, { "kind": "preset", "preset": "studio/film", "args": { "grain": 0.04 } }] } ] }"#,
+            ##"{ "theme": { "defaults": { "transition": { "preset": "studio/dip", "args": { "color": "#000000" } }, "filter": { "kind": "preset", "preset": "studio/film", "args": { "grain": 0.02 } } } } }"##,
             #"{ "format": { "size": { "fit": "content" } }, "storyline": [ { "kind": "media", "media": "/abs/run.mp4" } ] }"#,
             #"{ "format": { "size": { "fit": "content", "margin": 0 } }, "storyline": [ { "kind": "media", "media": "/abs/run.mp4" } ] }"#,
             #"{ "format": { "size": { "fit": "content", "margin": [8, 16] } }, "storyline": [ { "kind": "media", "media": "/abs/run.mp4" } ] }"#,
@@ -960,7 +960,7 @@ struct SequenceCheckTests {
             (#"{ "theme": { "defaults": { "animation": { "shape": { "entrance": "frames/pop", "exit": "none", "by": "word" } } } } }"#, #"theme.defaults.animation.shape (animation choice): unknown key "by". Allowed: entrance, exit"#),
             (#"{ "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "transition": { "preset": "frames/push-up" } } ] }"#, #"storyline[0].transition (transition choice): needs one of seconds, args"#),
             (#"{ "theme": { "defaults": { "transition": { "preset": "frames/push-up" } } } }"#, #"theme.defaults.transition (transition choice): needs one of seconds, args"#),
-            (#"{ "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "filter": { "preset": "frames/warm" } } ] }"#, #"storyline[0].filter (filter choice): needs one of args, mix"#),
+            (#"{ "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "filter": { "kind": "preset", "preset": "frames/warm" } } ] }"#, #"storyline[0].filter (filter choice): needs one of args, mix"#),
             (#"{ "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "filter": [] } ] }"#, #"storyline[0].filter (filter choice): a filter list holds at least one entry"#),
             (#"{ "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "filter": ["frames/warm", "none"] } ] }"#, #"storyline[0].filter[1] (filter choice): "none" turns the filter off, so it is written alone and never in a list"#)
         ]
@@ -998,7 +998,7 @@ struct SequenceCheckTests {
         let document = try Fixture.json(#"""
             { "kind": "sequence", "clips": [
               { "kind": "media", "media": "/abs/log.png", "at": [0, 6],
-                "keyframes": [ { "at": 3, "scale": 1, "ease": { "spring": { "bounce": 0.99 } } }, { "at": 4, "scale": 1.5 } ] }
+                "keyframes": [ { "at": 3, "scale": 1, "ease": { "kind": "spring", "bounce": 0.99 } }, { "at": 4, "scale": 1.5 } ] }
             ] }
             """#)
 
@@ -1009,10 +1009,10 @@ struct SequenceCheckTests {
     @Test(
         "a spring ease with a bounce outside its range or another key stops where it is written",
         arguments: [
-            (#"{ "spring": { "bounce": 1 } }"#, "clips[0].keyframes[0].ease.spring.bounce (spring): 1 is not above -1 and below 1"),
-            (#"{ "spring": { "bounce": -1 } }"#, "clips[0].keyframes[0].ease.spring.bounce (spring): -1 is not above -1 and below 1"),
-            (#"{ "spring": { "bounce": "0.5" } }"#, #"clips[0].keyframes[0].ease.spring.bounce (spring): expected a number above -1 and below 1, found "0.5""#),
-            (#"{ "spring": { "stiffness": 100 } }"#, #"clips[0].keyframes[0].ease.spring (spring): unknown key "stiffness". Allowed: bounce"#),
+            (#"{ "kind": "spring", "bounce": 1 }"#, "clips[0].keyframes[0].ease.spring.bounce (spring): 1 is not above -1 and below 1"),
+            (#"{ "kind": "spring", "bounce": -1 }"#, "clips[0].keyframes[0].ease.spring.bounce (spring): -1 is not above -1 and below 1"),
+            (#"{ "kind": "spring", "bounce": "0.5" }"#, #"clips[0].keyframes[0].ease.spring.bounce (spring): expected a number above -1 and below 1, found "0.5""#),
+            (#"{ "kind": "spring", "stiffness": 100 }"#, #"clips[0].keyframes[0].ease.spring (spring): unknown key "stiffness". Allowed: bounce"#),
             (#"{ "bounce": 0.5 }"#, #"clips[0].keyframes[0].ease (spring ease): unknown key "bounce". Allowed: spring"#)
         ]
     )

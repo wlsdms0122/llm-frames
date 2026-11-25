@@ -148,25 +148,25 @@ enum Fixture {
         ],
         filters: [
             "frames/warm": #"{"description": "", "ops": []}"#,
-            "mine/grade": #"{"description": "", "ops": [{"op": "saturation", "amount": 1.25}, {"op": "blur", "radius": 4}]}"#
+            "mine/grade": #"{"description": "", "ops": [{"kind": "saturation", "amount": 1.25}, {"kind": "blur", "radius": 4}]}"#
         ],
         audio: [
             "mine/voice": #"""
                 { "description": "", "params": {
                     "cut": { "type": "number", "default": 80, "description": "the rumble cut" },
                     "squash": { "type": "number", "default": 3, "description": "the ratio" } },
-                  "ops": [ { "op": "eq", "bands": [ { "type": "highPass", "frequency": { "param": "cut" } } ] },
-                           { "op": "compressor", "threshold": -18, "ratio": { "param": "squash" } } ] }
+                  "ops": [ { "kind": "eq", "bands": [ { "kind": "highPass", "frequency": { "param": "cut" } } ] },
+                           { "kind": "compressor", "threshold": -18, "ratio": { "param": "squash" } } ] }
                 """#,
             "mine/gate": #"""
                 { "description": "", "params": { "attack": { "type": "number", "default": 0.01, "description": "the attack" } },
-                  "ops": [ { "op": "gate", "threshold": -40, "attack": { "param": "attack" } } ] }
+                  "ops": [ { "kind": "gate", "threshold": -40, "attack": { "param": "attack" } } ] }
                 """#,
             "mine/limit": #"""
                 { "description": "", "params": {
                     "boost": { "type": "number", "default": 0, "description": "the input gain" },
                     "ahead": { "type": "number", "default": 0.005, "description": "the look-ahead" } },
-                  "ops": [ { "op": "limiter", "gain": { "param": "boost" }, "lookahead": { "param": "ahead" } } ] }
+                  "ops": [ { "kind": "limiter", "gain": { "param": "boost" }, "lookahead": { "param": "ahead" } } ] }
                 """#
         ]
     )

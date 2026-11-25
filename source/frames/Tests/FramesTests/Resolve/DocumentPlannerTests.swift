@@ -196,7 +196,7 @@ struct DocumentPlannerTests {
     func takesTemplateAudioFilterWithEitherArgument() throws {
         // Given
         try directory.write(
-            #"{ "kind": "sequence", "params": { "clip": { "type": "video", "description": "the clip" } }, "storyline": [ { "kind": "media", "media": { "param": "clip" }, "out": 2 } ], "audioFilter": { "op": "limiter" } }"#,
+            #"{ "kind": "sequence", "params": { "clip": { "type": "video", "description": "the clip" } }, "storyline": [ { "kind": "media", "media": { "param": "clip" }, "out": 2 } ], "audioFilter": { "kind": "limiter" } }"#,
             in: "shorts",
             at: "templates/voiced.json"
         )

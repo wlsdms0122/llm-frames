@@ -70,7 +70,7 @@ struct BusRenderTests {
             { "kind": "sequence", "format": { "fps": 10 }, "storyline": [ { "kind": "media", "media": "\#(grey)", "duration": 1.5 } ],
               "clips": [ { "kind": "media", "media": { "kind": "sequence", "storyline": [ { "kind": "media", "media": "\#(grey)", "duration": 0.5 } ],
                                       "clips": [ { "kind": "media", "media": "\#(tone)", "at": [0, 0.5] } ],
-                                      "audioFilter": { "op": "compressor", "threshold": -18, "ratio": 4, "knee": 0,
+                                      "audioFilter": { "kind": "compressor", "threshold": -18, "ratio": 4, "knee": 0,
                                                        "attack": 0.002, "release": 0.5 } },
                            "picture": false, "at": [0, 1.5], "loop": true } ] }
             """#)

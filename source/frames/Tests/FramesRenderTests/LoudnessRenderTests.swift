@@ -39,7 +39,7 @@ struct LoudnessRenderTests {
                          { "kind": "media", "media": { "kind": "sequence", "storyline": [ { "kind": "media", "media": "\#(grey)", "duration": 3 } ],
                                       "clips": [ { "kind": "media", "media": "\#(noise)", "at": [0, 3] } ] },
                            "picture": false, "at": [0.5, 3.5], "fadeIn": 0.5 } ],
-              "audioFilter": { "op": "limiter", "gain": 3, "ceiling": -1 } }
+              "audioFilter": { "kind": "limiter", "gain": 3, "ceiling": -1 } }
             """#)
         let decoder = AVFoundationDecoder()
         let mixer = AVFoundationMixer(decoder: decoder)

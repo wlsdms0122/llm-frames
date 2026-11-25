@@ -19,7 +19,7 @@ import Testing
 @Suite("Track Matte Render Tests", .serialized)
 struct TrackMatteRenderTests {
     // MARK: - Property
-    private static let white = #"{ "description": "mid grey pushed to white", "ops": [ { "op": "levels", "input": [0, 0.5], "output": [0, 1] } ] }"#
+    private static let white = #"{ "description": "mid grey pushed to white", "ops": [ { "kind": "levels", "input": [0, 0.5], "output": [0, 1] } ] }"#
 
     // MARK: - Initializer
     // MARK: - Test

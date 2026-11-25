@@ -149,12 +149,12 @@ struct EaseTests {
     @Test("a spring is read from its bounce, which lies between -1 and 1 and is the spring's only key")
     func readsSpring() throws {
         // Given
-        let spring = try Fixture.json(#"{ "spring": { "bounce": 0.4 } }"#)
+        let spring = try Fixture.json(#"{ "kind": "spring", "bounce": 0.4 }"#)
         let refused = try [
-            #"{ "spring": { "bounce": 1 } }"#,
-            #"{ "spring": { "bounce": -1 } }"#,
-            #"{ "spring": { "bounce": 0.2, "mass": 1 } }"#,
-            #"{ "spring": { } }"#,
+            #"{ "kind": "spring", "bounce": 1 }"#,
+            #"{ "kind": "spring", "bounce": -1 }"#,
+            #"{ "kind": "spring", "bounce": 0.2, "mass": 1 }"#,
+            #"{ "kind": "spring" }"#,
             #"{ "spring": { "bounce": 0.2 }, "ease": "linear" }"#
         ].map(Fixture.json)
 

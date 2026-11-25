@@ -44,17 +44,17 @@ struct ResolvedDocumentReaderTests {
         animations: Fixture.presets.animations,
         filters: Fixture.presets.filters.merging([
             "film": #"""
-                { "description": "", "ops": [ { "op": "lut", "file": "/abs/film.cube", "amount": 0.5 },
-                                             { "op": "bloom", "amount": 0.5, "radius": 4, "color": "#FFFFFF" },
-                                             { "op": "levels", "input": [0, 1], "output": [0.1, 0.9] } ] }
+                { "description": "", "ops": [ { "kind": "lut", "file": "/abs/film.cube", "amount": 0.5 },
+                                             { "kind": "bloom", "amount": 0.5, "radius": 4, "color": "#FFFFFF" },
+                                             { "kind": "levels", "input": [0, 1], "output": [0.1, 0.9] } ] }
                 """#,
             "fade": #"""
                 { "description": "", "params": { "black": { "type": "number", "default": 0, "description": "the black" } },
-                  "ops": [ { "op": "levels", "input": [ { "param": "black" }, 1 ], "output": [0, 1] } ] }
+                  "ops": [ { "kind": "levels", "input": [ { "param": "black" }, 1 ], "output": [0, 1] } ] }
                 """#,
             "ripple": #"""
                 { "description": "", "params": { "drift": { "type": "number", "default": 0, "description": "the drift" } },
-                  "ops": [ { "op": "displace", "file": "/abs/matte.png", "amount": 4, "offset": [ { "param": "drift" }, 0 ] } ] }
+                  "ops": [ { "kind": "displace", "file": "/abs/matte.png", "amount": 4, "offset": [ { "param": "drift" }, 0 ] } ] }
                 """#
         ]) { $1 }
     )
@@ -141,7 +141,7 @@ struct ResolvedDocumentReaderTests {
         // A filter whose preset argument and mix move, beside an op written in place.
         #"""
         { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "in": 0, "out": 3,
-            "filter": [ "fade", { "op": "exposure", "ev": 0.5 } ],
+            "filter": [ "fade", { "kind": "exposure", "ev": 0.5 } ],
             "keyframes": [ { "at": 0, "filter": [ { "args": { "black": 0 } }, { "mix": 0 } ], "ease": "ease-in" },
                            { "at": 2, "filter": [ { "args": { "black": 0.2 } }, { "mix": 1 } ] } ] } ] }
         """#,
@@ -156,8 +156,8 @@ struct ResolvedDocumentReaderTests {
         // Audio filters: a storyline clip's held entries and a connected sound's band swept by its keyframes.
         #"""
         { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "in": 0, "out": 3,
-            "audioFilter": [ { "op": "gate", "threshold": -50 }, { "op": "compressor", "threshold": -18, "ratio": 3, "mix": 0.5 } ] } ],
-          "clips": [ { "kind": "media", "media": "/abs/bgm.m4a", "at": 0, "audioFilter": { "op": "eq", "bands": [ { "type": "peak", "gain": 6 } ] },
+            "audioFilter": [ { "kind": "gate", "threshold": -50 }, { "kind": "compressor", "threshold": -18, "ratio": 3, "mix": 0.5 } ] } ],
+          "clips": [ { "kind": "media", "media": "/abs/bgm.m4a", "at": 0, "audioFilter": { "kind": "eq", "bands": [ { "kind": "peak", "gain": 6 } ] },
                        "keyframes": [ { "at": 0, "audioFilter": { "bands": [ { "frequency": 100, "q": 2 } ] } },
                                       { "at": 2, "audioFilter": { "bands": [ { "frequency": 8000, "q": 0.5 } ] } } ] } ] }
         """#,
@@ -168,9 +168,9 @@ struct ResolvedDocumentReaderTests {
         #"""
         { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "in": 0, "out": 3 } ],
           "clips": [ { "kind": "media", "media": { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "out": 2 } ],
-                                  "audioFilter": { "op": "limiter", "ceiling": -6, "lookahead": 0.01 } },
-                       "picture": false, "at": 1, "audioFilter": { "op": "gate", "threshold": -50 } } ],
-          "audioFilter": [ { "op": "gate", "threshold": -60 }, { "op": "limiter", "ceiling": -1 } ],
+                                  "audioFilter": { "kind": "limiter", "ceiling": -6, "lookahead": 0.01 } },
+                       "picture": false, "at": 1, "audioFilter": { "kind": "gate", "threshold": -50 } } ],
+          "audioFilter": [ { "kind": "gate", "threshold": -60 }, { "kind": "limiter", "ceiling": -1 } ],
           "keyframes": [ { "at": 0, "audioFilter": [ { "mix": 0 }, { "gain": 0 } ], "ease": "ease-in" },
                          { "at": 2, "audioFilter": [ { "mix": 1 }, { "gain": 2 } ] } ] }
         """#,
@@ -178,7 +178,7 @@ struct ResolvedDocumentReaderTests {
         // argument moves the x of its offset.
         #"""
         { "kind": "sequence", "storyline": [
-            { "kind": "media", "media": "/abs/run.mp4", "in": 0, "out": 3, "filter": { "op": "displace", "file": "/abs/matte.png" },
+            { "kind": "media", "media": "/abs/run.mp4", "in": 0, "out": 3, "filter": { "kind": "displace", "file": "/abs/matte.png" },
               "keyframes": [ { "at": 0, "filter": { "amount": 0, "offset": [0, 0] } },
                              { "at": 2, "filter": { "amount": 6, "offset": [12, -8] } } ] },
             { "kind": "media", "media": "/abs/run.mp4", "in": 0, "out": 3, "filter": "ripple",
@@ -188,12 +188,12 @@ struct ResolvedDocumentReaderTests {
         // whose gain moves beside its nested sequence's, and the sequence's before a limiter.
         #"""
         { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "in": 0, "out": 3,
-            "audioFilter": { "op": "convolve", "file": "/abs/ding.wav", "mix": 0.4 } } ],
+            "audioFilter": { "kind": "convolve", "file": "/abs/ding.wav", "mix": 0.4 } } ],
           "clips": [ { "kind": "media", "media": { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "out": 2 } ],
-                                  "audioFilter": { "op": "convolve", "file": "/abs/bgm.m4a" } },
-                       "picture": false, "at": 1, "audioFilter": { "op": "convolve", "file": "/abs/ding.wav" },
+                                  "audioFilter": { "kind": "convolve", "file": "/abs/bgm.m4a" } },
+                       "picture": false, "at": 1, "audioFilter": { "kind": "convolve", "file": "/abs/ding.wav" },
                        "keyframes": [ { "at": 0, "audioFilter": { "gain": -12 } }, { "at": 1, "audioFilter": { "gain": 0 } } ] } ],
-          "audioFilter": [ { "op": "convolve", "file": "/abs/ding.wav", "gain": -6 }, { "op": "limiter" } ] }
+          "audioFilter": [ { "kind": "convolve", "file": "/abs/ding.wav", "gain": -6 }, { "kind": "limiter" } ] }
         """#,
         // A title of runs over two lines with a background, one run in the stroked subtitle style.
         #"""
@@ -1590,7 +1590,7 @@ struct ResolvedDocumentReaderTests {
                 { "kind": "rect", "area": [0, 0, 100, 100], "fill": "#0000008C", "at": [1, 2], "id": "dim" },
                 { "kind": "adjustment", "adjust": "mine/grade", "mask": { "shape": "rect", "area": [0, 0, 10, 10] }, "at": [1, 2] },
                 { "kind": "media", "media": "/abs/short.mp4", "in": 1, "out": 3, "speed": 2, "at": 1, "width": 300, "conform": "fill",
-                  "keyframes": [ { "at": 1, "opacity": 0, "ease": { "spring": { "bounce": 0.3 } } }, { "at": 1.5, "opacity": 1 } ] },
+                  "keyframes": [ { "at": 1, "opacity": 0, "ease": { "kind": "spring", "bounce": 0.3 } }, { "at": 1.5, "opacity": 1 } ] },
                 { "kind": "title", "text": "Hi", "style": "title", "at": [1, 2], "parent": "dim", "position": [50, 50] },
                 { "kind": "media", "media": "/abs/ding.wav", "at": 1.5, "fadeIn": 0.25, "fadeOut": 0.5 } ] } ] }
             """#

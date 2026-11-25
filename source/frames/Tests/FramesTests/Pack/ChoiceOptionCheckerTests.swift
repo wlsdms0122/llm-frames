@@ -33,7 +33,7 @@ struct ChoiceOptionCheckerTests {
             #"""
             { "description": "Springs up into place.",
               "params": { "bounce": { "type": "number", "default": 0.2, "description": "how far it overshoots" } },
-              "entrance": { "seconds": 0.5, "ease": { "spring": { "bounce": { "param": "bounce" } } },
+              "entrance": { "seconds": 0.5, "ease": { "kind": "spring", "bounce": { "param": "bounce" } },
                             "keys": [ { "t": 0, "y": 0.2 }, { "t": 1, "y": 0 } ] } }
             """#,
             in: "studio",
@@ -43,7 +43,7 @@ struct ChoiceOptionCheckerTests {
             #"""
             { "description": "Bounces up into place.",
               "params": { "bounce": { "type": "number", "default": 0.5, "description": "how far it overshoots" } },
-              "entrance": { "seconds": 0.5, "ease": { "spring": { "bounce": { "param": "bounce" } } },
+              "entrance": { "seconds": 0.5, "ease": { "kind": "spring", "bounce": { "param": "bounce" } },
                             "keys": [ { "t": 0, "y": 0.4 }, { "t": 1, "y": 0 } ] } }
             """#,
             in: "studio",
