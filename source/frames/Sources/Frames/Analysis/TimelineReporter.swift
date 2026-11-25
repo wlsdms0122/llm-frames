@@ -172,7 +172,7 @@ package struct TimelineReporter: Sendable {
             tracked: isSound ? nil : tracks.source(of: clip, in: plan).map { tracked($0, fps: plan.fps) },
             visible: clip.visible,
             sound: sound,
-            lane: clip.lane,
+            lane: lane(of: geometry.appearance.drawing),
             storyline: clip.storyline.map { plan.storyline[$0].place.description },
             parent: parent,
             animation: animation.isEmpty
@@ -310,6 +310,13 @@ package struct TimelineReporter: Sendable {
         case let .pinned(pinned):
             MediaKind(pinned: pinned)
         }
+    }
+
+    // The lane a planned clip's picture is stacked in, nil for a null and an audio clip, which draw none.
+    private func lane(of drawing: ClipDrawing) -> Int? {
+        guard case let .picture(composite) = drawing else { return nil }
+
+        return composite.lane
     }
 
     // The lane a clip's picture is stacked in, nil for a null, which draws none.
