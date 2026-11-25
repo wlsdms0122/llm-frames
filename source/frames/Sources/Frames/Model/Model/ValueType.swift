@@ -66,7 +66,7 @@ indirect enum ValueType: Equatable, Sendable {
     case filterChoice
     // An audio preset name, a preset entry, an audio op, or a list of at least one of those.
     case audioFilterChoice
-    case filterOperation
+    // An audio op of a preset's `ops`, of the kind its `kind` names, an `eq` holding at least one band.
     case audioOperation
     // A value its leaf's named check takes.
     case leaf(LeafCheck)

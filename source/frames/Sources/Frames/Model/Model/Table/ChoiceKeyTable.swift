@@ -43,35 +43,19 @@ enum ChoiceKeyTable {
     static let wholeAnimation = ValueType.oneOf([.name, .object(animationChoice(rules: []))])
     static let filterKind = "filter choice"
     static let filter = ValueType.filterChoice
-    // One preset of a filter choice, a name or a preset entry, alone or in its list. An op written in place is checked
-    // by its op's table.
-    static let filterPreset = ValueType.oneOf([
+    // One entry of a filter choice, alone or in its list: a preset name, a preset entry or an op written in place.
+    static let filterEntry = ValueType.oneOf([
         .name,
-        .object(ObjectTable(
-            kind: filterKind,
-            rules: [
-                KeyRule("kind", .literal([ValueStructure.presetKind]), isRequired: true),
-                KeyRule("preset", .name),
-                KeyRule("args", arguments),
-                KeyRule("mix", .number(.range(0...1)))
-            ],
-            groups: [KeyGroup(keys: ["args", "mix"], isExclusive: false)]
-        ))
+        .kinds(KindTable(kind: filterKind, tables: entryTables(FilterKeyTable.mixedOperationTables, kind: filterKind)))
     ])
     static let audioFilter = ValueType.audioFilterChoice
-    // One preset of an audio filter choice, a name or a preset entry, alone or in its list. An op written in place is
-    // checked by its op's table.
-    static let audioFilterPreset = ValueType.oneOf([
+    // One entry of an audio filter choice, alone or in its list: a preset name, a preset entry or an op written in
+    // place.
+    static let audioFilterEntry = ValueType.oneOf([
         .name,
-        .object(ObjectTable(
+        .kinds(KindTable(
             kind: AudioFilterKeyTable.kind,
-            rules: [
-                KeyRule("kind", .literal([ValueStructure.presetKind]), isRequired: true),
-                KeyRule("preset", .name),
-                KeyRule("args", arguments),
-                KeyRule("mix", .number(.range(0...1)))
-            ],
-            groups: [KeyGroup(keys: ["args", "mix"], isExclusive: false)]
+            tables: entryTables(AudioFilterKeyTable.mixedOperationTables, kind: AudioFilterKeyTable.kind)
         ))
     ])
     // A filter choice in a keyframe writes the leaves it moves over the clip's choice: an object of an entry's
@@ -89,15 +73,35 @@ enum ChoiceKeyTable {
         case animation, wholeAnimation, animationSide:
             .animation
 
-        case filter, filterPreset:
+        case filter, filterEntry:
             .filter
 
-        case audioFilter, audioFilterPreset:
+        case audioFilter, audioFilterEntry:
             .audio
 
         default:
             nil
         }
+    }
+
+    // The tables of a filter's or an audio filter's entries: its ops written in place, and a preset entry, of kind
+    // `preset`, which no op is named.
+    private static func entryTables(
+        _ operations: [String: ObjectTable],
+        kind: String
+    ) -> [String: ObjectTable] {
+        let preset = ObjectTable(
+            kind: kind,
+            rules: [
+                KeyRule("kind", .literal([ValueStructure.presetKind]), isRequired: true),
+                KeyRule("preset", .name),
+                KeyRule("args", arguments),
+                KeyRule("mix", .number(.range(0...1)))
+            ],
+            groups: [KeyGroup(keys: ["args", "mix"], isExclusive: false)]
+        )
+
+        return operations.merging([ValueStructure.presetKind: preset]) { _, preset in preset }
     }
 
     private static let unitRules = [

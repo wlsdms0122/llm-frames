@@ -38,7 +38,7 @@ enum PresetKeyTable {
         rules: [
             KeyRule("description", .text, isRequired: true),
             KeyRule("params", .parameters(ParameterKeyTable.filterPreset)),
-            KeyRule("ops", .list(.filterOperation), isRequired: true)
+            KeyRule("ops", .list(.kinds(FilterKeyTable.operationKinds)), isRequired: true)
         ]
     )
     static let audio = ObjectTable(

@@ -384,8 +384,8 @@ enum ClipKeyTable {
 
     // A look key's type in a keyframe: each leaf may be `null`, and its numbers may be any number, since timing checks
     // a leaf two keyframes write against its sampled domain and one a single keyframe writes against its domain. A
-    // gradient's offsets may be out of order, since sampling raises each to the one before it. A form's `kind`, a
-    // required key of one value, names the form the keyframe moves and is written as it is statically.
+    // gradient's offsets may be out of order, since sampling raises each to the one before it. The `kind` of an object
+    // of a `KindTable`, as a gradient's, names the form the keyframe moves and is written as it is statically.
     private static func keyframed(_ type: ValueType) -> ValueType {
         switch type {
         case ChoiceKeyTable.filter, ChoiceKeyTable.audioFilter:
@@ -405,17 +405,10 @@ enum ClipKeyTable {
             .oneOf(types.map(loosened))
 
         case let .object(table):
-            .object(ObjectTable(
-                kind: table.kind,
-                rules: table.rules.map { rule in
-                    guard rule.isRequired, case .exactly = rule.type else {
-                        return KeyRule(rule.name, keyframed(rule.type))
-                    }
+            .object(loosened(table, keeping: []))
 
-                    return rule
-                },
-                groups: table.groups
-            ))
+        case let .kinds(table):
+            .kinds(KindTable(kind: table.kind, tables: table.tables.mapValues { loosened($0, keeping: ["kind"]) }))
 
         case .number:
             .number(.any)
@@ -435,6 +428,18 @@ enum ClipKeyTable {
         default:
             type
         }
+    }
+
+    // Each key of the table but `kept` takes its keyframe type and is optional.
+    private static func loosened(
+        _ table: ObjectTable,
+        keeping kept: Set<String>
+    ) -> ObjectTable {
+        ObjectTable(
+            kind: table.kind,
+            rules: table.rules.map { rule in kept.contains(rule.name) ? rule : KeyRule(rule.name, keyframed(rule.type)) },
+            groups: table.groups
+        )
     }
 
     private static func shapeKeys(of shape: String) -> [String] {

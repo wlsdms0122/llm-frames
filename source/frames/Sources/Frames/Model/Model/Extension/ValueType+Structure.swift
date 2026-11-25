@@ -16,10 +16,14 @@
 // take the values its samples take.
 extension ValueType {
     // MARK: - Property
+    // The prefix of a `forms` value's form that an object's `kind` names.
+    private static let kindForm = "kind:"
+
     // MARK: - Initializer
-    // A form other than a string's is an object whose form key, `kind`, names it beside the keys of the form's body,
-    // and which messages call by that name before `kind`, as `linear gradient`. A list of tuples is a gradient's stops,
-    // the one tuple a look declares, and a choice inside a look is an `eq` band, an object its type's table checks.
+    // A form other than a string's is an object of the kinds of a `KindTable`, its `kind` naming the form beside the
+    // keys of the form's body, and messages call it by that name before `kind`, as `linear gradient`. A list of tuples
+    // is a gradient's stops, the one tuple a look declares, and a choice inside a look is an `eq` band, an object its
+    // kind's table checks.
     init(
         structure: ValueStructure,
         kind: String,
@@ -52,21 +56,20 @@ extension ValueType {
             self = .list(ValueType(structure: element, kind: kind, checksDomains: checksDomains))
 
         case let .forms(forms):
-            let objects = forms.compactMap { form -> ValueType? in
-                guard let separator = form.name.firstIndex(of: ":"), case let .object(body) = form.structure else {
-                    return nil
-                }
+            let tables = forms.reduce(into: [String: ObjectTable]()) { tables, form in
+                guard form.name.hasPrefix(Self.kindForm), case let .object(body) = form.structure else { return }
 
-                let key = String(form.name[..<separator])
-                let name = String(form.name[form.name.index(after: separator)...])
+                let name = String(form.name.dropFirst(Self.kindForm.count))
                 let table = ObjectTable(structure: body, kind: "\(name) \(kind)", checksDomains: checksDomains)
-                return .object(ObjectTable(
+                tables[name] = ObjectTable(
                     kind: table.kind,
-                    rules: [KeyRule(key, .exactly(.string(name)), isRequired: true)] + table.rules,
+                    rules: [KeyRule("kind", .literal([name]), isRequired: true)] + table.rules,
                     groups: table.groups
-                ))
+                )
             }
-            let types = (forms.contains { $0.name == ValueStructure.colorForm } ? [ValueType.color] : []) + objects
+            let colors = forms.contains { $0.name == ValueStructure.colorForm } ? [ValueType.color] : []
+            let objects = tables.isEmpty ? [] : [ValueType.kinds(KindTable(kind: kind, tables: tables))]
+            let types = colors + objects
             self = types.count == 1 ? types[0] : .oneOf(types)
 
         case .choice:

@@ -7,7 +7,9 @@
 
 // An ease written as an object, which names its ease with `kind`. A spring is the one such ease.
 enum EaseKeyTable {
-    static let spring = ObjectTable(
+    static let kinds = KindTable(kind: "ease", tables: ["spring": spring])
+
+    private static let spring = ObjectTable(
         kind: "ease",
         rules: [
             KeyRule("kind", .literal(["spring"]), isRequired: true),
