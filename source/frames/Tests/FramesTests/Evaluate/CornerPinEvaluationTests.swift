@@ -446,7 +446,7 @@ struct CornerPinEvaluationTests {
     @Test("a title with a corner pin, a background padding and a mask has its mask in its glyphs item's coordinates, its text box, as without a corner pin, and the text box at the padding in its box")
     func carriesTitleMasksWithGlyphs() throws {
         // Given
-        let title = ##""kind": "title", "text": "ab", "style": "title", "at": [0, 4], "paragraph": { "background": { "color": "#FF0000", "padding": [8, 12] } }, "mask": [ { "shape": "rect", "area": [0, 0, 20, 20] } ]"##
+        let title = ##""kind": "title", "text": "ab", "style": "title", "at": [0, 4], "paragraph": { "background": { "color": "#FF0000", "padding": [8, 12] } }, "mask": [ { "kind": "rect", "area": [0, 0, 20, 20] } ]"##
         let pinned = try resolved(#"{ "id": "card", \#(title), "cornerPin": \#(Self.pin) }"#)
         let placed = try resolved(#"{ "id": "card", \#(title), "position": [400, 300] }"#)
 

@@ -261,22 +261,22 @@ struct TemplateCheckTests {
         "a mask shape taken by a choice checks the mask with each option's keys and geometry",
         arguments: [
             (
-                #"{ "shape": { "param": "s" }, "area": [0, 0, 10, 10] }"#,
+                #"{ "kind": { "param": "s" }, "area": [0, 0, 10, 10] }"#,
                 #"["rect", "path"]"#,
                 #"clips[0].mask (path mask): unknown key "area""#
             ),
             (
-                #"{ "shape": { "param": "s" }, "points": [[0, 0]] }"#,
+                #"{ "kind": { "param": "s" }, "points": [[0, 0]] }"#,
                 #"["path", "rect"]"#,
                 "clips[0].mask.points (path mask): expected a list of at least two vertices, each a point or {vertex, inTangent, outTangent}"
             ),
             (
-                #"{ "shape": { "param": "s" }, "feather": 2 }"#,
+                #"{ "kind": { "param": "s" }, "feather": 2 }"#,
                 #"["rect", "ellipse"]"#,
                 "clips[0].mask (rect mask): needs one of area, width, height, position"
             ),
             (
-                #"{ "shape": { "param": "s" }, "area": [0, 0, 10, 10], "width": 10 }"#,
+                #"{ "kind": { "param": "s" }, "area": [0, 0, 10, 10], "width": 10 }"#,
                 #"["ellipse", "rect"]"#,
                 #"clips[0].mask (ellipse mask): takes only one of "area", "width""#
             )

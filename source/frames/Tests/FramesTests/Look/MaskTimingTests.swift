@@ -22,7 +22,7 @@ struct MaskTimingTests {
     @Test("a mask's shape, invert or mode in a keyframe stops, naming the keyframe")
     func refusesStaticLeafInKeyframe() throws {
         // Given
-        let written = try value(##"[{ "shape": "rect", "area": [0, 0, 10, 10] }]"##)
+        let written = try value(##"[{ "kind": "rect", "area": [0, 0, 10, 10] }]"##)
 
         // When, Then
         for key in ["shape", "invert", "mode"] {
@@ -37,7 +37,7 @@ struct MaskTimingTests {
     @Test("a keyframe's mask list of another length, or a path of another number of points, stops")
     func refusesOtherLengths() throws {
         // Given
-        let written = try value(##"[{ "shape": "path", "points": [[0, 0], [10, 0], [0, 10]] }]"##)
+        let written = try value(##"[{ "kind": "path", "points": [[0, 0], [10, 0], [0, 10]] }]"##)
         let masks = try keyframes([(0, ##"[{ "feather": 1 }, { "feather": 2 }]"##)])
         let points = try keyframes([(0, ##"[{ "points": [[0, 0], [10, 0], [10, 10], [0, 10]] }]"##)])
 
@@ -53,9 +53,9 @@ struct MaskTimingTests {
     @Test("a keyframe's geometry in another form than the clip's or an earlier keyframe's stops")
     func refusesOtherGeometryForm() throws {
         // Given
-        let written = try value(##"[{ "shape": "rect", "area": [0, 0, 10, 10] }]"##)
+        let written = try value(##"[{ "kind": "rect", "area": [0, 0, 10, 10] }]"##)
         let box = try keyframes([(0, ##"[{ "position": [5, 5] }]"##)])
-        let bare = try value(##"[{ "shape": "rect" }]"##)
+        let bare = try value(##"[{ "kind": "rect" }]"##)
         let mixed = try keyframes([(0, ##"[{ "area": [0, 0, 10, 10] }]"##), (1, ##"[{ "width": 20 }]"##)])
 
         // When, Then
@@ -70,7 +70,7 @@ struct MaskTimingTests {
     @Test("a mask moved in every keyframe writes its geometry only there, and its keyframes give the form")
     func takesGeometryFormFromKeyframes() throws {
         // Given
-        let written = try value(##"[{ "shape": "ellipse", "invert": true }]"##)
+        let written = try value(##"[{ "kind": "ellipse", "invert": true }]"##)
         let keyframes = try keyframes([(0, ##"[{ "area": [0, 0, 10, 10] }]"##), (2, ##"[{ "area": [10, 0, 10, 10], "feather": 4 }]"##)])
 
         // When
@@ -91,7 +91,7 @@ struct MaskTimingTests {
     @Test("a path mask in a list whose points only its keyframes write times each point over them")
     func takesPointsFromKeyframes() throws {
         // Given
-        let written = try value(##"[{ "shape": "rect", "area": [0, 0, 10, 10] }, { "shape": "path", "mode": "subtract" }]"##)
+        let written = try value(##"[{ "kind": "rect", "area": [0, 0, 10, 10] }, { "kind": "path", "mode": "subtract" }]"##)
         let keyframes = try keyframes([
             (0, ##"[{ }, { "points": [[0, 0], [10, 0], [5, 10]] }]"##),
             (1, ##"[{ "feather": 1 }, { }]"##),
@@ -119,7 +119,7 @@ struct MaskTimingTests {
     @Test("a geometry leaf written on the clip and in every keyframe that writes it stops")
     func refusesStaticAndKeyframedGeometry() throws {
         // Given
-        let written = try value(##"[{ "shape": "rect", "area": [0, 0, 10, 10] }]"##)
+        let written = try value(##"[{ "kind": "rect", "area": [0, 0, 10, 10] }]"##)
         let keyframes = try keyframes([(0, ##"[{ "area": [0, 0, 10, 10] }]"##), (1, ##"[{ "area": [5, 0, 10, 10] }]"##)])
 
         // When, Then

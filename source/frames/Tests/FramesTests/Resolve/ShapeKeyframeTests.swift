@@ -392,7 +392,7 @@ struct ShapeKeyframeTests {
     @Test(
         "a stop naming a colour the theme lacks, a keyframe of another kind, and a null stop leaf in keyframes giving another number of stops than the style's, whose list replaces the style's, stop",
         arguments: [
-            ##""fill": { "linear": { "from": [0, 0], "to": [1, 0], "stops": [[0, "ink"], [1, "#FFFFFF"]] } }"##,
+            ##""fill": { "kind": "linear", "from": [0, 0], "to": [1, 0], "stops": [[0, "ink"], [1, "#FFFFFF"]] }"##,
             ##""style": "ramp", "keyframes": [ { "at": 0, "fill": { "kind": "linear", "stops": [[0, null], [1, null]] } }, { "at": 1, "fill": { "kind": "linear", "stops": [[0.5, null], [1, null]] } } ]"##,
             ##""style": "ramp", "keyframes": [ { "at": 0, "fill": { "kind": "radial", "center": [0, 0] } }, { "at": 1, "fill": { "kind": "radial", "center": [1, 1] } } ]"##
         ]

@@ -134,15 +134,15 @@ struct MaskEndToEndTests {
         "a stop on a mask written alone names it without an index, and one in a list with its index",
         arguments: [
             (
-                #""mask": { "shape": "rect" }, "keyframes": [ { "at": 0, "mask": { "area": [0, 0, 10, 10] } }, { "at": 1, "mask": { "width": 10 } } ]"#,
+                #""mask": { "kind": "rect" }, "keyframes": [ { "at": 0, "mask": { "area": [0, 0, 10, 10] } }, { "at": 1, "mask": { "width": 10 } } ]"#,
                 "clips[0].keyframes[1].mask.width (keyframe): the clip and its keyframes write different forms: area, width"
             ),
             (
-                #""mask": [ { "shape": "rect" } ], "keyframes": [ { "at": 0, "mask": { "area": [0, 0, 10, 10] } }, { "at": 1, "mask": [ { "width": 10 } ] } ]"#,
+                #""mask": [ { "kind": "rect" } ], "keyframes": [ { "at": 0, "mask": { "area": [0, 0, 10, 10] } }, { "at": 1, "mask": [ { "width": 10 } ] } ]"#,
                 "clips[0].keyframes[1].mask[0].width (keyframe): the clip and its keyframes write different forms: area, width"
             ),
             (
-                #""mask": { "shape": "rect", "area": [0, 0, 10, 10] }, "keyframes": [ { "at": 0, "mask": [ { "area": [0, 0, 20, 20] } ] } ]"#,
+                #""mask": { "kind": "rect", "area": [0, 0, 10, 10] }, "keyframes": [ { "at": 0, "mask": [ { "area": [0, 0, 20, 20] } ] } ]"#,
                 "clips[0].mask.area: written as a static value and in every keyframe that writes it, so the static value never shows"
             ),
             (

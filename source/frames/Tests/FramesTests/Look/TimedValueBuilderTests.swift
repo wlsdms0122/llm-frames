@@ -56,8 +56,8 @@ struct TimedValueBuilderTests {
         // Given
         let structure = ValueStructure.forms([("color", .leaf(.color)), ("linear", .object(ObjectStructure([])))])
         let colors = try keyframes([(0, ##""#FF0000""##), (1, ##""#0000FF""##)], as: structure)
-        let gradient = try keyframes([(0, ##"{ "linear": {} }"##)], as: structure)
-        let style = reader.value(of: try Fixture.json(##"{ "linear": {} }"##), as: structure)
+        let gradient = try keyframes([(0, ##"{"kind": "linear"}"##)], as: structure)
+        let style = reader.value(of: try Fixture.json(##"{"kind": "linear"}"##), as: structure)
 
         // When
         let own = try sut.ownLayer(written: nil, keyframes: colors, as: structure, place: place)

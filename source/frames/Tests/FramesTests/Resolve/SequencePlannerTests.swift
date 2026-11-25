@@ -683,51 +683,51 @@ struct SequencePlannerTests {
         arguments: [
             (
                 "clips",
-                #"{ "shape": "rect" }"#,
+                #"{ "kind": "rect" }"#,
                 #"{ "area": [0, 0, 10, 10] }"#,
                 #"[ { "area": [0, 0, 10, 10] }, { "area": [0, 0, 20, 20] } ]"#,
                 "clips[0].keyframes[1].mask (keyframe): lists of different lengths: 1, 2"
             ),
             (
                 "clips",
-                #"{ "shape": "rect" }"#,
+                #"{ "kind": "rect" }"#,
                 #"{ "area": [0, 0, 10, 10] }"#,
-                #"{ "shape": "ellipse", "area": [0, 0, 10, 10] }"#,
+                #"{ "kind": "ellipse", "area": [0, 0, 10, 10] }"#,
                 "clips[0].keyframes[1].mask.shape (keyframe): a name, a boolean, a form or a static number is static and is written on the clip or the sequence, not in a keyframe"
             ),
             (
                 "clips",
-                #"{ "shape": "rect" }"#,
+                #"{ "kind": "rect" }"#,
                 #"{ "area": [0, 0, 10, 10] }"#,
                 #"{ "width": 10 }"#,
                 "clips[0].keyframes[1].mask.width (keyframe): the clip and its keyframes write different forms: area, width"
             ),
             (
                 "clips",
-                #"{ "shape": "rect" }"#,
+                #"{ "kind": "rect" }"#,
                 #"{ "area": [0, 0, 10, 10] }"#,
                 #"{ "area": [0, 0, 10, 10], "invert": true }"#,
                 "clips[0].keyframes[1].mask.invert (keyframe): a name, a boolean, a form or a static number is static and is written on the clip or the sequence, not in a keyframe"
             ),
             (
                 "clips",
-                #"[ { "shape": "rect" }, { "shape": "rect", "area": [0, 0, 5, 5] } ]"#,
+                #"[ { "kind": "rect" }, { "kind": "rect", "area": [0, 0, 5, 5] } ]"#,
                 #"[ { "area": [0, 0, 10, 10] }, { "feather": 1 } ]"#,
                 #"[ { "area": [0, 0, 10, 10] }, { "mode": "subtract" } ]"#,
                 "clips[0].keyframes[1].mask[1].mode (keyframe): a name, a boolean, a form or a static number is static and is written on the clip or the sequence, not in a keyframe"
             ),
             (
                 "clips",
-                #"{ "shape": "path" }"#,
+                #"{ "kind": "path" }"#,
                 #"{ "points": [[0, 0], [10, 0], [5, 10]] }"#,
                 #"{ "points": [[0, 0], [10, 0], [10, 10], [0, 10]] }"#,
                 "clips[0].keyframes[1].mask.points (keyframe): lists of different lengths: 3, 4"
             ),
             (
                 "storyline",
-                #"{ "shape": "rect" }"#,
+                #"{ "kind": "rect" }"#,
                 #"{ "area": [0, 0, 10, 10] }"#,
-                #"{ "shape": "ellipse" }"#,
+                #"{ "kind": "ellipse" }"#,
                 "storyline[0].keyframes[1].mask.shape (keyframe): a name, a boolean, a form or a static number is static and is written on the clip or the sequence, not in a keyframe"
             )
         ]

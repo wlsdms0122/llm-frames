@@ -329,12 +329,12 @@ struct MotionBlurEvaluationTests {
         "a complete wipe on an adjustment with a feathered or inverted mask, or one its animation moves, is written in every sample as the bounds of what the adjustment draws",
         arguments: [
             (
-                #""animation": "mine/wipe-in", "mask": { "shape": "rect", "area": [100, 100, 400, 300], "feather": 8 }"#,
+                #""animation": "mine/wipe-in", "mask": { "kind": "rect", "area": [100, 100, 400, 300], "feather": 8 }"#,
                 2.0,
                 Rectangle(x: 68, y: 68, width: 464, height: 364) as Rectangle?
             ),
             (
-                #""animation": "mine/wipe-in", "mask": { "shape": "ellipse", "area": [100, 100, 400, 300], "invert": true }"#,
+                #""animation": "mine/wipe-in", "mask": { "kind": "ellipse", "area": [100, 100, 400, 300], "invert": true }"#,
                 2.0,
                 Rectangle(x: 0, y: 0, width: 1920, height: 1080)
             ),
