@@ -16,8 +16,9 @@ import FramesTestMedia
 import Testing
 
 // Transcodes real files through the `avfoundation` decoder and encoder. Serialized, since the hardware encoders are
-// shared by every test.
-@Suite("Transcode Output Tests", .serialized, .timeLimit(.minutes(5)))
+// shared by every test, and so that the tests running at once read far fewer files with AVFoundation than the 64 at
+// once at which its reads stop finishing (FRAMES-21 Notes).
+@Suite("Transcode Output Tests", .serialized, .ownThread, .timeLimit(.minutes(5)))
 struct TranscodeOutputTests {
     // MARK: - Property
     // These tests read the file a writer leaves and none of them is about how long the writer takes, so the encoder

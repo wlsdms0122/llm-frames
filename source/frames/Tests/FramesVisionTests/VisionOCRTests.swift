@@ -14,9 +14,9 @@ import FramesTestMedia
 import FramesVision
 import Testing
 
-// Serialized, since AVAssetReader needs a free thread of the shared pool, which tests reading video at once can
-// all hold.
-@Suite("VisionOCR Tests", .serialized)
+// Serialized, so that the tests running at once read far fewer files with AVFoundation than the 64 at once at which its
+// reads stop finishing (FRAMES-21 Notes).
+@Suite("VisionOCR Tests", .serialized, .ownThread)
 struct VisionOCRTests {
     // MARK: - Property
     private static let languages = ["ko-KR", "en-US"].compactMap(LanguageTag.init)

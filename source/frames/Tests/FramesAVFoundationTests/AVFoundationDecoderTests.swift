@@ -13,9 +13,9 @@ import FramesAVFoundation
 import FramesTestMedia
 import Testing
 
-// Serialized, since AVAssetReader needs a free thread of the shared pool, which tests reading video at once can
-// all hold.
-@Suite("AVFoundationDecoder Tests", .serialized)
+// Serialized, so that the tests running at once read far fewer files with AVFoundation than the 64 at once at which its
+// reads stop finishing (FRAMES-21 Notes).
+@Suite("AVFoundationDecoder Tests", .serialized, .ownThread)
 struct AVFoundationDecoderTests {
     // MARK: - Property
     // A file name, the times frames are written at, the session's start and end, the delay before the video, the
@@ -82,6 +82,33 @@ struct AVFoundationDecoderTests {
         // Then
         #expect(pictures.map(code) == Array(evenTimes.indices))
         #expect(pictures.allSatisfy { $0.width == 320 && $0.height == 240 && $0.depth == .halfFloat })
+    }
+
+    @Test("seventy videos read in turn, past the 64 readers AVFoundation decodes at once, each give the frame asked for")
+    func readsMoreVideosThanReadersOpen() async throws {
+        // Given
+        let directory = try TemporaryDirectory()
+        let first = directory.file("video-0.mp4")
+        try await MovieWriter(size: size, frameTimes: [0, 1.0 / 30], end: 2.0 / 30).write(to: first) { canvas, index in
+            canvas.fill(red: 128, green: 128, blue: 128)
+            canvas.drawCode(index)
+        }
+        let files = try [first] + (1..<70).map { number in
+            let file = directory.file("video-\(number).mp4")
+            try FileManager.default.copyItem(atPath: first, toPath: file)
+
+            return file
+        }
+        let sut = AVFoundationDecoder()
+        let media = files.map { MediaFile(path: $0, size: size, frameTimes: [0, 1.0 / 30]) }
+
+        // When
+        let pictures = try [0, 1].flatMap { index in
+            try media.map { try sut.picture(of: $0, atFrame: index).bitmap }
+        }
+
+        // Then
+        #expect(pictures.map(code) == Array(repeating: 0, count: 70) + Array(repeating: 1, count: 70))
     }
 
     @Test("frames read forward, by steps of two, backward and in two readings are the pictures each read alone gives")

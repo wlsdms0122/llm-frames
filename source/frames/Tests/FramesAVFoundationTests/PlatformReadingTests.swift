@@ -12,8 +12,9 @@ import FramesTestMedia
 import Testing
 
 // The decoder's colour reading of a file, and its `platform` reading: Core Image's colour management into a colour
-// space, taken to working values by that space's formulas.
-@Suite("Platform Reading Tests", .serialized)
+// space, taken to working values by that space's formulas. Serialized, so that the tests running at once read far fewer
+// files with AVFoundation than the 64 at once at which its reads stop finishing (FRAMES-21 Notes).
+@Suite("Platform Reading Tests", .serialized, .ownThread)
 struct PlatformReadingTests {
     // MARK: - Property
     private static let size = Size(width: 4, height: 2)

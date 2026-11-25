@@ -11,9 +11,9 @@ import Foundation
 import FramesTestMedia
 import Testing
 
-// Serialized, since AVAssetReader needs a free thread of the shared pool, which tests reading sound at once can all
-// hold.
-@Suite("AVFoundationMixer Tests", .serialized)
+// Serialized, so that the tests running at once read far fewer files with AVFoundation than the 64 at once at which its
+// reads stop finishing (FRAMES-21 Notes).
+@Suite("AVFoundationMixer Tests", .serialized, .ownThread)
 struct AVFoundationMixerTests {
     // MARK: - Property
     // The channel of a 5.1 file that alone holds the tone, and the gains it reaches the left and right outputs at.

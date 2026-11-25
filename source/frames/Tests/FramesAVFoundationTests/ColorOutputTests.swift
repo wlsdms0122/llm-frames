@@ -16,9 +16,10 @@ import Testing
 
 // What the encoder writes in a colour space (FRAMES-26 Output): images and videos whose encoded values, read back by
 // ImageIO and AVFoundation and taken to working values by the space's formulas, are the working values written, tagged
-// with the space; analysis pictures; and the HDR targets it refuses. Serialized, since the hardware encoders and
-// AVAssetReader are shared by every test.
-@Suite("Color Output Tests", .serialized)
+// with the space; analysis pictures; and the HDR targets it refuses. Serialized, since the hardware encoders are shared
+// by every test, and so that the tests running at once read far fewer files with AVFoundation than the 64 at once at
+// which its reads stop finishing (FRAMES-21 Notes).
+@Suite("Color Output Tests", .serialized, .ownThread)
 struct ColorOutputTests {
     // MARK: - Property
     private static let size = Size(width: 64, height: 48)

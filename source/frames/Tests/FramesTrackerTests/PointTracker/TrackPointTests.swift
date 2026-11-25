@@ -12,9 +12,9 @@ import FramesTestMedia
 @testable import FramesTracker
 import Testing
 
-// Serialized, since AVAssetReader needs a free thread of the shared pool, which tests reading video at once can
-// all hold.
-@Suite("TrackPoint Tests", .serialized)
+// Serialized, so that the tests running at once read far fewer files with AVFoundation than the 64 at once at which its
+// reads stop finishing (FRAMES-21 Notes).
+@Suite("TrackPoint Tests", .serialized, .ownThread)
 struct TrackPointTests {
     // MARK: - Property
     private let decoder = AVFoundationDecoder()

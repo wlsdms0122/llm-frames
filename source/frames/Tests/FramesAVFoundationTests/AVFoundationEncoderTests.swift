@@ -14,8 +14,9 @@ import FramesAVFoundation
 import FramesTestMedia
 import Testing
 
-// Serialized, since the hardware encoders and AVAssetReader are shared by every test.
-@Suite("AVFoundationEncoder Tests", .serialized, .timeLimit(.minutes(5)))
+// Serialized, since the hardware encoders are shared by every test, and so that the tests running at once read far
+// fewer files with AVFoundation than the 64 at once at which its reads stop finishing (FRAMES-21 Notes).
+@Suite("AVFoundationEncoder Tests", .serialized, .ownThread, .timeLimit(.minutes(5)))
 struct AVFoundationEncoderTests {
     // MARK: - Property
     // These tests read the file a writer leaves and none of them is about how long the writer takes, so the encoder

@@ -13,9 +13,9 @@ import Testing
 
 @testable import Frames
 
-// Serialized, since AVAssetReader needs a free thread of the shared pool, which tests reading video at once can
-// all hold.
-@Suite("TrackReporter Tests", .serialized)
+// Serialized, so that the tests running at once read far fewer files with AVFoundation than the 64 at once at which its
+// reads stop finishing (FRAMES-21 Notes).
+@Suite("TrackReporter Tests", .serialized, .ownThread)
 struct TrackReporterTests {
     // MARK: - Property
     // `/abs/clip.mov` has four frames a second for a second, and its target moves up 40 pixels a second wherever it

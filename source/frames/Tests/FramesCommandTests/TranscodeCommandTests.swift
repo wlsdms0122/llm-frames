@@ -12,9 +12,10 @@ import Testing
 
 @testable import FramesCommand
 
-// `transcode` runs end to end on the real decoder and encoder. Serialized, since AVAssetReader needs a free thread of
-// the shared pool and a video transcode encodes.
-@Suite("TranscodeCommand Tests", .serialized)
+// `transcode` runs end to end on the real decoder and encoder. Serialized, so that the tests running at once read far
+// fewer files with AVFoundation than the 64 at once at which its reads stop finishing (FRAMES-21 Notes), and since a
+// video transcode encodes.
+@Suite("TranscodeCommand Tests", .serialized, .ownThread)
 struct TranscodeCommandTests {
     // MARK: - Property
     private let sut: TestShell
