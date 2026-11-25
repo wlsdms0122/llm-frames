@@ -8,13 +8,15 @@
 import Foundation
 import FramesAVFoundation
 import FramesQuartz
+import FramesTestMedia
 import Testing
 
 @testable import Frames
 
 // Titles animated by word drawn by the real renderer from documents resolved on the real shaper, against the same
-// titles not animated by unit. Serialized, since AVAssetReader needs a free thread of the shared pool.
-@Suite("Title Unit Render Tests", .serialized, .blockingLimit)
+// titles not animated by unit. Serialized, so that the tests running at once read far fewer files with AVFoundation
+// than the 64 at once at which its reads stop finishing (FRAMES-21 Notes).
+@Suite("Title Unit Render Tests", .serialized, .ownThread)
 struct TitleUnitRenderTests {
     // MARK: - Property
     private let presets = [

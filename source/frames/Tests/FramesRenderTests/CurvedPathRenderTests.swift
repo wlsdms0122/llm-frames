@@ -8,14 +8,16 @@
 import Foundation
 import FramesAVFoundation
 import FramesQuartz
+import FramesTestMedia
 import Testing
 
 @testable import Frames
 
-// Path shapes and path masks with tangents, resolved, evaluated and drawn: white on a black 320 x 240 frame whose
-// theme lengths are output pixels. A pixel is white when its red is above 0.99 and black when below 0.01, each probe
-// wholly inside or outside what it tests. Serialized, since AVAssetReader needs a free thread of the shared pool.
-@Suite("Curved Path Render Tests", .serialized, .blockingLimit)
+// Path shapes and path masks with tangents, resolved, evaluated and drawn: white on a black 320 x 240 frame whose theme
+// lengths are output pixels. A pixel is white when its red is above 0.99 and black when below 0.01, each probe wholly
+// inside or outside what it tests. Serialized, so that the tests running at once read far fewer files with AVFoundation
+// than the 64 at once at which its reads stop finishing (FRAMES-21 Notes).
+@Suite("Curved Path Render Tests", .serialized, .ownThread)
 struct CurvedPathRenderTests {
     // MARK: - Property
     private let sut = QuartzRenderer(decoder: AVFoundationDecoder())

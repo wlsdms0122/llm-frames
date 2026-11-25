@@ -16,9 +16,9 @@ import Testing
 
 // Tracked clips with corner pins over a real video, given track data written or followed by the `point` tracker as the
 // `track` command does, resolved on the real providers, and evaluated or drawn by the real renderer (FRAMES-12,
-// FRAMES-27). Serialized, since AVAssetReader needs a free thread
-// of the shared pool.
-@Suite("Tracked Corner Pin Render Tests", .serialized, .blockingLimit)
+// FRAMES-27). Serialized, so that the tests running at once read far fewer files with AVFoundation than the 64 at once
+// at which its reads stop finishing (FRAMES-21 Notes).
+@Suite("Tracked Corner Pin Render Tests", .serialized, .ownThread)
 struct TrackedCornerPinRenderTests {
     // MARK: - Property
     private static let frameCount = 10

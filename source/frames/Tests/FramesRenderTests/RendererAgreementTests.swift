@@ -14,7 +14,7 @@ import Testing
 @testable import Frames
 
 // `metal` against `quartz`, the reference renderer, on the same display lists and decoder (FRAMES-24 Tolerances).
-@Suite("Renderer Agreement Tests", .serialized, .blockingLimit)
+@Suite("Renderer Agreement Tests", .serialized, .ownThread)
 struct RendererAgreementTests {
     // MARK: - Property
     // MARK: - Initializer

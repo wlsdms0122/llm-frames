@@ -15,8 +15,9 @@ import Testing
 
 // Remapped clips drawn by the real decoder and renderer from documents resolved on the real providers, read as frames
 // before encoding. The code movie shows the value i on its frame i, one frame every tenth of a second from 0 to 1.1.
-// Serialized, since AVAssetReader needs a free thread of the shared pool.
-@Suite("TimeRemap Render Tests", .serialized, .blockingLimit)
+// Serialized, so that the tests running at once read far fewer files with AVFoundation than the 64 at once at which its
+// reads stop finishing (FRAMES-21 Notes).
+@Suite("TimeRemap Render Tests", .serialized, .ownThread)
 struct TimeRemapRenderTests {
     // MARK: - Property
     private static let codeFrames = 12

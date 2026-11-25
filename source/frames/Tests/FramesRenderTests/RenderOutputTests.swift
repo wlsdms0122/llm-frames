@@ -14,9 +14,10 @@ import Testing
 
 @testable import Frames
 
-// Masters and deliveries written by `RenderPipeline` on the real roles, read back through AVFoundation and the
-// decoder. Serialized, since AVAssetReader needs a free thread of the shared pool and each test encodes.
-@Suite("Render Output Tests", .serialized, .blockingLimit, .timeLimit(.minutes(5)))
+// Masters and deliveries written by `RenderPipeline` on the real roles, read back through AVFoundation and the decoder.
+// Serialized, so that the tests running at once read far fewer files with AVFoundation than the 64 at once at which its
+// reads stop finishing (FRAMES-21 Notes), and since each test encodes.
+@Suite("Render Output Tests", .serialized, .ownThread, .timeLimit(.minutes(5)))
 struct RenderOutputTests {
     // MARK: - Property
     // These tests read the files a render leaves and none of them is about how long a writer takes, so the encoder
