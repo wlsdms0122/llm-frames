@@ -33,9 +33,9 @@ extension QuartzRenderer: Renderer {
         try DisplayListChecker(tables: tables).check(list)
     }
 
-    package func frame(of list: DisplayList) throws -> Bitmap {
+    package func frame(of list: DisplayList) throws -> Pixels {
         try autoreleasepool {
-            try FrameDrawer(pictures: pictures, tables: tables, fonts: fonts).draw(list).bitmap()
+            .bitmap(try FrameDrawer(pictures: pictures, tables: tables, fonts: fonts).draw(list).bitmap())
         }
     }
 }

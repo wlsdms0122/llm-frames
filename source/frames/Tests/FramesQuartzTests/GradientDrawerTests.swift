@@ -34,7 +34,7 @@ struct GradientDrawerTests {
         let path = filled(.rect(Rectangle(x: 0, y: 0, width: 100, height: 100), radius: 0), with: .gradient(gradient))
 
         // When
-        let bitmap = try sut.frame(of: list([path]))
+        let bitmap = try sut.bitmap(of: list([path]))
 
         // Then
         for x in [2, 25, 40, 50, 65, 97] {
@@ -65,7 +65,7 @@ struct GradientDrawerTests {
         )
 
         // When
-        let bitmap = try sut.frame(of: list)
+        let bitmap = try sut.bitmap(of: list)
 
         // Then
         let middle = bitmap.pixel(x: 49, y: 50)[0] / 2 + bitmap.pixel(x: 50, y: 50)[0] / 2
@@ -83,7 +83,7 @@ struct GradientDrawerTests {
         let path = filled(.rect(Rectangle(x: 0, y: 0, width: 100, height: 100), radius: 0), with: .gradient(gradient))
 
         // When
-        let bitmap = try sut.frame(of: list([path]))
+        let bitmap = try sut.bitmap(of: list([path]))
 
         // Then
         expect(bitmap, 48, 50, [1, 0, 0, 1])
@@ -102,7 +102,7 @@ struct GradientDrawerTests {
         let path = filled(.rect(Rectangle(x: 0, y: 30, width: 100, height: 40), radius: 0), with: .gradient(gradient))
 
         // When
-        let bitmap = try sut.frame(of: list([path]))
+        let bitmap = try sut.bitmap(of: list([path]))
 
         // Then
         for (x, y) in [(49, 49), (75, 50), (50, 31), (0, 30), (99, 30), (0, 69), (99, 69)] {
@@ -129,7 +129,7 @@ struct GradientDrawerTests {
         let list = DisplayList(size: Size(width: 100, height: 100), background: Color(written: "#00000000"), seed: 0, items: [item])
 
         // When
-        let bitmap = try sut.frame(of: list)
+        let bitmap = try sut.bitmap(of: list)
 
         // Then
         for (x, y, isInked) in [(66, 50, true), (50, 56, true), (72, 50, false), (50, 62, false), (64, 58, false)] {
@@ -149,8 +149,8 @@ struct GradientDrawerTests {
         }
 
         // When
-        let white = try sut.frame(of: list([vignette("#FFFFFF00")]))
-        let black = try sut.frame(of: list([vignette("#00000000")]))
+        let white = try sut.bitmap(of: list([vignette("#FFFFFF00")]))
+        let black = try sut.bitmap(of: list([vignette("#00000000")]))
 
         // Then
         for y in stride(from: 0, to: 100, by: 7) {
@@ -171,7 +171,7 @@ struct GradientDrawerTests {
         let path = filled(.rect(Rectangle(x: 20, y: 20, width: 60, height: 60), radius: 0), with: .gradient(gradient))
 
         // When
-        let bitmap = try sut.frame(of: list([path]))
+        let bitmap = try sut.bitmap(of: list([path]))
 
         // Then
         let half = 128.0 / 255
@@ -196,7 +196,7 @@ struct GradientDrawerTests {
         )
 
         // When
-        let bitmap = try sut.frame(of: list([path]))
+        let bitmap = try sut.bitmap(of: list([path]))
 
         // Then
         expect(bitmap, 30, 50, gradient.channels(at: 0.305))

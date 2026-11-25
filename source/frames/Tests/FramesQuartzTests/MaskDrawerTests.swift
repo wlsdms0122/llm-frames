@@ -42,7 +42,7 @@ struct MaskDrawerTests {
         let mask = mask(Rectangle(x: 10, y: 10, width: 20, height: 20), mode: mode)
 
         // When
-        let bitmap = try sut.frame(of: list(masks: [mask]))
+        let bitmap = try sut.bitmap(of: list(masks: [mask]))
 
         // Then
         expect(alpha(of: bitmap, x: 20, y: 20), equals: inside)
@@ -60,7 +60,7 @@ struct MaskDrawerTests {
         ]
 
         // When
-        let bitmap = try sut.frame(of: list(masks: masks))
+        let bitmap = try sut.bitmap(of: list(masks: masks))
 
         // Then
         expect(alpha(of: bitmap, x: 5, y: 5), equals: 1)
@@ -79,7 +79,7 @@ struct MaskDrawerTests {
         ]
 
         // When
-        let bitmap = try sut.frame(of: list(masks: masks))
+        let bitmap = try sut.bitmap(of: list(masks: masks))
 
         // Then
         expect(alpha(of: bitmap, x: 12, y: 20), equals: 1)
@@ -93,7 +93,7 @@ struct MaskDrawerTests {
         let mask = mask(Rectangle(x: 10, y: 10, width: 20, height: 20), isInverted: true)
 
         // When
-        let bitmap = try sut.frame(of: list(masks: [mask]))
+        let bitmap = try sut.bitmap(of: list(masks: [mask]))
 
         // Then
         expect(alpha(of: bitmap, x: 20, y: 20), equals: 0)
@@ -108,7 +108,7 @@ struct MaskDrawerTests {
         let mask = mask(Rectangle(x: -100, y: -100, width: 120.5, height: 240), feather: 4)
 
         // When
-        let bitmap = try sut.frame(of: list(masks: [mask]))
+        let bitmap = try sut.bitmap(of: list(masks: [mask]))
 
         // Then
         let values = (0..<40).map { alpha(of: bitmap, x: $0, y: 20) }
@@ -133,7 +133,7 @@ struct MaskDrawerTests {
         )
 
         // When
-        let bitmap = try sut.frame(of: list(masks: [mask]))
+        let bitmap = try sut.bitmap(of: list(masks: [mask]))
 
         // Then
         expect(alpha(of: bitmap, x: 26, y: 10), equals: 1)
@@ -161,8 +161,8 @@ struct MaskDrawerTests {
         )
 
         // When
-        let cut = try sut.frame(of: list(masks: [triangle]))
-        let round = try sut.frame(of: list(masks: [ellipse]))
+        let cut = try sut.bitmap(of: list(masks: [triangle]))
+        let round = try sut.bitmap(of: list(masks: [ellipse]))
 
         // Then
         expect(alpha(of: cut, x: 10, y: 10), equals: 1)
@@ -180,8 +180,8 @@ struct MaskDrawerTests {
         let inverted = mask(Self.lens, isInverted: true)
 
         // When
-        let bitmap = try sut.frame(of: list(masks: [lens]))
-        let outside = try sut.frame(of: list(masks: [inverted]))
+        let bitmap = try sut.bitmap(of: list(masks: [lens]))
+        let outside = try sut.bitmap(of: list(masks: [inverted]))
 
         // Then
         for (x, y) in [(20, 20), (20, 7), (20, 33), (8, 20)] {
@@ -202,7 +202,7 @@ struct MaskDrawerTests {
         let lens = mask(Self.lens, feather: 3)
 
         // When
-        let bitmap = try sut.frame(of: list(masks: [lens]))
+        let bitmap = try sut.bitmap(of: list(masks: [lens]))
 
         // Then
         let values = (0...20).map { alpha(of: bitmap, x: 20, y: $0) }

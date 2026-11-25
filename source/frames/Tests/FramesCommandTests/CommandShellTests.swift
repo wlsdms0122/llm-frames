@@ -70,7 +70,7 @@ struct CommandShellTests {
         #expect(optioned == 0)
         #expect(output == CommandUsage().help)
         #expect(output.hasPrefix(CommandUsage().text))
-        #expect(output.contains(" The renderer. Known: quartz. Default: quartz.\n"))
+        #expect(output.contains(" The renderer. Known: metal, quartz. Default: quartz.\n"))
         #expect(sut.standardOutput == output)
         #expect(sut.standardError.isEmpty)
     }
@@ -126,7 +126,7 @@ struct CommandShellTests {
     @Test(
         "the global options before --help are checked as for any command, and --help takes nothing after it",
         arguments: [
-            (["--renderer", "metal", "--help"], #"--renderer: unknown renderer "metal". Known: quartz"#),
+            (["--renderer", "skia", "--help"], #"--renderer: unknown renderer "skia". Known: metal, quartz"#),
             (["--tracker", "klt", "render", "--help"], #"--tracker: unknown tracker provider "klt". Known: planar, point"#),
             (["--theme", "a/b", "--theme", "c/d", "--help"], "--theme is given more than once"),
             (["--help", "render"], #"--help takes no arguments, found "render". A command's help is frames <command> --help"#),
@@ -161,7 +161,7 @@ struct CommandShellTests {
             (["timeline", "/nowhere/doc.json"], "/nowhere/doc.json: the file is not there"),
             (["timeline", "nopack/intro"], #"timeline: unknown template "nopack/intro". There is no pack "nopack", and the packs are frames"#),
             (["--decoder", "ffmpeg", "theme"], #"--decoder: unknown decoder "ffmpeg". Known: avfoundation, avfoundation-cpu"#),
-            (["--renderer", "metal", "theme"], #"--renderer: unknown renderer "metal". Known: quartz"#),
+            (["--renderer", "skia", "theme"], #"--renderer: unknown renderer "skia". Known: metal, quartz"#),
             (["--ocr", "tesseract", "theme"], #"--ocr: unknown OCR provider "tesseract". Known: vision"#),
             (["--shaper", "harfbuzz", "theme"], #"--shaper: unknown shaping provider "harfbuzz". Known: coretext"#),
             (["--tracker", "klt", "theme"], #"--tracker: unknown tracker provider "klt". Known: planar, point"#),

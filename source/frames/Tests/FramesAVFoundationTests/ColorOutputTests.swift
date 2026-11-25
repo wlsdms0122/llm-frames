@@ -151,7 +151,7 @@ struct ColorOutputTests {
         // When
         let writer = try sut.videoWriter(for: .delivery(path: path, output: output), size: Self.size, fps: 30, sound: nil)
         for _ in 0..<4 {
-            try writer.append(bands(Self.colors))
+            try writer.append(.bitmap(bands(Self.colors)))
         }
         try writer.finish()
 

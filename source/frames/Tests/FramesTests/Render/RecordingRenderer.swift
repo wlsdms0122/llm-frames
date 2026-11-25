@@ -32,10 +32,10 @@ struct RecordingRenderer: Renderer {
         guard !refuses, !refusesSamples || list.samples == nil else { throw RoleRefusal.renderer }
     }
 
-    func frame(of list: DisplayList) throws -> Bitmap {
+    func frame(of list: DisplayList) throws -> Pixels {
         log.record(.draw(frame: list.seed))
 
-        return Bitmap(frame: list.seed)
+        return .bitmap(Bitmap(frame: list.seed))
     }
 
     // MARK: - Public

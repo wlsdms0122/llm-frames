@@ -256,7 +256,7 @@ package struct Transcoder: Sendable {
         let pictureReading = pictureReading(of: reading, for: output)
         for index in 0..<frameCount {
             let frame = file.frameIndex(at: Double(index) / fps)
-            try writer.append(decoder.picture(of: file, atFrame: frame, reading: pictureReading).bitmap)
+            try writer.append(decoder.picture(of: file, atFrame: frame, reading: pictureReading))
         }
         try writer.finish()
 

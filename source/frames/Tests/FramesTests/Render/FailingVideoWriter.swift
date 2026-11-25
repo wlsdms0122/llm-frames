@@ -21,7 +21,7 @@ struct FailingVideoWriter: VideoWriter {
         FileEncoding(path: "", codec: "ProRes 422 HQ", usesHardware: false, seconds: StageTimes())
     }
 
-    func append(_ frame: Bitmap) throws {
+    func append(_ frame: Pixels) throws {
         throw Failure.refused
     }
 

@@ -38,8 +38,8 @@ struct TitleUnitRenderTests {
         let whole = try resolver.resolve(document(title: #""animation": "mine/rise""#))
 
         // When
-        let drawn = try sut.frame(of: Evaluator().displayList(of: byWord, at: 1))
-        let expected = try sut.frame(of: Evaluator().displayList(of: whole, at: 1))
+        let drawn = try sut.bitmap(of: Evaluator().displayList(of: byWord, at: 1))
+        let expected = try sut.bitmap(of: Evaluator().displayList(of: whole, at: 1))
 
         // Then
         // The group's list is drawn into a bitmap of its own before it is composited, so its colours round once more.
@@ -55,8 +55,8 @@ struct TitleUnitRenderTests {
         let whole = try resolver.resolve(edged(animation: #""mine/rise""#))
 
         // When
-        let drawn = try sut.frame(of: Evaluator().displayList(of: byWord, at: 1))
-        let expected = try sut.frame(of: Evaluator().displayList(of: whole, at: 1))
+        let drawn = try sut.bitmap(of: Evaluator().displayList(of: byWord, at: 1))
+        let expected = try sut.bitmap(of: Evaluator().displayList(of: whole, at: 1))
 
         // Then
         let largest = largestDifference(drawn, expected)
@@ -71,8 +71,8 @@ struct TitleUnitRenderTests {
         let whole = try resolver.resolve(outlined(animation: #""mine/fade""#))
 
         // When
-        let unit = try sut.frame(of: Evaluator().displayList(of: byWord, at: 0.5))
-        let title = try sut.frame(of: Evaluator().displayList(of: whole, at: 0.5))
+        let unit = try sut.bitmap(of: Evaluator().displayList(of: byWord, at: 0.5))
+        let title = try sut.bitmap(of: Evaluator().displayList(of: whole, at: 0.5))
 
         // Then
         // On black, white over red at 0.5 each is (0.75, 0.5, 0.5) where the fill covers the stroke's inner half, and

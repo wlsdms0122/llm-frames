@@ -52,6 +52,45 @@ final class FrameDrawer {
         try draw(list, on: Raster(holding: list.size))
     }
 
+    // The item of `list`, written in a list of `seed`, drawn alone on a transparent layer of `area`, whole pixels of the
+    // list's raster, which its blend mode then lays over `backdrop`, what is drawn below it, an image of the raster's
+    // bounds that an adjustment reads. The layer's pixel (0, 0) is the raster's pixel at the area's top left.
+    func layer(
+        of item: DisplayItem,
+        in list: DisplayList,
+        seed: Int,
+        area: CGRect,
+        over backdrop: () throws -> CIImage
+    ) throws -> FrameContext {
+        try layer(of: item, in: list, seed: seed, area: area, on: Raster(holding: list.size), over: backdrop)
+    }
+
+    // The whole pixels of the list's raster that the item's layer covers: its drawn box carried onto the raster and
+    // moved out to whole pixels and one more, within the raster, and the whole raster for an item that casts a
+    // shadow, adjusts what is below it, carries a picture onto a corner pin or whose box its transform flattens.
+    func area(
+        of item: DisplayItem,
+        in list: DisplayList
+    ) -> CGRect {
+        let raster = Raster(holding: list.size)
+        if shadow(of: item.content) != nil { return raster.bounds }
+        if case .adjust = item.content { return raster.bounds }
+        if case let .picture(picture) = item.content, picture.cornerPin != nil { return raster.bounds }
+        guard let drawn = drawnBounds(of: item, in: list) else { return raster.bounds }
+
+        let carried = drawn.applying(matrix(of: item, on: raster))
+        guard [carried.minX, carried.minY, carried.maxX, carried.maxY].allSatisfy(\.isFinite) else {
+            return raster.bounds
+        }
+
+        let left = carried.minX.rounded(.down) - 1
+        let top = carried.minY.rounded(.down) - 1
+        let right = carried.maxX.rounded(.up) + 1
+        let bottom = carried.maxY.rounded(.up) + 1
+
+        return CGRect(x: left, y: top, width: right - left, height: bottom - top).intersection(raster.bounds)
+    }
+
     // MARK: - Private
     // Sample lists that are all equal draw one picture, which is their mean.
     private func draw(
@@ -112,12 +151,24 @@ final class FrameDrawer {
                 continue
             }
 
-            let drawing = try self.drawing(of: item, over: frame, on: raster, seed: seed)
             if mode == .normal {
-                try draw(item, of: list, drawing: drawing, on: raster, in: frame)
+                let drawing = try self.drawing(
+                    of: item,
+                    compositing: list.compositing,
+                    over: { try frame.ciImage() },
+                    on: raster,
+                    seed: seed
+                )
+                try draw(item, of: list, drawing: drawing, on: raster, within: raster.bounds, in: frame)
             } else {
-                let layer = try FrameContext(width: frame.width, height: frame.height, compositing: list.compositing)
-                try draw(item, of: list, drawing: drawing, on: raster, in: layer)
+                let layer = try layer(
+                    of: item,
+                    in: list,
+                    seed: seed,
+                    area: raster.bounds,
+                    on: raster,
+                    over: { try frame.ciImage() }
+                )
                 let blended = try Blender()
                     .composite(layer.ciImage(), over: frame.ciImage(), mode: mode, compositing: list.compositing)
                 try frame.replace(with: blended)
@@ -125,10 +176,26 @@ final class FrameDrawer {
         }
     }
 
+    private func layer(
+        of item: DisplayItem,
+        in list: DisplayList,
+        seed: Int,
+        area: CGRect,
+        on raster: Raster,
+        over backdrop: () throws -> CIImage
+    ) throws -> FrameContext {
+        let layer = try FrameContext(width: Int(area.width), height: Int(area.height), compositing: list.compositing)
+        layer.context.translateBy(x: -area.minX, y: -area.minY)
+        let drawing = try drawing(of: item, compositing: list.compositing, over: backdrop, on: raster, seed: seed)
+        try draw(item, of: list, drawing: drawing, on: raster, within: area, in: layer)
+
+        return layer
+    }
+
     // The nested list an item shows whole over the whole of `list`, with nothing of its own between the two: drawing
     // that list's items straight onto the frame gives what drawing it apart and laying it over the frame would. Its
     // items draw over one another alone, since a blend mode or an adjustment would take the frame for its backdrop.
-    private func listDrawnInPlace(
+    func listDrawnInPlace(
         by item: DisplayItem,
         of list: DisplayList
     ) -> DisplayList? {
@@ -167,16 +234,17 @@ final class FrameDrawer {
         of list: DisplayList,
         drawing: (CGContext) throws -> Void,
         on raster: Raster,
+        within area: CGRect,
         in frame: FrameContext
     ) throws {
         let context = frame.context
         context.saveGState()
         defer { context.restoreGState() }
 
-        // An item with a shadow is masked in the layer it casts the shadow from.
+        // An item with a shadow is masked in the layer it casts the shadow from, and is drawn within the whole raster.
         let shadow = shadow(of: item.content)
         if shadow == nil {
-            try mask(context, by: item, over: raster.bounds, at: raster.bounds, on: raster)
+            try mask(context, by: item, over: area, at: area, on: raster)
         }
 
         guard item.opacity < 1 else {
@@ -255,7 +323,7 @@ final class FrameDrawer {
     }
 
     // The item drawn on the raster and masked into a layer a margin wider than the raster on every side, so a shadow
-    // cast into the raster from outside it is kept. The layer's alpha in the shadow's colour, blurred and moved, is
+    // cast into the raster from outside it is kept. `frame` covers the whole raster. The layer's alpha in the shadow's colour, blurred and moved, is
     // drawn below the layer, both in the frame's form.
     private func paint(
         _ item: DisplayItem,
@@ -343,18 +411,20 @@ final class FrameDrawer {
         CGAffineTransform(item.transform).concatenating(raster.transform)
     }
 
-    // What the item draws in its own coordinates. Pictures are read and an adjustment's backdrop filtered before it,
-    // since a blend mode draws it into a layer of its own.
+    // What the item draws in its own coordinates, in the form `compositing` names, over `backdrop`, an image of the
+    // raster's bounds. Pictures are read and an adjustment's backdrop filtered before it, since a blend mode draws it
+    // into a layer of its own.
     private func drawing(
         of item: DisplayItem,
-        over frame: FrameContext,
+        compositing: Compositing,
+        over backdrop: () throws -> CIImage,
         on raster: Raster,
         seed: Int
     ) throws -> (CGContext) throws -> Void {
         switch item.content {
         case let .picture(picture):
             if let cornerPin = picture.cornerPin {
-                return try carried(picture, onto: cornerPin, transform: item.transform, over: frame, on: raster)
+                return try carried(picture, onto: cornerPin, transform: item.transform, compositing: compositing, on: raster)
             }
 
             let matrix = matrix(of: item, on: raster)
@@ -369,7 +439,7 @@ final class FrameDrawer {
                     matte: matte,
                     seed: seed,
                     carriedBy: item.transform,
-                    compositing: frame.compositing,
+                    compositing: compositing,
                     in: context
                 )
             }
@@ -381,7 +451,14 @@ final class FrameDrawer {
             return { [glyphDrawer] context in try glyphDrawer.draw(glyphs, carriedBy: item.transform, in: context) }
 
         case let .adjust(adjust):
-            return try adjusted(adjust, transform: item.transform, over: frame, on: raster, seed: seed)
+            return try adjusted(
+                adjust,
+                transform: item.transform,
+                compositing: compositing,
+                over: backdrop,
+                on: raster,
+                seed: seed
+            )
         }
     }
 
@@ -624,7 +701,7 @@ final class FrameDrawer {
         _ picture: PictureItem,
         onto cornerPin: Quad,
         transform: Frames.AffineTransform,
-        over frame: FrameContext,
+        compositing: Compositing,
         on raster: Raster
     ) throws -> (CGContext) throws -> Void {
         let matrix = CGAffineTransform(transform).concatenating(raster.transform)
@@ -655,7 +732,7 @@ final class FrameDrawer {
             .warp(source, through: Homography(nested.transform.inverted()).concatenating(map), onto: raster.bounds)
         guard !warped.extent.isEmpty else { return { _ in } }
 
-        let image = try FrameContext.cgImage(of: warped, in: raster.bounds, compositing: frame.compositing)
+        let image = try FrameContext.cgImage(of: warped, in: raster.bounds, compositing: compositing)
 
         return { context in
             context.concatenate(matrix.inverted())
@@ -669,14 +746,15 @@ final class FrameDrawer {
     private func adjusted(
         _ adjust: AdjustItem,
         transform: Frames.AffineTransform,
-        over frame: FrameContext,
+        compositing: Compositing,
+        over backdrop: () throws -> CIImage,
         on raster: Raster,
         seed: Int
     ) throws -> (CGContext) throws -> Void {
         let matrix = CGAffineTransform(transform).concatenating(raster.transform)
         guard matrix.a * matrix.d - matrix.b * matrix.c != 0 else { return { _ in } }
 
-        let backdrop = try frame.ciImage()
+        let backdrop = try backdrop()
         // Core Image counts rows from the bottom.
         let listFrame = CGRect(
             x: raster.frame.minX,
@@ -691,14 +769,14 @@ final class FrameDrawer {
                 seed: seed,
                 scale: raster.transform.lengthScale,
                 frame: listFrame,
-                compositing: frame.compositing
+                compositing: compositing
             )
             .cropped(to: backdrop.extent)
-        let image = try FrameContext.cgImage(of: filtered, in: backdrop.extent, compositing: frame.compositing)
+        let image = try FrameContext.cgImage(of: filtered, in: backdrop.extent, compositing: compositing)
 
         return { context in
             context.concatenate(matrix.inverted())
-            context.drawUpright(image, in: frame.bounds)
+            context.drawUpright(image, in: raster.bounds)
         }
     }
 }

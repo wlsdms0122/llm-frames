@@ -36,7 +36,7 @@ struct GlyphDrawerTests {
         )
 
         // When
-        let bitmap = try sut.frame(of: list(items: [DisplayItem(content: .glyphs(glyphs))]))
+        let bitmap = try sut.bitmap(of: list(items: [DisplayItem(content: .glyphs(glyphs))]))
 
         // Then
         #expect(bitmap.pixel(x: Int(bounds.midX), y: Int(bounds.midY)) == [1, 0, 0, 1])
@@ -66,7 +66,7 @@ struct GlyphDrawerTests {
         )
 
         // When
-        let bitmap = try sut.frame(of: list(items: [DisplayItem(content: .glyphs(glyphs))]))
+        let bitmap = try sut.bitmap(of: list(items: [DisplayItem(content: .glyphs(glyphs))]))
 
         // Then
         // The stroke reaches 3 out from the outline and 3 in, where the fill covers it.
@@ -87,7 +87,7 @@ struct GlyphDrawerTests {
         let glyphs = GlyphsItem(size: Size(width: 100, height: 100), runs: [stroked, plain], background: nil)
 
         // When
-        let bitmap = try sut.frame(of: list(items: [DisplayItem(content: .glyphs(glyphs))]))
+        let bitmap = try sut.bitmap(of: list(items: [DisplayItem(content: .glyphs(glyphs))]))
 
         // Then
         let row = Int(bounds.midY)
@@ -110,8 +110,8 @@ struct GlyphDrawerTests {
         }
 
         // When
-        let parts = try sut.frame(of: list(items: [part(10...50.4), part(50.4...90)]))
-        let whole = try sut.frame(of: list(items: [part(nil)]))
+        let parts = try sut.bitmap(of: list(items: [part(10...50.4), part(50.4...90)]))
+        let whole = try sut.bitmap(of: list(items: [part(nil)]))
 
         // Then
         // The rows at 20 and 60 are half covered, so a pixel either part drew again would be darker there.
@@ -140,8 +140,8 @@ struct GlyphDrawerTests {
         }
 
         // When
-        let filled = try sut.frame(of: list(items: [item(nil)]))
-        let stroked = try sut.frame(of: list(items: [item(stroke)]))
+        let filled = try sut.bitmap(of: list(items: [item(nil)]))
+        let stroked = try sut.bitmap(of: list(items: [item(stroke)]))
 
         // Then
         #expect(filled.pixel(x: Int(turned.midX), y: Int(turned.midY)) == [1, 0, 0, 1])
@@ -175,8 +175,8 @@ struct GlyphDrawerTests {
         }
 
         // When
-        let whole = inked(try sut.frame(of: list(items: [item(1)])))
-        let narrowed = inked(try sut.frame(of: list(items: [item(0.5)])))
+        let whole = inked(try sut.bitmap(of: list(items: [item(1)])))
+        let narrowed = inked(try sut.bitmap(of: list(items: [item(0.5)])))
 
         // Then
         #expect(abs(whole.minX - (origin.x + ink.minX)) <= 1)
@@ -204,8 +204,8 @@ struct GlyphDrawerTests {
         }
 
         // When
-        let whole = inked(try sut.frame(of: list(items: [item(1)])))
-        let narrowed = inked(try sut.frame(of: list(items: [item(0.5)])))
+        let whole = inked(try sut.bitmap(of: list(items: [item(1)])))
+        let narrowed = inked(try sut.bitmap(of: list(items: [item(0.5)])))
 
         // Then
         #expect(abs(narrowed.minY - (origin.y + ink.minX * 0.5)) <= 1)
@@ -233,8 +233,8 @@ struct GlyphDrawerTests {
         }
 
         // When
-        let filled = inked(try sut.frame(of: list(items: [item(nil)])))
-        let stroked = inked(try sut.frame(of: list(items: [item(stroke)])))
+        let filled = inked(try sut.bitmap(of: list(items: [item(nil)])))
+        let stroked = inked(try sut.bitmap(of: list(items: [item(stroke)])))
 
         // Then
         #expect(abs((filled.minX - stroked.minX) - stroke.width / 2) <= 1)
@@ -258,9 +258,9 @@ struct GlyphDrawerTests {
         }
 
         // When
-        let upper = try sut.frame(of: list(items: [part(10...50.4)]))
-        let parts = try sut.frame(of: list(items: [part(10...50.4), part(50.4...90)]))
-        let whole = try sut.frame(of: list(items: [part(nil)]))
+        let upper = try sut.bitmap(of: list(items: [part(10...50.4)]))
+        let parts = try sut.bitmap(of: list(items: [part(10...50.4), part(50.4...90)]))
+        let whole = try sut.bitmap(of: list(items: [part(nil)]))
 
         // Then
         #expect(upper.pixel(x: 40, y: 30) == [0, 0, 1, 1])
@@ -290,7 +290,7 @@ struct GlyphDrawerTests {
         let glyphs = GlyphsItem(size: Size(width: 100, height: 100), runs: [run], background: nil)
 
         // When
-        let drawing = { try sut.frame(of: list(items: [DisplayItem(content: .glyphs(glyphs))])) }
+        let drawing = { try sut.bitmap(of: list(items: [DisplayItem(content: .glyphs(glyphs))])) }
 
         // Then
         #expect(throws: QuartzError.faceNotInFile(file: Self.file, face: "Helvetica-Missing")) { try drawing() }

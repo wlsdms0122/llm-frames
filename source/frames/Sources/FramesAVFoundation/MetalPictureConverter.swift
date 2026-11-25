@@ -27,9 +27,7 @@ final class MetalPictureConverter: @unchecked Sendable {
     private let decodeTables = OSAllocatedUnfairLock<[TransferFunction: any MTLBuffer]>(uncheckedState: [:])
     // The table bound where the steps decode by none.
     private let emptyTable: any MTLBuffer
-    // Surfaces made before, each written again once no picture uses it, so its memory is not made and mapped anew for
-    // each frame.
-    private let surfaces = OSAllocatedUnfairLock<[IOSurfaceRef]>(uncheckedState: [])
+    private let surfaces = SurfacePool()
 
     // MARK: - Initializer
     // Nil on a machine with no Metal device.
@@ -85,7 +83,7 @@ final class MetalPictureConverter: @unchecked Sendable {
             CVPixelBufferGetHeight(buffer) == Int(storedSize.height),
             Self.isWholePixelMap(transform),
             let (placement, matrix, table) = arguments(of: steps, transform: transform),
-            let surface = surface(width: width, height: height),
+            let surface = surfaces.surface(width: width, height: height),
             let output = device.makeTexture(
                 descriptor: Self.descriptor(width: width, height: height, usage: .shaderWrite),
                 iosurface: surface.surface,
@@ -218,31 +216,5 @@ final class MetalPictureConverter: @unchecked Sendable {
         descriptor.storageMode = .shared
 
         return descriptor
-    }
-
-    // A surface of `width` by `height` RGBA half float pixels no picture uses, one made before where there is one, and
-    // the picture that holds it, counting it in use.
-    private func surface(
-        width: Int,
-        height: Int
-    ) -> (surface: IOSurfaceRef, picture: PictureSurface)? {
-        surfaces.withLockUnchecked { surfaces in
-            let free = surfaces.first {
-                !IOSurfaceIsInUse($0) && IOSurfaceGetWidth($0) == width && IOSurfaceGetHeight($0) == height
-            }
-            if let free { return (free, PictureSurface(surface: free)) }
-
-            let made = IOSurfaceCreate([
-                kIOSurfaceWidth: width,
-                kIOSurfaceHeight: height,
-                kIOSurfaceBytesPerElement: 8,
-                kIOSurfacePixelFormat: kCVPixelFormatType_64RGBAHalf
-            ] as CFDictionary)
-            guard let made else { return nil }
-            surfaces.removeAll { !IOSurfaceIsInUse($0) }
-            surfaces.append(made)
-
-            return (made, PictureSurface(surface: made))
-        }
     }
 }

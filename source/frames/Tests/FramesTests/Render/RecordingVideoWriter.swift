@@ -34,8 +34,8 @@ struct RecordingVideoWriter: VideoWriter {
         FileEncoding(path: path, codec: "ProRes 422 HQ", usesHardware: false, seconds: StageTimes())
     }
 
-    func append(_ frame: Bitmap) throws {
-        log.record(.append(path: path, frame: frame.frame))
+    func append(_ frame: Pixels) throws {
+        log.record(.append(path: path, frame: frame.bitmap.frame))
     }
 
     func finish() throws {

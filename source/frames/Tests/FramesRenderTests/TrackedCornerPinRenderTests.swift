@@ -50,8 +50,8 @@ struct TrackedCornerPinRenderTests {
         let sut = QuartzRenderer(decoder: AVFoundationDecoder())
 
         // When
-        let first = try sut.frame(of: Evaluator().displayList(of: document, at: 0.05))
-        let sixth = try sut.frame(of: Evaluator().displayList(of: document, at: 0.55))
+        let first = try sut.bitmap(of: Evaluator().displayList(of: document, at: 0.05))
+        let sixth = try sut.bitmap(of: Evaluator().displayList(of: document, at: 0.55))
 
         // Then
         for (bitmap, move) in [(first, 0), (sixth, 40)] {
