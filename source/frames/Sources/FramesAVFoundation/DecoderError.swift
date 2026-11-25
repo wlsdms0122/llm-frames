@@ -13,6 +13,7 @@ package enum DecoderError: Error, Equatable, CustomStringConvertible, Sendable {
     case emptySequence(directory: String)
     case unequalFrame(file: String, size: Size, first: Size)
     case noFrame(file: String, index: Int, count: Int)
+    case unconvertedFrame(file: String, index: Int)
     case frameCount(file: String, pinned: Int, counted: Int)
     case noSound(file: String)
     case unconvertibleColor(file: String, reason: String)
@@ -42,6 +43,9 @@ package enum DecoderError: Error, Equatable, CustomStringConvertible, Sendable {
 
         case let .noFrame(file, index, count):
             "media \(file) has no frame \(index): it has \(count)"
+
+        case let .unconvertedFrame(file, index):
+            "media \(file) frame \(index) cannot be converted on the GPU, which converts its other frames"
 
         case let .frameCount(file, pinned, counted):
             "media \(file) has \(counted) frames where the resolved document pins \(pinned). Resolve it again"
