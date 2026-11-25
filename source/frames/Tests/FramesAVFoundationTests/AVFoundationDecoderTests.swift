@@ -111,6 +111,36 @@ struct AVFoundationDecoderTests {
         #expect(pictures.map(code) == Array(repeating: 0, count: 70) + Array(repeating: 1, count: 70))
     }
 
+    @Test("fifty videos read in turn, past the 48 readers the decoder keeps open, each give every frame asked for, and the videos past them take turns of several frames")
+    func takesTurnsPastReaders() async throws {
+        // Given
+        let directory = try TemporaryDirectory()
+        let times = (0..<16).map { Double($0) / 30 }
+        let first = directory.file("video-0.mp4")
+        try await MovieWriter(size: size, frameTimes: times, end: 16.0 / 30).write(to: first) { canvas, index in
+            canvas.fill(red: 128, green: 128, blue: 128)
+            canvas.drawCode(index)
+        }
+        let files = try [first] + (1..<50).map { number in
+            let file = directory.file("video-\(number).mp4")
+            try FileManager.default.copyItem(atPath: first, toPath: file)
+
+            return file
+        }
+        let sut = AVFoundationDecoder()
+        let media = files.map { MediaFile.video($0, frameTimes: times, size: size) }
+
+        // When
+        let codes = try times.indices.map { index in
+            try media.map { code(in: try sut.picture(of: $0, atFrame: index).bitmap) }
+        }
+        let reopened = sut.readings().media.map(\.reopened).reduce(0, +)
+
+        // Then
+        #expect(codes == times.indices.map { Array(repeating: $0, count: 50) })
+        #expect((1...12).contains(reopened), "\(reopened)")
+    }
+
     @Test("frames read forward, by steps of two, backward and in two readings are the pictures each read alone gives")
     func readsAheadAsAlone() async throws {
         // Given
