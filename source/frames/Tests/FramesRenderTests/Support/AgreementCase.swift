@@ -13,8 +13,9 @@ import FramesTestMedia
 
 // A resolved document, the times of the frames two renderers are compared on and the checks it is held to, one for
 // each kind of item and operation a renderer draws: a video under a moving title, a scaled still with opacity and a
-// blend mode, a detailed still scaled by 0.25, 0.625, 1.375 and 3, one turned and one moved by part of a pixel, hard
-// edges of a shape and of a picture at sub-pixel positions, unscaled and scaled, shapes with strokes, rounded corners, a shadow and a feathered mask, an adjustment cut by a
+// blend mode, a detailed still scaled by 0.25, 0.625, 1.375 and 3, one turned and one moved by part of a pixel,
+// pictures with rounded corners, a border and a shadow, hard edges of a shape and of a picture at sub-pixel positions,
+// unscaled and scaled, shapes with strokes, rounded corners, a shadow and a feathered mask, an adjustment cut by a
 // track matte, a crossfade between two detailed pictures, a corner pin, motion blur, and a list composited in the
 // linear form.
 struct AgreementCase {
@@ -131,6 +132,20 @@ struct AgreementCase {
                     { "kind": "sequence", "format": { "size": [160, 90], "fps": 10 },
                       "storyline": [ { "kind": "media", "media": "\#(pattern)", "in": 0, "out": 2,
                                        "connected": [ { "kind": "media", "media": "\#(detail)", "at": [0, 2], "width": 100, "position": [80, 45], "rotation": 17 } ] } ] }
+                    """#),
+                times: [0.5]
+            ),
+            AgreementCase(
+                name: "pictures with rounded corners, a border and a shadow, one turned and half transparent and one casting from outside the frame",
+                document: try resolver.resolve(#"""
+                    { "kind": "sequence", "format": { "size": [160, 90], "fps": 10 },
+                      "storyline": [ { "kind": "media", "media": "\#(pattern)", "in": 0, "out": 2,
+                                       "connected": [ { "kind": "media", "media": "\#(detail)", "at": [0, 2], "width": 90, "position": [60.375, 40.625],
+                                                        "radius": 12, "border": { "width": 3, "color": "#FFFFFF" }, "shadow": { "radius": 4, "offset": [3, 5], "color": "#000000A0" } },
+                                                      { "kind": "media", "media": "\#(video)", "at": [0, 2], "width": 60, "position": [120.5, 55.25], "rotation": 9, "opacity": 0.7,
+                                                        "radius": [10, 0, 6, 0], "border": { "width": 2, "color": "#FFD000", "align": "outside" }, "shadow": { "radius": 2, "offset": [-2, 3], "color": "#202080C0" } },
+                                                      { "kind": "media", "media": "\#(detail)", "at": [0, 2], "width": 50, "position": [-12.25, 80.5],
+                                                        "border": { "width": 2, "color": "#00FFFF" }, "shadow": { "radius": 3, "offset": [9, -7], "color": "#000000" } } ] } ] }
                     """#),
                 times: [0.5]
             ),
