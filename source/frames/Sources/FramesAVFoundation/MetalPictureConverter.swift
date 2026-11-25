@@ -13,8 +13,8 @@ import IOSurface
 import Metal
 import os
 
-// Takes a decoded frame's R'G'B' half floats to working values on the GPU, by `WorkingKernelSource`, into a surface no
-// picture holds (FRAMES-21 Pictures), once per frame. It runs the steps of a conversion that `ConversionSteps` names
+// Takes a decoded frame, its Y'CbCr or its R'G'B' half floats, to working values on the GPU, by `WorkingKernelSource`,
+// into a surface no picture holds (FRAMES-21 Pictures), once per frame. It runs the steps of a conversion that `ConversionSteps` names
 // other than `formulas`, from a pixel buffer whose pixels map onto the displayed picture's one to one. Each surface
 // keeps the texture the function writes it through, since the GPU maps a surface's memory anew for each texture made on
 // it. Each conversion is run whole before the surface is given. The Metal device, its queue and the pipeline are used
@@ -24,6 +24,7 @@ final class MetalPictureConverter: @unchecked Sendable {
     private let device: any MTLDevice
     private let queue: any MTLCommandQueue
     private let pipeline: any MTLComputePipelineState
+    private let yCbCrPipeline: any MTLComputePipelineState
     private let textureCache: OSAllocatedUnfairLock<CVMetalTextureCache>
     private let decodeTables = OSAllocatedUnfairLock<[TransferFunction: any MTLBuffer]>(uncheckedState: [:])
     // The table bound where the steps decode by none.
@@ -52,6 +53,8 @@ final class MetalPictureConverter: @unchecked Sendable {
             let library = try? device.makeLibrary(source: WorkingKernelSource.text, options: options),
             let function = library.makeFunction(name: "working"),
             let pipeline = try? device.makeComputePipelineState(function: function),
+            let yCbCrFunction = library.makeFunction(name: "workingYCbCr"),
+            let yCbCrPipeline = try? device.makeComputePipelineState(function: yCbCrFunction),
             CVMetalTextureCacheCreate(nil, nil, device, nil, &cache) == kCVReturnSuccess,
             let cache
         else {
@@ -61,6 +64,7 @@ final class MetalPictureConverter: @unchecked Sendable {
         self.device = device
         self.queue = queue
         self.pipeline = pipeline
+        self.yCbCrPipeline = yCbCrPipeline
         self.textureCache = OSAllocatedUnfairLock(uncheckedState: cache)
         self.emptyTable = emptyTable
         self.surfaces = SurfacePool { [device] surface in
@@ -77,11 +81,12 @@ final class MetalPictureConverter: @unchecked Sendable {
     }
 
     // MARK: - Public
-    // The working values of `buffer`, a `kCVPixelFormatType_64RGBAHalf` buffer of `storedSize` pixels, displayed at
+    // The working values of `buffer`, a buffer of `format`'s pixel format and of `storedSize` pixels, displayed at
     // `displaySize` by `transform`, top left origin, by `steps`. Nil where the steps are `formulas`, the buffer is of
     // another size or format, the transform is no whole-pixel turn or flip, or Metal does not run the conversion.
     func picture(
         from buffer: CVPixelBuffer,
+        format: DecodedFormat,
         storedSize: CGSize,
         displaySize: Size,
         transform: CGAffineTransform,
@@ -90,13 +95,13 @@ final class MetalPictureConverter: @unchecked Sendable {
         let width = Int(displaySize.width)
         let height = Int(displaySize.height)
         guard
-            CVPixelBufferGetPixelFormatType(buffer) == kCVPixelFormatType_64RGBAHalf,
+            CVPixelBufferGetPixelFormatType(buffer) == format.pixelFormat,
             CVPixelBufferGetWidth(buffer) == Int(storedSize.width),
             CVPixelBufferGetHeight(buffer) == Int(storedSize.height),
             Self.isWholePixelMap(transform),
             let (placement, matrix, table) = arguments(of: steps, transform: transform),
-            let (_, output, picture) = surfaces.surface(width: width, height: height),
-            let stored = texture(of: buffer)
+            let stored = textures(of: buffer, format: format),
+            let (_, output, picture) = surfaces.surface(width: width, height: height)
         else {
             return nil
         }
@@ -107,12 +112,23 @@ final class MetalPictureConverter: @unchecked Sendable {
         else {
             return nil
         }
-        encoder.setComputePipelineState(pipeline)
-        encoder.setTexture(CVMetalTextureGetTexture(stored), index: 0)
-        encoder.setTexture(output, index: 1)
+        for (index, texture) in stored.enumerated() {
+            encoder.setTexture(CVMetalTextureGetTexture(texture), index: index)
+        }
+        encoder.setTexture(output, index: stored.count)
         placement.withUnsafeBytes { encoder.setBytes($0.baseAddress!, length: $0.count, index: 0) }
         matrix.withUnsafeBytes { encoder.setBytes($0.baseAddress!, length: $0.count, index: 1) }
         encoder.setBuffer(table, offset: 0, index: 2)
+        switch format {
+        case let .yCbCr(layout):
+            encoder.setComputePipelineState(yCbCrPipeline)
+            Self.arguments(of: layout).withUnsafeBytes {
+                encoder.setBytes($0.baseAddress!, length: $0.count, index: 3)
+            }
+
+        case .halfFloatRGBA:
+            encoder.setComputePipelineState(pipeline)
+        }
         let group = MTLSize(width: 16, height: 16, depth: 1)
         encoder.dispatchThreadgroups(
             MTLSize(width: (width + 15) / 16, height: (height + 15) / 16, depth: 1),
@@ -184,24 +200,53 @@ final class MetalPictureConverter: @unchecked Sendable {
         }
     }
 
-    private func texture(of buffer: CVPixelBuffer) -> CVMetalTexture? {
-        textureCache.withLockUnchecked { cache in
-            var texture: CVMetalTexture?
-            let status = CVMetalTextureCacheCreateTextureFromImage(
-                nil,
-                cache,
-                buffer,
-                nil,
-                .rgba16Float,
-                CVPixelBufferGetWidth(buffer),
-                CVPixelBufferGetHeight(buffer),
-                0,
-                &texture
-            )
+    // The kernel's `YCbCr`: the range's offsets and scales, the siting and subsampling, the matrix's constants and the
+    // shift, in single precision.
+    private static func arguments(of layout: YCbCrLayout) -> [Float] {
+        [
+            Float(layout.lumaOffset), Float(layout.lumaScale), Float(layout.chromaOffset), Float(layout.chromaScale),
+            Float(layout.chromaSiting.x), Float(layout.chromaSiting.y),
+            Float(layout.sampling.horizontal), Float(layout.sampling.vertical),
+            Float(layout.lumaRed), Float(layout.lumaBlue), Float(layout.lumaGreen),
+            Float(bitPattern: UInt32(layout.shift))
+        ]
+    }
+
+    // The textures of the buffer's planes the kernel reads: the half floats, or the luma and the chroma code values.
+    private func textures(
+        of buffer: CVPixelBuffer,
+        format: DecodedFormat
+    ) -> [CVMetalTexture]? {
+        let planes: [(MTLPixelFormat, Int)] = switch format {
+        case let .yCbCr(layout):
+            layout.bitDepth > 8 ? [(.r16Uint, 0), (.rg16Uint, 1)] : [(.r8Uint, 0), (.rg8Uint, 1)]
+
+        case .halfFloatRGBA:
+            [(.rgba16Float, 0)]
+        }
+
+        return textureCache.withLockUnchecked { cache in
+            let textures = planes.compactMap { pixelFormat, plane -> CVMetalTexture? in
+                let isPlanar = CVPixelBufferIsPlanar(buffer)
+                var texture: CVMetalTexture?
+                let status = CVMetalTextureCacheCreateTextureFromImage(
+                    nil,
+                    cache,
+                    buffer,
+                    nil,
+                    pixelFormat,
+                    isPlanar ? CVPixelBufferGetWidthOfPlane(buffer, plane) : CVPixelBufferGetWidth(buffer),
+                    isPlanar ? CVPixelBufferGetHeightOfPlane(buffer, plane) : CVPixelBufferGetHeight(buffer),
+                    plane,
+                    &texture
+                )
+
+                return status == kCVReturnSuccess ? texture : nil
+            }
 
             CVMetalTextureCacheFlush(cache, 0)
 
-            return status == kCVReturnSuccess ? texture : nil
+            return textures.count == planes.count ? textures : nil
         }
     }
 
