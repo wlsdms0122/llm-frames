@@ -174,10 +174,11 @@ class Recorded(Case):
 
 class Matching(unittest.TestCase):
     lines = fixture("still.calls.json")
-    lines = next(call for call in lines if call["arguments"][0] == "ocr")["output"]["frames"][0]["lines"]
+    output = next(call for call in lines if call["arguments"][0] == "ocr")["output"]
+    reading = extension.Reading(output["size"], output["frames"][0]["lines"])
 
     def find(self, form):
-        return extension.find(form, self.lines, "place", "board.png")
+        return extension.find(form, self.reading, "place", "board.png")
 
     def test_whitespace(self):
         # Given text written without its spaces
@@ -224,6 +225,44 @@ class Matching(unittest.TestCase):
 
         # Then it covers both and every line whose centre lies between them, grown by the padding
         self.assertEqual(rect, [65.792892, 201, 258.207108, 227])
+
+    def test_aspect_ratio(self):
+        # Given a line of the 1280 by 720 board, padded by 8 to [69.792892, 385, 178.414215, 39]
+        # When it is grown to a landscape ratio and to a portrait one
+        landscape = self.find({"text": "Total 10", "padding": 8, "aspectRatio": [16, 9]})
+        portrait = self.find({"text": "Total 10", "padding": 8, "aspectRatio": [9, 16]})
+
+        # Then each keeps the padded width, grows its height about the centre to the ratio and holds the text
+        self.assertEqual(landscape, [69.792892, 354.321002, 178.414215, 100.357996])
+        self.assertEqual(portrait, [69.792892, 245.909587, 178.414215, 317.180827])
+
+    def test_aspect_ratio_slides_inside(self):
+        # Given the top line, whose portrait rectangle about its centre reaches above the picture, and a line whose
+        # padding reaches past the left edge
+        top = self.find({"text": "Receipt", "aspectRatio": [9, 16]})
+        edge = self.find({"text": "Flat white", "padding": 90, "aspectRatio": [1, 1]})
+
+        # When each is grown, Then it slides down to the top edge, and the part inside the picture is grown
+        self.assertEqual(top, [83.274157, 0, 237.365555, 421.983209])
+        self.assertEqual(edge, [0, 33.5, 382.000001, 382.000001])
+
+    def test_aspect_ratio_too_wide(self):
+        # Given lines from the top of the board to its bottom, padded
+        # When they are grown to a ratio the board cannot hold around them
+        with self.assertRaises(extension.Stop) as raised:
+            self.find({"from": "Receipt", "to": "Total saved", "padding": 8, "aspectRatio": [16, 1]})
+
+        # Then it stops naming the picture, its size, the ratio and the padded text
+        self.assertIn("place: board.png is 1280x720, which holds no rectangle of aspect ratio 16:1 around", str(raised.exception))
+        self.assertIn("the padded text inside it", str(raised.exception))
+
+    def test_aspect_ratio_form(self):
+        # Given aspect ratios written as a number, a list of one, and with a part at 0
+        # When each request is checked, Then each stops naming the form
+        for ratio in (1.78, [16], [16, 0], [16, True]):
+            with self.assertRaises(extension.Stop) as raised:
+                extension.check_text_form({"tool": "find-text", "text": "Total", "aspectRatio": ratio}, "place")
+            self.assertEqual(str(raised.exception), "place: aspectRatio is [w, h], two numbers above 0")
 
 
 class Places(Case):
@@ -386,7 +425,7 @@ class Reading(unittest.TestCase):
         # Given frames whose report records what it is asked
         asked = []
         frames = extension.Frames("frames", ["--ocr", "vision"])
-        frames.report = lambda arguments: asked.append(arguments) or {"frames": [{"time": 0, "lines": []}]}
+        frames.report = lambda arguments: asked.append(arguments) or {"size": [612, 792], "frames": [{"time": 0, "lines": []}]}
 
         # When a page is read twice in a colour space with languages
         page = extension.Picture("/media/deck.pdf", None, 3, None)
