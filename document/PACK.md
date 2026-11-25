@@ -8,7 +8,7 @@ A pack is a directory with a `pack.json` at its root and any of these folders:
 
 | Folder | Holds | Named as |
 | --- | --- | --- |
-| `presets/transition/`, `presets/animation/`, `presets/filter/` | presets ([PRESET.md](PRESET.md)) | `<pack>/<name>` in a transition, animation or filter choice |
+| `presets/transition/`, `presets/animation/`, `presets/filter/`, `presets/head/` | presets ([PRESET.md](PRESET.md)) | `<pack>/<name>` in a transition, animation or filter choice, or a stroke's `start` or `end` |
 | `themes/` | themes | `<pack>/<name>` in `--theme` or a document's `theme` |
 | `templates/` | templates ([A template](#a-template)) | `<pack>/<name>` in a template instance |
 | `luts/` | `.cube` LUTs | `<pack>/<name>` in a filter's `lut` op |
@@ -53,7 +53,7 @@ frames packs
 ```
 
 ```
-frames  Frames  0.1.0  The transitions, animations and filters that ship with frames
+frames  Frames  0.1.0  Dissolves, dips, pushes, slides, wipes and zooms between clips, animations that bring a clip in, keep it moving and take it out, colour and detail filters, and heads that end a stroke.
 mine  Mine  1.0.0  A dark look, a dip, two grades and three templates for an interview series
 ```
 

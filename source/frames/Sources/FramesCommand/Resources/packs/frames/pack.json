@@ -2,5 +2,5 @@
   "engine": "^0.1",
   "name": "Frames",
   "version": "0.1.0",
-  "description": "Dissolves, dips, pushes, slides, wipes and zooms between clips, animations that bring a clip in, keep it moving and take it out, and colour and detail filters."
+  "description": "Dissolves, dips, pushes, slides, wipes and zooms between clips, animations that bring a clip in, keep it moving and take it out, colour and detail filters, and heads that end a stroke."
 }
