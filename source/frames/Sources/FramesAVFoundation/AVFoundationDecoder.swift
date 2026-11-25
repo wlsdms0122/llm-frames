@@ -16,8 +16,8 @@ import os
 // video with AVFoundation, its preferred transform applied. Each takes its samples as the file stores them and converts
 // their colour by the fixed formulas of FRAMES-26: in the colour space a reading names, or the one its tags name. A
 // `platform` reading instead converts the picture from its file's colour by Core Image's colour management. A page of a
-// PDF is checked and drawn by `PageReader`. A video, a sound track and a PDF are loaded once and kept. The largest
-// picture it holds is 16384 pixels on a side.
+// PDF is checked and drawn by `PageReader`. A video, a sound track and a PDF are loaded once and kept, and a video read
+// forward has its next frame read ahead by `PictureLookahead`. The largest picture it holds is 16384 pixels on a side.
 package final class AVFoundationDecoder: Sendable {
     // MARK: - Property
     // The most pixels on a side of a picture this decoder holds: a frame, a still or a region of a page.
@@ -25,6 +25,7 @@ package final class AVFoundationDecoder: Sendable {
 
     private let converter = PictureConverter()
     private let managedConverter = ManagedPictureConverter()
+    private let lookahead = PictureLookahead()
     private let videos = OSAllocatedUnfairLock<[String: VideoReader]>(initialState: [:])
     private let sounds = OSAllocatedUnfairLock<[String: SoundReader]>(initialState: [:])
     private let documents = OSAllocatedUnfairLock<[String: PageReader]>(initialState: [:])
@@ -288,13 +289,17 @@ extension AVFoundationDecoder: MediaDecoder {
         }
 
         try checkColor(video.taggedColor, in: reading.colorSpace, path: file.path)
-        let image = if case .platform = reading {
-            try video.taggedImage(atFrame: index, path: file.path)
-        } else {
-            try video.image(atFrame: index, path: file.path)
-        }
 
-        return try picture(from: image, tagged: video.taggedColor, path: file.path, reading: reading)
+        let path = file.path
+        return try lookahead.picture(atFrame: index, of: path, count: count, reading: reading) { [self] index in
+            let image = if case .platform = reading {
+                try video.taggedImage(atFrame: index, path: path)
+            } else {
+                try video.image(atFrame: index, path: path)
+            }
+
+            return try picture(from: image, tagged: video.taggedColor, path: path, reading: reading)
+        }
     }
 
     package func picture(
