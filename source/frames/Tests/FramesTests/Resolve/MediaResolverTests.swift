@@ -29,8 +29,11 @@ struct MediaResolverTests {
 
         // Then
         let file = try #require(media.file)
-        #expect(file.frameTimes == Fixture.screenFrameTimes)
-        #expect(file.frameFiles.isEmpty)
+        guard case let .video(frameTimes, _, _, _) = file.kind else {
+            Issue.record("not a video: \(file.kind)")
+            return
+        }
+        #expect(frameTimes == Fixture.screenFrameTimes)
     }
 
     @Test("an image sequence keeps its frame files in order, frame i at media second i / fps")
@@ -45,10 +48,15 @@ struct MediaResolverTests {
 
         // Then
         let file = try #require(media.file)
+        guard case let .imageSequence(frameFiles, frameTimes, fps, _, _) = file.kind else {
+            Issue.record("not an image sequence: \(file.kind)")
+            return
+        }
         #expect(file.path == "/abs/frames")
-        #expect(file.frameFiles == Fixture.imageSequenceFiles)
-        #expect(file.frameFiles[9] == "/abs/frames/frame-10.png")
-        #expect(file.frameTimes == (0..<12).map { Double($0) / 30 })
+        #expect(frameFiles == Fixture.imageSequenceFiles)
+        #expect(frameFiles[9] == "/abs/frames/frame-10.png")
+        #expect(frameTimes == (0..<12).map { Double($0) / 30 })
+        #expect(fps == 30)
         #expect(media.duration == 12 / 30.0)
     }
 

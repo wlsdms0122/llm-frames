@@ -280,7 +280,7 @@ struct PointTrackerTests {
     private func mediaFile(_ file: String) throws -> MediaFile {
         let probed = try #require(try decoder.probedMedia(of: file))
 
-        return MediaFile(path: file, size: probed.size, frameTimes: probed.frames)
+        return MediaFile.video(file, frameTimes: probed.frames)
     }
 
     // The quad's centroid against the rectangle's centre, and its mean side lengths against the rectangle's width and

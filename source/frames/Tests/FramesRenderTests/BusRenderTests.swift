@@ -50,7 +50,7 @@ struct BusRenderTests {
 
         // Then
         let expected = try AVFoundationMixer(decoder: decoder).mix(MixPlanner().mix(of: plain))
-        let rendered = try decoder.sound(of: MediaFile(path: output.file("out.mov")), from: 0, to: 2)
+        let rendered = try decoder.sound(of: MediaFile.sound(output.file("out.mov")), from: 0, to: 2)
         let heard = 24_000..<72_000
         let deviation = heard.map { frame in abs(rendered.samples[frame * 2] - expected.samples[frame * 2]) }.max()!
         #expect(deviation <= tolerance, "\(deviation)")

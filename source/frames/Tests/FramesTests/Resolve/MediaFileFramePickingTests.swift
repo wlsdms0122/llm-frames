@@ -11,7 +11,7 @@ import Testing
 @Suite("MediaFile frame picking Tests")
 struct MediaFileFramePickingTests {
     // MARK: - Property
-    private static let file = MediaFile(path: "/media/a.mov", frameTimes: [0, 0.2, 0.4])
+    private static let file = MediaFile.video("/media/a.mov", frameTimes: [0, 0.2, 0.4])
     private static let media = PinnedMedia(
         source: .file(PinnedFile(path: "/media/a.mov", sha256: ""), frameTimes: [0, 0.2, 0.4])
     )

@@ -1274,7 +1274,7 @@ struct AVFoundationMixerTests {
 
     // The first second of a file's sound as the decoder reads it.
     private func decoded(_ file: String) throws -> SoundBuffer {
-        try AVFoundationDecoder().sound(of: MediaFile(path: file), from: 0, to: 1)
+        try AVFoundationDecoder().sound(of: MediaFile.sound(file), from: 0, to: 1)
     }
 
     private func channel(

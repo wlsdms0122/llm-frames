@@ -84,7 +84,7 @@ struct TranscodeOutputTests {
         let image = try #require(CGImageSourceCreateImageAtIndex(source, 0, nil))
         #expect(image.width == 50 && image.height == 25)
         #expect(image.bitsPerComponent == bitsPerComponent)
-        let picture = try decoder.picture(of: MediaFile(path: output), atFrame: 0).bitmap
+        let picture = try decoder.picture(of: MediaFile.still(output), atFrame: 0).bitmap
         let painted = pixel(of: picture, x: 10, y: 12)
         let empty = pixel(of: picture, x: 40, y: 12)
         #expect(zip(painted, [1.0, 0, 0, 1]).allSatisfy { abs($0 - $1) < 0.01 }, "\(painted)")
@@ -185,7 +185,7 @@ struct TranscodeOutputTests {
         let track = try #require(try await asset.loadTracks(withMediaType: .video).first)
         #expect(try await track.load(.preferredTransform) == .identity)
         #expect(try await track.load(.naturalSize) == CGSize(width: 64, height: 48))
-        let picture = try decoder.picture(of: MediaFile(path: output, frameTimes: Self.frameTimes), atFrame: 0).bitmap
+        let picture = try decoder.picture(of: MediaFile.video(output, frameTimes: Self.frameTimes), atFrame: 0).bitmap
         let left = pixel(of: picture, x: 8, y: 24)
         let right = pixel(of: picture, x: 56, y: 24)
         #expect(left[0] > 0.8 && left[2] < 0.2)

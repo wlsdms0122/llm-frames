@@ -21,6 +21,8 @@ import Testing
 )
 struct GPUConversionTests {
     // MARK: - Property
+    // The media time of each frame `writeGradient(to:colorSpace:)` writes, at 30 frames a second.
+    private static let gradientFrameTimes = (0..<3).map { Double($0) / 30 }
     // The tolerance of a working value converted on the GPU against the same one converted on the CPU (FRAMES-24
     // Tolerances): each component within `largest` × max(1, |v|), and their mean difference within `mean`.
     private static let largest = 0x1p-10
@@ -39,7 +41,7 @@ struct GPUConversionTests {
         let directory = try TemporaryDirectory()
         let file = directory.file("\(colorSpace.rawValue).mov")
         try await writeGradient(to: file, colorSpace: colorSpace)
-        let media = MediaFile(path: file)
+        let media = MediaFile.video(file, frameTimes: Self.gradientFrameTimes)
         let sut = AVFoundationDecoder(conversion: .gpu)
         let reference = AVFoundationDecoder(conversion: .cpu)
 
@@ -66,7 +68,7 @@ struct GPUConversionTests {
         let directory = try TemporaryDirectory()
         let file = directory.file("p3.mov")
         try await writeGradient(to: file, colorSpace: .displayP3)
-        let media = MediaFile(path: file)
+        let media = MediaFile.video(file, frameTimes: Self.gradientFrameTimes)
 
         // When
         let first = try AVFoundationDecoder(conversion: .gpu).picture(of: media, atFrame: 1, reading: .tagged)
@@ -82,7 +84,7 @@ struct GPUConversionTests {
         let directory = try TemporaryDirectory()
         let file = directory.file("recording.mov")
         _ = try await ScreenRecording().write(to: file)
-        let media = MediaFile(path: file)
+        let media = MediaFile.video(file, frameTimes: ScreenRecording.frameTimes)
         let sut = AVFoundationDecoder(conversion: .gpu)
 
         // When
@@ -113,8 +115,9 @@ struct GPUConversionTests {
         let sut = AVFoundationDecoder(conversion: conversion)
 
         // When
-        _ = try sut.picture(of: MediaFile(path: file), atFrame: 0, reading: .tagged)
-        _ = try sut.picture(of: MediaFile(path: file), atFrame: 0, reading: .analysis(colorSpace: nil))
+        let media = MediaFile.video(file, frameTimes: Self.gradientFrameTimes)
+        _ = try sut.picture(of: media, atFrame: 0, reading: .tagged)
+        _ = try sut.picture(of: media, atFrame: 0, reading: .analysis(colorSpace: nil))
 
         // Then
         let devices = sut.readings().media.map { "\($0.conversion.name) \($0.device.name)" }

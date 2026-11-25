@@ -14,7 +14,7 @@ struct RunReportTests {
     // MARK: - Property
     private let machine = MachineFacts(chip: "Apple M2 Pro", cores: 12, operatingSystem: "macOS 26.2.0")
     private let roles = RoleNames(decoder: "avfoundation", renderer: "quartz", mixer: "avfoundation", encoder: "avfoundation")
-    private let video = MediaFile(path: "/abs/run.mp4", frameTimes: [0, 0.5])
+    private let video = MediaFile.video("/abs/run.mp4", frameTimes: [0, 0.5])
 
     // MARK: - Initializer
     // MARK: - Test

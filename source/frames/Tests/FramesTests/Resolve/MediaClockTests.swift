@@ -58,7 +58,7 @@ struct MediaClockTests {
     func loopsAtNoisySeam() {
         // Given
         // 0.7 + 0.5 lands a hair past 1.2, a clip time a hair under `out` 0.3.
-        let file = MediaFile(path: "/abs/ten.mp4", frameTimes: (0..<10).map { Double($0) / 10 })
+        let file = MediaFile.video("/abs/ten.mp4", frameTimes: (0..<10).map { Double($0) / 10 })
         let played = PlayedRange(map: TimeMap(origin: 1, in: 0.1, speed: 1), out: 0.3, loop: true)
         let sut = MediaClock(playback: .played(played), frames: 0...0.9)
 

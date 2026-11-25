@@ -83,7 +83,7 @@ struct AVFoundationEncoderTests {
         let decoder = AVFoundationDecoder()
 
         // When
-        let media = MediaFile(path: path, size: size, frameTimes: thirtieths)
+        let media = MediaFile.video(path, frameTimes: thirtieths)
         let picture = try decoder.picture(of: media, atFrame: 3).bitmap
 
         // Then
@@ -122,7 +122,7 @@ struct AVFoundationEncoderTests {
         let bitRate = Double(try await audio.load(.estimatedDataRate))
         #expect(abs(bitRate - 256_000) <= 256_000 * 0.1)
 
-        let media = MediaFile(path: path, size: size, frameTimes: thirtieths)
+        let media = MediaFile.video(path, frameTimes: thirtieths)
         let picture = try AVFoundationDecoder().picture(of: media, atFrame: 3).bitmap
         let tolerance = 8.0 / 255
         #expect(zip(pixel(of: picture, x: 16, y: 24), [0.5, 0, 0, 1]).allSatisfy { abs($0 - $1) <= tolerance })
@@ -401,7 +401,7 @@ struct AVFoundationEncoderTests {
         try sut.writeImage(frame(), for: target)
 
         // Then
-        let picture = try AVFoundationDecoder().picture(of: MediaFile(path: path), atFrame: 0).bitmap
+        let picture = try AVFoundationDecoder().picture(of: MediaFile.still(path), atFrame: 0).bitmap
         let tolerance = 8.0 / 255
         let (halfRed, clear): ([Double], [Double]) = outputExtension == "jpg"
             ? ([1, 0.5, 0.5, 1], [1, 1, 1, 1])
@@ -528,7 +528,7 @@ struct AVFoundationEncoderTests {
         let bitRate = Double(try await audio.load(.estimatedDataRate))
         #expect(abs(bitRate - 192_000) <= 192_000 * 0.15)
 
-        let media = MediaFile(path: path, size: size, frameTimes: thirtieths)
+        let media = MediaFile.video(path, frameTimes: thirtieths)
         let picture = try AVFoundationDecoder().picture(of: media, atFrame: 3).bitmap
         let tolerance = 16.0 / 255
         #expect(zip(pixel(of: picture, x: 16, y: 24), [0.5, 0, 0, 1]).allSatisfy { abs($0 - $1) <= tolerance })
