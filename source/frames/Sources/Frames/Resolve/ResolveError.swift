@@ -497,8 +497,9 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
         JSONValue.number(number).written
     }
 
+    // A range of time is written as machine output writes times, rounded to the microsecond.
     private func written(_ range: TimeRange) -> String {
-        "[\(number(range.start)), \(number(range.end)))"
+        "[\(JSONValue.time(range.start).written), \(JSONValue.time(range.end).written))"
     }
 
     private func written(_ rectangle: Rectangle) -> String {
