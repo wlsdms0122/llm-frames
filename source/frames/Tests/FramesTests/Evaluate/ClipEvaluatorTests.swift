@@ -78,7 +78,13 @@ struct ClipEvaluatorTests {
             place: "clips[0]",
             id: nil,
             content: .picture(
-                .media(ResolvedMediaClip(media: .pinned(media), timing: nil, filter: .off, appearance: appearance)),
+                .media(ResolvedMediaClip(
+                    media: .pinned(media),
+                    timing: nil,
+                    filter: .off,
+                    crop: .keyframes([Keyframe(at: 0, value: Crop(Rectangle(x: 0, y: 0, width: 80, height: 40)))]),
+                    appearance: appearance
+                )),
                 ResolvedComposite(lane: 1, opacity: [Keyframe(at: 0, value: 1)], blend: "normal")
             ),
             start: 0,
@@ -117,7 +123,13 @@ struct ClipEvaluatorTests {
             place: "clips[0]",
             id: nil,
             content: .picture(
-                .media(ResolvedMediaClip(media: .pinned(media), timing: nil, filter: .off, appearance: appearance)),
+                .media(ResolvedMediaClip(
+                    media: .pinned(media),
+                    timing: nil,
+                    filter: .off,
+                    crop: .keyframes([Keyframe(at: 0, value: Crop(Rectangle(x: 0, y: 0, width: 80, height: 40)))]),
+                    appearance: appearance
+                )),
                 ResolvedComposite(lane: 1, opacity: [Keyframe(at: 0, value: 1)], blend: "normal")
             ),
             start: 0,

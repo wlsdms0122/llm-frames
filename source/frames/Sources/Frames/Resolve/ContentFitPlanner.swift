@@ -195,13 +195,12 @@ struct ContentFitPlanner: Sendable {
                 .map { bounds(of: $0, by: transform) }
                 .reduce(nil) { union, extent in union?.union(extent) ?? extent }
 
-        case .picture(.media, _):
-            guard let box = clip.box else { return nil }
+        case let .picture(.media(media), _):
+            guard clip.box != nil else { return nil }
 
             // The child map carries the media's crop onto the box.
             let transform = clipEvaluator.childTransform(of: clip, in: space, at: SampleTime(0))
-            let drawn = clip.crop(at: SampleTime(0))
-                ?? Rectangle(x: 0, y: 0, width: box.size.width, height: box.size.height)
+            let drawn = clip.crop(of: media, at: SampleTime(0))
             return bounds(of: drawn, by: transform)
 
         case let .picture(.shape(shape), composite):

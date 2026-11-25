@@ -143,8 +143,8 @@ struct ClipAreaSampler: Sendable {
             return geometry
         }
         guard let box = named.box else { return Rectangle(x: 0, y: 0, width: 0, height: 0) }
-        if case .picture(.media, _) = named.content, let crop = named.crop(at: time) {
-            return crop
+        if case let .picture(.media(media), _) = named.content {
+            return named.crop(of: media, at: time)
         }
 
         let extent = self.extent(of: named, box: box, at: time)

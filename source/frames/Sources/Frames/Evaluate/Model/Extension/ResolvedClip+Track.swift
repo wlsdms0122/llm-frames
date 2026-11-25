@@ -36,12 +36,21 @@ extension ResolvedClip {
 
     // MARK: - Initializer
     // MARK: - Public
-    // A media clip's crop in its media pixels.
+    // A media clip's crop in its media pixels, nil for any other clip, which shows no media.
     func crop(at time: SampleTime) -> Rectangle? {
-        guard case let .picture(.media(media), _) = content, let crop = media.crop else { return nil }
-        guard let track, let clock = ownMediaClock else { return crop.value(at: time).rectangle }
+        guard case let .picture(.media(media), _) = content else { return nil }
 
-        return track.crop(of: crop, on: clock, at: time)
+        return crop(of: media, at: time)
+    }
+
+    // The crop in its media pixels of `media`, the clip's own picture, where its track moves it.
+    func crop(
+        of media: ResolvedMediaClip,
+        at time: SampleTime
+    ) -> Rectangle {
+        guard let track, let clock = ownMediaClock else { return media.crop.value(at: time).rectangle }
+
+        return track.crop(of: media.crop, on: clock, at: time)
     }
 
     // The clip's masks in its own space.

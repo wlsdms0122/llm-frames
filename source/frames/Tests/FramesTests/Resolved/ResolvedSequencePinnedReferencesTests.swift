@@ -52,6 +52,7 @@ struct ResolvedSequencePinnedReferencesTests {
                     media: .nested(nested),
                     timing: nil,
                     filter: .off,
+                    crop: .keyframes([Keyframe(at: 0, value: Crop(whole))]),
                     appearance: ResolvedMediaAppearance(conform: .fit, radius: .off, border: .off, shadow: .off)
                 )))
             ],

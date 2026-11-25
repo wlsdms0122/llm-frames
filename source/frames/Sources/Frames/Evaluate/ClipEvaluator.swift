@@ -82,12 +82,12 @@ struct ClipEvaluator: Sendable {
             let transform = presentation(of: clip, box: box, size: size, sample: sample, in: space, at: time).transform
             return AffineTransform(translation: Point(x: drawn.x, y: drawn.y)).concatenating(transform)
 
-        case .picture(.media, _):
+        case let .picture(.media(media), _):
             guard let box = clip.box else { return space.transform }
 
             let transform = presentation(of: clip, box: box, size: box.size, sample: sample, in: space, at: time)
                 .transform
-            guard let crop = clip.crop(at: time) else { return transform }
+            let crop = clip.crop(of: media, at: time)
 
             return AffineTransform(translation: Point(x: -crop.x, y: -crop.y))
                 .concatenating(AffineTransform(
@@ -163,7 +163,7 @@ struct ClipEvaluator: Sendable {
 
             let item = PictureItem(
                 source: picture,
-                rectangle: clip.crop(at: time),
+                rectangle: clip.crop(of: media, at: time),
                 destination: Rectangle(x: 0, y: 0, width: box.size.width, height: box.size.height),
                 filter: FilterEntry.entries(of: media.filter, at: time),
                 radius: media.appearance.radius.sampled(at: time, as: LookStructureTable.radius).cornerRadii ?? .zero,
@@ -244,7 +244,7 @@ struct ClipEvaluator: Sendable {
             let box = Rectangle(x: 0, y: 0, width: size.width, height: size.height)
             let item = PictureItem(
                 source: picture,
-                rectangle: clip.crop(at: time),
+                rectangle: clip.crop(of: media, at: time),
                 destination: box,
                 filter: FilterEntry.entries(of: media.filter, at: time),
                 radius: media.appearance.radius.sampled(at: time, as: LookStructureTable.radius).cornerRadii ?? .zero,
@@ -259,16 +259,15 @@ struct ClipEvaluator: Sendable {
                     carried: 1
                 )
             )
-            let crop = clip.crop(at: time).map { crop in
-                AffineTransform(translation: Point(x: -crop.x, y: -crop.y))
-                    .concatenating(AffineTransform(mapping: Size(width: crop.width, height: crop.height), onto: box))
-            }
+            let crop = clip.crop(of: media, at: time)
+            let cropMap = AffineTransform(translation: Point(x: -crop.x, y: -crop.y))
+                .concatenating(AffineTransform(mapping: Size(width: crop.width, height: crop.height), onto: box))
             flat = (
                 box,
                 .picture(item),
                 .identity,
                 { Rectangle(bounding: $0.apply(toCornersOf: item.receiverBox(carriedBy: $0))) },
-                crop ?? .identity
+                cropMap
             )
 
         case let .shape(shape):

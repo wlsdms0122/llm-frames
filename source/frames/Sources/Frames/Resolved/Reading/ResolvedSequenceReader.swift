@@ -515,7 +515,7 @@ struct ResolvedSequenceReader: Sendable {
             isToneMapped: reading.isToneMapped,
             timing: timing,
             filter: try values.timed(clip.member("filter"), as: LookStructureTable.resolvedFilter),
-            crop: try clip.member("crop").optional(values.crops),
+            crop: try values.crops(clip.member("crop")),
             appearance: ResolvedMediaAppearance(
                 conform: try conform(clip.member("conform")),
                 radius: try values.timed(clip.member("radius"), as: LookStructureTable.radius),
