@@ -43,21 +43,21 @@ struct AudioFilterTests {
         #expect(entries[0]["mix"]?.number == 1)
         #expect(entries[1]["mix"]?.number == 0.5)
         let eq = try #require(operation(of: entries[0]))
-        #expect(eq.name == "op:eq")
+        #expect(eq.name == "kind:eq")
         guard case let .list(bands) = eq.body["bands"], bands.count == 2,
             case let .form(firstType, first) = bands[0], case let .form(secondType, second) = bands[1]
         else {
             Issue.record("expected two bands, each a form by its type")
             return
         }
-        #expect(firstType == "type:highPass")
+        #expect(firstType == "kind:highPass")
         #expect(first["frequency"]?.number == 80)
         #expect(first["q"]?.number == 0.7071)
         #expect(first["gain"] == nil)
-        #expect(secondType == "type:peak")
+        #expect(secondType == "kind:peak")
         #expect(second["gain"]?.number == 3)
         let compressor = try #require(operation(of: entries[1]))
-        #expect(compressor.name == "op:compressor")
+        #expect(compressor.name == "kind:compressor")
         #expect(compressor.body["knee"]?.number == 0)
         #expect(compressor.body["attack"]?.number == 0.01)
         #expect(compressor.body["release"]?.number == 0.1)
@@ -223,7 +223,7 @@ struct AudioFilterTests {
         #expect(entries[0]["mix"]?.number == 1)
         #expect(entries[1]["mix"]?.number == 0.5)
         guard case let .list(operations) = entries[1]["ops"], operations.count == 2,
-            case let .form("op:eq", eq) = operations[0], case let .form("op:compressor", compressor) = operations[1],
+            case let .form("kind:eq", eq) = operations[0], case let .form("kind:compressor", compressor) = operations[1],
             case let .list(bands) = eq["bands"], case let .form(_, highPass) = bands.first
         else {
             Issue.record("expected an eq and a compressor, got \(entries[1])")
@@ -359,7 +359,7 @@ struct AudioFilterTests {
 
     @Test("the key tables refuse an empty list, an empty eq and an unknown op")
     func refusesShapes() throws {
-        for filter in [#"[]"#, #"{ "op": "eq", "bands": [] }"#, #"{ "op": "reverb" }"#] {
+        for filter in [#"[]"#, #"{ "kind": "eq", "bands": [] }"#, #"{ "kind": "reverb" }"#] {
             // Given
             let document = try Fixture.json(#"""
                 { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4" } ], "clips": [ { "kind": "media", "media": "/abs/bgm.m4a", "audioFilter": \#(filter) } ] }
@@ -438,7 +438,7 @@ struct AudioFilterTests {
 
         // Then
         guard case let .list(entries) = plan.sound[1].audioFilter, case let .list(operations)? = entries.first?["ops"],
-            case let .form("op:limiter", limiter)? = operations.first
+            case let .form("kind:limiter", limiter)? = operations.first
         else {
             Issue.record("expected one limiter, got \(plan.sound[1].audioFilter)")
             return
@@ -473,10 +473,10 @@ struct AudioFilterTests {
     @Test(
         "a limiter's parameter outside its range stops where the clip writes it",
         arguments: [
-            (#"{ "op": "limiter", "ceiling": 0.5 }"#, "ceiling", 0.5, NumberDomain.range(-Double.infinity...0)),
-            (#"{ "op": "limiter", "lookahead": 0.001 }"#, "lookahead", 0.001, NumberDomain.range(0.0015...0.05)),
-            (#"{ "op": "limiter", "lookahead": 0.06 }"#, "lookahead", 0.06, NumberDomain.range(0.0015...0.05)),
-            (#"{ "op": "limiter", "release": 0 }"#, "release", 0, NumberDomain.positive)
+            (#"{ "kind": "limiter", "ceiling": 0.5 }"#, "ceiling", 0.5, NumberDomain.range(-Double.infinity...0)),
+            (#"{ "kind": "limiter", "lookahead": 0.001 }"#, "lookahead", 0.001, NumberDomain.range(0.0015...0.05)),
+            (#"{ "kind": "limiter", "lookahead": 0.06 }"#, "lookahead", 0.06, NumberDomain.range(0.0015...0.05)),
+            (#"{ "kind": "limiter", "release": 0 }"#, "release", 0, NumberDomain.positive)
         ]
     )
     func refusesLimiterOutOfRange(
@@ -497,9 +497,9 @@ struct AudioFilterTests {
     @Test(
         "a limiter's parameter at the edge of its range resolves as written",
         arguments: [
-            (#"{ "op": "limiter", "ceiling": 0 }"#, "ceiling", 0.0),
-            (#"{ "op": "limiter", "lookahead": 0.0015 }"#, "lookahead", 0.0015),
-            (#"{ "op": "limiter", "lookahead": 0.05 }"#, "lookahead", 0.05)
+            (#"{ "kind": "limiter", "ceiling": 0 }"#, "ceiling", 0.0),
+            (#"{ "kind": "limiter", "lookahead": 0.0015 }"#, "lookahead", 0.0015),
+            (#"{ "kind": "limiter", "lookahead": 0.05 }"#, "lookahead", 0.05)
         ]
     )
     func takesLimiterAtRangeEdge(
@@ -624,9 +624,9 @@ struct AudioFilterTests {
     @Test(
         "the key tables refuse a convolve's unknown key, a file that is no name and a gain that is no number",
         arguments: [
-            #"{ "op": "convolve", "file": "/abs/ding.wav", "decay": 2 }"#,
-            #"{ "op": "convolve", "file": 3 }"#,
-            #"{ "op": "convolve", "file": "/abs/ding.wav", "gain": "loud" }"#
+            #"{ "kind": "convolve", "file": "/abs/ding.wav", "decay": 2 }"#,
+            #"{ "kind": "convolve", "file": 3 }"#,
+            #"{ "kind": "convolve", "file": "/abs/ding.wav", "gain": "loud" }"#
         ]
     )
     func refusesConvolutionKeys(filter: String) throws {
@@ -665,7 +665,7 @@ struct AudioFilterTests {
             return
         }
         let convolution = try #require(operation(of: entry))
-        #expect(convolution.name == "op:convolve")
+        #expect(convolution.name == "kind:convolve")
         #expect(convolution.body["gain"]?.number == 0)
         #expect(convolution.body["mix"] == nil)
         #expect(entry["mix"]?.number == 0.3)
@@ -696,8 +696,8 @@ struct AudioFilterTests {
     @Test(
         "an impulse response that is no sound an impulse response can be stops, naming the entry that writes it",
         arguments: [
-            (#"{ "op": "convolve", "file": "/abs/card.png" }"#, "/abs/card.png", ImpulseResponseRefusal.noSound, false),
-            (#"[ { "op": "gate", "threshold": -50 }, { "op": "convolve", "file": "/abs/short.mp4" } ]"#, "/abs/short.mp4", .noSound, true)
+            (#"{ "kind": "convolve", "file": "/abs/card.png" }"#, "/abs/card.png", ImpulseResponseRefusal.noSound, false),
+            (#"[ { "kind": "gate", "threshold": -50 }, { "kind": "convolve", "file": "/abs/short.mp4" } ]"#, "/abs/short.mp4", .noSound, true)
         ]
     )
     func refusesImpulseResponse(
@@ -799,7 +799,7 @@ struct AudioFilterTests {
             case let .list(entries) = filter.sampled(at: time, as: LookStructureTable.resolvedAudioFilter),
             let entry = entries.first,
             let operation = operation(of: entry),
-            operation.name == "op:limiter"
+            operation.name == "kind:limiter"
         else {
             return nil
         }

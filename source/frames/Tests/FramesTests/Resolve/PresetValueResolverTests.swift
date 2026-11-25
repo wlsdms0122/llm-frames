@@ -191,7 +191,7 @@ struct PresetValueResolverTests {
         let sound = resolved.objectValue?["audio"]?.arrayValue?.last?.objectValue
         let entry = sound?["audioFilter"]?.arrayValue?.first?.objectValue
         let operations = (entry?["ops"]?.arrayValue ?? []).compactMap(\.objectValue)
-        #expect(operations.map { $0["op"] } == [.string("convolve"), .string("convolve")])
+        #expect(operations.map { $0["kind"] } == [.string("convolve"), .string("convolve")])
         #expect(operations.map { $0["file"] } == [.string(hall), .string("/abs/ding.wav")])
         #expect(operations.map { $0["sha256"] } == [.string("hall-digest"), .string("sha256-of-/abs/ding.wav")])
         #expect(operations.allSatisfy { $0["gain"] != nil })

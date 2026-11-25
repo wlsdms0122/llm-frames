@@ -109,12 +109,13 @@ struct AudioPresetReaderTests {
     }
 
     @Test(
-        "a colour or choice parameter, an op's mix and an unknown op stop",
+        "a colour or choice parameter, an op's mix and an unknown op, a preset entry among them, stop",
         arguments: [
             ##"{ "description": "", "params": { "tint": { "type": "color", "default": "#FFFFFF", "description": "tint" } }, "ops": [ { "kind": "gate", "threshold": -50 } ] }"##,
             #"{ "description": "", "params": { "curve": { "type": "choice", "default": "linear", "options": ["linear"], "description": "curve" } }, "ops": [ { "kind": "gate", "threshold": -50 } ] }"#,
             #"{ "description": "", "ops": [ { "kind": "gate", "threshold": -50, "mix": 0.5 } ] }"#,
-            #"{ "description": "", "ops": [ { "kind": "reverb" } ] }"#
+            #"{ "description": "", "ops": [ { "kind": "reverb" } ] }"#,
+            #"{ "description": "", "ops": [ { "kind": "preset", "preset": "mine/voice" } ] }"#
         ]
     )
     func refusesShapes(preset: String) throws {

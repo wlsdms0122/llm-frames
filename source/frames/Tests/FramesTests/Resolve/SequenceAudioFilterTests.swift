@@ -161,7 +161,7 @@ struct SequenceAudioFilterTests {
         #expect(members.map(\.key) == ["format", "storyline", "clips", "audio", "audioFilter"])
         let filter = members.last?.value.arrayValue?.first?.objectValue
         let limiter = filter?["ops"]?.arrayValue?.first?.objectValue
-        #expect(limiter?["op"] == .string("limiter"))
+        #expect(limiter?["kind"] == .string("limiter"))
         #expect(limiter?["lookahead"] == .number(0.01))
         #expect(limiter?["gain"]?.arrayValue?.count == 1)
         let audio = members.first { $0.key == "audio" }?.value.arrayValue ?? []
@@ -190,7 +190,7 @@ struct SequenceAudioFilterTests {
         guard
             case let .list(entries) = plan.audioFilter.sampled(at: 2, as: LookStructureTable.resolvedAudioFilter),
             case let .list(operations)? = entries.first?["ops"],
-            case let .form("op:convolve", body)? = operations.first
+            case let .form("kind:convolve", body)? = operations.first
         else {
             Issue.record("expected a convolve, got \(plan.audioFilter)")
             return
@@ -220,7 +220,7 @@ struct SequenceAudioFilterTests {
         guard
             case let .list(entries) = filter.sampled(at: time, as: LookStructureTable.resolvedAudioFilter),
             case let .list(operations)? = entries.last?["ops"],
-            case let .form("op:limiter", body)? = operations.first
+            case let .form("kind:limiter", body)? = operations.first
         else {
             return nil
         }

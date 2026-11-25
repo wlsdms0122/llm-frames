@@ -152,7 +152,7 @@ extension TimedValue: ExpressibleByIntegerLiteral, ExpressibleByFloatLiteral {
         case let .grain(amount, size): ("grain", [number("amount", amount), number("size", size)])
         }
 
-        return .form("op:" + name, .object(members))
+        return .form("kind:" + name, .object(members))
     }
 
     func fill(

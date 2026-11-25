@@ -155,7 +155,7 @@ struct PresetReaderTests {
             (#"{ "description": "x", "seconds": 1, "matte": { "softness": 0.2 } }"#, #"matte (matte): missing key "media""#),
             (#"{ "description": "x", "seconds": 1, "over": "above" }"#, #"over (transition): unknown value "above". Allowed: incoming, outgoing"#),
             (#"{ "description": "x", "seconds": 1, "audio": "linear" }"#, #"audio (transition): unknown value "linear". Allowed: constant-power, constant-gain"#),
-            (#"{ "description": "x", "seconds": 1, "ease": { "kind": "spring", "bounce": 1.5 } }"#, "ease.spring.bounce (spring): 1.5 is not above -1 and below 1"),
+            (#"{ "description": "x", "seconds": 1, "ease": { "kind": "spring", "bounce": 1.5 } }"#, "ease.bounce (ease): 1.5 is not above -1 and below 1"),
             (#"{ "description": "x", "seconds": 1, "audio": { "param": "curve" } }"#, "audio (transition): expected one of constant-power, constant-gain, found an object")
         ]
     )
@@ -218,9 +218,10 @@ struct PresetReaderTests {
     @Test(
         "a filter preset with a broken rule stops",
         arguments: [
-            (#"{ "description": "x", "ops": [ { "kind": "glow", "amount": 1 } ] }"#, #"ops[0].op (filter operation): unknown value "glow". Allowed: exposure, contrast, saturation, temperature, hue, sepia, levels, lut, blur, sharpen, bloom, vignette, displace, pixelate, grain"#),
-            (#"{ "description": "x", "ops": [ { "amount": 1 } ] }"#, #"ops[0] (filter operation): missing key "op""#),
-            (#"{ "description": "x", "ops": [ { "kind": "blur", "radius": 2, "amount": 1 } ] }"#, #"ops[0] (blur): unknown key "amount". Allowed: op, radius"#),
+            (#"{ "description": "x", "ops": [ { "kind": "glow", "amount": 1 } ] }"#, #"ops[0].kind (filter operation): unknown value "glow". Allowed: exposure, contrast, saturation, temperature, hue, sepia, levels, lut, blur, sharpen, bloom, vignette, displace, pixelate, grain"#),
+            (#"{ "description": "x", "ops": [ { "amount": 1 } ] }"#, #"ops[0] (filter operation): missing key "kind""#),
+            (#"{ "description": "x", "ops": [ { "kind": "preset", "preset": "frames/warm" } ] }"#, #"ops[0].kind (filter operation): unknown value "preset". Allowed: exposure, contrast, saturation, temperature, hue, sepia, levels, lut, blur, sharpen, bloom, vignette, displace, pixelate, grain"#),
+            (#"{ "description": "x", "ops": [ { "kind": "blur", "radius": 2, "amount": 1 } ] }"#, #"ops[0] (blur): unknown key "amount". Allowed: kind, radius"#),
             (#"{ "description": "x", "ops": [ { "kind": "exposure" } ] }"#, #"ops[0] (exposure): missing key "ev""#),
             (#"{ "description": "x", "ops": [ { "kind": "levels", "input": [0, 1, 2], "output": [0, 1] } ] }"#, "ops[0].input (levels): expected a list of 2 numbers, found a list of 3"),
             (#"{ "description": "x" }"#, #"top level (filter): missing key "ops""#),
@@ -241,7 +242,7 @@ struct PresetReaderTests {
             (#"{ "description": "x", "ops": [ { "kind": "displace", "file": "/abs/ripple.png", "amount": 4, "offset": [1] } ] }"#, "ops[0].offset (displace): expected a list of 2 numbers, found a list of 1"),
             (#"{ "description": "x", "ops": [ { "kind": "displace", "file": "/abs/ripple.png", "amount": 4, "offset": [1, 2, 3] } ] }"#, "ops[0].offset (displace): expected a list of 2 numbers, found a list of 3"),
             (#"{ "description": "x", "ops": [ { "kind": "displace", "file": "/abs/ripple.png", "amount": 4, "offset": 1 } ] }"#, "ops[0].offset (displace): expected a list of 2 numbers, found 1"),
-            (#"{ "description": "x", "ops": [ { "kind": "displace", "file": "/abs/ripple.png", "amount": 4, "radius": 2 } ] }"#, #"ops[0] (displace): unknown key "radius". Allowed: op, file, amount, offset"#),
+            (#"{ "description": "x", "ops": [ { "kind": "displace", "file": "/abs/ripple.png", "amount": 4, "radius": 2 } ] }"#, #"ops[0] (displace): unknown key "radius". Allowed: kind, file, amount, offset"#),
             (#"{ "description": "x", "ops": [ { "kind": "displace", "amount": 4 } ] }"#, #"ops[0] (displace): missing key "file""#),
             (#"{ "description": "x", "ops": [ { "kind": "displace", "file": "/abs/ripple.png" } ] }"#, #"ops[0] (displace): missing key "amount""#)
         ]
@@ -394,7 +395,7 @@ struct PresetReaderTests {
             (#"{ "p": { "type": "number", "default": 1 } }"#, #"params.p (parameter): missing key "description""#),
             (#"{ "p": { "type": "choice", "options": ["linear", "linear"], "default": "linear", "description": "the p" } }"#, #"params.p.options (parameter): a choice offers at least two distinct options"#),
             (#"{ "p": { "type": "number", "default": "big", "description": "the p" } }"#, #"params.p.default (parameter): expected a number, found "big""#),
-            (#"{ "p": { "type": "choice", "options": ["linear", "fast"], "default": "linear", "description": "the p" } }"#, #"params.p.options[1] (parameter): unknown value "fast". Allowed: linear, ease-in, ease-out, ease-in-out, back-out, bounce-out, step, [x1, y1, x2, y2], {spring}"#),
+            (#"{ "p": { "type": "choice", "options": ["linear", "fast"], "default": "linear", "description": "the p" } }"#, #"params.p.options[1] (parameter): unknown value "fast". Allowed: linear, ease-in, ease-out, ease-in-out, back-out, bounce-out, step, [x1, y1, x2, y2], {"kind": "spring", "bounce": b}"#),
             (#"{ "p": { "type": "choice", "options": ["linear", "step"], "default": "ease-in", "description": "the p" } }"#, #"params.p.default (parameter): unknown value "ease-in". Allowed: linear, step"#),
             (#"{ "p": { "type": "number", "default": 1, "description": "the p" }, "unused": { "type": "number", "default": 1, "description": "the unused" } }"#, #"params.unused (parameter): "unused" is declared but nothing refers to it"#)
         ]
@@ -447,7 +448,7 @@ struct PresetReaderTests {
             (#"{ "type": "number", "default": 0, "description": "the p" }"#, #""seconds": { "param": "p" }"#, "seconds (transition): a span runs for more than 0 seconds, found 0"),
             (#"{ "type": "number", "default": 1.5, "description": "the p" }"#, #""seconds": 1, "incoming": { "keys": [ { "t": 0, "opacity": { "param": "p" } } ] }"#, "incoming.keys[0].opacity (span key): 1.5 is not within 0 to 1"),
             (#"{ "type": "number", "default": 2, "description": "the p" }"#, #""seconds": 1, "incoming": { "keys": [ { "t": { "param": "p" } } ] }"#, "incoming.keys[0] (span key): t is progress through the span and lies between 0 and 1, found 2"),
-            (#"{ "type": "number", "default": 1, "description": "the p" }"#, #""seconds": 1, "ease": { "kind": "spring", "bounce": { "param": "p" } }"#, "ease.spring.bounce (spring): 1 is not above -1 and below 1")
+            (#"{ "type": "number", "default": 1, "description": "the p" }"#, #""seconds": 1, "ease": { "kind": "spring", "bounce": { "param": "p" } }"#, "ease.bounce (ease): 1 is not above -1 and below 1")
         ]
     )
     func refusesBrokenDefault(

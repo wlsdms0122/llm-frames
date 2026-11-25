@@ -373,7 +373,7 @@ struct ResolvedSequenceWriterTests {
         #expect(transition["matte"]?.objectValue?["duration"] == .number(0))
         let entry = storyline[0].objectValue?["filter"]?.arrayValue?.first?.objectValue
         #expect(entry?.keys == ["ops", "mix"])
-        #expect(entry?["ops"]?.arrayValue?.first?.objectValue?.keys == ["op", "file", "sha256", "amount"])
+        #expect(entry?["ops"]?.arrayValue?.first?.objectValue?.keys == ["kind", "file", "sha256", "amount"])
     }
 
     @Test("a displace op written in place writes its map pinned beside its file, then its amount and its offset, each a keyframe list")
@@ -397,7 +397,7 @@ struct ResolvedSequenceWriterTests {
             JSONMember(key: "ease", value: .string("linear"))
         ]))]) }
         let scale = 1080.0 / 1920
-        #expect(operation.keys == ["op", "file", "sha256", "amount", "offset"])
+        #expect(operation.keys == ["kind", "file", "sha256", "amount", "offset"])
         #expect(operation["file"] == .string("/abs/matte.png"))
         #expect(operation["sha256"] == .string("sha256-of-/abs/matte.png"))
         #expect(operation["amount"] == held(.number(8 * scale)))

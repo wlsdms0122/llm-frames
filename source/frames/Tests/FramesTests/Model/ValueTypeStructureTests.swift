@@ -114,14 +114,14 @@ struct ValueTypeStructureTests {
         ])
     }
 
-    @Test("an audio op's table requires only `op` and a band's only `type`, and leaves every parameter's domain to the domain check")
+    @Test("an audio op's table requires only `kind` and a band's only `kind`, and leaves every parameter's domain to the domain check")
     func readsAudioOperations() {
         // When
         let tables = AudioFilterKeyTable.operations.map(AudioFilterKeyTable.table(for:))
-        let bands = AudioFilterKeyTable.bandTypes.map(AudioFilterKeyTable.band(of:))
+        let bands = AudioFilterKeyTable.bandKinds.map(AudioFilterKeyTable.band(of:))
 
         // Then
-        let operation = KeyRule("op", .literal(AudioFilterKeyTable.operations), isRequired: true)
+        let operation = KeyRule("kind", .literal(AudioFilterKeyTable.operations), isRequired: true)
         #expect(tables == [
             ObjectTable(kind: "eq", rules: [operation, KeyRule("bands", .list(.anyObject))]),
             ObjectTable(
@@ -159,18 +159,18 @@ struct ValueTypeStructureTests {
             ),
             ObjectTable(kind: "convolve", rules: [operation, KeyRule("file", .name), KeyRule("gain", .number(.any))])
         ])
-        let type = KeyRule("type", .literal(AudioFilterKeyTable.bandTypes), isRequired: true)
+        let kind = KeyRule("kind", .literal(AudioFilterKeyTable.bandKinds), isRequired: true)
         #expect(bands == MixBandType.allCases.map { band in
             ObjectTable(
                 kind: "band",
-                rules: [type, KeyRule("frequency", .number(.any))]
+                rules: [kind, KeyRule("frequency", .number(.any))]
                     + (band.takesGain ? [KeyRule("gain", .number(.any))] : [])
                     + [KeyRule("q", .number(.any))]
             )
         })
     }
 
-    @Test("a filter op's table requires only `op`, and leaves every parameter's range to the range check")
+    @Test("a filter op's table requires only `kind`, and leaves every parameter's range to the range check")
     func readsFilterOperations() {
         // When
         let tables = FilterKeyTable.operations.map(FilterKeyTable.table(for:))
@@ -194,7 +194,7 @@ struct ValueTypeStructureTests {
             "pixelate": [number("size")],
             "grain": [number("amount"), number("size")]
         ]
-        let operation = KeyRule("op", .literal(FilterKeyTable.operations), isRequired: true)
+        let operation = KeyRule("kind", .literal(FilterKeyTable.operations), isRequired: true)
         #expect(tables == FilterKeyTable.operations.map { name in
             ObjectTable(kind: name, rules: [operation] + (parameters[name] ?? []))
         })

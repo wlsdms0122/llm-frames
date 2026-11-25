@@ -146,7 +146,7 @@ struct EaseTests {
         #expect(Ease(value: .string("ease")) == nil)
     }
 
-    @Test("a spring is read from its bounce, which lies between -1 and 1 and is the spring's only key")
+    @Test("a spring is read from its kind and its bounce, which lies between -1 and 1 and is the spring's only parameter, and an object of no kind or another kind is no ease")
     func readsSpring() throws {
         // Given
         let spring = try Fixture.json(#"{ "kind": "spring", "bounce": 0.4 }"#)
@@ -155,7 +155,8 @@ struct EaseTests {
             #"{ "kind": "spring", "bounce": -1 }"#,
             #"{ "kind": "spring", "bounce": 0.2, "mass": 1 }"#,
             #"{ "kind": "spring" }"#,
-            #"{ "spring": { "bounce": 0.2 }, "ease": "linear" }"#
+            #"{ "bounce": 0.2 }"#,
+            #"{ "kind": "elastic", "bounce": 0.2 }"#
         ].map(Fixture.json)
 
         // When
