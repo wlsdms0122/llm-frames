@@ -167,7 +167,7 @@ struct CommandShellTests {
         arguments: [
             (["resolve", "/abs/doc.json"], "resolve: missing -o <resolved.json>"),
             (["timeline", "--json"], "timeline: missing <document.json>"),
-            (["timeline", "/abs/doc.json", "--fps", "30"], #"timeline: unknown option "--fps". Allowed: --args, --json"#),
+            (["timeline", "/abs/doc.json", "--fps", "30"], #"timeline: unknown option "--fps". Allowed: --at, --args, --json"#),
             (["timeline", "/abs/doc.json", "--args"], "timeline: --args takes a value, <args.json>"),
             (
                 ["timeline", "doc.json"],
