@@ -12,8 +12,7 @@
 extension ResolvedClip {
     // MARK: - Property
     // MARK: - Initializer
-    // An audio clip, the one clip with a picture to composite and no lane to stack it in, has no clips entry: its sound
-    // is one of the sequence's audio entries.
+    // An audio clip draws nothing and has no clips entry: its sound is one of the sequence's audio entries.
     init?(
         plan: ClipPlan,
         geometry: ClipGeometry,
@@ -40,6 +39,9 @@ extension ResolvedClip {
 
         case let .null(null):
             content = .null(ResolvedNull(geometry: NullGeometry(plan: null, geometry: geometry, instant: instant)))
+
+        case .sound:
+            return nil
         }
         let box = geometry.box.map { box in
             ResolvedBox(
