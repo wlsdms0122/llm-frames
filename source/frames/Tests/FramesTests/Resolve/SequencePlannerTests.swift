@@ -484,6 +484,21 @@ struct SequencePlannerTests {
         #expect(plan.storyline[0].nested == nil)
     }
 
+    @Test("an audio clip is planned as sound, which draws nothing")
+    func plansAudioClipAsSound() throws {
+        // Given
+        let document = #"""
+            { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4" } ],
+              "clips": [ { "kind": "audio", "media": "/abs/run.mp4", "at": [0, 1] } ] }
+            """#
+
+        // When
+        let sut = try plan(document)
+
+        // Then
+        #expect(sut.clips[0].appearance.drawing == .sound)
+    }
+
     @Test("how each clip is drawn is planned, with keyframes in sequence time and filter lengths scaled")
     func plansAppearance() throws {
         // Given
