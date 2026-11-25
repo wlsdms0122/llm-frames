@@ -163,7 +163,7 @@ A split edit as an audio clip of the shot's sound beside its storyline clip, wit
 
 A split on storyline clips only, as the place an edit point is held: a connected clip with sound, the usual B-roll with its natural sound, would take its sound in early only as a picture clip keyed silent beside an audio clip of the same media, the two-place structure above. The J or L cut is about the edges of a clip's sound, which every clip with a picture and sound has, as Final Cut Pro's expanded audio works on connected clips too.
 
-A visual media clip's split measured from its written window, its `at`: where the sequence end or a lost target narrows the window, the clip ends there, its sound without a split included, so a split of 0 would move its sound's edge out past where the clip ends, and the split would no longer be the distance its sound leads or trails its picture. A split moves the edges of a sound from where they are, and the narrowed window is where they are.
+A visual media clip's split measured from its written window, its `at`: where the sequence end or a lost target narrows the window, the clip ends there, its sound without a split included, so a split of 0 would move its sound's edge out past where the clip ends, and the split would not be the distance its sound leads or trails its picture. A split moves the edges of a sound from where they are, and the narrowed window is where they are.
 
 Effects after the fader: a compressor after a fade would lift the fade back up, and an NLE's clip effects sit before its volume.
 

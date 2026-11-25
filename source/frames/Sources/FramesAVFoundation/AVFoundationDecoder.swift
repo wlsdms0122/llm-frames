@@ -21,11 +21,11 @@ import os
 // holds them to and the room the run's budget grants them, and a video past either takes turns (FRAMES-30). Made to
 // convert on the GPU, on a machine with a Metal device, it takes a video's frames read as working values to a surface
 // by `MetalPictureConverter` wherever the conversion's steps and the frame's placement allow, and every other picture
-// on the CPU (FRAMES-21 Pictures). The largest picture it holds is 16384 pixels on a side. It times its reading of
-// pictures and sound as `decode` and its conversion of them as `workingConversion`, that of a frame read ahead apart as
-// well, and tallies how it read each medium: a frame read ahead is decoded where it is read, and read only when it is
-// given (FRAMES-23 Runs). A page's draw is `decode` whole, any colour conversion included, that of Core Graphics and
-// that of a written `colorSpace` alike (FRAMES-21).
+// on the CPU (FRAMES-21 Pictures). A frame those allow that Metal does not convert stops the read. The largest picture
+// it holds is 16384 pixels on a side. It times its reading of pictures and sound as `decode` and its conversion of them
+// as `workingConversion`, that of a frame read ahead apart as well, and tallies how it read each medium: a frame read
+// ahead is decoded where it is read, and read only when it is given (FRAMES-23 Runs). A page's draw is `decode` whole,
+// any colour conversion included, that of Core Graphics and that of a written `colorSpace` alike (FRAMES-21).
 package final class AVFoundationDecoder: Sendable {
     // MARK: - Property
     // The most pixels on a side of a picture this decoder holds: a frame, a still or a region of a page.
@@ -285,12 +285,14 @@ package final class AVFoundationDecoder: Sendable {
         }
     }
 
-    // A video frame's working values converted on the GPU, with the form they were converted by: nil for a decoder that
-    // converts on the CPU, for a reading other than `working`, and where the GPU does not run the conversion or the
-    // frame's placement. Tone mapping is of HDR pictures alone, whose steps are `formulas`, so a target peak changes
-    // nothing here.
+    // Frame `index`'s working values converted on the GPU, with the form they were converted by: nil for a decoder that
+    // converts on the CPU, for a reading other than `working`, and where the GPU does not convert the reading's frames
+    // (`MetalPictureConverter.converts`), which holds for every frame of the reading alike. A frame the GPU converts
+    // and Metal does not run stops, so no frame of such a reading is converted on the CPU. Tone mapping is of HDR
+    // pictures alone, whose steps are `formulas`, so a target peak changes nothing here.
     private func surface(
         of buffer: CVImageBuffer,
+        atFrame index: Int,
         in video: VideoReader,
         tagged: TaggedColor,
         path: String,
@@ -299,7 +301,16 @@ package final class AVFoundationDecoder: Sendable {
     ) throws -> (picture: PictureSurface, conversion: WorkingConversion)? {
         guard let metal, case let .working(colorSpace, _) = reading else { return nil }
         let conversion = try conversion(in: colorSpace, tagged: tagged, path: path)
-        if case .formulas = conversion.steps { return nil }
+        guard metal.converts(
+            buffer,
+            format: video.decodedFormat,
+            storedSize: video.storedSize,
+            transform: video.transform,
+            steps: conversion.steps
+        )
+        else {
+            return nil
+        }
 
         let surface = clock.measure(.workingConversion) {
             metal.picture(
@@ -311,8 +322,9 @@ package final class AVFoundationDecoder: Sendable {
                 steps: conversion.steps
             )
         }
+        guard let surface else { throw DecoderError.unconvertedFrame(file: path, index: index) }
 
-        return surface.map { ($0, conversion.workingConversion) }
+        return (surface, conversion.workingConversion)
     }
 
     // The form a picture read by `reading` is converted by, nil for a `platform` reading.
@@ -517,7 +529,15 @@ extension AVFoundationDecoder: MediaDecoder {
                 return .bitmap(picture)
             }
 
-            let surface = try surface(of: buffer, in: video, tagged: tagged, path: path, reading: reading, clock: clock)
+            let surface = try surface(
+                of: buffer,
+                atFrame: index,
+                in: video,
+                tagged: tagged,
+                path: path,
+                reading: reading,
+                clock: clock
+            )
             if let surface {
                 record(
                     file,
