@@ -4,8 +4,8 @@
 A request is an object with the key `tool` that stands where a value is still to be found, and the requests this
 extension fills are those whose `tool` is `find-text`, standing where an area does. It asks frames where and when each
 one is searched, reads the media with `frames ocr --json`, and prints the same document with each of its requests
-replaced by a rectangle in the media pixels it is written in. A request for any other tool is left as written. It
-reads only frames' machine output and never a resolved document.
+replaced by a rectangle in the media pixels it is written in, and with `--report` writes what it filled. A request
+for any other tool is left as written. It reads only frames' machine output and never a resolved document.
 """
 
 import json
@@ -16,13 +16,14 @@ import sys
 import tempfile
 
 SUPPORTED_MAJOR = 0
+VERSION = "0.1.0"
 GLOBAL_OPTIONS = ("--theme", "--decoder", "--renderer", "--mixer", "--encoder", "--shaper", "--tracker", "--ocr")
 TOOL = "find-text"
 TEXT_KEYS = {"tool", "text", "nth", "padding", "aspectRatio"}
 RANGE_KEYS = {"tool", "from", "to", "fromNth", "toNth", "padding", "aspectRatio"}
 AREA_KEYS = ("area", "crop")
 PLACEHOLDER = [0, 0, 1, 1]
-USAGE = """frames find-text <document.json | -> [--languages <tag>[,<tag>...]]
+USAGE = """frames find-text <document.json | -> [--languages <tag>[,<tag>...]] [--report <report.json>]
 
 Prints the document with every request for find-text, standing where an area does, replaced by the rectangle
 `frames ocr` finds, in the media pixels the area is written in:
@@ -37,6 +38,8 @@ A request for any other tool is left as written.
 
   <document.json | ->           The document, as an absolute path, or - for standard input.
   --languages <tag>[,<tag>...]  The recognition languages passed to `frames ocr --languages`. Default: detected.
+  --report <report.json>        Writes each request filled with the media, frame and lines it matched, as an
+                                absolute .json path. Default: none.
   --help                        Prints this help.
 
 The global options of frames given before `find-text` are passed to every frames command it runs. The frames it
@@ -180,24 +183,26 @@ def pick(lines, text, nth, where, source):
 
 
 def find(form, reading, where, source):
-    """The rectangle a request names among the lines of one picture, padding and aspect ratio included."""
+    """The rectangle a request names among the lines of one picture, padding and aspect ratio included, and the
+    lines it matched, in `ocr`'s order."""
     lines = reading.lines
     if text_form_kind(form) == "text":
-        rect = pick(lines, form["text"], form.get("nth"), where, source)["rect"]
+        matched = [pick(lines, form["text"], form.get("nth"), where, source)]
     else:
-        first = pick(lines, form["from"], form.get("fromNth"), f"{where} (from)", source)["rect"]
-        last = pick(lines, form["to"], form.get("toNth"), f"{where} (to)", source)["rect"]
-        top = min(first[1], last[1])
-        bottom = max(first[1] + first[3], last[1] + last[3])
-        rects = [first, last] + [
-            line["rect"] for line in lines if top <= line["rect"][1] + line["rect"][3] / 2 <= bottom
+        first = pick(lines, form["from"], form.get("fromNth"), f"{where} (from)", source)
+        last = pick(lines, form["to"], form.get("toNth"), f"{where} (to)", source)
+        top = min(first["rect"][1], last["rect"][1])
+        bottom = max(first["rect"][1] + first["rect"][3], last["rect"][1] + last["rect"][3])
+        matched = [
+            line for line in lines
+            if line is first or line is last or top <= line["rect"][1] + line["rect"][3] / 2 <= bottom
         ]
-        rect = bounding(rects)
+    rect = bounding([line["rect"] for line in matched])
     padding = form.get("padding", 0)
     rect = [rect[0] - padding, rect[1] - padding, rect[2] + 2 * padding, rect[3] + 2 * padding]
     if "aspectRatio" in form:
         rect = fitted(rect, form["aspectRatio"], reading.size, where, source)
-    return [rounded(value) for value in rect]
+    return [rounded(value) for value in rect], matched
 
 
 def fitted(rect, ratio, size, where, source):
@@ -526,17 +531,20 @@ def parse(arguments):
     options = []
     document = None
     languages = None
+    report = None
     index = 0
     while index < len(arguments):
         argument = arguments[index]
         if argument in ("--help", "-h"):
             print(USAGE)
             sys.exit(0)
-        if argument in GLOBAL_OPTIONS or argument == "--languages":
+        if argument in GLOBAL_OPTIONS or argument in ("--languages", "--report"):
             if index + 1 >= len(arguments):
                 raise Stop(f"{argument} needs a value")
             if argument == "--languages":
                 languages = arguments[index + 1]
+            elif argument == "--report":
+                report = arguments[index + 1]
             else:
                 options += [argument, arguments[index + 1]]
             index += 2
@@ -551,7 +559,13 @@ def parse(arguments):
         raise Stop("a document is needed, as an absolute path or -")
     if document != "-" and not document.startswith("/"):
         raise Stop(f"<document.json> {json.dumps(document)} is not an absolute path, and paths are absolute")
-    return options, document, languages
+    if report is not None and not report.startswith("/"):
+        raise Stop(f"--report {json.dumps(report)} is not an absolute path, and paths are absolute")
+    if report is not None and not report.lower().endswith(".json"):
+        raise Stop(f"--report {json.dumps(report)}: a report is written to a .json file")
+    if report is not None and os.path.abspath(report) == os.path.abspath(document):
+        raise Stop(f"--report {json.dumps(report)}: the report would be written over the document")
+    return options, document, languages, report
 
 
 def load(document):
@@ -573,7 +587,8 @@ def load(document):
 
 
 def run(arguments):
-    options, path, languages = parse(arguments)
+    """The document with every request of this tool filled, and the report of each, in the order of the document."""
+    options, path, languages, report_path = parse(arguments)
     document = load(path)
     clips = clips_of(document)
     found = [entry for clip in clips for entry in text_forms(clip)]
@@ -588,7 +603,7 @@ def run(arguments):
     for entry in found:
         check_text_form(entry.form, entry.where)
     if not found:
-        return document
+        return document, report_path, []
 
     frames = Frames(os.environ.get("FRAMES_EXECUTABLE") or "frames", options)
     frames.check_version()
@@ -599,19 +614,45 @@ def run(arguments):
             json.dump(probe_document(document), file)
         times = Times(frames, probe_path, clips)
         searched = [searched_place(entry, times) for entry in found]
-        rects = []
+        filled = []
         for entry, place in zip(found, searched):
             read = picture_of(entry, place, times)
             reading = frames.ocr(read, times.written(place).value.get("colorSpace"), languages)
-            rects.append(find(entry.form, reading, entry.where, read.describe()))
-    for entry, rect in zip(found, rects):
-        entry.holder[entry.key] = rect
-    return document
+            rect, lines = find(entry.form, reading, entry.where, read.describe())
+            filled.append(report_entry(entry, read, lines, rect))
+    for entry, item in zip(found, filled):
+        entry.holder[entry.key] = item["rect"]
+    return document, report_path, filled
+
+
+def report_entry(found, read, lines, rect):
+    """What the report gives for one request filled, the request as written before it is replaced."""
+    return {
+        "place": found.clip.place,
+        "key": found.path,
+        "request": json.loads(json.dumps(found.form)),
+        "media": read.path,
+        "mediaTime": read.time,
+        "page": read.page,
+        "lines": [{"text": line["text"], "rect": line["rect"]} for line in lines],
+        "rect": rect,
+    }
+
+
+def write_report(path, filled):
+    try:
+        with open(path, "w", encoding="utf-8") as file:
+            json.dump({"find-text": VERSION, "requests": filled}, file, ensure_ascii=False, indent=2)
+            file.write("\n")
+    except OSError as error:
+        raise Stop(f"--report {json.dumps(path)}: cannot write it: {error.strerror}")
 
 
 def main():
     try:
-        document = run(sys.argv[1:])
+        document, report_path, filled = run(sys.argv[1:])
+        if report_path is not None:
+            write_report(report_path, filled)
     except Stop as stop:
         print(f"frames-find-text: {stop}", file=sys.stderr)
         return 1
