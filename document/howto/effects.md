@@ -123,7 +123,7 @@ The processed range becomes its own storyline clip, a blade as [GUIDE.md](../GUI
   "format": { "size": [1280, 720], "fps": 30 },
   "storyline": [
     { "id": "demo", "media": "/path/to/recording.mp4", "in": 0, "out": 1,
-      "connected": [ { "at": [0.4, 1], "parent": "demo", "shape": "rect", "area": { "text": "Total", "padding": 8 },
+      "connected": [ { "at": [0.4, 1], "parent": "demo", "shape": "rect", "area": { "tool": "find-text", "text": "Total", "padding": 8 },
                        "stroke": { "color": "#F59E0B", "width": 4 } } ] },
     { "id": "demo-glitch", "media": { "imageSequence": "/path/to/work/glitched", "fps": 30 }, "transition": "cut",
       "connected": [ { "media": "/path/to/recording.mp4", "in": 1, "out": 2, "opacity": 0 } ] },
@@ -150,6 +150,6 @@ frames still /path/to/work/glitch.json --at 0.9,1,1.5,1.97,2 -o /path/to/out/gli
 
 ## Notes
 
-- A shape placed by text and parented to a processed clip looks for the text in the processed frames, where a glitch may hide it. Point at it by the rectangle `ocr` reports on the original (`[x, y, w, h]`), or keep the shapes on the parts before and after.
+- A shape whose area is a `find-text` request, parented to a processed clip, looks for the text in the processed frames, where a glitch may hide it. Point at it by the rectangle `ocr` reports on the original (`[x, y, w, h]`), or keep the shapes on the parts before and after.
 - Processing a whole clip is the same with the whole media range. Extract only what plays, since every frame is a full size PNG.
 - An effect over everything frames draws, titles and shapes included, starts from the document itself: `extract` given a document writes the composite frames at sequence times, as `still` draws them. Process those and make the folder the storyline of a new document, with the first document connected over it at `opacity` 0 for its sound, or render that first document to a master and use the master as media.

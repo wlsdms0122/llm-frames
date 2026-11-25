@@ -21,7 +21,10 @@
           0,
           1
         ],
-        "track": true
+        "track": {
+          "tool": "track-motion",
+          "target": "area"
+        }
       }
     ]
   },
@@ -44,7 +47,10 @@
               0.4,
               2
             ],
-            "track": true
+            "track": {
+              "tool": "track-motion",
+              "target": "area"
+            }
           }
         ]
       }
@@ -71,7 +77,10 @@
             88
           ]
         },
-        "track": true
+        "track": {
+          "tool": "track-motion",
+          "target": "area"
+        }
       }
     ]
   },
@@ -90,7 +99,10 @@
             88
           ]
         },
-        "track": true
+        "track": {
+          "tool": "track-motion",
+          "target": "mask"
+        }
       }
     ]
   },
@@ -130,6 +142,8 @@
               }
             ],
             "track": {
+              "tool": "track-motion",
+              "target": "area",
               "time": 0.4
             }
           }
@@ -159,7 +173,11 @@
               88
             ],
             "track": {
-              "text": "Total"
+              "tool": "track-motion",
+              "target": {
+                "tool": "find-text",
+                "text": "Total"
+              }
             }
           }
         ]
@@ -204,7 +222,10 @@
               10
             ],
             "track": {
-              "clip": "b"
+              "tool": "track-motion",
+              "target": {
+                "clip": "b"
+              }
             }
           }
         ]
@@ -233,17 +254,49 @@
               88
             ],
             "track": {
-              "time": 0.4,
-              "area": [
+              "tool": "track-motion",
+              "target": [
                 124,
                 202,
                 128,
                 88
               ],
+              "time": 0.4,
               "padding": 4
             }
           }
         ]
+      }
+    ]
+  },
+  "pin_output": {
+    "kind": "sequence",
+    "storyline": [
+      {
+        "id": "shot",
+        "media": "/media/moving.mp4",
+        "cornerPin": [
+          [
+            0,
+            0
+          ],
+          [
+            640,
+            0
+          ],
+          [
+            640,
+            360
+          ],
+          [
+            0,
+            360
+          ]
+        ],
+        "track": {
+          "tool": "track-motion",
+          "target": "cornerPin"
+        }
       }
     ]
   }

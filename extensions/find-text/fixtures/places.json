@@ -11,6 +11,7 @@
             "shape": "rect",
             "fill": "#FF0000",
             "area": {
+              "tool": "find-text",
               "text": "Total"
             }
           }
@@ -33,6 +34,7 @@
             "mask": {
               "shape": "rect",
               "area": {
+                "tool": "find-text",
                 "text": "Total"
               }
             }
@@ -64,6 +66,7 @@
             "shape": "rect",
             "fill": "#FF0000",
             "area": {
+              "tool": "find-text",
               "text": "Total"
             }
           }
@@ -90,6 +93,7 @@
             "shape": "rect",
             "fill": "#FF0000",
             "area": {
+              "tool": "find-text",
               "text": "Total"
             }
           }
@@ -133,34 +137,9 @@
             "shape": "rect",
             "fill": "#FF0000",
             "area": {
+              "tool": "find-text",
               "text": "Total",
               "nth": 1
-            }
-          }
-        ]
-      }
-    ]
-  },
-  "track_on_still": {
-    "kind": "sequence",
-    "storyline": [
-      {
-        "id": "b",
-        "media": "/media/board.png",
-        "duration": 2,
-        "connected": [
-          {
-            "parent": "b",
-            "shape": "rect",
-            "fill": "#FF0000",
-            "area": [
-              0,
-              0,
-              10,
-              10
-            ],
-            "track": {
-              "text": "Total"
             }
           }
         ]

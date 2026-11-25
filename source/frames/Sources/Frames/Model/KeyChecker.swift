@@ -127,6 +127,10 @@ struct KeyChecker: Sendable {
         kind: String,
         scope: inout DocumentScope
     ) throws {
+        // `metadata` holds what frames does not read, so an object inside it is no request.
+        if type != .anyObject {
+            try checkRequest(value, place: place)
+        }
         if case let .object(object) = value, object.contains("param"), takesParameter(type, by: scope.owner) {
             try checkParameterReference(object, as: type, place: place, kind: kind, scope: &scope)
             return
@@ -1011,6 +1015,8 @@ struct KeyChecker: Sendable {
         in clipPlace: ClipPlace,
         scope: inout DocumentScope
     ) throws {
+        try checkRequest(value, place: place)
+
         let generic = clipPlace.label
         guard let object = value.objectValue else {
             throw wrongType(value, .object(ObjectTable(kind: generic, rules: [])), place, generic)
@@ -1235,6 +1241,20 @@ struct KeyChecker: Sendable {
 
     private func distinctCount(of values: [JSONValue]) -> Int {
         values.indices.filter { index in !values[..<index].contains(values[index]) }.count
+    }
+
+    // An object with a `tool` key is a request, a hole the tool it names fills before the document is given to frames,
+    // which takes none, wherever it stands.
+    private func checkRequest(
+        _ value: JSONValue,
+        place: Place
+    ) throws {
+        guard case let .object(object) = value, let toolValue = object["tool"] else { return }
+        guard let tool = toolValue.stringValue else {
+            throw wrongType(toolValue, .text, place.appending(key: "tool"), "request")
+        }
+
+        throw ModelError.request(place: place, tool: tool)
     }
 
     private func checkParameterReference(

@@ -29,6 +29,7 @@ enum ModelError: Error, Equatable, CustomStringConvertible, Sendable {
     case unknownTemplate(place: Place, kind: String, name: String)
     case misplacedMedia(place: Place, kind: String, reason: String)
     case easeWithoutFollowingKeyframe(place: Place, leaves: [Place])
+    case request(place: Place, tool: String)
 
     // MARK: - Property
     var description: String {
@@ -104,6 +105,9 @@ enum ModelError: Error, Equatable, CustomStringConvertible, Sendable {
 
         case let .easeWithoutFollowingKeyframe(place, leaves):
             "\(place) (keyframe): \"ease\" shapes no span, since no later keyframe names \(leaves.map(\.description).joined(separator: ", "))"
+
+        case let .request(place, tool):
+            "\(place) (request): this is a request for the tool \"\(tool)\", and a tool fills its requests before the document is given to frames"
         }
     }
 

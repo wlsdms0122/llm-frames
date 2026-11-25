@@ -4718,12 +4718,10 @@
           ],
           "parent": "shot",
           "shape": "rect",
-          "area": [
-            0,
-            0,
-            10,
-            10
-          ],
+          "area": {
+            "tool": "find-text",
+            "text": "Total"
+          },
           "fill": "#FFFFFF",
           "track": {
             "time": 0,

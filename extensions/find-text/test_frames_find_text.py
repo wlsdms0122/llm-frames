@@ -7,6 +7,7 @@ Run from the repository root: python3 -m unittest discover -s extensions/find-te
 the document it asks about written as `<document>`. `board.png` is a still of six lines of text, `clip.mp4` a 4 second
 video at 25 frames a second that shows `Price 4.50` at the top left before 2 seconds and `Price 6.00` at the bottom
 right from 2 seconds, and `frames` an image sequence of its frames every half second, read at 2 frames a second.
+The documents hold `track-motion` requests beside `find-text` ones, which the extension leaves as written.
 """
 
 import copy
@@ -81,7 +82,7 @@ class Case(unittest.TestCase):
 
 class Recorded(Case):
     def test_still(self):
-        # Given a still under shapes, a point and a crop that name its text
+        # Given a still under shapes, a point and a crop whose requests name its text
         document = fixture("still.json")
 
         # When the extension writes the rectangles
@@ -92,7 +93,7 @@ class Recorded(Case):
         self.assertEqual(len(self.commands("ocr")), 1)
 
     def test_video(self):
-        # Given a video under keyframed areas, a speed, a time remap, a picture in picture, track targets and an image
+        # Given a video under keyframed areas, a speed, a time remap, a picture in picture, track requests and an image
         # sequence
         document = fixture("video.json")
 
@@ -133,17 +134,31 @@ class Recorded(Case):
         self.assertEqual(self.commands("evaluate") + self.commands("locate") + self.commands("probe"), [])
 
     def test_image_sequence(self):
-        # Given an image sequence's crop and a track target at a media time on it
+        # Given an image sequence's crop and a child's area, both requests for find-text
         result = self.run_document(fixture("video.json"), fixture("video.calls.json"), "--languages", "en-US")
 
         # When the image sequence is read
         sequence = result["storyline"][3]
 
-        # Then its directory is read with ocr at the rate its media form writes, at the frame shown at its in and at
-        # the track's time
+        # Then its directory is read once with ocr at the rate its media form writes, at the frame shown at its in
         self.assertEqual(sequence["crop"], [89.90329, 108, 166.19342, 43])
-        self.assertEqual(sequence["connected"][0]["track"]["area"], [699.924263, 518, 148.151474, 23])
-        self.assertIn(["ocr", "/media/frames", "--json", "--fps", "2", "--at", "1", "--languages", "en-US"], Replay.log)
+        self.assertEqual(sequence["connected"][0]["area"], [99.90329, 118, 146.19342, 23])
+        self.assertEqual([arguments for arguments in self.commands("ocr") if "/media/frames" in arguments], [
+            ["ocr", "/media/frames", "--json", "--fps", "2", "--at", "1", "--languages", "en-US"]
+        ])
+
+    def test_track_requests_kept(self):
+        # Given track-motion requests that name a find-text request's key, an area and a frame
+        document = fixture("video.json")
+
+        # When the extension writes the rectangles
+        result = self.run_document(copy.deepcopy(document), fixture("video.calls.json"), "--languages", "en-US")
+
+        # Then each track request is left as written, and the area it names is the rectangle found on the clip's instant
+        shot = result["storyline"][0]
+        self.assertEqual(shot["track"], document["storyline"][0]["track"])
+        self.assertEqual([clip["track"] for clip in shot["connected"][1:]], [clip["track"] for clip in document["storyline"][0]["connected"][1:]])
+        self.assertEqual(shot["connected"][1]["area"], [99.90329, 118, 146.19342, 23])
 
     def test_no_text_forms(self):
         # Given a document whose areas are rectangles
@@ -264,19 +279,63 @@ class Places(Case):
         self.assertEqual(area, [77.795659, 483, 238.387482, 23])
         self.assertEqual(self.commands("ocr"), [["ocr", self.board, "--json"]])
 
-    def test_track_on_still(self):
-        # Given a track request whose target names text, on a shape parented to a still
-        # When the extension runs
-        message = self.place("track_on_still")
+    def test_other_requests_only(self):
+        # Given a document whose only requests are for another tool, one with a find-text request as its argument,
+        # and an area written as text without a tool
+        document = {"kind": "sequence", "storyline": [{"id": "b", "media": self.board, "duration": 2, "connected": [
+            {"parent": "b", "shape": "rect", "area": [0, 0, 10, 10], "track": {"tool": "track-motion", "target": "area"}},
+            {"parent": "b", "shape": "rect", "area": [0, 0, 10, 10],
+             "track": {"tool": "track-motion", "target": {"tool": "find-text", "text": "Total"}}},
+            {"parent": "b", "shape": "rect", "area": {"text": "Total"}}
+        ]}]}
 
-        # Then it stops, since the shape's entry reports `tracked` as null: a still has no frames to follow
-        self.assertIn("storyline[0]#b.connected[0]: track: the place is not in a medium's pixels", message)
-        self.assertIn("timeline reports no video or image sequence for its track to follow", message)
+        # When the extension runs
+        result = self.run_document(copy.deepcopy(document), [])
+
+        # Then the document is printed as written and frames is not run, so frames stops on what is not its own
+        self.assertEqual(result, document)
+        self.assertEqual(Replay.log, [])
+
+    def test_request_where_no_area_stands(self):
+        # Given a find-text request as a clip's track
+        document = {"kind": "sequence", "storyline": [{"id": "b", "media": self.board, "duration": 2, "connected": [
+            {"parent": "b", "shape": "rect", "area": [0, 0, 10, 10], "track": {"tool": "find-text", "text": "Total"}}
+        ]}]}
+
+        # When the extension runs
+        message = self.stop(document)
+
+        # Then it stops, since the request stands where no area does
+        self.assertIn("storyline[0]#b.connected[0]: track: a find-text request stands where an area does", message)
+        self.assertEqual(Replay.log, [])
+
+    def test_probe_fills_other_requests(self):
+        # Given a document with requests for another tool in an area, a mask's area and a track, and one in a point
+        document = {"kind": "sequence", "storyline": [{"id": "b", "media": self.board, "duration": 2, "connected": [
+            {"parent": "b", "shape": "rect", "area": {"tool": "other", "name": "box"},
+             "mask": {"shape": "rect", "area": {"tool": "other", "name": "hole"}},
+             "track": {"tool": "track-motion", "target": "area"}}
+        ]}]}
+        pointed = copy.deepcopy(document)
+        pointed["storyline"][0]["connected"][0]["position"] = {"tool": "other", "name": "pin"}
+
+        # When the document frames is asked about is written
+        probe = extension.probe_document(document)
+
+        # Then each area holds a placeholder rectangle, the track request is gone, and the document is as written
+        clip = probe["storyline"][0]["connected"][0]
+        self.assertEqual((clip["area"], clip["mask"]["area"], "track" in clip), (extension.PLACEHOLDER, extension.PLACEHOLDER, False))
+        self.assertEqual(document["storyline"][0]["connected"][0]["area"], {"tool": "other", "name": "box"})
+
+        # And a request where it has no value to stand in stops, naming its tool
+        with self.assertRaises(extension.Stop) as raised:
+            extension.probe_document(pointed)
+        self.assertIn('storyline[0]#b.connected[0]: position: a request for "other" stands where frames-find-text has no value', str(raised.exception))
 
     def test_compound(self):
         # Given a crop that names text inside a compound clip
         document = {"kind": "sequence", "storyline": [{"media": {"kind": "sequence", "storyline": [
-            {"id": "b", "media": self.board, "duration": 2, "crop": {"text": "Total"}}
+            {"id": "b", "media": self.board, "duration": 2, "crop": {"tool": "find-text", "text": "Total"}}
         ]}}]}
 
         # When the extension runs
@@ -287,16 +346,16 @@ class Places(Case):
         self.assertIn("inside a compound clip", message)
 
     def test_mixed_form(self):
-        # Given an area that mixes a text form with a clip area
+        # Given a find-text request that mixes its text with a clip area's key
         document = {"kind": "sequence", "storyline": [{"id": "b", "media": self.board, "duration": 2, "connected": [
-            {"parent": "b", "shape": "rect", "area": {"text": "Total", "clip": "b"}}
+            {"parent": "b", "shape": "rect", "area": {"tool": "find-text", "text": "Total", "clip": "b"}}
         ]}]}
 
         # When the extension runs
         message = self.stop(document)
 
         # Then it stops on the unknown key
-        self.assertIn('unknown key "clip" in a text area', message)
+        self.assertIn('unknown key "clip" in a find-text request', message)
 
 
 class Reading(unittest.TestCase):

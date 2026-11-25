@@ -448,5 +448,73 @@
  ],
  "text_target": [],
  "clip_target": [],
- "bad_key": []
+ "bad_key": [],
+ "pin_output": [
+  {
+   "arguments": [
+    "--version"
+   ],
+   "output": "0.1.0\n"
+  },
+  {
+   "arguments": [
+    "timeline",
+    "<document>",
+    "--json"
+   ],
+   "output": {
+    "timeline": "0.1.0",
+    "duration": 3,
+    "storyline": [
+     {
+      "place": "storyline[0]#shot",
+      "id": "shot",
+      "kind": "video",
+      "media": "/media/moving.mp4",
+      "page": null,
+      "edit": [
+       0,
+       3
+      ],
+      "drawn": [
+       0,
+       3
+      ],
+      "clip": [
+       0,
+       3
+      ],
+      "sound": [
+       0,
+       3
+      ],
+      "speed": 1,
+      "timeRemap": false,
+      "transition": null,
+      "fps": null,
+      "instant": 0,
+      "clock": {
+       "clip": "storyline[0]#shot",
+       "origin": 0,
+       "speed": 1
+      },
+      "space": {
+       "kind": "output",
+       "clip": null
+      },
+      "ownSpace": {
+       "kind": "media",
+       "clip": "storyline[0]#shot"
+      },
+      "tracked": {
+       "clip": "storyline[0]#shot",
+       "first": 0,
+       "last": 2.96
+      }
+     }
+    ],
+    "clips": []
+   }
+  }
+ ]
 }
