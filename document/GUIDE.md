@@ -115,6 +115,8 @@ The master is ProRes with PCM sound at full quality, in the sequence's colour sp
 - outlined text has round corners and no overlapping strokes
 - the length matches the `timeline` duration to within one frame
 
+A render that is slow says why in its report. `frames render /path/to/work/edit.json -o /path/to/out/edit.mov --report /path/to/out/edit-run.json` writes the time of each stage. The seven stages from `resolve` to `draw`, `waiting` and `other` add up to `seconds`, so the largest of them is where the run went. A large `decode` or `workingConversion` points at a medium: its entry in `media` says how it was read, and a `reopened` count near its `framesRead`, or `framesDecoded` far above `framesRead`, means the edit jumps around in it (a reversed or time-remapped clip, or one cut back and forth), and each jump opens a reader on it again. A large `draw` is the renderer's own drawing, with the reading of media left out. A large `waiting` means the encoder holds the render up: `outputConversion` and `encode` run beside it for each file, and `hardware` says whether a hardware encoder wrote it.
+
 Play it and listen as well: overlapping sounds mixed at their volumes, crossfades at transitions without a dip, fades where they are written. Then check what the form's guide asks, when the edit follows one.
 
 ### 5. Deliver
