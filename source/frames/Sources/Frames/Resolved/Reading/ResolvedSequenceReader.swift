@@ -315,7 +315,7 @@ struct ResolvedSequenceReader: Sendable {
             place: try entry.member("place").string(),
             id: try entry.member("id").optional { try $0.string() },
             media: media,
-            solid: color,
+            color: color,
             colorSpace: reading.colorSpace,
             isToneMapped: reading.isToneMapped,
             in: try entry.member("in").number(),

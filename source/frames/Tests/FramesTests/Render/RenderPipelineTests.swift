@@ -552,7 +552,7 @@ struct RenderPipelineTests {
             place: "storyline[0]",
             id: nil,
             media: .pinned(media ?? video),
-            solid: nil,
+            color: nil,
             colorSpace: mediaColorSpace,
             in: 0,
             out: duration,

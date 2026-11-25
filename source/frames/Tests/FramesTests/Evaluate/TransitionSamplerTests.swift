@@ -237,7 +237,7 @@ struct TransitionSamplerTests {
             place: "storyline",
             id: nil,
             media: nil,
-            solid: [Keyframe(at: start, value: Color(written: "#000000"))],
+            color: [Keyframe(at: start, value: Color(written: "#000000"))],
             in: 0,
             out: end - start,
             speed: 1,

@@ -150,7 +150,7 @@ struct EvaluatorTests {
         let sequence = sequence(
             [
                 storylineClip(.pinned(first), in: 1, start: 0, end: 2),
-                storylineClip(nil, solid: red, start: 2, end: 4, transition: transition)
+                storylineClip(nil, color: red, start: 2, end: 4, transition: transition)
             ],
             clips: [fillClip(Rectangle(x: 0, y: 0, width: 10, height: 10), lane: 1)]
         )
@@ -271,7 +271,7 @@ struct EvaluatorTests {
             place: "storyline",
             id: nil,
             media: .pinned(first),
-            solid: nil,
+            color: nil,
             in: 0,
             out: 2,
             speed: 1,
@@ -330,7 +330,7 @@ struct EvaluatorTests {
     @Test("a solid fills the frame with its colour")
     func fillsSolid() {
         // Given
-        let sequence = sequence([storylineClip(nil, solid: red, start: 0, end: 3)])
+        let sequence = sequence([storylineClip(nil, color: red, start: 0, end: 3)])
 
         // When
         let list = sut.displayList(of: sequence, at: 1)
@@ -1248,7 +1248,7 @@ struct EvaluatorTests {
     private func storylineClip(
         _ media: ResolvedMediaContent?,
         id: String? = nil,
-        solid: Color? = nil,
+        color: Color? = nil,
         in: Double = 0,
         speed: Double = 1,
         start: Double,
@@ -1262,7 +1262,7 @@ struct EvaluatorTests {
         storylineClip(
             media,
             id: id,
-            solid: solid,
+            color: color,
             in: `in`,
             speed: speed,
             start: start,
@@ -1278,7 +1278,7 @@ struct EvaluatorTests {
     private func storylineClip(
         _ media: ResolvedMediaContent?,
         id: String? = nil,
-        solid: Color? = nil,
+        color: Color? = nil,
         in: Double = 0,
         speed: Double = 1,
         start: Double,
@@ -1293,7 +1293,7 @@ struct EvaluatorTests {
             place: "storyline",
             id: id,
             media: media,
-            solid: solid.map { [Keyframe(at: start, value: $0)] },
+            color: color.map { [Keyframe(at: start, value: $0)] },
             in: `in`,
             out: `in` + (end - start) * speed,
             speed: speed,
@@ -1326,7 +1326,7 @@ struct EvaluatorTests {
             place: entry.place,
             id: entry.id,
             media: entry.media,
-            solid: entry.solid,
+            color: entry.color,
             in: entry.in,
             out: entry.out,
             speed: entry.speed,

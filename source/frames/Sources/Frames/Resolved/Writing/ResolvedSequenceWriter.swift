@@ -68,7 +68,7 @@ struct ResolvedSequenceWriter: Sendable {
             JSONMember(key: "id", value: entry.id.map(JSONValue.string) ?? .null),
             JSONMember(key: "kind", value: .string(entry.media == nil ? "solid" : "media")),
             JSONMember(key: "media", value: entry.media.map(media) ?? .null),
-            JSONMember(key: "color", value: entry.solid.map { values.keyframes($0, value: values.color) } ?? .null),
+            JSONMember(key: "color", value: entry.color.map { values.keyframes($0, value: values.color) } ?? .null),
             JSONMember(key: "colorSpace", value: entry.colorSpace.map { .string($0.rawValue) } ?? .null),
             JSONMember(key: "toneMap", value: entry.isToneMapped.map(JSONValue.bool) ?? .null),
             JSONMember(key: "in", value: .number(entry.in)),

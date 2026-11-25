@@ -159,7 +159,7 @@ struct ResolvedSequencePinnedReferencesTests {
             place: place,
             id: nil,
             media: media,
-            solid: nil,
+            color: nil,
             colorSpace: colorSpace,
             in: 0,
             out: 1,
