@@ -31,7 +31,9 @@ struct PacksCommand: Command {
             context.output.write(try packs.packs().map { line(of: $0) + "\n" }.joined())
             return
         }
-        guard let pack = try packs.pack(named: name) else { throw CommandError.unknownPack(name: name) }
+        guard let pack = try packs.pack(named: name) else {
+            throw CommandError.unknownPack(try packs.unknown(packNamed: name))
+        }
 
         let presets = try PresetKind.allCases.flatMap { kind in
             try context.presets.presets(of: kind, in: pack).flatMap { entry in

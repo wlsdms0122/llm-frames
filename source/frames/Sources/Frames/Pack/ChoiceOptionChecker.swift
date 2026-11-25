@@ -70,18 +70,19 @@ struct ChoiceOptionChecker: Sendable {
         at reference: ParameterReference,
         in document: JSONValue
     ) throws {
-        let isThere: Bool
         switch target {
         case let .preset(kind, choice, part):
             let place = Place(file: reference.place.file, components: choice)
-            let found = try presetsAreThere(value(at: choice[...], in: document), kind: kind, place: place)
+            let missing = try missingPreset(in: value(at: choice[...], in: document), kind: kind, place: place)
             // An argument is not what names the preset, so a preset that is not there is resolve's to stop on.
-            guard found || part != .argument else { return }
+            guard let missing, part != .argument else { return }
 
-            isThere = found
+            throw stop(option, of: parameter, at: reference, naming: try presets.unknown(kind, named: missing))
 
         case .theme:
-            isThere = try option.stringValue.map { try library.theme(named: $0) != nil } ?? true
+            guard let name = option.stringValue, try library.theme(named: name) == nil else { return }
+
+            throw stop(option, of: parameter, at: reference, naming: try library.unknown(.theme, named: name))
 
         case .textStyle, .shapeStyle, .color:
             guard
@@ -96,7 +97,7 @@ struct ChoiceOptionChecker: Sendable {
                 return
             }
 
-            isThere = switch target {
+            let isThere = switch target {
             case .textStyle:
                 theme.styleNames.contains(name)
 
@@ -106,77 +107,100 @@ struct ChoiceOptionChecker: Sendable {
             default:
                 theme.isColor(name)
             }
-        }
-        guard !isThere else { return }
+            guard !isThere else { return }
 
-        throw PackError.unknownOption(
+            throw PackError.unknownOption(
+                place: reference.place,
+                kind: reference.kind,
+                name: parameter.name,
+                option: option,
+                target: target.label
+            )
+        }
+    }
+
+    // The stop for `option` of `parameter`, which names something a pack holds that is not there.
+    private func stop(
+        _ option: JSONValue,
+        of parameter: Parameter,
+        at reference: ParameterReference,
+        naming name: UnknownReference
+    ) -> PackError {
+        .unknownOptionReference(
             place: reference.place,
             kind: reference.kind,
             name: parameter.name,
             option: option,
-            target: target.label
+            reference: name
         )
     }
 
-    // Each preset a choice names, with the arguments written beside it that are plain values. `"cut"` and `"none"`
-    // name none.
-    private func presetsAreThere(
-        _ choice: JSONValue,
+    // The first name a choice gives that finds no preset of `kind`, read with the arguments written beside it that are
+    // plain values, nil where every preset it names is there. `"cut"` and `"none"` name none.
+    private func missingPreset(
+        in choice: JSONValue,
         kind: PresetKind,
         place: Place
-    ) throws -> Bool {
+    ) throws -> String? {
         switch choice {
         case .string("cut"), .string("none"):
-            return true
+            return nil
 
         case let .array(elements):
             for (index, element) in elements.enumerated() {
-                guard try presetsAreThere(element, kind: kind, place: place.appending(index: index)) else { return false }
+                if let missing = try missingPreset(in: element, kind: kind, place: place.appending(index: index)) {
+                    return missing
+                }
             }
-            return true
+            return nil
 
         // An animation choice names a preset in `preset` and in each side it writes.
         case let .object(object) where kind == .animation:
             for side in ["entrance", "exit"] {
                 guard let written = object[side] else { continue }
-                guard try presetsAreThere(written, kind: kind, place: place.appending(key: side)) else { return false }
+                if let missing = try missingPreset(in: written, kind: kind, place: place.appending(key: side)) {
+                    return missing
+                }
             }
-            return try presetIsThere(choice, kind: kind, place: place)
+            return try missingName(of: choice, kind: kind, place: place)
 
         default:
-            return try presetIsThere(choice, kind: kind, place: place)
+            return try missingName(of: choice, kind: kind, place: place)
         }
     }
 
-    // The preset a name or an object's `preset` names, true where it names none.
-    private func presetIsThere(
-        _ choice: JSONValue,
+    // The name a name or an object's `preset` gives where no preset of `kind` has it, nil where it names one that is
+    // there or names none.
+    private func missingName(
+        of choice: JSONValue,
         kind: PresetKind,
         place: Place
-    ) throws -> Bool {
-        guard var instance = PresetInstance(value: choice, place: place) else { return true }
+    ) throws -> String? {
+        guard var instance = PresetInstance(value: choice, place: place) else { return nil }
 
         instance = PresetInstance(
             name: instance.name,
             arguments: JSONObject(members: instance.arguments.members.filter { $0.value.objectValue?["param"] == nil }),
             place: place
         )
-        switch kind {
+        let isThere = switch kind {
         case .transition:
-            return try presets.transition(instance) != nil
+            try presets.transition(instance) != nil
 
         case .animation:
-            return try presets.animation(instance) != nil
+            try presets.animation(instance) != nil
 
         case .filter:
-            return try presets.filter(instance) != nil
+            try presets.filter(instance) != nil
 
         case .audio:
-            return try presets.audio(instance) != nil
+            try presets.audio(instance) != nil
 
         case .head:
-            return try presets.head(named: instance.name) != nil
+            try presets.head(named: instance.name) != nil
         }
+
+        return isThere ? nil : instance.name
     }
 
     // The theme in effect at the end of `components`: the base, under each document's own `theme` on the way there.
