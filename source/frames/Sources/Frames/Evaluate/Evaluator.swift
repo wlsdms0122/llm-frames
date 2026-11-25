@@ -541,7 +541,7 @@ package struct Evaluator: Sendable {
         )
         let opacity = transitionSampler.coverOpacity(of: cover.span, at: progress)
         switch cover.source {
-        case let .color(color):
+        case let .solid(color):
             return [DisplayItem(opacity: opacity, content: .path(PathItem(filling: frame, color: color)))]
 
         case let .media(media):

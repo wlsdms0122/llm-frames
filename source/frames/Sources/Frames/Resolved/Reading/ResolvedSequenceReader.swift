@@ -728,7 +728,7 @@ struct ResolvedSequenceReader: Sendable {
         let sourceKeys = isSolid ? ["kind", "color"] : ["kind", "media", "colorSpace", "duration"]
         let cover = try value.object(kind: "cover", keys: sourceKeys + ResolvedValueReader.spanKeys)
         let source: ResolvedCoverSource = isSolid
-            ? .color(try values.color(cover.member("color")))
+            ? .solid(try values.color(cover.member("color")))
             : .media(try transitionMedia(cover))
 
         return ResolvedCover(source: source, span: try values.span(cover))

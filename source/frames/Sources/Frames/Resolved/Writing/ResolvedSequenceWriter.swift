@@ -412,7 +412,7 @@ struct ResolvedSequenceWriter: Sendable {
         let span = { (span: Span) in JSONValue.object(JSONObject(members: values.span(span))) }
         let cover = transition.cover.map { cover in
             let source = switch cover.source {
-            case let .color(color):
+            case let .solid(color):
                 [
                     JSONMember(key: "kind", value: .string("solid")),
                     JSONMember(key: "color", value: values.color(color))

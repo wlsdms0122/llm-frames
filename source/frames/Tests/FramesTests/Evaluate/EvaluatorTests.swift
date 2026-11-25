@@ -119,7 +119,7 @@ struct EvaluatorTests {
             over: .incoming,
             incoming: nil,
             outgoing: nil,
-            cover: ResolvedCover(source: .color(white), span: span),
+            cover: ResolvedCover(source: .solid(white), span: span),
             matte: nil
         ))
 
@@ -137,7 +137,7 @@ struct EvaluatorTests {
     @Test("each item names the clip that drew it, and a transition cover none")
     func namesDrawingClips() {
         // Given
-        let cover = ResolvedCover(source: .color(white), span: Span(ease: .linear, keys: []))
+        let cover = ResolvedCover(source: .solid(white), span: Span(ease: .linear, keys: []))
         let transition = ResolvedTransition(
             start: 1.5,
             end: 2.5,
