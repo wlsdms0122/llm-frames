@@ -63,8 +63,8 @@ struct PacksCommandTests {
             { "kind": "sequence",
               "params": { "length": { "type": "number", "default": 5, "description": "seconds on screen" },
                           "name": { "type": "text", "description": "the name shown" } },
-              "storyline": [ { "solid": "#000000", "duration": { "param": "length" } } ],
-              "clips": [ { "title": { "param": "name" }, "style": "title", "at": [0, 1] } ] }
+              "storyline": [ { "kind": "solid", "color": "#000000", "duration": { "param": "length" } } ],
+              "clips": [ { "kind": "title", "text": { "param": "name" }, "style": "title", "at": [0, 1] } ] }
             """##,
             to: pack.appendingPathComponent("templates/intro.json")
         )
@@ -134,7 +134,7 @@ struct PacksCommandTests {
             #"""
             { "kind": "sequence",
               "params": { "clip": { "type": "video", "default": "shorts/gone.mov", "description": "the clip shown" } },
-              "storyline": [ { "media": { "param": "clip" } }, { "media": "shorts/gone.mov" } ] }
+              "storyline": [ { "kind": "media", "media": { "param": "clip" } }, { "kind": "media", "media": "shorts/gone.mov" } ] }
             """#,
             to: pack.appendingPathComponent("templates/promo.json")
         )
@@ -160,8 +160,8 @@ struct PacksCommandTests {
             #"""
             { "kind": "sequence",
               "params": { "name": { "type": "text" } },
-              "storyline": [ { "solid": "#000000", "duration": 1 } ],
-              "clips": [ { "title": { "param": "name" }, "style": "title", "at": [0, 1] } ] }
+              "storyline": [ { "kind": "solid", "color": "#000000", "duration": 1 } ],
+              "clips": [ { "kind": "title", "text": { "param": "name" }, "style": "title", "at": [0, 1] } ] }
             """#,
             to: pack.appendingPathComponent("templates/intro.json")
         )

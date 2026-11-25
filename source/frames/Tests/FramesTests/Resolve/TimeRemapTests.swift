@@ -23,7 +23,7 @@ struct TimeRemapTests {
     func refusesStaticTimeRemap() throws {
         // Given
         let document = try Fixture.json(#"""
-            { "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4", "timeRemap": 2 } ] }
+            { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/screen.mp4", "timeRemap": 2 } ] }
             """#)
         let checker = KeyChecker(mediaKinds: MediaKindTable(["/abs/screen.mp4": .video], templates: []))
 
@@ -40,7 +40,7 @@ struct TimeRemapTests {
     func refusesSpeed() throws {
         // Given
         let document = try Fixture.json(#"""
-            { "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4", "speed": 2,
+            { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/screen.mp4", "speed": 2,
               "keyframes": [ { "at": 0, "timeRemap": 1 } ] } ] }
             """#)
 
@@ -56,7 +56,7 @@ struct TimeRemapTests {
     func refusesSound(key: String) throws {
         // Given
         let document = try Fixture.json(#"""
-            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", \#(key),
+            { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", \#(key),
               "keyframes": [ { "at": 0, "timeRemap": 1 } ] } ] }
             """#)
         let name = String(key.dropFirst().prefix { $0 != "\"" })
@@ -73,8 +73,8 @@ struct TimeRemapTests {
     func refusesRange(key: String) throws {
         // Given
         let document = try Fixture.json(#"""
-            { "kind": "sequence", "storyline": [ { "solid": "#000000", "duration": 4 } ],
-              "clips": [ { "media": "/abs/screen.mp4", "at": [0, 2], \#(key),
+            { "kind": "sequence", "storyline": [ { "kind": "solid", "color": "#000000", "duration": 4 } ],
+              "clips": [ { "kind": "media", "media": "/abs/screen.mp4", "at": [0, 2], \#(key),
                 "keyframes": [ { "at": 0, "timeRemap": 1 } ] } ] }
             """#)
         let name = String(key.dropFirst().prefix { $0 != "\"" })
@@ -88,8 +88,8 @@ struct TimeRemapTests {
     func refusesSingleStart() throws {
         // Given
         let document = try Fixture.json(#"""
-            { "kind": "sequence", "storyline": [ { "solid": "#000000", "duration": 4 } ],
-              "clips": [ { "media": "/abs/screen.mp4", "at": 1, "keyframes": [ { "at": 1, "timeRemap": 1 } ] } ] }
+            { "kind": "sequence", "storyline": [ { "kind": "solid", "color": "#000000", "duration": 4 } ],
+              "clips": [ { "kind": "media", "media": "/abs/screen.mp4", "at": 1, "keyframes": [ { "at": 1, "timeRemap": 1 } ] } ] }
             """#)
 
         // When, Then
@@ -101,7 +101,7 @@ struct TimeRemapTests {
     func keepsClipRangePastMedia() throws {
         // Given
         let document = try Fixture.json(#"""
-            { "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4", "in": 1, "out": 6,
+            { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/screen.mp4", "in": 1, "out": 6,
               "keyframes": [ { "at": 1, "timeRemap": 2 } ] } ] }
             """#)
 
@@ -120,8 +120,8 @@ struct TimeRemapTests {
         // Given
         // The clip starts at sequence time 2 with `in` 1, so clip time c is sequence time c + 1.
         let document = try Fixture.json(#"""
-            { "kind": "sequence", "storyline": [ { "solid": "#000000", "duration": 2 },
-              { "media": "/abs/screen.mp4", "in": 1, "out": 3, "keyframes": [
+            { "kind": "sequence", "storyline": [ { "kind": "solid", "color": "#000000", "duration": 2 },
+              { "kind": "media", "media": "/abs/screen.mp4", "in": 1, "out": 3, "keyframes": [
                 { "at": 0, "timeRemap": 0, "ease": "ease-in" }, { "at": 2, "timeRemap": 1, "ease": "back-out" },
                 { "at": 4, "timeRemap": 3.5 } ] } ] }
             """#)
@@ -144,7 +144,7 @@ struct TimeRemapTests {
     func holdsAndReverses() throws {
         // Given
         let document = try Fixture.json(#"""
-            { "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4", "in": 0, "out": 4, "keyframes": [
+            { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/screen.mp4", "in": 0, "out": 4, "keyframes": [
               { "at": 0, "timeRemap": 1 }, { "at": 1, "timeRemap": 1 }, { "at": 2, "timeRemap": 0.5 } ] } ] }
             """#)
 
@@ -160,7 +160,7 @@ struct TimeRemapTests {
     func clampsOutsideMedia() throws {
         // Given
         let document = try Fixture.json(#"""
-            { "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4", "in": 0, "out": 4, "keyframes": [
+            { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/screen.mp4", "in": 0, "out": 4, "keyframes": [
               { "at": 0, "timeRemap": -1 }, { "at": 2, "timeRemap": 9 } ] } ] }
             """#)
 
@@ -176,8 +176,8 @@ struct TimeRemapTests {
     func remapsConnectedClip() throws {
         // Given
         let document = try Fixture.json(#"""
-            { "kind": "sequence", "storyline": [ { "solid": "#000000", "duration": 2 },
-              { "solid": "#000000", "duration": 4, "connected": [ { "media": "/abs/screen.mp4", "at": [0, 2],
+            { "kind": "sequence", "storyline": [ { "kind": "solid", "color": "#000000", "duration": 2 },
+              { "kind": "solid", "color": "#000000", "duration": 4, "connected": [ { "kind": "media", "media": "/abs/screen.mp4", "at": [0, 2],
                 "keyframes": [ { "at": 0, "timeRemap": 3 }, { "at": 2, "timeRemap": 1 } ] } ] } ] }
             """#)
 
@@ -197,10 +197,10 @@ struct TimeRemapTests {
     func playsNoSound() throws {
         // Given
         let document = try Fixture.json(#"""
-            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "in": 0, "out": 4,
+            { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "in": 0, "out": 4,
               "keyframes": [ { "at": 0, "timeRemap": 1 } ] } ],
-              "clips": [ { "media": "/abs/run.mp4", "at": [0, 2], "keyframes": [ { "at": 0, "timeRemap": 5 } ] },
-                         { "media": "/abs/run.mp4", "at": [0, 2] } ] }
+              "clips": [ { "kind": "media", "media": "/abs/run.mp4", "at": [0, 2], "keyframes": [ { "at": 0, "timeRemap": 5 } ] },
+                         { "kind": "media", "media": "/abs/run.mp4", "at": [0, 2] } ] }
             """#)
 
         // When
@@ -214,9 +214,9 @@ struct TimeRemapTests {
     func writesTimeRemap() throws {
         // Given
         let document = try Fixture.json(#"""
-            { "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4", "in": 1, "out": 3,
+            { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/screen.mp4", "in": 1, "out": 3,
               "keyframes": [ { "at": 1, "timeRemap": 2, "ease": "ease-out" }, { "at": 3, "timeRemap": 0 } ] } ],
-              "clips": [ { "media": "/abs/short.mp4", "at": [0, 2], "keyframes": [ { "at": 0, "timeRemap": 3 } ] } ] }
+              "clips": [ { "kind": "media", "media": "/abs/short.mp4", "at": [0, 2], "keyframes": [ { "at": 0, "timeRemap": 3 } ] } ] }
             """#)
         let sequence = try ResolvedSequence(plan: Fixture.documentPlanner.plan(document), hashes: FileHashTable())
 

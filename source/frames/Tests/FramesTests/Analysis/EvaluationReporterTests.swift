@@ -424,7 +424,7 @@ struct EvaluationReporterTests {
     @Test("a unit's item reports the characters of the unit it names, whatever its place among the title's items")
     func reportsUnitByItem() throws {
         // Given
-        let document = try resolved(titled(#"{ "title": "ab cd", "animation": { "preset": "frames/fade", "by": "word" } }"#))
+        let document = try resolved(titled(#"{ "kind": "title", "text": "ab cd", "animation": { "preset": "frames/fade", "by": "word" } }"#))
         let titles = document.titles(at: 1)
         let place = try #require(titles.keys.first)
         let fills = { (unit: Int) in
@@ -467,7 +467,7 @@ struct EvaluationReporterTests {
     ) throws {
         // Given
         let animation = by.isEmpty ? "" : #", "animation": { "preset": "frames/fade", \#(by) }"#
-        let document = try resolved(titled(#"{ "title": "ab cd"\#(animation) }"#))
+        let document = try resolved(titled(#"{ "kind": "title", "text": "ab cd"\#(animation) }"#))
         let titles = document.titles(at: 1)
         let place = try #require(titles.keys.first)
         let item = GlyphsItem(
@@ -496,8 +496,8 @@ struct EvaluationReporterTests {
         // Given
         let document = try resolved(#"""
             { "kind": "sequence", "format": { "size": [1080, 1920] },
-              "storyline": [ { "id": "intro", "media": "/abs/short.mp4", "in": 0, "out": 4,
-                               "connected": [ { "shape": "rect", "fill": "#FFD43B80", "area": [100, 200, 300, 400] } ] } ] }
+              "storyline": [ { "id": "intro", "kind": "media", "media": "/abs/short.mp4", "in": 0, "out": 4,
+                               "connected": [ { "kind": "rect", "fill": "#FFD43B80", "area": [100, 200, 300, 400] } ] } ] }
             """#)
 
         // When
@@ -542,11 +542,11 @@ struct EvaluationReporterTests {
         // Given
         let document = try resolved(#"""
             { "kind": "sequence", "format": { "size": [1080, 1920], "background": "#101010" },
-              "storyline": [ { "media": "/abs/short.mp4", "in": 0, "out": 4 } ],
+              "storyline": [ { "kind": "media", "media": "/abs/short.mp4", "in": 0, "out": 4 } ],
               "clips": [
-                { "at": [0, 4], "title": "Top", "style": "title" },
-                { "at": [0, 4], "shape": "rect", "fill": "#FFFFFF", "area": [0, 0, 50, 50] },
-                { "at": [0, 4], "adjust": "mine/grade" } ] }
+                { "at": [0, 4], "kind": "title", "text": "Top", "style": "title" },
+                { "at": [0, 4], "kind": "rect", "fill": "#FFFFFF", "area": [0, 0, 50, 50] },
+                { "at": [0, 4], "kind": "adjustment", "adjust": "mine/grade" } ] }
             """#)
 
         // When
@@ -564,10 +564,10 @@ struct EvaluationReporterTests {
         // Given
         let document = try resolved(#"""
             { "kind": "sequence", "format": { "size": [1080, 1920] },
-              "storyline": [ { "media": "/abs/short.mp4", "in": 0, "out": 4 } ],
+              "storyline": [ { "kind": "media", "media": "/abs/short.mp4", "in": 0, "out": 4 } ],
               "clips": [
-                { "id": "m", "shape": "rect", "fill": "#FFFFFF", "area": [0, 0, 50, 50], "at": [0, 4] },
-                { "id": "a", "shape": "rect", "fill": "#FFD43B80", "area": [100, 200, 300, 400], "at": [0, 4],
+                { "id": "m", "kind": "rect", "fill": "#FFFFFF", "area": [0, 0, 50, 50], "at": [0, 4] },
+                { "id": "a", "kind": "rect", "fill": "#FFD43B80", "area": [100, 200, 300, 400], "at": [0, 4],
                   "trackMatte": { "clip": "m", "mode": "alpha" } } ] }
             """#)
 
@@ -586,7 +586,7 @@ struct EvaluationReporterTests {
         // Given
         let document = try resolved(#"""
             { "kind": "sequence", "format": { "size": [160, 90] },
-              "storyline": [ { "solid": "#FF8000", "duration": 4 } ] }
+              "storyline": [ { "kind": "solid", "color": "#FF8000", "duration": 4 } ] }
             """#)
 
         // When, Then
@@ -600,10 +600,10 @@ struct EvaluationReporterTests {
         // Given
         let document = try resolved(#"""
             { "kind": "sequence", "format": { "size": [1080, 1920] },
-              "storyline": [ { "media": "/abs/short.mp4", "in": 0, "out": 4,
-                               "connected": [ { "media": { "kind": "sequence",
-                                                           "storyline": [ { "media": "/abs/page.png", "duration": 2,
-                                                               "connected": [ { "shape": "rect", "stroke": { "width": 8 }, "area": [100, 100, 200, 100] } ] } ] },
+              "storyline": [ { "kind": "media", "media": "/abs/short.mp4", "in": 0, "out": 4,
+                               "connected": [ { "kind": "media", "media": { "kind": "sequence",
+                                                           "storyline": [ { "kind": "media", "media": "/abs/page.png", "duration": 2,
+                                                               "connected": [ { "kind": "rect", "stroke": { "width": 8 }, "area": [100, 100, 200, 100] } ] } ] },
                                                 "at": [0, 2] } ] } ] }
             """#)
 
@@ -683,10 +683,10 @@ struct EvaluationReporterTests {
             exit: nil
         )
         let animated = try resolved(
-            titled(#"{ "title": "ab cd", "animation": { "preset": "mine/rise", "by": "character", "stagger": 0.25 } }"#),
+            titled(#"{ "kind": "title", "text": "ab cd", "animation": { "preset": "mine/rise", "by": "character", "stagger": 0.25 } }"#),
             animations: ["mine/rise": rise]
         )
-        let still = try resolved(titled(#"{ "title": "ab cd" }"#))
+        let still = try resolved(titled(#"{ "kind": "title", "text": "ab cd" }"#))
 
         // When
         let report = try sut.report(of: animated, at: 0.5)
@@ -716,7 +716,7 @@ struct EvaluationReporterTests {
     @Test("a title not animated by unit reports every character on its one item, with its text box, lines and words")
     func reportsTitleCharacters() throws {
         // Given
-        let document = try resolved(titled(#"{ "title": "ab cd" }"#))
+        let document = try resolved(titled(#"{ "kind": "title", "text": "ab cd" }"#))
 
         // When
         let report = try sut.report(of: document, at: 1)
@@ -750,7 +750,7 @@ struct EvaluationReporterTests {
     @Test("a right-to-left title reports its direction, and each character in reading order at its level where its glyphs lie")
     func reportsRightToLeftCharacters() throws {
         // Given
-        let document = try resolved(titled(#"{ "title": "אב 12" }"#))
+        let document = try resolved(titled(#"{ "kind": "title", "text": "אב 12" }"#))
 
         // When
         let report = try sut.report(of: document, at: 1)
@@ -774,7 +774,7 @@ struct EvaluationReporterTests {
     @Test("a right aligned title reports its characters at the right of its text box, which its item's coordinates are")
     func reportsRightAlignedTitle() throws {
         // Given
-        let document = try resolved(titled(#"{ "title": "ab", "width": 200, "paragraph": { "align": "right" } }"#))
+        let document = try resolved(titled(#"{ "kind": "title", "text": "ab", "width": 200, "paragraph": { "align": "right" } }"#))
 
         // When
         let report = try sut.report(of: document, at: 1)
@@ -792,7 +792,7 @@ struct EvaluationReporterTests {
     @Test("a character of a base and a combining mark is one character over both scalars, as wide as both glyphs")
     func reportsCombiningMark() throws {
         // Given
-        let document = try resolved(titled(#"{ "title": "éx" }"#))
+        let document = try resolved(titled(#"{ "kind": "title", "text": "éx" }"#))
 
         // When
         let report = try sut.report(of: document, at: 1)
@@ -809,7 +809,7 @@ struct EvaluationReporterTests {
     @Test("the characters of a ligature share its box, which the character with no glyph of its own takes from the first")
     func reportsLigature() throws {
         // Given
-        let document = try resolved(titled(#"{ "title": "fix" }"#))
+        let document = try resolved(titled(#"{ "kind": "title", "text": "fix" }"#))
 
         // When
         let report = try sut.report(of: document, at: 1)
@@ -827,7 +827,7 @@ struct EvaluationReporterTests {
     @Test("spaces hanging past a line's end are no characters and no part of the line's range, and a line with no character has an empty one")
     func leavesHangingSpacesOut() throws {
         // Given
-        let document = try resolved(titled(#"{ "title": "ab  \n\ncd" }"#))
+        let document = try resolved(titled(#"{ "kind": "title", "text": "ab  \n\ncd" }"#))
 
         // When
         let report = try sut.report(of: document, at: 1)
@@ -848,7 +848,7 @@ struct EvaluationReporterTests {
     @Test("a title by unit with no character reports an empty list on its one item, and its one line with no character")
     func reportsTitleWithoutCharacter() throws {
         // Given
-        let document = try resolved(titled(#"{ "title": "  ", "animation": { "preset": "frames/fade", "by": "word" } }"#))
+        let document = try resolved(titled(#"{ "kind": "title", "text": "  ", "animation": { "preset": "frames/fade", "by": "word" } }"#))
 
         // When
         let report = try sut.report(of: document, at: 1)
@@ -867,7 +867,7 @@ struct EvaluationReporterTests {
     func reportsCharactersWithoutGlyphs() throws {
         // Given
         let shaper = ShaperTable(ignored: ["\u{200B}", "\u{2060}"])
-        let document = try resolved(titled(#"{ "title": "\u200Bab\n\u2060" }"#), shaper: shaper)
+        let document = try resolved(titled(#"{ "kind": "title", "text": "\u200Bab\n\u2060" }"#), shaper: shaper)
 
         // When
         let report = try sut.report(of: document, at: 1)
@@ -895,7 +895,7 @@ struct EvaluationReporterTests {
         // Given
         let shaper = ShaperTable(ignored: ["\u{200B}", "\u{2060}"])
         let document = try resolved(
-            titled(#"{ "title": "\u200Bab\n\u2060", "animation": { "preset": "frames/fade", "by": "word" } }"#),
+            titled(#"{ "kind": "title", "text": "\u200Bab\n\u2060", "animation": { "preset": "frames/fade", "by": "word" } }"#),
             shaper: shaper
         )
 
@@ -915,7 +915,7 @@ struct EvaluationReporterTests {
     func reportsPaddedBox() throws {
         // Given
         let document = try resolved(titled(#"""
-            { "title": "ab", "paragraph": { "background": { "color": "#FF0000", "padding": [8, 12] } } }
+            { "kind": "title", "text": "ab", "paragraph": { "background": { "color": "#FF0000", "padding": [8, 12] } } }
             """#))
 
         // When
@@ -935,13 +935,13 @@ struct EvaluationReporterTests {
         let pinned = try resolved(#"""
             { "kind": "sequence", "format": { "size": [1920, 1080] },
               "theme": { "styles": { "caption": { "size": 40, "color": "#000000" } } },
-              "storyline": [ { "media": "/abs/screen.mp4" } ],
-              "clips": [ { "id": "t", "style": "caption", "at": [0, 2], "title": "ab",
+              "storyline": [ { "kind": "media", "media": "/abs/screen.mp4" } ],
+              "clips": [ { "id": "t", "style": "caption", "at": [0, 2], "kind": "title", "text": "ab",
                            "paragraph": { "background": { "color": "#FF0000", "padding": [8, 12] } },
                            "cornerPin": [[100, 100], [500, 120], [480, 400], [120, 380]] } ] }
             """#)
         let placed = try resolved(titled(#"""
-            { "title": "ab", "paragraph": { "background": { "color": "#FF0000", "padding": [8, 12] } } }
+            { "kind": "title", "text": "ab", "paragraph": { "background": { "color": "#FF0000", "padding": [8, 12] } } }
             """#))
 
         // When
@@ -968,11 +968,11 @@ struct EvaluationReporterTests {
         let document = try resolved(#"""
             { "kind": "sequence", "format": { "size": [1920, 1080] },
               "theme": { "styles": { "caption": { "size": 40, "color": "#000000" } } },
-              "storyline": [ { "media": "/abs/screen.mp4" } ],
+              "storyline": [ { "kind": "media", "media": "/abs/screen.mp4" } ],
               "clips": [
-                { "id": "box", "shape": "rect", "width": 200, "height": 100, "fill": "#FFFFFF", "position": [600, 300],
+                { "id": "box", "kind": "rect", "width": 200, "height": 100, "fill": "#FFFFFF", "position": [600, 300],
                   "rotation": 30, "at": [0, 2] },
-                { "id": "t", "style": "caption", "at": [0, 2], "parent": "box", "title": "ab",
+                { "id": "t", "style": "caption", "at": [0, 2], "parent": "box", "kind": "title", "text": "ab",
                   "paragraph": { "background": { "color": "#FF0000", "padding": [8, 12] } },
                   "cornerPin": [[10, 10], [150, 10], [150, 80], [10, 80]] } ] }
             """#)
@@ -994,11 +994,11 @@ struct EvaluationReporterTests {
         let document = try resolved(#"""
             { "kind": "sequence", "format": { "size": [1920, 1080] },
               "theme": { "styles": { "caption": { "size": 40, "color": "#000000" } } },
-              "storyline": [ { "media": "/abs/screen.mp4" } ],
+              "storyline": [ { "kind": "media", "media": "/abs/screen.mp4" } ],
               "clips": [
-                { "id": "box", "shape": "rect", "width": 200, "height": 100, "fill": "#FFFFFF", "position": [600, 300],
+                { "id": "box", "kind": "rect", "width": 200, "height": 100, "fill": "#FFFFFF", "position": [600, 300],
                   "rotation": 30, "at": [0, 2] },
-                { "id": "t", "style": "caption", "at": [0, 2], "parent": "box", "title": "ab",
+                { "id": "t", "style": "caption", "at": [0, 2], "parent": "box", "kind": "title", "text": "ab",
                   "paragraph": { "background": { "color": "#FF0000", "padding": [8, 12] } },
                   "cornerPin": [[200, 150], [500, 180], [480, 260], [220, 290]] } ] }
             """#)
@@ -1073,8 +1073,8 @@ struct EvaluationReporterTests {
         let document = { (isMotionBlurred: Bool) in
             #"""
             { "kind": "sequence", "format": { "size": [1920, 1080], "fps": 25 },
-              "storyline": [ { "solid": "#202020", "duration": 4 } ],
-              "clips": [ { "id": "card", "shape": "rect", "fill": "#FF0000", "at": [0, 4], "width": 100, "height": 50,
+              "storyline": [ { "kind": "solid", "color": "#202020", "duration": 4 } ],
+              "clips": [ { "id": "card", "kind": "rect", "fill": "#FF0000", "at": [0, 4], "width": 100, "height": 50,
                            "motionBlur": \#(isMotionBlurred),
                            "keyframes": [ { "at": 0, "cornerPin": [[100, 100], [500, 100], [500, 400], [100, 400]] },
                                           { "at": 2, "cornerPin": [[300, 100], [700, 100], [700, 400], [300, 400]] } ] } ] }
@@ -1132,11 +1132,11 @@ struct EvaluationReporterTests {
         // Given
         let document = try resolved(#"""
             { "kind": "sequence", "format": { "size": [1080, 1920] },
-              "storyline": [ { "media": "/abs/short.mp4", "in": 0, "out": 4,
-                               "connected": [ { "media": { "kind": "sequence", "format": { "size": [1080, 1920] },
+              "storyline": [ { "kind": "media", "media": "/abs/short.mp4", "in": 0, "out": 4,
+                               "connected": [ { "kind": "media", "media": { "kind": "sequence", "format": { "size": [1080, 1920] },
                                                            "theme": { "styles": { "caption": { "size": 40, "color": "#000000" } } },
-                                                           "storyline": [ { "solid": "#000000", "duration": 2 } ],
-                                                           "clips": [ { "id": "n", "title": "ab", "style": "caption", "position": [400, 225], "at": [1, 2] } ] },
+                                                           "storyline": [ { "kind": "solid", "color": "#000000", "duration": 2 } ],
+                                                           "clips": [ { "id": "n", "kind": "title", "text": "ab", "style": "caption", "position": [400, 225], "at": [1, 2] } ] },
                                                 "at": [1, 3] } ] } ] }
             """#)
 
@@ -1156,11 +1156,11 @@ struct EvaluationReporterTests {
         let document = try resolved(#"""
             { "kind": "sequence", "format": { "size": [1920, 1080] },
               "theme": { "styles": { "caption": { "size": 40, "color": "#000000" } } },
-              "storyline": [ { "media": "/abs/screen.mp4" } ],
+              "storyline": [ { "kind": "media", "media": "/abs/screen.mp4" } ],
               "clips": [
-                { "id": "late", "title": "ab", "style": "caption", "position": [400, 225], "at": [2, 3] },
-                { "id": "m", "title": "cd", "style": "caption", "position": [400, 225], "at": [0, 3] },
-                { "id": "a", "shape": "rect", "fill": "#FFFFFF", "area": [0, 0, 50, 50], "at": [0, 3],
+                { "id": "late", "kind": "title", "text": "ab", "style": "caption", "position": [400, 225], "at": [2, 3] },
+                { "id": "m", "kind": "title", "text": "cd", "style": "caption", "position": [400, 225], "at": [0, 3] },
+                { "id": "a", "kind": "rect", "fill": "#FFFFFF", "area": [0, 0, 50, 50], "at": [0, 3],
                   "trackMatte": { "clip": "m", "mode": "alpha" } } ] }
             """#)
 
@@ -1176,7 +1176,7 @@ struct EvaluationReporterTests {
     func writesTextMachineOutput() throws {
         // Given
         let document = try resolved(titled(#"""
-            { "title": "ab", "paragraph": { "background": { "color": "#FF0000", "padding": [8, 12] } } }
+            { "kind": "title", "text": "ab", "paragraph": { "background": { "color": "#FF0000", "padding": [8, 12] } } }
             """#))
         let output = try sut.report(of: document, at: 1).machineOutput.objectValue
 
@@ -1264,7 +1264,7 @@ struct EvaluationReporterTests {
     ) throws {
         // Given
         let document = try resolved(#"""
-            { "kind": "sequence", "format": { "size": [1080, 1920] }, "storyline": [ { "media": \#(media) } ] }
+            { "kind": "sequence", "format": { "size": [1080, 1920] }, "storyline": [ { "kind": "media", "media": \#(media) } ] }
             """#)
 
         // When
@@ -1286,8 +1286,8 @@ struct EvaluationReporterTests {
         // Given
         let document = try resolved(#"""
             { "kind": "sequence", "format": { "size": [1080, 1920] },
-              "storyline": [ { "media": { "kind": "sequence", "format": { "size": [1080, 1920] }, "storyline": [ { "media": "/abs/leak.mov", "in": 0, "out": 2 } ] } } ],
-              "clips": [ { "at": [0, 2], "title": "Top", "style": "title" }, { "at": [0, 2], "shape": "rect", "fill": "#FF0000", "area": [0, 0, 100, 100] } ] }
+              "storyline": [ { "kind": "media", "media": { "kind": "sequence", "format": { "size": [1080, 1920] }, "storyline": [ { "kind": "media", "media": "/abs/leak.mov", "in": 0, "out": 2 } ] } } ],
+              "clips": [ { "at": [0, 2], "kind": "title", "text": "Top", "style": "title" }, { "at": [0, 2], "kind": "rect", "fill": "#FF0000", "area": [0, 0, 100, 100] } ] }
             """#)
 
         // When
@@ -1393,7 +1393,7 @@ struct EvaluationReporterTests {
         return #"""
             { "kind": "sequence", "format": { "size": [1920, 1080] },
               "theme": { "styles": { "caption": { "size": 40, "color": "#000000" } } },
-              "storyline": [ { "media": "/abs/screen.mp4" } ],
+              "storyline": [ { "kind": "media", "media": "/abs/screen.mp4" } ],
               "clips": [ { "id": "t", "style": "caption", "position": [400, 225], "at": [0, 2], \#(fields) ] }
             """#
     }

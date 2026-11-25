@@ -39,7 +39,7 @@ struct ResolvedSequenceWriterTests {
     @Test("the root is its kind, the version of this frames, then the sequence's members")
     func writesRoot() throws {
         // Given
-        let document = #"{ "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "in": 2, "out": 8, "speed": 2 } ] }"#
+        let document = #"{ "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "in": 2, "out": 8, "speed": 2 } ] }"#
 
         // When
         let resolved = try write(document)
@@ -56,7 +56,7 @@ struct ResolvedSequenceWriterTests {
     @Test("a storyline entry keeps media time for in, out and speed, and sequence time for start and end")
     func writesStorylineTimes() throws {
         // Given
-        let document = #"{ "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "in": 2, "out": 8, "speed": 2 } ] }"#
+        let document = #"{ "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "in": 2, "out": 8, "speed": 2 } ] }"#
 
         // When
         let entry = try #require(try write(document)["storyline"]?.arrayValue?.first?.objectValue)
@@ -79,8 +79,8 @@ struct ResolvedSequenceWriterTests {
         // Given
         let document = #"""
             { "kind": "sequence", "format": { "size": [1000, 1380] },
-              "storyline": [ { "media": "/abs/screen.mp4", "in": 0, "out": 1, "crop": [0, 0, 1206, 1206] },
-                             { "media": "/abs/card.png", "duration": 1 } ] }
+              "storyline": [ { "kind": "media", "media": "/abs/screen.mp4", "in": 0, "out": 1, "crop": [0, 0, 1206, 1206] },
+                             { "kind": "media", "media": "/abs/card.png", "duration": 1 } ] }
             """#
         let frame = Rectangle(x: 0, y: 0, width: 1000, height: 1380)
         let conformer = CropConformer()
@@ -99,7 +99,7 @@ struct ResolvedSequenceWriterTests {
     func pinsImageSequence() throws {
         // Given
         let document = #"""
-            { "kind": "sequence", "storyline": [ { "media": { "imageSequence": "/abs/frames", "fps": 12 } } ] }
+            { "kind": "sequence", "storyline": [ { "kind": "media", "media": { "imageSequence": "/abs/frames", "fps": 12 } } ] }
             """#
 
         // When
@@ -118,8 +118,8 @@ struct ResolvedSequenceWriterTests {
     func writesShapedTitle() throws {
         // Given
         let document = #"""
-            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "in": 0, "out": 3 } ],
-              "clips": [ { "title": "Hi", "style": "title", "placement": "top", "at": [0, 1] } ] }
+            { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "in": 0, "out": 3 } ],
+              "clips": [ { "kind": "title", "text": "Hi", "style": "title", "placement": "top", "at": [0, 1] } ] }
             """#
 
         // When
@@ -147,8 +147,8 @@ struct ResolvedSequenceWriterTests {
     func writesDirectionAndLevels() throws {
         // Given
         let document = #"""
-            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "in": 0, "out": 3 } ],
-              "clips": [ { "title": "אב c ", "style": "title", "placement": "top", "at": [0, 1] } ] }
+            { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "in": 0, "out": 3 } ],
+              "clips": [ { "kind": "title", "text": "אב c ", "style": "title", "placement": "top", "at": [0, 1] } ] }
             """#
 
         // When
@@ -169,10 +169,10 @@ struct ResolvedSequenceWriterTests {
     func writesWritingMode() throws {
         // Given
         let document = #"""
-            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "in": 0, "out": 3 } ],
-              "clips": [ { "title": "縦", "style": "title", "placement": "top", "at": [0, 1],
+            { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "in": 0, "out": 3 } ],
+              "clips": [ { "kind": "title", "text": "縦", "style": "title", "placement": "top", "at": [0, 1],
                            "paragraph": { "writingMode": "vertical-rl" } },
-                         { "title": "横", "style": "title", "placement": "top", "at": [0, 1] } ] }
+                         { "kind": "title", "text": "横", "style": "title", "placement": "top", "at": [0, 1] } ] }
             """#
 
         // When
@@ -187,8 +187,8 @@ struct ResolvedSequenceWriterTests {
     func writesSideways() throws {
         // Given
         let document = #"""
-            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "in": 0, "out": 3 } ],
-              "clips": [ { "title": "縦A", "style": "title", "placement": "top", "at": [0, 1],
+            { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "in": 0, "out": 3 } ],
+              "clips": [ { "kind": "title", "text": "縦A", "style": "title", "placement": "top", "at": [0, 1],
                            "paragraph": { "writingMode": "vertical-rl" } } ] }
             """#
 
@@ -204,8 +204,8 @@ struct ResolvedSequenceWriterTests {
     func writesClip() throws {
         // Given
         let document = #"""
-            { "kind": "sequence", "storyline": [ { "id": "run", "media": "/abs/run.mp4", "in": 2, "out": 8, "connected": [
-                { "id": "mark", "shape": "rect", "stroke": { "width": 8 }, "area": [0, 0, 100, 100], "at": [3, 5], "lane": -1, "parent": "run",
+            { "kind": "sequence", "storyline": [ { "id": "run", "kind": "media", "media": "/abs/run.mp4", "in": 2, "out": 8, "connected": [
+                { "id": "mark", "kind": "rect", "stroke": { "width": 8 }, "area": [0, 0, 100, 100], "at": [3, 5], "lane": -1, "parent": "run",
                   "keyframes": [ { "at": 3, "opacity": 0, "ease": [0.3, 0, 0.2, 1] }, { "at": 4, "opacity": 1 } ] } ] } ] }
             """#
 
@@ -215,7 +215,7 @@ struct ResolvedSequenceWriterTests {
         // Then
         #expect(clip["place"] == .string("storyline[0]#run.connected[0]#mark"))
         #expect(clip["id"] == .string("mark"))
-        #expect(clip["shape"] == .string("rect"))
+        #expect(clip["kind"] == .string("rect"))
         #expect(clip["start"] == .number(1))
         #expect(clip["end"] == .number(3))
         #expect(clip["lane"] == .number(-1))
@@ -242,8 +242,8 @@ struct ResolvedSequenceWriterTests {
     func writesScalePairs() throws {
         // Given
         let document = #"""
-            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "in": 2, "out": 8, "connected": [
-                { "shape": "rect", "fill": "accent", "area": [0, 0, 100, 100], "at": [0, 4],
+            { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "in": 2, "out": 8, "connected": [
+                { "kind": "rect", "fill": "accent", "area": [0, 0, 100, 100], "at": [0, 4],
                   "keyframes": [ { "at": 0, "scale": [2, 1] }, { "at": 1, "scale": 0.5 }, { "at": 2, "scale": [-1, 3] } ] } ] } ] }
             """#
 
@@ -263,10 +263,10 @@ struct ResolvedSequenceWriterTests {
     func writesParent() throws {
         // Given
         let document = #"""
-            { "kind": "sequence", "storyline": [ { "id": "run", "media": "/abs/run.mp4", "in": 0, "out": 3 } ],
-              "clips": [ { "id": "bar", "shape": "rect", "stroke": { "width": 8 }, "area": [0, 0, 100, 20], "at": [0, 1] },
-                         { "title": "a", "style": "title", "at": [0, 1], "parent": "bar", "position": [10, 10] },
-                         { "shape": "rect", "stroke": { "width": 8 }, "area": [0, 0, 10, 10], "at": [0, 1], "parent": "run" } ] }
+            { "kind": "sequence", "storyline": [ { "id": "run", "kind": "media", "media": "/abs/run.mp4", "in": 0, "out": 3 } ],
+              "clips": [ { "id": "bar", "kind": "rect", "stroke": { "width": 8 }, "area": [0, 0, 100, 20], "at": [0, 1] },
+                         { "kind": "title", "text": "a", "style": "title", "at": [0, 1], "parent": "bar", "position": [10, 10] },
+                         { "kind": "rect", "stroke": { "width": 8 }, "area": [0, 0, 10, 10], "at": [0, 1], "parent": "run" } ] }
             """#
 
         // When
@@ -280,8 +280,8 @@ struct ResolvedSequenceWriterTests {
     func writesMediaAppearance() throws {
         // Given
         let document = #"""
-            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "in": 0, "out": 3 } ],
-              "clips": [ { "media": "/abs/card.png", "at": [0, 3], "width": 300, "height": 300, "conform": "fill", "position": [540, 960],
+            { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "in": 0, "out": 3 } ],
+              "clips": [ { "kind": "media", "media": "/abs/card.png", "at": [0, 3], "width": 300, "height": 300, "conform": "fill", "position": [540, 960],
                            "radius": 12, "border": true, "shadow": true } ] }
             """#
 
@@ -318,9 +318,9 @@ struct ResolvedSequenceWriterTests {
         let document = ##"""
             { "kind": "sequence",
               "theme": { "colors": { "ink": "#101418", "border": "#00FF00" }, "border": { "color": "ink" } },
-              "storyline": [ { "media": "/abs/run.mp4", "in": 0, "out": 3 } ],
-              "clips": [ { "media": "/abs/card.png", "at": [0, 3], "border": true },
-                         { "media": "/abs/card.png", "at": [0, 3], "border": "#FF0000" } ] }
+              "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "in": 0, "out": 3 } ],
+              "clips": [ { "kind": "media", "media": "/abs/card.png", "at": [0, 3], "border": true },
+                         { "kind": "media", "media": "/abs/card.png", "at": [0, 3], "border": "#FF0000" } ] }
             """##
 
         // When
@@ -335,14 +335,14 @@ struct ResolvedSequenceWriterTests {
     func writesSolidColor() throws {
         // Given
         let document = #"""
-            { "kind": "sequence", "format": { "size": [1080, 1920] }, "storyline": [ { "solid": "shadow", "duration": 1 } ] }
+            { "kind": "sequence", "format": { "size": [1080, 1920] }, "storyline": [ { "kind": "solid", "color": "shadow", "duration": 1 } ] }
             """#
 
         // When
         let storyline = try #require(try write(document)["storyline"]?.arrayValue)
 
         // Then
-        #expect(storyline.first?.objectValue?["solid"] == held(.string("color(srgb 0 0 0 / 0.5019607843137255)")))
+        #expect(storyline.first?.objectValue?["color"] == held(.string("color(srgb 0 0 0 / 0.5019607843137255)")))
         #expect(storyline.first?.objectValue?["media"] == .null)
     }
 
@@ -350,8 +350,8 @@ struct ResolvedSequenceWriterTests {
     func writesTransitionAndLUT() throws {
         // Given
         let document = #"""
-            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "in": 0, "out": 3, "filter": "film" },
-                                                 { "media": "/abs/run.mp4", "in": 0, "out": 3, "transition": "reveal" } ] }
+            { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "in": 0, "out": 3, "filter": "film" },
+                                                 { "kind": "media", "media": "/abs/run.mp4", "in": 0, "out": 3, "transition": "reveal" } ] }
             """#
 
         // When
@@ -381,7 +381,7 @@ struct ResolvedSequenceWriterTests {
         // Given
         let document = #"""
             { "kind": "sequence", "format": { "size": [1080, 1920] },
-              "storyline": [ { "media": "/abs/run.mp4", "in": 0, "out": 3,
+              "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "in": 0, "out": 3,
                                "filter": { "op": "displace", "file": "/abs/matte.png", "amount": 8, "offset": [4, -2] } } ] }
             """#
 
@@ -410,9 +410,9 @@ struct ResolvedSequenceWriterTests {
         let total = Fixture.tracker.data(Quad(Fixture.total), in: "/abs/screen.mp4", atMediaTime: 1, over: 1...3)
         let box = Fixture.tracker.data(Quad(Rectangle(x: 86, y: 86, width: 228, height: 68)), in: "/abs/screen.mp4", atMediaTime: 1, over: 1...3)
         let document = #"""
-            { "kind": "sequence", "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "in": 1, "out": 3, "connected": [
-                { "shape": "rect", "stroke": { "width": 8 }, "area": [100, 100, 200, 40], "parent": "screen", "track": \#(total) },
-                { "shape": "rect", "fill": "#FFD43B80", "area": [86, 86, 228, 68], "parent": "screen", "track": \#(box) } ] } ] }
+            { "kind": "sequence", "storyline": [ { "id": "screen", "kind": "media", "media": "/abs/screen.mp4", "in": 1, "out": 3, "connected": [
+                { "kind": "rect", "stroke": { "width": 8 }, "area": [100, 100, 200, 40], "parent": "screen", "track": \#(total) },
+                { "kind": "rect", "fill": "#FFD43B80", "area": [86, 86, 228, 68], "parent": "screen", "track": \#(box) } ] } ] }
             """#
 
         // When
@@ -427,8 +427,8 @@ struct ResolvedSequenceWriterTests {
     func writesOriginOfCutClip() throws {
         // Given
         let document = #"""
-            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "in": 0, "out": 2 } ],
-              "clips": [ { "media": "/abs/short.mp4", "at": [-0.75, 2] } ] }
+            { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "in": 0, "out": 2 } ],
+              "clips": [ { "kind": "media", "media": "/abs/short.mp4", "at": [-0.75, 2] } ] }
             """#
 
         // When
@@ -444,8 +444,8 @@ struct ResolvedSequenceWriterTests {
     func writesCompoundClip() throws {
         // Given
         let document = #"""
-            { "kind": "sequence", "storyline": [ { "media": {
-                "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "in": 0, "out": 2 } ] } } ] }
+            { "kind": "sequence", "storyline": [ { "kind": "media", "media": {
+                "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "in": 0, "out": 2 } ] } } ] }
             """#
 
         // When
@@ -466,8 +466,8 @@ struct ResolvedSequenceWriterTests {
     func writesAudio() throws {
         // Given
         let document = #"""
-            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "in": 0, "out": 3 } ],
-              "clips": [ { "media": "/abs/bgm.m4a", "at": 1, "loop": true,
+            { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "in": 0, "out": 3 } ],
+              "clips": [ { "kind": "media", "media": "/abs/bgm.m4a", "at": 1, "loop": true,
                            "keyframes": [ { "at": 0, "volume": 0.3, "pan": -1 }, { "at": 1, "volume": 0, "pan": 1 } ] } ] }
             """#
 
@@ -493,8 +493,8 @@ struct ResolvedSequenceWriterTests {
     func writesCrossfade() throws {
         // Given
         let document = #"""
-            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "in": 2, "out": 6 },
-                                                 { "media": "/abs/run.mp4", "in": 10, "out": 14, "transition": "mine/same-take" } ] }
+            { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "in": 2, "out": 6 },
+                                                 { "kind": "media", "media": "/abs/run.mp4", "in": 10, "out": 14, "transition": "mine/same-take" } ] }
             """#
 
         // When
@@ -519,11 +519,11 @@ struct ResolvedSequenceWriterTests {
         let document = ##"""
             { "kind": "sequence", "format": { "size": [2412, 5244] },
               "theme": { "shapes": { "outline": { "stroke": { "width": 8, "color": "#ED2929" }, "radius": 18 } } },
-              "storyline": [ { "media": "/abs/run.mp4" } ], "clips": [
-                { "shape": "rect", "style": "outline", "area": [0, 0, 100, 100], "at": [0, 1] },
-                { "shape": "path", "points": [[500, 500], [600, 500]], "stroke": { "width": 10, "end": "frames/arrow" }, "at": [0, 1] },
-                { "shape": "ellipse", "width": 200, "height": 100, "outset": 10, "fill": "#00000080", "at": [0, 1] },
-                { "shape": "rect", "area": [100, 100, 200, 100], "outset": 20, "anchor": "bottom-right", "fill": "accent", "at": [0, 1] } ] }
+              "storyline": [ { "kind": "media", "media": "/abs/run.mp4" } ], "clips": [
+                { "kind": "rect", "style": "outline", "area": [0, 0, 100, 100], "at": [0, 1] },
+                { "kind": "path", "points": [[500, 500], [600, 500]], "stroke": { "width": 10, "end": "frames/arrow" }, "at": [0, 1] },
+                { "kind": "ellipse", "width": 200, "height": 100, "outset": 10, "fill": "#00000080", "at": [0, 1] },
+                { "kind": "rect", "area": [100, 100, 200, 100], "outset": 20, "anchor": "bottom-right", "fill": "accent", "at": [0, 1] } ] }
             """##
         let theme = MergedTheme.base
         let scale = theme.lengthScale(at: 2412)
@@ -533,7 +533,7 @@ struct ResolvedSequenceWriterTests {
 
         // Then
         #expect(clips[0].keys == [
-            "place", "id", "shape", "area", "width", "height", "points", "closed", "outset", "radius", "trim", "fill",
+            "place", "id", "kind", "area", "width", "height", "points", "closed", "outset", "radius", "trim", "fill",
             "stroke", "shadow", "start", "end", "lane", "storyline", "parent", "size", "position", "anchor", "cornerPin", "crop",
             "mask", "trackMatte", "track", "opacity", "scale", "rotation", "blend", "motionBlur", "animation"
         ])
@@ -581,8 +581,8 @@ struct ResolvedSequenceWriterTests {
     func writesPathVertices() throws {
         // Given
         let document = ##"""
-            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4" } ], "clips": [
-                { "shape": "path", "points": [[500, 500], { "vertex": [600, 500], "inTangent": [-20, 10] }], "stroke": { "width": 10 }, "at": [0, 1] } ] }
+            { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4" } ], "clips": [
+                { "kind": "path", "points": [[500, 500], { "vertex": [600, 500], "inTangent": [-20, 10] }], "stroke": { "width": 10 }, "at": [0, 1] } ] }
             """##
         let held = { (point: [Double]) in
             JSONValue.array([.object(JSONObject(members: [
@@ -611,15 +611,15 @@ struct ResolvedSequenceWriterTests {
         // Given
         let document = #"""
             { "kind": "sequence", "format": { "size": [3840, 2160] },
-              "storyline": [ { "media": "/abs/run.mp4", "in": 0, "out": 4, "mask": { "shape": "ellipse", "area": [16, 16, 480, 480], "feather": 3 } } ],
+              "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "in": 0, "out": 4, "mask": { "shape": "ellipse", "area": [16, 16, 480, 480], "feather": 3 } } ],
               "clips": [
-                { "media": "/abs/card.png", "at": [0, 4], "width": 160,
+                { "kind": "media", "media": "/abs/card.png", "at": [0, 4], "width": 160,
                   "mask": [ { "shape": "rect", "width": 100, "height": 40, "position": [200, 300], "radius": 4, "invert": true, "mode": "intersect" },
                             { "shape": "path", "points": [[0, 0], [10, 0], [5, 10]] } ] },
-                { "adjust": "frames/warm", "at": [0, 4], "mask": { "shape": "rect" }, "keyframes": [
+                { "kind": "adjustment", "adjust": "frames/warm", "at": [0, 4], "mask": { "shape": "rect" }, "keyframes": [
                     { "at": 1, "ease": "ease-out", "mask": { "area": [0, 0, 10, 10] } },
                     { "at": 3, "mask": { "area": [0, 0, 20, 20], "feather": 1 } } ] },
-                { "title": "a", "style": "title", "at": [0, 4] } ] }
+                { "kind": "title", "text": "a", "style": "title", "at": [0, 4] } ] }
             """#
 
         // When
@@ -658,10 +658,10 @@ struct ResolvedSequenceWriterTests {
     func writesCornerPin() throws {
         // Given
         let document = #"""
-            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "connected": [
-                { "media": "/abs/card.png", "at": [0, 3], "width": 300, "cornerPin": [[100, 100], [500, 120], [480, 400], [120, 380]] },
-                { "title": "Hello", "style": "subtitle", "at": [0, 3] },
-                { "adjust": "mine/grade", "at": [0, 3] } ] } ] }
+            { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "connected": [
+                { "kind": "media", "media": "/abs/card.png", "at": [0, 3], "width": 300, "cornerPin": [[100, 100], [500, 120], [480, 400], [120, 380]] },
+                { "kind": "title", "text": "Hello", "style": "subtitle", "at": [0, 3] },
+                { "kind": "adjustment", "adjust": "mine/grade", "at": [0, 3] } ] } ] }
             """#
 
         // When
@@ -686,9 +686,9 @@ struct ResolvedSequenceWriterTests {
         // Given
         let document = #"""
             { "kind": "sequence", "format": { "size": [1920, 1080] }, "storyline": [
-                { "media": "/abs/run.mp4", "out": 1, "cornerPin": [[100, 100], [500, 120], [480, 400], [120, 380]] },
-                { "media": "/abs/run.mp4", "out": 1 },
-                { "solid": "#000000", "duration": 1 } ] }
+                { "kind": "media", "media": "/abs/run.mp4", "out": 1, "cornerPin": [[100, 100], [500, 120], [480, 400], [120, 380]] },
+                { "kind": "media", "media": "/abs/run.mp4", "out": 1 },
+                { "kind": "solid", "color": "#000000", "duration": 1 } ] }
             """#
 
         // When

@@ -13,12 +13,12 @@ import Testing
 struct OwnSpaceTests {
     // MARK: - Property
     private static let clips: [(String, OwnSpace)] = [
-        (#"{ "media": "/abs/page.png", "at": [0, 1] }"#, .media),
-        (#"{ "title": "a", "style": "title", "at": [0, 1] }"#, .box),
-        (#"{ "shape": "rect", "stroke": { "width": 8 }, "width": 100, "height": 50, "at": [0, 1] }"#, .box),
-        (#"{ "shape": "ellipse", "stroke": { "width": 8 }, "area": [0, 0, 10, 10], "at": [0, 1] }"#, .parent),
-        (#"{ "shape": "path", "stroke": { "width": 8 }, "points": [[0, 0], [10, 10]], "at": [0, 1] }"#, .parent),
-        (#"{ "adjust": "frames/warm", "at": [0, 1] }"#, .parent)
+        (#"{ "kind": "media", "media": "/abs/page.png", "at": [0, 1] }"#, .media),
+        (#"{ "kind": "title", "text": "a", "style": "title", "at": [0, 1] }"#, .box),
+        (#"{ "kind": "rect", "stroke": { "width": 8 }, "width": 100, "height": 50, "at": [0, 1] }"#, .box),
+        (#"{ "kind": "ellipse", "stroke": { "width": 8 }, "area": [0, 0, 10, 10], "at": [0, 1] }"#, .parent),
+        (#"{ "kind": "path", "stroke": { "width": 8 }, "points": [[0, 0], [10, 10]], "at": [0, 1] }"#, .parent),
+        (#"{ "kind": "adjustment", "adjust": "frames/warm", "at": [0, 1] }"#, .parent)
     ]
 
     // MARK: - Initializer
@@ -33,7 +33,7 @@ struct OwnSpaceTests {
     ) throws {
         // Given
         let document = try Fixture.json(#"""
-            { "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4" } ], "clips": [ \#(clip) ] }
+            { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/screen.mp4" } ], "clips": [ \#(clip) ] }
             """#)
 
         // When

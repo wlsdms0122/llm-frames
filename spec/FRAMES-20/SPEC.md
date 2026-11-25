@@ -80,7 +80,7 @@ One frame of an edit is many rules at once: keyframes and their eases, a parent'
 - The stroke and its arrowheads are one shape: where they overlap, nothing is drawn twice. The fill is drawn first and the stroke over it.
 
 ```json
-{ "item": "path", "origin": { "place": "clips[2]", "id": "pointer", "kind": "shape" },
+{ "item": "path", "origin": { "place": "clips[2]", "id": "pointer", "kind": "path" },
   "transform": [1, 0, 0, 1, 0, 0], "opacity": 1, "blend": "normal", "mask": null, "trackMatte": null, "reveal": null,
   "geometry": { "path": { "vertices": [[420, 300], [760, 520]], "inTangents": [[0, 0], [-120, -60]], "outTangents": [[200, 0], [0, 0]],
                          "closed": false } },

@@ -40,8 +40,8 @@ struct ThemeValidatorTests {
                 #"defaults.animation.media (animation defaults): unknown animation preset "mine/spin". The pack "mine" holds the animation presets mine/wipe-in"#
             ),
             (
-                #"{ "defaults": { "animation": { "adjust": { "entrance": "frames/pop", "exit": "mine/spin" } } } }"#,
-                #"defaults.animation.adjust (animation defaults): unknown animation preset "mine/spin". The pack "mine" holds the animation presets mine/wipe-in"#
+                #"{ "defaults": { "animation": { "adjustment": { "entrance": "frames/pop", "exit": "mine/spin" } } } }"#,
+                #"defaults.animation.adjustment (animation defaults): unknown animation preset "mine/spin". The pack "mine" holds the animation presets mine/wipe-in"#
             ),
             (
                 #"{ "defaults": { "animation": { "title": { "subtitle": "mine/spin" } } } }"#,

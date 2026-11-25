@@ -14,8 +14,8 @@ struct ResolvedSequenceReader: Sendable {
 
     // The keys every clips entry may hold besides what it draws.
     private static let clipKeys = [
-        "place", "id", "start", "end", "lane", "storyline", "parent", "size", "position", "anchor", "cornerPin", "crop",
-        "mask", "trackMatte", "track", "opacity", "scale", "rotation", "blend", "motionBlur", "animation"
+        "place", "id", "kind", "start", "end", "lane", "storyline", "parent", "size", "position", "anchor", "cornerPin",
+        "crop", "mask", "trackMatte", "track", "opacity", "scale", "rotation", "blend", "motionBlur", "animation"
     ]
 
     // The keys of anything drawn, which an adjustment does not hold.
@@ -26,14 +26,20 @@ struct ResolvedSequenceReader: Sendable {
 
     // The keys of every kind of content, which a clip is first checked against before its own kind is known.
     private static let contentKeys = [
-        "title", "shape", "null", "area", "width", "height", "points", "closed", "outset", "radius", "trim", "fill",
+        "title", "area", "width", "height", "points", "closed", "outset", "radius", "trim", "fill",
         "stroke", "adjust", "media", "in", "origin", "out", "speed", "loop", "timeRemap", "filter", "conform", "colorSpace",
         "toneMap", "border", "shadow"
     ]
 
     private static let shapeKeys = [
-        "shape", "area", "width", "height", "points", "closed", "outset", "radius", "trim", "fill", "stroke", "shadow"
+        "area", "width", "height", "points", "closed", "outset", "radius", "trim", "fill", "stroke", "shadow"
     ]
+
+    // The kinds a storyline entry is of, as its document names them.
+    private static let storylineKinds = ["media", "solid"]
+
+    // The kinds a clips entry is of, as its document names them.
+    private static let kinds = ["media", "title"] + ShapeKind.allCases.map(\.rawValue) + ["adjustment", "null"]
 
     private let values = ResolvedValueReader()
 
@@ -279,17 +285,29 @@ struct ResolvedSequenceReader: Sendable {
         return duration
     }
 
-    // An entry with media has a corner pin, and a solid has none. An entry with a corner pin has `size`, and its
-    // `position`, `anchor`, `scale` and `rotation` are null.
+    // An entry is of kind `media` or `solid`. An entry with media has a corner pin, and a solid has none. An entry with
+    // a corner pin has `size`, and its `position`, `anchor`, `scale` and `rotation` are null.
     private func storyline(_ value: PlacedJSONValue) throws -> ResolvedStorylineClip {
         let keys = [
-            "place", "id", "media", "solid", "colorSpace", "toneMap", "in", "out", "speed", "timeRemap", "start", "end",
-            "size", "position", "anchor", "cornerPin", "crop", "mask", "trackMatte", "track", "opacity", "scale",
+            "place", "id", "kind", "media", "color", "colorSpace", "toneMap", "in", "out", "speed", "timeRemap", "start",
+            "end", "size", "position", "anchor", "cornerPin", "crop", "mask", "trackMatte", "track", "opacity", "scale",
             "rotation", "blend", "motionBlur", "filter", "radius", "border", "shadow", "transition"
         ]
-        let isMedia = try !value.object(kind: "storyline clip", keys: keys).member("media").isNull
+        let kind = try value.object(kind: "storyline clip", keys: keys).member("kind")
+            .name(among: Self.storylineKinds) { Self.storylineKinds.contains($0) ? $0 : nil }
+        let isMedia = kind == "media"
         let entry = try value.object(kind: "storyline clip", keys: keys.filter { isMedia || $0 != "cornerPin" })
-        let media = try entry.member("media").optional(self.media)
+        let otherKey = isMedia ? "color" : "media"
+        let other = try entry.member(otherKey)
+        guard other.isNull else {
+            throw ModelError.invalidValue(
+                place: other.place,
+                kind: other.kind,
+                reason: "an entry of kind \(kind) has no \(otherKey), so it is null, found \(other.value.written)"
+            )
+        }
+        let media = isMedia ? try self.media(entry.member("media")) : nil
+        let color = isMedia ? nil : try values.keyframes(entry.member("color"), read: values.color)
         let reading = try reading(of: entry, media: media)
         let cornerPin = isMedia ? try self.cornerPin(of: entry) : nil
 
@@ -297,7 +315,7 @@ struct ResolvedSequenceReader: Sendable {
             place: try entry.member("place").string(),
             id: try entry.member("id").optional { try $0.string() },
             media: media,
-            solid: try entry.member("solid").optional { try values.keyframes($0, read: values.color) },
+            color: color,
             colorSpace: reading.colorSpace,
             isToneMapped: reading.isToneMapped,
             in: try entry.member("in").number(),
@@ -337,9 +355,10 @@ struct ResolvedSequenceReader: Sendable {
     // and its `position`, `anchor`, `scale` and `rotation` are null.
     private func clip(_ value: PlacedJSONValue) throws -> ResolvedClip {
         let written = try value.object(kind: "clip", keys: Self.clipKeys + Self.contentKeys)
-        let contentKeys = try self.contentKeys(of: written)
-        let isTransformed = !written.contains("adjust")
-        let isNull = written.contains("null")
+        let kind = try written.member("kind").name(among: Self.kinds) { Self.kinds.contains($0) ? $0 : nil }
+        let contentKeys = contentKeys(of: written, kind: kind)
+        let isTransformed = kind != "adjustment"
+        let isNull = kind == "null"
         let clip = try value.object(
             kind: "clip",
             keys: Self.clipKeys.filter { key in
@@ -349,7 +368,8 @@ struct ResolvedSequenceReader: Sendable {
         let size = try clip.member("size")
         let position = try clip.member("position")
         let anchor = try clip.member("anchor")
-        let isPlacedByGeometry = clip.contains("shape") || isNull
+        let shape = ShapeKind(rawValue: kind)
+        let isPlacedByGeometry = shape != nil || isNull
         let cornerPin = isTransformed && !isNull ? try cornerPin(of: clip) : nil
         let box: ResolvedBox? = if
             cornerPin != nil || size.isNull && (isPlacedByGeometry || position.isNull && anchor.isNull)
@@ -363,7 +383,7 @@ struct ResolvedSequenceReader: Sendable {
             .null(try null(clip, isPlacedByBox: box != nil))
         } else {
             .picture(
-                try picture(of: clip, isPlacedByBox: box != nil || cornerPin != nil),
+                try picture(of: clip, kind: kind, shape: shape, isPlacedByBox: box != nil || cornerPin != nil),
                 ResolvedComposite(
                     lane: try clip.member("lane").integer(),
                     opacity: try values.numbers(clip.member("opacity")),
@@ -418,40 +438,44 @@ struct ResolvedSequenceReader: Sendable {
         return ResolvedCornerPin(size: try values.size(clip.member("size")), points: points)
     }
 
-    // A title, a shape by its name, a null, an adjustment or a media clip, timed when it has `in`.
-    private func contentKeys(of clip: PlacedJSONObject) throws -> [String] {
-        if clip.contains("title") {
+    // The keys of a title, a shape, a null, an adjustment or a media clip, a media clip timed when it has `origin`.
+    private func contentKeys(
+        of clip: PlacedJSONObject,
+        kind: String
+    ) -> [String] {
+        switch kind {
+        case "title":
             return ["title"]
-        }
-        if clip.contains("shape") {
-            return Self.shapeKeys
-        }
-        if clip.contains("null") {
-            return ["null", "area", "width", "height"]
-        }
-        if clip.contains("adjust") {
+
+        case "null":
+            return ["area", "width", "height"]
+
+        case "adjustment":
             return ["adjust"]
-        }
-        if clip.contains("media") {
+
+        case "media":
             let timing = clip.contains("origin") ? ["in", "origin", "out", "speed", "loop", "timeRemap"] : []
 
             return ["media"] + timing + ["filter", "conform", "colorSpace", "toneMap", "radius", "border", "shadow"]
-        }
 
-        throw ModelError.missingKey(place: clip.place, kind: clip.kind, keys: ["title", "shape", "null", "adjust", "media"])
+        default:
+            return Self.shapeKeys
+        }
     }
 
     private func picture(
         of clip: PlacedJSONObject,
+        kind: String,
+        shape: ShapeKind?,
         isPlacedByBox: Bool
     ) throws -> ResolvedPicture {
-        if clip.contains("title") {
+        if let shape {
+            return .shape(try self.shape(clip, kind: shape, isPlacedByBox: isPlacedByBox))
+        }
+        if kind == "title" {
             return .title(try values.text(clip.member("title")))
         }
-        if clip.contains("shape") {
-            return .shape(try shape(clip, isPlacedByBox: isPlacedByBox))
-        }
-        if clip.contains("adjust") {
+        if kind == "adjustment" {
             return .adjustment(try values.timed(clip.member("adjust"), as: LookStructureTable.resolvedFilter))
         }
 
@@ -474,15 +498,12 @@ struct ResolvedSequenceReader: Sendable {
         ))
     }
 
-    // A null's `null`, which is `true`, and its geometry as a rect's: its `width` and `height` with a box, and its area,
+    // A null's geometry as a rect's: its `width` and `height` with a box, and its area,
     // which carries its position and its anchor point, without one.
     private func null(
         _ clip: PlacedJSONObject,
         isPlacedByBox: Bool
     ) throws -> ResolvedNull {
-        let null = try clip.member("null")
-        guard try null.bool() else { throw null.wrongType("true") }
-
         let geometry: NullGeometry = if isPlacedByBox {
             .box(width: try values.numbers(clip.member("width")), height: try values.numbers(clip.member("height")))
         } else {
@@ -495,14 +516,14 @@ struct ResolvedSequenceReader: Sendable {
         return ResolvedNull(geometry: geometry)
     }
 
-    // A shape's kind and geometry, then how it is drawn: a path by its points, a rect or an ellipse with a box by its
+    // A shape's geometry, then how it is drawn: a path by its points, a rect or an ellipse with a box by its
     // `width` and `height`, and one without by its area. One placed by its geometry carries its position and its
     // anchor point.
     private func shape(
         _ clip: PlacedJSONObject,
+        kind: ShapeKind,
         isPlacedByBox: Bool
     ) throws -> ResolvedShape {
-        let kind = try clip.member("shape").name(among: ShapeKind.allCases.map(\.rawValue), ShapeKind.init)
         let geometry: ShapeGeometry = if kind == .path {
             .points(
                 try clip.member("points").elements().map { try values.vertex($0) },

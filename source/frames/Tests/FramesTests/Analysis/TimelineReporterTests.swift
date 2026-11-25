@@ -16,13 +16,13 @@ struct TimelineReporterTests {
     private let document = ##"""
         { "kind": "sequence",
           "storyline": [
-            { "id": "intro", "media": "/abs/short.mp4", "in": 1, "out": 3,
-              "connected": [ { "shape": "rect", "stroke": { "width": 8 }, "area": [400, 1200, 200, 60], "parent": "intro", "animation": "frames/pulse" } ] },
-            { "solid": "#000000", "duration": 2, "transition": { "preset": "frames/flash", "seconds": 1 } }
+            { "id": "intro", "kind": "media", "media": "/abs/short.mp4", "in": 1, "out": 3,
+              "connected": [ { "kind": "rect", "stroke": { "width": 8 }, "area": [400, 1200, 200, 60], "parent": "intro", "animation": "frames/pulse" } ] },
+            { "kind": "solid", "color": "#000000", "duration": 2, "transition": { "preset": "frames/flash", "seconds": 1 } }
           ],
           "clips": [
-            { "at": [0, 4], "title": "Top", "style": "title", "lane": 2, "animation": { "preset": "frames/pop", "by": "word" } },
-            { "at": 1, "media": "/abs/ding.wav" }
+            { "at": [0, 4], "kind": "title", "text": "Top", "style": "title", "lane": 2, "animation": { "preset": "frames/pop", "by": "word" } },
+            { "at": 1, "kind": "media", "media": "/abs/ding.wav" }
           ] }
         """##
 
@@ -81,8 +81,8 @@ struct TimelineReporterTests {
     func writesUnitOrder() throws {
         // Given
         let value = try Fixture.json(#"""
-            { "kind": "sequence", "storyline": [ { "media": "/abs/short.mp4", "in": 1, "out": 3 } ],
-              "clips": [ { "at": [0, 2], "title": "Top", "style": "title", "animation": { "preset": "frames/pop", "by": "line", "stagger": 0.2, "order": "edges" } } ] }
+            { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/short.mp4", "in": 1, "out": 3 } ],
+              "clips": [ { "at": [0, 2], "kind": "title", "text": "Top", "style": "title", "animation": { "preset": "frames/pop", "by": "line", "stagger": 0.2, "order": "edges" } } ] }
             """#)
         let resolved = try ResolvedSequence(plan: Fixture.documentPlanner.plan(value), hashes: FileHashTable())
 
@@ -103,8 +103,8 @@ struct TimelineReporterTests {
         let value = try Fixture.json(#"""
             { "kind": "sequence",
               "storyline": [
-                { "media": { "file": "/abs/deck.pdf", "page": 3 }, "duration": 2 },
-                { "media": "/abs/logo.pdf", "duration": 1 }
+                { "kind": "media", "media": { "file": "/abs/deck.pdf", "page": 3 }, "duration": 2 },
+                { "kind": "media", "media": "/abs/logo.pdf", "duration": 1 }
               ] }
             """#)
 
@@ -132,8 +132,8 @@ struct TimelineReporterTests {
         // Given
         let value = try Fixture.json(##"""
             { "kind": "sequence", "storyline": [
-              { "media": { "kind": "sequence", "format": { "size": [1080, 1920] }, "storyline": [ { "solid": "#000000", "duration": 2 } ],
-                           "clips": [ { "title": "a", "style": "title" } ] } }
+              { "kind": "media", "media": { "kind": "sequence", "format": { "size": [1080, 1920] }, "storyline": [ { "kind": "solid", "color": "#000000", "duration": 2 } ],
+                           "clips": [ { "kind": "title", "text": "a", "style": "title" } ] } }
             ] }
             """##)
         let resolved = try ResolvedSequence(plan: Fixture.documentPlanner.plan(value), hashes: FileHashTable())
@@ -149,7 +149,7 @@ struct TimelineReporterTests {
     func roundsTimes() throws {
         // Given
         let value = try Fixture.json(##"""
-            { "kind": "sequence", "format": { "size": [1080, 1920] }, "storyline": [ { "solid": "#000000", "duration": 0.1 }, { "solid": "#FFFFFF", "duration": 0.2 } ] }
+            { "kind": "sequence", "format": { "size": [1080, 1920] }, "storyline": [ { "kind": "solid", "color": "#000000", "duration": 0.1 }, { "kind": "solid", "color": "#FFFFFF", "duration": 0.2 } ] }
             """##)
 
         // When
@@ -169,8 +169,8 @@ struct TimelineReporterTests {
         // Given
         let value = try Fixture.json(##"""
             { "kind": "sequence", "storyline": [
-              { "media": { "kind": "sequence", "format": { "size": [1080, 1920] }, "storyline": [ { "solid": "#000000", "duration": 2 } ],
-                           "clips": [ { "title": "a", "style": "title" } ] } }
+              { "kind": "media", "media": { "kind": "sequence", "format": { "size": [1080, 1920] }, "storyline": [ { "kind": "solid", "color": "#000000", "duration": 2 } ],
+                           "clips": [ { "kind": "title", "text": "a", "style": "title" } ] } }
             ] }
             """##)
 
@@ -210,10 +210,10 @@ struct TimelineReporterTests {
         let value = try Fixture.json(#"""
             { "kind": "sequence", "format": { "size": [1080, 1920] },
               "storyline": [
-                { "media": { "imageSequence": "/abs/frames", "fps": 10 }, "in": 0, "out": 1,
-                  "connected": [ { "media": "shorts/leak.mov", "at": 0 } ] },
-                { "media": "/abs/card.png", "duration": 1 } ],
-              "clips": [ { "media": { "file": "/abs/deck.pdf", "page": 3 }, "at": [0, 2] }, { "at": [0, 2], "title": "Top", "style": "title" } ] }
+                { "kind": "media", "media": { "imageSequence": "/abs/frames", "fps": 10 }, "in": 0, "out": 1,
+                  "connected": [ { "kind": "media", "media": "shorts/leak.mov", "at": 0 } ] },
+                { "kind": "media", "media": "/abs/card.png", "duration": 1 } ],
+              "clips": [ { "kind": "media", "media": { "file": "/abs/deck.pdf", "page": 3 }, "at": [0, 2] }, { "at": [0, 2], "kind": "title", "text": "Top", "style": "title" } ] }
             """#)
 
         // When
@@ -243,11 +243,11 @@ struct TimelineReporterTests {
         let directory = try PackDirectory()
         try directory.addPack("shorts")
         try directory.write(
-            #"{ "kind": "sequence", "params": { "clip": { "type": "video", "description": "the clip" } }, "storyline": [ { "media": { "param": "clip" } } ] }"#,
+            #"{ "kind": "sequence", "params": { "clip": { "type": "video", "description": "the clip" } }, "storyline": [ { "kind": "media", "media": { "param": "clip" } } ] }"#,
             in: "shorts",
             at: "templates/leak.json"
         )
-        try directory.write(#"{ "kind": "sequence", "storyline": [ { "media": "shorts/leak.mov", "out": 1 } ] }"#, in: "shorts", at: "media/intro.json")
+        try directory.write(#"{ "kind": "sequence", "storyline": [ { "kind": "media", "media": "shorts/leak.mov", "out": 1 } ] }"#, in: "shorts", at: "media/intro.json")
         let leak = directory.installed.appendingPathComponent("shorts/media/leak.mov").path
         let mediaFacts = MediaFactTable(files: [leak: ProbedMedia(kind: .video, duration: 2, fps: 24, size: Size(width: 1080, height: 1920))])
         let sut = TimelineReporter(
@@ -260,8 +260,8 @@ struct TimelineReporterTests {
         )
         let value = try Fixture.json(#"""
             { "kind": "sequence", "storyline": [
-              { "media": { "template": "shorts/leak", "args": { "clip": "shorts/leak.mov" } } },
-              { "media": "shorts/intro.json" }
+              { "kind": "media", "media": { "template": "shorts/leak", "args": { "clip": "shorts/leak.mov" } } },
+              { "kind": "media", "media": "shorts/intro.json" }
             ] }
             """#)
 
@@ -291,13 +291,13 @@ struct TimelineReporterTests {
             #"""
             { "kind": "sequence", "theme": { "defaults": { "transition": "frames/push-up" } },
               "params": { "body": { "type": "sequence", "description": "the body" } },
-              "storyline": [ { "media": { "template": "shorts/inner", "args": { "body": { "param": "body" } } } } ] }
+              "storyline": [ { "kind": "media", "media": { "template": "shorts/inner", "args": { "body": { "param": "body" } } } } ] }
             """#,
             in: "shorts",
             at: "templates/outer.json"
         )
         try directory.write(
-            #"{ "kind": "sequence", "params": { "body": { "type": "sequence", "description": "the body" } }, "storyline": [ { "media": { "param": "body" } } ] }"#,
+            #"{ "kind": "sequence", "params": { "body": { "type": "sequence", "description": "the body" } }, "storyline": [ { "kind": "media", "media": { "param": "body" } } ] }"#,
             in: "shorts",
             at: "templates/inner.json"
         )
@@ -311,8 +311,8 @@ struct TimelineReporterTests {
         )
         let value = try Fixture.json(##"""
             { "kind": "sequence", "theme": { "defaults": { "transition": "frames/flash" } },
-              "storyline": [ { "media": { "template": "shorts/outer", "args": { "body":
-                { "kind": "sequence", "format": { "size": [1080, 1920] }, "storyline": [ { "solid": "#000000", "duration": 2 }, { "solid": "#FFFFFF", "duration": 2 } ] }
+              "storyline": [ { "kind": "media", "media": { "template": "shorts/outer", "args": { "body":
+                { "kind": "sequence", "format": { "size": [1080, 1920] }, "storyline": [ { "kind": "solid", "color": "#000000", "duration": 2 }, { "kind": "solid", "color": "#FFFFFF", "duration": 2 } ] }
               } } } ] }
             """##)
 
@@ -337,15 +337,15 @@ struct TimelineReporterTests {
             ##"""
             { "kind": "sequence", "theme": { "defaults": { "transition": "frames/push-up" } },
               "params": { "body": { "type": "sequence", "description": "the body" } },
-              "storyline": [ { "media": { "template": "shorts/inner", "args": { "body":
-                { "kind": "sequence", "format": { "size": [1080, 1920] }, "storyline": [ { "solid": "#000000", "duration": 2 }, { "media": { "param": "body" } } ] }
+              "storyline": [ { "kind": "media", "media": { "template": "shorts/inner", "args": { "body":
+                { "kind": "sequence", "format": { "size": [1080, 1920] }, "storyline": [ { "kind": "solid", "color": "#000000", "duration": 2 }, { "kind": "media", "media": { "param": "body" } } ] }
               } } } ] }
             """##,
             in: "shorts",
             at: "templates/outer.json"
         )
         try directory.write(
-            #"{ "kind": "sequence", "params": { "body": { "type": "sequence", "description": "the body" } }, "storyline": [ { "media": { "param": "body" } } ] }"#,
+            #"{ "kind": "sequence", "params": { "body": { "type": "sequence", "description": "the body" } }, "storyline": [ { "kind": "media", "media": { "param": "body" } } ] }"#,
             in: "shorts",
             at: "templates/inner.json"
         )
@@ -359,8 +359,8 @@ struct TimelineReporterTests {
         )
         let value = try Fixture.json(##"""
             { "kind": "sequence", "theme": { "defaults": { "transition": "frames/flash" } },
-              "storyline": [ { "media": { "template": "shorts/outer", "args": { "body":
-                { "kind": "sequence", "format": { "size": [1080, 1920] }, "storyline": [ { "solid": "#000000", "duration": 2 }, { "solid": "#FFFFFF", "duration": 2 } ] }
+              "storyline": [ { "kind": "media", "media": { "template": "shorts/outer", "args": { "body":
+                { "kind": "sequence", "format": { "size": [1080, 1920] }, "storyline": [ { "kind": "solid", "color": "#000000", "duration": 2 }, { "kind": "solid", "color": "#FFFFFF", "duration": 2 } ] }
               } } } ] }
             """##)
 
@@ -406,11 +406,11 @@ struct TimelineReporterTests {
         let value = try Fixture.json(#"""
             { "kind": "sequence",
               "storyline": [
-                { "media": "/abs/run.mp4", "in": 0, "out": 4, "split": { "after": 1 },
-                  "connected": [ { "media": "/abs/run.mp4", "at": [1, 3], "in": 2, "split": { "before": 1 } }, { "media": "/abs/short.mp4", "at": [0, 1] } ] },
-                { "media": "/abs/run.mp4", "in": 4, "out": 8 },
-                { "media": "/abs/short.mp4", "in": 0, "out": 2 } ],
-              "clips": [ { "media": "/abs/bgm.m4a", "at": [0, 2] }, { "media": "/abs/run.mp4", "picture": false, "at": [0, 2] } ] }
+                { "kind": "media", "media": "/abs/run.mp4", "in": 0, "out": 4, "split": { "after": 1 },
+                  "connected": [ { "kind": "media", "media": "/abs/run.mp4", "at": [1, 3], "in": 2, "split": { "before": 1 } }, { "kind": "media", "media": "/abs/short.mp4", "at": [0, 1] } ] },
+                { "kind": "media", "media": "/abs/run.mp4", "in": 4, "out": 8 },
+                { "kind": "media", "media": "/abs/short.mp4", "in": 0, "out": 2 } ],
+              "clips": [ { "kind": "media", "media": "/abs/bgm.m4a", "at": [0, 2] }, { "kind": "media", "media": "/abs/run.mp4", "picture": false, "at": [0, 2] } ] }
             """#)
         let resolved = try ResolvedSequence(plan: Fixture.documentPlanner.plan(value), hashes: FileHashTable())
 
@@ -433,9 +433,9 @@ struct TimelineReporterTests {
         // Given
         let value = try Fixture.json(#"""
             { "kind": "sequence",
-              "storyline": [ { "media": "/abs/short.mp4", "in": 0, "out": 2,
-                "connected": [ { "id": "box", "at": [0, 1], "shape": "rect", "fill": "#FFFFFF", "area": [0, 0, 10, 10] },
-                               { "at": [0, 1], "title": "a", "style": "title", "lane": 3, "parent": "box", "position": [0, 0] } ] } ] }
+              "storyline": [ { "kind": "media", "media": "/abs/short.mp4", "in": 0, "out": 2,
+                "connected": [ { "id": "box", "at": [0, 1], "kind": "rect", "fill": "#FFFFFF", "area": [0, 0, 10, 10] },
+                               { "at": [0, 1], "kind": "title", "text": "a", "style": "title", "lane": 3, "parent": "box", "position": [0, 0] } ] } ] }
             """#)
 
         // When
@@ -454,8 +454,8 @@ struct TimelineReporterTests {
         // Given
         let value = try Fixture.json(#"""
             { "kind": "sequence", "storyline": [
-              { "media": "/abs/short.mp4", "in": 0, "out": 2, "keyframes": [ { "at": 0, "timeRemap": 3 }, { "at": 2, "timeRemap": 1 } ] },
-              { "media": "/abs/short.mp4", "in": 0, "out": 2 } ] }
+              { "kind": "media", "media": "/abs/short.mp4", "in": 0, "out": 2, "keyframes": [ { "at": 0, "timeRemap": 3 }, { "at": 2, "timeRemap": 1 } ] },
+              { "kind": "media", "media": "/abs/short.mp4", "in": 0, "out": 2 } ] }
             """#)
 
         // When
@@ -493,10 +493,10 @@ struct TimelineReporterTests {
     func reportsParentPlaces() throws {
         // Given
         let value = try Fixture.json(#"""
-            { "kind": "sequence", "storyline": [ { "id": "shot", "media": "/abs/short.mp4", "in": 0, "out": 2,
-                "connected": [ { "id": "bar", "shape": "rect", "stroke": { "width": 8 }, "area": [0, 0, 100, 20], "parent": "shot" } ] } ],
-              "clips": [ { "at": [0, 2], "title": "a", "style": "title", "parent": "bar", "position": [10, 10] },
-                         { "at": [0, 2], "title": "b", "style": "title" } ] }
+            { "kind": "sequence", "storyline": [ { "id": "shot", "kind": "media", "media": "/abs/short.mp4", "in": 0, "out": 2,
+                "connected": [ { "id": "bar", "kind": "rect", "stroke": { "width": 8 }, "area": [0, 0, 100, 20], "parent": "shot" } ] } ],
+              "clips": [ { "at": [0, 2], "kind": "title", "text": "a", "style": "title", "parent": "bar", "position": [10, 10] },
+                         { "at": [0, 2], "kind": "title", "text": "b", "style": "title" } ] }
             """#)
         let resolved = try ResolvedSequence(plan: Fixture.documentPlanner.plan(value), hashes: FileHashTable())
 
@@ -513,7 +513,7 @@ struct TimelineReporterTests {
     @Test("timeline stops wherever resolve stops, with the same message")
     func stopsWithPlan() throws {
         // Given
-        let value = try Fixture.json(#"{ "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "transition": "frames/flash" } ] }"#)
+        let value = try Fixture.json(#"{ "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "transition": "frames/flash" } ] }"#)
 
         // When, Then
         let error = #expect(throws: ResolveError.self) { try sut.report(of: value) }
@@ -583,7 +583,7 @@ struct TimelineReporterTests {
         // Given
         let value = try Fixture.json(#"""
             { "kind": "sequence", "format": { "size": [1080, 1920] }, "storyline": [
-              { "media": { "kind": "sequence", "format": { "size": [1080, 1920] }, "storyline": [ { "media": "/abs/leak.mov", "in": 0, "out": 2 } ] },
+              { "kind": "media", "media": { "kind": "sequence", "format": { "size": [1080, 1920] }, "storyline": [ { "kind": "media", "media": "/abs/leak.mov", "in": 0, "out": 2 } ] },
                 "in": 0.5, "out": 1.5 } ] }
             """#)
         let resolved = try ResolvedSequence(plan: Fixture.documentPlanner.plan(value), hashes: FileHashTable())
@@ -631,10 +631,10 @@ struct TimelineReporterTests {
         let value = try Fixture.json(#"""
             { "kind": "sequence", "format": { "size": [1080, 1920] },
               "storyline": [
-                { "media": "/abs/short.mp4", "in": 1, "out": 3 },
-                { "media": "/abs/leak.mov", "in": 0.5, "out": 1.5, "speed": 2,
-                  "connected": [ { "at": [1, 1.4], "title": "a", "style": "title" }, { "title": "b", "style": "title" } ] } ],
-              "clips": [ { "at": [1, 2], "title": "c", "style": "title" }, { "title": "d", "style": "title" } ] }
+                { "kind": "media", "media": "/abs/short.mp4", "in": 1, "out": 3 },
+                { "kind": "media", "media": "/abs/leak.mov", "in": 0.5, "out": 1.5, "speed": 2,
+                  "connected": [ { "at": [1, 1.4], "kind": "title", "text": "a", "style": "title" }, { "kind": "title", "text": "b", "style": "title" } ] } ],
+              "clips": [ { "at": [1, 2], "kind": "title", "text": "c", "style": "title" }, { "kind": "title", "text": "d", "style": "title" } ] }
             """#)
         let resolved = try ResolvedSequence(plan: Fixture.documentPlanner.plan(value), hashes: FileHashTable())
 
@@ -668,18 +668,18 @@ struct TimelineReporterTests {
         let value = try Fixture.json(##"""
             { "kind": "sequence", "format": { "size": [1080, 1920] },
               "storyline": [
-                { "id": "shot", "media": "/abs/short.mp4", "in": 0, "out": 2,
-                  "connected": [ { "id": "pip", "media": "/abs/leak.mov", "parent": "shot", "position": [100, 100] } ] },
-                { "id": "black", "solid": "#000000", "duration": 2 } ],
+                { "id": "shot", "kind": "media", "media": "/abs/short.mp4", "in": 0, "out": 2,
+                  "connected": [ { "id": "pip", "kind": "media", "media": "/abs/leak.mov", "parent": "shot", "position": [100, 100] } ] },
+                { "id": "black", "kind": "solid", "color": "#000000", "duration": 2 } ],
               "clips": [
-                { "id": "ring", "at": [0, 2], "shape": "rect", "stroke": { "width": 8 }, "area": [10, 10, 50, 50], "parent": "pip" },
-                { "id": "label", "at": [0, 2], "title": "a", "style": "title", "parent": "ring", "position": [10, 10] },
-                { "at": [0, 2], "shape": "rect", "stroke": { "width": 8 }, "width": 40, "height": 20, "parent": "label", "position": [0, 0] },
-                { "id": "card", "at": [0, 2], "title": "b", "style": "title", "parent": "pip", "cornerPin": [[0, 0], [100, 0], [100, 50], [0, 50]] },
-                { "at": [0, 2], "title": "c", "style": "title", "parent": "card", "position": [5, 5] },
-                { "at": [2, 4], "title": "d", "style": "title", "parent": "black", "position": [5, 5] },
-                { "at": [0, 2], "title": "e", "style": "title" },
-                { "at": 0, "media": "/abs/ding.wav" } ] }
+                { "id": "ring", "at": [0, 2], "kind": "rect", "stroke": { "width": 8 }, "area": [10, 10, 50, 50], "parent": "pip" },
+                { "id": "label", "at": [0, 2], "kind": "title", "text": "a", "style": "title", "parent": "ring", "position": [10, 10] },
+                { "at": [0, 2], "kind": "rect", "stroke": { "width": 8 }, "width": 40, "height": 20, "parent": "label", "position": [0, 0] },
+                { "id": "card", "at": [0, 2], "kind": "title", "text": "b", "style": "title", "parent": "pip", "cornerPin": [[0, 0], [100, 0], [100, 50], [0, 50]] },
+                { "at": [0, 2], "kind": "title", "text": "c", "style": "title", "parent": "card", "position": [5, 5] },
+                { "at": [2, 4], "kind": "title", "text": "d", "style": "title", "parent": "black", "position": [5, 5] },
+                { "at": [0, 2], "kind": "title", "text": "e", "style": "title" },
+                { "at": 0, "kind": "media", "media": "/abs/ding.wav" } ] }
             """##)
         let resolved = try ResolvedSequence(plan: Fixture.documentPlanner.plan(value), hashes: FileHashTable())
 
@@ -721,17 +721,17 @@ struct TimelineReporterTests {
         let value = try Fixture.json(##"""
             { "kind": "sequence", "format": { "size": [1080, 1920] },
               "storyline": [
-                { "id": "shot", "media": "/abs/short.mp4", "in": 0, "out": 2,
-                  "connected": [ { "id": "pip", "media": "/abs/leak.mov", "parent": "shot", "position": [100, 100] } ] },
-                { "id": "black", "solid": "#000000", "duration": 2 } ],
+                { "id": "shot", "kind": "media", "media": "/abs/short.mp4", "in": 0, "out": 2,
+                  "connected": [ { "id": "pip", "kind": "media", "media": "/abs/leak.mov", "parent": "shot", "position": [100, 100] } ] },
+                { "id": "black", "kind": "solid", "color": "#000000", "duration": 2 } ],
               "clips": [
-                { "id": "ring", "at": [0, 2], "shape": "rect", "stroke": { "width": 8 }, "area": [10, 10, 50, 50], "parent": "pip" },
-                { "id": "label", "at": [0, 2], "title": "a", "style": "title", "parent": "ring", "position": [10, 10] },
-                { "id": "card", "at": [0, 2], "title": "b", "style": "title", "parent": "pip", "cornerPin": [[0, 0], [100, 0], [100, 50], [0, 50]] },
-                { "at": [0, 2], "title": "c", "style": "title", "parent": "card", "position": [5, 5] },
-                { "at": [2, 4], "title": "d", "style": "title", "parent": "black", "position": [5, 5] },
-                { "at": [0, 2], "title": "e", "style": "title" },
-                { "at": 0, "media": "/abs/ding.wav" } ] }
+                { "id": "ring", "at": [0, 2], "kind": "rect", "stroke": { "width": 8 }, "area": [10, 10, 50, 50], "parent": "pip" },
+                { "id": "label", "at": [0, 2], "kind": "title", "text": "a", "style": "title", "parent": "ring", "position": [10, 10] },
+                { "id": "card", "at": [0, 2], "kind": "title", "text": "b", "style": "title", "parent": "pip", "cornerPin": [[0, 0], [100, 0], [100, 50], [0, 50]] },
+                { "at": [0, 2], "kind": "title", "text": "c", "style": "title", "parent": "card", "position": [5, 5] },
+                { "at": [2, 4], "kind": "title", "text": "d", "style": "title", "parent": "black", "position": [5, 5] },
+                { "at": [0, 2], "kind": "title", "text": "e", "style": "title" },
+                { "at": 0, "kind": "media", "media": "/abs/ding.wav" } ] }
             """##)
         let resolved = try ResolvedSequence(plan: Fixture.documentPlanner.plan(value), hashes: FileHashTable())
 
@@ -802,10 +802,10 @@ struct TimelineReporterTests {
         #"""
         { "kind": "sequence", "format": { "size": [1080, 1920] },
           "storyline": [
-            { "media": "/abs/leak.mov", "in": 0.5, "out": 1.5, "speed": 2 },
-            { "media": "/abs/short.mp4", "in": 0, "out": 2, "keyframes": [ { "at": 0, "timeRemap": 3 }, { "at": 2, "timeRemap": 1 } ],
-              "connected": [ { "media": "/abs/leak.mov", "at": [0.5, 2], "in": 0.5, "out": 1.5, "loop": true },
-                             { "media": "/abs/leak.mov", "at": [0.5, 1], "in": 0.5 } ] } ] }
+            { "kind": "media", "media": "/abs/leak.mov", "in": 0.5, "out": 1.5, "speed": 2 },
+            { "kind": "media", "media": "/abs/short.mp4", "in": 0, "out": 2, "keyframes": [ { "at": 0, "timeRemap": 3 }, { "at": 2, "timeRemap": 1 } ],
+              "connected": [ { "kind": "media", "media": "/abs/leak.mov", "at": [0.5, 2], "in": 0.5, "out": 1.5, "loop": true },
+                             { "kind": "media", "media": "/abs/leak.mov", "at": [0.5, 1], "in": 0.5 } ] } ] }
         """#
     }
 
@@ -814,9 +814,9 @@ struct TimelineReporterTests {
         let track = tracker.data(Quad(Rectangle(x: 100, y: 100, width: 200, height: 40)), in: "/abs/screen.mp4", atMediaTime: 1.5)
         return #"""
             { "kind": "sequence", "theme": { "baseWidth": 1206 },
-              "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "in": 1, "out": 3,
-                "connected": [ { "shape": "rect", "stroke": { "width": 8 }, "area": [100, 100, 200, 40], "parent": "screen", "at": [1.5, 3], "track": \#(track) } ] } ],
-              "clips": [ { "at": [0, 2], "title": "Pay now", "style": "title" } ] }
+              "storyline": [ { "id": "screen", "kind": "media", "media": "/abs/screen.mp4", "in": 1, "out": 3,
+                "connected": [ { "kind": "rect", "stroke": { "width": 8 }, "area": [100, 100, 200, 40], "parent": "screen", "at": [1.5, 3], "track": \#(track) } ] } ],
+              "clips": [ { "at": [0, 2], "kind": "title", "text": "Pay now", "style": "title" } ] }
             """#
     }
 }

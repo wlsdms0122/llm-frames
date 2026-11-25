@@ -30,7 +30,7 @@ struct MotionBlurCheckTests {
     func acceptsShutter(shutter: String) throws {
         // Given
         let document = try Fixture.json(#"""
-            { "kind": "sequence", "format": { "motionBlur": \#(shutter) }, "storyline": [ { "media": "/abs/run.mp4" } ] }
+            { "kind": "sequence", "format": { "motionBlur": \#(shutter) }, "storyline": [ { "kind": "media", "media": "/abs/run.mp4" } ] }
             """#)
 
         // When, Then
@@ -57,7 +57,7 @@ struct MotionBlurCheckTests {
     ) throws {
         // Given
         let document = try Fixture.json(#"""
-            { "kind": "sequence", "format": { "motionBlur": \#(shutter) }, "storyline": [ { "media": "/abs/run.mp4" } ] }
+            { "kind": "sequence", "format": { "motionBlur": \#(shutter) }, "storyline": [ { "kind": "media", "media": "/abs/run.mp4" } ] }
             """#)
 
         // When
@@ -80,7 +80,7 @@ struct MotionBlurCheckTests {
     ) throws {
         // Given
         let document = try Fixture.json(#"""
-            { "kind": "sequence", "format": { "motionBlur": \#(shutter) }, "storyline": [ { "media": "/abs/run.mp4" } ] }
+            { "kind": "sequence", "format": { "motionBlur": \#(shutter) }, "storyline": [ { "kind": "media", "media": "/abs/run.mp4" } ] }
             """#)
 
         // When
@@ -95,7 +95,7 @@ struct MotionBlurCheckTests {
         // Given
         let document = try Fixture.json(#"""
             { "kind": "sequence", "format": { "motionBlur": { "shutterAngle": 300, "shutterPhase": -200 } },
-              "storyline": [ { "media": "/abs/run.mp4" } ] }
+              "storyline": [ { "kind": "media", "media": "/abs/run.mp4" } ] }
             """#)
 
         // When, Then
@@ -106,7 +106,7 @@ struct MotionBlurCheckTests {
     func refusesUnknownShutterKey() throws {
         // Given
         let document = try Fixture.json(#"""
-            { "kind": "sequence", "format": { "motionBlur": { "shutterSpeed": 50 } }, "storyline": [ { "media": "/abs/run.mp4" } ] }
+            { "kind": "sequence", "format": { "motionBlur": { "shutterSpeed": 50 } }, "storyline": [ { "kind": "media", "media": "/abs/run.mp4" } ] }
             """#)
 
         // When
@@ -120,8 +120,8 @@ struct MotionBlurCheckTests {
     func acceptsNestedShutter() throws {
         // Given
         let document = try Fixture.json(#"""
-            { "kind": "sequence", "storyline": [ { "media": { "kind": "sequence", "format": { "motionBlur": { "shutterAngle": 90 } },
-              "storyline": [ { "media": "/abs/run.mp4" } ] } } ] }
+            { "kind": "sequence", "storyline": [ { "kind": "media", "media": { "kind": "sequence", "format": { "motionBlur": { "shutterAngle": 90 } },
+              "storyline": [ { "kind": "media", "media": "/abs/run.mp4" } ] } } ] }
             """#)
 
         // When, Then
@@ -134,16 +134,16 @@ struct MotionBlurCheckTests {
         let document = try Fixture.json(#"""
             { "kind": "sequence",
               "storyline": [
-                { "media": "/abs/run.mp4", "motionBlur": true,
-                  "connected": [ { "at": [0, 1], "title": "Hi", "style": "title", "motionBlur": true } ] },
-                { "media": "/abs/card.png", "duration": 1, "motionBlur": false },
-                { "solid": "#000000", "duration": 1, "motionBlur": true }
+                { "kind": "media", "media": "/abs/run.mp4", "motionBlur": true,
+                  "connected": [ { "at": [0, 1], "kind": "title", "text": "Hi", "style": "title", "motionBlur": true } ] },
+                { "kind": "media", "media": "/abs/card.png", "duration": 1, "motionBlur": false },
+                { "kind": "solid", "color": "#000000", "duration": 1, "motionBlur": true }
               ],
               "clips": [
-                { "at": [0, 1], "shape": "rect", "area": [0, 0, 10, 10], "fill": "accent", "motionBlur": true },
-                { "at": [0, 1], "media": "/abs/light-leak.mov", "motionBlur": true },
-                { "at": [0, 1], "media": "/abs/log.png", "motionBlur": true },
-                { "at": [0, 1], "adjust": "frames/vivid", "motionBlur": true }
+                { "at": [0, 1], "kind": "rect", "area": [0, 0, 10, 10], "fill": "accent", "motionBlur": true },
+                { "at": [0, 1], "kind": "media", "media": "/abs/light-leak.mov", "motionBlur": true },
+                { "at": [0, 1], "kind": "media", "media": "/abs/log.png", "motionBlur": true },
+                { "at": [0, 1], "kind": "adjustment", "adjust": "frames/vivid", "motionBlur": true }
               ] }
             """#)
 
@@ -155,7 +155,7 @@ struct MotionBlurCheckTests {
     func refusesNonBooleanSwitch() throws {
         // Given
         let document = try Fixture.json(#"""
-            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "motionBlur": 1 } ] }
+            { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "motionBlur": 1 } ] }
             """#)
 
         // When
@@ -169,19 +169,19 @@ struct MotionBlurCheckTests {
         "motionBlur stops as an unknown key on an audio clip, in a keyframe, and in a theme's defaults and styles",
         arguments: [
             (
-                #"{ "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4" } ], "clips": [ { "media": "/abs/bgm.m4a", "motionBlur": true } ] }"#,
+                #"{ "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4" } ], "clips": [ { "kind": "media", "media": "/abs/bgm.m4a", "motionBlur": true } ] }"#,
                 #"clips[0] (audio): unknown key "motionBlur"."#
             ),
             (
-                #"{ "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "keyframes": [ { "at": 0, "motionBlur": true } ] } ] }"#,
+                #"{ "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "keyframes": [ { "at": 0, "motionBlur": true } ] } ] }"#,
                 #"storyline[0].keyframes[0] (keyframe): unknown key "motionBlur"."#
             ),
             (
-                #"{ "kind": "sequence", "theme": { "defaults": { "motionBlur": true } }, "storyline": [ { "media": "/abs/run.mp4" } ] }"#,
+                #"{ "kind": "sequence", "theme": { "defaults": { "motionBlur": true } }, "storyline": [ { "kind": "media", "media": "/abs/run.mp4" } ] }"#,
                 #"theme.defaults (defaults): unknown key "motionBlur"."#
             ),
             (
-                #"{ "kind": "sequence", "theme": { "styles": { "title": { "motionBlur": true } } }, "storyline": [ { "media": "/abs/run.mp4" } ] }"#,
+                #"{ "kind": "sequence", "theme": { "styles": { "title": { "motionBlur": true } } }, "storyline": [ { "kind": "media", "media": "/abs/run.mp4" } ] }"#,
                 #"theme.styles.title (style): unknown key "motionBlur"."#
             )
         ]

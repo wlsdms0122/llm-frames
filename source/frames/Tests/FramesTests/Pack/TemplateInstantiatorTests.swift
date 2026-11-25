@@ -23,9 +23,9 @@ struct TemplateInstantiatorTests {
             "tint":  { "type": "color", "default": "#FF0000", "description": "the tint" },
             "size":  { "type": "number", "default": 1, "description": "the size" }
           },
-          "storyline": [ { "media": { "param": "clip" }, "filter": { "param": "tone" },
-                           "connected": [ { "title": { "param": "title" }, "style": "title" },
-                                          { "shape": "rect", "stroke": { "width": 8 }, "area": [400, 1200, 200, 60], "fill": { "param": "tint" }, "opacity": { "param": "size" } } ] } ] }
+          "storyline": [ { "kind": "media", "media": { "param": "clip" }, "filter": { "param": "tone" },
+                           "connected": [ { "kind": "title", "text": { "param": "title" }, "style": "title" },
+                                          { "kind": "rect", "stroke": { "width": 8 }, "area": [400, 1200, 200, 60], "fill": { "param": "tint" }, "opacity": { "param": "size" } } ] } ] }
         """##
 
     // MARK: - Initializer
@@ -42,9 +42,9 @@ struct TemplateInstantiatorTests {
         // Then
         let expected = try Fixture.json(##"""
             { "kind": "sequence",
-              "storyline": [ { "media": "/abs/run.mp4", "filter": "frames/cool",
-                               "connected": [ { "title": "New feature", "style": "title" },
-                                              { "shape": "rect", "stroke": { "width": 8 }, "area": [400, 1200, 200, 60], "fill": "#FF0000", "opacity": 0.5 } ] } ] }
+              "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "filter": "frames/cool",
+                               "connected": [ { "kind": "title", "text": "New feature", "style": "title" },
+                                              { "kind": "rect", "stroke": { "width": 8 }, "area": [400, 1200, 200, 60], "fill": "#FF0000", "opacity": 0.5 } ] } ] }
             """##)
         #expect(instance.document == expected)
         #expect(instance.arguments.map(\.place) == [Place(components: [.key("storyline"), .index(0, id: nil), .key("media")])])
@@ -114,7 +114,7 @@ struct TemplateInstantiatorTests {
         // Given
         let template = try template(#"""
             { "kind": "sequence", "params": { "clip": { "type": "video", "default": "/abs/card.png", "description": "the clip" } },
-              "storyline": [ { "media": { "param": "clip" } } ] }
+              "storyline": [ { "kind": "media", "media": { "param": "clip" } } ] }
             """#)
 
         // When, Then
@@ -126,22 +126,22 @@ struct TemplateInstantiatorTests {
         "a value its place cannot take stops at that place in the template, as the same value written there would",
         arguments: [
             (
-                #"{ "p": { "type": "number", "description": "the p" } }, "clips": [ { "title": "x", "style": "title", "at": [0, 1], "width": { "param": "p" } } ]"#,
+                #"{ "p": { "type": "number", "description": "the p" } }, "clips": [ { "kind": "title", "text": "x", "style": "title", "at": [0, 1], "width": { "param": "p" } } ]"#,
                 #"{ "p": -5 }"#,
                 "clips[0].width (title): -5 is not above 0"
             ),
             (
-                #"{ "p": { "type": "number", "description": "the p" } }, "clips": [ { "title": "x", "style": "title", "at": [0, 1], "lane": { "param": "p" } } ]"#,
+                #"{ "p": { "type": "number", "description": "the p" } }, "clips": [ { "kind": "title", "text": "x", "style": "title", "at": [0, 1], "lane": { "param": "p" } } ]"#,
                 #"{ "p": 0.5 }"#,
                 "clips[0].lane (title): expected a whole number, found 0.5"
             ),
             (
-                #"{ "p": { "type": "number", "description": "the p" } }, "clips": [ { "title": "x", "style": "title", "at": [0, 1], "width": { "param": "p" }, "lane": { "param": "p" } } ]"#,
+                #"{ "p": { "type": "number", "description": "the p" } }, "clips": [ { "kind": "title", "text": "x", "style": "title", "at": [0, 1], "width": { "param": "p" }, "lane": { "param": "p" } } ]"#,
                 #"{ "p": 0.5 }"#,
                 "clips[0].lane (title): expected a whole number, found 0.5"
             ),
             (
-                #"{ "w": { "type": "number", "description": "the w" } }, "storyline": [ { "media": "/abs/run.mp4", "crop": [0, 0, { "param": "w" }, 10] } ]"#,
+                #"{ "w": { "type": "number", "description": "the w" } }, "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "crop": [0, 0, { "param": "w" }, 10] } ]"#,
                 #"{ "w": 0 }"#,
                 "storyline[0].crop[2] (video): 0 is not above 0"
             )
@@ -162,7 +162,7 @@ struct TemplateInstantiatorTests {
         // Given
         let template = try template(#"""
             { "kind": "sequence", "params": { "p": { "type": "number", "default": -1, "description": "the p" } },
-              "clips": [ { "media": "/abs/page.png", "at": [0, 1], "radius": { "param": "p" } } ] }
+              "clips": [ { "kind": "media", "media": "/abs/page.png", "at": [0, 1], "radius": { "param": "p" } } ] }
             """#)
 
         // When, Then
@@ -175,7 +175,7 @@ struct TemplateInstantiatorTests {
         // Given
         let template = try template(#"""
             { "kind": "sequence", "params": { "s": { "type": "number", "description": "the s" } },
-              "storyline": [ { "media": "/abs/run.mp4", "crop": { "scale": { "param": "s" } } } ] }
+              "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "crop": { "scale": { "param": "s" } } } ] }
             """#)
         let arguments = try Fixture.object(#"{ "s": 0 }"#)
 
@@ -189,8 +189,8 @@ struct TemplateInstantiatorTests {
         // Given
         let template = try template(#"""
             { "kind": "sequence", "params": { "p": { "type": "number", "description": "the p" } },
-              "storyline": [ { "media": "/abs/run.mp4", "crop": { "scale": { "param": "p" } } } ],
-              "clips": [ { "title": "x", "style": "title", "at": [0, 1], "lane": { "param": "p" } } ] }
+              "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "crop": { "scale": { "param": "p" } } } ],
+              "clips": [ { "kind": "title", "text": "x", "style": "title", "at": [0, 1], "lane": { "param": "p" } } ] }
             """#)
         let arguments = try Fixture.object(#"{ "p": 2 }"#)
 
@@ -199,8 +199,8 @@ struct TemplateInstantiatorTests {
 
         // Then
         let expected = try Fixture.json(#"""
-            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "crop": { "scale": 2 } } ],
-              "clips": [ { "title": "x", "style": "title", "at": [0, 1], "lane": 2 } ] }
+            { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "crop": { "scale": 2 } } ],
+              "clips": [ { "kind": "title", "text": "x", "style": "title", "at": [0, 1], "lane": 2 } ] }
             """#)
         #expect(instance.document == expected)
     }
@@ -211,7 +211,7 @@ struct TemplateInstantiatorTests {
         let template = try template(#"""
             { "kind": "sequence",
               "params": { "a": { "type": "video", "description": "the a" }, "b": { "type": "video", "default": "/abs/run.mp4", "description": "the b" } },
-              "storyline": [ { "media": { "param": "a" } }, { "media": { "param": "b" } }, { "media": { "param": "a" } } ] }
+              "storyline": [ { "kind": "media", "media": { "param": "a" } }, { "kind": "media", "media": { "param": "b" } }, { "kind": "media", "media": { "param": "a" } } ] }
             """#)
         let arguments = try Fixture.object(#"{ "a": "/abs/short.mp4" }"#)
 
@@ -278,14 +278,14 @@ struct TemplateInstantiatorTests {
     private func stillTemplate(key: String) -> String {
         #"""
         { "kind": "sequence", "params": { "still": { "type": "image", "description": "the still" } },
-          "storyline": [ { "media": { "param": "still" }, "duration": 2, \#(key) } ] }
+          "storyline": [ { "kind": "media", "media": { "param": "still" }, "duration": 2, \#(key) } ] }
         """#
     }
 
     private var stillTemplate: String {
         #"""
         { "kind": "sequence", "params": { "still": { "type": "image", "description": "the still" } },
-          "storyline": [ { "media": { "param": "still" }, "duration": 2 } ] }
+          "storyline": [ { "kind": "media", "media": { "param": "still" }, "duration": 2 } ] }
         """#
     }
 

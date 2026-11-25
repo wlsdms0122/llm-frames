@@ -22,10 +22,10 @@ Text is laid out by resolve, with real fonts, so line breaks, faces, glyphs and 
 
 ### Runs
 
-A title's text ([FRAMES-11](../FRAMES-11/SPEC.md)) is a string or a list of runs:
+A title's `text` ([FRAMES-11](../FRAMES-11/SPEC.md)) is a string or a list of runs:
 
 ```json
-"title": [ { "text": "Ana Ruiz", "style": "name" }, { "text": "\nDirector of photography", "style": "role" } ]
+"text": [ { "text": "Ana Ruiz", "style": "name" }, { "text": "\nDirector of photography", "style": "role" } ]
 ```
 
 - A string is one run in the clip's `style`.

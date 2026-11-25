@@ -161,8 +161,8 @@ struct MediaResolverTests {
     func takesSoundOfUnconvertibleColor() throws {
         // Given
         let document = try Fixture.json(#"""
-            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "out": 6 } ],
-              "clips": [ { "media": "/abs/reserved.mov", "picture": false, "at": 1, "out": 2 } ] }
+            { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "out": 6 } ],
+              "clips": [ { "kind": "media", "media": "/abs/reserved.mov", "picture": false, "at": 1, "out": 2 } ] }
             """#)
 
         // When
@@ -179,8 +179,8 @@ struct MediaResolverTests {
     func refusesPictureOfUnconvertibleColor(picture: String) throws {
         // Given
         let document = try Fixture.json(#"""
-            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "out": 6 } ],
-              "clips": [ { "media": "/abs/reserved.mov"\#(picture), "at": 1, "out": 2 } ] }
+            { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "out": 6 } ],
+              "clips": [ { "kind": "media", "media": "/abs/reserved.mov"\#(picture), "at": 1, "out": 2 } ] }
             """#)
 
         // When

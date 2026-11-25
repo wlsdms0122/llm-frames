@@ -33,14 +33,14 @@ struct BusRenderTests {
         try await SoundWriter(end: 1, levels: [0.25]).write(to: tone)
         let grey = try image(in: media, named: "grey.png")
         let compound = try DocumentResolver().resolve(#"""
-            { "kind": "sequence", "format": { "fps": 10 }, "storyline": [ { "media": "\#(grey)", "duration": 2 } ],
-              "clips": [ { "media": { "kind": "sequence", "storyline": [ { "media": "\#(grey)", "duration": 1 } ],
-                                      "clips": [ { "media": "\#(tone)", "at": [0, 1] } ] },
+            { "kind": "sequence", "format": { "fps": 10 }, "storyline": [ { "kind": "media", "media": "\#(grey)", "duration": 2 } ],
+              "clips": [ { "kind": "media", "media": { "kind": "sequence", "storyline": [ { "kind": "media", "media": "\#(grey)", "duration": 1 } ],
+                                      "clips": [ { "kind": "media", "media": "\#(tone)", "at": [0, 1] } ] },
                            "picture": false, "at": [0.5, 1.5] } ] }
             """#)
         let plain = try DocumentResolver().resolve(#"""
-            { "kind": "sequence", "format": { "fps": 10 }, "storyline": [ { "media": "\#(grey)", "duration": 2 } ],
-              "clips": [ { "media": "\#(tone)", "at": [0.5, 1.5] } ] }
+            { "kind": "sequence", "format": { "fps": 10 }, "storyline": [ { "kind": "media", "media": "\#(grey)", "duration": 2 } ],
+              "clips": [ { "kind": "media", "media": "\#(tone)", "at": [0.5, 1.5] } ] }
             """#)
         let decoder = AVFoundationDecoder()
         let sut = pipeline()
@@ -67,9 +67,9 @@ struct BusRenderTests {
         try await SoundWriter(end: 1, levels: [0.5]).write(to: tone)
         let grey = try image(in: media, named: "grey.png")
         let document = try DocumentResolver().resolve(#"""
-            { "kind": "sequence", "format": { "fps": 10 }, "storyline": [ { "media": "\#(grey)", "duration": 1.5 } ],
-              "clips": [ { "media": { "kind": "sequence", "storyline": [ { "media": "\#(grey)", "duration": 0.5 } ],
-                                      "clips": [ { "media": "\#(tone)", "at": [0, 0.5] } ],
+            { "kind": "sequence", "format": { "fps": 10 }, "storyline": [ { "kind": "media", "media": "\#(grey)", "duration": 1.5 } ],
+              "clips": [ { "kind": "media", "media": { "kind": "sequence", "storyline": [ { "kind": "media", "media": "\#(grey)", "duration": 0.5 } ],
+                                      "clips": [ { "kind": "media", "media": "\#(tone)", "at": [0, 0.5] } ],
                                       "audioFilter": { "op": "compressor", "threshold": -18, "ratio": 4, "knee": 0,
                                                        "attack": 0.002, "release": 0.5 } },
                            "picture": false, "at": [0, 1.5], "loop": true } ] }

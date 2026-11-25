@@ -151,7 +151,7 @@ struct ImageSequenceCommandTests {
         // Given
         let image = sut.directory.file("card.png")
         try ImageWriter(size: Size(width: 32, height: 18)).write(to: image) { _ in }
-        let document = try sut.write(##"{ "kind": "sequence", "storyline": [ { "solid": "#000000", "duration": 1 } ] }"##, named: "doc.json")
+        let document = try sut.write(##"{ "kind": "sequence", "storyline": [ { "kind": "solid", "color": "#000000", "duration": 1 } ] }"##, named: "doc.json")
 
         // When
         let fileCode = sut.run(["ocr", image, "--fps", "2"])

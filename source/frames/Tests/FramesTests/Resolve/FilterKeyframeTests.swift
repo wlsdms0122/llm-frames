@@ -69,7 +69,7 @@ struct FilterKeyframeTests {
     ) throws {
         // Given
         let clip = #"""
-            { "media": "/abs/run.mp4", "in": 0, "out": 3,
+            { "kind": "media", "media": "/abs/run.mp4", "in": 0, "out": 3,
               "keyframes": [ { "at": 0, "filter": { "mix": 0 } }, { "at": 2, "filter": { "mix": 1 } } ] }
             """#
 
@@ -86,7 +86,7 @@ struct FilterKeyframeTests {
     @Test("a mix written alone over a default of one preset is that preset at that mix")
     func mixesDefault() throws {
         // When
-        let plan = try plan(#"{ "media": "/abs/run.mp4", "in": 0, "out": 3, "filter": { "mix": 0.5 } }"#)
+        let plan = try plan(#"{ "kind": "media", "media": "/abs/run.mp4", "in": 0, "out": 3, "filter": { "mix": 0.5 } }"#)
 
         // Then
         #expect(plan.storyline[0].filter.filter() == [FilterEntry(operations: grade, mix: 0.5)])
@@ -96,7 +96,7 @@ struct FilterKeyframeTests {
     func appliesOperationInPlace() throws {
         // When
         let plan = try plan(#"""
-            { "media": "/abs/run.mp4", "in": 0, "out": 3, "filter": [ "mine/grade", { "op": "exposure", "ev": 1, "mix": 0.5 } ] }
+            { "kind": "media", "media": "/abs/run.mp4", "in": 0, "out": 3, "filter": [ "mine/grade", { "op": "exposure", "ev": 1, "mix": 0.5 } ] }
             """#)
 
         // Then
@@ -110,7 +110,7 @@ struct FilterKeyframeTests {
     func movesOperationInPlace() throws {
         // When
         let plan = try plan(#"""
-            { "media": "/abs/run.mp4", "in": 0, "out": 3, "filter": { "op": "blur", "radius": 8 },
+            { "kind": "media", "media": "/abs/run.mp4", "in": 0, "out": 3, "filter": { "op": "blur", "radius": 8 },
               "keyframes": [ { "at": 0, "filter": { "radius": 0 } }, { "at": 2, "filter": { "radius": null } } ] }
             """#)
 
@@ -123,7 +123,7 @@ struct FilterKeyframeTests {
     func movesPresetArgument() throws {
         // When
         let plan = try plan(#"""
-            { "media": "/abs/run.mp4", "in": 0, "out": 3, "filter": "soften",
+            { "kind": "media", "media": "/abs/run.mp4", "in": 0, "out": 3, "filter": "soften",
               "keyframes": [ { "at": 0, "filter": { "args": { "blur": 0 } }, "ease": "ease-in" },
                              { "at": 2, "filter": { "args": { "blur": 8 } } } ] }
             """#)
@@ -141,7 +141,7 @@ struct FilterKeyframeTests {
     func movesListElementsApart() throws {
         // When
         let plan = try plan(#"""
-            { "media": "/abs/run.mp4", "in": 0, "out": 4, "filter": "fade",
+            { "kind": "media", "media": "/abs/run.mp4", "in": 0, "out": 4, "filter": "fade",
               "keyframes": [ { "at": 0, "filter": { "args": { "black": 0 } }, "ease": "ease-in" },
                              { "at": 1, "filter": { "args": { "white": 1 } } },
                              { "at": 2, "filter": { "args": { "black": 0.2 } } },
@@ -163,7 +163,7 @@ struct FilterKeyframeTests {
     func movesDisplaceInPlace() throws {
         // When
         let plan = try plan(#"""
-            { "media": "/abs/run.mp4", "in": 0, "out": 3, "filter": { "op": "displace", "file": "/abs/matte.png" },
+            { "kind": "media", "media": "/abs/run.mp4", "in": 0, "out": 3, "filter": { "op": "displace", "file": "/abs/matte.png" },
               "keyframes": [ { "at": 0, "filter": { "amount": 0, "offset": [0, 0] } },
                              { "at": 2, "filter": { "amount": 8, "offset": [40, -20] } } ] }
             """#)
@@ -182,7 +182,7 @@ struct FilterKeyframeTests {
     func movesDisplaceArguments() throws {
         // When
         let plan = try plan(#"""
-            { "media": "/abs/run.mp4", "in": 0, "out": 3, "filter": "ripple",
+            { "kind": "media", "media": "/abs/run.mp4", "in": 0, "out": 3, "filter": "ripple",
               "keyframes": [ { "at": 0, "filter": { "args": { "strength": 0, "drift": 0 } } },
                              { "at": 2, "filter": { "args": { "strength": 8, "drift": -100 } } } ] }
             """#)
@@ -235,7 +235,7 @@ struct FilterKeyframeTests {
         message: String
     ) throws {
         // Given
-        let clip = #"{ "media": "/abs/run.mp4", "in": 0, "out": 3, "filter": "\#(preset)", "keyframes": \#(keyframes) }"#
+        let clip = #"{ "kind": "media", "media": "/abs/run.mp4", "in": 0, "out": 3, "filter": "\#(preset)", "keyframes": \#(keyframes) }"#
 
         // When, Then
         let error = #expect(throws: (any Error).self) { try plan(clip) }
@@ -278,7 +278,7 @@ struct FilterKeyframeTests {
         message: String
     ) throws {
         // Given
-        let clip = #"{ "media": "/abs/run.mp4", "in": 0, "out": 3, "filter": \#(filter), "keyframes": \#(keyframes) }"#
+        let clip = #"{ "kind": "media", "media": "/abs/run.mp4", "in": 0, "out": 3, "filter": \#(filter), "keyframes": \#(keyframes) }"#
 
         // When, Then
         let error = #expect(throws: (any Error).self) { try plan(clip) }
@@ -289,7 +289,7 @@ struct FilterKeyframeTests {
     func movesOperationParameterFromKeyframes() throws {
         // Given
         let clip = #"""
-            { "media": "/abs/run.mp4", "in": 0, "out": 3, "filter": { "op": "blur" },
+            { "kind": "media", "media": "/abs/run.mp4", "in": 0, "out": 3, "filter": { "op": "blur" },
               "keyframes": [ { "at": 0, "filter": { "radius": 0 } }, { "at": 2, "filter": { "radius": 8 } } ] }
             """#
 
@@ -314,7 +314,7 @@ struct FilterKeyframeTests {
         place: String
     ) throws {
         // Given
-        let clip = #"{ "media": "/abs/run.mp4", "in": 0, "out": 3, \#(filter) "keyframes": [] }"#
+        let clip = #"{ "kind": "media", "media": "/abs/run.mp4", "in": 0, "out": 3, \#(filter) "keyframes": [] }"#
 
         // When, Then
         let error = #expect(throws: ResolveError.self) { try plan(clip, defaults: defaults) }
@@ -325,7 +325,7 @@ struct FilterKeyframeTests {
     func movesOperationInPlaceFromZero() throws {
         // Given
         let clip = #"""
-            { "media": "/abs/run.mp4", "in": 0, "out": 3, "filter": { "op": "blur", "radius": 4 },
+            { "kind": "media", "media": "/abs/run.mp4", "in": 0, "out": 3, "filter": { "op": "blur", "radius": 4 },
               "keyframes": [ { "at": 0, "filter": { "radius": 0 } }, { "at": 2, "filter": { "radius": null } } ] }
             """#
 
@@ -340,7 +340,7 @@ struct FilterKeyframeTests {
     func refusesKeyframeOverDefault() throws {
         // Given
         let clip = #"""
-            { "media": "/abs/run.mp4", "in": 0, "out": 3, "keyframes": [ { "at": 0, "filter": { "args": { "tint": "nope" } } } ] }
+            { "kind": "media", "media": "/abs/run.mp4", "in": 0, "out": 3, "keyframes": [ { "at": 0, "filter": { "args": { "tint": "nope" } } } ] }
             """#
 
         // When, Then
@@ -378,7 +378,7 @@ struct FilterKeyframeTests {
     ) throws {
         // Given
         let clip = #"""
-            { "media": "/abs/run.mp4", "in": 0, "out": 3, "filter": \#(filter),
+            { "kind": "media", "media": "/abs/run.mp4", "in": 0, "out": 3, "filter": \#(filter),
               "keyframes": [ { "at": 1, "filter": \#(keyframe) } ] }
             """#
 

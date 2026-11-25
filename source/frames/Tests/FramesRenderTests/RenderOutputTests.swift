@@ -37,8 +37,8 @@ struct RenderOutputTests {
         let clip = try image(in: media, named: "blue.png", width: 40, height: 30, color: [0, 0, 255])
         let document = try DocumentResolver().resolve(#"""
             { "kind": "sequence", "format": { "fps": 10 },
-              "storyline": [ { "media": "\#(storyline)", "duration": 0.5 } ],
-              "clips": [ { "at": [0, 0.5], "media": "\#(clip)", "width": 40 } ] }
+              "storyline": [ { "kind": "media", "media": "\#(storyline)", "duration": 0.5 } ],
+              "clips": [ { "at": [0, 0.5], "kind": "media", "media": "\#(clip)", "width": 40 } ] }
             """#)
         let box = try #require(Evaluator().displayList(of: document, at: 0).placedPictures(named: "blue.png").first)
         let sut = pipeline()
@@ -69,7 +69,7 @@ struct RenderOutputTests {
         let output = try TemporaryDirectory()
         let file = try image(in: media, named: "grey.png", width: 160, height: 90, color: [128, 128, 128])
         let document = try DocumentResolver().resolve(#"""
-            { "kind": "sequence", "format": { "fps": 10 }, "storyline": [ { "media": "\#(file)", "duration": 2.25 } ] }
+            { "kind": "sequence", "format": { "fps": 10 }, "storyline": [ { "kind": "media", "media": "\#(file)", "duration": 2.25 } ] }
             """#)
         let sut = pipeline()
 
@@ -111,7 +111,7 @@ struct RenderOutputTests {
         let file = try image(in: media, named: "grey.png", width: 160, height: 90, color: [128, 128, 128])
         let document = try DocumentResolver().resolve(#"""
             { "kind": "sequence", "format": { "fps": 10, "background": "\#(background)" },
-              "storyline": [ { "media": "\#(file)", "duration": 0.5 } ] }
+              "storyline": [ { "kind": "media", "media": "\#(file)", "duration": 0.5 } ] }
             """#)
         let sut = pipeline()
 
@@ -141,8 +141,8 @@ struct RenderOutputTests {
         let clip = try image(in: media, named: "blue.png", width: 40, height: 30, color: [0, 0, 255])
         let document = try DocumentResolver().resolve(#"""
             { "kind": "sequence", "format": { "fps": 10 },
-              "storyline": [ { "media": "\#(storyline)", "duration": 0.5 } ],
-              "clips": [ { "at": [0, 0.5], "media": "\#(clip)", "width": 40 } ] }
+              "storyline": [ { "kind": "media", "media": "\#(storyline)", "duration": 0.5 } ],
+              "clips": [ { "at": [0, 0.5], "kind": "media", "media": "\#(clip)", "width": 40 } ] }
             """#)
         let box = try #require(Evaluator().displayList(of: document, at: 0).placedPictures(named: "blue.png").first)
         let sut = pipeline()
@@ -178,7 +178,7 @@ struct RenderOutputTests {
         let output = try TemporaryDirectory()
         let file = try image(in: media, named: "grey.png", width: 160, height: 90, color: [128, 128, 128])
         let document = try DocumentResolver().resolve(#"""
-            { "kind": "sequence", "format": { "fps": 10 }, "storyline": [ { "media": "\#(file)", "duration": 0.5 } ] }
+            { "kind": "sequence", "format": { "fps": 10 }, "storyline": [ { "kind": "media", "media": "\#(file)", "duration": 0.5 } ] }
             """#)
         _ = try image(in: media, named: "grey.png", width: 160, height: 90, color: [129, 128, 128])
         let sut = pipeline()
@@ -207,8 +207,8 @@ struct RenderOutputTests {
         try await SoundWriter(end: 1).write(to: tone)
         // The avfoundation mixer stretches time from 1/32 to 32 times.
         let document = try DocumentResolver().resolve(#"""
-            { "kind": "sequence", "format": { "fps": 10 }, "storyline": [ { "media": "\#(file)", "duration": 0.5 } ],
-              "clips": [ { "media": "\#(tone)", "speed": 40 } ] }
+            { "kind": "sequence", "format": { "fps": 10 }, "storyline": [ { "kind": "media", "media": "\#(file)", "duration": 0.5 } ],
+              "clips": [ { "kind": "media", "media": "\#(tone)", "speed": 40 } ] }
             """#)
         let sut = pipeline()
 
@@ -234,7 +234,7 @@ struct RenderOutputTests {
         let failed = try TemporaryDirectory()
         let file = try image(in: media, named: "grey.png", width: 160, height: 90, color: [128, 128, 128])
         let document = try DocumentResolver().resolve(#"""
-            { "kind": "sequence", "format": { "fps": 10 }, "storyline": [ { "media": "\#(file)", "duration": 1 } ] }
+            { "kind": "sequence", "format": { "fps": 10 }, "storyline": [ { "kind": "media", "media": "\#(file)", "duration": 1 } ] }
             """#)
         let sut = pipeline()
         let failing = pipeline(failingAtFrame: 4)
@@ -264,7 +264,7 @@ struct RenderOutputTests {
         let file = try image(in: media, named: "grey.png", width: 160, height: 90, color: [128, 128, 128])
         let document = try DocumentResolver().resolve(#"""
             { "kind": "sequence", "format": { "size": [160, 90] },
-              "storyline": [ { "media": "\#(file)", "duration": 1 }, { "solid": "#FF0000", "duration": 1 } ] }
+              "storyline": [ { "kind": "media", "media": "\#(file)", "duration": 1 }, { "kind": "solid", "color": "#FF0000", "duration": 1 } ] }
             """#)
         let sut = pipeline()
 
@@ -286,7 +286,7 @@ struct RenderOutputTests {
         let file = try image(in: media, named: "grey.png", width: 160, height: 90, color: [128, 128, 128])
         let document = try DocumentResolver().resolve(#"""
             { "kind": "sequence", "format": { "size": { "fit": "content", "margin": [10, 20] } },
-              "storyline": [ { "media": "\#(file)", "duration": 1 } ] }
+              "storyline": [ { "kind": "media", "media": "\#(file)", "duration": 1 } ] }
             """#)
         let sut = pipeline()
 

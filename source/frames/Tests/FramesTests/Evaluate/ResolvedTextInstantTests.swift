@@ -24,7 +24,7 @@ struct ResolvedTextInstantTests {
     func tracksDownTheLine(writingMode: WritingMode) throws {
         // Given
         let text = try resolvedText(#"""
-            { "title": "漢字", "paragraph": { "writingMode": "\#(writingMode.rawValue)" },
+            { "kind": "title", "text": "漢字", "paragraph": { "writingMode": "\#(writingMode.rawValue)" },
               "keyframes": [ { "at": 0, "character": { "tracking": 0 } }, { "at": 1, "character": { "tracking": 100 } } ] }
             """#)
 
@@ -58,7 +58,7 @@ struct ResolvedTextInstantTests {
     ) throws {
         // Given
         let text = try resolvedText(#"""
-            { "title": "漢\n字", "paragraph": { "writingMode": "\#(writingMode.rawValue)" },
+            { "kind": "title", "text": "漢\n字", "paragraph": { "writingMode": "\#(writingMode.rawValue)" },
               "keyframes": [ { "at": 0, "paragraph": { "lineHeight": 50 } }, { "at": 1, "paragraph": { "lineHeight": 70 } } ] }
             """#)
 
@@ -79,7 +79,7 @@ struct ResolvedTextInstantTests {
     func alignsDownTheLine() throws {
         // Given
         let text = try resolvedText(#"""
-            { "title": "漢字", "width": 200, "paragraph": { "writingMode": "vertical-rl", "align": "center" },
+            { "kind": "title", "text": "漢字", "width": 200, "paragraph": { "writingMode": "vertical-rl", "align": "center" },
               "keyframes": [ { "at": 0, "character": { "tracking": 0 } }, { "at": 1, "character": { "tracking": 100 } } ] }
             """#)
 
@@ -97,7 +97,7 @@ struct ResolvedTextInstantTests {
     func padsAcrossAndDown() throws {
         // Given
         let text = try resolvedText(#"""
-            { "title": "漢字", "paragraph": { "writingMode": "vertical-rl", "background": { "color": "#0000FF" } },
+            { "kind": "title", "text": "漢字", "paragraph": { "writingMode": "vertical-rl", "background": { "color": "#0000FF" } },
               "character": { "highlight": { "color": "#FF0000", "padding": [4, 6] } },
               "keyframes": [ { "at": 0, "paragraph": { "background": { "padding": [0, 0] } } },
                              { "at": 1, "paragraph": { "background": { "padding": [10, 20] } } } ] }
@@ -116,7 +116,7 @@ struct ResolvedTextInstantTests {
     func underlinesTowardLineUnder(writingMode: WritingMode) throws {
         // Given
         let text = try resolvedText(#"""
-            { "title": "漢字", "paragraph": { "writingMode": "\#(writingMode.rawValue)" },
+            { "kind": "title", "text": "漢字", "paragraph": { "writingMode": "\#(writingMode.rawValue)" },
               "character": { "underline": { "width": 2, "offset": 3 } } }
             """#)
 
@@ -132,7 +132,7 @@ struct ResolvedTextInstantTests {
     func raisesTowardLineOver() throws {
         // Given
         let text = try resolvedText(#"""
-            { "title": "漢字", "paragraph": { "writingMode": "vertical-rl" },
+            { "kind": "title", "text": "漢字", "paragraph": { "writingMode": "vertical-rl" },
               "character": { "highlight": { "color": "#FF0000" }, "underline": { "width": 2, "offset": 3 } },
               "keyframes": [ { "at": 0, "character": { "baselineShift": 0 } }, { "at": 1, "character": { "baselineShift": 10 } } ] }
             """#)
@@ -151,7 +151,7 @@ struct ResolvedTextInstantTests {
     func cutsVerticalUnits() throws {
         // Given
         let text = try resolvedText(#"""
-            { "title": "漢字", "paragraph": { "writingMode": "vertical-rl" }, "character": { "highlight": { "color": "#FF0000" } },
+            { "kind": "title", "text": "漢字", "paragraph": { "writingMode": "vertical-rl" }, "character": { "highlight": { "color": "#FF0000" } },
               "animation": { "preset": "frames/fade", "by": "character" },
               "keyframes": [ { "at": 0, "character": { "tracking": 0 } }, { "at": 1, "character": { "tracking": 100 } } ] }
             """#)
@@ -188,7 +188,7 @@ struct ResolvedTextInstantTests {
         #"""
             { "kind": "sequence", "format": { "size": [1920, 1080] },
               "theme": { "styles": { "caption": { "size": 40, "color": "#000000" } } },
-              "storyline": [ { "media": "/abs/screen.mp4" } ],
+              "storyline": [ { "kind": "media", "media": "/abs/screen.mp4" } ],
               "clips": [ \#(clip.dropLast(1)), "style": "caption", "position": [400, 225], "at": [0, 2] } ] }
             """#
     }

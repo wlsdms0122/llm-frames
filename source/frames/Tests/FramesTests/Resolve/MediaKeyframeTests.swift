@@ -172,8 +172,8 @@ struct MediaKeyframeTests {
         clip keys: String? = nil,
         storyline storylineKeys: String? = nil
     ) throws -> ResolvedSequence {
-        let storyline = storylineKeys.map { #"{ "media": "/abs/screen.mp4", \#($0) }"# } ?? #"{ "media": "/abs/screen.mp4" }"#
-        let clips = keys.map { #"[ { "media": "/abs/card.png", "at": [0, 1], \#($0) } ]"# } ?? "[]"
+        let storyline = storylineKeys.map { #"{ "kind": "media", "media": "/abs/screen.mp4", \#($0) }"# } ?? #"{ "kind": "media", "media": "/abs/screen.mp4" }"#
+        let clips = keys.map { #"[ { "kind": "media", "media": "/abs/card.png", "at": [0, 1], \#($0) } ]"# } ?? "[]"
         let document = #"""
             { "kind": "sequence", "format": { "size": [960, 540] },
               "theme": { "border": { "width": 8, "color": "#FFFFFF" },

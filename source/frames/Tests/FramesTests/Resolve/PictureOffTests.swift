@@ -26,8 +26,8 @@ struct PictureOffTests {
     func takesSoundAlone() throws {
         // Given
         let document = try Fixture.json(#"""
-            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "out": 6 } ],
-              "clips": [ { "media": "/abs/run.mp4", "picture": false, "at": 1, "in": 2, "out": 4, "volume": 0.5 } ] }
+            { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "out": 6 } ],
+              "clips": [ { "kind": "media", "media": "/abs/run.mp4", "picture": false, "at": 1, "in": 2, "out": 4, "volume": 0.5 } ] }
             """#)
 
         // When
@@ -47,8 +47,8 @@ struct PictureOffTests {
     func keepsPicture() throws {
         // Given
         let document = try Fixture.json(#"""
-            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "out": 6 } ],
-              "clips": [ { "media": "/abs/run.mp4", "picture": true, "at": 1, "out": 2 } ] }
+            { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "out": 6 } ],
+              "clips": [ { "kind": "media", "media": "/abs/run.mp4", "picture": true, "at": 1, "out": 2 } ] }
             """#)
 
         // When
@@ -63,8 +63,8 @@ struct PictureOffTests {
     func refusesPictureKey() throws {
         // Given
         let document = try Fixture.json(#"""
-            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "out": 6 } ],
-              "clips": [ { "media": "/abs/run.mp4", "picture": false, "at": 0, "position": [0, 0] } ] }
+            { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "out": 6 } ],
+              "clips": [ { "kind": "media", "media": "/abs/run.mp4", "picture": false, "at": 0, "position": [0, 0] } ] }
             """#)
 
         // When, Then
@@ -81,9 +81,9 @@ struct PictureOffTests {
     @Test(
         "picture stops on a storyline clip, an image and an audio file",
         arguments: [
-            #"{ "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "picture": false } ] }"#,
-            #"{ "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4" } ], "clips": [ { "media": "/abs/card.png", "picture": false } ] }"#,
-            #"{ "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4" } ], "clips": [ { "media": "/abs/bgm.m4a", "picture": false } ] }"#
+            #"{ "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "picture": false } ] }"#,
+            #"{ "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4" } ], "clips": [ { "kind": "media", "media": "/abs/card.png", "picture": false } ] }"#,
+            #"{ "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4" } ], "clips": [ { "kind": "media", "media": "/abs/bgm.m4a", "picture": false } ] }"#
         ]
     )
     func refusesPictureWithoutSoundToKeep(document: String) throws {
@@ -103,8 +103,8 @@ struct PictureOffTests {
     func refusesSilentVideo() throws {
         // Given
         let document = try Fixture.json(#"""
-            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "out": 6 } ],
-              "clips": [ { "media": "/abs/short.mp4", "picture": false, "at": 0 } ] }
+            { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "out": 6 } ],
+              "clips": [ { "kind": "media", "media": "/abs/short.mp4", "picture": false, "at": 0 } ] }
             """#)
 
         // When, Then

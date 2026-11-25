@@ -27,7 +27,7 @@ struct SequenceAudioFilterTests {
     func acceptsSequenceAudioFilter() throws {
         // Given
         let document = try Fixture.json(#"""
-            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4" } ],
+            { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4" } ],
               "audioFilter": [ "mine/limit", { "op": "limiter", "ceiling": -1 } ],
               "keyframes": [ { "at": 0, "audioFilter": [ { "args": { "boost": 0 } }, { "gain": 0 } ], "ease": "ease-in" },
                              { "at": 2, "audioFilter": [ { "args": { "boost": 3 } }, { "gain": 2 } ] } ] }
@@ -49,7 +49,7 @@ struct SequenceAudioFilterTests {
     func refusesSequenceKeyframes(keyframes: String) throws {
         // Given
         let document = try Fixture.json(#"""
-            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4" } ], "audioFilter": { "op": "limiter" }, "keyframes": \#(keyframes) }
+            { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4" } ], "audioFilter": { "op": "limiter" }, "keyframes": \#(keyframes) }
             """#)
 
         // When, Then
@@ -60,7 +60,7 @@ struct SequenceAudioFilterTests {
     func resolvesSequenceAudioFilter() throws {
         // When
         let plan = try plan(#"""
-            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "out": 4 } ],
+            { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "out": 4 } ],
               "audioFilter": { "op": "limiter", "lookahead": 0.01 },
               "keyframes": [ { "at": 1, "audioFilter": { "gain": 0 } }, { "at": 3, "audioFilter": { "gain": 4 } } ] }
             """#)
@@ -76,9 +76,9 @@ struct SequenceAudioFilterTests {
     @Test("a sequence without an audio filter has none, and a sequence with no sound takes one")
     func takesAudioFilterOnSilence() throws {
         // When
-        let plain = try plan(#"{ "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "out": 4 } ] }"#)
+        let plain = try plan(#"{ "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "out": 4 } ] }"#)
         let silent = try plan(#"""
-            { "kind": "sequence", "storyline": [ { "media": "/abs/short.mp4", "out": 4 } ], "audioFilter": { "op": "limiter" } }
+            { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/short.mp4", "out": 4 } ], "audioFilter": { "op": "limiter" } }
             """#)
 
         // Then
@@ -91,8 +91,8 @@ struct SequenceAudioFilterTests {
     func carriesNestedAudioFilter() throws {
         // When
         let plan = try plan(#"""
-            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "out": 4 } ],
-              "clips": [ { "media": { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "out": 2 } ],
+            { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "out": 4 } ],
+              "clips": [ { "kind": "media", "media": { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "out": 2 } ],
                                       "audioFilter": { "op": "limiter", "ceiling": -6 } },
                            "picture": false, "at": 1, "audioFilter": { "op": "gate", "threshold": -50 } } ] }
             """#)
@@ -109,7 +109,7 @@ struct SequenceAudioFilterTests {
         // When, Then
         #expect(throws: ResolveError.keyframesOutsideVisibleRange(place: Place.root.appending(key: "keyframes"), kind: .sequence, leaf: "audioFilter.gain", visible: TimeRange(start: 0, end: 4))) {
             try plan(#"""
-                { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "out": 4 } ],
+                { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "out": 4 } ],
                   "audioFilter": { "op": "limiter" },
                   "keyframes": [ { "at": 5, "audioFilter": { "gain": 0 } }, { "at": 6, "audioFilter": { "gain": 3 } } ] }
                 """#)
@@ -121,13 +121,13 @@ struct SequenceAudioFilterTests {
         // When, Then
         #expect(throws: LookError.keyframedStatic(place: Place.root.appending(key: "keyframes").appending(index: 0).appending(key: "audioFilter").appending(key: "lookahead"))) {
             try plan(#"""
-                { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "out": 4 } ],
+                { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "out": 4 } ],
                   "audioFilter": { "op": "limiter" }, "keyframes": [ { "at": 0, "audioFilter": { "lookahead": 0.01 } } ] }
                 """#)
         }
         #expect(throws: LookError.keyframedStatic(place: Place.root.appending(key: "keyframes").appending(index: 0).appending(key: "audioFilter").appending(key: "args").appending(key: "ahead"))) {
             try plan(#"""
-                { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "out": 4 } ],
+                { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "out": 4 } ],
                   "audioFilter": "mine/limit", "keyframes": [ { "at": 0, "audioFilter": { "args": { "ahead": 0.01 } } } ] }
                 """#)
         }
@@ -138,7 +138,7 @@ struct SequenceAudioFilterTests {
         // When, Then
         #expect(throws: LookError.outsideDomain(place: Place.root.appending(key: "audioFilter").appending(key: "ceiling"), value: 1, domain: .range(-Double.infinity...0))) {
             try plan(#"""
-                { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "out": 4 } ], "audioFilter": { "op": "limiter", "ceiling": 1 } }
+                { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "out": 4 } ], "audioFilter": { "op": "limiter", "ceiling": 1 } }
                 """#)
         }
     }
@@ -147,8 +147,8 @@ struct SequenceAudioFilterTests {
     func writesResolvedAudioFilter() throws {
         // Given
         let plan = try Fixture.documentPlanner.plan(Fixture.json(#"""
-            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "out": 4 } ],
-              "clips": [ { "media": { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "out": 2 } ],
+            { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "out": 4 } ],
+              "clips": [ { "kind": "media", "media": { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "out": 2 } ],
                                       "audioFilter": { "op": "limiter", "ceiling": -6 } },
                            "picture": false, "at": 1 } ],
               "audioFilter": { "op": "limiter", "lookahead": 0.01 } }
@@ -176,13 +176,13 @@ struct SequenceAudioFilterTests {
     func resolvesSequenceConvolution() throws {
         // When
         let plan = try plan(#"""
-            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "out": 4 } ],
+            { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "out": 4 } ],
               "audioFilter": { "op": "convolve", "file": "/abs/ding.wav", "mix": 0.4 },
               "keyframes": [ { "at": 1, "audioFilter": { "gain": 0 } }, { "at": 3, "audioFilter": { "gain": -8 } } ] }
             """#)
         let error = #expect(throws: ResolveError.self) {
             try self.plan(#"""
-                { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "out": 4 } ], "audioFilter": { "op": "convolve", "file": "/abs/short.mp4" } }
+                { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "out": 4 } ], "audioFilter": { "op": "convolve", "file": "/abs/short.mp4" } }
                 """#)
         }
 

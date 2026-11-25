@@ -54,8 +54,9 @@ struct ResolvedSequenceWriter: Sendable {
         ]))
     }
 
-    // An entry with media writes its corner pin after its anchor, and one with a corner pin writes its box's size and
-    // its position, anchor, scale and rotation as null. A solid writes no corner pin.
+    // An entry's kind is `media` or `solid`. An entry with media writes its corner pin after its anchor, and one with a
+    // corner pin writes its box's size and its position, anchor, scale and rotation as null. A solid writes no corner
+    // pin.
     private func storyline(_ entry: ResolvedStorylineClip) -> JSONValue {
         let cornerPin = entry.cornerPin.map { pin in
             values.followed(pin.points) { points in .array(points.corners.map(values.geometryPoint)) }
@@ -65,8 +66,9 @@ struct ResolvedSequenceWriter: Sendable {
         return .object(JSONObject(members: [
             JSONMember(key: "place", value: .string(entry.place)),
             JSONMember(key: "id", value: entry.id.map(JSONValue.string) ?? .null),
+            JSONMember(key: "kind", value: .string(entry.media == nil ? "solid" : "media")),
             JSONMember(key: "media", value: entry.media.map(media) ?? .null),
-            JSONMember(key: "solid", value: entry.solid.map { values.keyframes($0, value: values.color) } ?? .null),
+            JSONMember(key: "color", value: entry.color.map { values.keyframes($0, value: values.color) } ?? .null),
             JSONMember(key: "colorSpace", value: entry.colorSpace.map { .string($0.rawValue) } ?? .null),
             JSONMember(key: "toneMap", value: entry.isToneMapped.map(JSONValue.bool) ?? .null),
             JSONMember(key: "in", value: .number(entry.in)),
@@ -99,7 +101,7 @@ struct ResolvedSequenceWriter: Sendable {
         ]))
     }
 
-    // What a clip draws comes after its id, a media clip's timing, filter and appearance with it, and a shape's or a
+    // What a clip draws comes after its id and its kind, a media clip's timing, filter and appearance with it, and a shape's or a
     // null's geometry and appearance. Scale, rotation and a corner pin belong to anything drawn but an adjustment, and a
     // clip with a corner pin writes its box's size and its position, anchor, scale and rotation as null. A shape or a
     // null placed by its geometry writes its position and anchor where a box would, and its area with its own keys. A
@@ -135,7 +137,8 @@ struct ResolvedSequenceWriter: Sendable {
         let track = JSONMember(key: "track", value: clip.track.map(self.track) ?? .null)
         let head = [
             JSONMember(key: "place", value: .string(clip.place)),
-            JSONMember(key: "id", value: clip.id.map(JSONValue.string) ?? .null)
+            JSONMember(key: "id", value: clip.id.map(JSONValue.string) ?? .null),
+            JSONMember(key: "kind", value: .string(kind(of: clip.content)))
         ]
         let window = [
             JSONMember(key: "start", value: .number(clip.start)),
@@ -174,6 +177,26 @@ struct ResolvedSequenceWriter: Sendable {
         }
     }
 
+    // The clip's kind as its document names it.
+    private func kind(of content: ResolvedClipContent) -> String {
+        switch content {
+        case .picture(.title, _):
+            "title"
+
+        case let .picture(.shape(shape), _):
+            shape.kind.rawValue
+
+        case .picture(.adjustment, _):
+            "adjustment"
+
+        case .picture(.media, _):
+            "media"
+
+        case .null:
+            "null"
+        }
+    }
+
     private func content(_ content: ResolvedPicture) -> [JSONMember] {
         switch content {
         case let .title(text):
@@ -205,14 +228,13 @@ struct ResolvedSequenceWriter: Sendable {
         }
 
         return [
-            JSONMember(key: "null", value: .bool(true)),
             JSONMember(key: "area", value: geometry.area),
             JSONMember(key: "width", value: geometry.width),
             JSONMember(key: "height", value: geometry.height)
         ]
     }
 
-    // A shape's kind, its geometry as written and its outset, every key written and null where it has none, and how it
+    // A shape's geometry as written and its outset, every key written and null where it has none, and how it
     // is drawn.
     private func shape(_ shape: ResolvedShape) -> [JSONMember] {
         let numbers = { (keyframes: [Keyframe<Double>]) in self.values.numbers(keyframes) }
@@ -236,7 +258,6 @@ struct ResolvedSequenceWriter: Sendable {
         }
 
         return [
-            JSONMember(key: "shape", value: .string(shape.kind.rawValue)),
             JSONMember(key: "area", value: geometry.area),
             JSONMember(key: "width", value: geometry.width),
             JSONMember(key: "height", value: geometry.height),

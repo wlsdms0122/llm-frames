@@ -255,7 +255,7 @@ enum LookStructureTable {
                 ("title", .map(animation)),
                 ("shape", animation),
                 ("media", animation),
-                ("adjust", animation)
+                ("adjustment", animation)
             ])))
         ])))
     ]))

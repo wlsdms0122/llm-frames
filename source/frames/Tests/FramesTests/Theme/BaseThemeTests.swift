@@ -56,7 +56,7 @@ struct BaseThemeTests {
         #expect(defaults?["transition"] == .string("cut"))
         #expect(defaults?["filter"] == .string("none"))
         #expect(defaults?["animation"] == (try Fixture.json(
-            #"{ "title": {}, "shape": "none", "media": "none", "adjust": "none" }"#
+            #"{ "title": {}, "shape": "none", "media": "none", "adjustment": "none" }"#
         )))
     }
 

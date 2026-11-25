@@ -21,21 +21,22 @@ struct SolidKeyframeTests {
     func movesColour() throws {
         // Given
         let sequence = try resolved(#"""
-            "solid": "#FF0000", "keyframes": [ { "at": 0, "solid": null }, { "at": 2, "solid": "brand" } ]
+            "kind": "solid",
+            "color": "#FF0000", "keyframes": [ { "at": 0, "color": null }, { "at": 2, "color": "brand" } ]
             """#)
 
         // When
         let list = sut.displayList(of: sequence, at: 1)
 
         // Then
-        #expect(sequence.storyline[0].solid?.value(at: 0) == Color(written: "#FF0000"))
+        #expect(sequence.storyline[0].color?.value(at: 0) == Color(written: "#FF0000"))
         #expect(fill(of: list) == Color(written: "color(srgb 0.5 0 0.5)"))
     }
 
     @Test("a solid without keyframes keeps its colour at every instant")
     func holdsStaticColour() throws {
         // Given
-        let sequence = try resolved(#""solid": "brand""#)
+        let sequence = try resolved(#""kind": "solid", "color": "brand""#)
 
         // When
         let list = sut.displayList(of: sequence, at: 1.5)
@@ -44,11 +45,12 @@ struct SolidKeyframeTests {
         #expect(fill(of: list) == Color(written: "#0000FF"))
     }
 
-    @Test("a solid whose every keyframe writes a colour resolves, its static colour making it a solid and never shown")
-    func resolvesColourEveryKeyframeWrites() throws {
+    @Test("a solid whose keyframes give its colour resolves without a static colour")
+    func resolvesColourOfKeyframes() throws {
         // Given
         let sequence = try resolved(#"""
-            "solid": "#FF0000", "keyframes": [ { "at": 0, "solid": "#000000" }, { "at": 2, "solid": "#FFFFFF" } ]
+            "kind": "solid",
+            "keyframes": [ { "at": 0, "color": "#000000" }, { "at": 2, "color": "#FFFFFF" } ]
             """#)
 
         // When
@@ -57,23 +59,36 @@ struct SolidKeyframeTests {
         // Then
         #expect(colours.first == Color(written: "#000000"))
         #expect(colours[4] == Color(written: "color(srgb 0.5 0.5 0.5)"))
-        #expect(!colours.contains(Color(written: "#FF0000")))
-        #expect(sequence.storyline[0].solid?.map(\.value) == [Color(written: "#000000"), Color(written: "#FFFFFF")])
+        #expect(sequence.storyline[0].color?.map(\.value) == [Color(written: "#000000"), Color(written: "#FFFFFF")])
+    }
+
+    @Test("a solid whose static colour every keyframe replaces stops, since the static colour never shows")
+    func refusesColourEveryKeyframeReplaces() throws {
+        // Given
+        let keys = #"""
+            "kind": "solid",
+            "color": "#FF0000", "keyframes": [ { "at": 0, "color": "#000000" }, { "at": 2, "color": "#FFFFFF" } ]
+            """#
+
+        // When, Then
+        let error = #expect(throws: (any Error).self) { try resolved(keys) }
+        #expect(error.map { "\($0)" } == "storyline[0].color: written as a static value and in every keyframe that writes it, so the static value never shows")
     }
 
     @Test("a solid's keyframes are written as a keyframe list of colours and read back as they were")
     func roundTripsColour() throws {
         // Given
         let sequence = try resolved(#"""
-            "solid": "#FF0000", "keyframes": [ { "at": 0, "solid": null, "ease": "ease-in" }, { "at": 2, "solid": "brand" } ]
+            "kind": "solid",
+            "color": "#FF0000", "keyframes": [ { "at": 0, "color": null, "ease": "ease-in" }, { "at": 2, "color": "brand" } ]
             """#)
 
         // When
         let read = try ResolvedDocumentReader().read(ResolvedDocumentWriter().write(sequence))
 
         // Then
-        #expect(read.storyline[0].solid == sequence.storyline[0].solid)
-        #expect(sequence.storyline[0].solid?.count == 2)
+        #expect(read.storyline[0].color == sequence.storyline[0].color)
+        #expect(sequence.storyline[0].color?.count == 2)
     }
 
     // MARK: - Private

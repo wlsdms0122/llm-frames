@@ -19,10 +19,10 @@ struct PathVertexCheckTests {
     @Test(
         "a path's and a path mask's points take a point or a vertex object, and a mask takes two vertices",
         arguments: [
-            #"{ "shape": "path", "at": [0, 1], "points": [ [0, 0], { "vertex": [10, 0], "inTangent": [-4, 0], "outTangent": [4, 0] } ] }"#,
-            #"{ "shape": "path", "at": [0, 1], "points": [ { "vertex": { "area": [0, 0, 10, 10], "point": "top" } }, [10, 10] ] }"#,
-            #"{ "shape": "path", "at": [0, 1], "points": [ [0, 0], [10, 0] ], "keyframes": [ { "at": 0, "points": [ { "outTangent": [5, 5] }, {} ] } ] }"#,
-            #"{ "shape": "rect", "width": 10, "height": 10, "at": [0, 1], "mask": { "shape": "path", "points": [ { "vertex": [0, 0], "outTangent": [5, -5] }, { "vertex": [10, 0], "outTangent": [-5, 5] } ] } }"#
+            #"{ "kind": "path", "at": [0, 1], "points": [ [0, 0], { "vertex": [10, 0], "inTangent": [-4, 0], "outTangent": [4, 0] } ] }"#,
+            #"{ "kind": "path", "at": [0, 1], "points": [ { "vertex": { "area": [0, 0, 10, 10], "point": "top" } }, [10, 10] ] }"#,
+            #"{ "kind": "path", "at": [0, 1], "points": [ [0, 0], [10, 0] ], "keyframes": [ { "at": 0, "points": [ { "outTangent": [5, 5] }, {} ] } ] }"#,
+            #"{ "kind": "rect", "width": 10, "height": 10, "at": [0, 1], "mask": { "shape": "path", "points": [ { "vertex": [0, 0], "outTangent": [5, -5] }, { "vertex": [10, 0], "outTangent": [-5, 5] } ] } }"#
         ]
     )
     func takesVertices(clip: String) throws {
@@ -37,19 +37,19 @@ struct PathVertexCheckTests {
         "a tangent takes two numbers and no form of an area, a static vertex object writes its point, and a vertex object stops where a point is taken",
         arguments: [
             (
-                #"{ "shape": "path", "at": [0, 1], "points": [ [0, 0], { "vertex": [10, 0], "inTangent": { "area": [0, 0, 1, 1], "point": "top" } } ] }"#,
+                #"{ "kind": "path", "at": [0, 1], "points": [ [0, 0], { "vertex": [10, 0], "inTangent": { "area": [0, 0, 1, 1], "point": "top" } } ] }"#,
                 "storyline[0].connected[0].points[1].inTangent"
             ),
             (
-                #"{ "shape": "path", "at": [0, 1], "points": [ [0, 0], { "inTangent": [1, 1] } ] }"#,
+                #"{ "kind": "path", "at": [0, 1], "points": [ [0, 0], { "inTangent": [1, 1] } ] }"#,
                 "storyline[0].connected[0].points[1]"
             ),
             (
-                #"{ "shape": "rect", "width": 10, "height": 10, "at": [0, 1], "position": { "vertex": [0, 0] } }"#,
+                #"{ "kind": "rect", "width": 10, "height": 10, "at": [0, 1], "position": { "vertex": [0, 0] } }"#,
                 "storyline[0].connected[0].position"
             ),
             (
-                #"{ "shape": "rect", "width": 10, "height": 10, "at": [0, 1], "cornerPin": [ { "vertex": [0, 0] }, [10, 0], [10, 10], [0, 10] ] }"#,
+                #"{ "kind": "rect", "width": 10, "height": 10, "at": [0, 1], "cornerPin": [ { "vertex": [0, 0] }, [10, 0], [10, 10], [0, 10] ] }"#,
                 "storyline[0].connected[0].cornerPin[0]"
             )
         ]
@@ -69,10 +69,10 @@ struct PathVertexCheckTests {
     func stopsStaticAndKeyframedLeaf() throws {
         // Given
         let tangents = try Self.document(
-            #"{ "shape": "path", "at": [0, 1], "points": [ [0, 0], [10, 0] ], "keyframes": [ { "at": 0, "points": [ { "outTangent": [1, 1] }, {} ] } ] }"#
+            #"{ "kind": "path", "at": [0, 1], "points": [ [0, 0], [10, 0] ], "keyframes": [ { "at": 0, "points": [ { "outTangent": [1, 1] }, {} ] } ] }"#
         )
         let points = try Self.document(
-            #"{ "shape": "path", "at": [0, 1], "points": [ [0, 0], [10, 0] ], "keyframes": [ { "at": 0, "points": [ [1, 1], {} ] } ] }"#
+            #"{ "kind": "path", "at": [0, 1], "points": [ [0, 0], [10, 0] ], "keyframes": [ { "at": 0, "points": [ [1, 1], {} ] } ] }"#
         )
 
         // When
@@ -100,7 +100,7 @@ struct PathVertexCheckTests {
     // MARK: - Private
     private static func document(_ clip: String) throws -> JSONValue {
         try Fixture.json(#"""
-            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "connected": [ CLIP ] } ] }
+            { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "connected": [ CLIP ] } ] }
             """#.replacingOccurrences(of: "CLIP", with: clip))
     }
 }

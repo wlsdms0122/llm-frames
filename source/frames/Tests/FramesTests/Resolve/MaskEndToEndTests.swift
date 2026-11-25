@@ -24,8 +24,8 @@ struct MaskEndToEndTests {
     func drawsMaskMovedInKeyframes() throws {
         // Given
         let sut = try resolved(#"""
-            { "kind": "sequence", "format": { "size": [1920, 1080] }, "storyline": [ { "solid": "#202020", "duration": 4 } ],
-              "clips": [ { "adjust": "frames/warm", "at": [0, 4], "mask": [ { "shape": "rect", "invert": true }, { "shape": "path", "mode": "subtract" } ],
+            { "kind": "sequence", "format": { "size": [1920, 1080] }, "storyline": [ { "kind": "solid", "color": "#202020", "duration": 4 } ],
+              "clips": [ { "kind": "adjustment", "adjust": "frames/warm", "at": [0, 4], "mask": [ { "shape": "rect", "invert": true }, { "shape": "path", "mode": "subtract" } ],
                 "keyframes": [
                   { "at": 1, "mask": [ { "area": [0, 0, 100, 100], "radius": 4 }, { "points": [[0, 0], [100, 0], [50, 100]] } ] },
                   { "at": 2, "mask": [ { "feather": 2 }, { } ] },
@@ -61,8 +61,8 @@ struct MaskEndToEndTests {
         // Given
         // Each segment's control points lie 40 above or below its ends at y = 50, so its middle lies 30 past them.
         let sut = try resolved(#"""
-            { "kind": "sequence", "format": { "size": [1920, 1080] }, "storyline": [ { "solid": "#202020", "duration": 4 } ],
-              "clips": [ { "adjust": "frames/warm", "at": [0, 4], "mask": { "shape": "path", "points": [
+            { "kind": "sequence", "format": { "size": [1920, 1080] }, "storyline": [ { "kind": "solid", "color": "#202020", "duration": 4 } ],
+              "clips": [ { "kind": "adjustment", "adjust": "frames/warm", "at": [0, 4], "mask": { "shape": "path", "points": [
                 { "vertex": [0, 50], "inTangent": [0, 40], "outTangent": [0, -40] },
                 { "vertex": [100, 50], "inTangent": [0, -40], "outTangent": [0, 40] } ] } } ] }
             """#)
@@ -85,8 +85,8 @@ struct MaskEndToEndTests {
     func easesBoxWidthAlone() throws {
         // Given
         let sut = try resolved(#"""
-            { "kind": "sequence", "format": { "size": [1920, 1080] }, "storyline": [ { "solid": "#202020", "duration": 4 } ],
-              "clips": [ { "adjust": "frames/warm", "at": [0, 4], "mask": { "shape": "ellipse", "height": 40, "position": [500, 300] },
+            { "kind": "sequence", "format": { "size": [1920, 1080] }, "storyline": [ { "kind": "solid", "color": "#202020", "duration": 4 } ],
+              "clips": [ { "kind": "adjustment", "adjust": "frames/warm", "at": [0, 4], "mask": { "shape": "ellipse", "height": 40, "position": [500, 300] },
                 "keyframes": [ { "at": 0, "ease": "ease-in", "mask": { "width": 100 } }, { "at": 2, "mask": { "width": 300 } } ] } ] }
             """#)
 
@@ -111,9 +111,9 @@ struct MaskEndToEndTests {
     func drawsMaskUnderParent() throws {
         // Given
         let sut = try resolved(#"""
-            { "kind": "sequence", "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "connected": [
-                { "id": "box", "shape": "rect", "stroke": { "width": 8 }, "parent": "screen", "area": [0, 0, 600, 600], "scale": 2, "at": [0, 4] },
-                { "adjust": "frames/warm", "parent": "box", "at": [0, 4], "mask": { "shape": "rect" }, "keyframes": [
+            { "kind": "sequence", "storyline": [ { "id": "screen", "kind": "media", "media": "/abs/screen.mp4", "connected": [
+                { "id": "box", "kind": "rect", "stroke": { "width": 8 }, "parent": "screen", "area": [0, 0, 600, 600], "scale": 2, "at": [0, 4] },
+                { "kind": "adjustment", "adjust": "frames/warm", "parent": "box", "at": [0, 4], "mask": { "shape": "rect" }, "keyframes": [
                     { "at": 0, "mask": { "area": [0, 0, 100, 100] } },
                     { "at": 2, "mask": { "area": [0, 0, 50, 50] } } ] } ] } ] }
             """#)
@@ -157,8 +157,8 @@ struct MaskEndToEndTests {
     ) throws {
         // Given
         let document = #"""
-            { "kind": "sequence", "format": { "size": [1920, 1080] }, "storyline": [ { "solid": "#202020", "duration": 2 } ],
-              "clips": [ { "adjust": "frames/warm", "at": [0, 2], \#(keys) } ] }
+            { "kind": "sequence", "format": { "size": [1920, 1080] }, "storyline": [ { "kind": "solid", "color": "#202020", "duration": 2 } ],
+              "clips": [ { "kind": "adjustment", "adjust": "frames/warm", "at": [0, 2], \#(keys) } ] }
             """#
 
         // When, Then

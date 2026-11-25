@@ -20,10 +20,10 @@ struct TrackMatteEvaluationTests {
     func skipsMatteClip() throws {
         // Given
         let sequence = try resolved(#"""
-            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4" } ], "clips": [
-              { "id": "m", "shape": "rect", "area": [0, 0, 540, 960], "fill": "#FFFFFF", "blend": "multiply", "at": [0, 4] },
-              { "id": "kid", "shape": "rect", "area": [0, 0, 10, 10], "fill": "#FFFFFF", "parent": "m", "at": [0, 4] },
-              { "id": "a", "title": "a", "style": "title", "at": [0, 4], "trackMatte": { "clip": "m", "mode": "alpha" } }
+            { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4" } ], "clips": [
+              { "id": "m", "kind": "rect", "area": [0, 0, 540, 960], "fill": "#FFFFFF", "blend": "multiply", "at": [0, 4] },
+              { "id": "kid", "kind": "rect", "area": [0, 0, 10, 10], "fill": "#FFFFFF", "parent": "m", "at": [0, 4] },
+              { "id": "a", "kind": "title", "text": "a", "style": "title", "at": [0, 4], "trackMatte": { "clip": "m", "mode": "alpha" } }
             ] }
             """#)
 
@@ -46,17 +46,17 @@ struct TrackMatteEvaluationTests {
     func takesMatteAsDrawn() throws {
         // Given
         let clips = #"""
-              { "id": "p", "shape": "rect", "area": [0, 0, 100, 100], "fill": "#FFFFFF", "rotation": 30, "position": [300, 400], "at": [0, 4] },
-              { "id": "m", "title": "m", "style": "title", "parent": "p", "position": [20, 30], "blend": "screen", "animation": "frames/fade", "at": [0, 4],
+              { "id": "p", "kind": "rect", "area": [0, 0, 100, 100], "fill": "#FFFFFF", "rotation": 30, "position": [300, 400], "at": [0, 4] },
+              { "id": "m", "kind": "title", "text": "m", "style": "title", "parent": "p", "position": [20, 30], "blend": "screen", "animation": "frames/fade", "at": [0, 4],
                 "keyframes": [ { "at": 0, "opacity": 0 }, { "at": 1, "opacity": 1 } ] }
             """#
         let matted = try resolved(#"""
-            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4" } ], "clips": [ \#(clips),
-              { "title": "a", "style": "title", "at": [0, 4], "trackMatte": { "clip": "m", "mode": "luma", "invert": true } }
+            { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4" } ], "clips": [ \#(clips),
+              { "kind": "title", "text": "a", "style": "title", "at": [0, 4], "trackMatte": { "clip": "m", "mode": "luma", "invert": true } }
             ] }
             """#)
         let drawn = try resolved(#"""
-            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4" } ], "clips": [ \#(clips) ] }
+            { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4" } ], "clips": [ \#(clips) ] }
             """#)
 
         // When
@@ -77,11 +77,11 @@ struct TrackMatteEvaluationTests {
     func followsSharedMatteAndChain() throws {
         // Given
         let sequence = try resolved(#"""
-            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4" } ], "clips": [
-              { "id": "far", "shape": "ellipse", "area": [0, 0, 300, 300], "fill": "#FFFFFF", "at": [0, 4] },
-              { "id": "near", "shape": "rect", "area": [0, 0, 540, 960], "fill": "#FFFFFF", "at": [0, 4], "trackMatte": { "clip": "far", "mode": "luma", "invert": true } },
-              { "id": "a", "title": "a", "style": "title", "at": [0, 4], "trackMatte": { "clip": "near", "mode": "alpha" } },
-              { "id": "b", "title": "b", "style": "title", "at": [0, 4], "trackMatte": { "clip": "near", "mode": "alpha" } }
+            { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4" } ], "clips": [
+              { "id": "far", "kind": "ellipse", "area": [0, 0, 300, 300], "fill": "#FFFFFF", "at": [0, 4] },
+              { "id": "near", "kind": "rect", "area": [0, 0, 540, 960], "fill": "#FFFFFF", "at": [0, 4], "trackMatte": { "clip": "far", "mode": "luma", "invert": true } },
+              { "id": "a", "kind": "title", "text": "a", "style": "title", "at": [0, 4], "trackMatte": { "clip": "near", "mode": "alpha" } },
+              { "id": "b", "kind": "title", "text": "b", "style": "title", "at": [0, 4], "trackMatte": { "clip": "near", "mode": "alpha" } }
             ] }
             """#)
 
@@ -105,9 +105,9 @@ struct TrackMatteEvaluationTests {
     func emptiesMatteOutsideWindow() throws {
         // Given
         let sequence = try resolved(#"""
-            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4" } ], "clips": [
-              { "id": "m", "shape": "rect", "area": [0, 0, 540, 960], "fill": "#FFFFFF", "at": [2, 3] },
-              { "id": "a", "title": "a", "style": "title", "at": [0, 4], "trackMatte": { "clip": "m", "mode": "alpha" } }
+            { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4" } ], "clips": [
+              { "id": "m", "kind": "rect", "area": [0, 0, 540, 960], "fill": "#FFFFFF", "at": [2, 3] },
+              { "id": "a", "kind": "title", "text": "a", "style": "title", "at": [0, 4], "trackMatte": { "clip": "m", "mode": "alpha" } }
             ] }
             """#)
 
@@ -126,9 +126,9 @@ struct TrackMatteEvaluationTests {
         // Given
         let sequence = try resolved(#"""
             { "kind": "sequence", "storyline": [
-              { "media": "/abs/run.mp4", "out": 2 },
-              { "media": "/abs/run.mp4", "in": 2, "out": 4, "transition": "frames/push-up", "trackMatte": { "clip": "m", "mode": "alpha" } }
-            ], "clips": [ { "id": "m", "shape": "rect", "area": [0, 0, 540, 960], "fill": "#FFFFFF", "at": [0, 4] } ] }
+              { "kind": "media", "media": "/abs/run.mp4", "out": 2 },
+              { "kind": "media", "media": "/abs/run.mp4", "in": 2, "out": 4, "transition": "frames/push-up", "trackMatte": { "clip": "m", "mode": "alpha" } }
+            ], "clips": [ { "id": "m", "kind": "rect", "area": [0, 0, 540, 960], "fill": "#FFFFFF", "at": [0, 4] } ] }
             """#)
         let incoming = 1
 

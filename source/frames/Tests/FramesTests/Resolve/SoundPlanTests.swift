@@ -22,7 +22,7 @@ struct SoundPlanTests {
     func plansDefaultVolume() throws {
         // Given
         let time = try Fixture.planner.plan(document: Fixture.json(#"""
-            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "in": 2, "out": 8 } ] }
+            { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "in": 2, "out": 8 } ] }
             """#))
         let media = try #require(time.storyline[0].source.media)
 
@@ -53,8 +53,8 @@ struct SoundPlanTests {
         // When
         let plan = try plan(#"""
             { "kind": "sequence",
-              "storyline": [ { "media": "/abs/short.mp4", "connected": [ { "media": "/abs/short.mp4", "at": 0 } ] }, { "media": "/abs/card.png", "duration": 1 } ],
-              "clips": [ { "media": { "kind": "sequence", "storyline": [ { "media": "/abs/card.png", "duration": 1 } ] }, "at": [0, 1] }, { "title": "a", "style": "subtitle", "at": [0, 1] } ] }
+              "storyline": [ { "kind": "media", "media": "/abs/short.mp4", "connected": [ { "kind": "media", "media": "/abs/short.mp4", "at": 0 } ] }, { "kind": "media", "media": "/abs/card.png", "duration": 1 } ],
+              "clips": [ { "kind": "media", "media": { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/card.png", "duration": 1 } ] }, "at": [0, 1] }, { "kind": "title", "text": "a", "style": "subtitle", "at": [0, 1] } ] }
             """#)
 
         // Then
@@ -66,8 +66,8 @@ struct SoundPlanTests {
         // When
         let plan = try plan(#"""
             { "kind": "sequence",
-              "storyline": [ { "media": "/abs/run.mp4", "out": 2, "connected": [ { "media": "/abs/ding.wav", "at": 0 } ] }, { "media": "/abs/run.mp4", "out": 2 } ],
-              "clips": [ { "media": "/abs/bgm.m4a" } ] }
+              "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "out": 2, "connected": [ { "kind": "media", "media": "/abs/ding.wav", "at": 0 } ] }, { "kind": "media", "media": "/abs/run.mp4", "out": 2 } ],
+              "clips": [ { "kind": "media", "media": "/abs/bgm.m4a" } ] }
             """#)
 
         // Then
@@ -79,10 +79,10 @@ struct SoundPlanTests {
         // When
         let plan = try plan(#"""
             { "kind": "sequence", "storyline": [
-                { "media": "/abs/run.mp4", "out": 3 },
-                { "media": "/abs/run.mp4", "in": 2, "out": 8, "speed": 2,
+                { "kind": "media", "media": "/abs/run.mp4", "out": 3 },
+                { "kind": "media", "media": "/abs/run.mp4", "in": 2, "out": 8, "speed": 2,
                   "keyframes": [ { "at": 4, "volume": 0.5 }, { "at": 6, "volume": 1 } ],
-                  "connected": [ { "media": "/abs/bgm.m4a", "at": 3, "keyframes": [ { "at": 4, "volume": 0 }, { "at": 5, "volume": 1 } ] } ] } ] }
+                  "connected": [ { "kind": "media", "media": "/abs/bgm.m4a", "at": 3, "keyframes": [ { "at": 4, "volume": 0 }, { "at": 5, "volume": 1 } ] } ] } ] }
             """#)
 
         // Then
@@ -102,10 +102,10 @@ struct SoundPlanTests {
         // When
         let plan = try plan(#"""
             { "kind": "sequence", "storyline": [
-                { "media": "/abs/run.mp4", "in": 2, "out": 8, "speed": 2,
+                { "kind": "media", "media": "/abs/run.mp4", "in": 2, "out": 8, "speed": 2,
                   "keyframes": [ { "at": 4, "pan": -1, "ease": "ease-in" }, { "at": 6, "pan": 0.5 } ],
-                  "connected": [ { "media": "/abs/bgm.m4a", "at": 3, "pan": 0.25 } ] } ],
-              "clips": [ { "media": "/abs/bgm.m4a" } ] }
+                  "connected": [ { "kind": "media", "media": "/abs/bgm.m4a", "at": 3, "pan": 0.25 } ] } ],
+              "clips": [ { "kind": "media", "media": "/abs/bgm.m4a" } ] }
             """#)
 
         // Then
@@ -121,7 +121,7 @@ struct SoundPlanTests {
     func keepsStaticVolume() throws {
         // When
         let plan = try plan(#"""
-            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "out": 2, "volume": 0.4 } ] }
+            { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "out": 2, "volume": 0.4 } ] }
             """#)
 
         // Then
@@ -134,10 +134,10 @@ struct SoundPlanTests {
         let plan = try plan(#"""
             { "kind": "sequence",
               "storyline": [
-                { "media": "/abs/run.mp4", "out": 4, "fadeIn": 0.5 },
-                { "media": "/abs/run.mp4", "in": 10, "out": 14, "transition": "frames/flash", "fadeOut": 1,
-                  "connected": [ { "media": "/abs/ding.wav", "at": 11, "fadeIn": 0.25, "fadeOut": 0.5 } ] } ],
-              "clips": [ { "media": "/abs/bgm.m4a", "at": 6, "fadeOut": 2 } ] }
+                { "kind": "media", "media": "/abs/run.mp4", "out": 4, "fadeIn": 0.5 },
+                { "kind": "media", "media": "/abs/run.mp4", "in": 10, "out": 14, "transition": "frames/flash", "fadeOut": 1,
+                  "connected": [ { "kind": "media", "media": "/abs/ding.wav", "at": 11, "fadeIn": 0.25, "fadeOut": 0.5 } ] } ],
+              "clips": [ { "kind": "media", "media": "/abs/bgm.m4a", "at": 6, "fadeOut": 2 } ] }
             """#)
 
         // Then
@@ -166,8 +166,8 @@ struct SoundPlanTests {
     ) throws {
         // When
         let plan = try plan(#"""
-            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "out": 4 } ],
-              "clips": [ { "media": "/abs/ding.wav", "at": [0, 4], "loop": \#(loop) } ] }
+            { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "out": 4 } ],
+              "clips": [ { "kind": "media", "media": "/abs/ding.wav", "at": [0, 4], "loop": \#(loop) } ] }
             """#)
 
         // Then
@@ -181,8 +181,8 @@ struct SoundPlanTests {
         // When
         let plan = try plan(#"""
             { "kind": "sequence", "storyline": [
-                { "media": "/abs/run.mp4", "in": 2, "out": 6 },
-                { "media": "/abs/run.mp4", "in": 10, "out": 14, "transition": "frames/wipe-right" } ] }
+                { "kind": "media", "media": "/abs/run.mp4", "in": 2, "out": 6 },
+                { "kind": "media", "media": "/abs/run.mp4", "in": 10, "out": 14, "transition": "frames/wipe-right" } ] }
             """#)
 
         // Then
@@ -202,8 +202,8 @@ struct SoundPlanTests {
         // When
         let plan = try plan(#"""
             { "kind": "sequence", "storyline": [
-                { "media": "/abs/run.mp4", "in": 2, "out": 6 },
-                { "media": "/abs/run.mp4", "in": 10, "out": 14, "transition": "mine/same-take" } ] }
+                { "kind": "media", "media": "/abs/run.mp4", "in": 2, "out": 6 },
+                { "kind": "media", "media": "/abs/run.mp4", "in": 10, "out": 14, "transition": "mine/same-take" } ] }
             """#)
 
         // Then
@@ -217,8 +217,8 @@ struct SoundPlanTests {
         // When
         let plan = try plan(#"""
             { "kind": "sequence", "storyline": [
-                { "media": "/abs/run.mp4", "in": 26, "out": 30 },
-                { "media": "/abs/run.mp4", "in": 0, "out": 4, "transition": "frames/wipe-right" } ] }
+                { "kind": "media", "media": "/abs/run.mp4", "in": 26, "out": 30 },
+                { "kind": "media", "media": "/abs/run.mp4", "in": 0, "out": 4, "transition": "frames/wipe-right" } ] }
             """#)
 
         // Then
@@ -231,15 +231,15 @@ struct SoundPlanTests {
     @Test("a compound clip has sound when its nested plan does, and carries the nested sounds on their own clock")
     func plansCompoundSound() throws {
         // Given
-        let loud = #"{ "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "out": 1 } ] }"#
-        let silent = #"{ "kind": "sequence", "storyline": [ { "media": "/abs/short.mp4" } ] }"#
+        let loud = #"{ "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "out": 1 } ] }"#
+        let silent = #"{ "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/short.mp4" } ] }"#
 
         // When
         let plan = try plan(#"""
             { "kind": "sequence", "storyline": [
-                { "media": "/abs/short.mp4", "connected": [ { "media": \#(loud), "at": 0 }, { "media": \#(silent), "at": 0 } ] },
-                { "media": \#(loud), "volume": 0.5 },
-                { "media": \#(silent) } ] }
+                { "kind": "media", "media": "/abs/short.mp4", "connected": [ { "kind": "media", "media": \#(loud), "at": 0 }, { "kind": "media", "media": \#(silent), "at": 0 } ] },
+                { "kind": "media", "media": \#(loud), "volume": 0.5 },
+                { "kind": "media", "media": \#(silent) } ] }
             """#)
 
         // Then
@@ -255,13 +255,13 @@ struct SoundPlanTests {
     @Test("a compound clip whose handle runs past its nested sequence's end is heard only to where the nested sequence ends")
     func silencesCompoundHandlePastNestedEnd() throws {
         // Given
-        let nested = #"{ "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "out": 4 } ] }"#
+        let nested = #"{ "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "out": 4 } ] }"#
 
         // When
         let plan = try plan(#"""
             { "kind": "sequence", "storyline": [
-                { "media": \#(nested) },
-                { "media": "/abs/run.mp4", "in": 10, "out": 14, "transition": "frames/wipe-right" } ] }
+                { "kind": "media", "media": \#(nested) },
+                { "kind": "media", "media": "/abs/run.mp4", "in": 10, "out": 14, "transition": "frames/wipe-right" } ] }
             """#)
 
         // Then

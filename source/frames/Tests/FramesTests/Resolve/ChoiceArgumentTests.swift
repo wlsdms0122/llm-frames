@@ -68,9 +68,9 @@ struct ChoiceArgumentTests {
         // Given
         let document = try Fixture.json(##"""
             { "kind": "sequence",
-              "storyline": [ { "media": "/abs/run.mp4", "in": 0, "out": 3, "filter": [ "studio/film", { "preset": "studio/film", "args": { "grain": 0.02 } } ] },
-                             { "media": "/abs/run.mp4", "in": 0, "out": 3, "transition": { "preset": "studio/dip", "seconds": 1, "args": { "color": "#1B3A6B" } } } ],
-              "clips": [ { "title": "a", "style": "subtitle", "at": [0, 2], "animation": { "entrance": { "preset": "studio/spring-in", "args": { "bounce": 0.4 } }, "exit": "none" } } ] }
+              "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "in": 0, "out": 3, "filter": [ "studio/film", { "preset": "studio/film", "args": { "grain": 0.02 } } ] },
+                             { "kind": "media", "media": "/abs/run.mp4", "in": 0, "out": 3, "transition": { "preset": "studio/dip", "seconds": 1, "args": { "color": "#1B3A6B" } } } ],
+              "clips": [ { "kind": "title", "text": "a", "style": "subtitle", "at": [0, 2], "animation": { "entrance": { "preset": "studio/spring-in", "args": { "bounce": 0.4 } }, "exit": "none" } } ] }
             """##)
         let sequence = try ResolvedSequence(plan: planner().plan(document), hashes: FileHashTable())
 
@@ -104,8 +104,8 @@ struct ChoiceArgumentTests {
               "params": {
                 "tint":   { "type": "color", "default": "#FF0000", "description": "colour the dip goes to" },
                 "length": { "type": "number", "default": 3, "description": "seconds of each shot" } },
-              "storyline": [ { "media": "/abs/run.mp4", "in": 0, "out": { "param": "length" } },
-                             { "media": "/abs/run.mp4", "in": 0, "out": { "param": "length" },
+              "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "in": 0, "out": { "param": "length" } },
+                             { "kind": "media", "media": "/abs/run.mp4", "in": 0, "out": { "param": "length" },
                                "transition": { "preset": "studio/dip", "args": { "color": { "param": "tint" } } } } ] }
             """##)
         let arguments = ArgumentFile(name: "/abs/args.json", value: try Fixture.json(##"{ "tint": "#00FF00", "length": 2 }"##))
@@ -127,8 +127,8 @@ struct ChoiceArgumentTests {
               "params": {
                 "look": { "type": "choice", "default": "studio/dip", "description": "how the shots join",
                           "options": [ "studio/dip", { "preset": "studio/dip", "args": { "color": "#1B3A6B" } } ] } },
-              "storyline": [ { "media": "/abs/run.mp4", "in": 0, "out": 3 },
-                             { "media": "/abs/run.mp4", "in": 0, "out": 3, "transition": { "param": "look" } } ] }
+              "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "in": 0, "out": 3 },
+                             { "kind": "media", "media": "/abs/run.mp4", "in": 0, "out": 3, "transition": { "param": "look" } } ] }
             """##)
         let blue = ArgumentFile(name: "/abs/args.json", value: try Fixture.json(##"{ "look": { "preset": "studio/dip", "args": { "color": "#1B3A6B" } } }"##))
         let red = ArgumentFile(name: "/abs/args.json", value: try Fixture.json(##"{ "look": { "preset": "studio/dip", "args": { "color": "#FF0000" } } }"##))
@@ -149,11 +149,11 @@ struct ChoiceArgumentTests {
         // Given
         let document = try Fixture.json(##"""
             { "kind": "sequence", "theme": { "defaults": { "transition": { "preset": "studio/dip", "args": { "color": "#1B3A6B" } } } },
-              "storyline": [ { "media": "/abs/run.mp4", "in": 0, "out": 3 }, { "media": "/abs/run.mp4", "in": 0, "out": 3 } ] }
+              "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "in": 0, "out": 3 }, { "kind": "media", "media": "/abs/run.mp4", "in": 0, "out": 3 } ] }
             """##)
         let broken = try Fixture.json(##"""
             { "kind": "sequence", "theme": { "defaults": { "transition": { "preset": "studio/dip", "args": { "length": 0 } } } },
-              "storyline": [ { "media": "/abs/run.mp4", "in": 0, "out": 3 } ] }
+              "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "in": 0, "out": 3 } ] }
             """##)
 
         // When
@@ -172,7 +172,7 @@ struct ChoiceArgumentTests {
             { "kind": "sequence", "theme": { "colors": { "brand": "#1B3A6B" }, "defaults": {
                 "transition": { "preset": "studio/dip", "args": { "color": "brand" } },
                 "filter": { "preset": "studio/glow", "args": { "tint": "shadow" } } } },
-              "storyline": [ { "media": "/abs/run.mp4", "in": 0, "out": 3 }, { "media": "/abs/run.mp4", "in": 0, "out": 3 } ] }
+              "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "in": 0, "out": 3 }, { "kind": "media", "media": "/abs/run.mp4", "in": 0, "out": 3 } ] }
             """##)
 
         // When
@@ -201,7 +201,7 @@ struct ChoiceArgumentTests {
     ) throws {
         // Given
         let document = try Fixture.json(
-            ##"{ "kind": "sequence", "theme": { "defaults": \##(defaults) }, "storyline": [ { "solid": "#000000", "duration": 1 } ] }"##
+            ##"{ "kind": "sequence", "theme": { "defaults": \##(defaults) }, "storyline": [ { "kind": "solid", "color": "#000000", "duration": 1 } ] }"##
         )
 
         // When

@@ -19,8 +19,8 @@ struct GeometryPastMediaTests {
     @Test("a numeric crop past the media and the same region written {scale} draw the same picture")
     func drawsNumericCropAsScale() throws {
         // Given
-        let numeric = try resolved(#"{ "id": "screen", "media": "/abs/screen.mp4", "crop": [-603, -1311, 2412, 5244] }"#)
-        let scaled = try resolved(#"{ "id": "screen", "media": "/abs/screen.mp4", "crop": { "scale": 0.5 } }"#)
+        let numeric = try resolved(#"{ "id": "screen", "kind": "media", "media": "/abs/screen.mp4", "crop": [-603, -1311, 2412, 5244] }"#)
+        let scaled = try resolved(#"{ "id": "screen", "kind": "media", "media": "/abs/screen.mp4", "crop": { "scale": 0.5 } }"#)
 
         // When
         let numericList = sut.displayList(of: numeric, at: 0.5)
@@ -35,8 +35,8 @@ struct GeometryPastMediaTests {
     func drawsRectPastMedia() throws {
         // Given
         let sequence = try resolved(#"""
-            { "id": "screen", "media": "/abs/screen.mp4", "connected": [
-              { "parent": "screen", "shape": "rect", "area": [1000, 330, 400, 60], "stroke": { "width": 8 } } ] }
+            { "id": "screen", "kind": "media", "media": "/abs/screen.mp4", "connected": [
+              { "parent": "screen", "kind": "rect", "area": [1000, 330, 400, 60], "stroke": { "width": 8 } } ] }
             """#)
 
         // When
@@ -55,7 +55,7 @@ struct GeometryPastMediaTests {
     func refusesCropOutsideMedia() throws {
         // When, Then
         let error = #expect(throws: ResolveError.self) {
-            try resolved(#"{ "media": "/abs/screen.mp4", "crop": [2000, 0, 603, 1311] }"#)
+            try resolved(#"{ "kind": "media", "media": "/abs/screen.mp4", "crop": [2000, 0, 603, 1311] }"#)
         }
         #expect(error?.description == "storyline[0].crop (video): never visible, since its crop conformed to its box is [2000, 0, 603, 1311], which lies wholly outside its media of 1206x2622")
     }

@@ -22,7 +22,7 @@ package enum BaseTheme {
           "border":    { "width": 4, "color": "accent", "align": "inside" },
           "shadow":    { "radius": 32, "offset": [0, 12], "color": "shadow" },
           "defaults":  { "transition": "cut", "filter": "none",
-                         "animation": { "title": {}, "shape": "none", "media": "none", "adjust": "none" } }
+                         "animation": { "title": {}, "shape": "none", "media": "none", "adjustment": "none" } }
         }
         """
     // The text above is fixed and well formed, so reading it cannot fail.

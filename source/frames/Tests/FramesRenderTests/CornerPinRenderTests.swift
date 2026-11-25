@@ -133,7 +133,7 @@ struct CornerPinRenderTests {
         // horizon through the box.
         let document = try DocumentResolver().resolve(##"""
             { "kind": "sequence", "format": { "size": [1024, 1024], "fps": 10, "background": "#00000000", "colorSpace": "srgb" },
-              "storyline": [ { "media": "\##(path)", "duration": 1,
+              "storyline": [ { "kind": "media", "media": "\##(path)", "duration": 1,
                                "keyframes": [ { "at": 0, "cornerPin": [[100, 100], [900, 100], [900, 900], [100, 900]], "ease": "linear" },
                                               { "at": 1, "cornerPin": [[900, 100], [100, 100], [300, 900], [700, 900]] } ] } ] }
             """##)
@@ -158,9 +158,9 @@ struct CornerPinRenderTests {
         try CornerPinStill.grid.write(to: path)
         let document = try DocumentResolver().resolve(##"""
             { "kind": "sequence", "format": { "size": [1024, 1024], "fps": 10, "background": "#00000000", "colorSpace": "srgb" },
-              "storyline": [ { "media": "\##(path)", "duration": 1, "opacity": 0 } ],
-              "clips": [ { "id": "card", "media": "\##(path)", "width": 1024, "at": [0, 1], "cornerPin": \##(written(Self.steep)) },
-                         { "id": "dot", "shape": "rect", "area": [700, 100, 200, 100], "fill": "#FF0000", "parent": "card", "at": [0, 1] } ] }
+              "storyline": [ { "kind": "media", "media": "\##(path)", "duration": 1, "opacity": 0 } ],
+              "clips": [ { "id": "card", "kind": "media", "media": "\##(path)", "width": 1024, "at": [0, 1], "cornerPin": \##(written(Self.steep)) },
+                         { "id": "dot", "kind": "rect", "area": [700, 100, 200, 100], "fill": "#FF0000", "parent": "card", "at": [0, 1] } ] }
             """##)
         let sut = QuartzRenderer(decoder: AVFoundationDecoder())
 
@@ -239,8 +239,8 @@ struct CornerPinRenderTests {
     ) -> String {
         #"""
             { "kind": "sequence", "format": { "size": [640, 640], "fps": 10, "background": "#00000000", "colorSpace": "srgb" },
-              "storyline": [ { "solid": "#00000000", "duration": 1 } ],
-              "clips": [ { "media": { "file": "\#(path)", "page": 1 }, "at": [0, 1], \#(keys) } ] }
+              "storyline": [ { "kind": "solid", "color": "#00000000", "duration": 1 } ],
+              "clips": [ { "kind": "media", "media": { "file": "\#(path)", "page": 1 }, "at": [0, 1], \#(keys) } ] }
             """#
     }
 
@@ -253,7 +253,7 @@ struct CornerPinRenderTests {
 
         return ##"""
             { "kind": "sequence", "format": { "size": [1024, 1024], "fps": 10, "background": "#00000000", "colorSpace": "srgb" },
-              "storyline": [ { "media": "\##(path)", "duration": 1\##(pin) } ] }
+              "storyline": [ { "kind": "media", "media": "\##(path)", "duration": 1\##(pin) } ] }
             """##
     }
 
@@ -262,8 +262,8 @@ struct CornerPinRenderTests {
         #"""
             { "kind": "sequence", "format": { "size": [640, 640], "fps": 10, "background": "#00000000", "colorSpace": "srgb" },
               "theme": { "baseWidth": 640, "styles": { "headline": { "size": 100, "color": "#FFFFFF" } } },
-              "storyline": [ { "solid": "#00000000", "duration": 1 } ],
-              "clips": [ { "title": "I", "style": "headline", "at": [0, 1], \#(keys) } ] }
+              "storyline": [ { "kind": "solid", "color": "#00000000", "duration": 1 } ],
+              "clips": [ { "kind": "title", "text": "I", "style": "headline", "at": [0, 1], \#(keys) } ] }
             """#
     }
 

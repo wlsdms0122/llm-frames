@@ -24,7 +24,7 @@ struct TitleGroupTests {
     @Test("a title by word draws one picture of a list the frame's size: its background, then each layer's pass over its units in reading order")
     func drawsGroup() throws {
         // Given
-        let clip = try resolvedClip(#"{ "title": "ab cd", "style": "caption", "position": [400, 225] }"#)
+        let clip = try resolvedClip(#"{ "kind": "title", "text": "ab cd", "style": "caption", "position": [400, 225] }"#)
         let byWord = animated(clip, entrance: fade, stagger: 0.1)
         let whole = animated(clip, entrance: fade, stagger: nil)
 
@@ -64,7 +64,7 @@ struct TitleGroupTests {
     func revealsEachUnit() throws {
         // Given
         let wipe = Span(ease: .linear, keys: [SpanKey(t: 0, values: [.reveal: 0]), SpanKey(t: 1, values: [.reveal: 1])])
-        let clip = try resolvedClip(#"{ "title": "ab cd", "style": "caption", "position": [400, 225] }"#)
+        let clip = try resolvedClip(#"{ "kind": "title", "text": "ab cd", "style": "caption", "position": [400, 225] }"#)
         let text = try title(of: clip)
 
         // When
@@ -91,7 +91,7 @@ struct TitleGroupTests {
         // Given
         let wipe = Span(ease: .linear, keys: [SpanKey(t: 0, values: [.reveal: 0]), SpanKey(t: 1, values: [.reveal: 1])])
         let clip = try resolvedClip(#"""
-            { "title": "ab cd", "style": "caption", "position": [400, 225],
+            { "kind": "title", "text": "ab cd", "style": "caption", "position": [400, 225],
               "character": { "highlight": { "color": "#FF0000", "padding": [4, 10] } } }
             """#)
         let text = try title(of: clip)
@@ -129,7 +129,7 @@ struct TitleGroupTests {
     func wipesStrokeUnderTitleScale(at time: Double) throws {
         // Given
         let wipe = Span(ease: .linear, keys: [SpanKey(t: 0, values: [.reveal: 0]), SpanKey(t: 1, values: [.reveal: 1])])
-        let clip = try resolvedClip(#"{ "title": "ab cd", "style": "caption", "position": [400, 225], "scale": [2, 1] }"#)
+        let clip = try resolvedClip(#"{ "kind": "title", "text": "ab cd", "style": "caption", "position": [400, 225], "scale": [2, 1] }"#)
         let animation = animated(clip, entrance: AnimationSpan(length: 0.5, span: wipe), stagger: 0.5)
 
         // When
@@ -157,7 +157,7 @@ struct TitleGroupTests {
     func wipesStrokeUnderParentScale(at time: Double) throws {
         // Given
         let wipe = Span(ease: .linear, keys: [SpanKey(t: 0, values: [.reveal: 0]), SpanKey(t: 1, values: [.reveal: 1])])
-        let clip = try resolvedClip(#"{ "title": "ab cd", "style": "caption", "position": [400, 225] }"#)
+        let clip = try resolvedClip(#"{ "kind": "title", "text": "ab cd", "style": "caption", "position": [400, 225] }"#)
         let animation = animated(clip, entrance: AnimationSpan(length: 0.5, span: wipe), stagger: 0.5)
         let parent = ClipSpace(frame: Self.frame, transform: AffineTransform(scale: 0.5, about: Point(x: 0, y: 0)))
 
@@ -181,7 +181,7 @@ struct TitleGroupTests {
         // Given
         let slide = Span(ease: .linear, keys: [SpanKey(t: 0, values: [.x: 1]), SpanKey(t: 1, values: [.x: 0])])
         let clip = try resolvedClip(#"""
-            { "title": "ab cd", "style": "caption", "position": [400, 225],
+            { "kind": "title", "text": "ab cd", "style": "caption", "position": [400, 225],
               "character": { "highlight": { "color": "#FF0000" } } }
             """#)
         let text = try title(of: clip)
@@ -222,7 +222,7 @@ struct TitleGroupTests {
     func carriesPiecesOnBothLines() throws {
         // Given
         let clip = try resolvedClip(#"""
-            { "title": "ab cd ef", "style": "caption", "position": [400, 225], "width": 100,
+            { "kind": "title", "text": "ab cd ef", "style": "caption", "position": [400, 225], "width": 100,
               "character": { "highlight": { "color": "#FF0000" } } }
             """#)
 
@@ -256,7 +256,7 @@ struct TitleGroupTests {
     @Test("a title by word plays its units in the order its resolved animation names: under `backward` the last word fades in first")
     func playsUnitsInResolvedOrder() throws {
         // Given
-        let clip = try resolvedClip(#"{ "title": "ab cd", "style": "caption", "position": [400, 225] }"#)
+        let clip = try resolvedClip(#"{ "kind": "title", "text": "ab cd", "style": "caption", "position": [400, 225] }"#)
 
         // When
         let forward = try group(of: animated(clip, entrance: fade, stagger: 0.5), at: 0.125)
@@ -272,7 +272,7 @@ struct TitleGroupTests {
     func drawsRightToLeftUnitsAsWhole() throws {
         // Given
         let clip = try resolvedClip(#"""
-            { "title": "אב גד", "style": "caption", "position": [400, 225],
+            { "kind": "title", "text": "אב גד", "style": "caption", "position": [400, 225],
               "character": { "highlight": { "color": "#FF0000" } } }
             """#)
         let text = try title(of: clip)
@@ -309,7 +309,7 @@ struct TitleGroupTests {
     func movesRightToLeftUnitsByTracking() throws {
         // Given
         let clip = try resolvedClip(#"""
-            { "title": "אב גד", "style": "caption", "position": [400, 225],
+            { "kind": "title", "text": "אב גד", "style": "caption", "position": [400, 225],
               "character": { "highlight": { "color": "#FF0000" } },
               "keyframes": [ { "at": 0, "character": { "tracking": 0 } }, { "at": 2, "character": { "tracking": 100 } } ] }
             """#)
@@ -337,7 +337,7 @@ struct TitleGroupTests {
     func movesPartsOfWordLyingApart() throws {
         // Given
         let clip = try resolvedClip(#"""
-            { "title": "aב ג", "style": "caption", "position": [400, 225],
+            { "kind": "title", "text": "aב ג", "style": "caption", "position": [400, 225],
               "character": { "highlight": { "color": "#FF0000" } },
               "keyframes": [ { "at": 0, "character": { "tracking": 0 } }, { "at": 2, "character": { "tracking": 100 } } ] }
             """#)
@@ -367,7 +367,7 @@ struct TitleGroupTests {
     @Test("every glyph of a title by word is drawn by one unit, a line's hanging space by its last unit, whose extent holds it")
     func drawsHangingSpaceByLastUnit() throws {
         // Given
-        let clip = try resolvedClip(#"{ "title": "ab cd ", "style": "caption", "position": [400, 225] }"#)
+        let clip = try resolvedClip(#"{ "kind": "title", "text": "ab cd ", "style": "caption", "position": [400, 225] }"#)
 
         // When
         let list = try group(of: animated(clip, entrance: fade, stagger: 0.1), at: 1)
@@ -385,7 +385,7 @@ struct TitleGroupTests {
     @Test("a title by word with no character draws one item of every step, as a title not animated by unit")
     func drawsTitleWithoutUnitAsOne() throws {
         // Given
-        let clip = try resolvedClip(#"{ "title": "  ", "style": "caption", "position": [400, 225] }"#)
+        let clip = try resolvedClip(#"{ "kind": "title", "text": "  ", "style": "caption", "position": [400, 225] }"#)
         let text = try title(of: clip)
 
         // When
@@ -411,7 +411,7 @@ struct TitleGroupTests {
         // Given
         let keys = [SpanKey(t: 0, values: [.reveal: 0.5]), SpanKey(t: 1, values: [.reveal: 0.5])]
         let half = Span(ease: .linear, keys: keys)
-        let clip = try resolvedClip(#"{ "title": "ab cd", "style": "caption", "position": [400, 225] }"#)
+        let clip = try resolvedClip(#"{ "kind": "title", "text": "ab cd", "style": "caption", "position": [400, 225] }"#)
         let animation = { (stagger: Double?) in
             self.animated(clip, entrance: self.fade, loop: AnimationSpan(length: 1, span: half), stagger: stagger)
         }
@@ -434,7 +434,7 @@ struct TitleGroupTests {
         // Given
         let whole = Span(ease: .linear, keys: [SpanKey(t: 0, values: [.reveal: 1]), SpanKey(t: 1, values: [.reveal: 1])])
         let grow = Span(ease: .linear, keys: [SpanKey(t: 0, values: [.scale: 0.2]), SpanKey(t: 1, values: [.scale: 1])])
-        let clip = try resolvedClip(#"{ "title": "ab cd", "style": "caption", "position": [400, 225] }"#)
+        let clip = try resolvedClip(#"{ "kind": "title", "text": "ab cd", "style": "caption", "position": [400, 225] }"#)
         let animated = animated(
             clip,
             entrance: AnimationSpan(length: 0.5, span: grow),
@@ -465,7 +465,7 @@ struct TitleGroupTests {
     func readsGroupBack() throws {
         // Given
         let clip = try resolvedClip(#"""
-            { "title": "ab cd", "style": "caption", "position": [400, 225],
+            { "kind": "title", "text": "ab cd", "style": "caption", "position": [400, 225],
               "character": { "highlight": { "color": "#FF0000" }, "underline": true } }
             """#)
         let list = DisplayList(
@@ -486,9 +486,9 @@ struct TitleGroupTests {
     @Test("a title's units cover what they draw, the spaces after their words included, and its background item only its background, or nothing")
     func flattensGroup() throws {
         // Given
-        let plain = try resolvedClip(#"{ "title": "ab cd", "style": "caption", "position": [400, 225] }"#)
+        let plain = try resolvedClip(#"{ "kind": "title", "text": "ab cd", "style": "caption", "position": [400, 225] }"#)
         let boxed = try resolvedClip(#"""
-            { "title": "ab cd", "style": "caption", "position": [400, 225],
+            { "kind": "title", "text": "ab cd", "style": "caption", "position": [400, 225],
               "paragraph": { "background": { "color": "#FFFFFF" } } }
             """#)
         let flattener = DisplayListFlattener()
@@ -620,7 +620,7 @@ struct TitleGroupTests {
         #"""
             { "kind": "sequence", "format": { "size": [1920, 1080] },
               "theme": { "styles": { "caption": { "size": 40, "color": "#000000", "stroke": { "width": 4, "color": "#000000" } } } },
-              "storyline": [ { "media": "/abs/screen.mp4" } ],
+              "storyline": [ { "kind": "media", "media": "/abs/screen.mp4" } ],
               "clips": [ \#(clip.dropLast(1)), "animation": { "preset": "frames/fade", "by": "word" }, "at": [0, 2] } ] }
             """#
     }

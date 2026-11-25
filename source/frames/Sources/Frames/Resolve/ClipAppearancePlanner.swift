@@ -378,12 +378,12 @@ struct ClipAppearancePlanner: Sendable {
     }
 
     // A solid's colour, timed over its static value, which a keyframe's `null` points at.
-    func solid(
+    func color(
         of written: StorylineClip,
         plan: StorylinePlan,
         theme: MergedTheme
     ) throws -> [Keyframe<Color>]? {
-        guard let solid = written.solid else { return nil }
+        guard let color = written.color else { return nil }
 
         let looks = ClipLookPlanner(
             place: written.place,
@@ -393,7 +393,7 @@ struct ClipAppearancePlanner: Sendable {
             scale: 1,
             theme: theme
         )
-        guard case let .track(keyframes) = try looks.timed(solid, key: "solid", as: LookStructureTable.solid) else {
+        guard case let .track(keyframes) = try looks.timed(color, key: "color", as: LookStructureTable.solid) else {
             return nil
         }
 

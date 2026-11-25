@@ -28,13 +28,13 @@ struct ResolvedDocumentWriterTests {
         { "kind": "sequence", "format": { "size": [1080, 1920] },
           "theme": { "styles": { "label": { "size": 36, "weight": "bold", "color": "#FFFFFF",
                                             "background": { "color": "#ED2929", "padding": [8, 16], "radius": 12 }, "lines": 1 } } },
-          "storyline": [ { "media": "/abs/run.mp4", "in": 2, "out": 8, "speed": 2, "filter": "mine/grade",
+          "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "in": 2, "out": 8, "speed": 2, "filter": "mine/grade",
                            "anchor": "top-left", "position": [0, 0], "blend": "screen", "border": true,
                            "keyframes": [ { "at": 2, "crop": [0, 0, 1080, 1920], "scale": 1 },
                                           { "at": 8, "crop": [45, 97, 990, 1760], "scale": 0.5 } ] } ],
-          "clips": [ { "title": "Hi", "style": "label", "at": [0, 3], "animation": "frames/pop", "position": [75.4, 1709.8] },
-                     { "media": "/abs/page.png", "at": [0, 3], "width": 200, "border": true },
-                     { "media": "/abs/bgm.m4a", "at": 0, "loop": true, "pan": -0.2,
+          "clips": [ { "kind": "title", "text": "Hi", "style": "label", "at": [0, 3], "animation": "frames/pop", "position": [75.4, 1709.8] },
+                     { "kind": "media", "media": "/abs/page.png", "at": [0, 3], "width": 200, "border": true },
+                     { "kind": "media", "media": "/abs/bgm.m4a", "at": 0, "loop": true, "pan": -0.2,
                        "keyframes": [ { "at": 0, "volume": 0.3 }, { "at": 2, "volume": 0.3 }, { "at": 3, "volume": 0 } ] } ] }
         """#
     private let resolvedSequence = #"""
@@ -60,11 +60,12 @@ struct ResolvedDocumentWriterTests {
             {
               "place": "storyline[0]",
               "id": null,
+              "kind": "media",
               "media": {
                 "file": "/abs/run.mp4",
                 "sha256": "9f2c41d07b3e"
               },
-              "solid": null,
+              "color": null,
               "colorSpace": null,
               "toneMap": true,
               "in": 2,
@@ -185,6 +186,7 @@ struct ResolvedDocumentWriterTests {
             {
               "place": "clips[0]",
               "id": null,
+              "kind": "title",
               "title": {
                 "size": [38.25, 29.25],
                 "textBox": [9, 4.5, 20.25, 20.25],
@@ -335,6 +337,7 @@ struct ResolvedDocumentWriterTests {
             {
               "place": "clips[1]",
               "id": null,
+              "kind": "media",
               "media": {
                 "file": "/abs/page.png",
                 "sha256": "5d17e0a9b2c4"

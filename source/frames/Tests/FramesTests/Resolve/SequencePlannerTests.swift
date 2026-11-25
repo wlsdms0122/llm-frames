@@ -23,7 +23,7 @@ struct SequencePlannerTests {
     func defaultsFormatToFirstVideo() throws {
         // When
         let plan = try plan(#"""
-            { "kind": "sequence", "storyline": [ { "media": "/abs/card.png", "duration": 1 }, { "media": "/abs/halfway.mp4" } ] }
+            { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/card.png", "duration": 1 }, { "kind": "media", "media": "/abs/halfway.mp4" } ] }
             """#)
 
         // Then
@@ -39,8 +39,8 @@ struct SequencePlannerTests {
     @Test(
         "without video the format defaults to the size of the first storyline clip, a compound clip's being its document's",
         arguments: [
-            (#"{ "media": "/abs/card.png", "duration": 1 }"#, Size(width: 1080, height: 1350)),
-            (##"{ "media": { "kind": "sequence", "format": { "size": [640, 480] }, "storyline": [ { "solid": "#000000", "duration": 1 } ] } }"##, Size(width: 640, height: 480))
+            (#"{ "kind": "media", "media": "/abs/card.png", "duration": 1 }"#, Size(width: 1080, height: 1350)),
+            (##"{ "kind": "media", "media": { "kind": "sequence", "format": { "size": [640, 480] }, "storyline": [ { "kind": "solid", "color": "#000000", "duration": 1 } ] } }"##, Size(width: 640, height: 480))
         ]
     )
     func defaultsFormatToFirstClip(
@@ -60,7 +60,7 @@ struct SequencePlannerTests {
         let plan = try plan(#"""
             { "kind": "sequence",
               "format": { "size": [1081, 1920], "fps": 60, "background": "accent", "conform": "fill" },
-              "storyline": [ { "media": "/abs/run.mp4" } ] }
+              "storyline": [ { "kind": "media", "media": "/abs/run.mp4" } ] }
             """#)
 
         // Then
@@ -77,7 +77,7 @@ struct SequencePlannerTests {
     func refusesFormatWithoutSize() throws {
         // Given
         let document = ##"""
-            { "kind": "sequence", "storyline": [ { "solid": "#000000", "duration": 1 }, { "media": "/abs/card.png", "duration": 1 } ] }
+            { "kind": "sequence", "storyline": [ { "kind": "solid", "color": "#000000", "duration": 1 }, { "kind": "media", "media": "/abs/card.png", "duration": 1 } ] }
             """##
 
         // When, Then
@@ -89,7 +89,7 @@ struct SequencePlannerTests {
     func findsStorylineCrop() throws {
         // When
         let plan = try plan(#"""
-            { "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4", "crop": [60, 60, 280, 120] }, { "media": "/abs/short.mp4", "crop": [0, 0, 540, 960] } ] }
+            { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/screen.mp4", "crop": [60, 60, 280, 120] }, { "kind": "media", "media": "/abs/short.mp4", "crop": [0, 0, 540, 960] } ] }
             """#)
 
         // Then
@@ -101,8 +101,8 @@ struct SequencePlannerTests {
     func keepsSequenceArea() throws {
         // When
         let plan = try plan(#"""
-            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4" } ],
-              "clips": [ { "shape": "rect", "stroke": { "width": 8 }, "area": [10, 20, 30, 40], "at": [0, 1] } ] }
+            { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4" } ],
+              "clips": [ { "kind": "rect", "stroke": { "width": 8 }, "area": [10, 20, 30, 40], "at": [0, 1] } ] }
             """#)
 
         // Then
@@ -113,9 +113,9 @@ struct SequencePlannerTests {
     func findsAreaPosition() throws {
         // When
         let plan = try plan(#"""
-            { "kind": "sequence", "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "connected": [
-                { "title": "a", "style": "title", "parent": "screen", "anchor": "right", "position": { "area": [86, 86, 228, 68], "point": "left" } },
-                { "title": "b", "style": "title", "position": [10, 20] } ] } ] }
+            { "kind": "sequence", "storyline": [ { "id": "screen", "kind": "media", "media": "/abs/screen.mp4", "connected": [
+                { "kind": "title", "text": "a", "style": "title", "parent": "screen", "anchor": "right", "position": { "area": [86, 86, 228, 68], "point": "left" } },
+                { "kind": "title", "text": "b", "style": "title", "position": [10, 20] } ] } ] }
             """#)
 
         // Then
@@ -127,8 +127,8 @@ struct SequencePlannerTests {
     func findsNumericAreaPosition() throws {
         // When
         let plan = try plan(#"""
-            { "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4" } ], "clips": [
-                { "title": "a", "style": "title", "at": [0, 1], "position": { "area": [10, 20, 100, 40], "point": "right" } } ] }
+            { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/screen.mp4" } ], "clips": [
+                { "kind": "title", "text": "a", "style": "title", "at": [0, 1], "position": { "area": [10, 20, 100, 40], "point": "right" } } ] }
             """#)
 
         // Then
@@ -138,15 +138,15 @@ struct SequencePlannerTests {
     @Test(
         "a numeric area under a shape or adjustment parent keeps what is written past the edges of the media it is in",
         arguments: [
-            #"{ "id": "parent", "shape": "rect", "stroke": { "width": 8 }, "parent": "screen", "area": [0, 0, 100, 100] }"#,
-            #"{ "id": "parent", "adjust": "mine/grade", "parent": "screen", "mask": { "shape": "rect", "area": [0, 0, 100, 100] } }"#
+            #"{ "id": "parent", "kind": "rect", "stroke": { "width": 8 }, "parent": "screen", "area": [0, 0, 100, 100] }"#,
+            #"{ "id": "parent", "kind": "adjustment", "adjust": "mine/grade", "parent": "screen", "mask": { "shape": "rect", "area": [0, 0, 100, 100] } }"#
         ]
     )
     func keepsAreaUnderShape(parent: String) throws {
         // When
         let plan = try plan(#"""
-            { "kind": "sequence", "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "connected": [
-                \#(parent), { "shape": "rect", "stroke": { "width": 8 }, "parent": "parent", "area": [-50, -50, 5000, 5000] } ] } ] }
+            { "kind": "sequence", "storyline": [ { "id": "screen", "kind": "media", "media": "/abs/screen.mp4", "connected": [
+                \#(parent), { "kind": "rect", "stroke": { "width": 8 }, "parent": "parent", "area": [-50, -50, 5000, 5000] } ] } ] }
             """#)
 
         // Then
@@ -161,9 +161,9 @@ struct SequencePlannerTests {
     func keepsAreaInSpace() throws {
         // When
         let plan = try plan(#"""
-            { "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4" } ], "clips": [
-                { "id": "name", "title": "a", "style": "title", "at": [0, 1], "position": [100, 100] },
-                { "shape": "rect", "stroke": { "width": 8 }, "at": [0, 1], "parent": "name", "area": [-50, -50, 5000, 5000] } ] }
+            { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/screen.mp4" } ], "clips": [
+                { "id": "name", "kind": "title", "text": "a", "style": "title", "at": [0, 1], "position": [100, 100] },
+                { "kind": "rect", "stroke": { "width": 8 }, "at": [0, 1], "parent": "name", "area": [-50, -50, 5000, 5000] } ] }
             """#)
 
         // Then
@@ -181,8 +181,8 @@ struct SequencePlannerTests {
 
         // When
         let plan = try sut.plan(Fixture.planner.plan(document: Fixture.json(#"""
-            { "kind": "sequence", "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "in": 1, "out": 3,
-              "connected": [ { "shape": "rect", "stroke": { "width": 8 }, "parent": "screen", "area": [100, 100, 200, 40], "at": [1.5, 2.5], "track": \#(track) } ] } ] }
+            { "kind": "sequence", "storyline": [ { "id": "screen", "kind": "media", "media": "/abs/screen.mp4", "in": 1, "out": 3,
+              "connected": [ { "kind": "rect", "stroke": { "width": 8 }, "parent": "screen", "area": [100, 100, 200, 40], "at": [1.5, 2.5], "track": \#(track) } ] } ] }
             """#)))
 
         // Then
@@ -196,8 +196,8 @@ struct SequencePlannerTests {
         // Given
         let time = { (track: String) in
             try Fixture.planner.plan(document: Fixture.json(#"""
-                { "kind": "sequence", "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "in": 1, "out": 3,
-                  "connected": [ { "shape": "rect", "stroke": { "width": 8 }, "parent": "screen", "area": [100, 100, 200, 40], "at": [1.5, 2.5], "track": \#(track),
+                { "kind": "sequence", "storyline": [ { "id": "screen", "kind": "media", "media": "/abs/screen.mp4", "in": 1, "out": 3,
+                  "connected": [ { "kind": "rect", "stroke": { "width": 8 }, "parent": "screen", "area": [100, 100, 200, 40], "at": [1.5, 2.5], "track": \#(track),
                                    "keyframes": [ { "at": 2.2, "opacity": 0 }, { "at": 2.4, "opacity": 1 } ] } ] } ] }
                 """#))
         }
@@ -212,15 +212,15 @@ struct SequencePlannerTests {
         "a leaf whose keyframes all lie outside the range its clip shows in stops",
         arguments: [
             (
-                #"{ "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "in": 2, "out": 8, "keyframes": [ { "at": 9, "crop": { "scale": 1 } }, { "at": 10, "crop": { "scale": 2 } } ] } ] }"#,
+                #"{ "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "in": 2, "out": 8, "keyframes": [ { "at": 9, "crop": { "scale": 1 } }, { "at": 10, "crop": { "scale": 2 } } ] } ] }"#,
                 #"storyline[0].keyframes (video): every keyframe of "crop" lies outside [0, 6), so only one of its values would ever show"#
             ),
             (
-                ##"{ "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "in": 2, "out": 8, "keyframes": [ { "at": 1, "shadow": { "radius": 2 } }, { "at": 2, "shadow": { "radius": 4 } }, { "at": 9, "shadow": { "color": "#FF0000" } }, { "at": 10, "shadow": { "color": "#000000" } } ] } ] }"##,
+                ##"{ "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "in": 2, "out": 8, "keyframes": [ { "at": 1, "shadow": { "radius": 2 } }, { "at": 2, "shadow": { "radius": 4 } }, { "at": 9, "shadow": { "color": "#FF0000" } }, { "at": 10, "shadow": { "color": "#000000" } } ] } ] }"##,
                 #"storyline[0].keyframes (video): every keyframe of "shadow.color" lies outside [0, 6), so only one of its values would ever show"#
             ),
             (
-                #"{ "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "connected": [ { "at": [2, 4], "title": "a", "style": "subtitle", "keyframes": [ { "at": 6, "opacity": 0 }, { "at": 7, "opacity": 1 } ] } ] } ] }"#,
+                #"{ "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "connected": [ { "at": [2, 4], "kind": "title", "text": "a", "style": "subtitle", "keyframes": [ { "at": 6, "opacity": 0 }, { "at": 7, "opacity": 1 } ] } ] } ] }"#,
                 #"storyline[0].connected[0].keyframes (title): every keyframe of "opacity" lies outside [2, 4), so only one of its values would ever show"#
             )
         ]
@@ -247,8 +247,8 @@ struct SequencePlannerTests {
 
         // When
         let plan = try plan(#"""
-            { "kind": "sequence", "theme": { "styles": { "caption": { "size": 60 } } }, "storyline": [ { "media": "/abs/screen.mp4" } ],
-              "clips": [ { "title": "\#(word) \#(word)", "style": "caption", "placement": "top", "at": [0, 1]\#(width) } ] }
+            { "kind": "sequence", "theme": { "styles": { "caption": { "size": 60 } } }, "storyline": [ { "kind": "media", "media": "/abs/screen.mp4" } ],
+              "clips": [ { "kind": "title", "text": "\#(word) \#(word)", "style": "caption", "placement": "top", "at": [0, 1]\#(width) } ] }
             """#)
 
         // Then
@@ -260,8 +260,8 @@ struct SequencePlannerTests {
         // When
         let plan = try plan(#"""
             { "kind": "sequence", "format": { "size": [3840, 5244] }, "theme": { "styles": { "caption": { "size": 38, "lineHeight": 64 } } },
-              "storyline": [ { "media": "/abs/screen.mp4" } ],
-              "clips": [ { "title": "a", "style": "caption", "placement": "top", "at": [0, 1] } ] }
+              "storyline": [ { "kind": "media", "media": "/abs/screen.mp4" } ],
+              "clips": [ { "kind": "title", "text": "a", "style": "caption", "placement": "top", "at": [0, 1] } ] }
             """#)
 
         // Then
@@ -277,8 +277,8 @@ struct SequencePlannerTests {
               "theme": { "colors": { "accent": "#FFD43B" },
                          "styles": { "caption": { "size": 40, "stroke": { "width": 4, "color": "#000000" } },
                                      "small": { "size": 20 } } },
-              "storyline": [ { "media": "/abs/screen.mp4" } ],
-              "clips": [ { "title": [ { "text": "a " }, { "text": "b", "style": "small" } ], "style": "caption",
+              "storyline": [ { "kind": "media", "media": "/abs/screen.mp4" } ],
+              "clips": [ { "kind": "title", "text": [ { "text": "a " }, { "text": "b", "style": "small" } ], "style": "caption",
                            "character": { "color": "accent", "stroke": { "width": 2 } },
                            "placement": "top", "at": [0, 1] } ] }
             """#)
@@ -299,10 +299,10 @@ struct SequencePlannerTests {
             { "kind": "sequence", "format": { "size": [1920, 1080] },
               "theme": { "styles": { "caption": { "size": 40, "textOrientation": "sideways" },
                                      "date": { "size": 40, "textCombineUpright": "all" } } },
-              "storyline": [ { "media": "/abs/screen.mp4" } ],
-              "clips": [ { "title": [ { "text": "NHK" }, { "text": "12", "style": "date" } ], "style": "caption",
+              "storyline": [ { "kind": "media", "media": "/abs/screen.mp4" } ],
+              "clips": [ { "kind": "title", "text": [ { "text": "NHK" }, { "text": "12", "style": "date" } ], "style": "caption",
                            "character": { "textOrientation": "upright" }, "placement": "top", "at": [0, 1] },
-                         { "title": [ { "text": "NHK" }, { "text": "12", "style": "date" } ], "style": "caption",
+                         { "kind": "title", "text": [ { "text": "NHK" }, { "text": "12", "style": "date" } ], "style": "caption",
                            "placement": "top", "at": [0, 1] } ] }
             """#)
 
@@ -321,8 +321,8 @@ struct SequencePlannerTests {
             { "kind": "sequence", "format": { "size": [1920, 1080] },
               "theme": { "styles": { "caption": { "size": 40, "align": "left",
                                                   "background": { "color": "#000000", "padding": [10, 20] } } } },
-              "storyline": [ { "media": "/abs/screen.mp4" } ],
-              "clips": [ { "title": "a\nb", "style": "caption", "width": 200, "character": { "size": 80 },
+              "storyline": [ { "kind": "media", "media": "/abs/screen.mp4" } ],
+              "clips": [ { "kind": "title", "text": "a\nb", "style": "caption", "width": 200, "character": { "size": 80 },
                            "paragraph": { "align": "right", "background": { "radius": 6 } },
                            "placement": "top", "at": [0, 1] } ] }
             """#)
@@ -344,10 +344,10 @@ struct SequencePlannerTests {
         let plan = try plan(#"""
             { "kind": "sequence", "format": { "size": [1920, 1080] },
               "theme": { "styles": { "caption": { "size": 40 } } },
-              "storyline": [ { "media": "/abs/screen.mp4" } ],
-              "clips": [ { "title": "ab", "style": "caption", "width": 200, "paragraph": { "direction": "rtl" },
+              "storyline": [ { "kind": "media", "media": "/abs/screen.mp4" } ],
+              "clips": [ { "kind": "title", "text": "ab", "style": "caption", "width": 200, "paragraph": { "direction": "rtl" },
                            "placement": "top", "at": [0, 1] },
-                         { "title": "ab", "style": "caption", "width": 200, "placement": "top", "at": [0, 1] } ] }
+                         { "kind": "title", "text": "ab", "style": "caption", "width": 200, "placement": "top", "at": [0, 1] } ] }
             """#)
 
         // Then
@@ -363,10 +363,10 @@ struct SequencePlannerTests {
         let plan = try plan(#"""
             { "kind": "sequence", "format": { "size": [1920, 1080] },
               "theme": { "styles": { "caption": { "size": 40, "writingMode": "vertical-lr" } } },
-              "storyline": [ { "media": "/abs/screen.mp4" } ],
-              "clips": [ { "title": "ab", "style": "caption", "paragraph": { "writingMode": "vertical-rl" },
+              "storyline": [ { "kind": "media", "media": "/abs/screen.mp4" } ],
+              "clips": [ { "kind": "title", "text": "ab", "style": "caption", "paragraph": { "writingMode": "vertical-rl" },
                            "placement": "top", "at": [0, 1] },
-                         { "title": "ab", "style": "caption", "placement": "top", "at": [0, 1] } ] }
+                         { "kind": "title", "text": "ab", "style": "caption", "placement": "top", "at": [0, 1] } ] }
             """#)
 
         // Then
@@ -378,8 +378,8 @@ struct SequencePlannerTests {
     func refusesCharacterStrokeWithoutWidth() throws {
         // Given
         let document = #"""
-            { "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4" } ],
-              "clips": [ { "title": "Hi", "style": "title", "character": { "stroke": { "color": "#FF0000" } },
+            { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/screen.mp4" } ],
+              "clips": [ { "kind": "title", "text": "Hi", "style": "title", "character": { "stroke": { "color": "#FF0000" } },
                            "position": [400, 225], "at": [0, 1] } ] }
             """#
 
@@ -391,8 +391,8 @@ struct SequencePlannerTests {
     func refusesUnknownTitleStyle() throws {
         // Given
         let document = #"""
-            { "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4" } ],
-              "clips": [ { "title": "Hi", "style": "nope", "position": [400, 225], "at": [0, 1] } ] }
+            { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/screen.mp4" } ],
+              "clips": [ { "kind": "title", "text": "Hi", "style": "nope", "position": [400, 225], "at": [0, 1] } ] }
             """#
 
         // When, Then
@@ -405,13 +405,13 @@ struct SequencePlannerTests {
     func refusesUnknownRunStyle() throws {
         // Given
         let document = #"""
-            { "kind": "sequence", "theme": { "styles": { "caption": { "size": 60 } } }, "storyline": [ { "media": "/abs/screen.mp4" } ],
-              "clips": [ { "title": [ { "text": "a" }, { "text": "b", "style": "nope" } ], "style": "caption", "placement": "top", "at": [0, 1] } ] }
+            { "kind": "sequence", "theme": { "styles": { "caption": { "size": 60 } } }, "storyline": [ { "kind": "media", "media": "/abs/screen.mp4" } ],
+              "clips": [ { "kind": "title", "text": [ { "text": "a" }, { "text": "b", "style": "nope" } ], "style": "caption", "placement": "top", "at": [0, 1] } ] }
             """#
 
         // When, Then
         let error = #expect(throws: ThemeError.self) { try plan(document) }
-        #expect(error?.description == #"clips[0].title[1].style (title): style "nope" is not in styles, "#
+        #expect(error?.description == #"clips[0].text[1].style (title): style "nope" is not in styles, "#
             + #"which hold "caption", "subtitle", "title""#)
     }
 
@@ -425,8 +425,8 @@ struct SequencePlannerTests {
               "theme": { "styles": { "caption": { "size": 60, "lineHeight": 100 },
                                      "big": { "size": 80, "lineHeight": 400, "lines": 1, "align": "right",
                                               "background": { "color": "#000000", "padding": [10, 10], "radius": 4 } } } },
-              "storyline": [ { "media": "/abs/screen.mp4" } ],
-              "clips": [ { "title": [ { "text": "a\n", "style": "big" }, { "text": "b" } ], "style": "caption", "placement": "top", "at": [0, 1] } ] }
+              "storyline": [ { "kind": "media", "media": "/abs/screen.mp4" } ],
+              "clips": [ { "kind": "title", "text": [ { "text": "a\n", "style": "big" }, { "text": "b" } ], "style": "caption", "placement": "top", "at": [0, 1] } ] }
             """#)
 
         // Then
@@ -444,8 +444,8 @@ struct SequencePlannerTests {
     func refusesRemovedTitleStyle(_ style: String) throws {
         // Given
         let document = #"""
-            { "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4" } ],
-              "clips": [ { "title": "Hi", "style": "\#(style)", "position": [400, 225], "at": [0, 1] } ] }
+            { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/screen.mp4" } ],
+              "clips": [ { "kind": "title", "text": "Hi", "style": "\#(style)", "position": [400, 225], "at": [0, 1] } ] }
             """#
 
         // When, Then
@@ -459,8 +459,8 @@ struct SequencePlannerTests {
         // When
         let plan = try plan(#"""
             { "kind": "sequence", "theme": { "styles": { "callout": { "size": 40 } } },
-              "storyline": [ { "media": "/abs/screen.mp4" } ],
-              "clips": [ { "title": "a", "style": "callout", "position": [400, 225], "at": [0, 1] } ] }
+              "storyline": [ { "kind": "media", "media": "/abs/screen.mp4" } ],
+              "clips": [ { "kind": "title", "text": "a", "style": "callout", "position": [400, 225], "at": [0, 1] } ] }
             """#)
 
         // Then
@@ -470,11 +470,11 @@ struct SequencePlannerTests {
     @Test("a nested document is planned on its own, with its own format, for a storyline clip and another clip")
     func plansNested() throws {
         // Given
-        let nested = ##"{ "kind": "sequence", "format": { "size": [640, 480] }, "storyline": [ { "solid": "#000000", "duration": 1 } ] }"##
+        let nested = ##"{ "kind": "sequence", "format": { "size": [640, 480] }, "storyline": [ { "kind": "solid", "color": "#000000", "duration": 1 } ] }"##
 
         // When
         let plan = try plan(#"""
-            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "connected": [ { "media": \#(nested), "at": 0 } ] }, { "media": \#(nested) } ] }
+            { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "connected": [ { "kind": "media", "media": \#(nested), "at": 0 } ] }, { "kind": "media", "media": \#(nested) } ] }
             """#)
 
         // Then
@@ -489,12 +489,12 @@ struct SequencePlannerTests {
         // Given
         let document = #"""
             { "kind": "sequence", "format": { "size": [2160, 3840] },
-              "storyline": [ { "media": "/abs/run.mp4", "in": 2, "out": 8, "filter": "mine/grade", "connected": [
-                { "title": "a", "style": "title", "placement": "top", "at": [3, 5], "blend": "screen", "scale": 2,
+              "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "in": 2, "out": 8, "filter": "mine/grade", "connected": [
+                { "kind": "title", "text": "a", "style": "title", "placement": "top", "at": [3, 5], "blend": "screen", "scale": 2,
                   "keyframes": [ { "at": 3, "opacity": 0 }, { "at": 4, "opacity": 1, "ease": "ease-in" } ] } ] } ],
               "clips": [
-                { "shape": "rect", "stroke": { "width": 8 }, "area": [0, 0, 10, 10], "at": [0, 1] },
-                { "adjust": ["mine/grade"], "mask": { "shape": "rect", "area": [0, 0, 10, 10] }, "at": [0, 1] } ] }
+                { "kind": "rect", "stroke": { "width": 8 }, "area": [0, 0, 10, 10], "at": [0, 1] },
+                { "kind": "adjustment", "adjust": ["mine/grade"], "mask": { "shape": "rect", "area": [0, 0, 10, 10] }, "at": [0, 1] } ] }
             """#
 
         // When
@@ -540,7 +540,7 @@ struct SequencePlannerTests {
     func fillsFrameByDefault() throws {
         // When
         let plan = try plan(#"""
-            { "kind": "sequence", "format": { "size": [1080, 1920] }, "storyline": [ { "media": "/abs/run.mp4" } ] }
+            { "kind": "sequence", "format": { "size": [1080, 1920] }, "storyline": [ { "kind": "media", "media": "/abs/run.mp4" } ] }
             """#)
 
         // Then
@@ -561,7 +561,7 @@ struct SequencePlannerTests {
         // Given
         let document = #"""
             { "kind": "sequence", "format": { "size": [1080, 1920] },
-              "storyline": [ { "media": "/abs/run.mp4", "in": 2, "out": 8, "anchor": "top-left", "rotation": 90, "blend": "screen",
+              "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "in": 2, "out": 8, "anchor": "top-left", "rotation": 90, "blend": "screen",
                                "radius": 12, "border": true, "shadow": true,
                                "keyframes": [ { "at": 3, "position": [0, 0], "scale": 1 }, { "at": 5, "position": [540, 960], "scale": 0.5 } ] } ] }
             """#
@@ -601,7 +601,7 @@ struct SequencePlannerTests {
     func refusesUnknownFilter() throws {
         // Given
         let document = #"""
-            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "filter": ["mine/grade", "mine/cold"] } ] }
+            { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "filter": ["mine/grade", "mine/cold"] } ] }
             """#
 
         // When, Then
@@ -613,8 +613,8 @@ struct SequencePlannerTests {
     func resolvesMaskForms() throws {
         // When
         let plan = try plan(#"""
-            { "kind": "sequence", "format": { "size": [3840, 2160] }, "storyline": [ { "media": "/abs/run.mp4" } ], "clips": [
-                { "adjust": "frames/warm", "at": [0, 1], "mask": [
+            { "kind": "sequence", "format": { "size": [3840, 2160] }, "storyline": [ { "kind": "media", "media": "/abs/run.mp4" } ], "clips": [
+                { "kind": "adjustment", "adjust": "frames/warm", "at": [0, 1], "mask": [
                     { "shape": "rect", "area": [10, 20, 100, 50], "radius": 6, "feather": 3, "invert": true, "mode": "subtract" },
                     { "shape": "ellipse", "area": [0, 0, 40, 20] },
                     { "shape": "rect", "width": 100, "height": 40, "position": [200, 300] },
@@ -641,8 +641,8 @@ struct SequencePlannerTests {
     func resolvesKeyframedMasks() throws {
         // When
         let plan = try plan(#"""
-            { "kind": "sequence", "format": { "size": [1920, 1080] }, "storyline": [ { "media": "/abs/run.mp4" } ], "clips": [
-                { "adjust": "frames/warm", "at": [0, 4], "mask": [ { "shape": "rect" }, { "shape": "path", "mode": "subtract" } ], "keyframes": [
+            { "kind": "sequence", "format": { "size": [1920, 1080] }, "storyline": [ { "kind": "media", "media": "/abs/run.mp4" } ], "clips": [
+                { "kind": "adjustment", "adjust": "frames/warm", "at": [0, 4], "mask": [ { "shape": "rect" }, { "shape": "path", "mode": "subtract" } ], "keyframes": [
                     { "at": 1, "ease": "ease-in", "mask": [ { "area": [0, 0, 100, 100], "radius": 4 }, { "points": [[0, 0], [10, 0], [5, 10]] } ] },
                     { "at": 2, "mask": [ { "feather": 2 }, { } ] },
                     { "at": 3, "mask": [ { "area": [50, 50, 200, 100], "radius": 8 }, { "points": [[0, 10], [10, 10], [5, 20]] } ] } ] } ] }
@@ -742,8 +742,8 @@ struct SequencePlannerTests {
         // Given
         let keyframes = #""mask": \#(written), "keyframes": [ { "at": 0, "mask": \#(first) }, { "at": 1, "mask": \#(second) } ]"#
         let document = list == "clips"
-            ? #"{ "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4" } ], "clips": [ { "adjust": "frames/warm", "at": [0, 2], \#(keyframes) } ] }"#
-            : #"{ "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", \#(keyframes) } ] }"#
+            ? #"{ "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4" } ], "clips": [ { "kind": "adjustment", "adjust": "frames/warm", "at": [0, 2], \#(keyframes) } ] }"#
+            : #"{ "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", \#(keyframes) } ] }"#
 
         // When, Then
         let error = #expect(throws: (any Error).self) { try plan(document) }
@@ -759,14 +759,14 @@ struct SequencePlannerTests {
             library: Fixture.library
         )
         let time = try Fixture.planner.plan(document: Fixture.json(#"""
-            { "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4", "connected": [ { "title": "Hi", "style": "title", "at": [0, 1] } ] } ] }
+            { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/screen.mp4", "connected": [ { "kind": "title", "text": "Hi", "style": "title", "at": [0, 1] } ] } ] }
             """#))
 
         // When
         let error = #expect(throws: ProviderError.self) { try sut.plan(time) }
 
         // Then
-        #expect(error?.description == "storyline[0].connected[0].title (title): the shaping provider failed: no model")
+        #expect(error?.description == "storyline[0].connected[0].text (title): the shaping provider failed: no model")
     }
 
     // MARK: - Private

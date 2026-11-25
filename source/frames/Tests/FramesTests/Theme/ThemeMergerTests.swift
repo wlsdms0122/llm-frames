@@ -53,7 +53,7 @@ struct ThemeMergerTests {
         #expect(defaults?["filter"] == .string("none"))
         #expect(defaults?["transition"] == (try Fixture.json(#"{ "preset": "frames/push-up", "seconds": 0.3 }"#)))
         #expect(animation?["title"] == (try Fixture.json(#"{ "subtitle": "frames/pop", "headline": "none", "label": "frames/pop" }"#)))
-        #expect(animation?["adjust"] == .string("none"))
+        #expect(animation?["adjustment"] == .string("none"))
     }
 
     @Test("a list replaces the one under it whole, and an object merges key by key at every depth")

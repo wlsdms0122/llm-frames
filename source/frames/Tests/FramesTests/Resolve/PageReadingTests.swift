@@ -20,12 +20,12 @@ struct PageReadingTests {
         "toneMap on a clip whose media is a page stops as a key of another media row",
         arguments: [
             (
-                #"{ "storyline": [ { "media": { "file": "/abs/deck.pdf", "page": 2 }, "duration": 2, "toneMap": false } ] }"#,
-                #"storyline[0] (page): unknown key "toneMap". Allowed: id, metadata, media, colorSpace, duration, crop, filter, transition, anchor, position, scale, rotation, cornerPin, opacity, blend, motionBlur, mask, trackMatte, radius, border, shadow, keyframes, connected"#
+                #"{ "storyline": [ { "kind": "media", "media": { "file": "/abs/deck.pdf", "page": 2 }, "duration": 2, "toneMap": false } ] }"#,
+                #"storyline[0] (page): unknown key "toneMap". Allowed: id, metadata, kind, media, colorSpace, duration, crop, filter, transition, anchor, position, scale, rotation, cornerPin, opacity, blend, motionBlur, mask, trackMatte, radius, border, shadow, keyframes, connected"#
             ),
             (
-                #"{ "storyline": [ { "media": "/abs/run.mp4", "connected": [ { "media": "/abs/logo.pdf", "at": [0, 1], "toneMap": true } ] } ] }"#,
-                #"storyline[0].connected[0] (page): unknown key "toneMap". Allowed: id, metadata, at, lane, parent, opacity, blend, motionBlur, mask, trackMatte, track, animation, keyframes, media, colorSpace, placement, position, anchor, scale, rotation, cornerPin, crop, conform, filter, width, height, radius, border, shadow"#
+                #"{ "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "connected": [ { "kind": "media", "media": "/abs/logo.pdf", "at": [0, 1], "toneMap": true } ] } ] }"#,
+                #"storyline[0].connected[0] (page): unknown key "toneMap". Allowed: id, metadata, kind, at, lane, parent, opacity, blend, motionBlur, mask, trackMatte, track, animation, keyframes, media, colorSpace, placement, position, anchor, scale, rotation, cornerPin, crop, conform, filter, width, height, radius, border, shadow"#
             )
         ]
     )
@@ -44,7 +44,7 @@ struct PageReadingTests {
     @Test("a page clip's colorSpace takes the spaces of standard dynamic range, and an HDR name stops", arguments: ["rec2100-pq", "rec2100-hlg"])
     func refusesHighDynamicRangeColorSpace(name: String) throws {
         // Given
-        let document = try Fixture.json(#"{ "kind": "sequence", "storyline": [ { "media": { "file": "/abs/deck.pdf", "page": 1 }, "duration": 2, "colorSpace": "\#(name)" } ] }"#)
+        let document = try Fixture.json(#"{ "kind": "sequence", "storyline": [ { "kind": "media", "media": { "file": "/abs/deck.pdf", "page": 1 }, "duration": 2, "colorSpace": "\#(name)" } ] }"#)
 
         // When, Then
         let error = #expect(throws: ModelError.self) { try sut.plan(document: document) }
@@ -54,7 +54,7 @@ struct PageReadingTests {
     @Test("a page clip takes every colour space of standard dynamic range")
     func takesStandardDynamicRangeColorSpace() throws {
         // Given
-        let document = try Fixture.json(#"{ "kind": "sequence", "storyline": [ { "media": { "file": "/abs/deck.pdf", "page": 1 }, "duration": 2, "colorSpace": "rec709" } ] }"#)
+        let document = try Fixture.json(#"{ "kind": "sequence", "storyline": [ { "kind": "media", "media": { "file": "/abs/deck.pdf", "page": 1 }, "duration": 2, "colorSpace": "rec709" } ] }"#)
 
         // When, Then
         #expect(throws: Never.self) { try sut.plan(document: document) }
@@ -65,7 +65,7 @@ struct PageReadingTests {
         arguments: [
             (
                 #""toneMap": false"#,
-                #"storyline[0] (page): unknown key "toneMap". Allowed: id, metadata, media, colorSpace, duration, crop, filter, transition, anchor, position, scale, rotation, cornerPin, opacity, blend, motionBlur, mask, trackMatte, radius, border, shadow, keyframes, connected"#
+                #"storyline[0] (page): unknown key "toneMap". Allowed: id, metadata, kind, media, colorSpace, duration, crop, filter, transition, anchor, position, scale, rotation, cornerPin, opacity, blend, motionBlur, mask, trackMatte, radius, border, shadow, keyframes, connected"#
             ),
             (
                 #""colorSpace": "rec2100-pq""#,
@@ -80,7 +80,7 @@ struct PageReadingTests {
         // Given
         let template = try Fixture.json(#"""
             { "kind": "sequence", "params": { "still": { "type": "image", "description": "the still" } },
-              "storyline": [ { "media": { "param": "still" }, "duration": 2, \#(key) } ] }
+              "storyline": [ { "kind": "media", "media": { "param": "still" }, "duration": 2, \#(key) } ] }
             """#)
         let arguments = ArgumentFile(name: "", value: try Fixture.json(#"{ "still": { "file": "/abs/deck.pdf", "page": 4 } }"#))
 
@@ -125,8 +125,8 @@ struct PageReadingTests {
     private var transitionDocument: JSONValue {
         get throws {
             try Fixture.json(#"""
-                { "kind": "sequence", "storyline": [ { "solid": "#000000", "duration": 2 },
-                                                     { "solid": "#FFFFFF", "duration": 2, "transition": "stinger" } ] }
+                { "kind": "sequence", "storyline": [ { "kind": "solid", "color": "#000000", "duration": 2 },
+                                                     { "kind": "solid", "color": "#FFFFFF", "duration": 2, "transition": "stinger" } ] }
                 """#)
         }
     }

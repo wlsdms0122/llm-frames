@@ -65,20 +65,20 @@ struct ResolvedDocumentReaderTests {
         // music.
         #"""
         { "kind": "sequence", "format": { "size": [1080, 1920] },
-          "storyline": [ { "media": "/abs/run.mp4", "in": 2, "out": 8, "speed": 2, "filter": "mine/grade",
+          "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "in": 2, "out": 8, "speed": 2, "filter": "mine/grade",
                            "keyframes": [ { "at": 2, "crop": [0, 0, 1080, 1920] }, { "at": 8, "crop": [45, 97, 990, 1760] } ] } ],
-          "clips": [ { "title": "Hi", "style": "title", "at": [0, 3], "animation": "frames/pop", "position": [75.4, 1709.8] },
-                     { "media": "/abs/page.png", "at": [0, 3], "width": 200, "border": { "align": "outside" }, "shadow": true, "radius": 12 },
-                     { "media": "/abs/bgm.m4a", "at": 0, "loop": true,
+          "clips": [ { "kind": "title", "text": "Hi", "style": "title", "at": [0, 3], "animation": "frames/pop", "position": [75.4, 1709.8] },
+                     { "kind": "media", "media": "/abs/page.png", "at": [0, 3], "width": 200, "border": { "align": "outside" }, "shadow": true, "radius": 12 },
+                     { "kind": "media", "media": "/abs/bgm.m4a", "at": 0, "loop": true,
                        "keyframes": [ { "at": 0, "volume": 0.3, "pan": -0.5, "ease": "ease-in" }, { "at": 2, "volume": 0.3 },
                                       { "at": 3, "volume": 0, "pan": 0.5 } ] } ] }
         """#,
         // A solid, an image sequence, a nested sequence, transitions with a cover and a matte, and a LUT.
         #"""
         { "kind": "sequence", "storyline": [
-            { "solid": "accent", "duration": 2 },
-            { "media": { "imageSequence": "/abs/frames", "fps": 12 }, "filter": "film", "transition": "reveal" },
-            { "media": { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "in": 0, "out": 2 } ] }, "transition": "dip" } ] }
+            { "kind": "solid", "color": "accent", "duration": 2 },
+            { "kind": "media", "media": { "imageSequence": "/abs/frames", "fps": 12 }, "filter": "film", "transition": "reveal" },
+            { "kind": "media", "media": { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "in": 0, "out": 2 } ] }, "transition": "dip" } ] }
         """#,
         // Shapes, tracked areas, an adjustment, a timed media clip, a title parented to a shape and sound with fades.
         shapes(trackedBy: Fixture.tracker),
@@ -90,57 +90,57 @@ struct ResolvedDocumentReaderTests {
         ##"""
         { "kind": "sequence",
           "theme": { "shapes": { "outline": { "stroke": { "width": 8, "color": "#ED2929" }, "radius": 18 } } },
-          "storyline": [ { "media": "/abs/run.mp4", "in": 0, "out": 4 } ],
+          "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "in": 0, "out": 4 } ],
           "clips": [
-            { "shape": "rect", "style": "outline", "area": [10, 20, 300, 200], "outset": 6, "shadow": { "radius": 4 },
+            { "kind": "rect", "style": "outline", "area": [10, 20, 300, 200], "outset": 6, "shadow": { "radius": 4 },
               "stroke": { "align": "inside" }, "at": [0, 4] },
-            { "shape": "rect", "fill": "accent", "height": 100, "placement": "top", "at": [0, 4],
+            { "kind": "rect", "fill": "accent", "height": 100, "placement": "top", "at": [0, 4],
               "keyframes": [ { "at": 0, "width": 200, "radius": 4, "ease": "ease-in" }, { "at": 2, "width": 400, "radius": 12 } ] },
-            { "shape": "ellipse", "width": 120, "height": 60, "anchor": "top-left", "position": [100, 100], "outset": 2,
+            { "kind": "ellipse", "width": 120, "height": 60, "anchor": "top-left", "position": [100, 100], "outset": 2,
               "stroke": { "width": 3, "align": "outside", "join": "bevel", "cap": "square" }, "rotation": 30, "at": [0, 4] },
-            { "shape": "ellipse", "area": [100, 100, 80, 40], "anchor": "bottom-right", "position": [400, 300], "fill": "#FFFFFF80",
+            { "kind": "ellipse", "area": [100, 100, 80, 40], "anchor": "bottom-right", "position": [400, 300], "fill": "#FFFFFF80",
               "shadow": true, "scale": 2, "at": [0, 4] },
-            { "shape": "path", "stroke": { "width": 6, "start": { "preset": "frames/circle", "scale": 2 }, "end": "frames/line-arrow", "color": "#00FF00" }, "at": [0, 4],
+            { "kind": "path", "stroke": { "width": 6, "start": { "preset": "frames/circle", "scale": 2 }, "end": "frames/line-arrow", "color": "#00FF00" }, "at": [0, 4],
               "keyframes": [ { "at": 0, "points": [[0, 0], [100, 50], [200, 0]], "trim": [0, 0] },
                              { "at": 1, "points": [[0, 100], [100, 150], [200, 100]], "trim": [0.2, 1], "rotation": 45 } ] },
-            { "shape": "path", "points": [[300, 300], [400, 300], [350, 380]], "closed": true, "fill": "accent", "stroke": false,
+            { "kind": "path", "points": [[300, 300], [400, 300], [350, 380]], "closed": true, "fill": "accent", "stroke": false,
               "shadow": true, "at": [0, 4] },
-            { "shape": "path", "stroke": { "width": 4 }, "anchor": "bottom", "position": [500, 500], "at": [0, 4],
+            { "kind": "path", "stroke": { "width": 4 }, "anchor": "bottom", "position": [500, 500], "at": [0, 4],
               "points": [{ "vertex": [0, 0], "outTangent": [0, 40] }, [100, 0]],
               "keyframes": [ { "at": 0, "points": [{}, { "inTangent": [0, 40] }] }, { "at": 2, "points": [{}, { "inTangent": [0, 80] }] } ] } ] }
         """##,
         // Masks of each geometry form on a storyline clip, an adjustment, a shape and a title: an area, a box and a
         // path, inverted, feathered, in each mode, static and keyframed.
         #"""
-        { "kind": "sequence", "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "in": 0, "out": 3,
+        { "kind": "sequence", "storyline": [ { "id": "screen", "kind": "media", "media": "/abs/screen.mp4", "in": 0, "out": 3,
             "mask": { "shape": "rect", "area": [96, 96, 208, 48], "radius": 6, "feather": 2, "invert": true },
             "connected": [
-              { "adjust": "mine/grade", "parent": "screen", "mask": [
+              { "kind": "adjustment", "adjust": "mine/grade", "parent": "screen", "mask": [
                   { "shape": "ellipse", "width": 60, "height": 30, "position": [100, 100], "mode": "subtract" },
                   { "shape": "path", "points": [[0, 0], [100, 0], [50, 80]], "mode": "intersect" } ] },
-              { "shape": "rect", "fill": "#FF000080", "parent": "screen", "area": [0, 0, 500, 500], "mask": { "shape": "ellipse" }, "keyframes": [
+              { "kind": "rect", "fill": "#FF000080", "parent": "screen", "area": [0, 0, 500, 500], "mask": { "shape": "ellipse" }, "keyframes": [
                   { "at": 0, "ease": "ease-out", "mask": { "area": [100, 100, 200, 40], "feather": 1 } },
                   { "at": 2, "mask": { "area": [0, 0, 50, 50], "feather": 3 } } ] },
-              { "title": "Hi", "style": "title", "parent": "screen", "position": [300, 300], "mask": { "shape": "path" }, "keyframes": [
+              { "kind": "title", "text": "Hi", "style": "title", "parent": "screen", "position": [300, 300], "mask": { "shape": "path" }, "keyframes": [
                   { "at": 0, "mask": { "points": [[0, 0], [10, 0], [5, 10]] } },
                   { "at": 1, "mask": { "points": [[0, 0], [20, 0], [10, 20]] } } ] } ] } ] }
         """#,
         // Track mattes: a storyline clip cut by a title's alpha, a still by a shape's inverted luma, and the shape by
         // the title in turn, so the title is the matte of two clips and the end of a chain.
         #"""
-        { "kind": "sequence", "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "in": 0, "out": 2,
+        { "kind": "sequence", "storyline": [ { "id": "screen", "kind": "media", "media": "/abs/screen.mp4", "in": 0, "out": 2,
             "trackMatte": { "clip": "word", "mode": "alpha" },
             "connected": [
-              { "id": "word", "title": "Hi", "style": "title", "at": [0, 1] },
-              { "media": "/abs/page.png", "at": [0, 1], "trackMatte": { "clip": "bar", "mode": "luma", "invert": true } } ] } ],
+              { "id": "word", "kind": "title", "text": "Hi", "style": "title", "at": [0, 1] },
+              { "kind": "media", "media": "/abs/page.png", "at": [0, 1], "trackMatte": { "clip": "bar", "mode": "luma", "invert": true } } ] } ],
           "clips": [
-            { "id": "bar", "shape": "rect", "fill": "#FFFFFF", "area": [0, 0, 10, 10], "at": [0, 1],
+            { "id": "bar", "kind": "rect", "fill": "#FFFFFF", "area": [0, 0, 10, 10], "at": [0, 1],
               "trackMatte": { "clip": "word", "mode": "alpha" } },
-            { "id": "grade", "adjust": "mine/grade", "at": [0, 1] } ] }
+            { "id": "grade", "kind": "adjustment", "adjust": "mine/grade", "at": [0, 1] } ] }
         """#,
         // A filter whose preset argument and mix move, beside an op written in place.
         #"""
-        { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "in": 0, "out": 3,
+        { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "in": 0, "out": 3,
             "filter": [ "fade", { "op": "exposure", "ev": 0.5 } ],
             "keyframes": [ { "at": 0, "filter": [ { "args": { "black": 0 } }, { "mix": 0 } ], "ease": "ease-in" },
                            { "at": 2, "filter": [ { "args": { "black": 0.2 } }, { "mix": 1 } ] } ] } ] }
@@ -148,16 +148,16 @@ struct ResolvedDocumentReaderTests {
         // Time remapping: a storyline clip held, reversed and eased past the end of its media, and a connected media
         // clip remapped over its window, which writes no `in`, `out` or `loop`.
         #"""
-        { "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4", "in": 0, "out": 6, "keyframes": [
+        { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/screen.mp4", "in": 0, "out": 6, "keyframes": [
             { "at": 0, "timeRemap": 1 }, { "at": 1, "timeRemap": 1, "ease": "ease-in" }, { "at": 3, "timeRemap": 0.5 } ],
-            "connected": [ { "media": "/abs/short.mp4", "at": [1, 3], "keyframes": [
+            "connected": [ { "kind": "media", "media": "/abs/short.mp4", "at": [1, 3], "keyframes": [
               { "at": 1, "timeRemap": 3 }, { "at": 3, "timeRemap": 0 } ] } ] } ] }
         """#,
         // Audio filters: a storyline clip's held entries and a connected sound's band swept by its keyframes.
         #"""
-        { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "in": 0, "out": 3,
+        { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "in": 0, "out": 3,
             "audioFilter": [ { "op": "gate", "threshold": -50 }, { "op": "compressor", "threshold": -18, "ratio": 3, "mix": 0.5 } ] } ],
-          "clips": [ { "media": "/abs/bgm.m4a", "at": 0, "audioFilter": { "op": "eq", "bands": [ { "type": "peak", "gain": 6 } ] },
+          "clips": [ { "kind": "media", "media": "/abs/bgm.m4a", "at": 0, "audioFilter": { "op": "eq", "bands": [ { "type": "peak", "gain": 6 } ] },
                        "keyframes": [ { "at": 0, "audioFilter": { "bands": [ { "frequency": 100, "q": 2 } ] } },
                                       { "at": 2, "audioFilter": { "bands": [ { "frequency": 8000, "q": 0.5 } ] } } ] } ] }
         """#,
@@ -166,8 +166,8 @@ struct ResolvedDocumentReaderTests {
         // A sequence's own audio filter moved by its keyframes, and a compound clip's sound alone, which carries its nested
         // sequence's audio filter beside its own.
         #"""
-        { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "in": 0, "out": 3 } ],
-          "clips": [ { "media": { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "out": 2 } ],
+        { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "in": 0, "out": 3 } ],
+          "clips": [ { "kind": "media", "media": { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "out": 2 } ],
                                   "audioFilter": { "op": "limiter", "ceiling": -6, "lookahead": 0.01 } },
                        "picture": false, "at": 1, "audioFilter": { "op": "gate", "threshold": -50 } } ],
           "audioFilter": [ { "op": "gate", "threshold": -60 }, { "op": "limiter", "ceiling": -1 } ],
@@ -178,18 +178,18 @@ struct ResolvedDocumentReaderTests {
         // argument moves the x of its offset.
         #"""
         { "kind": "sequence", "storyline": [
-            { "media": "/abs/run.mp4", "in": 0, "out": 3, "filter": { "op": "displace", "file": "/abs/matte.png" },
+            { "kind": "media", "media": "/abs/run.mp4", "in": 0, "out": 3, "filter": { "op": "displace", "file": "/abs/matte.png" },
               "keyframes": [ { "at": 0, "filter": { "amount": 0, "offset": [0, 0] } },
                              { "at": 2, "filter": { "amount": 6, "offset": [12, -8] } } ] },
-            { "media": "/abs/run.mp4", "in": 0, "out": 3, "filter": "ripple",
+            { "kind": "media", "media": "/abs/run.mp4", "in": 0, "out": 3, "filter": "ripple",
               "keyframes": [ { "at": 0, "filter": { "args": { "drift": 0 } } }, { "at": 2, "filter": { "args": { "drift": 30 } } } ] } ] }
         """#,
         // Convolutions, each impulse response pinned: a storyline clip's in an entry of its own `mix`, a compound clip's
         // whose gain moves beside its nested sequence's, and the sequence's before a limiter.
         #"""
-        { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "in": 0, "out": 3,
+        { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "in": 0, "out": 3,
             "audioFilter": { "op": "convolve", "file": "/abs/ding.wav", "mix": 0.4 } } ],
-          "clips": [ { "media": { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "out": 2 } ],
+          "clips": [ { "kind": "media", "media": { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "out": 2 } ],
                                   "audioFilter": { "op": "convolve", "file": "/abs/bgm.m4a" } },
                        "picture": false, "at": 1, "audioFilter": { "op": "convolve", "file": "/abs/ding.wav" },
                        "keyframes": [ { "at": 0, "audioFilter": { "gain": -12 } }, { "at": 1, "audioFilter": { "gain": 0 } } ] } ],
@@ -199,8 +199,8 @@ struct ResolvedDocumentReaderTests {
         #"""
         { "kind": "sequence", "format": { "size": [1920, 1080] },
           "theme": { "styles": { "card": { "size": 40, "background": { "color": "#000000", "padding": [4, 8], "radius": 6 } } } },
-          "storyline": [ { "solid": "#000000", "duration": 2 } ],
-          "clips": [ { "title": [ { "text": "Big", "style": "subtitle" }, { "text": " news\nToday" } ], "style": "card",
+          "storyline": [ { "kind": "solid", "color": "#000000", "duration": 2 } ],
+          "clips": [ { "kind": "title", "text": [ { "text": "Big", "style": "subtitle" }, { "text": " news\nToday" } ], "style": "card",
                        "at": [0, 2], "position": [200, 200] } ] }
         """#
     ]
@@ -208,23 +208,23 @@ struct ResolvedDocumentReaderTests {
     // A still, a title and a rect with corner pins, one keyframed and one with a point of another clip's area.
     private static let cornerPinDocument = #"""
         { "kind": "sequence", "format": { "size": [1920, 1080] },
-          "storyline": [ { "media": "/abs/run.mp4" } ],
-          "clips": [ { "id": "card", "media": "/abs/card.png", "at": [0, 3], "width": 300,
+          "storyline": [ { "kind": "media", "media": "/abs/run.mp4" } ],
+          "clips": [ { "id": "card", "kind": "media", "media": "/abs/card.png", "at": [0, 3], "width": 300,
                        "keyframes": [ { "at": 0, "cornerPin": [[100, 100], [500, 120], [480, 400], [120, 380]] },
                                       { "at": 2, "cornerPin": [[110, 100], [510, 120], [490, 400], [130, 380]] } ] },
-                     { "title": "Hi", "style": "title", "at": [0, 3], "cornerPin": [[600, 100], [900, 100], [900, 200], [600, 200]] },
-                     { "shape": "rect", "fill": "accent", "width": 40, "height": 20, "at": [0, 3],
+                     { "kind": "title", "text": "Hi", "style": "title", "at": [0, 3], "cornerPin": [[600, 100], [900, 100], [900, 200], [600, 200]] },
+                     { "kind": "rect", "fill": "accent", "width": 40, "height": 20, "at": [0, 3],
                        "cornerPin": [ { "area": { "clip": "card" }, "point": "bottom-left" }, [500, 500], [500, 600], [400, 600] ] } ] }
         """#
 
     // A storyline entry with a corner pin, one without and a solid.
     private static let storylineCornerPinDocument = #"""
         { "kind": "sequence", "format": { "size": [1920, 1080] },
-          "storyline": [ { "media": "/abs/run.mp4", "out": 1,
+          "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "out": 1,
                            "keyframes": [ { "at": 0, "cornerPin": [[100, 100], [500, 120], [480, 400], [120, 380]] },
                                           { "at": 1, "cornerPin": [[110, 100], [510, 120], [490, 400], [130, 380]] } ] },
-                         { "media": "/abs/run.mp4", "out": 1 },
-                         { "solid": "#000000", "duration": 1 } ] }
+                         { "kind": "media", "media": "/abs/run.mp4", "out": 1 },
+                         { "kind": "solid", "color": "#000000", "duration": 1 } ] }
         """#
 
     // A tracked screen, a shape that follows the screen it is parented to, and a media clip of video under it that
@@ -234,9 +234,9 @@ struct ResolvedDocumentReaderTests {
         let screen = Fixture.tracker.data(total, in: "/abs/screen.mp4", atMediaTime: 0, over: 0...3)
         let short = Fixture.tracker.data(Quad(Fixture.send), in: "/abs/short.mp4", atMediaTime: 0, over: 0...2)
         return #"""
-            { "kind": "sequence", "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "in": 0, "out": 3, "track": \#(screen), "connected": [
-                { "shape": "rect", "stroke": { "width": 8 }, "area": [100, 100, 200, 40], "parent": "screen", "track": \#(screen) },
-                { "media": "/abs/short.mp4", "parent": "screen", "position": [0, 0], "at": [0, 2], "track": \#(short) } ] } ] }
+            { "kind": "sequence", "storyline": [ { "id": "screen", "kind": "media", "media": "/abs/screen.mp4", "in": 0, "out": 3, "track": \#(screen), "connected": [
+                { "kind": "rect", "stroke": { "width": 8 }, "area": [100, 100, 200, 40], "parent": "screen", "track": \#(screen) },
+                { "kind": "media", "media": "/abs/short.mp4", "parent": "screen", "position": [0, 0], "at": [0, 2], "track": \#(short) } ] } ] }
             """#
     }()
 
@@ -245,8 +245,8 @@ struct ResolvedDocumentReaderTests {
     private static let compositionInTwoFaces = #"""
         { "kind": "sequence", "format": { "size": [1920, 1080] },
           "theme": { "styles": { "caption": { "size": 40 }, "date": { "size": 40, "textCombineUpright": "all" } } },
-          "storyline": [ { "media": "/abs/screen.mp4", "in": 0, "out": 3 } ],
-          "clips": [ { "title": [ { "text": "漢" }, { "text": "12", "style": "date" }, { "text": "字" } ], "style": "caption",
+          "storyline": [ { "kind": "media", "media": "/abs/screen.mp4", "in": 0, "out": 3 } ],
+          "clips": [ { "kind": "title", "text": [ { "text": "漢" }, { "text": "12", "style": "date" }, { "text": "字" } ], "style": "caption",
                        "paragraph": { "writingMode": "vertical-rl" }, "at": [0, 2], "position": [0, 0],
                        "animation": { "preset": "frames/fade", "by": "character" },
                        "keyframes": [ { "at": 0, "character": { "tracking": 0 } }, { "at": 1, "character": { "tracking": 100 } } ] } ] }
@@ -309,8 +309,8 @@ struct ResolvedDocumentReaderTests {
             ? #"{ "preset": "frames/fade", "by": "word" }"#
             : #"{ "preset": "frames/fade", "by": "word", "order": "\#(order.rawValue)" }"#
         let document = try resolved(#"""
-            { "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4", "in": 0, "out": 3 } ],
-              "clips": [ { "title": "ab cd ef", "style": "title", "at": [0, 2], "position": [0, 0], "animation": \#(animation) } ] }
+            { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/screen.mp4", "in": 0, "out": 3 } ],
+              "clips": [ { "kind": "title", "text": "ab cd ef", "style": "title", "at": [0, 2], "position": [0, 0], "animation": \#(animation) } ] }
             """#)
         let text = writer.write(document)
 
@@ -346,8 +346,8 @@ struct ResolvedDocumentReaderTests {
     ) throws {
         // Given
         let text = try replacing("animation", ofClip: 0, with: animation, in: written(#"""
-            { "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4", "in": 0, "out": 3 } ],
-              "clips": [ { "title": "ab cd", "style": "title", "at": [0, 1], "position": [0, 0],
+            { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/screen.mp4", "in": 0, "out": 3 } ],
+              "clips": [ { "kind": "title", "text": "ab cd", "style": "title", "at": [0, 1], "position": [0, 0],
                            "animation": { "preset": "frames/fade", "by": "word" } } ] }
             """#))
 
@@ -369,8 +369,8 @@ struct ResolvedDocumentReaderTests {
         )
         let track = Fixture.tracker.data(pin, in: "/abs/screen.mp4", atMediaTime: 1)
         let document = try resolved(#"""
-            { "kind": "sequence", "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "in": 0, "out": 3, "connected": [
-                { "media": "/abs/short.mp4", "parent": "screen", "at": [0, 2], "width": 300,
+            { "kind": "sequence", "storyline": [ { "id": "screen", "kind": "media", "media": "/abs/screen.mp4", "in": 0, "out": 3, "connected": [
+                { "kind": "media", "media": "/abs/short.mp4", "parent": "screen", "at": [0, 2], "width": 300,
                   "cornerPin": [[100, 100], [500, 120], [480, 400], [120, 380]], "track": \#(track) } ] } ] }
             """#)
         let text = writer.write(document)
@@ -495,8 +495,8 @@ struct ResolvedDocumentReaderTests {
         // Given
         let text = try written(#"""
             { "kind": "sequence", "format": { "size": [160, 90] },
-              "storyline": [ { "media": "/abs/short.mp4", "in": 0, "out": 2 } ],
-              "clips": [ { "adjust": "mine/grade", "at": [0, 2], "blend": "screen" } ] }
+              "storyline": [ { "kind": "media", "media": "/abs/short.mp4", "in": 0, "out": 2 } ],
+              "clips": [ { "kind": "adjustment", "adjust": "mine/grade", "at": [0, 2], "blend": "screen" } ] }
             """#)
 
         // When
@@ -554,7 +554,7 @@ struct ResolvedDocumentReaderTests {
     @Test(
         "a shape entry's member of the wrong form stops, naming its place",
         arguments: [
-            (#""shape": "rect""#, #""shape": "box""#, #"clips[0].shape (clip): unknown value "box". Allowed: rect, ellipse, path"#),
+            (#""kind": "rect""#, #""kind": "box""#, #"clips[0].kind (clip): unknown value "box". Allowed: media, title, rect, ellipse, path, adjustment, null"#),
             (#""join": "round""#, #""join": "square""#, #"clips[0].stroke.join (stroke): unknown value "square". Allowed: miter, round, bevel"#),
             (#""inset": 2"#, #""inset": 9"#, "clips[4].stroke.start (stroke): a head's inset is from 0 to its length 4, found 9"),
             (#""inset": 2"#, #""inset": 2, "shape": "circle""#, #"clips[4].stroke.start (stroke): unknown key "shape". Allowed: points, length, inset, scale"#),
@@ -618,10 +618,10 @@ struct ResolvedDocumentReaderTests {
     ) throws {
         // Given
         let document = #"""
-            { "kind": "sequence", "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "in": 0, "out": 2 } ],
-              "clips": [ { "id": "a", "shape": "rect", "stroke": { "width": 8 }, "area": [0, 0, 10, 10], "at": [0, 1], "parent": "screen" },
-                         { "id": "b", "shape": "rect", "stroke": { "width": 8 }, "area": [0, 0, 10, 10], "at": [0, 1], "parent": "a" },
-                         { "id": "sound", "media": "/abs/bgm.m4a", "at": [0, 1] } ] }
+            { "kind": "sequence", "storyline": [ { "id": "screen", "kind": "media", "media": "/abs/screen.mp4", "in": 0, "out": 2 } ],
+              "clips": [ { "id": "a", "kind": "rect", "stroke": { "width": 8 }, "area": [0, 0, 10, 10], "at": [0, 1], "parent": "screen" },
+                         { "id": "b", "kind": "rect", "stroke": { "width": 8 }, "area": [0, 0, 10, 10], "at": [0, 1], "parent": "a" },
+                         { "id": "sound", "kind": "media", "media": "/abs/bgm.m4a", "at": [0, 1] } ] }
             """#
         let text = try replacingFirst(written, with: replacement, in: self.written(document))
 
@@ -916,8 +916,8 @@ struct ResolvedDocumentReaderTests {
         let shaper = ShaperTable(placements: ["\u{301}": Point(x: -0.3, y: -0.2)])
         let document = try resolved(
             #"""
-            { "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4", "in": 0, "out": 3 } ],
-              "clips": [ { "title": "e\u0301x", "style": "title", "at": [0, 1], "position": [0, 0],
+            { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/screen.mp4", "in": 0, "out": 3 } ],
+              "clips": [ { "kind": "title", "text": "e\u0301x", "style": "title", "at": [0, 1], "position": [0, 0],
                            "character": { "tracking": 100 } } ] }
             """#,
             shaper: shaper
@@ -948,8 +948,8 @@ struct ResolvedDocumentReaderTests {
         // Given
         let document = try resolved(
             #"""
-            { "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4", "in": 0, "out": 3 } ],
-              "clips": [ { "title": "xfi", "style": "title", "at": [0, 1], "position": [0, 0],
+            { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/screen.mp4", "in": 0, "out": 3 } ],
+              "clips": [ { "kind": "title", "text": "xfi", "style": "title", "at": [0, 1], "position": [0, 0],
                            "character": { "tracking": 100, "features": { "liga": 1 } } } ] }
             """#
         )
@@ -975,8 +975,8 @@ struct ResolvedDocumentReaderTests {
         // Given
         let text = try written(
             #"""
-            { "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4", "in": 0, "out": 3 } ],
-              "clips": [ { "title": "ab", "style": "title", "at": [0, 1], "position": [0, 0], "character": { "tracking": 100 } } ] }
+            { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/screen.mp4", "in": 0, "out": 3 } ],
+              "clips": [ { "kind": "title", "text": "ab", "style": "title", "at": [0, 1], "position": [0, 0], "character": { "tracking": 100 } } ] }
             """#
         )
         let folded = try replacingTitle(ofClip: 0, in: text) { title in
@@ -1012,8 +1012,8 @@ struct ResolvedDocumentReaderTests {
         // Given
         let document = try resolved(
             #"""
-            { "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4", "in": 0, "out": 3 } ],
-              "clips": [ { "title": "אב 12 cd", "style": "title", "at": [0, 1], "position": [0, 0],
+            { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/screen.mp4", "in": 0, "out": 3 } ],
+              "clips": [ { "kind": "title", "text": "אב 12 cd", "style": "title", "at": [0, 1], "position": [0, 0],
                            "character": { "tracking": 100 } } ] }
             """#
         )
@@ -1044,8 +1044,8 @@ struct ResolvedDocumentReaderTests {
         let document = try resolved(
             #"""
             { "kind": "sequence", "theme": { "styles": { "small": { "size": 20 } } },
-              "storyline": [ { "media": "/abs/screen.mp4", "in": 0, "out": 3 } ],
-              "clips": [ { "title": [ { "text": "א" }, { "text": "בc", "style": "small" } ], "style": "title",
+              "storyline": [ { "kind": "media", "media": "/abs/screen.mp4", "in": 0, "out": 3 } ],
+              "clips": [ { "kind": "title", "text": [ { "text": "א" }, { "text": "בc", "style": "small" } ], "style": "title",
                            "at": [0, 1], "position": [0, 0], "paragraph": { "direction": "ltr" },
                            "character": { "tracking": 100 } } ] }
             """#
@@ -1087,8 +1087,8 @@ struct ResolvedDocumentReaderTests {
         // Given
         let text = try written(
             #"""
-            { "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4", "in": 0, "out": 3 } ],
-              "clips": [ { "title": "ab", "style": "title", "at": [0, 1], "position": [0, 0] } ] }
+            { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/screen.mp4", "in": 0, "out": 3 } ],
+              "clips": [ { "kind": "title", "text": "ab", "style": "title", "at": [0, 1], "position": [0, 0] } ] }
             """#
         )
         let changed = try replacingTitle(ofClip: 0, in: text) { title in
@@ -1108,8 +1108,8 @@ struct ResolvedDocumentReaderTests {
         // Given
         let text = try written(
             #"""
-            { "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4", "in": 0, "out": 3 } ],
-              "clips": [ { "title": "ab", "style": "title", "at": [0, 1], "position": [0, 0],
+            { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/screen.mp4", "in": 0, "out": 3 } ],
+              "clips": [ { "kind": "title", "text": "ab", "style": "title", "at": [0, 1], "position": [0, 0],
                            "paragraph": { "writingMode": "vertical-lr" } } ] }
             """#
         )
@@ -1136,8 +1136,8 @@ struct ResolvedDocumentReaderTests {
         // Given
         let text = try written(
             #"""
-            { "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4", "in": 0, "out": 3 } ],
-              "clips": [ { "title": "縦A", "style": "title", "at": [0, 1], "position": [0, 0],
+            { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/screen.mp4", "in": 0, "out": 3 } ],
+              "clips": [ { "kind": "title", "text": "縦A", "style": "title", "at": [0, 1], "position": [0, 0],
                            "paragraph": { "writingMode": "vertical-rl" } } ] }
             """#
         )
@@ -1167,8 +1167,8 @@ struct ResolvedDocumentReaderTests {
         // Given
         let text = try written(
             #"""
-            { "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4", "in": 0, "out": 3 } ],
-              "clips": [ { "title": "12", "style": "title", "at": [0, 1], "position": [0, 0] } ] }
+            { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/screen.mp4", "in": 0, "out": 3 } ],
+              "clips": [ { "kind": "title", "text": "12", "style": "title", "at": [0, 1], "position": [0, 0] } ] }
             """#
         )
         let change = { (scale: JSONValue) in
@@ -1311,8 +1311,8 @@ struct ResolvedDocumentReaderTests {
         // Given
         let text = try written(
             #"""
-            { "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4", "in": 0, "out": 3 } ],
-              "clips": [ { "title": "ab cd", "style": "title", "at": [0, 1], "position": [0, 0] } ] }
+            { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/screen.mp4", "in": 0, "out": 3 } ],
+              "clips": [ { "kind": "title", "text": "ab cd", "style": "title", "at": [0, 1], "position": [0, 0] } ] }
             """#
         )
         let changed = try replacingTitle(ofClip: 0, in: text) { title in
@@ -1378,8 +1378,8 @@ struct ResolvedDocumentReaderTests {
         // Given
         let text = try written(
             #"""
-            { "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4", "in": 0, "out": 3 } ],
-              "clips": [ { "title": "ab cd", "style": "title", "at": [0, 1], "position": [0, 0],
+            { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/screen.mp4", "in": 0, "out": 3 } ],
+              "clips": [ { "kind": "title", "text": "ab cd", "style": "title", "at": [0, 1], "position": [0, 0],
                            "character": { "highlight": { "color": "#FF0000" } },
                            "animation": { "preset": "frames/fade", "by": "word" } } ] }
             """#
@@ -1424,8 +1424,8 @@ struct ResolvedDocumentReaderTests {
         // Given
         let text = try written(
             #"""
-            { "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4", "in": 0, "out": 3 } ],
-              "clips": [ { "title": "ab", "style": "title", "at": [0, 1], "position": [0, 0] } ] }
+            { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/screen.mp4", "in": 0, "out": 3 } ],
+              "clips": [ { "kind": "title", "text": "ab", "style": "title", "at": [0, 1], "position": [0, 0] } ] }
             """#
         )
         let changed = try replacingTitle(ofClip: 0, in: text) { title in
@@ -1454,8 +1454,8 @@ struct ResolvedDocumentReaderTests {
         // Given
         let document = try resolved(
             #"""
-            { "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4", "in": 0, "out": 3 } ],
-              "clips": [ { "title": "ab مرحبا", "style": "title", "at": [0, 1], "position": [0, 0],
+            { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/screen.mp4", "in": 0, "out": 3 } ],
+              "clips": [ { "kind": "title", "text": "ab مرحبا", "style": "title", "at": [0, 1], "position": [0, 0],
                            "character": { "tracking": 100 } } ] }
             """#
         )
@@ -1500,8 +1500,8 @@ struct ResolvedDocumentReaderTests {
         // Given
         let document = try resolved(
             #"""
-            { "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4", "in": 0, "out": 3 } ],
-              "clips": [ { "title": "縦A\n字b", "style": "title", "at": [0, 1], "position": [0, 0],
+            { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/screen.mp4", "in": 0, "out": 3 } ],
+              "clips": [ { "kind": "title", "text": "縦A\n字b", "style": "title", "at": [0, 1], "position": [0, 0],
                            "paragraph": { "writingMode": "vertical-rl" },
                            "character": { "tracking": 100, "highlight": { "color": "#FF0000", "padding": [4, 6] },
                                           "underline": true },
@@ -1553,8 +1553,8 @@ struct ResolvedDocumentReaderTests {
         // Given
         let text = try written(
             #"""
-            { "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4", "in": 0, "out": 6 } ],
-              "clips": [ { "title": "Mina Baker", "style": "title", "at": [1.2, 5], "position": [128, 900] } ] }
+            { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/screen.mp4", "in": 0, "out": 6 } ],
+              "clips": [ { "kind": "title", "text": "Mina Baker", "style": "title", "at": [1.2, 5], "position": [128, 900] } ] }
             """#
         )
         let name = try Fixture.json(Self.nameTitle)
@@ -1583,16 +1583,16 @@ struct ResolvedDocumentReaderTests {
         let totalTrack = tracker.data(total, in: "/abs/screen.mp4", atMediaTime: 1, over: 1...3)
         let boxTrack = tracker.data(box, in: "/abs/screen.mp4", atMediaTime: 1, over: 1...3)
         return #"""
-            { "kind": "sequence", "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "in": 1, "out": 3, "fadeIn": 0.5, "connected": [
-                { "shape": "rect", "stroke": { "width": 8 }, "area": [100, 100, 200, 40], "parent": "screen", "track": \#(totalTrack) },
-                { "shape": "rect", "fill": "#FFD43B80", "area": [86, 86, 228, 68], "parent": "screen", "track": \#(boxTrack) },
-                { "shape": "path", "points": [[500, 500], [600, 550]], "stroke": { "width": 10, "end": "frames/arrow" }, "at": [1, 2], "lane": -1 },
-                { "shape": "rect", "area": [0, 0, 100, 100], "fill": "#0000008C", "at": [1, 2], "id": "dim" },
-                { "adjust": "mine/grade", "mask": { "shape": "rect", "area": [0, 0, 10, 10] }, "at": [1, 2] },
-                { "media": "/abs/short.mp4", "in": 1, "out": 3, "speed": 2, "at": 1, "width": 300, "conform": "fill",
+            { "kind": "sequence", "storyline": [ { "id": "screen", "kind": "media", "media": "/abs/screen.mp4", "in": 1, "out": 3, "fadeIn": 0.5, "connected": [
+                { "kind": "rect", "stroke": { "width": 8 }, "area": [100, 100, 200, 40], "parent": "screen", "track": \#(totalTrack) },
+                { "kind": "rect", "fill": "#FFD43B80", "area": [86, 86, 228, 68], "parent": "screen", "track": \#(boxTrack) },
+                { "kind": "path", "points": [[500, 500], [600, 550]], "stroke": { "width": 10, "end": "frames/arrow" }, "at": [1, 2], "lane": -1 },
+                { "kind": "rect", "area": [0, 0, 100, 100], "fill": "#0000008C", "at": [1, 2], "id": "dim" },
+                { "kind": "adjustment", "adjust": "mine/grade", "mask": { "shape": "rect", "area": [0, 0, 10, 10] }, "at": [1, 2] },
+                { "kind": "media", "media": "/abs/short.mp4", "in": 1, "out": 3, "speed": 2, "at": 1, "width": 300, "conform": "fill",
                   "keyframes": [ { "at": 1, "opacity": 0, "ease": { "spring": { "bounce": 0.3 } } }, { "at": 1.5, "opacity": 1 } ] },
-                { "title": "Hi", "style": "title", "at": [1, 2], "parent": "dim", "position": [50, 50] },
-                { "media": "/abs/ding.wav", "at": 1.5, "fadeIn": 0.25, "fadeOut": 0.5 } ] } ] }
+                { "kind": "title", "text": "Hi", "style": "title", "at": [1, 2], "parent": "dim", "position": [50, 50] },
+                { "kind": "media", "media": "/abs/ding.wav", "at": 1.5, "fadeIn": 0.25, "fadeOut": 0.5 } ] } ] }
             """#
     }
 

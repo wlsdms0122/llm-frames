@@ -31,7 +31,7 @@ struct ContentFitTests {
         size: Size
     ) throws {
         // When
-        let plan = try plan(#"{ "storyline": [ { "media": "/abs/page.png", "duration": 1, \#(crop) } ] }"#)
+        let plan = try plan(#"{ "storyline": [ { "kind": "media", "media": "/abs/page.png", "duration": 1, \#(crop) } ] }"#)
 
         // Then
         #expect(plan.format.size == size)
@@ -44,7 +44,7 @@ struct ContentFitTests {
     func conformsLaterCropToBox() throws {
         // Given
         let plan = try plan(#"""
-            { "storyline": [ { "media": "/abs/page.png", "duration": 2,
+            { "storyline": [ { "kind": "media", "media": "/abs/page.png", "duration": 2,
               "keyframes": [ { "at": 0, "crop": [0, 0, 400, 200] }, { "at": 1, "crop": [0, 0, 100, 100] } ] } ] }
             """#)
 
@@ -64,9 +64,9 @@ struct ContentFitTests {
     func measuresMediaClipAtPixelSize() throws {
         // When
         let plan = try plan(#"""
-            { "storyline": [ { "media": "/abs/page.png", "duration": 1 } ],
-              "clips": [ { "media": "/abs/card.png", "at": [0, 1] },
-                         { "media": "/abs/card.png", "at": [0, 1], "crop": [0, 0, 200, 100], "position": [1500, 50] } ] }
+            { "storyline": [ { "kind": "media", "media": "/abs/page.png", "duration": 1 } ],
+              "clips": [ { "kind": "media", "media": "/abs/card.png", "at": [0, 1] },
+                         { "kind": "media", "media": "/abs/card.png", "at": [0, 1], "crop": [0, 0, 200, 100], "position": [1500, 50] } ] }
             """#)
 
         // Then
@@ -89,8 +89,8 @@ struct ContentFitTests {
     ) throws {
         // Given
         let plan = try plan(#"""
-            { "storyline": [ { "media": "/abs/page.png", "duration": 1 } ],
-              "clips": [ { "title": "Hello", "style": "title", \#(width)"at": [0, 1], "position": [1200, 0], "anchor": "top-left" } ] }
+            { "storyline": [ { "kind": "media", "media": "/abs/page.png", "duration": 1 } ],
+              "clips": [ { "kind": "title", "text": "Hello", "style": "title", \#(width)"at": [0, 1], "position": [1200, 0], "anchor": "top-left" } ] }
             """#)
         let box = try #require(plan.clips[0].box)
 
@@ -107,8 +107,8 @@ struct ContentFitTests {
     func measuresTitleHighlight() throws {
         // Given
         let plan = try plan(#"""
-            { "storyline": [ { "media": "/abs/page.png", "duration": 1 } ],
-              "clips": [ { "title": "Hello", "style": "title", "at": [0, 1], "position": [1200, 0], "anchor": "top-left",
+            { "storyline": [ { "kind": "media", "media": "/abs/page.png", "duration": 1 } ],
+              "clips": [ { "kind": "title", "text": "Hello", "style": "title", "at": [0, 1], "position": [1200, 0], "anchor": "top-left",
                            "character": { "highlight": { "padding": [0, 96] } } } ] }
             """#)
 
@@ -123,9 +123,9 @@ struct ContentFitTests {
     @Test("a clip used as a track matte is not drawn, so it is not measured")
     func skipsTrackMatte() throws {
         // Given
-        let matte = #"{ "id": "m", "media": "/abs/card.png", "at": [0, 1], "crop": [0, 0, 200, 100], "position": [1500, 50] }"#
-        let rect = ##"{ "shape": "rect", "fill": "#FFFFFF", "area": [0, 0, 10, 10], "at": [0, 1]"##
-        let storyline = #"{ "storyline": [ { "media": "/abs/page.png", "duration": 1 } ], "clips": "#
+        let matte = #"{ "id": "m", "kind": "media", "media": "/abs/card.png", "at": [0, 1], "crop": [0, 0, 200, 100], "position": [1500, 50] }"#
+        let rect = ##"{ "kind": "rect", "fill": "#FFFFFF", "area": [0, 0, 10, 10], "at": [0, 1]"##
+        let storyline = #"{ "storyline": [ { "kind": "media", "media": "/abs/page.png", "duration": 1 } ], "clips": "#
 
         // When
         let matted = try plan(storyline + #"[ \#(matte), \#(rect), "trackMatte": { "clip": "m", "mode": "alpha" } } ] }"#)
@@ -141,8 +141,8 @@ struct ContentFitTests {
     func measuresParentedChild() throws {
         // When
         let plan = try plan(#"""
-            { "storyline": [ { "id": "page", "media": "/abs/page.png", "duration": 1, "crop": [100, 100, 400, 300],
-              "connected": [ { "shape": "rect", "fill": "#FFD43B80", "parent": "page", "area": [50, 50, 100, 100] } ] } ] }
+            { "storyline": [ { "id": "page", "kind": "media", "media": "/abs/page.png", "duration": 1, "crop": [100, 100, 400, 300],
+              "connected": [ { "kind": "rect", "fill": "#FFD43B80", "parent": "page", "area": [50, 50, 100, 100] } ] } ] }
             """#)
 
         // Then
@@ -166,7 +166,7 @@ struct ContentFitTests {
     ) throws {
         // When
         let plan = try plan(
-            #"{ "storyline": [ { "media": "/abs/page.png", "duration": 1, "crop": [0, 0, 300, 200] } ] }"#,
+            #"{ "storyline": [ { "kind": "media", "media": "/abs/page.png", "duration": 1, "crop": [0, 0, 300, 200] } ] }"#,
             margin: margin
         )
 
@@ -190,7 +190,7 @@ struct ContentFitTests {
         size: Size
     ) throws {
         // When
-        let plan = try plan(#"{ "storyline": [ { "media": "/abs/page.png", "duration": 1, \#(crop) } ] }"#, margin: margin)
+        let plan = try plan(#"{ "storyline": [ { "kind": "media", "media": "/abs/page.png", "duration": 1, \#(crop) } ] }"#, margin: margin)
 
         // Then
         #expect(plan.format.size == size)
@@ -200,9 +200,9 @@ struct ContentFitTests {
     func movesByOffset() throws {
         // When
         let plan = try plan(#"""
-            { "storyline": [ { "media": "/abs/page.png", "duration": 1, "crop": [0, 0, 300, 200] } ],
-              "clips": [ { "shape": "rect", "fill": "#FFD43B80", "area": [-100.5, -50, 50, 50], "at": [0, 1] },
-                         { "media": "/abs/card.png", "width": 100, "height": 100, "at": [0, 1], "position": [0, 0] } ] }
+            { "storyline": [ { "kind": "media", "media": "/abs/page.png", "duration": 1, "crop": [0, 0, 300, 200] } ],
+              "clips": [ { "kind": "rect", "fill": "#FFD43B80", "area": [-100.5, -50, 50, 50], "at": [0, 1] },
+                         { "kind": "media", "media": "/abs/card.png", "width": 100, "height": 100, "at": [0, 1], "position": [0, 0] } ] }
             """#, margin: "4")
 
         // Then
@@ -217,7 +217,7 @@ struct ContentFitTests {
     func fillsMeasuredFrameWithSolid() throws {
         // Given
         let plan = try plan(##"""
-            { "storyline": [ { "solid": "#FF0000", "duration": 1 }, { "media": "/abs/page.png", "duration": 1, "crop": [0, 0, 300, 200] } ] }
+            { "storyline": [ { "kind": "solid", "color": "#FF0000", "duration": 1 }, { "kind": "media", "media": "/abs/page.png", "duration": 1, "crop": [0, 0, 300, 200] } ] }
             """##, margin: "10")
 
         // When
@@ -237,9 +237,9 @@ struct ContentFitTests {
     func drawsSolidChildWhereMeasured() throws {
         // Given
         let plan = try plan(##"""
-            { "storyline": [ { "media": "/abs/page.png", "duration": 1, "crop": [0, 0, 300, 200] },
-              { "id": "back", "solid": "#FF0000", "duration": 1,
-                "connected": [ { "shape": "rect", "fill": "#FFD43B80", "parent": "back", "area": [-100, -50, 50, 50] } ] } ] }
+            { "storyline": [ { "kind": "media", "media": "/abs/page.png", "duration": 1, "crop": [0, 0, 300, 200] },
+              { "id": "back", "kind": "solid", "color": "#FF0000", "duration": 1,
+                "connected": [ { "kind": "rect", "fill": "#FFD43B80", "parent": "back", "area": [-100, -50, 50, 50] } ] } ] }
             """##, margin: "4")
 
         // When
@@ -257,9 +257,9 @@ struct ContentFitTests {
     func measuresSolidChildOutsideFirstBox() throws {
         // When
         let plan = try plan(##"""
-            { "storyline": [ { "media": "/abs/page.png", "duration": 1, "crop": [0, 0, 300, 200] },
-              { "id": "back", "solid": "#FF0000", "duration": 1,
-                "connected": [ { "shape": "rect", "fill": "#FFD43B80", "parent": "back", "area": [400, 0, 50, 50] } ] } ] }
+            { "storyline": [ { "kind": "media", "media": "/abs/page.png", "duration": 1, "crop": [0, 0, 300, 200] },
+              { "id": "back", "kind": "solid", "color": "#FF0000", "duration": 1,
+                "connected": [ { "kind": "rect", "fill": "#FFD43B80", "parent": "back", "area": [400, 0, 50, 50] } ] } ] }
             """##)
 
         // Then
@@ -271,8 +271,8 @@ struct ContentFitTests {
     func scalesByFirstStorylinePicture() throws {
         // When
         let plan = try plan(##"""
-            { "storyline": [ { "solid": "#FF0000", "duration": 1 }, { "media": "/abs/page.png", "duration": 1, "crop": [0, 0, 603, 400] } ],
-              "clips": [ { "shape": "rect", "stroke": { "width": 8 }, "area": [0, 0, 100, 100], "at": [0, 1] } ] }
+            { "storyline": [ { "kind": "solid", "color": "#FF0000", "duration": 1 }, { "kind": "media", "media": "/abs/page.png", "duration": 1, "crop": [0, 0, 603, 400] } ],
+              "clips": [ { "kind": "rect", "stroke": { "width": 8 }, "area": [0, 0, 100, 100], "at": [0, 1] } ] }
             """##)
 
         // Then
@@ -284,11 +284,11 @@ struct ContentFitTests {
         "a clip placed by its placement or its style's lies on the measured frame where that placement puts it, with its style's offset, and is not measured",
         arguments: [
             // The subtitle style places at the bottom, 108 theme lengths up, 56.25 output pixels at the length scale.
-            (#"{ "title": "Hi", "style": "subtitle", "at": [0, 1] }"#, Point(x: 510, y: 763.75)),
+            (#"{ "kind": "title", "text": "Hi", "style": "subtitle", "at": [0, 1] }"#, Point(x: 510, y: 763.75)),
             // The placement padding is 96 theme lengths, 50 output pixels.
-            (#"{ "title": "Hi", "style": "title", "placement": "bottom-right", "at": [0, 1] }"#, Point(x: 970, y: 770)),
-            (#"{ "media": "/abs/card.png", "width": 2000, "placement": "top-left", "at": [0, 1] }"#, Point(x: 50, y: 50)),
-            (#"{ "shape": "rect", "width": 100, "height": 50, "fill": "accent", "placement": "center", "at": [0, 1] }"#, Point(x: 510, y: 410))
+            (#"{ "kind": "title", "text": "Hi", "style": "title", "placement": "bottom-right", "at": [0, 1] }"#, Point(x: 970, y: 770)),
+            (#"{ "kind": "media", "media": "/abs/card.png", "width": 2000, "placement": "top-left", "at": [0, 1] }"#, Point(x: 50, y: 50)),
+            (#"{ "kind": "rect", "width": 100, "height": 50, "fill": "accent", "placement": "center", "at": [0, 1] }"#, Point(x: 510, y: 410))
         ]
     )
     func placesOnMeasuredFrame(
@@ -297,7 +297,7 @@ struct ContentFitTests {
     ) throws {
         // When
         let plan = try plan(
-            #"{ "storyline": [ { "media": "/abs/page.png", "duration": 1 } ], "clips": [ \#(clip) ] }"#,
+            #"{ "storyline": [ { "kind": "media", "media": "/abs/page.png", "duration": 1 } ], "clips": [ \#(clip) ] }"#,
             margin: "10"
         )
 
@@ -311,10 +311,10 @@ struct ContentFitTests {
     func followsClipPlacedOnFrame() throws {
         // Given
         let plan = try plan(##"""
-            { "storyline": [ { "media": "/abs/page.png", "duration": 1 } ],
-              "clips": [ { "id": "sub", "title": "Hi", "style": "subtitle", "at": [0, 1] },
-                         { "shape": "rect", "fill": "#FFD43B80", "parent": "sub", "area": [0, 0, 4000, 10], "at": [0, 1] },
-                         { "shape": "rect", "fill": "#FFD43B80", "area": { "clip": "sub", "padding": 2000 }, "at": [0, 1] } ] }
+            { "storyline": [ { "kind": "media", "media": "/abs/page.png", "duration": 1 } ],
+              "clips": [ { "id": "sub", "kind": "title", "text": "Hi", "style": "subtitle", "at": [0, 1] },
+                         { "kind": "rect", "fill": "#FFD43B80", "parent": "sub", "area": [0, 0, 4000, 10], "at": [0, 1] },
+                         { "kind": "rect", "fill": "#FFD43B80", "area": { "clip": "sub", "padding": 2000 }, "at": [0, 1] } ] }
             """##, margin: "10")
         let box = try #require(plan.clips[0].box)
 
@@ -336,8 +336,8 @@ struct ContentFitTests {
         // When
         let plan = try plan(#"""
             { "theme": { "styles": { "plain": { "size": 96 } } },
-              "storyline": [ { "media": "/abs/page.png", "duration": 1 } ],
-              "clips": [ { "title": "Hello", "style": "plain", "width": 1500, "at": [0, 1] } ] }
+              "storyline": [ { "kind": "media", "media": "/abs/page.png", "duration": 1 } ],
+              "clips": [ { "kind": "title", "text": "Hello", "style": "plain", "width": 1500, "at": [0, 1] } ] }
             """#)
         let box = try #require(plan.clips[0].box)
 
@@ -351,13 +351,13 @@ struct ContentFitTests {
     @Test(
         "a storyline of solids leaves nothing to measure and no length scale, so it stops, whatever its other clips",
         arguments: [
-            ##"{ "shape": "rect", "fill": "#FFD43B80", "area": [0, 0, 100, 100], "at": [0, 1] }"##,
-            #"{ "title": "Hi", "style": "subtitle", "at": [0, 1] }, { "media": "/abs/card.png", "placement": "center", "at": [0, 1] }"#
+            ##"{ "kind": "rect", "fill": "#FFD43B80", "area": [0, 0, 100, 100], "at": [0, 1] }"##,
+            #"{ "kind": "title", "text": "Hi", "style": "subtitle", "at": [0, 1] }, { "kind": "media", "media": "/abs/card.png", "placement": "center", "at": [0, 1] }"#
         ]
     )
     func refusesNothingMeasured(clips: String) throws {
         // Given
-        let document = ##"{ "storyline": [ { "solid": "#FF0000", "duration": 1 } ], "clips": [ \##(clips) ] }"##
+        let document = ##"{ "storyline": [ { "kind": "solid", "color": "#FF0000", "duration": 1 } ], "clips": [ \##(clips) ] }"##
 
         // When, Then
         let error = #expect(throws: ResolveError.self) { try plan(document) }
@@ -368,8 +368,8 @@ struct ContentFitTests {
     func takesMeasuredSizeOfCompoundClip() throws {
         // When
         let plan = try plan(#"""
-            { "storyline": [ { "media": { "kind": "sequence", "format": { "size": { "fit": "content", "margin": 5 } },
-              "storyline": [ { "media": "/abs/page.png", "duration": 1, "crop": [0, 0, 300, 200] } ] } } ] }
+            { "storyline": [ { "kind": "media", "media": { "kind": "sequence", "format": { "size": { "fit": "content", "margin": 5 } },
+              "storyline": [ { "kind": "media", "media": "/abs/page.png", "duration": 1, "crop": [0, 0, 300, 200] } ] } } ] }
             """#)
 
         // Then
@@ -380,31 +380,31 @@ struct ContentFitTests {
         "a shape is measured by its outline after its transform, grown by half its stroke width, with its arrowheads",
         arguments: [
             // The page is 300 wide, so a stroke of 64 is 10 output pixels and its arrowhead 40 long and 40 wide.
-            (#"{ "shape": "rect", "area": [400, 0, 100, 50], "stroke": { "width": 64 }, "at": [0, 1] }"#, Size(width: 506, height: 206)),
+            (#"{ "kind": "rect", "area": [400, 0, 100, 50], "stroke": { "width": 64 }, "at": [0, 1] }"#, Size(width: 506, height: 206)),
             // A whole closed outline has no ends, so its arrowhead is drawn only where a trim leaves part of it undrawn.
-            (#"{ "shape": "rect", "area": [400, 0, 100, 50], "stroke": { "width": 64, "end": "frames/arrow" }, "at": [0, 1] }"#, Size(width: 506, height: 206)),
+            (#"{ "kind": "rect", "area": [400, 0, 100, 50], "stroke": { "width": 64, "end": "frames/arrow" }, "at": [0, 1] }"#, Size(width: 506, height: 206)),
             // Ending at the bottom right corner, the head points down from (500, 50), its base corners at (480, 10) and
             // (520, 10), so nothing of it lies above the stroked outline.
-            (#"{ "shape": "rect", "area": [400, 0, 100, 50], "stroke": { "width": 64, "end": "frames/arrow" }, "trim": [0, 0.5], "at": [0, 1] }"#, Size(width: 520, height: 206)),
+            (#"{ "kind": "rect", "area": [400, 0, 100, 50], "stroke": { "width": 64, "end": "frames/arrow" }, "trim": [0, 0.5], "at": [0, 1] }"#, Size(width: 520, height: 206)),
             // Ending 1 below the top right corner at the tip (500, 1), the head's base lies 40 back along the stroke at
             // (461, 0), so the head runs along the chord between them, grown to it, a base corner at (461.5, -19.5).
-            (#"{ "shape": "rect", "area": [400, 0, 100, 50], "stroke": { "width": 64, "end": "frames/arrow" }, "trim": [0, 0.3366666666666667], "at": [0, 1] }"#, Size(width: 506, height: 220)),
+            (#"{ "kind": "rect", "area": [400, 0, 100, 50], "stroke": { "width": 64, "end": "frames/arrow" }, "trim": [0, 0.3366666666666667], "at": [0, 1] }"#, Size(width: 506, height: 220)),
             // A fifth of the way round from its top, the ellipse's head runs along the chord from its base 40 back
             // along the curve, at (458.4, 0.4), to its tip at (495.1, 14.2), 39.3 long, so the head is 39.3 / 40 of its
             // size on a straight end and a base corner lies at (465.4, -18.0).
-            (#"{ "shape": "ellipse", "area": [400, 0, 100, 50], "stroke": { "width": 64, "end": "frames/arrow" }, "trim": [0, 0.2], "at": [0, 1] }"#, Size(width: 506, height: 218)),
-            (#"{ "shape": "path", "points": [[400, 0], [400, 100]], "stroke": { "width": 64 }, "at": [0, 1] }"#, Size(width: 406, height: 206)),
-            (#"{ "shape": "path", "points": [[400, 0], [400, 100]], "stroke": { "width": 64, "end": "frames/arrow" }, "at": [0, 1] }"#, Size(width: 420, height: 206)),
+            (#"{ "kind": "ellipse", "area": [400, 0, 100, 50], "stroke": { "width": 64, "end": "frames/arrow" }, "trim": [0, 0.2], "at": [0, 1] }"#, Size(width: 506, height: 218)),
+            (#"{ "kind": "path", "points": [[400, 0], [400, 100]], "stroke": { "width": 64 }, "at": [0, 1] }"#, Size(width: 406, height: 206)),
+            (#"{ "kind": "path", "points": [[400, 0], [400, 100]], "stroke": { "width": 64, "end": "frames/arrow" }, "at": [0, 1] }"#, Size(width: 420, height: 206)),
             // At scale 2 the arrowhead is 80 long and 80 wide, and a bar is 40 across the end.
-            (#"{ "shape": "path", "points": [[400, 0], [400, 100]], "stroke": { "width": 64, "end": { "preset": "frames/arrow", "scale": 2 } }, "at": [0, 1] }"#, Size(width: 440, height: 206)),
-            (#"{ "shape": "path", "points": [[400, 0], [400, 100]], "stroke": { "width": 64, "end": "frames/bar" }, "at": [0, 1] }"#, Size(width: 420, height: 206)),
+            (#"{ "kind": "path", "points": [[400, 0], [400, 100]], "stroke": { "width": 64, "end": { "preset": "frames/arrow", "scale": 2 } }, "at": [0, 1] }"#, Size(width: 440, height: 206)),
+            (#"{ "kind": "path", "points": [[400, 0], [400, 100]], "stroke": { "width": 64, "end": "frames/bar" }, "at": [0, 1] }"#, Size(width: 420, height: 206)),
             // A circle at scale 2 is 80 across with its tip at the end (400, 250), its centre 40 back: it reaches down to
             // y = 290 and no further along the line than its end, which the stroke's half width reaches past.
-            (#"{ "shape": "path", "points": [[100, 250], [400, 250]], "stroke": { "width": 64, "end": { "preset": "frames/circle", "scale": 2 } }, "at": [0, 1] }"#, Size(width: 406, height: 290)),
+            (#"{ "kind": "path", "points": [[100, 250], [400, 250]], "stroke": { "width": 64, "end": { "preset": "frames/circle", "scale": 2 } }, "at": [0, 1] }"#, Size(width: 406, height: 290)),
             // Both tangents (100, 0) bulge the segment right to x = 475 at its middle, where the stroke reaches 480.
-            (#"{ "shape": "path", "points": [{ "vertex": [400, 0], "outTangent": [100, 0] }, { "vertex": [400, 100], "inTangent": [100, 0] }], "stroke": { "width": 64 }, "at": [0, 1] }"#, Size(width: 480, height: 206)),
-            (#"{ "shape": "rect", "area": [400, 0, 100, 50], "fill": "accent", "scale": 2, "at": [0, 1] }"#, Size(width: 550, height: 226)),
-            (#"{ "shape": "ellipse", "width": 100, "height": 50, "position": [400, 250], "fill": "accent", "at": [0, 1] }"#, Size(width: 450, height: 276))
+            (#"{ "kind": "path", "points": [{ "vertex": [400, 0], "outTangent": [100, 0] }, { "vertex": [400, 100], "inTangent": [100, 0] }], "stroke": { "width": 64 }, "at": [0, 1] }"#, Size(width: 480, height: 206)),
+            (#"{ "kind": "rect", "area": [400, 0, 100, 50], "fill": "accent", "scale": 2, "at": [0, 1] }"#, Size(width: 550, height: 226)),
+            (#"{ "kind": "ellipse", "width": 100, "height": 50, "position": [400, 250], "fill": "accent", "at": [0, 1] }"#, Size(width: 450, height: 276))
         ]
     )
     func measuresShape(
@@ -413,7 +413,7 @@ struct ContentFitTests {
     ) throws {
         // When
         let plan = try plan(#"""
-            { "storyline": [ { "media": "/abs/page.png", "duration": 1, "crop": [0, 0, 300, 200] } ], "clips": [ \#(clip) ] }
+            { "storyline": [ { "kind": "media", "media": "/abs/page.png", "duration": 1, "crop": [0, 0, 300, 200] } ], "clips": [ \#(clip) ] }
             """#)
 
         // Then

@@ -156,8 +156,8 @@ struct AnalysisCommandTests {
         let track = JSONWriter().write(.object(JSONObject(members: printed.members.filter { $0.key != "track" })))
         let document = try sut.write(#"""
             { "kind": "sequence", "format": { "size": [64, 48], "fps": 10 },
-              "storyline": [ { "id": "square", "media": "\#(video)", "connected": [
-                { "shape": "rect", "stroke": { "width": 2 }, "area": [24, 16, 16, 16], "parent": "square", "track": \#(track) } ] } ] }
+              "storyline": [ { "id": "square", "kind": "media", "media": "\#(video)", "connected": [
+                { "kind": "rect", "stroke": { "width": 2 }, "area": [24, 16, 16, 16], "parent": "square", "track": \#(track) } ] } ] }
             """#, named: "tracked.json")
         let resolved = sut.directory.file("tracked.resolved.json")
 
@@ -238,8 +238,8 @@ struct AnalysisCommandTests {
               "theme": { "font": ["Hiragino Sans"],
                          "styles": { "body": { "size": 100, "writingMode": "vertical-rl", "align": "left" },
                                      "date": { "size": 100, "textCombineUpright": "all" } } },
-              "storyline": [ { "solid": "#000000", "duration": 1 } ],
-              "clips": [ { "title": [ { "text": "第" }, { "text": "1\#u{E52}", "style": "date" }, { "text": "回" } ],
+              "storyline": [ { "kind": "solid", "color": "#000000", "duration": 1 } ],
+              "clips": [ { "kind": "title", "text": [ { "text": "第" }, { "text": "1\#u{E52}", "style": "date" }, { "text": "回" } ],
                            "style": "body", "anchor": "top-left", "position": [0, 0], "at": [0, 1] } ] }
             """#, named: "composition.json")
         let resolved = sut.directory.file("resolved.json")
@@ -272,7 +272,7 @@ struct AnalysisCommandTests {
     private var sequence: String {
         #"""
         { "kind": "sequence", "format": { "size": [160, 90], "fps": 10 },
-          "storyline": [ { "solid": "#FF8000", "duration": 0.5 }, { "solid": "#0000FF", "duration": 0.5 } ] }
+          "storyline": [ { "kind": "solid", "color": "#FF8000", "duration": 0.5 }, { "kind": "solid", "color": "#0000FF", "duration": 0.5 } ] }
         """#
     }
 

@@ -25,7 +25,7 @@ struct ShapeKeyframeTests {
     func movesStrokeColour() throws {
         // When
         let shape = try resolvedShape(##"""
-            { "shape": "rect", "area": [0, 0, 10, 10], "style": "bar",
+            { "kind": "rect", "area": [0, 0, 10, 10], "style": "bar",
               "keyframes": [ { "at": 0, "stroke": { "color": "#000000" } }, { "at": 1, "stroke": { "color": "#FFFFFF" } } ] }
             """##)
 
@@ -44,7 +44,7 @@ struct ShapeKeyframeTests {
     func drawsStrokeOnToStyleWidth() throws {
         // Given
         let clip = ##"""
-            { "shape": "rect", "area": [0, 0, 10, 10], "style": "bar",
+            { "kind": "rect", "area": [0, 0, 10, 10], "style": "bar",
               "keyframes": [ { "at": 0, "stroke": { "width": 0 } }, { "at": 1, "stroke": { "width": null } } ] }
             """##
 
@@ -63,7 +63,7 @@ struct ShapeKeyframeTests {
     func takesKeyframedRequiredLeaf() throws {
         // When
         let shape = try resolvedShape(##"""
-            { "shape": "rect", "area": [0, 0, 10, 10],
+            { "kind": "rect", "area": [0, 0, 10, 10],
               "keyframes": [ { "at": 0, "stroke": { "width": 2 } }, { "at": 1, "stroke": { "width": 6 } } ] }
             """##)
 
@@ -76,7 +76,7 @@ struct ShapeKeyframeTests {
     func movesFillColour() throws {
         // When
         let moved = try resolvedShape(##"""
-            { "shape": "rect", "area": [0, 0, 10, 10],
+            { "kind": "rect", "area": [0, 0, 10, 10],
               "keyframes": [ { "at": 0, "fill": "#FF0000" }, { "at": 1, "fill": "#0000FF" } ] }
             """##)
 
@@ -88,7 +88,7 @@ struct ShapeKeyframeTests {
     func movesShadowToLook() throws {
         // When
         let shape = try resolvedShape(##"""
-            { "shape": "rect", "area": [0, 0, 10, 10], "style": "bar",
+            { "kind": "rect", "area": [0, 0, 10, 10], "style": "bar",
               "keyframes": [ { "at": 0, "shadow": { "radius": 0 } }, { "at": 1, "shadow": true } ] }
             """##)
 
@@ -101,7 +101,7 @@ struct ShapeKeyframeTests {
     @Test("shadow true on a shape over a style shadow keeps the style's radius")
     func keepsStyleShadowRadius() throws {
         // When
-        let shape = try resolvedShape(#"{ "shape": "rect", "area": [0, 0, 10, 10], "style": "bar", "shadow": true }"#)
+        let shape = try resolvedShape(#"{ "kind": "rect", "area": [0, 0, 10, 10], "style": "bar", "shadow": true }"#)
 
         // Then
         #expect(shape.shadow.shadow()?.radius == 5)
@@ -112,7 +112,7 @@ struct ShapeKeyframeTests {
     func movesRadiusAndOutset() throws {
         // When
         let shape = try resolvedShape(##"""
-            { "shape": "rect", "area": [0, 0, 10, 10], "style": "bar",
+            { "kind": "rect", "area": [0, 0, 10, 10], "style": "bar",
               "keyframes": [ { "at": 0, "radius": 0, "outset": 0 }, { "at": 1, "radius": null, "outset": 8 } ] }
             """##)
 
@@ -129,7 +129,7 @@ struct ShapeKeyframeTests {
     func clampsSampledWidth() throws {
         // When
         let shape = try resolvedShape(##"""
-            { "shape": "rect", "area": [0, 0, 10, 10], "fill": "accent",
+            { "kind": "rect", "area": [0, 0, 10, 10], "fill": "accent",
               "keyframes": [ { "at": 0, "stroke": { "width": 8 }, "ease": "back-out" }, { "at": 1, "stroke": { "width": 0 } } ] }
             """##)
 
@@ -186,7 +186,7 @@ struct ShapeKeyframeTests {
     ) throws {
         // Given
         let clip = #"""
-            { "shape": "rect", "area": [0, 0, 10, 10], "style": "bar", "shadow": { "radius": 1 },
+            { "kind": "rect", "area": [0, 0, 10, 10], "style": "bar", "shadow": { "radius": 1 },
               "keyframes": [ \#(keyframes) ] }
             """#
 
@@ -198,8 +198,8 @@ struct ShapeKeyframeTests {
     @Test("an end written as a name names its preset alone, keeping its style's scale, and a bare stroke's end is scale 1")
     func namesEndPreset() throws {
         // When
-        let named = try resolvedShape(#"{ "shape": "path", "points": [[0, 0], [100, 0]], "style": "pointer", "stroke": { "end": "frames/circle" } }"#)
-        let bare = try resolvedShape(#"{ "shape": "path", "points": [[0, 0], [100, 0]], "stroke": { "width": 4, "start": "frames/bar" } }"#)
+        let named = try resolvedShape(#"{ "kind": "path", "points": [[0, 0], [100, 0]], "style": "pointer", "stroke": { "end": "frames/circle" } }"#)
+        let bare = try resolvedShape(#"{ "kind": "path", "points": [[0, 0], [100, 0]], "stroke": { "width": 4, "start": "frames/bar" } }"#)
 
         // Then
         #expect(named.stroke.stroke(at: 0)?.start == StrokeEnd.none)
@@ -212,7 +212,7 @@ struct ShapeKeyframeTests {
     func movesEndScale() throws {
         // When
         let shape = try resolvedShape(##"""
-            { "shape": "path", "points": [[0, 0], [100, 0]], "style": "pointer",
+            { "kind": "path", "points": [[0, 0], [100, 0]], "style": "pointer",
               "keyframes": [ { "at": 0, "stroke": { "end": { "scale": 0 } } }, { "at": 1, "stroke": { "end": { "scale": null } } } ] }
             """##)
 
@@ -226,7 +226,7 @@ struct ShapeKeyframeTests {
     func movesNamedEndScale() throws {
         // When
         let shape = try resolvedShape(##"""
-            { "shape": "path", "points": [[0, 0], [100, 0]], "stroke": { "width": 4, "end": "frames/arrow" },
+            { "kind": "path", "points": [[0, 0], [100, 0]], "stroke": { "width": 4, "end": "frames/arrow" },
               "keyframes": [ { "at": 0, "stroke": { "end": { "scale": 0 } } }, { "at": 1, "stroke": { "end": { "scale": 3 } } } ] }
             """##)
 
@@ -241,7 +241,7 @@ struct ShapeKeyframeTests {
     func refusesStaticGradientLeaf() throws {
         // Given
         let clip = ##"""
-            { "shape": "rect", "area": [0, 0, 10, 10],
+            { "kind": "rect", "area": [0, 0, 10, 10],
               "fill": { "radial": { "center": [0.5, 0.5], "radius": 0.5, "stops": [[0, "#FF0000"], [1, "#0000FF"]] } },
               "keyframes": [ { "at": 0, "fill": { "radial": { "center": [0.2, 0.2] } } },
                              { "at": 1, "fill": { "radial": { "center": [0.8, 0.8] } } } ] }
@@ -256,7 +256,7 @@ struct ShapeKeyframeTests {
     func scalesDash() throws {
         // When
         let shape = try resolvedShape(##"""
-            { "shape": "rect", "area": [0, 0, 10, 10], "stroke": { "width": 2, "dash": [8, 4, 2], "dashOffset": 6 } }
+            { "kind": "rect", "area": [0, 0, 10, 10], "stroke": { "width": 2, "dash": [8, 4, 2], "dashOffset": 6 } }
             """##)
 
         // Then
@@ -269,7 +269,7 @@ struct ShapeKeyframeTests {
     func marchesDashes() throws {
         // When
         let shape = try resolvedShape(##"""
-            { "shape": "rect", "area": [0, 0, 10, 10], "style": "dashed",
+            { "kind": "rect", "area": [0, 0, 10, 10], "style": "dashed",
               "keyframes": [ { "at": 0, "stroke": { "dashOffset": 0 } }, { "at": 1, "stroke": { "dashOffset": 100 } } ] }
             """##)
 
@@ -281,7 +281,7 @@ struct ShapeKeyframeTests {
     @Test("a clip's dash of zeros over its style's dashes stops, as the merged dash holds only zeros")
     func refusesMergedZeroDash() throws {
         // Given
-        let clip = #"{ "shape": "rect", "area": [0, 0, 10, 10], "style": "dashed", "stroke": { "dash": [0, 0] } }"#
+        let clip = #"{ "kind": "rect", "area": [0, 0, 10, 10], "style": "dashed", "stroke": { "dash": [0, 0] } }"#
 
         // When, Then
         #expect(throws: (any Error).self) { try resolvedShape(clip) }
@@ -291,7 +291,7 @@ struct ShapeKeyframeTests {
     func refusesKeyframeZeroDash() throws {
         // Given
         let clip = ##"""
-            { "shape": "rect", "area": [0, 0, 10, 10], "stroke": { "width": 2, "dash": [3, 0] },
+            { "kind": "rect", "area": [0, 0, 10, 10], "stroke": { "width": 2, "dash": [3, 0] },
               "keyframes": [ { "at": 0, "stroke": { "dash": [null, null] } }, { "at": 1, "stroke": { "dash": [0, null] } } ] }
             """##
 
@@ -304,7 +304,7 @@ struct ShapeKeyframeTests {
     func takesKeyframeDashOverMerged() throws {
         // When
         let shape = try resolvedShape(##"""
-            { "shape": "rect", "area": [0, 0, 10, 10], "style": "dashed",
+            { "kind": "rect", "area": [0, 0, 10, 10], "style": "dashed",
               "keyframes": [ { "at": 0, "stroke": { "dash": [0, 5] } }, { "at": 1, "stroke": { "dash": [null, 0] } } ] }
             """##)
 
@@ -318,7 +318,7 @@ struct ShapeKeyframeTests {
         // When
         // back-out peaks at about 1.1 near 0.58, carrying 20 towards 1 past 0.
         let shape = try resolvedShape(##"""
-            { "shape": "rect", "area": [0, 0, 10, 10], "stroke": { "width": 2 },
+            { "kind": "rect", "area": [0, 0, 10, 10], "stroke": { "width": 2 },
               "keyframes": [ { "at": 0, "stroke": { "dash": [20, 20] }, "ease": "back-out" }, { "at": 1, "stroke": { "dash": [1, 1] } } ] }
             """##)
 
@@ -332,7 +332,7 @@ struct ShapeKeyframeTests {
     func roundTripsTimedValues() throws {
         // Given
         let shape = try resolvedShape(##"""
-            { "shape": "rect", "area": [0, 0, 10, 10], "style": "bar", "fill": "#FFFFFF", "stroke": { "align": "outside" },
+            { "kind": "rect", "area": [0, 0, 10, 10], "style": "bar", "fill": "#FFFFFF", "stroke": { "align": "outside" },
               "keyframes": [ { "at": 0, "stroke": { "width": 0 }, "shadow": { "color": "#000000" }, "outset": 0, "ease": "ease-in" },
                              { "at": 1, "stroke": { "width": null }, "shadow": { "color": "#FF000080" }, "outset": 2 } ] }
             """##)
@@ -355,7 +355,7 @@ struct ShapeKeyframeTests {
     @Test("a gradient's points are fractions of the shape's box and a radial radius of 1 reaches its farthest corner, wide or tall")
     func laysGradientOverBox() throws {
         // When
-        let shape = try resolvedShape(#"{ "shape": "rect", "area": [0, 0, 10, 10], "style": "glow" }"#)
+        let shape = try resolvedShape(#"{ "kind": "rect", "area": [0, 0, 10, 10], "style": "glow" }"#)
 
         // Then
         let stops = [GradientStop(offset: 0, color: Color(written: "#123456")), GradientStop(offset: 1, color: Color(written: "#00000000"))]
@@ -377,10 +377,10 @@ struct ShapeKeyframeTests {
     func takesRadiusAndPartialGradient() throws {
         // When
         let sized = try resolvedShape(##"""
-            { "shape": "rect", "area": [0, 0, 10, 10],
+            { "kind": "rect", "area": [0, 0, 10, 10],
               "fill": { "radial": { "center": [0, 0], "radius": 0.5, "stops": [[0, "#000000"], [1, "#FFFFFF"]] } } }
             """##)
-        let moved = try resolvedShape(#"{ "shape": "rect", "area": [0, 0, 10, 10], "style": "glow", "fill": { "radial": { "center": [1, 1] } } }"#)
+        let moved = try resolvedShape(#"{ "kind": "rect", "area": [0, 0, 10, 10], "style": "glow", "fill": { "radial": { "center": [1, 1] } } }"#)
 
         // Then
         let box = Rectangle(x: 0, y: 0, width: 4, height: 3)
@@ -399,7 +399,7 @@ struct ShapeKeyframeTests {
     )
     func refusesGradient(written: String) throws {
         // Given
-        let clip = #"{ "shape": "rect", "area": [0, 0, 10, 10], \#(written) }"#
+        let clip = #"{ "kind": "rect", "area": [0, 0, 10, 10], \#(written) }"#
 
         // When, Then
         #expect(throws: (any Error).self) { try resolvedShape(clip) }
@@ -409,7 +409,7 @@ struct ShapeKeyframeTests {
     func movesGradient() throws {
         // When
         let shape = try resolvedShape(##"""
-            { "shape": "rect", "area": [0, 0, 10, 10], "style": "glow",
+            { "kind": "rect", "area": [0, 0, 10, 10], "style": "glow",
               "fill": { "radial": { "stops": [[0, "#000000"], [1, "#00000000"]] } },
               "keyframes": [ { "at": 0, "fill": { "radial": { "center": [0, 0], "stops": [[null, null], [0.5, null]] } } },
                              { "at": 1, "fill": { "radial": { "center": [1, 1], "stops": [[null, "#FFFFFF"], [null, null]] } } } ] }
@@ -428,7 +428,7 @@ struct ShapeKeyframeTests {
     func movesOneStyleStop() throws {
         // When
         let shape = try resolvedShape(##"""
-            { "shape": "rect", "area": [0, 0, 10, 10], "style": "glow",
+            { "kind": "rect", "area": [0, 0, 10, 10], "style": "glow",
               "keyframes": [ { "at": 0, "fill": { "radial": { "stops": [[null, null], [0.5, "#000000"]] } } },
                              { "at": 1, "fill": { "radial": { "stops": [[null, null], [1, "#FFFFFF"]] } } } ] }
             """##)
@@ -445,7 +445,7 @@ struct ShapeKeyframeTests {
     func movesOneStyleDash() throws {
         // When
         let shape = try resolvedShape(##"""
-            { "shape": "rect", "area": [0, 0, 10, 10], "style": "dashed",
+            { "kind": "rect", "area": [0, 0, 10, 10], "style": "dashed",
               "keyframes": [ { "at": 0, "stroke": { "dash": [null, 5] } }, { "at": 1, "stroke": { "dash": [null, 25] } } ] }
             """##)
 
@@ -459,7 +459,7 @@ struct ShapeKeyframeTests {
     func refusesNullOverOtherDash() throws {
         // Given
         let clip = ##"""
-            { "shape": "rect", "area": [0, 0, 10, 10], "style": "dashed",
+            { "kind": "rect", "area": [0, 0, 10, 10], "style": "dashed",
               "keyframes": [ { "at": 0, "stroke": { "dash": [null, 5, 2] } }, { "at": 1, "stroke": { "dash": [4, 5, 2] } } ] }
             """##
 
@@ -474,7 +474,7 @@ struct ShapeKeyframeTests {
         // back-out peaks at about 1.1 near 0.58, carrying the first offset to about 0.99 past the second's 0.95 and the
         // third to about 1.05.
         let shape = try resolvedShape(##"""
-            { "shape": "rect", "area": [0, 0, 10, 10], "style": "ramp",
+            { "kind": "rect", "area": [0, 0, 10, 10], "style": "ramp",
               "keyframes": [ { "at": 0, "fill": { "linear": { "stops": [[0, "#FF0000"], [0.95, "#00FF00"], [0.5, "#0000FF"]] } }, "ease": "back-out" },
                              { "at": 1, "fill": { "linear": { "stops": [[0.9, "#FF0000"], [0.95, "#00FF00"], [1, "#0000FF"]] } } } ] }
             """##)
@@ -490,9 +490,9 @@ struct ShapeKeyframeTests {
     @Test("a colour fill, static or only in keyframes, and keyframes of a stroke's colour replace a style's gradient")
     func replacesStyleGradientWithColor() throws {
         // When
-        let painted = try resolvedShape(##"{ "shape": "rect", "area": [0, 0, 10, 10], "style": "glow", "fill": "#FF0000" }"##)
+        let painted = try resolvedShape(##"{ "kind": "rect", "area": [0, 0, 10, 10], "style": "glow", "fill": "#FF0000" }"##)
         let keyed = try resolvedShape(##"""
-            { "shape": "rect", "area": [0, 0, 10, 10], "style": "glow",
+            { "kind": "rect", "area": [0, 0, 10, 10], "style": "glow",
               "keyframes": [ { "at": 0, "fill": "#000000", "stroke": { "color": "#000000" } },
                              { "at": 1, "fill": "#FFFFFF", "stroke": { "color": "#FFFFFF" } } ] }
             """##)
@@ -508,7 +508,7 @@ struct ShapeKeyframeTests {
     func roundTripsGradients() throws {
         // Given
         let shape = try resolvedShape(##"""
-            { "shape": "rect", "area": [0, 0, 10, 10], "style": "glow",
+            { "kind": "rect", "area": [0, 0, 10, 10], "style": "glow",
               "fill": { "radial": { "stops": [[0, "#000000"], [1, "#FFFFFF"]] } },
               "keyframes": [ { "at": 0, "fill": { "radial": { "radius": 0.5, "stops": [[0.2, null], [null, "#FF0000"]] } } },
                              { "at": 1, "fill": { "radial": { "radius": 1, "stops": [[null, null], [null, null]] } } } ] }
@@ -552,7 +552,7 @@ struct ShapeKeyframeTests {
                                                            "stops": [[0, "#FF0000"], [1, "#0000FF"]] } } } },
                                      "ramp": { "fill": { "linear": { "from": [0, 0], "to": [1, 0],
                                                "stops": [[0, "#FF0000"], [0.5, "#00FF00"], [1, "#0000FF"]] } } } } },
-              "storyline": [ { "media": "/abs/screen.mp4" } ], "clips": [ \#(clip.dropLast(1)), "at": [0, 1] } ] }
+              "storyline": [ { "kind": "media", "media": "/abs/screen.mp4" } ], "clips": [ \#(clip.dropLast(1)), "at": [0, 1] } ] }
             """#
         let plan = try Fixture.documentPlanner.plan(try Fixture.json(document))
         let clips = try ResolvedSequence(plan: plan, hashes: FileHashTable()).clips

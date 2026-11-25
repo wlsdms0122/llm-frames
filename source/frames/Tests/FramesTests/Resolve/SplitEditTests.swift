@@ -108,8 +108,8 @@ struct SplitEditTests {
     func movesConnectedEdge() throws {
         // When
         let plan = try plan(#"""
-            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "in": 0, "out": 6, "connected": [
-                { "media": "/abs/run.mp4", "at": [2, 4], "in": 5, "split": { "before": 1, "after": 0.5 } } ] } ] }
+            { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "in": 0, "out": 6, "connected": [
+                { "kind": "media", "media": "/abs/run.mp4", "at": [2, 4], "in": 5, "split": { "before": 1, "after": 0.5 } } ] } ] }
             """#)
 
         // Then
@@ -122,25 +122,25 @@ struct SplitEditTests {
     @Test(
         "a split stops on a clip without sound, past its media's sound and outside the sequence, naming the edge",
         arguments: [
-            (#"{ "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "out": 4, "connected": [ { "media": "/abs/short.mp4", "at": 1, "split": { "before": 0.5 } } ] } ] }"#,
+            (#"{ "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "out": 4, "connected": [ { "kind": "media", "media": "/abs/short.mp4", "at": 1, "split": { "before": 0.5 } } ] } ] }"#,
              #"storyline[0].connected[0].split (video): this clip plays no sound, so a split has no sound to move"#),
-            (#"{ "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "out": 4 }, { "media": "/abs/run.mp4", "in": 0.5, "out": 4, "split": { "before": 1 } } ] }"#,
+            (#"{ "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "out": 4 }, { "kind": "media", "media": "/abs/run.mp4", "in": 0.5, "out": 4, "split": { "before": 1 } } ] }"#,
              #"storyline[1].split.before (video): the split moves the clip's sound past where its media holds sound"#),
-            (#"{ "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "out": 4 }, { "media": "/abs/run.mp4", "in": 26, "split": { "after": 1 } }, { "media": "/abs/run.mp4", "out": 4 } ] }"#,
+            (#"{ "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "out": 4 }, { "kind": "media", "media": "/abs/run.mp4", "in": 26, "split": { "after": 1 } }, { "kind": "media", "media": "/abs/run.mp4", "out": 4 } ] }"#,
              #"storyline[1].split.after (video): the split moves the clip's sound past where its media holds sound"#),
-            (#"{ "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "in": 2, "out": 4, "split": { "before": 1 } }, { "media": "/abs/run.mp4", "out": 4 } ] }"#,
+            (#"{ "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "in": 2, "out": 4, "split": { "before": 1 } }, { "kind": "media", "media": "/abs/run.mp4", "out": 4 } ] }"#,
              #"storyline[0].split.before (video): the split moves the clip's sound outside the sequence"#),
-            (#"{ "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "out": 4 }, { "media": "/abs/run.mp4", "out": 4, "split": { "after": 1 } } ] }"#,
+            (#"{ "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "out": 4 }, { "kind": "media", "media": "/abs/run.mp4", "out": 4, "split": { "after": 1 } } ] }"#,
              #"storyline[1].split.after (video): the split moves the clip's sound outside the sequence"#),
-            (#"{ "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "out": 1 }, { "media": "/abs/run.mp4", "in": 5, "out": 9, "split": { "before": 2 } } ] }"#,
+            (#"{ "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "out": 1 }, { "kind": "media", "media": "/abs/run.mp4", "in": 5, "out": 9, "split": { "before": 2 } } ] }"#,
              #"storyline[1].split.before (video): the split moves the clip's sound outside the sequence"#),
-            (#"{ "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "out": 4 }, { "media": "/abs/run.mp4", "out": 4, "split": { "after": 3 } }, { "media": "/abs/run.mp4", "out": 1 } ] }"#,
+            (#"{ "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "out": 4 }, { "kind": "media", "media": "/abs/run.mp4", "out": 4, "split": { "after": 3 } }, { "kind": "media", "media": "/abs/run.mp4", "out": 1 } ] }"#,
              #"storyline[1].split.after (video): the split moves the clip's sound outside the sequence"#),
-            (#"{ "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "out": 4, "connected": [ { "media": "/abs/run.mp4", "in": 5, "at": [0.5, 2], "split": { "before": 1 } } ] } ] }"#,
+            (#"{ "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "out": 4, "connected": [ { "kind": "media", "media": "/abs/run.mp4", "in": 5, "at": [0.5, 2], "split": { "before": 1 } } ] } ] }"#,
              #"storyline[0].connected[0].split.before (video): the split moves the clip's sound outside the sequence"#),
-            (#"{ "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "out": 4 } ], "clips": [ { "media": "/abs/run.mp4", "at": [2, 4], "split": { "after": 1 } } ] }"#,
+            (#"{ "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "out": 4 } ], "clips": [ { "kind": "media", "media": "/abs/run.mp4", "at": [2, 4], "split": { "after": 1 } } ] }"#,
              #"clips[0].split.after (video): the split moves the clip's sound outside the sequence"#),
-            (#"{ "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "out": 4, "connected": [ { "media": "/abs/run.mp4", "at": [1, 3], "split": { "before": 0.5 }, "keyframes": [ { "at": 0, "timeRemap": 0 }, { "at": 1, "timeRemap": 1 } ] } ] } ] }"#,
+            (#"{ "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "out": 4, "connected": [ { "kind": "media", "media": "/abs/run.mp4", "at": [1, 3], "split": { "before": 0.5 }, "keyframes": [ { "at": 0, "timeRemap": 0 }, { "at": 1, "timeRemap": 1 } ] } ] } ] }"#,
              nil)
         ]
     )
@@ -160,14 +160,14 @@ struct SplitEditTests {
     func checksKeys() throws {
         // Given
         let accepted = try Fixture.json(#"""
-            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "split": { "before": 1, "after": 0 } } ],
-              "clips": [ { "media": "/abs/run.mp4", "split": { "after": 0.5 } } ] }
+            { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "split": { "before": 1, "after": 0 } } ],
+              "clips": [ { "kind": "media", "media": "/abs/run.mp4", "split": { "after": 0.5 } } ] }
             """#)
         let refused = [
-            #"{ "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4" } ], "clips": [ { "media": "/abs/page.png", "split": { "before": 1 } } ] }"#,
-            #"{ "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4" } ], "clips": [ { "media": "/abs/run.mp4", "picture": false, "split": { "before": 1 } } ] }"#,
-            #"{ "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "split": { "before": -1 } } ] }"#,
-            #"{ "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "split": { "lead": 1 } } ] }"#
+            #"{ "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4" } ], "clips": [ { "kind": "media", "media": "/abs/page.png", "split": { "before": 1 } } ] }"#,
+            #"{ "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4" } ], "clips": [ { "kind": "media", "media": "/abs/run.mp4", "picture": false, "split": { "before": 1 } } ] }"#,
+            #"{ "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "split": { "before": -1 } } ] }"#,
+            #"{ "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "split": { "lead": 1 } } ] }"#
         ]
 
         // When, Then
@@ -190,8 +190,8 @@ struct SplitEditTests {
     ) -> String {
         let extra = keys.map { ", " + $0 } ?? ""
         return #"""
-            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "in": 2, "out": 6 },
-                { "media": "/abs/run.mp4", "in": \#(secondIn), "out": 6\#(extra) }, { "media": "/abs/run.mp4", "in": 0, "out": 2 } ] }
+            { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "in": 2, "out": 6 },
+                { "media": "/abs/run.mp4", "in": \#(secondIn), "out": 6\#(extra) }, { "kind": "media", "media": "/abs/run.mp4", "in": 0, "out": 2 } ] }
             """#
     }
 }

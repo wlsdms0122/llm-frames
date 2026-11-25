@@ -38,7 +38,7 @@ struct PeakKeyTests {
         expected: Double?
     ) throws {
         // Given
-        let document = #"{ "kind": "sequence", "format": { \#(members) }, "storyline": [ { "media": "/abs/run.mp4" } ] }"#
+        let document = #"{ "kind": "sequence", "format": { \#(members) }, "storyline": [ { "kind": "media", "media": "/abs/run.mp4" } ] }"#
 
         // When
         let resolved = try resolved(document)
@@ -67,7 +67,7 @@ struct PeakKeyTests {
     ) throws {
         // Given
         let document = try Fixture.json(
-            #"{ "kind": "sequence", "format": { \#(members) }, "storyline": [ { "media": "/abs/run.mp4" } ] }"#
+            #"{ "kind": "sequence", "format": { \#(members) }, "storyline": [ { "kind": "media", "media": "/abs/run.mp4" } ] }"#
         )
 
         // When, Then
@@ -84,7 +84,7 @@ struct PeakKeyTests {
         peak: String
     ) throws {
         // Given
-        let resolved = try resolved(#"{ "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4" } ] }"#)
+        let resolved = try resolved(#"{ "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4" } ] }"#)
         let text = writer.write(resolved)
             .replacingOccurrences(of: #""colorSpace": "srgb""#, with: #""colorSpace": "\#(colorSpace)""#)
             .replacingOccurrences(of: #""peak": null"#, with: #""peak": \#(peak)"#)
@@ -98,7 +98,7 @@ struct PeakKeyTests {
         // Given
         let resolved = try resolved(#"""
             { "kind": "sequence", "format": { "colorSpace": "rec2100-pq", "peak": 600 }, "storyline": [
-                { "media": "/abs/run.mp4" } ] }
+                { "kind": "media", "media": "/abs/run.mp4" } ] }
             """#)
 
         // When
@@ -114,7 +114,7 @@ struct PeakKeyTests {
     @Test("an SDR sequence's display list writes a null peak")
     func writesNullPeak() throws {
         // Given
-        let resolved = try resolved(#"{ "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4" } ] }"#)
+        let resolved = try resolved(#"{ "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4" } ] }"#)
 
         // When
         let list = evaluator.displayList(of: resolved, at: 0.5)

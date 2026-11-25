@@ -39,7 +39,7 @@ struct TitlePlanner: Sendable {
         visible: TimeRange,
         theme: MergedTheme
     ) throws -> TitlePlan {
-        let place = looks.place.appending(key: "title")
+        let place = looks.place.appending(key: "text")
         let kind = looks.kind.label
         try check(title.style, place: looks.place.appending(key: "style"), theme: theme, kind: kind)
 

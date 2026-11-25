@@ -110,7 +110,7 @@ struct PathShapeTests {
     func resolvesVertexLeaves() throws {
         // When
         let shape = try resolvedShape(#"""
-            { "shape": "path", "stroke": { "width": 4 }, "points": [[0, 0], [100, 0]], "at": [0, 1],
+            { "kind": "path", "stroke": { "width": 4 }, "points": [[0, 0], [100, 0]], "at": [0, 1],
               "keyframes": [ { "at": 0.25, "points": [{ "outTangent": [0, 40] }, {}], "ease": "ease-in" },
                              { "at": 0.75, "points": [{ "outTangent": [0, 80] }, { "vertex": [200, 0] }] } ] }
             """#)
@@ -133,7 +133,7 @@ struct PathShapeTests {
     @Test("a curved path's named anchor is a point of the curve's box, not of its control points' box")
     func anchorsOnCurveBox() throws {
         // When
-        let shape = try resolvedShape(#"{ "shape": "path", "stroke": { "width": 4 }, "points": \#(Self.curve), "anchor": "bottom", "position": [500, 300], "at": [0, 1] }"#)
+        let shape = try resolvedShape(#"{ "kind": "path", "stroke": { "width": 4 }, "points": \#(Self.curve), "anchor": "bottom", "position": [500, 300], "at": [0, 1] }"#)
 
         // Then
         guard case let .point(anchor) = shape.geometry.placement?.anchor else {
@@ -147,8 +147,8 @@ struct PathShapeTests {
     func keepsClipAreaInVertex() throws {
         // When
         let clips = try resolvedClips(#"""
-            { "id": "box", "shape": "rect", "area": [10, 20, 30, 40], "fill": "accent", "at": [0, 1] },
-            { "shape": "path", "stroke": { "width": 4 }, "points": [[0, 0], { "vertex": { "area": { "clip": "box" }, "point": "right" }, "inTangent": [5, 0] }], "at": [0, 1] }
+            { "id": "box", "kind": "rect", "area": [10, 20, 30, 40], "fill": "accent", "at": [0, 1] },
+            { "kind": "path", "stroke": { "width": 4 }, "points": [[0, 0], { "vertex": { "area": { "clip": "box" }, "point": "right" }, "inTangent": [5, 0] }], "at": [0, 1] }
             """#)
 
         // Then
@@ -163,7 +163,7 @@ struct PathShapeTests {
     @Test("a clip area naming a vertex object's clip that does not exist stops at the vertex's area")
     func stopsOnUnknownClipInVertex() throws {
         // Given
-        let document = document(#"{ "shape": "path", "points": [[0, 0], { "vertex": { "area": { "clip": "none" }, "point": "right" } }], "fill": "accent", "at": [0, 1] }"#)
+        let document = document(#"{ "kind": "path", "points": [[0, 0], { "vertex": { "area": { "clip": "none" }, "point": "right" } }], "fill": "accent", "at": [0, 1] }"#)
 
         // When, Then
         let error = #expect(throws: (any Error).self) { try plan(document) }
@@ -174,8 +174,8 @@ struct PathShapeTests {
     func scalesParentAboutCurveBox() throws {
         // Given
         let sequence = try ResolvedSequence(plan: plan(document(#"""
-            { "id": "curve", "shape": "path", "stroke": { "width": 4 }, "points": \#(Self.curve), "scale": 2, "at": [0, 1] },
-            { "shape": "rect", "parent": "curve", "area": [0, 0, 10, 10], "fill": "accent", "at": [0, 1] }
+            { "id": "curve", "kind": "path", "stroke": { "width": 4 }, "points": \#(Self.curve), "scale": 2, "at": [0, 1] },
+            { "kind": "rect", "parent": "curve", "area": [0, 0, 10, 10], "fill": "accent", "at": [0, 1] }
             """#)), hashes: FileHashTable())
         let sut = ParentEvaluator(sequence: sequence)
 
@@ -191,8 +191,8 @@ struct PathShapeTests {
     func takesCurveBoxAsClipArea() throws {
         // Given
         let sequence = try ResolvedSequence(plan: plan(document(#"""
-            { "id": "curve", "shape": "path", "stroke": { "width": 4 }, "points": \#(Self.curve), "at": [0, 1] },
-            { "shape": "rect", "area": { "clip": "curve" }, "fill": "accent", "at": [0, 1] }
+            { "id": "curve", "kind": "path", "stroke": { "width": 4 }, "points": \#(Self.curve), "at": [0, 1] },
+            { "kind": "rect", "area": { "clip": "curve" }, "fill": "accent", "at": [0, 1] }
             """#)), hashes: FileHashTable())
         let rect = sequence.clips[1]
         guard case let .picture(.shape(shape), _) = rect.content, case let .area(area, _, _) = shape.geometry, let value = area.values.first else {
@@ -212,8 +212,8 @@ struct PathShapeTests {
         // When
         let plan = try sut.plan(Fixture.planner.plan(document: Fixture.json(#"""
             { "kind": "sequence", "format": { "size": { "fit": "content", "margin": 0 } },
-              "storyline": [ { "media": "/abs/page.png", "duration": 1, "crop": [0, 0, 300, 200] } ],
-              "clips": [ { "shape": "path", "stroke": { "width": 2 }, "points": [{ "vertex": [-50, 0], "outTangent": [0, 40] }, [0, 0]], "at": [0, 1] } ] }
+              "storyline": [ { "kind": "media", "media": "/abs/page.png", "duration": 1, "crop": [0, 0, 300, 200] } ],
+              "clips": [ { "kind": "path", "stroke": { "width": 2 }, "points": [{ "vertex": [-50, 0], "outTangent": [0, 40] }, [0, 0]], "at": [0, 1] } ] }
             """#)))
 
         // Then
@@ -227,7 +227,7 @@ struct PathShapeTests {
     // MARK: - Private
     private func document(_ clips: String) -> String {
         #"""
-            { "kind": "sequence", "format": { "size": [960, 540] }, "storyline": [ { "media": "/abs/screen.mp4" } ], "clips": [ \#(clips) ] }
+            { "kind": "sequence", "format": { "size": [960, 540] }, "storyline": [ { "kind": "media", "media": "/abs/screen.mp4" } ], "clips": [ \#(clips) ] }
             """#
     }
 

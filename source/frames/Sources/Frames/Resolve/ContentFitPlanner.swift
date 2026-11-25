@@ -82,7 +82,7 @@ struct ContentFitPlanner: Sendable {
                     place: entry.place,
                     id: entry.id,
                     media: entry.media,
-                    solid: entry.solid,
+                    color: entry.color,
                     colorSpace: entry.colorSpace,
                     isToneMapped: entry.isToneMapped,
                     in: entry.in,
@@ -278,7 +278,7 @@ struct ContentFitPlanner: Sendable {
             track: geometry.track,
             nested: geometry.nested,
             filter: geometry.filter,
-            solid: geometry.solid,
+            color: geometry.color,
             appearance: StorylineAppearance(
                 box: box,
                 cornerPin: cornerPin,

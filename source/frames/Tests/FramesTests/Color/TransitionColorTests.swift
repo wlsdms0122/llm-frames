@@ -131,7 +131,7 @@ struct TransitionColorTests {
     ) throws {
         // Given
         let plan = try plan(
-            storyline: #"{ "media": "/abs/run.mp4", "colorSpace": "rec709", "in": 0, "out": 3 }"#,
+            storyline: #"{ "kind": "media", "media": "/abs/run.mp4", "colorSpace": "rec709", "in": 0, "out": 3 }"#,
             presets: presets(cover: (cover, nil), matte: (matte, nil))
         )
 
@@ -144,7 +144,7 @@ struct TransitionColorTests {
     func acceptsFileInOneColorSpace() throws {
         // Given
         let plan = try plan(
-            storyline: #"{ "media": "/abs/run.mp4", "colorSpace": "rec709", "in": 0, "out": 3 }"#,
+            storyline: #"{ "kind": "media", "media": "/abs/run.mp4", "colorSpace": "rec709", "in": 0, "out": 3 }"#,
             presets: presets(cover: ("/abs/run.mp4", .rec709), matte: ("/abs/run.mp4", .rec709))
         )
 
@@ -192,7 +192,7 @@ struct TransitionColorTests {
         matte: String?
     ) throws -> ResolvedSequence {
         try resolved(
-            storyline: #"{ "media": "/abs/run.mp4", "in": 0, "out": 3 }"#,
+            storyline: #"{ "kind": "media", "media": "/abs/run.mp4", "in": 0, "out": 3 }"#,
             presets: presets(
                 cover: ("/abs/leak.mov", cover.flatMap(ColorSpace.init(rawValue:))),
                 matte: ("/abs/matte.png", matte.flatMap(ColorSpace.init(rawValue:)))
@@ -225,7 +225,7 @@ struct TransitionColorTests {
         )
         let document = #"""
             { "kind": "sequence", "storyline": [ \#(first),
-                { "media": "/abs/short.mp4", "in": 0, "out": 3, "transition": "reveal" } ] }
+                { "kind": "media", "media": "/abs/short.mp4", "in": 0, "out": 3, "transition": "reveal" } ] }
             """#
         return try planner.plan(Fixture.json(document))
     }

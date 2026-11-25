@@ -6,10 +6,12 @@
 //
 
 enum ClipKeyTable {
-    static let kindKeys = ["media", "title", "shape", "adjust", "solid", "null"]
-
-    static func kindKeys(in place: ClipPlace) -> [String] {
-        place == .storyline ? ["media", "solid"] : ["media", "title", "shape", "adjust", "null"]
+    // The kinds a clip's `kind` names at its place: a storyline clip is media or a solid, and a connected or a sequence
+    // clip any other kind.
+    static func kinds(in place: ClipPlace) -> [String] {
+        place == .storyline
+            ? ["media", "solid"]
+            : ["media", "title"] + VocabularyTable.shapes + ["adjustment", "null"]
     }
 
     static func table(
@@ -18,8 +20,7 @@ enum ClipKeyTable {
     ) -> ObjectTable {
         let names = keys(for: kind, in: place).filter { takes($0, kind: kind) }
         let rules = names.map { name in
-            // Which kind of text a title is belongs to the document, so it names its style.
-            KeyRule(name, type(of: name, for: kind, in: place), isRequired: name == "style" && kind == .title)
+            KeyRule(name, type(of: name, for: kind, in: place), isRequired: isRequired(name, kind: kind))
         }
 
         return ObjectTable(kind: kind.label, rules: rules)
@@ -99,7 +100,7 @@ enum ClipKeyTable {
             ["opacity", "mask", "adjust"]
 
         case (_, .solid):
-            ["solid"]
+            ["color"]
 
         case (_, .null):
             ["area", "width", "height", "position", "scale", "rotation"]
@@ -163,7 +164,7 @@ enum ClipKeyTable {
     // Keys of the look, timed leaf by leaf over the merged value: a keyframe may write any of their leaves, `null` for
     // the merged value's, and a clip may write them statically beside keyframes, which timing checks leaf by leaf.
     static let lookKeys = [
-        "radius", "outset", "fill", "stroke", "shadow", "border", "filter", "adjust", "mask", "audioFilter", "solid"
+        "radius", "outset", "fill", "stroke", "shadow", "border", "filter", "adjust", "mask", "audioFilter", "color"
     ] + titleLookKeys
 
     // Keys outside the look timed leaf by leaf, over the clip's static value and no style: a path's `points`, each
@@ -175,14 +176,14 @@ enum ClipKeyTable {
 
     // The keys of every clip with a picture, which each kind's row starts with.
     private static let everyClip = [
-        "id", "metadata", "at", "lane", "parent", "opacity", "blend", "motionBlur", "mask", "trackMatte", "track",
+        "id", "metadata", "kind", "at", "lane", "parent", "opacity", "blend", "motionBlur", "mask", "trackMatte", "track",
         "animation", "keyframes"
     ]
 
     // The keys every shape kind takes, then those of its geometry: a box for a rect or an ellipse, with the corner pin
     // a box takes, and points for a path. A key a kind does not take stops as an unknown key.
     private static let everyShape = [
-        "shape", "style", "position", "anchor", "fill", "stroke", "trim", "shadow", "scale", "rotation"
+        "style", "position", "anchor", "fill", "stroke", "trim", "shadow", "scale", "rotation"
     ]
 
     // Each row is the specification's key table row, in its order, so the two are compared line by line.
@@ -193,26 +194,27 @@ enum ClipKeyTable {
         switch (place, kind) {
         case (.storyline, .media(.video)), (.storyline, .media(.sequence)):
             return [
-                "id", "metadata", "media", "colorSpace", "toneMap", "in", "out", "speed", "crop", "filter", "transition",
+                "id", "metadata", "kind", "media", "colorSpace", "toneMap", "in", "out", "speed", "crop", "filter",
+                "transition",
                 "anchor", "position", "scale", "rotation", "cornerPin", "opacity", "blend", "motionBlur", "mask",
                 "trackMatte", "track", "radius", "border", "shadow", "volume", "pan", "fadeIn", "fadeOut", "audioFilter",
                 "split", "keyframes", "connected"
             ]
 
         case (_, .solid):
-            return ["id", "metadata", "solid", "duration", "transition", "motionBlur", "keyframes", "connected"]
+            return ["id", "metadata", "kind", "color", "duration", "transition", "motionBlur", "keyframes", "connected"]
 
         case (.storyline, .media):
             return [
-                "id", "metadata", "media", "colorSpace", "toneMap", "duration", "crop", "filter", "transition", "anchor",
-                "position", "scale", "rotation", "cornerPin", "opacity", "blend", "motionBlur", "mask", "trackMatte",
-                "radius", "border", "shadow", "keyframes", "connected"
+                "id", "metadata", "kind", "media", "colorSpace", "toneMap", "duration", "crop", "filter", "transition",
+                "anchor", "position", "scale", "rotation", "cornerPin", "opacity", "blend", "motionBlur", "mask",
+                "trackMatte", "radius", "border", "shadow", "keyframes", "connected"
             ]
 
         case (_, .media(.audio)):
             return [
-                "id", "metadata", "at", "media", "in", "out", "speed", "loop", "volume", "pan", "fadeIn", "fadeOut",
-                "audioFilter", "keyframes"
+                "id", "metadata", "kind", "at", "media", "in", "out", "speed", "loop", "volume", "pan", "fadeIn",
+                "fadeOut", "audioFilter", "keyframes"
             ]
 
         case (_, .media(.video)), (_, .media(.sequence)):
@@ -230,7 +232,7 @@ enum ClipKeyTable {
 
         case (_, .title):
             return everyClip + [
-                "title", "style", "character", "paragraph", "width", "placement", "position", "anchor", "scale",
+                "text", "style", "character", "paragraph", "width", "placement", "position", "anchor", "scale",
                 "rotation", "cornerPin"
             ]
 
@@ -244,7 +246,7 @@ enum ClipKeyTable {
         // composited.
         case (_, .null):
             return [
-                "id", "metadata", "at", "parent", "motionBlur", "track", "animation", "keyframes", "null", "area",
+                "id", "metadata", "kind", "at", "parent", "motionBlur", "track", "animation", "keyframes", "area",
                 "width", "height", "placement", "position", "anchor", "scale", "rotation"
             ]
         }
@@ -283,11 +285,11 @@ enum ClipKeyTable {
         case "crop":
             .crop
 
-        case "solid":
-            .color
+        case "kind":
+            .literal(kinds(in: place))
 
-        case "null":
-            .exactly(.bool(true))
+        case "color":
+            .color
 
         case "loop", "closed", "picture", "toneMap", "motionBlur":
             .bool
@@ -345,7 +347,7 @@ enum ClipKeyTable {
         case "border":
             ValueType(written: LookStructureTable.border, kind: "border")
 
-        case "title":
+        case "text":
             .runs
 
         case "character":
@@ -356,9 +358,6 @@ enum ClipKeyTable {
 
         case "style", "parent":
             .name
-
-        case "shape":
-            .literal(VocabularyTable.shapes)
 
         // A number is the same factor on both axes, and a pair a factor along each.
         case "scale":
@@ -466,6 +465,21 @@ enum ClipKeyTable {
 
         default:
             true
+        }
+    }
+
+    // A kind's content is required, and so is a title's style, since which kind of text a title is belongs to the
+    // document. A shape's geometry and a solid's colour may be given by keyframes, so the key check checks them apart.
+    private static func isRequired(
+        _ key: String,
+        kind: ClipKind
+    ) -> Bool {
+        switch (kind, key) {
+        case (.media, "media"), (.title, "text"), (.title, "style"), (.adjust, "adjust"):
+            true
+
+        default:
+            false
         }
     }
 

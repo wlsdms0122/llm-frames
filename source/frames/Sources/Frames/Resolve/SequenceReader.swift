@@ -72,7 +72,7 @@ struct SequenceReader: Sendable {
             place: place,
             id: object["id"]?.stringValue,
             media: object["media"].map { media($0, of: object, place: place.appending(key: "media")) },
-            solid: look("solid", of: object),
+            color: look("color", of: object),
             duration: object["duration"]?.numberValue,
             transition: object["transition"],
             keyframes: keyframes(object["keyframes"]),
@@ -137,25 +137,28 @@ struct SequenceReader: Sendable {
         )
     }
 
+    // The content of the kind the clip's `kind` names, an adjustment's the one left once the key tables let only the
+    // kinds they know through.
     private func content(
         of object: JSONObject,
         place: Place
     ) -> ClipContent {
-        if let media = object["media"] {
+        let kind = object["kind"]?.stringValue
+        if kind == "media", let media = object["media"] {
             return .media(self.media(media, of: object, place: place.appending(key: "media")))
         }
-        if let kind = object["shape"]?.stringValue.flatMap(ShapeKind.init(rawValue:)) {
-            return .shape(shape(kind, of: object))
+        if let shape = kind.flatMap(ShapeKind.init(rawValue:)) {
+            return .shape(self.shape(shape, of: object))
         }
-        if object["null"] != nil {
+        if kind == "null" {
             return .null(ClipNull(
                 width: property("width", of: object, read: \.numberValue),
                 height: property("height", of: object, read: \.numberValue)
             ))
         }
-        if let title = object["title"] {
+        if kind == "title", let text = object["text"] {
             return .title(ClipTitle(
-                runs: TitleRun.runs(in: title),
+                runs: TitleRun.runs(in: text),
                 style: object["style"]?.stringValue ?? "",
                 character: look("character", of: object),
                 paragraph: look("paragraph", of: object)

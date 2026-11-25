@@ -28,9 +28,9 @@ struct TemplateCheckTests {
                 "size":  { "type": "number", "default": 2, "description": "the size" },
                 "tone":  { "type": "choice", "options": ["frames/warm", "frames/cool"], "default": "frames/warm", "description": "colour of the whole clip" }
               },
-              "storyline": [ { "media": { "param": "clip" }, "in": 1, "filter": { "param": "tone" },
-                               "connected": [ { "shape": "rect", "stroke": { "width": 8 }, "area": [0, 0, 100, 40], "fill": { "param": "tint" }, "opacity": { "param": "size" } },
-                                              { "title": { "param": "name" }, "style": "s" } ] } ]
+              "storyline": [ { "kind": "media", "media": { "param": "clip" }, "in": 1, "filter": { "param": "tone" },
+                               "connected": [ { "kind": "rect", "stroke": { "width": 8 }, "area": [0, 0, 100, 40], "fill": { "param": "tint" }, "opacity": { "param": "size" } },
+                                              { "kind": "title", "text": { "param": "name" }, "style": "s" } ] } ]
             }
             """##)
 
@@ -41,8 +41,8 @@ struct TemplateCheckTests {
     @Test(
         "a text parameter stands for a whole title and for a run's text, and a choice for a run's style",
         arguments: [
-            #"{ "title": { "param": "name" }, "style": "s" }"#,
-            #"{ "title": [ { "text": { "param": "name" }, "style": { "param": "look" } }, { "text": " and more" } ], "style": "s" }"#
+            #"{ "kind": "title", "text": { "param": "name" }, "style": "s" }"#,
+            #"{ "kind": "title", "text": [ { "text": { "param": "name" }, "style": { "param": "look" } }, { "text": " and more" } ], "style": "s" }"#
         ]
     )
     func acceptsRunParameters(clip: String) throws {
@@ -50,7 +50,7 @@ struct TemplateCheckTests {
         let document = try Fixture.json(#"""
             { "kind": "sequence",
               "params": { "name": { "type": "text", "description": "the name" }, "look": { "type": "choice", "options": ["name", "role"], "default": "name", "description": "the look" } },
-              "clips": [ \#(clip), { "title": "x", "style": { "param": "look" } } ] }
+              "clips": [ \#(clip), { "kind": "title", "text": "x", "style": { "param": "look" } } ] }
             """#)
 
         // When, Then
@@ -62,31 +62,31 @@ struct TemplateCheckTests {
         // Given
         let document = try Fixture.json(#"""
             { "kind": "sequence", "params": { "card": { "type": "image", "description": "the card" } },
-              "storyline": [ { "media": { "param": "card" }, "in": 1 } ] }
+              "storyline": [ { "kind": "media", "media": { "param": "card" }, "in": 1 } ] }
             """#)
 
         // When, Then
         let error = #expect(throws: ModelError.self) { try sut.check(document: document) }
-        #expect(error?.description == #"storyline[0] (image): unknown key "in". Allowed: id, metadata, media, colorSpace, toneMap, duration, crop, filter, transition, anchor, position, scale, rotation, cornerPin, opacity, blend, motionBlur, mask, trackMatte, radius, border, shadow, keyframes, connected"#)
+        #expect(error?.description == #"storyline[0] (image): unknown key "in". Allowed: id, metadata, kind, media, colorSpace, toneMap, duration, crop, filter, transition, anchor, position, scale, rotation, cornerPin, opacity, blend, motionBlur, mask, trackMatte, radius, border, shadow, keyframes, connected"#)
     }
 
     @Test(
         "a parameter that cannot stand where it is written stops",
         arguments: [
-            (#"{ "name": { "type": "text", "description": "the name" } }"#, #"{ "title": "x", "style": { "param": "name" } }"#,
+            (#"{ "name": { "type": "text", "description": "the name" } }"#, #"{ "kind": "title", "text": "x", "style": { "param": "name" } }"#,
              #"clips[0].style (title): parameter "name" of type text cannot stand where a string is expected"#),
-            (#"{ "size": { "type": "number", "description": "the size" } }"#, #"{ "title": { "param": "size" }, "style": "s" }"#,
-             #"clips[0].title (title): parameter "size" of type number cannot stand where a string or a list of runs is expected"#),
-            (#"{ "name": { "type": "text", "description": "the name" } }"#, #"{ "media": { "param": "name" } }"#,
+            (#"{ "size": { "type": "number", "description": "the size" } }"#, #"{ "kind": "title", "text": { "param": "size" }, "style": "s" }"#,
+             #"clips[0].text (title): parameter "size" of type number cannot stand where a string or a list of runs is expected"#),
+            (#"{ "name": { "type": "text", "description": "the name" } }"#, #"{ "kind": "media", "media": { "param": "name" } }"#,
              #"clips[0].media (clip): parameter "name" of type text cannot stand where a media reference is expected"#),
-            (#"{ "name": { "type": "text", "description": "the name" } }"#, #"{ "shape": "rect", "stroke": { "width": 8 }, "area": { "param": "name" } }"#,
+            (#"{ "name": { "type": "text", "description": "the name" } }"#, #"{ "kind": "rect", "stroke": { "width": 8 }, "area": { "param": "name" } }"#,
              #"clips[0].area (rect): parameter "name" of type text cannot stand where an area is expected"#),
-            (#"{ "where": { "type": "choice", "options": ["top", "middle"], "description": "the where" } }"#, #"{ "title": "x", "style": "s", "placement": { "param": "where" } }"#,
+            (#"{ "where": { "type": "choice", "options": ["top", "middle"], "description": "the where" } }"#, #"{ "kind": "title", "text": "x", "style": "s", "placement": { "param": "where" } }"#,
              #"clips[0].placement (title): unknown value "middle". Allowed: top-left, top, top-right, left, center, right, bottom-left, bottom, bottom-right"#),
-            (#"{ "name": { "type": "text", "description": "the name" } }"#, #"{ "title": { "param": "nam" }, "style": "s" }"#,
-             #"clips[0].title (title): parameter "nam" is not declared in params"#),
-            (#"{ "name": { "type": "text", "description": "the name" } }"#, #"{ "title": [ { "text": "x", "style": { "param": "name" } } ], "style": "s" }"#,
-             #"clips[0].title[0].style (run): parameter "name" of type text cannot stand where a string is expected"#)
+            (#"{ "name": { "type": "text", "description": "the name" } }"#, #"{ "kind": "title", "text": { "param": "nam" }, "style": "s" }"#,
+             #"clips[0].text (title): parameter "nam" is not declared in params"#),
+            (#"{ "name": { "type": "text", "description": "the name" } }"#, #"{ "kind": "title", "text": [ { "text": "x", "style": { "param": "name" } } ], "style": "s" }"#,
+             #"clips[0].text[0].style (run): parameter "name" of type text cannot stand where a string is expected"#)
         ]
     )
     func refusesMisplacedParameter(
@@ -133,7 +133,7 @@ struct TemplateCheckTests {
         message: String
     ) throws {
         // Given
-        let document = try Fixture.json(#"{ "kind": "sequence", "params": { "p": \#(parameter) }, "clips": [ { "title": { "param": "p" }, "style": "s" } ] }"#)
+        let document = try Fixture.json(#"{ "kind": "sequence", "params": { "p": \#(parameter) }, "clips": [ { "kind": "title", "text": { "param": "p" }, "style": "s" } ] }"#)
 
         // When, Then
         let error = #expect(throws: ModelError.self) { try sut.check(document: document) }
@@ -143,8 +143,8 @@ struct TemplateCheckTests {
     @Test("a template instance takes template and args")
     func checksTemplateInstance() throws {
         // Given
-        let compound = try Fixture.json(#"{ "kind": "sequence", "storyline": [ { "media": { "template": "pack/intro", "args": { "name": "Ada" } }, "in": 0, "out": 3 } ] }"#)
-        let unknownKey = try Fixture.json(#"{ "kind": "sequence", "storyline": [ { "media": { "template": "pack/intro", "arguments": {} } } ] }"#)
+        let compound = try Fixture.json(#"{ "kind": "sequence", "storyline": [ { "kind": "media", "media": { "template": "pack/intro", "args": { "name": "Ada" } }, "in": 0, "out": 3 } ] }"#)
+        let unknownKey = try Fixture.json(#"{ "kind": "sequence", "storyline": [ { "kind": "media", "media": { "template": "pack/intro", "arguments": {} } } ] }"#)
 
         // When, Then
         try sut.check(document: compound)
@@ -156,7 +156,7 @@ struct TemplateCheckTests {
     func refusesNestedTemplate() throws {
         // Given
         let document = try Fixture.json(#"""
-            { "kind": "sequence", "storyline": [ { "media": { "kind": "sequence", "params": {}, "storyline": [] }, "in": 0, "out": 1 } ] }
+            { "kind": "sequence", "storyline": [ { "kind": "media", "media": { "kind": "sequence", "params": {}, "storyline": [] }, "in": 0, "out": 1 } ] }
             """#)
 
         // When, Then
@@ -168,7 +168,7 @@ struct TemplateCheckTests {
     func checksDocumentArgument() throws {
         // Given
         let document = try Fixture.json(#"""
-            { "kind": "sequence", "storyline": [ { "media": { "template": "pack/intro", "args": { "shot": { "kind": "sequence", "storyline": [], "opz": [] } } } } ] }
+            { "kind": "sequence", "storyline": [ { "kind": "media", "media": { "template": "pack/intro", "args": { "shot": { "kind": "sequence", "storyline": [], "opz": [] } } } } ] }
             """#)
 
         // When, Then
@@ -181,7 +181,7 @@ struct TemplateCheckTests {
         // Given
         let document = try Fixture.json(#"""
             { "kind": "sequence", "params": { "t": { "type": "choice", "options": ["pack/intro", "pack/outro"], "description": "the t" } },
-              "storyline": [ { "media": { "template": { "param": "t" }, "args": {} }, "in": 0, "out": 2 } ] }
+              "storyline": [ { "kind": "media", "media": { "template": { "param": "t" }, "args": {} }, "in": 0, "out": 2 } ] }
             """#)
         let checker = KeyChecker(mediaKinds: MediaKindTable(templates: ["pack/intro", "pack/outro"]))
 
@@ -194,7 +194,7 @@ struct TemplateCheckTests {
         // Given
         let document = try Fixture.json(#"""
             { "kind": "sequence", "params": { "p": { "type": "text", "description": "the p" } },
-              "storyline": [ { "media": { "template": "pack/intro", "args": { "x": { "template": "pack/card", "args": { "y": { "param": "p" } } } } } } ] }
+              "storyline": [ { "kind": "media", "media": { "template": "pack/intro", "args": { "x": { "template": "pack/card", "args": { "y": { "param": "p" } } } } } } ] }
             """#)
 
         // When, Then
@@ -205,7 +205,7 @@ struct TemplateCheckTests {
     func checksMediaArgument() throws {
         // Given
         let document = try Fixture.json(#"""
-            { "kind": "sequence", "storyline": [ { "media": { "template": "pack/intro", "args": { "frames": { "imageSequence": "/abs/frames" } } } } ] }
+            { "kind": "sequence", "storyline": [ { "kind": "media", "media": { "template": "pack/intro", "args": { "frames": { "imageSequence": "/abs/frames" } } } } ] }
             """#)
 
         // When, Then
@@ -225,7 +225,7 @@ struct TemplateCheckTests {
         message: String
     ) throws {
         // Given
-        let document = try Fixture.json(#"{ "kind": "sequence", "storyline": [ { "media": { "param": "clip" } } ], "params": \#(parameters) }"#)
+        let document = try Fixture.json(#"{ "kind": "sequence", "storyline": [ { "kind": "media", "media": { "param": "clip" } } ], "params": \#(parameters) }"#)
 
         // When, Then
         let error = #expect(throws: ModelError.self) { try sut.check(document: document) }
@@ -236,12 +236,12 @@ struct TemplateCheckTests {
         "a shape taken by a choice checks its object with each option's keys, so a rect and a path together stop",
         arguments: [
             (
-                #"{ "kind": "sequence", "params": { "s": { "type": "choice", "options": ["rect", "path"], "description": "the s" } }, "clips": [ { "shape": { "param": "s" }, "area": [0, 0, 10, 10], "fill": "accent" } ] }"#,
-                #"clips[0] (path): unknown key "area". Allowed: id, metadata, at, lane, parent, opacity, blend, motionBlur, mask, trackMatte, track, animation, keyframes, shape, style, position, anchor, fill, stroke, trim, shadow, scale, rotation, points, closed"#
+                #"{ "kind": "sequence", "params": { "s": { "type": "choice", "options": ["rect", "path"], "description": "the s" } }, "clips": [ { "kind": { "param": "s" }, "area": [0, 0, 10, 10], "fill": "accent" } ] }"#,
+                #"clips[0] (path): unknown key "area". Allowed: id, metadata, kind, at, lane, parent, opacity, blend, motionBlur, mask, trackMatte, track, animation, keyframes, style, position, anchor, fill, stroke, trim, shadow, scale, rotation, points, closed"#
             ),
             (
-                #"{ "kind": "sequence", "params": { "s": { "type": "choice", "options": ["rect", "path"], "description": "the s" } }, "clips": [ { "shape": { "param": "s" }, "points": [[0, 0], [10, 10]], "fill": "accent" } ] }"#,
-                #"clips[0] (rect): unknown key "points". Allowed: id, metadata, at, lane, parent, opacity, blend, motionBlur, mask, trackMatte, track, animation, keyframes, shape, style, position, anchor, fill, stroke, trim, shadow, scale, rotation, area, width, height, placement, radius, outset, cornerPin"#
+                #"{ "kind": "sequence", "params": { "s": { "type": "choice", "options": ["rect", "path"], "description": "the s" } }, "clips": [ { "kind": { "param": "s" }, "points": [[0, 0], [10, 10]], "fill": "accent" } ] }"#,
+                #"clips[0] (rect): unknown key "points". Allowed: id, metadata, kind, at, lane, parent, opacity, blend, motionBlur, mask, trackMatte, track, animation, keyframes, style, position, anchor, fill, stroke, trim, shadow, scale, rotation, area, width, height, placement, radius, outset, cornerPin"#
             )
         ]
     )
@@ -290,7 +290,7 @@ struct TemplateCheckTests {
         // Given
         let document = try Fixture.json(#"""
             { "kind": "sequence", "params": { "s": { "type": "choice", "options": \#(options), "description": "the s" } },
-              "clips": [ { "adjust": "frames/vivid", "at": [0, 1], "mask": \#(mask) } ] }
+              "clips": [ { "kind": "adjustment", "adjust": "frames/vivid", "at": [0, 1], "mask": \#(mask) } ] }
             """#)
 
         // When, Then
@@ -303,7 +303,7 @@ struct TemplateCheckTests {
         // Given
         let document = try Fixture.json(#"""
             { "kind": "sequence", "params": { "s": { "type": "choice", "options": ["rect", "ellipse"], "description": "the s" } },
-              "clips": [ { "adjust": "frames/vivid", "at": [0, 1], "mask": { "shape": { "param": "s" }, "area": [0, 0, 10, 10] } } ] }
+              "clips": [ { "kind": "adjustment", "adjust": "frames/vivid", "at": [0, 1], "mask": { "shape": { "param": "s" }, "area": [0, 0, 10, 10] } } ] }
             """#)
 
         // When
@@ -318,7 +318,7 @@ struct TemplateCheckTests {
         // Given
         let document = try Fixture.json(#"""
             { "kind": "sequence", "params": { "s": { "type": "choice", "options": ["rect", "ellipse"], "description": "the s" }, "c": { "type": "color", "description": "the c" } },
-              "clips": [ { "shape": { "param": "s" }, "area": [0, 0, 10, 10], "fill": { "param": "c" } } ] }
+              "clips": [ { "kind": { "param": "s" }, "area": [0, 0, 10, 10], "fill": { "param": "c" } } ] }
             """#)
 
         // When

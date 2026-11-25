@@ -21,7 +21,7 @@ struct TitleUnitTests {
     func resolvesUnits() throws {
         // Given
         let text = try resolvedText(#"""
-            { "title": "ab cd", "style": "caption", "position": [400, 225],
+            { "kind": "title", "text": "ab cd", "style": "caption", "position": [400, 225],
               "animation": { "preset": "frames/fade", "by": "word" },
               "character": { "highlight": { "color": "#FF0000" } },
               "keyframes": [ { "at": 0, "character": { "highlight": { "padding": [2, 3] } } },
@@ -63,7 +63,7 @@ struct TitleUnitTests {
     func setsNoPieceOnLineOfSpaces() throws {
         // When
         let text = try resolvedText(#"""
-            { "title": "ab\n   \ncd", "style": "caption", "position": [400, 225],
+            { "kind": "title", "text": "ab\n   \ncd", "style": "caption", "position": [400, 225],
               "animation": { "preset": "frames/fade", "by": "word" },
               "character": { "highlight": { "color": "#FF0000" } } }
             """#)
@@ -82,7 +82,7 @@ struct TitleUnitTests {
     func carriesNoUnitsWithoutBy() throws {
         // When
         let text = try resolvedText(#"""
-            { "title": "ab cd", "style": "caption", "position": [400, 225], "animation": "frames/fade" }
+            { "kind": "title", "text": "ab cd", "style": "caption", "position": [400, 225], "animation": "frames/fade" }
             """#)
 
         // Then
@@ -93,11 +93,11 @@ struct TitleUnitTests {
     func setsCharactersApart() throws {
         // When
         let apart = try resolvedText(#"""
-            { "title": "fi", "style": "caption", "position": [400, 225],
+            { "kind": "title", "text": "fi", "style": "caption", "position": [400, 225],
               "animation": { "preset": "frames/fade", "by": "character" } }
             """#)
         let joined = try resolvedText(#"""
-            { "title": "fi", "style": "caption", "position": [400, 225],
+            { "kind": "title", "text": "fi", "style": "caption", "position": [400, 225],
               "animation": { "preset": "frames/fade", "by": "character" }, "character": { "features": { "liga": 1 } } }
             """#)
 
@@ -125,7 +125,7 @@ struct TitleUnitTests {
         #"""
             { "kind": "sequence", "format": { "size": [1920, 1080] },
               "theme": { "styles": { "caption": { "size": 40, "color": "#000000", "stroke": { "width": 4, "color": "#000000" } } } },
-              "storyline": [ { "media": "/abs/screen.mp4" } ], "clips": [ \#(clip.dropLast(1)), "at": [0, 2] } ] }
+              "storyline": [ { "kind": "media", "media": "/abs/screen.mp4" } ], "clips": [ \#(clip.dropLast(1)), "at": [0, 2] } ] }
             """#
     }
 }

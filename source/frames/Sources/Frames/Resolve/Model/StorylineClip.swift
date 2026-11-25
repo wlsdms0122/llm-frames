@@ -6,7 +6,7 @@
 //
 
 // A storyline clip as written, its keyframes on the clip's own clock. `media` is nil for a solid, whose colour is
-// `solid`, and whether media is timed or still is known once it is probed. `position`, `scale`, `rotation`, `opacity`, `blend`, `radius`, `border`
+// `color`, and whether media is timed or still is known once it is probed. `position`, `scale`, `rotation`, `opacity`, `blend`, `radius`, `border`
 // and `shadow` are its transform and how its box is drawn, as on a media clip, `cornerPin` the four points its box's
 // corners go to in place of a position, and `isMotionBlurred` its `motionBlur`. `transition` and `filter` are preset
 // choices as written, which resolve merges over the theme's defaults, `filter` with its keyframes.
@@ -15,7 +15,7 @@ struct StorylineClip: Equatable, Sendable {
     let place: Place
     let id: String?
     let media: ClipMedia?
-    let solid: LookProperty?
+    let color: LookProperty?
     let duration: Double?
     let transition: JSONValue?
     let keyframes: [KeyframeInstant]
@@ -42,7 +42,7 @@ struct StorylineClip: Equatable, Sendable {
         place: Place,
         id: String?,
         media: ClipMedia?,
-        solid: LookProperty? = nil,
+        color: LookProperty? = nil,
         duration: Double?,
         transition: JSONValue?,
         keyframes: [KeyframeInstant],
@@ -67,7 +67,7 @@ struct StorylineClip: Equatable, Sendable {
         self.place = place
         self.id = id
         self.media = media
-        self.solid = solid
+        self.color = color
         self.duration = duration
         self.transition = transition
         self.keyframes = keyframes

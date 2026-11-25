@@ -22,7 +22,7 @@ struct TitleKeyframeTests {
     func timesRunColours() throws {
         // When
         let title = try title(#"""
-            { "title": [ { "text": "a " }, { "text": "b", "style": "small" } ], "style": "caption", "position": [400, 225],
+            { "kind": "title", "text": [ { "text": "a " }, { "text": "b", "style": "small" } ], "style": "caption", "position": [400, 225],
               "keyframes": [ { "at": 0, "character": { "color": "accent" } }, { "at": 1, "character": { "color": "#FFFFFF" } } ] }
             """#)
 
@@ -38,7 +38,7 @@ struct TitleKeyframeTests {
     func keepsRunStrokeColour() throws {
         // When
         let title = try title(#"""
-            { "title": "a", "style": "caption", "position": [400, 225],
+            { "kind": "title", "text": "a", "style": "caption", "position": [400, 225],
               "keyframes": [ { "at": 0, "character": { "stroke": { "width": 2 } } }, { "at": 1, "character": { "stroke": { "width": 6 } } } ] }
             """#)
 
@@ -69,7 +69,7 @@ struct TitleKeyframeTests {
     ) throws {
         // Given
         let clip = #"""
-            { "title": "a", "style": "caption", "position": [400, 225],
+            { "kind": "title", "text": "a", "style": "caption", "position": [400, 225],
               "keyframes": [ { "at": 0, \#(keyframe) }, { "at": 1, "character": { "color": "#FFFFFF" } } ] }
             """#
 
@@ -83,7 +83,7 @@ struct TitleKeyframeTests {
     func refusesDirectionInKeyframe() throws {
         // Given
         let clip = #"""
-            { "title": "a", "style": "caption", "position": [400, 225],
+            { "kind": "title", "text": "a", "style": "caption", "position": [400, 225],
               "keyframes": [ { "at": 0, "paragraph": { "direction": "rtl" } }, { "at": 1, "character": { "color": "#FFFFFF" } } ] }
             """#
 
@@ -97,11 +97,11 @@ struct TitleKeyframeTests {
     func refusesStaticValueOutsideDomain() throws {
         // Given
         let written = #"""
-            { "title": "a", "style": "caption", "position": [400, 225],
+            { "kind": "title", "text": "a", "style": "caption", "position": [400, 225],
               "character": { "highlight": { "color": "#FF0000", "padding": [-4, 0] } } }
             """#
         let keyframed = #"""
-            { "title": "a", "style": "caption", "position": [400, 225],
+            { "kind": "title", "text": "a", "style": "caption", "position": [400, 225],
               "character": { "highlight": { "color": "#FF0000" } },
               "keyframes": [ { "at": 0, "character": { "highlight": { "padding": [-4, 0] } } } ] }
             """#
@@ -132,7 +132,7 @@ struct TitleKeyframeTests {
     func refusesNullCharacter() throws {
         // Given
         let clip = #"""
-            { "title": "a", "style": "caption", "position": [400, 225],
+            { "kind": "title", "text": "a", "style": "caption", "position": [400, 225],
               "keyframes": [ { "at": 0, "character": null }, { "at": 1, "character": { "color": "#FFFFFF" } } ] }
             """#
 
@@ -145,7 +145,7 @@ struct TitleKeyframeTests {
     func roundTripsRuns() throws {
         // Given
         let text = try resolvedText(##"""
-            { "title": "a b", "style": "caption", "position": [400, 225],
+            { "kind": "title", "text": "a b", "style": "caption", "position": [400, 225],
               "character": { "highlight": { "padding": [2, 4] }, "underline": true },
               "keyframes": [ { "at": 0, "character": { "color": "accent", "baselineShift": 0, "highlight": { "radius": 0 } }, "ease": "ease-in" },
                              { "at": 1, "character": { "color": "#FFFFFF", "baselineShift": 10, "highlight": { "radius": 6 } } } ] }
@@ -171,7 +171,7 @@ struct TitleKeyframeTests {
     func takesUnderlineFromFace() throws {
         // When
         let text = try resolvedText(#"""
-            { "title": "a", "style": "caption", "position": [400, 225], "character": { "underline": true },
+            { "kind": "title", "text": "a", "style": "caption", "position": [400, 225], "character": { "underline": true },
               "keyframes": [ { "at": 0, "character": { "color": "#FF0000" } }, { "at": 1, "character": { "color": "#FFFFFF" } } ] }
             """#)
 
@@ -187,7 +187,7 @@ struct TitleKeyframeTests {
     func defaultsStrokeAndHighlight() throws {
         // When
         let title = try title(#"""
-            { "title": "a", "style": "small", "position": [400, 225],
+            { "kind": "title", "text": "a", "style": "small", "position": [400, 225],
               "character": { "stroke": { "width": 2 }, "highlight": { "radius": 0 } } }
             """#)
 
@@ -203,7 +203,7 @@ struct TitleKeyframeTests {
     func raisesGlyphsByBaselineShift() throws {
         // Given
         let text = try resolvedText(#"""
-            { "title": "a", "style": "caption", "position": [400, 225],
+            { "kind": "title", "text": "a", "style": "caption", "position": [400, 225],
               "keyframes": [ { "at": 0, "character": { "baselineShift": 0 } }, { "at": 1, "character": { "baselineShift": 10 } } ] }
             """#)
         let run = try #require(text.runs.first)
@@ -233,7 +233,7 @@ struct TitleKeyframeTests {
     ) throws {
         // When
         let title = try title(#"""
-            { "title": "aa bb", "style": "caption", "position": [400, 225], "width": 100,
+            { "kind": "title", "text": "aa bb", "style": "caption", "position": [400, 225], "width": 100,
               "keyframes": [ { "at": 0, "character": { "tracking": 0 }, "ease": "\#(ease)" }, { "at": 1, "character": { "tracking": 60 } } ] }
             """#)
 
@@ -246,7 +246,7 @@ struct TitleKeyframeTests {
     func roundTripsLines() throws {
         // Given
         let text = try resolvedText(#"""
-            { "title": "ab \ncd", "style": "caption", "position": [400, 225],
+            { "kind": "title", "text": "ab \ncd", "style": "caption", "position": [400, 225],
               "keyframes": [ { "at": 0, "character": { "tracking": 0 } }, { "at": 1, "character": { "tracking": 100 } } ] }
             """#)
         let writer = ResolvedValueWriter()
@@ -286,7 +286,7 @@ struct TitleKeyframeTests {
     func stepsEachRunFromItsOwnTracking() throws {
         // When
         let title = try title(#"""
-            { "title": [ { "text": "ab" }, { "text": "cd", "style": "wide" } ], "style": "caption", "position": [400, 225],
+            { "kind": "title", "text": [ { "text": "ab" }, { "text": "cd", "style": "wide" } ], "style": "caption", "position": [400, 225],
               "keyframes": [ { "at": 0, "character": { "tracking": null } }, { "at": 1, "character": { "tracking": 50 } } ] }
             """#)
 
@@ -302,7 +302,7 @@ struct TitleKeyframeTests {
     func carriesLinesForStaticTracking() throws {
         // When
         let text = try resolvedText(#"""
-            { "title": "ab", "style": "wide", "position": [400, 225],
+            { "kind": "title", "text": "ab", "style": "wide", "position": [400, 225],
               "keyframes": [ { "at": 0, "character": { "tracking": 100 } }, { "at": 1, "character": { "tracking": 100 } } ] }
             """#)
 
@@ -315,7 +315,7 @@ struct TitleKeyframeTests {
     func movesGlyphsByTracking() throws {
         // Given
         let text = try resolvedText(#"""
-            { "title": "ab", "style": "caption", "position": [400, 225], "paragraph": { "align": "center" },
+            { "kind": "title", "text": "ab", "style": "caption", "position": [400, 225], "paragraph": { "align": "center" },
               "keyframes": [ { "at": 0, "character": { "tracking": 0 } }, { "at": 1, "character": { "tracking": 100 } } ] }
             """#)
 
@@ -336,7 +336,7 @@ struct TitleKeyframeTests {
     func keepsWidthWhileTracking() throws {
         // Given
         let text = try resolvedText(#"""
-            { "title": "ab", "style": "caption", "position": [400, 225], "width": 100, "paragraph": { "align": "right" },
+            { "kind": "title", "text": "ab", "style": "caption", "position": [400, 225], "width": 100, "paragraph": { "align": "right" },
               "keyframes": [ { "at": 0, "character": { "tracking": 0 } }, { "at": 1, "character": { "tracking": 100 } } ] }
             """#)
 
@@ -354,7 +354,7 @@ struct TitleKeyframeTests {
     func movesLinesByLineHeight() throws {
         // Given
         let text = try resolvedText(#"""
-            { "title": "a\nb", "style": "caption", "position": [400, 225],
+            { "kind": "title", "text": "a\nb", "style": "caption", "position": [400, 225],
               "keyframes": [ { "at": 0, "paragraph": { "lineHeight": 50 } }, { "at": 1, "paragraph": { "lineHeight": 70 } } ] }
             """#)
 
@@ -374,7 +374,7 @@ struct TitleKeyframeTests {
     func takesMergedLineHeightForNull() throws {
         // When
         let text = try resolvedText(#"""
-            { "title": "a\nb", "style": "caption", "position": [400, 225],
+            { "kind": "title", "text": "a\nb", "style": "caption", "position": [400, 225],
               "keyframes": [ { "at": 0, "paragraph": { "lineHeight": null } }, { "at": 1, "paragraph": { "lineHeight": 70 } } ] }
             """#)
 
@@ -389,7 +389,7 @@ struct TitleKeyframeTests {
     func growsBoxByPadding() throws {
         // Given
         let text = try resolvedText(#"""
-            { "title": "ab", "style": "caption", "position": [400, 225], "paragraph": { "background": { "color": "#FF0000" } },
+            { "kind": "title", "text": "ab", "style": "caption", "position": [400, 225], "paragraph": { "background": { "color": "#FF0000" } },
               "keyframes": [ { "at": 0, "paragraph": { "background": { "padding": [0, 0] } } },
                              { "at": 1, "paragraph": { "background": { "padding": [10, 20] } } } ] }
             """#)
@@ -411,7 +411,7 @@ struct TitleKeyframeTests {
     func placesGrownBox() throws {
         // Given
         let document = document(#"""
-            { "title": "ab", "style": "caption", "anchor": "top-left", "position": [400, 225],
+            { "kind": "title", "text": "ab", "style": "caption", "anchor": "top-left", "position": [400, 225],
               "paragraph": { "background": { "color": "#FF0000" } },
               "keyframes": [ { "at": 0, "paragraph": { "background": { "padding": [0, 0] } } },
                              { "at": 1, "paragraph": { "background": { "padding": [10, 20] } } } ] }
@@ -435,7 +435,7 @@ struct TitleKeyframeTests {
     func movesPiecesWithGlyphs() throws {
         // Given
         let text = try resolvedText(#"""
-            { "title": "ab", "style": "caption", "position": [400, 225], "paragraph": { "align": "center" },
+            { "kind": "title", "text": "ab", "style": "caption", "position": [400, 225], "paragraph": { "align": "center" },
               "character": { "highlight": { "color": "#FF0000", "padding": [2, 4] }, "underline": true },
               "keyframes": [ { "at": 0, "character": { "tracking": 0 } }, { "at": 1, "character": { "tracking": 100 } } ] }
             """#)
@@ -462,7 +462,7 @@ struct TitleKeyframeTests {
     func boundsDecorations() throws {
         // Given
         let text = try resolvedText(#"""
-            { "title": "ab", "style": "caption", "position": [400, 225],
+            { "kind": "title", "text": "ab", "style": "caption", "position": [400, 225],
               "character": { "highlight": { "color": "#FF0000", "padding": [2, 4] }, "underline": { "offset": 10 } } }
             """#)
 
@@ -482,7 +482,7 @@ struct TitleKeyframeTests {
     func movesHangingSpacesWithLastCharacter() throws {
         // Given
         let text = try resolvedText(#"""
-            { "title": "a\nbc ", "style": "caption", "position": [400, 225],
+            { "kind": "title", "text": "a\nbc ", "style": "caption", "position": [400, 225],
               "keyframes": [ { "at": 0, "character": { "tracking": 0 }, "paragraph": { "lineHeight": 50 } },
                              { "at": 1, "character": { "tracking": 100 }, "paragraph": { "lineHeight": 70 } } ] }
             """#)
@@ -508,7 +508,7 @@ struct TitleKeyframeTests {
     func movesRightToLeftGlyphsByTracking() throws {
         // Given
         let text = try resolvedText(#"""
-            { "title": "אב", "style": "caption", "position": [400, 225],
+            { "kind": "title", "text": "אב", "style": "caption", "position": [400, 225],
               "keyframes": [ { "at": 0, "character": { "tracking": 0 } }, { "at": 1, "character": { "tracking": 100 } } ] }
             """#)
 
@@ -531,7 +531,7 @@ struct TitleKeyframeTests {
     func stepsMixedLineAsPlaced() throws {
         // Given
         let text = try resolvedText(#"""
-            { "title": [ { "text": "א" }, { "text": "ב", "style": "small" }, { "text": "c" } ], "style": "caption",
+            { "kind": "title", "text": [ { "text": "א" }, { "text": "ב", "style": "small" }, { "text": "c" } ], "style": "caption",
               "position": [400, 225], "paragraph": { "direction": "ltr" },
               "keyframes": [ { "at": 0, "character": { "tracking": 0 } }, { "at": 1, "character": { "tracking": 100 } } ] }
             """#)
@@ -553,7 +553,7 @@ struct TitleKeyframeTests {
     func movesLeadingHangingSpaces() throws {
         // Given
         let text = try resolvedText(#"""
-            { "title": "א\nבג ", "style": "caption", "position": [400, 225],
+            { "kind": "title", "text": "א\nבג ", "style": "caption", "position": [400, 225],
               "keyframes": [ { "at": 0, "character": { "tracking": 0 }, "paragraph": { "lineHeight": 50 } },
                              { "at": 1, "character": { "tracking": 100 }, "paragraph": { "lineHeight": 70 } } ] }
             """#)
@@ -579,7 +579,7 @@ struct TitleKeyframeTests {
     func stretchesRightToLeftPiece() throws {
         // Given
         let text = try resolvedText(#"""
-            { "title": "אב", "style": "caption", "position": [400, 225],
+            { "kind": "title", "text": "אב", "style": "caption", "position": [400, 225],
               "character": { "highlight": { "color": "#FF0000", "padding": [2, 4] }, "underline": true },
               "keyframes": [ { "at": 0, "character": { "tracking": 0 } }, { "at": 1, "character": { "tracking": 100 } } ] }
             """#)
@@ -599,7 +599,7 @@ struct TitleKeyframeTests {
     func movesEachPieceOfSplitRun() throws {
         // Given
         let text = try resolvedText(#"""
-            { "title": [ { "text": "אa", "style": "marked" }, { "text": "b" } ],
+            { "kind": "title", "text": [ { "text": "אa", "style": "marked" }, { "text": "b" } ],
               "style": "caption", "position": [400, 225],
               "keyframes": [ { "at": 0, "character": { "tracking": 0 } }, { "at": 1, "character": { "tracking": 100 } } ] }
             """#)
@@ -624,7 +624,7 @@ struct TitleKeyframeTests {
         // Given
         let shaper = ShaperTable(lacks: ["Apple SD Gothic Neo": Set("Aple".unicodeScalars)])
         let text = try resolvedText(#"""
-            { "title": "مرحبا Apple \nمرحبا", "style": "marked", "position": [400, 225],
+            { "kind": "title", "text": "مرحبا Apple \nمرحبا", "style": "marked", "position": [400, 225],
               "keyframes": [ { "at": 0, "character": { "tracking": 0 } }, { "at": 1, "character": { "tracking": 100 } } ] }
             """#, shaper: shaper)
 
@@ -648,7 +648,7 @@ struct TitleKeyframeTests {
     func stepsNoCursiveGap() throws {
         // Given
         let text = try resolvedText(#"""
-            { "title": "ab مرحبا", "style": "caption", "position": [400, 225],
+            { "kind": "title", "text": "ab مرحبا", "style": "caption", "position": [400, 225],
               "keyframes": [ { "at": 0, "character": { "tracking": 0 } }, { "at": 1, "character": { "tracking": 100 } } ] }
             """#)
 
@@ -668,7 +668,7 @@ struct TitleKeyframeTests {
     func stepsOnceAfterLigature() throws {
         // Given
         let text = try resolvedText(#"""
-            { "title": "fix", "style": "caption", "position": [400, 225], "character": { "features": { "liga": 1 } },
+            { "kind": "title", "text": "fix", "style": "caption", "position": [400, 225], "character": { "features": { "liga": 1 } },
               "keyframes": [ { "at": 0, "character": { "tracking": 0 } }, { "at": 1, "character": { "tracking": 100 } } ] }
             """#)
 
@@ -687,7 +687,7 @@ struct TitleKeyframeTests {
     func holdsRaisedGlyphsInExtent() throws {
         // Given
         let text = try resolvedText(#"""
-            { "title": "a ", "style": "caption", "position": [400, 225],
+            { "kind": "title", "text": "a ", "style": "caption", "position": [400, 225],
               "keyframes": [ { "at": 0, "character": { "baselineShift": 0 } }, { "at": 1, "character": { "baselineShift": 10 } } ] }
             """#)
 
@@ -706,7 +706,7 @@ struct TitleKeyframeTests {
     func animatesBoxAtInstant() throws {
         // Given
         let resolved = try resolvedClip(#"""
-            { "title": "a\nb", "style": "caption", "position": [400, 225],
+            { "kind": "title", "text": "a\nb", "style": "caption", "position": [400, 225],
               "keyframes": [ { "at": 0, "paragraph": { "lineHeight": 50 } }, { "at": 1, "paragraph": { "lineHeight": 100 } } ] }
             """#)
         let clip = animated(resolved, by: Motion(values: [.scale: 2, .y: 1]))
@@ -742,11 +742,11 @@ struct TitleKeyframeTests {
     func carriesChildByBoxAtInstant() throws {
         // Given
         let document = document(#"""
-            { "id": "t", "title": "ab", "style": "caption", "anchor": "top-left", "position": [400, 225], "at": [0, 2],
+            { "id": "t", "kind": "title", "text": "ab", "style": "caption", "anchor": "top-left", "position": [400, 225], "at": [0, 2],
               "paragraph": { "background": { "color": "#FF0000" } },
               "keyframes": [ { "at": 0, "paragraph": { "background": { "padding": [0, 0] } } },
                              { "at": 1, "paragraph": { "background": { "padding": [10, 20] } } } ] },
-            { "title": "c", "style": "caption", "parent": "t", "anchor": "top-left", "position": [0, 0] }
+            { "kind": "title", "text": "c", "style": "caption", "parent": "t", "anchor": "top-left", "position": [0, 0] }
             """#)
         let resolved = try ResolvedSequence(plan: Fixture.documentPlanner.plan(Fixture.json(document)), hashes: FileHashTable())
 
@@ -831,7 +831,7 @@ struct TitleKeyframeTests {
                                      "small": { "size": 20, "color": "#FF0000" },
                                      "wide": { "size": 20, "tracking": 100 },
                                      "marked": { "size": 40, "highlight": { "color": "#FF0000" } } } },
-              "storyline": [ { "media": "/abs/screen.mp4" } ], "clips": [ \#(clip.dropLast(1)), "at": [0, 2] } ] }
+              "storyline": [ { "kind": "media", "media": "/abs/screen.mp4" } ], "clips": [ \#(clip.dropLast(1)), "at": [0, 2] } ] }
             """#
     }
 }

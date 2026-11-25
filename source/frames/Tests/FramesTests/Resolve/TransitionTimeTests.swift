@@ -34,8 +34,8 @@ struct TransitionTimeTests {
         // Given
         let document = try Fixture.json(##"""
             { "kind": "sequence", "storyline": [
-              { "solid": "#000000", "duration": \##(previous) },
-              { "solid": "#FFFFFF", "duration": \##(next), "transition": \##(transition) }
+              { "kind": "solid", "color": "#000000", "duration": \##(previous) },
+              { "kind": "solid", "color": "#FFFFFF", "duration": \##(next), "transition": \##(transition) }
             ] }
             """##)
 
@@ -51,9 +51,9 @@ struct TransitionTimeTests {
         // Given
         let document = try Fixture.json(##"""
             { "kind": "sequence", "storyline": [
-              { "solid": "#000000", "duration": 3 },
-              { "solid": "#FFFFFF", "duration": 2, "transition": { "preset": "frames/wipe-right", "seconds": 1 } },
-              { "solid": "#FF0000", "duration": 2, "transition": "frames/flash" }
+              { "kind": "solid", "color": "#000000", "duration": 3 },
+              { "kind": "solid", "color": "#FFFFFF", "duration": 2, "transition": { "preset": "frames/wipe-right", "seconds": 1 } },
+              { "kind": "solid", "color": "#FF0000", "duration": 2, "transition": "frames/flash" }
             ] }
             """##)
 
@@ -72,8 +72,8 @@ struct TransitionTimeTests {
         // Given
         let document = try Fixture.json(#"""
             { "kind": "sequence", "storyline": [
-              { "media": "/abs/short.mp4", "in": 1, "out": 2 },
-              { "media": "/abs/short.mp4", "transition": { "preset": "frames/flash", "seconds": 1 } }
+              { "kind": "media", "media": "/abs/short.mp4", "in": 1, "out": 2 },
+              { "kind": "media", "media": "/abs/short.mp4", "transition": { "preset": "frames/flash", "seconds": 1 } }
             ] }
             """#)
         let plan = try sut.plan(document: document)
@@ -95,8 +95,8 @@ struct TransitionTimeTests {
         // Given
         let document = try Fixture.json(##"""
             { "kind": "sequence", "storyline": [
-              { "media": "/abs/card.png", "duration": 2 },
-              { "solid": "#000000", "duration": 2, "transition": { "preset": "frames/flash", "seconds": 1 } }
+              { "kind": "media", "media": "/abs/card.png", "duration": 2 },
+              { "kind": "solid", "color": "#000000", "duration": 2, "transition": { "preset": "frames/flash", "seconds": 1 } }
             ] }
             """##)
         let plan = try sut.plan(document: document)
@@ -143,8 +143,8 @@ struct TransitionTimeTests {
         let sut = TimePlanner(mediaFacts: Fixture.mediaFacts, presets: presets, library: Fixture.library)
         let document = { (transition: String) in
             try Fixture.json(#"""
-                { "kind": "sequence", "storyline": [ { "solid": "#000000", "duration": 2 },
-                                                     { "solid": "#FFFFFF", "duration": 2, "transition": "\#(transition)" } ] }
+                { "kind": "sequence", "storyline": [ { "kind": "solid", "color": "#000000", "duration": 2 },
+                                                     { "kind": "solid", "color": "#FFFFFF", "duration": 2, "transition": "\#(transition)" } ] }
                 """#)
         }
 
@@ -222,7 +222,7 @@ struct TransitionTimeTests {
     @Test("a transition written on the first storyline clip stops, even a cut")
     func refusesTransitionOnFirstClip() throws {
         // Given
-        let document = try Fixture.json(#"{ "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "transition": "cut" } ] }"#)
+        let document = try Fixture.json(#"{ "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "transition": "cut" } ] }"#)
 
         // When, Then
         let error = #expect(throws: ResolveError.self) { try sut.plan(document: document) }
@@ -234,9 +234,9 @@ struct TransitionTimeTests {
         // Given
         let document = try Fixture.json(##"""
             { "kind": "sequence", "theme": { "defaults": { "transition": "frames/push-up" } }, "storyline": [
-              { "solid": "#000000", "duration": 2 },
-              { "solid": "#FFFFFF", "duration": 2 },
-              { "solid": "#FF0000", "duration": 2, "transition": "cut" }
+              { "kind": "solid", "color": "#000000", "duration": 2 },
+              { "kind": "solid", "color": "#FFFFFF", "duration": 2 },
+              { "kind": "solid", "color": "#FF0000", "duration": 2, "transition": "cut" }
             ] }
             """##)
 
@@ -255,7 +255,7 @@ struct TransitionTimeTests {
         // Given
         let theme = try ThemeMerger().merge([ThemeLayer(value: Fixture.json(#"{ "defaults": { "transition": "frames/flash" } }"#), place: .root)])
         let document = try Fixture.json(##"""
-            { "kind": "sequence", "storyline": [ { "solid": "#000000", "duration": 2 }, { "solid": "#FFFFFF", "duration": 2 } ] }
+            { "kind": "sequence", "storyline": [ { "kind": "solid", "color": "#000000", "duration": 2 }, { "kind": "solid", "color": "#FFFFFF", "duration": 2 } ] }
             """##)
 
         // When
@@ -279,7 +279,7 @@ struct TransitionTimeTests {
         // Given
         let document = try Fixture.json(##"""
             { "kind": "sequence", "storyline": [
-              { "solid": "#000000", "duration": 2 }, { "solid": "#FFFFFF", "duration": 2, "transition": \##(transition) }
+              { "kind": "solid", "color": "#000000", "duration": 2 }, { "kind": "solid", "color": "#FFFFFF", "duration": 2, "transition": \##(transition) }
             ] }
             """##)
 
@@ -293,7 +293,7 @@ struct TransitionTimeTests {
         // Given
         let document = try Fixture.json(##"""
             { "kind": "sequence", "theme": { "defaults": { "transition": "dissolve" } }, "storyline": [
-              { "solid": "#000000", "duration": 2 }, { "solid": "#FFFFFF", "duration": 2, "transition": "cut" }
+              { "kind": "solid", "color": "#000000", "duration": 2 }, { "kind": "solid", "color": "#FFFFFF", "duration": 2, "transition": "cut" }
             ] }
             """##)
 
@@ -306,8 +306,8 @@ struct TransitionTimeTests {
     private var transitionDocument: JSONValue {
         get throws {
             try Fixture.json(#"""
-                { "kind": "sequence", "storyline": [ { "solid": "#000000", "duration": 2 },
-                                                     { "solid": "#FFFFFF", "duration": 2, "transition": "stinger" } ] }
+                { "kind": "sequence", "storyline": [ { "kind": "solid", "color": "#000000", "duration": 2 },
+                                                     { "kind": "solid", "color": "#FFFFFF", "duration": 2, "transition": "stinger" } ] }
                 """#)
         }
     }

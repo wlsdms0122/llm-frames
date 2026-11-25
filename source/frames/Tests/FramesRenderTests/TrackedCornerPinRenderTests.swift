@@ -42,10 +42,10 @@ struct TrackedCornerPinRenderTests {
             .joined(separator: ", ")
         let document = try DocumentResolver().resolve(##"""
             { "kind": "sequence", "format": { "size": [320, 240], "fps": 10 },
-              "storyline": [ { "id": "shot", "media": "\##(path)", "in": 0, "out": 1, "connected": [
-                { "id": "card", "shape": "rect", "width": 100, "height": 60, "fill": "#0000FF", "parent": "shot", "at": [0, 1],
+              "storyline": [ { "id": "shot", "kind": "media", "media": "\##(path)", "in": 0, "out": 1, "connected": [
+                { "id": "card", "kind": "rect", "width": 100, "height": 60, "fill": "#0000FF", "parent": "shot", "at": [0, 1],
                   "cornerPin": [[20, 20], [120, 30], [110, 90], [30, 80]], "track": { "time": 0, "frames": [ \##(frames) ] } },
-                { "id": "dot", "shape": "rect", "area": [200, 150, 30, 20], "fill": "#FF0000", "parent": "card", "at": [0, 1] } ] } ] }
+                { "id": "dot", "kind": "rect", "area": [200, 150, 30, 20], "fill": "#FF0000", "parent": "card", "at": [0, 1] } ] } ] }
             """##)
         let sut = QuartzRenderer(decoder: AVFoundationDecoder())
 
@@ -74,9 +74,9 @@ struct TrackedCornerPinRenderTests {
             .report(of: path, target: .area("[60, 80, 96, 48]"), at: 0)
         let document = try DocumentResolver().resolve(##"""
             { "kind": "sequence", "format": { "size": [320, 240], "fps": 10 },
-              "storyline": [ { "id": "shot", "media": "\##(path)", "in": 0, "out": 1, "connected": [
-                { "id": "area", "shape": "rect", "area": [60, 80, 96, 48], "fill": "#FF0000", "parent": "shot", "at": [0, 1], "track": \##(report.trackData) },
-                { "id": "pinned", "shape": "rect", "width": 96, "height": 48, "fill": "#00FF00", "parent": "shot", "at": [0, 1],
+              "storyline": [ { "id": "shot", "kind": "media", "media": "\##(path)", "in": 0, "out": 1, "connected": [
+                { "id": "area", "kind": "rect", "area": [60, 80, 96, 48], "fill": "#FF0000", "parent": "shot", "at": [0, 1], "track": \##(report.trackData) },
+                { "id": "pinned", "kind": "rect", "width": 96, "height": 48, "fill": "#00FF00", "parent": "shot", "at": [0, 1],
                   "cornerPin": \##(written(patch)), "track": \##(report.trackData) } ] } ] }
             """##)
 

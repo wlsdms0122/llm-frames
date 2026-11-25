@@ -52,14 +52,14 @@ struct TitleLineEndingTests {
     // MARK: - Private
     private func resolvedText(_ title: String) throws -> ResolvedText {
         let clip = #"""
-            { "title": \#(title), "style": "caption", "position": [400, 225],
+            { "kind": "title", "text": \#(title), "style": "caption", "position": [400, 225],
               "keyframes": [ { "at": 0, "character": { "tracking": 0 } }, { "at": 1, "character": { "tracking": 100 } } ],
               "at": [0, 2] }
             """#
         let document = #"""
             { "kind": "sequence", "format": { "size": [1920, 1080] },
               "theme": { "styles": { "caption": { "size": 40, "color": "#000000" } } },
-              "storyline": [ { "media": "/abs/screen.mp4" } ], "clips": [ \#(clip) ] }
+              "storyline": [ { "kind": "media", "media": "/abs/screen.mp4" } ], "clips": [ \#(clip) ] }
             """#
         let plan = try Fixture.documentPlanner.plan(try Fixture.json(document))
         let clips = try ResolvedSequence(plan: plan, hashes: FileHashTable()).clips

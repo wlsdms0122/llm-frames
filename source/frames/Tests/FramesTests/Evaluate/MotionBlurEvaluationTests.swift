@@ -41,7 +41,7 @@ struct MotionBlurEvaluationTests {
     private static let valuesThroughEnds: [(String, String?, Double)] = [
         (
             #"""
-            { "id": "leaf", "media": "/abs/card.png", "at": [1, 4], "border": true, "motionBlur": true,
+            { "id": "leaf", "kind": "media", "media": "/abs/card.png", "at": [1, 4], "border": true, "motionBlur": true,
               "keyframes": [ { "at": 1, "scale": 0 }, { "at": 1.5, "scale": 1 } ] }
             """#,
             #"{ "shutterPhase": -180 }"#,
@@ -49,7 +49,7 @@ struct MotionBlurEvaluationTests {
         ),
         (
             #"""
-            { "id": "leaf", "shape": "rect", "fill": "#FF0000", "at": [0, 4], "width": 100, "height": 50, "position": [500, 500],
+            { "id": "leaf", "kind": "rect", "fill": "#FF0000", "at": [0, 4], "width": 100, "height": 50, "position": [500, 500],
               "stroke": { "color": "#FFFFFF" }, "motionBlur": true,
               "keyframes": [ { "at": 0, "stroke": { "width": 0 } }, { "at": 1, "stroke": { "width": 0 } }, { "at": 2, "stroke": { "width": 10 } } ] }
             """#,
@@ -58,7 +58,7 @@ struct MotionBlurEvaluationTests {
         ),
         (
             #"""
-            { "id": "leaf", "shape": "rect", "fill": "#FF0000", "at": [0, 4], "width": 100, "height": 50, "position": [500, 500],
+            { "id": "leaf", "kind": "rect", "fill": "#FF0000", "at": [0, 4], "width": 100, "height": 50, "position": [500, 500],
               "stroke": { "width": 2, "color": "#FFFFFF" }, "motionBlur": true,
               "keyframes": [ { "at": 0, "stroke": { "dash": [10, 10] }, "ease": "back-out" }, { "at": 1, "stroke": { "dash": [0.5, 0.5] } } ] }
             """#,
@@ -67,7 +67,7 @@ struct MotionBlurEvaluationTests {
         ),
         (
             #"""
-            { "id": "leaf", "shape": "rect", "fill": "#FF0000", "at": [1, 4], "width": 100, "height": 50, "position": [500, 500],
+            { "id": "leaf", "kind": "rect", "fill": "#FF0000", "at": [1, 4], "width": 100, "height": 50, "position": [500, 500],
               "stroke": { "width": 2, "color": "#FFFFFF", "dash": [4, 2] }, "shadow": { "radius": 4, "offset": [2, 2], "color": "#000000" },
               "motionBlur": true, "keyframes": [ { "at": 1, "scale": 0 }, { "at": 1.5, "scale": 1 } ] }
             """#,
@@ -76,7 +76,7 @@ struct MotionBlurEvaluationTests {
         ),
         (
             #"""
-            { "id": "leaf", "shape": "rect", "fill": "#FF0000", "at": [1, 4], "width": 100, "height": 50, "position": [500, 500],
+            { "id": "leaf", "kind": "rect", "fill": "#FF0000", "at": [1, 4], "width": 100, "height": 50, "position": [500, 500],
               "animation": "mine/wipe-in", "motionBlur": true }
             """#,
             nil,
@@ -84,23 +84,24 @@ struct MotionBlurEvaluationTests {
         ),
         (
             #"""
-            { "id": "leaf", "shape": "rect", "fill": "#FF0000", "at": [1, 4], "width": 100, "height": 50, "position": [500, 500],
+            { "id": "leaf", "kind": "rect", "fill": "#FF0000", "at": [1, 4], "width": 100, "height": 50, "position": [500, 500],
               "animation": "mine/wipe-in", "motionBlur": true }
             """#,
             #"{ "shutterPhase": -180 }"#,
             1.51
         ),
         (
-            #"{ "id": "leaf", "media": "/abs/card.png", "at": [1, 4], "animation": "mine/wipe-in", "motionBlur": true }"#,
+            #"{ "id": "leaf", "kind": "media", "media": "/abs/card.png", "at": [1, 4], "animation": "mine/wipe-in", "motionBlur": true }"#,
             nil,
             1.49
         ),
         (
             #"""
             { "id": "leaf", "at": [0, 4],
+              "kind": "media",
               "media": { "kind": "sequence", "format": { "size": [1920, 1080] },
-                         "storyline": [ { "solid": "#000000", "duration": 2 },
-                                        { "solid": "#FFFFFF", "duration": 2, "transition": "mine/wipe-in", "motionBlur": true } ] } }
+                         "storyline": [ { "kind": "solid", "color": "#000000", "duration": 2 },
+                                        { "kind": "solid", "color": "#FFFFFF", "duration": 2, "transition": "mine/wipe-in", "motionBlur": true } ] } }
             """#,
             nil,
             2.49
@@ -142,7 +143,7 @@ struct MotionBlurEvaluationTests {
     @Test("a clip with motionBlur that does not move gives N samples that are all the list as at T")
     func writesEqualSamples() throws {
         // Given
-        let still = ##"{ "id": "still", "shape": "rect", "fill": "#FF0000", "at": [0, 4], "width": 100, "height": 50, "position": [500, 500], "motionBlur": true }"##
+        let still = ##"{ "id": "still", "kind": "rect", "fill": "#FF0000", "at": [0, 4], "width": 100, "height": 50, "position": [500, 500], "motionBlur": true }"##
         let sequence = try resolved(clips: [still])
 
         // When
@@ -173,7 +174,7 @@ struct MotionBlurEvaluationTests {
     func keepsPoppingShapeInEverySample() throws {
         // Given
         let popping = #"""
-            { "id": "pop", "shape": "rect", "fill": "#FF0000", "at": [1, 4], "width": 100, "height": 50, "position": [500, 500],
+            { "id": "pop", "kind": "rect", "fill": "#FF0000", "at": [1, 4], "width": 100, "height": 50, "position": [500, 500],
               "motionBlur": true, "keyframes": [ { "at": 1, "scale": 0 }, { "at": 1.5, "scale": 1 } ] }
             """#
         let sequence = try resolved(clips: [popping], shutter: #"{ "shutterPhase": -180 }"#)
@@ -194,12 +195,12 @@ struct MotionBlurEvaluationTests {
     func keepsChildOfFlatParentInEverySample() throws {
         // Given
         let parent = #"""
-            { "id": "slider", "shape": "rect", "fill": "#FF0000", "at": [0, 4], "width": 100, "height": 50, "position": [500, 500],
+            { "id": "slider", "kind": "rect", "fill": "#FF0000", "at": [0, 4], "width": 100, "height": 50, "position": [500, 500],
               "motionBlur": true,
               "keyframes": [ { "at": 0.9, "scale": 1 }, { "at": 1, "scale": 0 }, { "at": 1.005, "scale": 0 }, { "at": 1.1, "scale": 1 } ] }
             """#
         let child = #"""
-            { "id": "child", "shape": "rect", "fill": "#00FF00", "at": [0, 4], "parent": "slider", "area": [0, 0, 20, 10] }
+            { "id": "child", "kind": "rect", "fill": "#00FF00", "at": [0, 4], "parent": "slider", "area": [0, 0, 20, 10] }
             """#
         let sequence = try resolved(clips: [parent, child])
 
@@ -219,7 +220,7 @@ struct MotionBlurEvaluationTests {
     func keepsGrowingStrokeInEverySample() throws {
         // Given
         let stroked = #"""
-            { "id": "stroked", "shape": "rect", "fill": "#FF0000", "at": [0, 4], "width": 100, "height": 50, "position": [500, 500],
+            { "id": "stroked", "kind": "rect", "fill": "#FF0000", "at": [0, 4], "width": 100, "height": 50, "position": [500, 500],
               "stroke": { "color": "#FFFFFF" }, "motionBlur": true,
               "keyframes": [ { "at": 0, "stroke": { "width": 0 } }, { "at": 1, "stroke": { "width": 0 } }, { "at": 2, "stroke": { "width": 10 } } ] }
             """#
@@ -273,7 +274,7 @@ struct MotionBlurEvaluationTests {
     func keepsRevealInEverySample() throws {
         // Given
         let wiped = #"""
-            { "id": "wiped", "shape": "rect", "fill": "#FF0000", "at": [1, 4], "width": 100, "height": 50, "position": [500, 500],
+            { "id": "wiped", "kind": "rect", "fill": "#FF0000", "at": [1, 4], "width": 100, "height": 50, "position": [500, 500],
               "animation": "mine/wipe-in", "motionBlur": true }
             """#
         let sequence = try resolved(clips: [wiped], shutter: #"{ "shutterPhase": -180 }"#)
@@ -297,7 +298,7 @@ struct MotionBlurEvaluationTests {
     func keepsPinnedRevealInEverySample() throws {
         // Given
         let wiped = #"""
-            { "id": "wiped", "shape": "rect", "fill": "#FF0000", "at": [1, 4], "width": 100, "height": 50,
+            { "id": "wiped", "kind": "rect", "fill": "#FF0000", "at": [1, 4], "width": 100, "height": 50,
               "cornerPin": [[400, 400], [600, 420], [580, 560], [420, 540]], "animation": "mine/wipe-in", "motionBlur": true }
             """#
         let sequence = try resolved(clips: [wiped], shutter: #"{ "shutterPhase": -180 }"#)
@@ -348,8 +349,8 @@ struct MotionBlurEvaluationTests {
         // Given
         let sequence = try resolved(#"""
             { "kind": "sequence", "format": { "size": [1920, 1080], "fps": 25 },
-              "storyline": [ { "id": "back", "solid": "#202020", "duration": 4 } ],
-              "clips": [ { "id": "grade", "adjust": "mine/grade", "at": [0, 4], "motionBlur": true, \#(written) } ] }
+              "storyline": [ { "id": "back", "kind": "solid", "color": "#202020", "duration": 4 } ],
+              "clips": [ { "id": "grade", "kind": "adjustment", "adjust": "mine/grade", "at": [0, 4], "motionBlur": true, \#(written) } ] }
             """#, animations: ["mine/drift": drift])
         let frame = Rectangle(x: 0, y: 0, width: 1920, height: 1080)
 
@@ -373,7 +374,7 @@ struct MotionBlurEvaluationTests {
     func wipesBoxOfHardEdgedMask() throws {
         // Given
         let sequence = try resolved(clips: [#"""
-            { "id": "grade", "adjust": "mine/grade", "at": [0, 4], "animation": "mine/wipe-in",
+            { "id": "grade", "kind": "adjustment", "adjust": "mine/grade", "at": [0, 4], "animation": "mine/wipe-in",
               "mask": { "shape": "rect", "area": [10.1, 20.3, 30.7, 40.9] } }
             """#])
         let box = Rectangle(x: 10.1, y: 20.3, width: 30.7, height: 40.9)
@@ -389,7 +390,7 @@ struct MotionBlurEvaluationTests {
     func wipesGrownBoxOfFeatheredMask() throws {
         // Given
         let sequence = try resolved(clips: [#"""
-            { "id": "grade", "adjust": "mine/grade", "at": [0, 4], "animation": "mine/wipe-in",
+            { "id": "grade", "kind": "adjustment", "adjust": "mine/grade", "at": [0, 4], "animation": "mine/wipe-in",
               "mask": { "shape": "rect", "area": [100, 100, 400, 300], "feather": 8 } }
             """#])
 
@@ -440,7 +441,7 @@ struct MotionBlurEvaluationTests {
     func clampsStepKeyframe() throws {
         // Given
         let stepped = #"""
-            { "id": "stepped", "shape": "rect", "fill": "#FF0000", "at": [0, 4], "width": 100, "height": 50, "motionBlur": true,
+            { "id": "stepped", "kind": "rect", "fill": "#FF0000", "at": [0, 4], "width": 100, "height": 50, "motionBlur": true,
               "keyframes": [ { "at": 1, "position": [100, 500], "ease": "step" }, { "at": 1.53, "position": [900, 500] } ] }
             """#
         let sequence = try resolved(clips: [stepped])
@@ -489,7 +490,7 @@ struct MotionBlurEvaluationTests {
     @Test("a bar placed by the area of a clip with motionBlur moves with it in every sample, whatever its own switch")
     func followsBlurredArea() throws {
         // Given
-        let bar = ##"{ "id": "bar", "shape": "rect", "fill": "#000000", "at": [0, 4], "area": { "clip": "slider", "padding": 10 } }"##
+        let bar = ##"{ "id": "bar", "kind": "rect", "fill": "#000000", "at": [0, 4], "area": { "clip": "slider", "padding": 10 } }"##
         let sequence = try resolved(clips: [slider(isMotionBlurred: true), bar])
 
         // When
@@ -620,7 +621,7 @@ struct MotionBlurEvaluationTests {
     func movesDisplaceOffsetInEverySample() throws {
         // Given
         let sequence = try resolved(clips: [#"""
-            { "id": "leaf", "media": "/abs/card.png", "at": [0, 4], "motionBlur": true,
+            { "id": "leaf", "kind": "media", "media": "/abs/card.png", "at": [0, 4], "motionBlur": true,
               "filter": { "op": "displace", "file": "/abs/matte.png", "amount": 8 },
               "keyframes": [ { "at": 0, "filter": { "offset": [0, 0] } }, { "at": 2, "filter": { "offset": [400, -200] } } ] }
             """#])
@@ -643,7 +644,7 @@ struct MotionBlurEvaluationTests {
     func movesPathPointsInEverySample() throws {
         // Given
         let sequence = try resolved(clips: [#"""
-            { "id": "leaf", "shape": "path", "stroke": { "width": 4, "color": "#FFFFFF" }, "at": [0, 4], "motionBlur": true,
+            { "id": "leaf", "kind": "path", "stroke": { "width": 4, "color": "#FFFFFF" }, "at": [0, 4], "motionBlur": true,
               "keyframes": [ { "at": 0, "points": [[0, 0], [100, 0], [100, 100]] }, { "at": 2, "points": [[0, 0], [300, 0], [300, 400]] } ] }
             """#])
         let list = sut.displayList(of: sequence, at: 1)
@@ -666,8 +667,8 @@ struct MotionBlurEvaluationTests {
         // Given
         let sequence = try resolved(#"""
             { "kind": "sequence", "format": { "size": [1920, 1080], "fps": 25 },
-              "storyline": [ { "id": "a", "solid": "#202020", "duration": 2, "motionBlur": true },
-                             { "id": "b", "solid": "#404040", "duration": 2, "motionBlur": true } ] }
+              "storyline": [ { "id": "a", "kind": "solid", "color": "#202020", "duration": 2, "motionBlur": true },
+                             { "id": "b", "kind": "solid", "color": "#404040", "duration": 2, "motionBlur": true } ] }
             """#)
 
         // When
@@ -684,7 +685,7 @@ struct MotionBlurEvaluationTests {
         // Given
         let sequence = try resolved(#"""
             { "kind": "sequence", "format": { "size": [1920, 1080], "fps": 25 },
-              "storyline": [ { "media": "/abs/short.mp4", "in": 0, "out": 4, "motionBlur": true,
+              "storyline": [ { "kind": "media", "media": "/abs/short.mp4", "in": 0, "out": 4, "motionBlur": true,
                                "keyframes": [ { "at": 0, "scale": 1 }, { "at": 4, "scale": 2 } ] } ] }
             """#)
 
@@ -704,7 +705,7 @@ struct MotionBlurEvaluationTests {
         // Given
         let sequence = try resolved(#"""
             { "kind": "sequence", "format": { "size": [1920, 1080], "fps": 25 },
-              "storyline": [ { "media": "/abs/logo.pdf", "duration": 4, "motionBlur": true,
+              "storyline": [ { "kind": "media", "media": "/abs/logo.pdf", "duration": 4, "motionBlur": true,
                                "keyframes": [ { "at": 0, "scale": 1 }, { "at": 4, "scale": 2 } ] } ] }
             """#)
         let list = sut.displayList(of: sequence, at: 1.03)
@@ -728,7 +729,7 @@ struct MotionBlurEvaluationTests {
         // 10 pixels.
         let sequence = try resolved(#"""
             { "kind": "sequence", "format": { "size": [1920, 1080], "fps": 25 },
-              "storyline": [ { "media": "/abs/screen.mp4", "in": 0, "out": 2, "crop": [100, 100, 200, 40], "track": \#(driftingTrack), "motionBlur": true } ] }
+              "storyline": [ { "kind": "media", "media": "/abs/screen.mp4", "in": 0, "out": 2, "crop": [100, 100, 200, 40], "track": \#(driftingTrack), "motionBlur": true } ] }
             """#)
 
         // When
@@ -750,8 +751,8 @@ struct MotionBlurEvaluationTests {
         let document = { (isMotionBlurred: Bool) in
             #"""
                 { "kind": "sequence", "format": { "size": [1920, 1080], "fps": 25 },
-                  "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "in": 0, "out": 2, "connected": [
-                    { "id": "box", "shape": "rect", "stroke": { "width": 8 }, "parent": "screen", "at": [0, 2], "area": [100, 100, 200, 40],
+                  "storyline": [ { "id": "screen", "kind": "media", "media": "/abs/screen.mp4", "in": 0, "out": 2, "connected": [
+                    { "id": "box", "kind": "rect", "stroke": { "width": 8 }, "parent": "screen", "at": [0, 2], "area": [100, 100, 200, 40],
                       "track": \#(driftingTrack), "motionBlur": \#(isMotionBlurred) } ] } ] }
                 """#
         }
@@ -830,7 +831,7 @@ struct MotionBlurEvaluationTests {
     // Slides right at 500 pixels a second, from 100 at 0 to 1100 at 2.
     private func slider(isMotionBlurred: Bool) -> String {
         #"""
-            { "id": "slider", "shape": "rect", "fill": "#FF0000", "at": [0, 4], "width": 100, "height": 50, "motionBlur": \#(isMotionBlurred),
+            { "id": "slider", "kind": "rect", "fill": "#FF0000", "at": [0, 4], "width": 100, "height": 50, "motionBlur": \#(isMotionBlurred),
               "keyframes": [ { "at": 0, "position": [100, 500] }, { "at": 2, "position": [1100, 500] } ] }
             """#
     }
@@ -840,8 +841,8 @@ struct MotionBlurEvaluationTests {
         try resolved(#"""
             { "kind": "sequence", "format": { "size": [1920, 1080], "fps": 25 },
               "theme": { "styles": { "caption": { "size": 40, "color": "#000000" } } },
-              "storyline": [ { "id": "back", "solid": "#202020", "duration": 4 } ],
-              "clips": [ { "id": "title", "title": "ab cd", "style": "caption", "position": [400, 225], "at": [0, 2],
+              "storyline": [ { "id": "back", "kind": "solid", "color": "#202020", "duration": 4 } ],
+              "clips": [ { "id": "title", "kind": "title", "text": "ab cd", "style": "caption", "position": [400, 225], "at": [0, 2],
                            "motionBlur": \#(isMotionBlurred), "animation": { "preset": "frames/fade", "by": "character" },
                            "keyframes": [ { "at": 0, "character": { "tracking": 0 } }, { "at": 1, "character": { "tracking": 100 } } ] } ] }
             """#)
@@ -856,7 +857,7 @@ struct MotionBlurEvaluationTests {
             ? #""height": 20, "keyframes": [ { "at": 0, "width": 50 }, { "at": 2, "width": 250 } ]"#
             : #""width": 50, "height": 20"#
         return #"""
-            { "id": "child", "shape": "rect", "fill": "#00FF00", "at": [0, 4], "parent": "slider", "position": [0, 0],
+            { "id": "child", "kind": "rect", "fill": "#00FF00", "at": [0, 4], "parent": "slider", "position": [0, 0],
               "motionBlur": \#(isMotionBlurred), \#(size) }
             """#
     }
@@ -872,12 +873,13 @@ struct MotionBlurEvaluationTests {
         let keyframes = extra ?? #""keyframes": [ { "at": 0, "position": [460, 540] }, { "at": 2, "position": [1460, 540] } ]"#
         return #"""
             { "id": "c", "at": \#(at), "motionBlur": \#(isMotionBlurred), \#(keyframes),
+              "kind": "media",
               "media": { "kind": "sequence", "format": { "size": [1920, 1080] },
-                         "storyline": [ { "solid": "#000000", "duration": 4 } ],
-                         "clips": [ { "id": "x", "shape": "rect", "fill": "#FF0000", "at": [0, 4], "width": 100, "height": 50,
+                         "storyline": [ { "kind": "solid", "color": "#000000", "duration": 4 } ],
+                         "clips": [ { "id": "x", "kind": "rect", "fill": "#FF0000", "at": [0, 4], "width": 100, "height": 50,
                                       "motionBlur": \#(inner),
                                       "keyframes": [ { "at": 0, "position": [1500, 500] }, { "at": 2, "position": [500, 500] } ] },
-                                    { "id": "y", "shape": "rect", "fill": "#00FF00", "at": [0, 4], "width": 100, "height": 50,
+                                    { "id": "y", "kind": "rect", "fill": "#00FF00", "at": [0, 4], "width": 100, "height": 50,
                                       "position": [300, 300] } ] } }
             """#
     }
@@ -890,7 +892,7 @@ struct MotionBlurEvaluationTests {
         let motionBlur = shutter.map { #", "motionBlur": \#($0)"# } ?? ""
         return try resolved(#"""
             { "kind": "sequence", "format": { "size": [1920, 1080], "fps": 25\#(motionBlur) },
-              "storyline": [ { "id": "back", "solid": "#202020", "duration": 4 } ], "clips": [ \#(clips.joined(separator: ", ")) ] }
+              "storyline": [ { "id": "back", "kind": "solid", "color": "#202020", "duration": 4 } ], "clips": [ \#(clips.joined(separator: ", ")) ] }
             """#)
     }
 
@@ -937,7 +939,7 @@ struct MotionBlurEvaluationTests {
                 place: place,
                 id: nil,
                 media: nil,
-                solid: [Keyframe(at: start, value: Color(written: "#000000"))],
+                color: [Keyframe(at: start, value: Color(written: "#000000"))],
                 in: 0,
                 out: end - start,
                 speed: 1,

@@ -47,7 +47,7 @@ struct ReferenceLibraryTests {
         try directory.write(
             #"""
             { "kind": "sequence", "params": { "clip": { "type": "video", "description": "the clip" }, "title": { "type": "text", "default": "New", "description": "the title" } },
-              "storyline": [ { "media": { "param": "clip" }, "connected": [ { "title": { "param": "title" }, "style": "title" } ] } ] }
+              "storyline": [ { "kind": "media", "media": { "param": "clip" }, "connected": [ { "kind": "title", "text": { "param": "title" }, "style": "title" } ] } ] }
             """#,
             in: "shorts",
             at: "templates/leak.json"
@@ -64,7 +64,7 @@ struct ReferenceLibraryTests {
         ])
         #expect(template.references.map(\.place.description) == [
             "shorts/leak: storyline[0].media",
-            "shorts/leak: storyline[0].connected[0].title"
+            "shorts/leak: storyline[0].connected[0].text"
         ])
         #expect(try sut.hasTemplate(named: "shorts/leak"))
     }
@@ -75,7 +75,7 @@ struct ReferenceLibraryTests {
         try directory.write(
             #"""
             { "kind": "sequence", "params": { "clip": { "type": "video", "default": "shorts/gone.mov", "description": "the clip" } },
-              "storyline": [ { "media": { "param": "clip" } }, { "media": "shorts/gone.mov" } ] }
+              "storyline": [ { "kind": "media", "media": { "param": "clip" } }, { "kind": "media", "media": "shorts/gone.mov" } ] }
             """#,
             in: "shorts",
             at: "templates/promo.json"
@@ -98,7 +98,7 @@ struct ReferenceLibraryTests {
         // Given
         try directory.write(
             #"""
-            { "kind": "sequence", "params": { "clip": { "type": "video" } }, "storyline": [ { "media": { "param": "clip" } } ] }
+            { "kind": "sequence", "params": { "clip": { "type": "video" } }, "storyline": [ { "kind": "media", "media": { "param": "clip" } } ] }
             """#,
             in: "shorts",
             at: "templates/promo.json"
@@ -117,14 +117,14 @@ struct ReferenceLibraryTests {
     func namesTemplateFile() throws {
         // Given
         try directory.write(
-            #"{ "kind": "sequence", "params": {}, "storyline": [ { "media": "shorts/leak.mov", "spead": 2 } ] }"#,
+            #"{ "kind": "sequence", "params": {}, "storyline": [ { "kind": "media", "media": "shorts/leak.mov", "spead": 2 } ] }"#,
             in: "shorts",
             at: "templates/leak.json"
         )
 
         // When, Then
         let error = #expect(throws: ModelError.self) { try sut.template(named: "shorts/leak") }
-        #expect(error?.description == #"shorts/leak: storyline[0] (video): unknown key "spead". Allowed: id, metadata, media, colorSpace, toneMap, in, out, speed, crop, filter, transition, anchor, position, scale, rotation, cornerPin, opacity, blend, motionBlur, mask, trackMatte, track, radius, border, shadow, volume, pan, fadeIn, fadeOut, audioFilter, split, keyframes, connected"#)
+        #expect(error?.description == #"shorts/leak: storyline[0] (video): unknown key "spead". Allowed: id, metadata, kind, media, colorSpace, toneMap, in, out, speed, crop, filter, transition, anchor, position, scale, rotation, cornerPin, opacity, blend, motionBlur, mask, trackMatte, track, radius, border, shadow, volume, pan, fadeIn, fadeOut, audioFilter, split, keyframes, connected"#)
     }
 
     @Test("media the probe cannot read throws the probe's failure without a place, for the place that names it to stop at")
@@ -149,7 +149,7 @@ struct ReferenceLibraryTests {
         let sut = directory.library(
             mediaFacts: MediaFactTable(files: [:], failures: [leak: ProbeFailure("media \(leak) cannot be read")])
         )
-        try directory.write(#"{ "kind": "sequence", "storyline": [ { "media": "shorts/leak.mov" } ] }"#, in: "shorts", at: "media/intro.json")
+        try directory.write(#"{ "kind": "sequence", "storyline": [ { "kind": "media", "media": "shorts/leak.mov" } ] }"#, in: "shorts", at: "media/intro.json")
 
         // When
         let error = #expect(throws: ModelError.self) { try sut.mediaKind(of: "shorts/intro.json") }
@@ -193,7 +193,7 @@ struct ReferenceLibraryTests {
     @Test("a .json document used as media is read from the pack's media, checked, and has the kind of document it is")
     func findsDocument() throws {
         // Given
-        try directory.write(#"{ "kind": "sequence", "storyline": [ { "media": "shorts/leak.mov" } ] }"#, in: "shorts", at: "media/intro.json")
+        try directory.write(#"{ "kind": "sequence", "storyline": [ { "kind": "media", "media": "shorts/leak.mov" } ] }"#, in: "shorts", at: "media/intro.json")
 
         // When
         let kind = try sut.mediaKind(of: "shorts/intro.json")
@@ -206,7 +206,7 @@ struct ReferenceLibraryTests {
     func refusesTemplateByFile() throws {
         // Given
         try directory.write(
-            #"{ "kind": "sequence", "params": { "c": { "type": "video", "description": "the c" } }, "storyline": [ { "media": { "param": "c" } } ] }"#,
+            #"{ "kind": "sequence", "params": { "c": { "type": "video", "description": "the c" } }, "storyline": [ { "kind": "media", "media": { "param": "c" } } ] }"#,
             in: "shorts",
             at: "media/intro.json"
         )
@@ -221,8 +221,8 @@ struct ReferenceLibraryTests {
         // Given
         let a = directory.installed.appendingPathComponent("shorts/media/a.json").path
         let b = directory.installed.appendingPathComponent("shorts/media/b.json").path
-        try directory.write(#"{ "kind": "sequence", "storyline": [ { "media": "shorts/b.json" } ] }"#, in: "shorts", at: "media/a.json")
-        try directory.write(#"{ "kind": "sequence", "storyline": [ { "media": "shorts/a.json" } ] }"#, in: "shorts", at: "media/b.json")
+        try directory.write(#"{ "kind": "sequence", "storyline": [ { "kind": "media", "media": "shorts/b.json" } ] }"#, in: "shorts", at: "media/a.json")
+        try directory.write(#"{ "kind": "sequence", "storyline": [ { "kind": "media", "media": "shorts/a.json" } ] }"#, in: "shorts", at: "media/b.json")
 
         // When, Then
         let error = #expect(throws: PackError.self) { try sut.mediaKind(of: "shorts/a.json") }
@@ -234,7 +234,7 @@ struct ReferenceLibraryTests {
     func refusesSelfInstance() throws {
         // Given
         try directory.write(
-            #"{ "kind": "sequence", "params": {}, "storyline": [ { "media": { "template": "shorts/loop" } } ] }"#,
+            #"{ "kind": "sequence", "params": {}, "storyline": [ { "kind": "media", "media": { "template": "shorts/loop" } } ] }"#,
             in: "shorts",
             at: "templates/loop.json"
         )

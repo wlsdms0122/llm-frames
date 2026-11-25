@@ -29,8 +29,8 @@ struct TrackFrameTests {
     func keepsWrittenStaticOnTrackFrame() throws {
         // Given
         let sequence = try resolved(#"""
-            { "id": "tracked", "shape": "rect", "fill": "#FFFFFF", "parent": "screen", "area": [100, 100, 200, 40], "at": [1, 3], "track": \#(track) },
-            { "id": "still", "shape": "rect", "fill": "#FFFFFF", "parent": "screen", "area": [100, 100, 200, 40], "at": [1, 3] }
+            { "id": "tracked", "kind": "rect", "fill": "#FFFFFF", "parent": "screen", "area": [100, 100, 200, 40], "at": [1, 3], "track": \#(track) },
+            { "id": "still", "kind": "rect", "fill": "#FFFFFF", "parent": "screen", "area": [100, 100, 200, 40], "at": [1, 3] }
             """#)
 
         // When
@@ -51,10 +51,10 @@ struct TrackFrameTests {
     func bringsKeyframedAreaBack() throws {
         // Given
         let sequence = try resolved(#"""
-            { "id": "static", "shape": "rect", "fill": "#FFFFFF", "parent": "screen", "area": [100, 100, 200, 40], "at": [1, 3], "track": \#(track) },
-            { "id": "keyed", "shape": "rect", "fill": "#FFFFFF", "parent": "screen", "at": [1, 3], "track": \#(track),
+            { "id": "static", "kind": "rect", "fill": "#FFFFFF", "parent": "screen", "area": [100, 100, 200, 40], "at": [1, 3], "track": \#(track) },
+            { "id": "keyed", "kind": "rect", "fill": "#FFFFFF", "parent": "screen", "at": [1, 3], "track": \#(track),
               "keyframes": [ { "at": 1, "area": [100, 100, 200, 40] }, { "at": 2, "area": [100, 100, 200, 40] } ] },
-            { "id": "still", "shape": "rect", "fill": "#FFFFFF", "parent": "screen", "area": [100, 100, 200, 40], "at": [1, 3] }
+            { "id": "still", "kind": "rect", "fill": "#FFFFFF", "parent": "screen", "area": [100, 100, 200, 40], "at": [1, 3] }
             """#)
 
         // When
@@ -79,9 +79,9 @@ struct TrackFrameTests {
     func keepsStaticMaskLeavesOnTrackFrame() throws {
         // Given
         let sequence = try resolved(#"""
-            { "id": "tracked", "shape": "rect", "fill": "#FFFFFF", "parent": "screen", "area": [100, 100, 200, 40], "at": [1, 3], "track": \#(track),
+            { "id": "tracked", "kind": "rect", "fill": "#FFFFFF", "parent": "screen", "area": [100, 100, 200, 40], "at": [1, 3], "track": \#(track),
               "mask": [ { "shape": "rect", "area": [110, 110, 50, 20] } ], "keyframes": [ { "at": 1, "mask": [ { "radius": 4 } ] } ] },
-            { "id": "still", "shape": "rect", "fill": "#FFFFFF", "parent": "screen", "area": [100, 100, 200, 40], "at": [1, 3] }
+            { "id": "still", "kind": "rect", "fill": "#FFFFFF", "parent": "screen", "area": [100, 100, 200, 40], "at": [1, 3] }
             """#)
 
         // When
@@ -102,7 +102,7 @@ struct TrackFrameTests {
     func keepsStaticPathLeavesOnTrackFrame() throws {
         // Given
         let sequence = try resolved(#"""
-            { "id": "tracked", "shape": "path", "stroke": { "width": 4 }, "parent": "screen", "at": [1, 3], "track": \#(track),
+            { "id": "tracked", "kind": "path", "stroke": { "width": 4 }, "parent": "screen", "at": [1, 3], "track": \#(track),
               "points": [[100, 100], { "vertex": [300, 100], "inTangent": [0, 20] }, { "vertex": { "area": [100, 100, 200, 40], "point": "left" } }],
               "keyframes": [ { "at": 1, "points": [{ "outTangent": [10, 0] }, {}, {}] }, { "at": 2, "points": [{ "outTangent": [20, 0] }, {}, {}] } ] }
             """#)
@@ -136,8 +136,8 @@ struct TrackFrameTests {
         )
         let track = tracker.data(pin, in: "/abs/screen.mp4", atMediaTime: 1)
         let sequence = try resolved(#"""
-            { "id": "tracked", "media": "/abs/card.png", "width": 300, "parent": "screen", "at": [1, 3], "cornerPin": [[100, 100], [500, 120], [480, 400], [120, 380]], "track": \#(track) },
-            { "id": "still", "media": "/abs/card.png", "width": 300, "parent": "screen", "at": [1, 3], "cornerPin": [[100, 100], [500, 120], [480, 400], [120, 380]] }
+            { "id": "tracked", "kind": "media", "media": "/abs/card.png", "width": 300, "parent": "screen", "at": [1, 3], "cornerPin": [[100, 100], [500, 120], [480, 400], [120, 380]], "track": \#(track) },
+            { "id": "still", "kind": "media", "media": "/abs/card.png", "width": 300, "parent": "screen", "at": [1, 3], "cornerPin": [[100, 100], [500, 120], [480, 400], [120, 380]] }
             """#)
 
         // When
@@ -162,7 +162,7 @@ struct TrackFrameTests {
     private func resolved(_ connected: String) throws -> ResolvedSequence {
         let document = #"""
             { "kind": "sequence", "storyline": [
-                { "id": "screen", "media": "/abs/screen.mp4", "in": 1, "out": 3, "connected": [ \#(connected) ] } ] }
+                { "id": "screen", "kind": "media", "media": "/abs/screen.mp4", "in": 1, "out": 3, "connected": [ \#(connected) ] } ] }
             """#
 
         return try ResolvedSequence(plan: Fixture.documentPlanner.plan(Fixture.json(document)), hashes: FileHashTable())

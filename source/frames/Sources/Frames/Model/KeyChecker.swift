@@ -1022,19 +1022,11 @@ struct KeyChecker: Sendable {
             throw wrongType(value, .object(ObjectTable(kind: generic, rules: [])), place, generic)
         }
 
-        let allowed = ClipKeyTable.kindKeys(in: clipPlace)
-        let present = ClipKeyTable.kindKeys.filter(object.contains)
-        guard !present.isEmpty else {
-            throw ModelError.missingKey(place: place, kind: generic, keys: allowed)
-        }
-        guard present.count == 1 else {
-            throw ModelError.conflictingKeys(place: place, kind: generic, keys: present)
-        }
-        guard allowed.contains(present[0]) else {
-            throw ModelError.unknownKey(place: place, kind: generic, key: present[0], allowed: allowed)
+        guard let written = object["kind"] else {
+            throw ModelError.missingKey(place: place, kind: generic, keys: ["kind"])
         }
 
-        let clipKinds = try clipKinds(of: object, by: present[0], place: place, in: clipPlace, scope: &scope)
+        let clipKinds = try clipKinds(of: object, written: written, place: place, in: clipPlace, scope: &scope)
         try checkEach(clipKinds, scope: &scope) { clipKind, scope in
             let takesSound = clipPlace != .storyline && object["picture"] == .bool(false)
                 && (clipKind == .media(.video) || clipKind == .media(.sequence))
@@ -1045,7 +1037,8 @@ struct KeyChecker: Sendable {
             }
             let checkedKind = takesSound ? ClipKind.media(.audio) : clipKind
             try checkKeyframedOnly(object, kind: checkedKind, place: place, in: clipPlace)
-            try checkObject(object, as: table, place: place, skipping: ["media", "shape"], scope: &scope)
+            try checkObject(object, as: table, place: place, skipping: ["kind", "media"], scope: &scope)
+            try checkColor(of: object, kind: checkedKind, place: place)
             try checkStaticAndKeyframed(object, kind: checkedKind, place: place, in: clipPlace)
             try checkMaskGeometry(object, place: place, scope: scope)
         }
@@ -1055,18 +1048,42 @@ struct KeyChecker: Sendable {
         }
     }
 
-    // A clip is of one kind, or of one for each option of a choice its shape takes.
+    // A clip is of the kind its `kind` names, or of one for each option of a choice of shapes it takes.
     private func clipKinds(
         of object: JSONObject,
-        by key: String,
+        written: JSONValue,
         place: Place,
         in clipPlace: ClipPlace,
         scope: inout DocumentScope
     ) throws -> [ClipKind] {
         let generic = clipPlace.label
+        let kindPlace = place.appending(key: "kind")
 
-        switch key {
+        // Which keys a clip takes is structure, so a parameter stands for its kind only as a choice of shapes, whose
+        // options are the shapes it stands for.
+        if let name = written.objectValue?["param"]?.stringValue {
+            try check(written, as: .literal(VocabularyTable.shapes), place: kindPlace, kind: generic, scope: &scope)
+            let options = scope.parameters[name]?["options"]?.arrayValue ?? []
+
+            return options.compactMap { $0.stringValue.map(ClipKind.shape) }
+        }
+
+        try check(
+            written,
+            as: .literal(ClipKeyTable.kinds(in: clipPlace)),
+            place: kindPlace,
+            kind: generic,
+            scope: &scope
+        )
+
+        // The check lets only a string through.
+        let kind = written.stringValue ?? ""
+        switch kind {
         case "media":
+            guard object.contains("media") else {
+                throw ModelError.missingKey(place: place, kind: "media", keys: ["media"])
+            }
+
             let mediaKind = try probeMedia(
                 object["media"] ?? .null,
                 place: place.appending(key: "media"),
@@ -1083,20 +1100,34 @@ struct KeyChecker: Sendable {
 
             return [.media(mediaKind)]
 
-        case "shape":
-            return try shapes(of: object, place: place, kind: "shape", scope: &scope).map { .shape($0.rawValue) }
-
         case "title":
             return [.title]
 
-        case "adjust":
+        case "adjustment":
             return [.adjust]
+
+        case "solid":
+            return [.solid]
 
         case "null":
             return [.null]
 
         default:
-            return [.solid]
+            return [.shape(kind)]
+        }
+    }
+
+    // A solid's colour is one leaf, written statically or in its keyframes.
+    private func checkColor(
+        of object: JSONObject,
+        kind: ClipKind,
+        place: Place
+    ) throws {
+        guard kind == .solid, !object.contains("color") else { return }
+
+        let keyframes = object["keyframes"]?.arrayValue ?? []
+        guard keyframes.contains(where: { $0.objectValue?.contains("color") == true }) else {
+            throw ModelError.missingKey(place: place, kind: kind.label, keys: ["color"])
         }
     }
 
@@ -1159,7 +1190,7 @@ struct KeyChecker: Sendable {
         }
     }
 
-    // A shape picks the keys its object takes, a clip's or a mask's, so a choice there stands for each of its options.
+    // A mask's shape picks the keys it takes, so a choice there stands for each of its options.
     private func shapes(
         of object: JSONObject,
         place: Place,

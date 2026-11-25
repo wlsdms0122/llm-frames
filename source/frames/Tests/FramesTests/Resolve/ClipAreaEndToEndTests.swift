@@ -17,7 +17,7 @@ struct ClipAreaEndToEndTests {
     private let writer = ResolvedDocumentWriter()
     private let reader = ResolvedDocumentReader()
     private let evaluator = Evaluator()
-    private let bar = ##"{ "id": "bar", "shape": "rect", "fill": "#000000", "at": [0, 4], "area": { "clip": "name", "padding": 24 } }"##
+    private let bar = ##"{ "id": "bar", "kind": "rect", "fill": "#000000", "at": [0, 4], "area": { "clip": "name", "padding": 24 } }"##
 
     // MARK: - Initializer
     // MARK: - Test
@@ -56,7 +56,7 @@ struct ClipAreaEndToEndTests {
     func placesNoteAtRightEdge() throws {
         // Given
         let note = ##"""
-            { "id": "note", "shape": "rect", "fill": "#FF0000", "at": [0, 4], "width": 40, "height": 20, "anchor": "left",
+            { "id": "note", "kind": "rect", "fill": "#FF0000", "at": [0, 4], "width": 40, "height": 20, "anchor": "left",
               "position": { "area": { "clip": "name" }, "point": "right" } }
             """##
         let sut = try resolved(clips: [title("Jane Doe"), note])
@@ -73,10 +73,10 @@ struct ClipAreaEndToEndTests {
     func followsParentTitle() throws {
         // Given
         let title = #"""
-            { "id": "name", "title": "Jane Doe", "style": "title", "at": [0, 4], "anchor": "top-left", "scale": 2,
+            { "id": "name", "kind": "title", "text": "Jane Doe", "style": "title", "at": [0, 4], "anchor": "top-left", "scale": 2,
               "keyframes": [ { "at": 0, "position": [100, 600] }, { "at": 2, "position": [300, 600] } ] }
             """#
-        let bar = ##"{ "shape": "rect", "fill": "#000000", "at": [0, 4], "parent": "name", "area": { "clip": "name", "padding": 10 } }"##
+        let bar = ##"{ "kind": "rect", "fill": "#000000", "at": [0, 4], "parent": "name", "area": { "clip": "name", "padding": 10 } }"##
         let sut = try resolved(clips: [title, bar])
 
         // When
@@ -97,10 +97,10 @@ struct ClipAreaEndToEndTests {
     func followsParentEntrance() throws {
         // Given
         let title = #"""
-            { "id": "name", "title": "Jane Doe", "style": "title", "at": [0, 4], "position": [960, 900],
+            { "id": "name", "kind": "title", "text": "Jane Doe", "style": "title", "at": [0, 4], "position": [960, 900],
               "keyframes": [ { "at": 0, "scale": 0.5, "rotation": -30 }, { "at": 1, "scale": 1, "rotation": 0 } ] }
             """#
-        let bar = ##"{ "id": "bar", "shape": "rect", "fill": "#000000", "at": [0, 4], "parent": "name", "area": { "clip": "name", "padding": 10 } }"##
+        let bar = ##"{ "id": "bar", "kind": "rect", "fill": "#000000", "at": [0, 4], "parent": "name", "area": { "clip": "name", "padding": 10 } }"##
         let sut = try resolved(clips: [title, bar])
 
         // When
@@ -119,11 +119,11 @@ struct ClipAreaEndToEndTests {
     func keepsPaddingUnderZoomedParent() throws {
         // Given
         let zoom = ##"""
-            { "id": "zoom", "shape": "rect", "fill": "#00000000", "at": [0, 4], "area": [0, 0, 960, 540], "anchor": "top-left",
+            { "id": "zoom", "kind": "rect", "fill": "#00000000", "at": [0, 4], "area": [0, 0, 960, 540], "anchor": "top-left",
               "scale": 2 }
             """##
-        let title = #"{ "id": "name", "title": "Jane Doe", "style": "title", "at": [0, 4], "parent": "zoom", "position": [100, 100], "anchor": "top-left" }"#
-        let bar = ##"{ "id": "bar", "shape": "rect", "fill": "#000000", "at": [0, 4], "parent": "zoom", "area": { "clip": "name", "padding": 24 } }"##
+        let title = #"{ "id": "name", "kind": "title", "text": "Jane Doe", "style": "title", "at": [0, 4], "parent": "zoom", "position": [100, 100], "anchor": "top-left" }"#
+        let bar = ##"{ "id": "bar", "kind": "rect", "fill": "#000000", "at": [0, 4], "parent": "zoom", "area": { "clip": "name", "padding": 24 } }"##
         let sut = try resolved(clips: [zoom, title, bar])
 
         // When
@@ -139,7 +139,7 @@ struct ClipAreaEndToEndTests {
     func scalesAboutNamedAnchor() throws {
         // Given
         let bar = ##"""
-            { "id": "bar", "shape": "rect", "fill": "#000000", "at": [0, 4], "area": { "clip": "name", "padding": 24 },
+            { "id": "bar", "kind": "rect", "fill": "#000000", "at": [0, 4], "area": { "clip": "name", "padding": 24 },
               "anchor": "left", "scale": 2 }
             """##
         let sut = try resolved(clips: [title("Jane Doe"), bar])
@@ -165,7 +165,7 @@ struct ClipAreaEndToEndTests {
     func followsKeyframedTitleBox(keys: String) throws {
         // Given
         let title = #"""
-            { "id": "name", "title": "Jane\nDoe", "style": "title", "at": [0, 4], "position": [200, 600], "anchor": "top-left",
+            { "id": "name", "kind": "title", "text": "Jane\nDoe", "style": "title", "at": [0, 4], "position": [200, 600], "anchor": "top-left",
               \#(keys) }
             """#
         let sut = try resolved(clips: [title, bar])
@@ -185,12 +185,12 @@ struct ClipAreaEndToEndTests {
     func followsParentTitleBox() throws {
         // Given
         let title = #"""
-            { "id": "name", "title": "Jane Doe", "style": "title", "at": [0, 4], "position": [200, 600], "anchor": "top-left",
+            { "id": "name", "kind": "title", "text": "Jane Doe", "style": "title", "at": [0, 4], "position": [200, 600], "anchor": "top-left",
               "paragraph": { "background": { "color": "#FF0000" } },
               "keyframes": [ { "at": 0, "paragraph": { "background": { "padding": [0, 0] } } },
                              { "at": 2, "paragraph": { "background": { "padding": [10, 20] } } } ] }
             """#
-        let bar = ##"{ "shape": "rect", "fill": "#000000", "at": [0, 4], "parent": "name", "area": { "clip": "name", "padding": 10 } }"##
+        let bar = ##"{ "kind": "rect", "fill": "#000000", "at": [0, 4], "parent": "name", "area": { "clip": "name", "padding": 10 } }"##
         let sut = try resolved(clips: [title, bar])
 
         // When
@@ -207,8 +207,8 @@ struct ClipAreaEndToEndTests {
     @Test(
         "a mask of a shape placed by its area or of an adjustment clip takes its clip area at each instant",
         arguments: [
-            ##"{ "id": "cut", "shape": "rect", "fill": "#000000", "at": [0, 4], "area": [0, 0, 1920, 1080], "mask": { "shape": "rect", "area": { "clip": "name", "padding": 24 } } }"##,
-            ##"{ "id": "cut", "adjust": "frames/warm", "at": [0, 4], "mask": [ { "shape": "rect", "area": { "clip": "name", "padding": 24 } } ] }"##
+            ##"{ "id": "cut", "kind": "rect", "fill": "#000000", "at": [0, 4], "area": [0, 0, 1920, 1080], "mask": { "shape": "rect", "area": { "clip": "name", "padding": 24 } } }"##,
+            ##"{ "id": "cut", "kind": "adjustment", "adjust": "frames/warm", "at": [0, 4], "mask": [ { "shape": "rect", "area": { "clip": "name", "padding": 24 } } ] }"##
         ]
     )
     func masksByClipArea(clip: String) throws {
@@ -230,11 +230,11 @@ struct ClipAreaEndToEndTests {
     func masksByClipPoints() throws {
         // Given
         let box = ##"""
-            { "id": "box", "shape": "rect", "fill": "#000000", "at": [0, 4], "area": [0, 0, 1920, 1080],
+            { "id": "box", "kind": "rect", "fill": "#000000", "at": [0, 4], "area": [0, 0, 1920, 1080],
               "mask": { "shape": "ellipse", "width": 40, "height": 20, "position": { "area": { "clip": "name" }, "point": "center" } } }
             """##
         let path = ##"""
-            { "id": "path", "shape": "rect", "fill": "#000000", "at": [0, 4], "area": [0, 0, 1920, 1080],
+            { "id": "path", "kind": "rect", "fill": "#000000", "at": [0, 4], "area": [0, 0, 1920, 1080],
               "mask": { "shape": "path", "points": [ { "area": { "clip": "name" }, "point": "top-left" },
                                                      { "area": { "clip": "name" }, "point": "top-right" },
                                                      { "area": { "clip": "name" }, "point": "bottom-left" } ] } }
@@ -256,7 +256,7 @@ struct ClipAreaEndToEndTests {
     func roundTripsMaskClipArea() throws {
         // Given
         let clip = ##"""
-            { "id": "cut", "shape": "rect", "fill": "#000000", "at": [0, 4], "area": [0, 0, 1920, 1080],
+            { "id": "cut", "kind": "rect", "fill": "#000000", "at": [0, 4], "area": [0, 0, 1920, 1080],
               "mask": [ { "shape": "rect", "area": { "clip": "name", "padding": 24 } },
                         { "shape": "path", "points": [ [0, 0], { "area": { "clip": "name" }, "point": "top-right" }, [0, 10] ] } ] }
             """##
@@ -279,7 +279,7 @@ struct ClipAreaEndToEndTests {
     func holdsOutsideNamedWindow() throws {
         // Given
         let title = #"""
-            { "id": "name", "title": "Jane Doe", "style": "title", "at": [1, 3], "anchor": "top-left",
+            { "id": "name", "kind": "title", "text": "Jane Doe", "style": "title", "at": [1, 3], "anchor": "top-left",
               "keyframes": [ { "at": 0, "position": [100, 600] }, { "at": 2, "position": [300, 600] } ] }
             """#
         let sut = try resolved(clips: [title, bar])
@@ -296,7 +296,7 @@ struct ClipAreaEndToEndTests {
     func interpolatesTowardsClipArea() throws {
         // Given
         let bar = ##"""
-            { "id": "bar", "shape": "rect", "fill": "#000000", "at": [0, 4],
+            { "id": "bar", "kind": "rect", "fill": "#000000", "at": [0, 4],
               "keyframes": [ { "at": 0, "area": [0, 0, 100, 100] }, { "at": 2, "area": { "clip": "name" } } ] }
             """##
         let sut = try resolved(clips: [title("Jane Doe"), bar])
@@ -314,67 +314,67 @@ struct ClipAreaEndToEndTests {
         "a clip area that cannot be taken stops at its place",
         arguments: [
             (
-                [#"{ "title": "a", "style": "title", "at": [0, 4] }"#, ##"{ "shape": "rect", "fill": "#000000", "at": [0, 4], "area": { "clip": "nobody" } }"##],
+                [#"{ "kind": "title", "text": "a", "style": "title", "at": [0, 4] }"#, ##"{ "kind": "rect", "fill": "#000000", "at": [0, 4], "area": { "clip": "nobody" } }"##],
                 "clips[1].area"
             ),
             (
-                [##"{ "shape": "rect", "fill": "#000000", "at": [0, 4], "area": { "clip": "back" } }"##],
+                [##"{ "kind": "rect", "fill": "#000000", "at": [0, 4], "area": { "clip": "back" } }"##],
                 "clips[0].area"
             ),
             (
                 [
-                    ##"{ "id": "a", "shape": "rect", "fill": "#000000", "at": [0, 4], "area": { "clip": "b" } }"##,
-                    #"{ "id": "b", "title": "a", "style": "title", "at": [0, 4], "position": { "area": { "clip": "a" }, "point": "center" } }"#
+                    ##"{ "id": "a", "kind": "rect", "fill": "#000000", "at": [0, 4], "area": { "clip": "b" } }"##,
+                    #"{ "id": "b", "kind": "title", "text": "a", "style": "title", "at": [0, 4], "position": { "area": { "clip": "a" }, "point": "center" } }"#
                 ],
                 "clips[0]#a.area (rect): the clip areas come back to the box they start from: \"a\" > \"b\" > \"a\""
             ),
             (
                 [
-                    #"{ "id": "name", "title": "a", "style": "title", "at": [0, 4], "parent": "card", "position": [0, 0] }"#,
-                    #"{ "id": "card", "media": "/abs/card.png", "at": [0, 4] }"#,
-                    ##"{ "shape": "rect", "fill": "#000000", "at": [0, 4], "area": { "clip": "name" } }"##
+                    #"{ "id": "name", "kind": "title", "text": "a", "style": "title", "at": [0, 4], "parent": "card", "position": [0, 0] }"#,
+                    #"{ "id": "card", "kind": "media", "media": "/abs/card.png", "at": [0, 4] }"#,
+                    ##"{ "kind": "rect", "fill": "#000000", "at": [0, 4], "area": { "clip": "name" } }"##
                 ],
                 "clips[2].area"
             ),
             (
                 [
-                    #"{ "id": "name", "title": "a", "style": "title", "at": [0, 4] }"#,
-                    #"{ "media": "/abs/card.png", "at": [0, 4], "crop": { "clip": "name" } }"#
+                    #"{ "id": "name", "kind": "title", "text": "a", "style": "title", "at": [0, 4] }"#,
+                    #"{ "kind": "media", "media": "/abs/card.png", "at": [0, 4], "crop": { "clip": "name" } }"#
                 ],
                 "clips[1].crop"
             ),
             (
                 [
-                    #"{ "id": "name", "title": "a", "style": "title", "at": [0, 4] }"#,
-                    #"{ "title": "b", "style": "title", "at": [0, 4], "mask": { "shape": "rect", "area": { "clip": "name" } } }"#
+                    #"{ "id": "name", "kind": "title", "text": "a", "style": "title", "at": [0, 4] }"#,
+                    #"{ "kind": "title", "text": "b", "style": "title", "at": [0, 4], "mask": { "shape": "rect", "area": { "clip": "name" } } }"#
                 ],
                 "clips[1].mask"
             ),
             (
                 [
-                    #"{ "id": "name", "title": "a", "style": "title", "at": [0, 4] }"#,
-                    ##"{ "shape": "rect", "fill": "#000000", "at": [0, 4], "area": [0, 0, 10, 10], "mask": { "shape": "rect", "area": { "clip": "nobody" } } }"##
+                    #"{ "id": "name", "kind": "title", "text": "a", "style": "title", "at": [0, 4] }"#,
+                    ##"{ "kind": "rect", "fill": "#000000", "at": [0, 4], "area": [0, 0, 10, 10], "mask": { "shape": "rect", "area": { "clip": "nobody" } } }"##
                 ],
                 "clips[1].mask.area (rect): no clip of this document has the id \"nobody\""
             ),
             (
                 [
-                    #"{ "id": "name", "title": "a", "style": "title", "at": [0, 4] }"#,
-                    ##"{ "adjust": "frames/warm", "at": [0, 4], "mask": [ { "shape": "rect", "area": [0, 0, 10, 10] }, { "shape": "ellipse", "width": 10, "height": 10, "position": { "area": { "clip": "back" }, "point": "center" } } ] }"##
+                    #"{ "id": "name", "kind": "title", "text": "a", "style": "title", "at": [0, 4] }"#,
+                    ##"{ "kind": "adjustment", "adjust": "frames/warm", "at": [0, 4], "mask": [ { "shape": "rect", "area": [0, 0, 10, 10] }, { "shape": "ellipse", "width": 10, "height": 10, "position": { "area": { "clip": "back" }, "point": "center" } } ] }"##
                 ],
                 "clips[1].mask[1].position.area"
             ),
             (
                 [
-                    #"{ "id": "name", "title": "a", "style": "title", "at": [0, 4] }"#,
-                    ##"{ "shape": "rect", "fill": "#000000", "at": [0, 4], "area": { "clip": "name", "text": "a" } }"##
+                    #"{ "id": "name", "kind": "title", "text": "a", "style": "title", "at": [0, 4] }"#,
+                    ##"{ "kind": "rect", "fill": "#000000", "at": [0, 4], "area": { "clip": "name", "text": "a" } }"##
                 ],
                 "clips[1].area"
             ),
             (
                 [
-                    #"{ "id": "name", "title": "a", "style": "title", "at": [0, 4] }"#,
-                    ##"{ "shape": "rect", "fill": "#000000", "at": [0, 4], "area": { "clip": "name", "padding": -1 } }"##
+                    #"{ "id": "name", "kind": "title", "text": "a", "style": "title", "at": [0, 4] }"#,
+                    ##"{ "kind": "rect", "fill": "#000000", "at": [0, 4], "area": { "clip": "name", "padding": -1 } }"##
                 ],
                 "clips[1].area"
             )
@@ -395,8 +395,8 @@ struct ClipAreaEndToEndTests {
         // Given
         let document = #"""
             { "kind": "sequence", "format": { "size": [1920, 1080] },
-              "storyline": [ { "media": "/abs/card.png", "duration": 4, "position": { "area": { "clip": "name" }, "point": "center" } } ],
-              "clips": [ { "id": "name", "title": "a", "style": "title", "at": [0, 4] } ] }
+              "storyline": [ { "kind": "media", "media": "/abs/card.png", "duration": 4, "position": { "area": { "clip": "name" }, "point": "center" } } ],
+              "clips": [ { "id": "name", "kind": "title", "text": "a", "style": "title", "at": [0, 4] } ] }
             """#
 
         // When, Then
@@ -408,13 +408,13 @@ struct ClipAreaEndToEndTests {
     // MARK: - Private
     private var movingTitle: String {
         #"""
-            { "id": "name", "title": "Jane Doe", "style": "title", "at": [0, 4], "anchor": "top-left",
+            { "id": "name", "kind": "title", "text": "Jane Doe", "style": "title", "at": [0, 4], "anchor": "top-left",
               "keyframes": [ { "at": 0, "position": [100, 600] }, { "at": 2, "position": [300, 600] } ] }
             """#
     }
 
     private func title(_ text: String) -> String {
-        #"{ "id": "name", "title": "\#(text)", "style": "title", "at": [0, 4], "position": [200, 900], "anchor": "top-left" }"#
+        #"{ "id": "name", "kind": "title", "text": "\#(text)", "style": "title", "at": [0, 4], "position": [200, 900], "anchor": "top-left" }"#
     }
 
     private func resolved(
@@ -423,7 +423,7 @@ struct ClipAreaEndToEndTests {
     ) throws -> ResolvedSequence {
         try resolved(#"""
             { "kind": "sequence", "format": { "size": [\#(size.width), \#(size.height)] },
-              "storyline": [ { "id": "back", "solid": "#202020", "duration": 4 } ], "clips": [ \#(clips.joined(separator: ", ")) ] }
+              "storyline": [ { "id": "back", "kind": "solid", "color": "#202020", "duration": 4 } ], "clips": [ \#(clips.joined(separator: ", ")) ] }
             """#)
     }
 

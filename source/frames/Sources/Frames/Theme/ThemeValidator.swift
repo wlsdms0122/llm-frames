@@ -104,8 +104,8 @@ struct ThemeValidator: Sendable {
                 theme: theme,
                 presets: presets
             ),
-            adjustAnimation: try animationChoice(
-                "adjust",
+            adjustmentAnimation: try animationChoice(
+                "adjustment",
                 in: animation,
                 place: animationPlace,
                 kind: ThemeKeyTable.animationDefaults.kind,

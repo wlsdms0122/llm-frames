@@ -37,8 +37,8 @@ struct MotionBlurRenderTests {
         // 1600 pixels a second at 25 fps under the default shutter is 32 pixels of exposure in 16 steps of 2.
         let document = try DocumentResolver().resolve(#"""
             { "kind": "sequence", "format": { "size": [400, 20], "fps": 25 },
-              "storyline": [ { "solid": "#000000", "duration": 2 } ],
-              "clips": [ { "shape": "rect", "fill": "#FFFFFF", "at": [0, 2], "width": 40, "height": 20, "motionBlur": true,
+              "storyline": [ { "kind": "solid", "color": "#000000", "duration": 2 } ],
+              "clips": [ { "kind": "rect", "fill": "#FFFFFF", "at": [0, 2], "width": 40, "height": 20, "motionBlur": true,
                            "keyframes": [ { "at": 0, "position": [60, 10], "ease": "linear" }, { "at": 0.2, "position": [380, 10] } ] } ] }
             """#)
         let sut = QuartzRenderer(decoder: AVFoundationDecoder())
@@ -66,7 +66,7 @@ struct MotionBlurRenderTests {
         let document = { (isMotionBlurred: Bool) in
             try DocumentResolver().resolve(#"""
                 { "kind": "sequence", "format": { "size": [200, 200], "fps": 25 },
-                  "storyline": [ { "media": "\#(path)", "duration": 2, "motionBlur": \#(isMotionBlurred),
+                  "storyline": [ { "kind": "media", "media": "\#(path)", "duration": 2, "motionBlur": \#(isMotionBlurred),
                                    "keyframes": [ { "at": 0, "scale": 0.5, "ease": "linear" }, { "at": 0.2, "scale": 1 } ] } ] }
                 """#)
         }
@@ -89,8 +89,8 @@ struct MotionBlurRenderTests {
         // Given
         let document = try DocumentResolver().resolve(#"""
             { "kind": "sequence", "format": { "size": [64, 36], "fps": 25 },
-              "storyline": [ { "solid": "#203040", "duration": 1 } ],
-              "clips": [ { "shape": "ellipse", "fill": "#FF8000", "at": [0, 1], "width": 23, "height": 17, "position": [30.3, 17.6],
+              "storyline": [ { "kind": "solid", "color": "#203040", "duration": 1 } ],
+              "clips": [ { "kind": "ellipse", "fill": "#FF8000", "at": [0, 1], "width": 23, "height": 17, "position": [30.3, 17.6],
                            "opacity": 0.7, "motionBlur": true } ] }
             """#)
         let evaluator = Evaluator()
@@ -119,9 +119,9 @@ struct MotionBlurRenderTests {
         // Given
         let document = try DocumentResolver(presets: presets).resolve(#"""
             { "kind": "sequence", "format": { "size": [64, 36], "fps": 25 },
-              "storyline": [ { "solid": "#203040", "duration": 1 } ],
-              "clips": [ { "shape": "ellipse", "fill": "#FF8000", "at": [0, 1], "width": 40, "height": 24, "position": [32, 18] },
-                         { "adjust": [ { "op": "exposure", "ev": 1 } ], "at": [0, 1], "animation": "mine/wipe", "motionBlur": true,
+              "storyline": [ { "kind": "solid", "color": "#203040", "duration": 1 } ],
+              "clips": [ { "kind": "ellipse", "fill": "#FF8000", "at": [0, 1], "width": 40, "height": 24, "position": [32, 18] },
+                         { "kind": "adjustment", "adjust": [ { "op": "exposure", "ev": 1 } ], "at": [0, 1], "animation": "mine/wipe", "motionBlur": true,
                            "mask": \#(mask) } ] }
             """#)
         let evaluator = Evaluator()
@@ -146,8 +146,8 @@ struct MotionBlurRenderTests {
         // on a pixel edge in every sample.
         let document = try DocumentResolver(presets: presets).resolve(#"""
             { "kind": "sequence", "format": { "size": [1600, 4], "fps": 25, "background": "#00000000" },
-              "storyline": [ { "solid": "#FF0000", "duration": 2 },
-                             { "solid": "#0000FF", "duration": 2, "transition": "mine/push", "motionBlur": true } ] }
+              "storyline": [ { "kind": "solid", "color": "#FF0000", "duration": 2 },
+                             { "kind": "solid", "color": "#0000FF", "duration": 2, "transition": "mine/push", "motionBlur": true } ] }
             """#)
         let sut = QuartzRenderer(decoder: AVFoundationDecoder())
 
@@ -166,8 +166,8 @@ struct MotionBlurRenderTests {
         // Given
         let document = try DocumentResolver().resolve(#"""
             { "kind": "sequence", "format": { "size": [200, 20], "fps": 25 },
-              "storyline": [ { "solid": "#000000", "duration": 2 } ],
-              "clips": [ { "shape": "rect", "fill": "#FFFFFF", "at": [0, 2], "width": 20, "height": 20, "motionBlur": true,
+              "storyline": [ { "kind": "solid", "color": "#000000", "duration": 2 } ],
+              "clips": [ { "kind": "rect", "fill": "#FFFFFF", "at": [0, 2], "width": 20, "height": 20, "motionBlur": true,
                            "keyframes": [ { "at": 1, "position": [30, 10], "ease": "step" }, { "at": 1.53, "position": [150, 10] } ] } ] }
             """#)
         let sut = QuartzRenderer(decoder: AVFoundationDecoder())
@@ -188,8 +188,8 @@ struct MotionBlurRenderTests {
         // Given
         let document = try DocumentResolver().resolve(#"""
             { "kind": "sequence", "format": { "size": [400, 20], "fps": 25 },
-              "storyline": [ { "solid": "#000000", "duration": 2 } ],
-              "clips": [ { "shape": "rect", "fill": "#FFFFFF", "at": [0.4, 2], "width": 40, "height": 20, "motionBlur": true,
+              "storyline": [ { "kind": "solid", "color": "#000000", "duration": 2 } ],
+              "clips": [ { "kind": "rect", "fill": "#FFFFFF", "at": [0.4, 2], "width": 40, "height": 20, "motionBlur": true,
                            "keyframes": [ { "at": 0.4, "position": [60, 10], "ease": "linear" }, { "at": 0.6, "position": [380, 10] } ] } ] }
             """#)
         let sut = QuartzRenderer(decoder: AVFoundationDecoder())
@@ -213,8 +213,8 @@ struct MotionBlurRenderTests {
             """#
         let document = try DocumentResolver(presets: ["animation/spin": spin]).resolve(#"""
             { "kind": "sequence", "format": { "size": [200, 200], "fps": 25 },
-              "storyline": [ { "solid": "#000000", "duration": 2 } ],
-              "clips": [ { "shape": "rect", "fill": "#FFFFFF", "at": [0, 2], "width": 160, "height": 20, "position": [100, 100],
+              "storyline": [ { "kind": "solid", "color": "#000000", "duration": 2 } ],
+              "clips": [ { "kind": "rect", "fill": "#FFFFFF", "at": [0, 2], "width": 160, "height": 20, "position": [100, 100],
                            "animation": "mine/spin", "motionBlur": true } ] }
             """#)
         let sut = QuartzRenderer(decoder: AVFoundationDecoder())

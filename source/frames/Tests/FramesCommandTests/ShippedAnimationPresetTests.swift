@@ -177,8 +177,8 @@ struct ShippedAnimationPresetTests {
         #"""
         { "kind": "sequence", "format": { "size": [640, 360], "fps": 30 },
           "storyline": [
-            { "solid": "#FFFFFF", "duration": 2,
-              "connected": [ { "at": [0.5, 1.5], "title": "here", "style": "title", "animation": "frames/pop" } ] }
+            { "kind": "solid", "color": "#FFFFFF", "duration": 2,
+              "connected": [ { "at": [0.5, 1.5], "kind": "title", "text": "here", "style": "title", "animation": "frames/pop" } ] }
           ] }
         """#
     }

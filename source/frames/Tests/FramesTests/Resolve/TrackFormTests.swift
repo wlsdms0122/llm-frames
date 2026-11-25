@@ -101,7 +101,7 @@ struct TrackFormTests {
     ) throws {
         // Given
         let sut = TrackPlanner()
-        let time = try plan(#"{ "shape": "rect", "stroke": { "width": 8 }, "parent": "screen", "area": [0, 0, 10, 10], "at": [1, 3], "track": { "time": \#(written), "frames": [ { "time": 1, "quad": \#(Self.target) } ] } }"#)
+        let time = try plan(#"{ "kind": "rect", "stroke": { "width": 8 }, "parent": "screen", "area": [0, 0, 10, 10], "at": [1, 3], "track": { "time": \#(written), "frames": [ { "time": 1, "quad": \#(Self.target) } ] } }"#)
 
         // When, Then
         let error = #expect(throws: ResolveError.self) {
@@ -116,7 +116,7 @@ struct TrackFormTests {
         let sut = TrackPlanner()
         let tracker = TrackerTable(frameTimes: ["/abs/screen.mp4": Fixture.screenFrameTimes], followed: ["/abs/screen.mp4": 1.4...2])
         let trackData = tracker.data(Quad(total), in: "/abs/screen.mp4", atMediaTime: 1.5)
-        let time = try plan(#"{ "shape": "rect", "stroke": { "width": 8 }, "parent": "screen", "area": [0, 0, 10, 10], "at": [1, 3], "track": \#(trackData) }"#)
+        let time = try plan(#"{ "kind": "rect", "stroke": { "width": 8 }, "parent": "screen", "area": [0, 0, 10, 10], "at": [1, 3], "track": \#(trackData) }"#)
 
         // When, Then
         let error = #expect(throws: ResolveError.self) {
@@ -133,7 +133,7 @@ struct TrackFormTests {
         // Given
         let sut = TrackPlanner()
         let time = try plan(#"""
-            { "shape": "rect", "stroke": { "width": 8 }, "parent": "screen", "area": [0, 0, 10, 10], "at": [1, 3],
+            { "kind": "rect", "stroke": { "width": 8 }, "parent": "screen", "area": [0, 0, 10, 10], "at": [1, 3],
               "track": { "time": 1.12, "frames": [
                 { "time": 1.01, "quad": [[100, 100], [300, 100], [300, 140], [100, 140]] },
                 { "time": 1.13, "quad": [[102, 100], [302, 100], [302, 140], [102, 140]] },
@@ -193,7 +193,7 @@ struct TrackFormTests {
     ) throws {
         // Given
         let sut = TrackPlanner()
-        let time = try plan(#"{ "shape": "rect", "stroke": { "width": 8 }, "parent": "screen", "area": [0, 0, 10, 10], "at": [1, 3], "track": { "time": 1, "frames": \#(frames) } }"#)
+        let time = try plan(#"{ "kind": "rect", "stroke": { "width": 8 }, "parent": "screen", "area": [0, 0, 10, 10], "at": [1, 3], "track": { "time": 1, "frames": \#(frames) } }"#)
 
         // When, Then
         let error = #expect(throws: ResolveError.self) {
@@ -205,8 +205,8 @@ struct TrackFormTests {
     // MARK: - Private
     private func document(track: String) throws -> JSONValue {
         try Fixture.json(#"""
-            { "kind": "sequence", "storyline": [ { "id": "screen", "media": "/abs/run.mp4", "connected": [
-                { "shape": "rect", "stroke": { "width": 8 }, "parent": "screen", "area": [0, 0, 10, 10], "track": \#(track) } ] } ] }
+            { "kind": "sequence", "storyline": [ { "id": "screen", "kind": "media", "media": "/abs/run.mp4", "connected": [
+                { "kind": "rect", "stroke": { "width": 8 }, "parent": "screen", "area": [0, 0, 10, 10], "track": \#(track) } ] } ] }
             """#)
     }
 
@@ -220,7 +220,7 @@ struct TrackFormTests {
     private func plan(_ connected: String) throws -> TimePlan {
         try Fixture.planner.plan(document: Fixture.json(#"""
             { "kind": "sequence", "storyline": [
-                { "id": "screen", "media": "/abs/screen.mp4", "in": 1, "out": 3, "connected": [ \#(connected) ] } ] }
+                { "id": "screen", "kind": "media", "media": "/abs/screen.mp4", "in": 1, "out": 3, "connected": [ \#(connected) ] } ] }
             """#))
     }
 

@@ -52,9 +52,9 @@ struct TrackMatteRenderTests {
         try ColorImageWriter(size: size, colorSpace: sRGB).write(to: grey, codeValues: [128, 128, 128])
         let document = try DocumentResolver(presets: ["filter/white": Self.white]).resolve(#"""
             { "kind": "sequence", "format": { "size": [160, 90], "fps": 10 },
-              "storyline": [ { "media": "\#(red)", "duration": 1 } ],
-              "clips": [ { "id": "m", "media": "\#(grey)", "at": [0, 1]\#(matteFilter) },
-                         { "media": "\#(blue)", "at": [0, 1], "trackMatte": { "clip": "m", "mode": "luma" } } ] }
+              "storyline": [ { "kind": "media", "media": "\#(red)", "duration": 1 } ],
+              "clips": [ { "id": "m", "kind": "media", "media": "\#(grey)", "at": [0, 1]\#(matteFilter) },
+                         { "kind": "media", "media": "\#(blue)", "at": [0, 1], "trackMatte": { "clip": "m", "mode": "luma" } } ] }
             """#)
 
         return try QuartzRenderer(decoder: AVFoundationDecoder()).frame(of: Evaluator().displayList(of: document, at: 0.5))
