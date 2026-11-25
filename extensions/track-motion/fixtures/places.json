@@ -1,0 +1,291 @@
+{
+  "unparented": {
+    "kind": "sequence",
+    "storyline": [
+      {
+        "id": "shot",
+        "media": "/media/moving.mp4"
+      }
+    ],
+    "clips": [
+      {
+        "shape": "rect",
+        "fill": "#3DDC84",
+        "area": [
+          10,
+          10,
+          50,
+          50
+        ],
+        "at": [
+          0,
+          1
+        ],
+        "track": true
+      }
+    ]
+  },
+  "no_target": {
+    "kind": "sequence",
+    "storyline": [
+      {
+        "id": "shot",
+        "media": "/media/moving.mp4",
+        "connected": [
+          {
+            "parent": "shot",
+            "title": "Card",
+            "style": "subtitle",
+            "position": [
+              188,
+              190
+            ],
+            "at": [
+              0.4,
+              2
+            ],
+            "track": true
+          }
+        ]
+      }
+    ]
+  },
+  "two_targets": {
+    "kind": "sequence",
+    "storyline": [
+      {
+        "id": "shot",
+        "media": "/media/moving.mp4",
+        "crop": [
+          124,
+          202,
+          128,
+          88
+        ],
+        "mask": {
+          "shape": "rect",
+          "area": [
+            124,
+            202,
+            128,
+            88
+          ]
+        },
+        "track": true
+      }
+    ]
+  },
+  "mask_target": {
+    "kind": "sequence",
+    "storyline": [
+      {
+        "id": "shot",
+        "media": "/media/moving.mp4",
+        "mask": {
+          "shape": "ellipse",
+          "area": [
+            124,
+            202,
+            128,
+            88
+          ]
+        },
+        "track": true
+      }
+    ]
+  },
+  "keyframed": {
+    "kind": "sequence",
+    "storyline": [
+      {
+        "id": "shot",
+        "media": "/media/moving.mp4",
+        "connected": [
+          {
+            "parent": "shot",
+            "shape": "rect",
+            "fill": "#3DDC84",
+            "at": [
+              0.4,
+              2
+            ],
+            "keyframes": [
+              {
+                "at": 0.4,
+                "area": [
+                  124,
+                  202,
+                  128,
+                  88
+                ]
+              },
+              {
+                "at": 1,
+                "area": [
+                  200,
+                  196,
+                  128,
+                  88
+                ]
+              }
+            ],
+            "track": true
+          }
+        ]
+      }
+    ]
+  },
+  "keyframed_time": {
+    "kind": "sequence",
+    "storyline": [
+      {
+        "id": "shot",
+        "media": "/media/moving.mp4",
+        "connected": [
+          {
+            "parent": "shot",
+            "shape": "rect",
+            "fill": "#3DDC84",
+            "at": [
+              0.4,
+              2
+            ],
+            "keyframes": [
+              {
+                "at": 0.4,
+                "area": [
+                  124,
+                  202,
+                  128,
+                  88
+                ]
+              },
+              {
+                "at": 1,
+                "area": [
+                  200,
+                  196,
+                  128,
+                  88
+                ]
+              }
+            ],
+            "track": {
+              "time": 0.4
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "text_target": {
+    "kind": "sequence",
+    "storyline": [
+      {
+        "id": "shot",
+        "media": "/media/moving.mp4",
+        "connected": [
+          {
+            "parent": "shot",
+            "shape": "rect",
+            "fill": "#3DDC84",
+            "at": [
+              0.4,
+              2
+            ],
+            "area": [
+              124,
+              202,
+              128,
+              88
+            ],
+            "track": {
+              "text": "Total"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "clip_target": {
+    "kind": "sequence",
+    "storyline": [
+      {
+        "id": "shot",
+        "media": "/media/moving.mp4",
+        "connected": [
+          {
+            "parent": "shot",
+            "shape": "rect",
+            "fill": "#3DDC84",
+            "at": [
+              0.4,
+              2
+            ],
+            "id": "b",
+            "area": [
+              124,
+              202,
+              128,
+              88
+            ]
+          },
+          {
+            "parent": "shot",
+            "shape": "rect",
+            "fill": "#3DDC84",
+            "at": [
+              0.4,
+              2
+            ],
+            "area": [
+              0,
+              0,
+              10,
+              10
+            ],
+            "track": {
+              "clip": "b"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "bad_key": {
+    "kind": "sequence",
+    "storyline": [
+      {
+        "id": "shot",
+        "media": "/media/moving.mp4",
+        "connected": [
+          {
+            "parent": "shot",
+            "shape": "rect",
+            "fill": "#3DDC84",
+            "at": [
+              0.4,
+              2
+            ],
+            "area": [
+              124,
+              202,
+              128,
+              88
+            ],
+            "track": {
+              "time": 0.4,
+              "area": [
+                124,
+                202,
+                128,
+                88
+              ],
+              "padding": 4
+            }
+          }
+        ]
+      }
+    ]
+  }
+}
