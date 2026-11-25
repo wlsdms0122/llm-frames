@@ -29,12 +29,6 @@ package struct Arrowhead: Equatable, Sendable {
         )
     }
 
-    // The vertices and control points of its outline in the stroke's coordinates, whose convex hull holds the head.
-    package var controlPoints: [Point] {
-        let transform = transform
-        return head.controlPoints.map(transform.apply(to:))
-    }
-
     // How far back along the stroke from the tip the line stops.
     package var inset: Double {
         head.inset * scale
