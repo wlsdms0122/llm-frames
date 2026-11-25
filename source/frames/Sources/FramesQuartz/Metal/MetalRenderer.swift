@@ -78,6 +78,10 @@ extension MetalRenderer: Renderer {
         try pictures.reserve(for: list)
     }
 
+    package func pictureBytes(of list: DisplayList) throws -> Int {
+        try pictures.bytes(of: list)
+    }
+
     // Once the frame is drawn, the media pictures it did not use are let go of.
     package func frame(of list: DisplayList) throws -> Pixels {
         defer { pictures.frameDrawn() }

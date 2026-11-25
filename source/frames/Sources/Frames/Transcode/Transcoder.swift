@@ -18,7 +18,8 @@ import Foundation
 // decoder's reading is the platform's, read once by the platform's colour management into that space (FRAMES-23).
 // Everything that can stop does before anything is written, in this order: `--max`, the input and its page, `--scale`
 // on a source with pixels of its own, the paths, `--max` on a page, the output extension, `--codec` and
-// `--color-space`, a video's sound or frame rate, the size `--max` gives a video, the decoder on the input, the size
+// `--color-space`, a video's sound or frame rate, the size `--max` gives a video, the decoder on the input, for a
+// video's frames the run's memory limit against the floor the decoder's check gives (FRAMES-30 The budget), the size
 // `--scale` gives a page, an HDR colour space for H.264 or JPEG, and the encoder on the target and on the sound read
 // for it. An existing output file is removed only then.
 package struct Transcoder: Sendable {
@@ -30,16 +31,20 @@ package struct Transcoder: Sendable {
     private let decoder: any MediaDecoder
     private let facts: any MediaFactProvider
     private let encoder: any Encoder
+    private let budget: MemoryBudget
 
     // MARK: - Initializer
+    // `budget` is the run's, which the decoder's readers draw from.
     package init(
         decoder: any MediaDecoder,
         facts: any MediaFactProvider,
-        encoder: any Encoder
+        encoder: any Encoder,
+        budget: MemoryBudget = MemoryBudget(limit: .unlimited)
     ) {
         self.decoder = decoder
         self.facts = facts
         self.encoder = encoder
+        self.budget = budget
     }
 
     // MARK: - Public
@@ -221,6 +226,7 @@ package struct Transcoder: Sendable {
         guard let fps = media.fps, fps > 0 else { throw TranscodeError.noFrameRate(path: request.input) }
         try checkVideoSize(of: size, for: request)
         try decoder.check(file, reading: nil)
+        try budget.checkFloor()
         let reading = try decoder.colorReading(of: file)
         let output = output(of: reading, for: request)
         let codec = request.codec ?? (output.space.isHighDynamicRange ? .hevc : .h264)

@@ -45,12 +45,16 @@ final class MediaPictureCache: Sendable {
     // Raises the budget's `pictures` floor to twice the bytes of the pictures of pixels `list` reads, each once, since
     // the pictures of the frame drawn last are kept beside those of the frame being drawn.
     func reserve(for list: DisplayList) throws {
-        let bytes = try MediaPictureFinder().frames(of: list).reduce(0) { total, frame in
+        budget.require(2 * (try bytes(of: list)), for: .pictures)
+    }
+
+    // The bytes the budget counts the pictures of pixels `list` reads at, each once.
+    func bytes(of list: DisplayList) throws -> Int {
+        try MediaPictureFinder().frames(of: list).reduce(0) { total, frame in
             let size = try pictureSize(of: MediaFile(picture: frame.media))
 
             return total + Self.bytes(width: Int(size.width), height: Int(size.height), reading: frame.reading)
         }
-        budget.require(2 * bytes, for: .pictures)
     }
 
     // The frame's picture as the decoder gives it for the frame, read as the frame says: working values, or an analysis
