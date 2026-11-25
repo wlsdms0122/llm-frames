@@ -20,10 +20,9 @@ struct RenderPipelineTests {
     private let size = Size(width: 40, height: 30)
     private let whole = Rectangle(x: 0, y: 0, width: 40, height: 30)
     private let video = PinnedMedia(
-        source: .file(PinnedFile(path: "/abs/run.mp4", sha256: "sha256-of-/abs/run.mp4")),
-        frameTimes: [0, 0.5, 1, 1.5]
+        source: .file(PinnedFile(path: "/abs/run.mp4", sha256: "sha256-of-/abs/run.mp4"), frameTimes: [0, 0.5, 1, 1.5])
     )
-    private let music = PinnedMedia(source: .file(PinnedFile(path: "/abs/bgm.m4a", sha256: "sha256-of-/abs/bgm.m4a")))
+    private let music = PinnedMedia(source: .file(PinnedFile(path: "/abs/bgm.m4a", sha256: "sha256-of-/abs/bgm.m4a"), frameTimes: nil))
 
     // MARK: - Initializer
     // MARK: - Test
@@ -169,7 +168,7 @@ struct RenderPipelineTests {
         let sequence = sequence(
             fps: 2,
             duration: 1,
-            media: PinnedMedia(source: .file(card)),
+            media: PinnedMedia(source: .file(card, frameTimes: nil)),
             mediaColorSpace: .rec709,
             filter: .filter([.displace(file: card, amount: 4, offset: Point(x: 0, y: 0))])
         )
@@ -188,7 +187,7 @@ struct RenderPipelineTests {
         let directory = try TemporaryDirectory()
         let path = directory.file("run.mp4")
         try Data([1, 2, 3]).write(to: URL(fileURLWithPath: path))
-        let pinned = PinnedMedia(source: .file(PinnedFile(path: path, sha256: try FileHasher().sha256(ofFile: path))))
+        let pinned = PinnedMedia(source: .file(PinnedFile(path: path, sha256: try FileHasher().sha256(ofFile: path)), frameTimes: nil))
         try Data([1, 2, 4]).write(to: URL(fileURLWithPath: path))
 
         let log = RoleCallLog()
@@ -208,7 +207,7 @@ struct RenderPipelineTests {
         // Given
         let directory = try TemporaryDirectory()
         let path = directory.file("gone.mp4")
-        let pinned = PinnedMedia(source: .file(PinnedFile(path: path, sha256: String(repeating: "0", count: 64))))
+        let pinned = PinnedMedia(source: .file(PinnedFile(path: path, sha256: String(repeating: "0", count: 64)), frameTimes: nil))
 
         let log = RoleCallLog()
         let sut = pipeline(log: log, hasher: FileHasher())

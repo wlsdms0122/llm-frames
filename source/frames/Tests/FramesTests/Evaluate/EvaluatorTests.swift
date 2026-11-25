@@ -29,12 +29,10 @@ struct EvaluatorTests {
     ]
     // Frames every quarter second from 0 to 4.75.
     private let first = PinnedMedia(
-        source: .file(PinnedFile(path: "/abs/first.mp4", sha256: String(repeating: "a", count: 64))),
-        frameTimes: (0..<20).map { Double($0) / 4 }
+        source: .file(PinnedFile(path: "/abs/first.mp4", sha256: String(repeating: "a", count: 64)), frameTimes: (0..<20).map { Double($0) / 4 })
     )
     private let second = PinnedMedia(
-        source: .file(PinnedFile(path: "/abs/second.mp4", sha256: String(repeating: "b", count: 64))),
-        frameTimes: (0..<20).map { Double($0) / 4 }
+        source: .file(PinnedFile(path: "/abs/second.mp4", sha256: String(repeating: "b", count: 64)), frameTimes: (0..<20).map { Double($0) / 4 })
     )
     // What the storyline entries of these tests are named by, and a clip of each kind drawn at `clips[0]`.
     private let videoEntry = ItemOrigin(place: "storyline", id: nil, kind: "video")
@@ -168,12 +166,10 @@ struct EvaluatorTests {
     func picksCoverAndMatteFrames() {
         // Given
         let stinger = PinnedMedia(
-            source: .file(PinnedFile(path: "/abs/stinger.mov", sha256: String(repeating: "c", count: 64))),
-            frameTimes: [0, 0.5, 1, 1.5]
+            source: .file(PinnedFile(path: "/abs/stinger.mov", sha256: String(repeating: "c", count: 64)), frameTimes: [0, 0.5, 1, 1.5])
         )
         let wipe = PinnedMedia(
-            source: .file(PinnedFile(path: "/abs/wipe.mp4", sha256: String(repeating: "d", count: 64))),
-            frameTimes: (0..<8).map { Double($0) / 8 }
+            source: .file(PinnedFile(path: "/abs/wipe.mp4", sha256: String(repeating: "d", count: 64)), frameTimes: (0..<8).map { Double($0) / 8 })
         )
         let cover = ResolvedCover(
             source: .media(ResolvedTransitionMedia(media: stinger, duration: 2)),
@@ -314,7 +310,7 @@ struct EvaluatorTests {
     func showsStill() {
         // Given
         let file = PinnedFile(path: "/abs/still.png", sha256: String(repeating: "f", count: 64))
-        let still = PinnedMedia(source: .file(file))
+        let still = PinnedMedia(source: .file(file, frameTimes: nil))
         let sequence = sequence([storylineClip(.pinned(still), start: 0, end: 3)])
 
         // When

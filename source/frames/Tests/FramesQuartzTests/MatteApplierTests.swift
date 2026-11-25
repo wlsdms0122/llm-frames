@@ -200,6 +200,6 @@ struct MatteApplierTests {
     }
 
     private func pinned(at path: String) -> PinnedMedia {
-        PinnedMedia(source: .file(PinnedFile(path: path, sha256: "")))
+        PinnedMedia(source: .file(PinnedFile(path: path, sha256: ""), frameTimes: nil))
     }
 }

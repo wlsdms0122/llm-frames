@@ -19,7 +19,7 @@ struct MediaFrameTests {
     @Test("an image sequence's frame is its file at that index, picked by the frame times")
     func picksImageSequenceFile() {
         // Given
-        let media = PinnedMedia(source: .imageSequence(files), frameTimes: [0, 0.04, 0.08])
+        let media = PinnedMedia(source: .imageSequence(files, frameTimes: [0, 0.04, 0.08]))
 
         // When
         let sut = MediaFrame(media: media, mediaTime: 0.05)
@@ -32,7 +32,7 @@ struct MediaFrameTests {
     @Test("a video's frame is read from the video file at the index of the last frame at or before the time")
     func picksVideoFrame() {
         // Given
-        let media = PinnedMedia(source: .file(files[0]), frameTimes: [0, 0.5, 1, 1.5])
+        let media = PinnedMedia(source: .file(files[0], frameTimes: [0, 0.5, 1, 1.5]))
 
         // When
         let sut = MediaFrame(media: media, mediaTime: 1.2)
@@ -45,7 +45,7 @@ struct MediaFrameTests {
     @Test("a still has the one frame 0")
     func stillHasFrameZero() {
         // Given
-        let media = PinnedMedia(source: .file(files[2]))
+        let media = PinnedMedia(source: .file(files[2], frameTimes: nil))
 
         // When
         let sut = MediaFrame(media: media, mediaTime: 3)

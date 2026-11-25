@@ -18,17 +18,15 @@ struct DisplayListReaderTests {
 
     private static let hash = String(repeating: "a", count: 64)
     private static let video = PinnedMedia(
-        source: .file(PinnedFile(path: "/abs/run.mp4", sha256: hash)),
-        frameTimes: [0, 0.033367, 0.066733]
+        source: .file(PinnedFile(path: "/abs/run.mp4", sha256: hash), frameTimes: [0, 0.033367, 0.066733])
     )
-    private static let still = PinnedMedia(source: .file(PinnedFile(path: "/abs/page.png", sha256: hash)))
+    private static let still = PinnedMedia(source: .file(PinnedFile(path: "/abs/page.png", sha256: hash), frameTimes: nil))
     private static let page = PinnedMedia(source: .page(PinnedFile(path: "/abs/deck.pdf", sha256: hash), page: 3))
     private static let imageSequence = PinnedMedia(
         source: .imageSequence([
             PinnedFile(path: "/abs/frames/0001.png", sha256: hash),
             PinnedFile(path: "/abs/frames/0002.png", sha256: hash)
-        ]),
-        frameTimes: [0, 0.5]
+        ], frameTimes: [0, 0.5])
     )
     private static let origin = ItemOrigin(place: "storyline[1]#intro", id: "intro", kind: "video")
     private static let rotation = AffineTransform(a: 0, b: 1, c: -1, d: 0, tx: 1080, ty: 0)

@@ -22,7 +22,7 @@ extension ResolvedClip {
             cornerPin == nil,
             case let .picture(.media(media), _) = content,
             case let .pinned(pinned) = media.media,
-            !pinned.frameTimes.isEmpty
+            pinned.frameTimes != nil
         else {
             return nil
         }

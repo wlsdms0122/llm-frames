@@ -411,7 +411,7 @@ struct QuartzRendererTests {
         // Given
         let decoder = ReadingDecoder()
         let sut = QuartzRenderer(decoder: decoder)
-        let media = PinnedMedia(source: .file(PinnedFile(path: "/picture.png", sha256: "")))
+        let media = PinnedMedia(source: .file(PinnedFile(path: "/picture.png", sha256: ""), frameTimes: nil))
         let picture = PictureItem(
             source: .media(MediaFrame(
                 media: media,
@@ -572,7 +572,7 @@ struct QuartzRendererTests {
         let fill = PathItem(filling: Rectangle(x: 0, y: 0, width: 4, height: 4), color: Color(written: "#FF0000"))
         let source: PictureItemSource = addition == .media
             ? .media(MediaFrame(
-                media: PinnedMedia(source: .file(PinnedFile(path: "/picture.png", sha256: ""))),
+                media: PinnedMedia(source: .file(PinnedFile(path: "/picture.png", sha256: ""), frameTimes: nil)),
                 index: 0
             ))
             : .displayList(list(size: 4, items: [DisplayItem(content: .path(fill))]))

@@ -22,8 +22,7 @@ struct ParentEvaluatorTests {
         Keyframe(at: 1, value: Crop(Rectangle(x: 100, y: 50, width: 200, height: 100)))
     ]
     private let media = PinnedMedia(
-        source: .file(PinnedFile(path: "/abs/shot.mp4", sha256: String(repeating: "a", count: 64))),
-        frameTimes: (0..<20).map { Double($0) / 4 }
+        source: .file(PinnedFile(path: "/abs/shot.mp4", sha256: String(repeating: "a", count: 64)), frameTimes: (0..<20).map { Double($0) / 4 })
     )
     private let red = Color(written: "#FF0000")
     private let text = ResolvedText(

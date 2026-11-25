@@ -19,8 +19,7 @@ extension ResolvedTrack {
     ) {
         self.init(
             media: PinnedMedia(
-                source: .file(PinnedFile(path: "/abs/screen.mp4", sha256: String(repeating: "0", count: 64))),
-                frameTimes: frames.map(\.time)
+                source: .file(PinnedFile(path: "/abs/screen.mp4", sha256: String(repeating: "0", count: 64)), frameTimes: frames.map(\.time))
             ),
             track: Track(target: Quad(target), mediaTime: mediaTime, frames: frames)
         )

@@ -22,8 +22,7 @@ struct ClipEvaluatorTests {
         transform: AffineTransform(a: 2, b: 0, c: 0, d: 2, tx: 10, ty: 0)
     )
     private let media = PinnedMedia(
-        source: .file(PinnedFile(path: "/abs/media.mp4", sha256: String(repeating: "a", count: 64))),
-        frameTimes: [0]
+        source: .file(PinnedFile(path: "/abs/media.mp4", sha256: String(repeating: "a", count: 64)), frameTimes: [0])
     )
     // Scale 2 throughout a two second entrance.
     private let doubling = ResolvedAnimation(

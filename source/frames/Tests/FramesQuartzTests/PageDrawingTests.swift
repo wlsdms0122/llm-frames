@@ -253,7 +253,7 @@ struct PageDrawingTests {
                 canvas.fill(rectangle, red: level, green: level, blue: level)
             }
         }
-        let matte = MediaFrame(media: PinnedMedia(source: .file(PinnedFile(path: mattePath, sha256: ""))), index: 0)
+        let matte = MediaFrame(media: PinnedMedia(source: .file(PinnedFile(path: mattePath, sha256: ""), frameTimes: nil)), index: 0)
         let sut = QuartzRenderer(decoder: AVFoundationDecoder())
         let picture = PictureItem(
             source: .media(frame(of: path)),

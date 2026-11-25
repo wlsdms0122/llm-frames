@@ -458,7 +458,7 @@ struct PictureDrawerTests {
     }
 
     private func frame(at path: String) -> MediaFrame {
-        MediaFrame(media: PinnedMedia(source: .file(PinnedFile(path: path, sha256: ""))), index: 0)
+        MediaFrame(media: PinnedMedia(source: .file(PinnedFile(path: path, sha256: ""), frameTimes: nil)), index: 0)
     }
 
     // The 16 x 16 output at (4, 4) holds source columns 8 to 23, each value the nearest half float to the source's,

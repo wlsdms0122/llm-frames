@@ -14,8 +14,8 @@ import Testing
 struct MixPlannerTests {
     // MARK: - Property
     private let sut = MixPlanner()
-    private let music = PinnedMedia(source: .file(PinnedFile(path: "/abs/music.m4a", sha256: String(repeating: "a", count: 64))))
-    private let voice = PinnedMedia(source: .file(PinnedFile(path: "/abs/voice.m4a", sha256: String(repeating: "b", count: 64))))
+    private let music = PinnedMedia(source: .file(PinnedFile(path: "/abs/music.m4a", sha256: String(repeating: "a", count: 64)), frameTimes: nil))
+    private let voice = PinnedMedia(source: .file(PinnedFile(path: "/abs/voice.m4a", sha256: String(repeating: "b", count: 64)), frameTimes: nil))
 
     // MARK: - Initializer
     // MARK: - Test
