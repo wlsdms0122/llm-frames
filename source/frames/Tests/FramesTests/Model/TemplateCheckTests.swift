@@ -29,7 +29,8 @@ struct TemplateCheckTests {
                 "tone":  { "type": "choice", "options": ["frames/warm", "frames/cool"], "default": "frames/warm", "description": "colour of the whole clip" }
               },
               "storyline": [ { "media": { "param": "clip" }, "in": 1, "filter": { "param": "tone" },
-                               "connected": [ { "shape": "rect", "stroke": { "width": 8 }, "area": { "text": { "param": "name" } }, "fill": { "param": "tint" }, "opacity": { "param": "size" } } ] } ]
+                               "connected": [ { "shape": "rect", "stroke": { "width": 8 }, "area": [0, 0, 100, 40], "fill": { "param": "tint" }, "opacity": { "param": "size" } },
+                                              { "title": { "param": "name" }, "style": "s" } ] } ]
             }
             """##)
 
