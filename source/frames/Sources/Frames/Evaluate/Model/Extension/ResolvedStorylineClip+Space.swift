@@ -8,7 +8,8 @@
 // A storyline entry's map from the space it gives its children to the frame, before its transition motion, and the
 // map of its media pixels, which its mask is in, to the frame. A chain that reaches the output adds the motion after
 // them; the entry's own mask, inside its nested list, does not. An entry with a corner pin gives its children output
-// pixels, the space its corner pin is written in (FRAMES-10), and its media pixels go onto its box, drawn flat.
+// pixels, the space its corner pin is written in (FRAMES-10), and its media pixels go onto its box, drawn flat. Its
+// corner pin at a time is where `timeline --at` and a clip area naming it read it.
 extension ResolvedStorylineClip {
     // MARK: - Property
     // MARK: - Initializer
@@ -28,6 +29,10 @@ extension ResolvedStorylineClip {
         return AffineTransform(translation: Point(x: -crop.x, y: -crop.y))
             .concatenating(AffineTransform(mapping: Size(width: crop.width, height: crop.height), onto: bounds))
             .concatenating(own)
+    }
+
+    func cornerPin(at time: SampleTime) -> Quad? {
+        cornerPin.map { $0.points.mapValues { $0.sampled(\.fixed) }.value(at: time) }
     }
 
     // MARK: - Private
