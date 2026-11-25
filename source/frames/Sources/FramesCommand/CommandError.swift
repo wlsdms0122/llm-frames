@@ -34,7 +34,7 @@ enum CommandError: Error, Equatable, CustomStringConvertible, Sendable {
     case reportExtension(path: String)
     case reportOverOutput(path: String)
     case unknownPresetKind(kind: String, known: [String])
-    case unknownPack(name: String)
+    case unknownPack(UnknownPack)
     case missingLabelFace(name: String, file: String)
     case argumentsOfMedium(command: String, path: String)
     case rateOfDocument(command: String)
@@ -118,8 +118,8 @@ enum CommandError: Error, Equatable, CustomStringConvertible, Sendable {
         case let .unknownPresetKind(kind, known):
             "presets: unknown kind \(quoted(kind)). Known: \(known.joined(separator: ", "))"
 
-        case let .unknownPack(name):
-            "packs: unknown pack \(quoted(name))"
+        case let .unknownPack(pack):
+            "packs: \(pack)"
 
         case let .missingLabelFace(name, file):
             "\(quoted(file)): the file has no face \(quoted(name)), which time labels are set in"

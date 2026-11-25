@@ -71,10 +71,9 @@ package enum NameHint: Equatable, Sendable {
         }
     }
 
-    // MARK: - Private
     // The first of `names` whose last part, its `<name>` or the whole of a pack's name, is near `written`: at an edit
     // distance of at most 1, or a third of the longer of the two where that is more.
-    private static func nearest(
+    static func nearest(
         to written: String,
         among names: [String]
     ) -> String? {
@@ -89,6 +88,7 @@ package enum NameHint: Equatable, Sendable {
         return near.first { $0.distance == least }?.name
     }
 
+    // MARK: - Private
     // The fewest characters inserted, deleted or replaced to turn `source` into `target`.
     private static func editDistance(
         _ source: [Character],

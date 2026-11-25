@@ -114,6 +114,11 @@ package struct PackLibrary: Sendable {
         try UnknownReference(kind: kind, name: name, packs: packNames) { pack in try names(of: kind, inPack: pack) }
     }
 
+    // The stop for `name`, which finds no pack, with the packs that are there.
+    package func unknown(packNamed name: String) throws -> UnknownPack {
+        UnknownPack(name: name, packs: try packNames())
+    }
+
     // What one of a pack's folders holds, by the names `<pack>/<name>` gives them, in name order. Where its kind of
     // file takes `pathExtension`, the name leaves it out and a file without it is not of that kind.
     package func names(
