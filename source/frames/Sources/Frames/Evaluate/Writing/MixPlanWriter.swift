@@ -73,7 +73,7 @@ package struct MixPlanWriter: Sendable {
     }
 
     private func operation(_ operation: MixFilterOperation) -> JSONValue {
-        let name = JSONMember(key: "op", value: .string(operation.name))
+        let name = JSONMember(key: "kind", value: .string(operation.name))
         let members: [JSONMember] = switch operation {
         case let .eq(bands):
             [JSONMember(key: "bands", value: .array(bands.map(band)))]
@@ -116,7 +116,7 @@ package struct MixPlanWriter: Sendable {
         let gain = band.gain.map { [JSONMember(key: "gain", value: value($0))] } ?? []
 
         return .object(JSONObject(members: [
-            JSONMember(key: "type", value: .string(band.type.rawValue)),
+            JSONMember(key: "kind", value: .string(band.type.rawValue)),
             JSONMember(key: "frequency", value: value(band.frequency))
         ] + gain + [
             JSONMember(key: "q", value: value(band.q))
