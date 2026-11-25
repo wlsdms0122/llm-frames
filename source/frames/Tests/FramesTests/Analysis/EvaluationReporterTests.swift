@@ -1253,8 +1253,8 @@ struct EvaluationReporterTests {
         arguments: [
             (#""/abs/leak.mov", "in": 0.2, "out": 2"#, 0.4, DrawnFrame(file: "/abs/leak.mov", mediaTime: 0.5)),
             (#""/abs/card.png", "duration": 2"#, 1, DrawnFrame(file: "/abs/card.png", mediaTime: 0)),
-            (#"{ "file": "/abs/deck.pdf", "page": 3 }, "duration": 2"#, 1, DrawnFrame(file: "/abs/deck.pdf", mediaTime: 0, page: 3)),
-            (#"{ "imageSequence": "/abs/frames", "fps": 10 }, "in": 0.1, "out": 1.2"#, 0.35, DrawnFrame(file: "/abs/frames/frame-5.png", mediaTime: 0.4))
+            (#"{ "kind": "page", "file": "/abs/deck.pdf", "page": 3 }, "duration": 2"#, 1, DrawnFrame(file: "/abs/deck.pdf", mediaTime: 0, page: 3)),
+            (#"{ "kind": "imageSequence", "directory": "/abs/frames", "fps": 10 }, "in": 0.1, "out": 1.2"#, 0.35, DrawnFrame(file: "/abs/frames/frame-5.png", mediaTime: 0.4))
         ] as [(String, Double, DrawnFrame)]
     )
     func namesDrawnFrame(

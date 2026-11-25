@@ -35,10 +35,10 @@ struct LoudnessRenderTests {
         }
         let document = try DocumentResolver().resolve(#"""
             { "kind": "sequence", "format": { "fps": 10 }, "storyline": [ { "kind": "media", "media": "\#(grey)", "duration": 4 } ],
-              "clips": [ { "kind": "media", "media": "\#(tone)", "at": [0, 4], "fadeOut": 1 },
-                         { "kind": "media", "media": { "kind": "sequence", "storyline": [ { "kind": "media", "media": "\#(grey)", "duration": 3 } ],
-                                      "clips": [ { "kind": "media", "media": "\#(noise)", "at": [0, 3] } ] },
-                           "picture": false, "at": [0.5, 3.5], "fadeIn": 0.5 } ],
+              "clips": [ { "kind": "audio", "media": "\#(tone)", "at": [0, 4], "fadeOut": 1 },
+                         { "kind": "audio", "media": { "kind": "sequence", "storyline": [ { "kind": "media", "media": "\#(grey)", "duration": 3 } ],
+                                      "clips": [ { "kind": "audio", "media": "\#(noise)", "at": [0, 3] } ] },
+                           "at": [0.5, 3.5], "fadeIn": 0.5 } ],
               "audioFilter": { "kind": "limiter", "gain": 3, "ceiling": -1 } }
             """#)
         let decoder = AVFoundationDecoder()

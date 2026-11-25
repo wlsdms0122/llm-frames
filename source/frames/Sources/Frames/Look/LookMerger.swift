@@ -238,8 +238,7 @@ struct LookMerger: Sendable {
         try over.members.reduce(under) { merged, member in
             let child = structure.structure(ofMember: member.key)
             let partners = if case let .object(object) = structure { object.partners(of: member.key) } else { [String]() }
-            // A leaf only keyframes write is `unset` in the clip's own layer and still replaces its partners, so
-            // keyframes of a stroke's `color` take a colour paint over a style's gradient.
+            // A leaf only keyframes write is `unset` in the clip's own layer and still replaces its partners.
             let cleared = partners.reduce(merged) { $0.setting($1, to: nil) }
             let value = try merge(
                 cleared[member.key],

@@ -12,6 +12,7 @@ enum TemplateKeyTable {
     static let instance = ObjectTable(
         kind: "template instance",
         rules: [
+            KeyRule("kind", .literal(["template"]), isRequired: true),
             KeyRule("template", .name, isRequired: true),
             KeyRule("args", arguments)
         ]

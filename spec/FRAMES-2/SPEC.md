@@ -62,8 +62,8 @@ An area inside a point is either form, where that form is allowed.
 | Key | Takes |
 | --- | --- |
 | a rect or ellipse shape's `area` ([FRAMES-11](../FRAMES-11/SPEC.md)) | an area |
-| a path shape's `points` ([FRAMES-11](../FRAMES-11/SPEC.md)) | a list of points, each of which may carry tangents as a vertex ([FRAMES-11](../FRAMES-11/SPEC.md#shapes)) |
-| a mask's `area`, `points` and `position` ([FRAMES-11](../FRAMES-11/SPEC.md)) | an area, a list of points that may carry tangents as a path shape's, a point |
+| a path shape's `points` ([FRAMES-11](../FRAMES-11/SPEC.md)) | a list of vertices, each `[x, y]` or a vertex object whose `vertex` is a point and which may carry tangents ([FRAMES-11](../FRAMES-11/SPEC.md#shapes)) |
+| a mask's `area`, `points` and `position` ([FRAMES-11](../FRAMES-11/SPEC.md)) | an area, a list of vertices as a path shape's, a point |
 | `crop` ([FRAMES-9](../FRAMES-9/SPEC.md)) | an area, or `{scale}` |
 | `position` ([FRAMES-1](../FRAMES-1/SPEC.md)) | a point |
 | `cornerPin` ([FRAMES-27](../FRAMES-27/SPEC.md)) | a list of four points |

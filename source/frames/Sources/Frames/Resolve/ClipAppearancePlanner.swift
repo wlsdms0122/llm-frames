@@ -17,7 +17,7 @@ struct ClipAppearancePlanner: Sendable {
     private let heads: StrokeHeadResolver
     // What a stroke takes where neither the clip nor its style gives it.
     private static let strokeDefaults = JSONValue.object(JSONObject(members: [
-        JSONMember(key: "color", value: .string("accent")),
+        JSONMember(key: "paint", value: .string("accent")),
         JSONMember(key: "align", value: .string(StrokeAlign.center.rawValue)),
         JSONMember(key: "join", value: .string(StrokeJoin.round.rawValue)),
         JSONMember(key: "cap", value: .string(StrokeCap.butt.rawValue)),
@@ -225,7 +225,7 @@ struct ClipAppearancePlanner: Sendable {
                 defaults: defaults
             )
         }
-        let fill = try timed("fill", shape.fill, LookStructureTable.fill, nil)
+        let fill = try timed("fill", shape.fill, LookStructureTable.paint, nil)
         let stroke = try heads.pinned(
             timed("stroke", shape.stroke, LookStructureTable.stroke, Self.strokeDefaults),
             place: written.place.appending(key: "stroke"),
@@ -554,7 +554,7 @@ struct ClipAppearancePlanner: Sendable {
                 height: value(of: property(height, plain: 0, clock: plan.clock), at: plan.instant)
             )
 
-        case .adjust:
+        case .audio, .adjust:
             return nil
         }
     }

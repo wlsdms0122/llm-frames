@@ -7,7 +7,7 @@
 
 // One layer's value of a look, read by its structure with its shorthands expanded. `unset` is a leaf that takes the
 // value below (`null`, or a leaf `true` names), and `off` turns the value below off (`false`, `"none"`). A form holds
-// its name: a `forms` value's (`color`, `linear`), or a choice's `preset:<name>`, `kind:<name>` or `preset` for a
+// its name: a `forms` value's (`color`, `kind:linear`), or a choice's `preset:<name>`, `kind:<name>` or `preset` for a
 // preset entry that names no preset; a choice object that names no form is a partial `object`.
 indirect enum LookValue: Equatable, Sendable {
     case unset
@@ -100,11 +100,14 @@ indirect enum LookValue: Equatable, Sendable {
         case let (.form(name, body), .choice(_, _, naming)):
             return choiceJSON(name: name, body: body, naming: naming)
 
+        // A colour is its form's body, and a named form writes its name beside its body's keys.
         case let (.form(name, body), _):
             let inner = body.json(as: structure.structure(ofForm: name) ?? .anyValue) ?? .null
-            guard name != ValueStructure.colorForm else { return inner }
+            guard let separator = name.firstIndex(of: ":") else { return inner }
 
-            return .object(JSONObject(members: [JSONMember(key: name, value: inner)]))
+            let key = String(name[..<separator])
+            let named = JSONMember(key: key, value: .string(String(name[name.index(after: separator)...])))
+            return .object(JSONObject(members: [named] + (inner.objectValue?.members ?? [])))
         }
     }
 

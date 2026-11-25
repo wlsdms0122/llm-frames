@@ -34,7 +34,7 @@ struct ResolvedDocumentWriterTests {
                                           { "at": 8, "crop": [45, 97, 990, 1760], "scale": 0.5 } ] } ],
           "clips": [ { "kind": "title", "text": "Hi", "style": "label", "at": [0, 3], "animation": "frames/pop", "position": [75.4, 1709.8] },
                      { "kind": "media", "media": "/abs/page.png", "at": [0, 3], "width": 200, "border": true },
-                     { "kind": "media", "media": "/abs/bgm.m4a", "at": 0, "loop": true, "pan": -0.2,
+                     { "kind": "audio", "media": "/abs/bgm.m4a", "at": 0, "loop": true, "pan": -0.2,
                        "keyframes": [ { "at": 0, "volume": 0.3 }, { "at": 2, "volume": 0.3 }, { "at": 3, "volume": 0 } ] } ] }
         """#
     private let resolvedSequence = #"""

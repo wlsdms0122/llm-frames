@@ -66,8 +66,8 @@ struct SoundPlanTests {
         // When
         let plan = try plan(#"""
             { "kind": "sequence",
-              "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "out": 2, "connected": [ { "kind": "media", "media": "/abs/ding.wav", "at": 0 } ] }, { "kind": "media", "media": "/abs/run.mp4", "out": 2 } ],
-              "clips": [ { "kind": "media", "media": "/abs/bgm.m4a" } ] }
+              "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "out": 2, "connected": [ { "kind": "audio", "media": "/abs/ding.wav", "at": 0 } ] }, { "kind": "media", "media": "/abs/run.mp4", "out": 2 } ],
+              "clips": [ { "kind": "audio", "media": "/abs/bgm.m4a" } ] }
             """#)
 
         // Then
@@ -82,7 +82,7 @@ struct SoundPlanTests {
                 { "kind": "media", "media": "/abs/run.mp4", "out": 3 },
                 { "kind": "media", "media": "/abs/run.mp4", "in": 2, "out": 8, "speed": 2,
                   "keyframes": [ { "at": 4, "volume": 0.5 }, { "at": 6, "volume": 1 } ],
-                  "connected": [ { "kind": "media", "media": "/abs/bgm.m4a", "at": 3, "keyframes": [ { "at": 4, "volume": 0 }, { "at": 5, "volume": 1 } ] } ] } ] }
+                  "connected": [ { "kind": "audio", "media": "/abs/bgm.m4a", "at": 3, "keyframes": [ { "at": 4, "volume": 0 }, { "at": 5, "volume": 1 } ] } ] } ] }
             """#)
 
         // Then
@@ -104,8 +104,8 @@ struct SoundPlanTests {
             { "kind": "sequence", "storyline": [
                 { "kind": "media", "media": "/abs/run.mp4", "in": 2, "out": 8, "speed": 2,
                   "keyframes": [ { "at": 4, "pan": -1, "ease": "ease-in" }, { "at": 6, "pan": 0.5 } ],
-                  "connected": [ { "kind": "media", "media": "/abs/bgm.m4a", "at": 3, "pan": 0.25 } ] } ],
-              "clips": [ { "kind": "media", "media": "/abs/bgm.m4a" } ] }
+                  "connected": [ { "kind": "audio", "media": "/abs/bgm.m4a", "at": 3, "pan": 0.25 } ] } ],
+              "clips": [ { "kind": "audio", "media": "/abs/bgm.m4a" } ] }
             """#)
 
         // Then
@@ -136,8 +136,8 @@ struct SoundPlanTests {
               "storyline": [
                 { "kind": "media", "media": "/abs/run.mp4", "out": 4, "fadeIn": 0.5 },
                 { "kind": "media", "media": "/abs/run.mp4", "in": 10, "out": 14, "transition": "frames/flash", "fadeOut": 1,
-                  "connected": [ { "kind": "media", "media": "/abs/ding.wav", "at": 11, "fadeIn": 0.25, "fadeOut": 0.5 } ] } ],
-              "clips": [ { "kind": "media", "media": "/abs/bgm.m4a", "at": 6, "fadeOut": 2 } ] }
+                  "connected": [ { "kind": "audio", "media": "/abs/ding.wav", "at": 11, "fadeIn": 0.25, "fadeOut": 0.5 } ] } ],
+              "clips": [ { "kind": "audio", "media": "/abs/bgm.m4a", "at": 6, "fadeOut": 2 } ] }
             """#)
 
         // Then
@@ -167,7 +167,7 @@ struct SoundPlanTests {
         // When
         let plan = try plan(#"""
             { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "out": 4 } ],
-              "clips": [ { "kind": "media", "media": "/abs/ding.wav", "at": [0, 4], "loop": \#(loop) } ] }
+              "clips": [ { "kind": "audio", "media": "/abs/ding.wav", "at": [0, 4], "loop": \#(loop) } ] }
             """#)
 
         // Then

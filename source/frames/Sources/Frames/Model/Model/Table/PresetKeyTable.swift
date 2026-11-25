@@ -29,7 +29,7 @@ enum PresetKeyTable {
             KeyRule("audio", .literal(CrossfadeCurve.allCases.map(\.rawValue))),
             KeyRule("incoming", .object(transitionSpan("incoming"))),
             KeyRule("outgoing", .object(transitionSpan("outgoing"))),
-            KeyRule("cover", .object(cover)),
+            KeyRule("cover", .kinds(cover)),
             KeyRule("matte", .object(matte))
         ]
     )
@@ -77,33 +77,38 @@ enum PresetKeyTable {
     )
 
     private static let revealFrom = KeyRule("revealFrom", .literal(VocabularyTable.sides))
-    // A cover's and a matte's media names a file: a name, or a page of a PDF (FRAMES-14).
-    private static let media = ValueType.oneOf([.name, .object(MediaKeyTable.page)])
-    private static let cover = ObjectTable(
+    // A cover is a colour or media, in the words a clip uses for the same things (FRAMES-14).
+    private static let cover = KindTable(
         kind: "cover",
-        rules: [
-            KeyRule("color", .color),
-            KeyRule("media", media),
-            KeyRule("colorSpace", .literal(VocabularyTable.colorSpaces)),
-            KeyRule("ease", .ease),
-            KeyRule("keys", .list(.object(ObjectTable(
-                kind: "cover key",
+        tables: [
+            "solid": ObjectTable(
+                kind: "solid cover",
+                rules: [coverKind("solid"), KeyRule("color", .color, isRequired: true), KeyRule("ease", .ease), coverKeys]
+            ),
+            // Only a media cover is read in a colour space.
+            "media": ObjectTable(
+                kind: "media cover",
                 rules: [
-                    KeyRule("t", .number(.any), isRequired: true),
-                    KeyRule("opacity", .number(.range(0...1)))
+                    coverKind("media"),
+                    KeyRule("media", MediaKeyTable.file, isRequired: true),
+                    KeyRule("colorSpace", .literal(VocabularyTable.colorSpaces)),
+                    KeyRule("ease", .ease),
+                    coverKeys
                 ]
-            ))))
-        ],
-        // Only a media cover is read in a colour space.
-        groups: [
-            KeyGroup(keys: ["color", "media"], isExclusive: true),
-            KeyGroup(keys: ["color", "colorSpace"], isExclusive: true, isOptional: true)
+            )
         ]
     )
+    private static let coverKeys = KeyRule("keys", .list(.object(ObjectTable(
+        kind: "cover key",
+        rules: [
+            KeyRule("t", .number(.any), isRequired: true),
+            KeyRule("opacity", .number(.range(0...1)))
+        ]
+    ))))
     private static let matte = ObjectTable(
         kind: "matte",
         rules: [
-            KeyRule("media", media, isRequired: true),
+            KeyRule("media", MediaKeyTable.file, isRequired: true),
             KeyRule("colorSpace", .literal(VocabularyTable.colorSpaces)),
             KeyRule("softness", .number(.range(0...1))),
             KeyRule("invert", .bool),
@@ -135,5 +140,9 @@ enum PresetKeyTable {
                 KeyRule("keys", .list(.object(spanKey)))
             ]
         )
+    }
+
+    private static func coverKind(_ name: String) -> KeyRule {
+        KeyRule("kind", .literal([name]), isRequired: true)
     }
 }

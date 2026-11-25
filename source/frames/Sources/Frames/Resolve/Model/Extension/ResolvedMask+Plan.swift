@@ -5,7 +5,7 @@
 //  Created by JSilver on 11/18/26.
 //
 
-// A mask as resolve times it, from the timed value of one mask the key tables and timing have checked: its `shape`
+// A mask as resolve times it, from the timed value of one mask the key tables and timing have checked: its `kind`
 // names its geometry, given by `area`, by the box `width`, `height` and `position`, or by `points`, and a path is
 // closed, each vertex's point and tangents timed apart. An area or a point the planner kept as a clip area stays one.
 extension ResolvedMask {
@@ -13,7 +13,7 @@ extension ResolvedMask {
     // MARK: - Initializer
     init?(timed: TimedValue) {
         guard
-            let shape = Self.fixed(timed["shape"])?.stringValue.flatMap(ShapeKind.init(rawValue:)),
+            let shape = Self.fixed(timed["kind"])?.stringValue.flatMap(ShapeKind.init(rawValue:)),
             let mode = Self.fixed(timed["mode"])?.stringValue.flatMap(MaskMode.init(rawValue:)),
             let isInverted = Self.fixed(timed["invert"])?.boolValue,
             let feather = Self.numbers(timed["feather"])

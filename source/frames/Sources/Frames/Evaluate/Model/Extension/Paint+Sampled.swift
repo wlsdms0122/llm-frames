@@ -5,7 +5,7 @@
 //  Created by JSilver on 11/19/26.
 //
 
-// A shape's paint at one instant, from a sampled `fill` form or stroke `gradient`, nil where it is off. A gradient's
+// A shape's paint at one instant, from a sampled `fill` or stroke `paint` form, nil where it is off. A gradient's
 // points are fractions of the shape's box as it is placed at that instant, `[x + u × w, y + v × h]`, and a radial
 // radius is a fraction of the distance from its centre to the box's farthest corner, so the gradient follows the box.
 // Each sampled offset, already clamped to 0 to 1, is raised to the one before it.
@@ -31,12 +31,12 @@ extension Paint {
             self = .color(color)
             return
 
-        case "linear":
+        case "kind:linear":
             guard let from = point("from"), let to = point("to") else { return nil }
 
             shape = .linear(from: from, to: to)
 
-        case "radial":
+        case "kind:radial":
             guard let center = point("center") else { return nil }
 
             let corners = [(box.x, box.y), (box.maxX, box.y), (box.x, box.maxY), (box.maxX, box.maxY)]

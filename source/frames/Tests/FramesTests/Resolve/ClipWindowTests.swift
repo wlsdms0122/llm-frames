@@ -54,7 +54,7 @@ struct ClipWindowTests {
     @Test("a sound connected to a clip at speed 2 plays its full length at its own speed")
     func playsSoundAtItsOwnSpeed() throws {
         // Given
-        let document = try sequence(connected: #"{ "at": 2, "kind": "media", "media": "/abs/ding.wav" }"#)
+        let document = try sequence(connected: #"{ "at": 2, "kind": "audio", "media": "/abs/ding.wav" }"#)
 
         // When
         let plan = try sut.plan(document: document)
@@ -136,8 +136,8 @@ struct ClipWindowTests {
     @Test("a connected sound plays its window across transitions, but one whose start lies outside the drawn range stops")
     func anchorsConnectedSoundByStart() throws {
         // Given
-        let across = try sequence(connected: #"{ "at": [8, 14], "kind": "media", "media": "/abs/ding.wav" }"#)
-        let outside = try sequence(connected: #"{ "at": [12, 14], "kind": "media", "media": "/abs/ding.wav" }"#)
+        let across = try sequence(connected: #"{ "at": [8, 14], "kind": "audio", "media": "/abs/ding.wav" }"#)
+        let outside = try sequence(connected: #"{ "at": [12, 14], "kind": "audio", "media": "/abs/ding.wav" }"#)
 
         // When
         let plan = try sut.plan(document: across)
@@ -154,8 +154,8 @@ struct ClipWindowTests {
         let document = try Fixture.json(##"""
             { "kind": "sequence", "storyline": [ { "kind": "solid", "color": "#000000", "duration": 4 } ], "clips": [
               { "at": [1, 3], "kind": "title", "text": "a", "style": "headline" },
-              { "kind": "media", "media": "/abs/bgm.m4a" },
-              { "at": 3, "kind": "media", "media": "/abs/ding.wav" }
+              { "kind": "audio", "media": "/abs/bgm.m4a" },
+              { "at": 3, "kind": "audio", "media": "/abs/ding.wav" }
             ] }
             """##)
 
@@ -172,9 +172,9 @@ struct ClipWindowTests {
         "a sequence clip that starts at or after the end of the sequence stops, and so does one that ends before it starts",
         arguments: [
             (#"{ "at": [4, 6], "kind": "title", "text": "a", "style": "headline" }"#, "clips[0] (title): starts at 4, at or after the end of the sequence at 4"),
-            (#"{ "at": 5, "kind": "media", "media": "/abs/ding.wav" }"#, "clips[0] (audio): starts at 5, at or after the end of the sequence at 4"),
+            (#"{ "at": 5, "kind": "audio", "media": "/abs/ding.wav" }"#, "clips[0] (audio): starts at 5, at or after the end of the sequence at 4"),
             (#"{ "at": [-3, -1], "kind": "title", "text": "a", "style": "headline" }"#, "clips[0] (title): never visible, since its window [-3, -1) does not meet [0, 4)"),
-            (#"{ "at": [-3, 0], "kind": "media", "media": "/abs/ding.wav" }"#, "clips[0] (audio): never plays, since its window [-3, 0) ends before the sequence starts")
+            (#"{ "at": [-3, 0], "kind": "audio", "media": "/abs/ding.wav" }"#, "clips[0] (audio): never plays, since its window [-3, 0) ends before the sequence starts")
         ]
     )
     func refusesSequenceClipOutsideSequence(
@@ -239,7 +239,7 @@ struct ClipWindowTests {
     func parentsOnlyByName() throws {
         // Given
         let document = try sequence(connected: #"""
-            { "kind": "adjustment", "adjust": "frames/vivid", "mask": { "shape": "rect", "area": [0, 0, 10, 10] } }, { "kind": "rect", "stroke": { "width": 8 }, "area": [0, 0, 10, 10] }, { "kind": "adjustment", "adjust": "frames/vivid", "mask": { "shape": "rect", "area": [0, 0, 10, 10] }, "parent": "run" }
+            { "kind": "adjustment", "adjust": "frames/vivid", "mask": { "kind": "rect", "area": [0, 0, 10, 10] } }, { "kind": "rect", "stroke": { "width": 8 }, "area": [0, 0, 10, 10] }, { "kind": "adjustment", "adjust": "frames/vivid", "mask": { "kind": "rect", "area": [0, 0, 10, 10] }, "parent": "run" }
             """#)
 
         // When

@@ -165,7 +165,7 @@ struct SplitEditTests {
             """#)
         let refused = [
             #"{ "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4" } ], "clips": [ { "kind": "media", "media": "/abs/page.png", "split": { "before": 1 } } ] }"#,
-            #"{ "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4" } ], "clips": [ { "kind": "media", "media": "/abs/run.mp4", "picture": false, "split": { "before": 1 } } ] }"#,
+            #"{ "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4" } ], "clips": [ { "kind": "audio", "media": "/abs/run.mp4", "split": { "before": 1 } } ] }"#,
             #"{ "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "split": { "before": -1 } } ] }"#,
             #"{ "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "split": { "lead": 1 } } ] }"#
         ]

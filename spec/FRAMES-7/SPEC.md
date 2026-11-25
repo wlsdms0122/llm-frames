@@ -30,7 +30,7 @@ Editing is iterative: a document is changed, checked with `still`, `sheet` and `
         { "id": "name", "at": [13, 18], "kind": "title", "text": [ { "text": "Mina Park\n" }, { "text": "Head baker", "style": "role" } ], "style": "name",
           "animation": { "entrance": { "preset": "studio/slide", "args": { "distance": 0.4 } }, "exit": "frames/fade" } },
         { "at": [13, 18], "parent": "name", "kind": "path", "points": [ [0, -18], [420, -18] ],
-          "stroke": { "color": "#F2B33D", "width": 6, "cap": "round" },
+          "stroke": { "paint": "#F2B33D", "width": 6, "cap": "round" },
           "keyframes": [ { "at": 13, "trim": [0, 0], "ease": "ease-out" }, { "at": 13.6, "trim": [0, 1] } ] } ] },
     { "id": "pour", "kind": "media", "media": "/abs/broll/pour.mov", "in": 0, "out": 6,
       "keyframes": [ { "at": 0, "timeRemap": 4 }, { "at": 2, "timeRemap": 6 },
@@ -45,11 +45,11 @@ Editing is iterative: a document is changed, checked with `still`, `sheet` and `
   ],
   "clips": [
     { "id": "logo", "kind": "media", "media": "/abs/brand/logo.png", "width": 180, "placement": "top-right", "opacity": 0.9, "lane": 3,
-      "mask": { "shape": "ellipse", "area": [0, 0, 512, 512], "feather": 2 } },
-    { "kind": "media", "media": "/abs/music/morning.m4a", "fadeIn": 1, "fadeOut": 2,
+      "mask": { "kind": "ellipse", "area": [0, 0, 512, 512], "feather": 2 } },
+    { "kind": "audio", "media": "/abs/music/morning.m4a", "fadeIn": 1, "fadeOut": 2,
       "keyframes": [ { "at": 9.3, "volume": 0.15, "ease": "ease-in-out" }, { "at": 9.8, "volume": 0.6 },
                      { "at": 15.2, "volume": 0.6, "ease": "ease-in-out" }, { "at": 15.7, "volume": 0.15 } ] },
-    { "at": 15.3, "kind": "media", "media": "/abs/sfx/whoosh.wav", "pan": -0.5 }
+    { "at": 15.3, "kind": "audio", "media": "/abs/sfx/whoosh.wav", "pan": -0.5 }
   ]
 }
 ```
@@ -59,7 +59,7 @@ The interview opens with a slow push in and a lower third, a name and a role in 
 - `storyline` is the primary storyline. Its clips play one after another, and a transition plays across the edit point between two of them.
 - `connected` clips belong to one storyline clip and live on its clip time ([FRAMES-8](../FRAMES-8/SPEC.md)). They move when that clip moves.
 - `clips` are the sequence's clips on the sequence clock.
-- A clip says what it is with `kind`, which every clip writes: `media` (a media clip), `title`, `rect`, `ellipse` or `path` (a shape), `adjustment` (an adjustment clip), `solid` or `null`. A storyline clip is a `media` or a `solid`, and a connected or a sequence clip is any kind but a `solid`. A clip without `kind` stops, and so does a kind its place does not take, with the kinds it takes. Each kind's content has a key of its own: a media clip's media is `media`, a title's text `text`, an adjustment clip's filter `adjust` and a solid's colour `color`, and a shape and a null are made of the keys of their geometry. `"picture": false` on a media clip whose media has a picture and sound (a video, a compound clip, a sequence template instance) takes only the sound, as Final Cut Pro detaches a clip's audio, and the clip is then an audio clip ([FRAMES-13](../FRAMES-13/SPEC.md)). An **audio clip** is a media clip that takes no picture, because its media holds only sound or because it is written with `"picture": false`, a **null** draws nothing and only carries a box and a transform for other clips to follow ([FRAMES-11](../FRAMES-11/SPEC.md#null-clips)), and a **clip with a picture** is every other clip.
+- A clip says what it is with `kind`, which every clip writes: `media` (a media clip), `audio` (an audio clip), `title`, `rect`, `ellipse` or `path` (a shape), `adjustment` (an adjustment clip), `solid` or `null`. A storyline clip is a `media` or a `solid`, and a connected or a sequence clip is any kind but a `solid`. A clip without `kind` stops, and so does a kind its place does not take, with the kinds it takes. Each kind's content has a key of its own: a media clip's and an audio clip's media is `media`, a title's text `text`, an adjustment clip's filter `adjust` and a solid's colour `color`, and a shape and a null are made of the keys of their geometry. A **media clip** shows its media's picture, and plays its sound where its media has one. An **audio clip** takes its media's sound alone and draws nothing: the sound of a sound file, or of a video, a compound clip or a sequence template instance, as Final Cut Pro detaches a clip's audio ([FRAMES-13](../FRAMES-13/SPEC.md)). Media with no picture as a media clip's media stops, saying that the media has no picture and that a clip of its sound alone is written with kind `audio`, and media with no sound as an audio clip's media stops, as any media of the wrong sort for its place does ([FRAMES-13](../FRAMES-13/SPEC.md#audio-clips)). A **null** draws nothing and only carries a box and a transform for other clips to follow ([FRAMES-11](../FRAMES-11/SPEC.md#null-clips)), and a **clip with a picture** is every clip but an audio clip and a null.
 
 ### Keys
 
@@ -73,10 +73,9 @@ The interview opens with a slow push in and a lower third, a name and a role in 
 | storyline clip, still (an image or a page of a PDF, [FRAMES-3](../FRAMES-3/SPEC.md#pdf-pages), which takes no `toneMap`, [FRAMES-26](../FRAMES-26/SPEC.md#media)) | `id, metadata, kind, media, colorSpace, toneMap, duration, crop, filter, transition, anchor, position, scale, rotation, cornerPin, opacity, blend, motionBlur, mask, trackMatte, radius, border, shadow, keyframes, connected` |
 | storyline clip, solid | `id, metadata, kind, color, duration, transition, motionBlur, keyframes, connected` |
 | every clip with a picture (connected and sequence) | `id, metadata, kind, at, lane, parent, opacity, blend, motionBlur, mask, trackMatte, track, animation, keyframes` |
-| visual media clip (video, image sequence, compound) | every clip with a picture's, `audioFilter` on a video or a compound clip and `split` ([FRAMES-13](../FRAMES-13/SPEC.md)), `media, picture, colorSpace, toneMap, in, out, speed, loop, volume, pan, fadeIn, fadeOut, placement, position, anchor, scale, rotation, cornerPin, crop, conform, filter, width, height, radius, border, shadow` |
+| visual media clip (video, image sequence, compound) | every clip with a picture's, `audioFilter` on a video or a compound clip and `split` ([FRAMES-13](../FRAMES-13/SPEC.md)), `media, colorSpace, toneMap, in, out, speed, loop, volume, pan, fadeIn, fadeOut, placement, position, anchor, scale, rotation, cornerPin, crop, conform, filter, width, height, radius, border, shadow` |
 | still media clip (an image or a page of a PDF, which takes no `toneMap`) | every clip with a picture's, `media, colorSpace, toneMap, placement, position, anchor, scale, rotation, cornerPin, crop, conform, filter, width, height, radius, border, shadow` |
-| audio clip | `id, metadata, kind, at, media, in, out, speed, loop, volume, pan, fadeIn, fadeOut, audioFilter, keyframes` |
-| audio clip of a video's, a compound clip's or a template instance's sound (`"picture": false`) | every audio clip's, `picture` ([FRAMES-13](../FRAMES-13/SPEC.md)) |
+| audio clip (`audio`), of any media with sound ([FRAMES-13](../FRAMES-13/SPEC.md#audio-clips)) | `id, metadata, kind, at, media, in, out, speed, loop, volume, pan, fadeIn, fadeOut, audioFilter, keyframes` |
 | title clip | every clip with a picture's, `text, style, character, paragraph, width, placement, position, anchor, scale, rotation, cornerPin` |
 | run (an item of a title's `text` list) | `text, style` |
 | character (a title's `character`) | `font, size, weight, italic, tracking, kerning, features, baselineShift, color, stroke, highlight, underline, textOrientation, textCombineUpright`, each as a text style takes it ([FRAMES-22](../FRAMES-22/SPEC.md)) |
@@ -84,13 +83,12 @@ The interview opens with a slow push in and a lower third, a name and a role in 
 | shape clip (`rect`, `ellipse`, `path`) | every clip with a picture's, `style, area, width, height, placement, position, anchor, points, closed, radius, outset, fill, stroke, trim, shadow, scale, rotation`, and `cornerPin` on a rect or ellipse given by `width` and `height` ([FRAMES-27](../FRAMES-27/SPEC.md)) |
 | null clip | `id, metadata, kind, at, parent, motionBlur, track, animation, keyframes, area, width, height, placement, position, anchor, scale, rotation` ([FRAMES-11](../FRAMES-11/SPEC.md#null-clips)) |
 | split (on a storyline clip or a visual media clip) | `before, after` ([FRAMES-13](../FRAMES-13/SPEC.md)) |
-| stroke | `color, gradient, width, align, join, cap, start, end, dash, dashOffset` |
-| gradient | exactly one of `linear` and `radial` ([FRAMES-11](../FRAMES-11/SPEC.md)) |
-| linear gradient | `from, to, stops` |
-| radial gradient | `center, radius, stops` |
+| stroke | `paint, width, align, join, cap, start, end, dash, dashOffset` |
+| linear gradient (`linear`, [FRAMES-11](../FRAMES-11/SPEC.md)) | `kind, from, to, stops` |
+| radial gradient (`radial`) | `kind, center, radius, stops` |
 | adjustment clip (`adjustment`) | every clip with a picture's, `adjust` |
-| mask | `shape, area, points, width, height, position, radius, feather, invert, mode` |
-| path vertex (an object in the `points` of a path shape or a path mask, [FRAMES-11](../FRAMES-11/SPEC.md#shapes)) | `vertex, inTangent, outTangent`, `vertex` required outside a keyframe |
+| mask | `kind, area, points, width, height, position, radius, feather, invert, mode` |
+| path vertex (every object in the `points` of a path shape or a path mask, [FRAMES-11](../FRAMES-11/SPEC.md#shapes)) | `vertex, inTangent, outTangent`, `vertex` required outside a keyframe |
 | track matte | `clip, mode, invert` |
 | `track`, track data ([FRAMES-12](../FRAMES-12/SPEC.md#track-data)) | `time, frames`, both required |
 | track data frame | `time, quad` |
@@ -103,8 +101,10 @@ The interview opens with a slow push in and a lower third, a name and a role in 
 | audio op | `kind`, the op's name, `mix` where a choice writes it (not in a preset's `ops`), and its parameters: `bands` for `eq`; `threshold, ratio, knee, attack, release, makeup` for `compressor`; `threshold, range, attack, hold, release` for `gate`; `gain, ceiling, lookahead, release` for `limiter`; `file, gain` for `convolve` |
 | EQ band | `kind, frequency, gain, q`, `gain` for `lowShelf`, `highShelf` and `peak` only |
 | arguments (`args` of a preset choice or a template instance) | the names of the parameters the preset or template publishes ([FRAMES-17](../FRAMES-17/SPEC.md)) |
-| template instance | `template, args` |
-| page of a PDF as media ([FRAMES-3](../FRAMES-3/SPEC.md#pdf-pages)) | `file, page`, both required, `page` static and stood for by no parameter alone ([FRAMES-17](../FRAMES-17/SPEC.md)) |
+| media object ([FRAMES-3](../FRAMES-3/SPEC.md)) | `kind`, required: `page`, `imageSequence`, `sequence` (a sequence document, the `sequence` row) or `template` |
+| template instance (`template`) | `kind, template, args`, `template` required |
+| page of a PDF as media (`page`, [FRAMES-3](../FRAMES-3/SPEC.md#pdf-pages)) | `kind, file, page`, `file` and `page` required, `page` static and stood for by no parameter alone ([FRAMES-17](../FRAMES-17/SPEC.md)) |
+| image sequence (`imageSequence`, [FRAMES-3](../FRAMES-3/SPEC.md)) | `kind, directory, fps`, `directory` and `fps` required |
 | parameter | `type, default, description`, and `options` for a choice |
 
 Which keys each shape kind takes, the forms of masks and track mattes, and `radius`, `border` and `shadow`, which act on a media clip's box and on a storyline picture's box alike, are [FRAMES-11](../FRAMES-11/SPEC.md). Every length a clip draws with (a stroke `width`, the `radius` of a shape or a box, `outset`, a mask's `feather`, a border's width, a shadow's sizes and the lengths of a title's `character` and `paragraph`) is a theme length, the unit of the style it overrides ([FRAMES-1](../FRAMES-1/SPEC.md)), and positions, areas and points are in the clip's coordinate space. A media clip's `colorSpace` names the colour space its media are in, over what the file says, wherever that clip's media is read, providers included, as a transition cover's or matte's `colorSpace` does for its media ([FRAMES-14](../FRAMES-14/SPEC.md)), and two places of one file that name two colour spaces stop ([FRAMES-26](../FRAMES-26/SPEC.md#media)); its `toneMap` (a boolean, `true` by default) whether an HDR picture of it is tone mapped to the sequence's peak where its own peak is higher; a clip whose media is a compound clip or a template instance takes neither; the format's `colorSpace`, `peak` and `compositing` are the sequence's colour space, the mastering peak of a `rec2100-pq` sequence and the form it composites in ([FRAMES-26](../FRAMES-26/SPEC.md)). The sequence's `audioFilter` is its bus's chain, an audio filter choice run over the sum of its sounds wherever it plays, inside another sequence included ([FRAMES-28](../FRAMES-28/SPEC.md#buses)). How a preset choice passes its arguments is [FRAMES-14](../FRAMES-14/SPEC.md): an unknown argument name stops, an argument of the wrong type stops, and a missing one takes its parameter's default.
@@ -115,7 +115,7 @@ A clip's `motionBlur` (a boolean, `false` by default) is whether the values it o
 
 `metadata` is an object that frames does not read: what the programs that read and change a document keep on a clip ([FRAMES-25](../FRAMES-25/SPEC.md)), such as which tool added it and why, as an NLE keeps keywords and notes. Its contents are not checked, and resolve does not carry it into the resolved document.
 
-A clip's `kind` picks its row, and every key outside that row stops as an unknown key of the kind, the content key of another kind included, so `text` on a `rect` stops as `fill` on a title does. Within `media`, which media row applies depends on what the media holds and on `picture`, so those keys are checked once the media has been probed. Where the media is a template parameter, the parameter's type picks the row, and a page given to an `image` parameter takes the keys of a page when the template is instantiated with it ([FRAMES-17](../FRAMES-17/SPEC.md)).
+A clip's `kind` picks its row, and every key outside that row stops as an unknown key of the kind, the content key of another kind included, so `text` on a `rect` stops as `fill` on a title does. Within `media`, which media row applies depends on what the media holds, so those keys are checked once the media has been probed. An `audio` clip takes the audio clip's row whatever its media is, so its keys are known from its `kind`, and its media is probed only to know that it has sound. Where the media is a template parameter, the parameter's type picks the row, and a page given to an `image` parameter takes the keys of a page when the template is instantiated with it ([FRAMES-17](../FRAMES-17/SPEC.md)). An `audio` parameter as a media clip's media stops, since a sound file has no picture, and so does an `image` parameter as an audio clip's media, since a still has no sound.
 
 `kind` decides which keys a clip takes, so a parameter stands for it only as a choice between shapes: a template's `choice` whose options are each `rect`, `ellipse` or `path`, which checks the clip's keys with each option ([FRAMES-17](../FRAMES-17/SPEC.md)). A parameter of another type at `kind` stops, and so does a choice with an option that is not a shape.
 
@@ -150,5 +150,7 @@ Motion blur and the shutter are [FRAMES-29](../FRAMES-29/SPEC.md).
 Objects that ignore unknown keys, as CSS ignores an unknown property: a misspelt key would render as no effect, and nothing in the edit loop would say so. Meaning carried in `id` strings: `metadata` is the place for what frames does not read. Naming a parent or a matte by its place in the document: a place moves when a clip is added before it, and an `id` does not.
 
 A clip's kind as the one key of its content it holds, `"title": "Mina Park"`, `"shape": "rect"` or `"solid": "#000"`: one key carries two facts, the kind and the content, so a kind made of nothing but its box needs a flag such as `"null": true`, a shape writes its kind beside its geometry under a key named for every shape, a solid's colour is required as the mark of its kind even where its keyframes give every value of it, and a reader learns what a clip is by trying every kind key in turn. `kind` says what a clip is with one value, as it says what a document is, and each content key says only what it holds.
+
+An audio clip as a media clip that takes no picture, because its media holds only sound or because it writes `"picture": false`: a flag switches the clip's kind and the keys it takes, and a clip of a sound file is an audio clip by what the file holds, which the document does not say. `audio` is the kind of a clip that takes sound alone, whatever its media, so its keys are known from its `kind` before its media is read, and a sound file as a `media` clip's media stops as media of the wrong sort for its place.
 
 ## Notes

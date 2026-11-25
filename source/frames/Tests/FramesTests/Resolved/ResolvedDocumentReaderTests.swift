@@ -69,7 +69,7 @@ struct ResolvedDocumentReaderTests {
                            "keyframes": [ { "at": 2, "crop": [0, 0, 1080, 1920] }, { "at": 8, "crop": [45, 97, 990, 1760] } ] } ],
           "clips": [ { "kind": "title", "text": "Hi", "style": "title", "at": [0, 3], "animation": "frames/pop", "position": [75.4, 1709.8] },
                      { "kind": "media", "media": "/abs/page.png", "at": [0, 3], "width": 200, "border": { "align": "outside" }, "shadow": true, "radius": 12 },
-                     { "kind": "media", "media": "/abs/bgm.m4a", "at": 0, "loop": true,
+                     { "kind": "audio", "media": "/abs/bgm.m4a", "at": 0, "loop": true,
                        "keyframes": [ { "at": 0, "volume": 0.3, "pan": -0.5, "ease": "ease-in" }, { "at": 2, "volume": 0.3 },
                                       { "at": 3, "volume": 0, "pan": 0.5 } ] } ] }
         """#,
@@ -77,7 +77,7 @@ struct ResolvedDocumentReaderTests {
         #"""
         { "kind": "sequence", "storyline": [
             { "kind": "solid", "color": "accent", "duration": 2 },
-            { "kind": "media", "media": { "imageSequence": "/abs/frames", "fps": 12 }, "filter": "film", "transition": "reveal" },
+            { "kind": "media", "media": { "kind": "imageSequence", "directory": "/abs/frames", "fps": 12 }, "filter": "film", "transition": "reveal" },
             { "kind": "media", "media": { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "in": 0, "out": 2 } ] }, "transition": "dip" } ] }
         """#,
         // Shapes, tracked areas, an adjustment, a timed media clip, a title parented to a shape and sound with fades.
@@ -89,7 +89,7 @@ struct ResolvedDocumentReaderTests {
         // points.
         ##"""
         { "kind": "sequence",
-          "theme": { "shapes": { "outline": { "stroke": { "width": 8, "color": "#ED2929" }, "radius": 18 } } },
+          "theme": { "shapes": { "outline": { "stroke": { "width": 8, "paint": "#ED2929" }, "radius": 18 } } },
           "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "in": 0, "out": 4 } ],
           "clips": [
             { "kind": "rect", "style": "outline", "area": [10, 20, 300, 200], "outset": 6, "shadow": { "radius": 4 },
@@ -100,7 +100,7 @@ struct ResolvedDocumentReaderTests {
               "stroke": { "width": 3, "align": "outside", "join": "bevel", "cap": "square" }, "rotation": 30, "at": [0, 4] },
             { "kind": "ellipse", "area": [100, 100, 80, 40], "anchor": "bottom-right", "position": [400, 300], "fill": "#FFFFFF80",
               "shadow": true, "scale": 2, "at": [0, 4] },
-            { "kind": "path", "stroke": { "width": 6, "start": { "preset": "frames/circle", "scale": 2 }, "end": "frames/line-arrow", "color": "#00FF00" }, "at": [0, 4],
+            { "kind": "path", "stroke": { "width": 6, "start": { "preset": "frames/circle", "scale": 2 }, "end": "frames/line-arrow", "paint": "#00FF00" }, "at": [0, 4],
               "keyframes": [ { "at": 0, "points": [[0, 0], [100, 50], [200, 0]], "trim": [0, 0] },
                              { "at": 1, "points": [[0, 100], [100, 150], [200, 100]], "trim": [0.2, 1], "rotation": 45 } ] },
             { "kind": "path", "points": [[300, 300], [400, 300], [350, 380]], "closed": true, "fill": "accent", "stroke": false,
@@ -113,15 +113,15 @@ struct ResolvedDocumentReaderTests {
         // path, inverted, feathered, in each mode, static and keyframed.
         #"""
         { "kind": "sequence", "storyline": [ { "id": "screen", "kind": "media", "media": "/abs/screen.mp4", "in": 0, "out": 3,
-            "mask": { "shape": "rect", "area": [96, 96, 208, 48], "radius": 6, "feather": 2, "invert": true },
+            "mask": { "kind": "rect", "area": [96, 96, 208, 48], "radius": 6, "feather": 2, "invert": true },
             "connected": [
               { "kind": "adjustment", "adjust": "mine/grade", "parent": "screen", "mask": [
-                  { "shape": "ellipse", "width": 60, "height": 30, "position": [100, 100], "mode": "subtract" },
-                  { "shape": "path", "points": [[0, 0], [100, 0], [50, 80]], "mode": "intersect" } ] },
-              { "kind": "rect", "fill": "#FF000080", "parent": "screen", "area": [0, 0, 500, 500], "mask": { "shape": "ellipse" }, "keyframes": [
+                  { "kind": "ellipse", "width": 60, "height": 30, "position": [100, 100], "mode": "subtract" },
+                  { "kind": "path", "points": [[0, 0], [100, 0], [50, 80]], "mode": "intersect" } ] },
+              { "kind": "rect", "fill": "#FF000080", "parent": "screen", "area": [0, 0, 500, 500], "mask": { "kind": "ellipse" }, "keyframes": [
                   { "at": 0, "ease": "ease-out", "mask": { "area": [100, 100, 200, 40], "feather": 1 } },
                   { "at": 2, "mask": { "area": [0, 0, 50, 50], "feather": 3 } } ] },
-              { "kind": "title", "text": "Hi", "style": "title", "parent": "screen", "position": [300, 300], "mask": { "shape": "path" }, "keyframes": [
+              { "kind": "title", "text": "Hi", "style": "title", "parent": "screen", "position": [300, 300], "mask": { "kind": "path" }, "keyframes": [
                   { "at": 0, "mask": { "points": [[0, 0], [10, 0], [5, 10]] } },
                   { "at": 1, "mask": { "points": [[0, 0], [20, 0], [10, 20]] } } ] } ] } ] }
         """#,
@@ -157,7 +157,7 @@ struct ResolvedDocumentReaderTests {
         #"""
         { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "in": 0, "out": 3,
             "audioFilter": [ { "kind": "gate", "threshold": -50 }, { "kind": "compressor", "threshold": -18, "ratio": 3, "mix": 0.5 } ] } ],
-          "clips": [ { "kind": "media", "media": "/abs/bgm.m4a", "at": 0, "audioFilter": { "kind": "eq", "bands": [ { "kind": "peak", "gain": 6 } ] },
+          "clips": [ { "kind": "audio", "media": "/abs/bgm.m4a", "at": 0, "audioFilter": { "kind": "eq", "bands": [ { "kind": "peak", "gain": 6 } ] },
                        "keyframes": [ { "at": 0, "audioFilter": { "bands": [ { "frequency": 100, "q": 2 } ] } },
                                       { "at": 2, "audioFilter": { "bands": [ { "frequency": 8000, "q": 0.5 } ] } } ] } ] }
         """#,
@@ -167,9 +167,9 @@ struct ResolvedDocumentReaderTests {
         // sequence's audio filter beside its own.
         #"""
         { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "in": 0, "out": 3 } ],
-          "clips": [ { "kind": "media", "media": { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "out": 2 } ],
+          "clips": [ { "kind": "audio", "media": { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "out": 2 } ],
                                   "audioFilter": { "kind": "limiter", "ceiling": -6, "lookahead": 0.01 } },
-                       "picture": false, "at": 1, "audioFilter": { "kind": "gate", "threshold": -50 } } ],
+                       "at": 1, "audioFilter": { "kind": "gate", "threshold": -50 } } ],
           "audioFilter": [ { "kind": "gate", "threshold": -60 }, { "kind": "limiter", "ceiling": -1 } ],
           "keyframes": [ { "at": 0, "audioFilter": [ { "mix": 0 }, { "gain": 0 } ], "ease": "ease-in" },
                          { "at": 2, "audioFilter": [ { "mix": 1 }, { "gain": 2 } ] } ] }
@@ -189,9 +189,9 @@ struct ResolvedDocumentReaderTests {
         #"""
         { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "in": 0, "out": 3,
             "audioFilter": { "kind": "convolve", "file": "/abs/ding.wav", "mix": 0.4 } } ],
-          "clips": [ { "kind": "media", "media": { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "out": 2 } ],
+          "clips": [ { "kind": "audio", "media": { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "out": 2 } ],
                                   "audioFilter": { "kind": "convolve", "file": "/abs/bgm.m4a" } },
-                       "picture": false, "at": 1, "audioFilter": { "kind": "convolve", "file": "/abs/ding.wav" },
+                       "at": 1, "audioFilter": { "kind": "convolve", "file": "/abs/ding.wav" },
                        "keyframes": [ { "at": 0, "audioFilter": { "gain": -12 } }, { "at": 1, "audioFilter": { "gain": 0 } } ] } ],
           "audioFilter": [ { "kind": "convolve", "file": "/abs/ding.wav", "gain": -6 }, { "kind": "limiter" } ] }
         """#,
@@ -558,7 +558,7 @@ struct ResolvedDocumentReaderTests {
             (#""join": "round""#, #""join": "square""#, #"clips[0].stroke.join (stroke): unknown value "square". Allowed: miter, round, bevel"#),
             (#""inset": 2"#, #""inset": 9"#, "clips[4].stroke.start (stroke): a head's inset is from 0 to its length 4, found 9"),
             (#""inset": 2"#, #""inset": 2, "shape": "circle""#, #"clips[4].stroke.start (stroke): unknown key "shape". Allowed: points, length, inset, scale"#),
-            (#""cap": "butt""#, #""cap": "butt", "head": 8"#, #"clips[0].stroke (stroke): unknown key "head". Allowed: color, gradient, width, align, join, cap, start, end, dash, dashOffset"#)
+            (#""cap": "butt""#, #""cap": "butt", "head": 8"#, #"clips[0].stroke (stroke): unknown key "head". Allowed: paint, width, align, join, cap, start, end, dash, dashOffset"#)
         ]
     )
     func refusesShapeMember(
@@ -621,7 +621,7 @@ struct ResolvedDocumentReaderTests {
             { "kind": "sequence", "storyline": [ { "id": "screen", "kind": "media", "media": "/abs/screen.mp4", "in": 0, "out": 2 } ],
               "clips": [ { "id": "a", "kind": "rect", "stroke": { "width": 8 }, "area": [0, 0, 10, 10], "at": [0, 1], "parent": "screen" },
                          { "id": "b", "kind": "rect", "stroke": { "width": 8 }, "area": [0, 0, 10, 10], "at": [0, 1], "parent": "a" },
-                         { "id": "sound", "kind": "media", "media": "/abs/bgm.m4a", "at": [0, 1] } ] }
+                         { "id": "sound", "kind": "audio", "media": "/abs/bgm.m4a", "at": [0, 1] } ] }
             """#
         let text = try replacingFirst(written, with: replacement, in: self.written(document))
 
@@ -1588,11 +1588,11 @@ struct ResolvedDocumentReaderTests {
                 { "kind": "rect", "fill": "#FFD43B80", "area": [86, 86, 228, 68], "parent": "screen", "track": \#(boxTrack) },
                 { "kind": "path", "points": [[500, 500], [600, 550]], "stroke": { "width": 10, "end": "frames/arrow" }, "at": [1, 2], "lane": -1 },
                 { "kind": "rect", "area": [0, 0, 100, 100], "fill": "#0000008C", "at": [1, 2], "id": "dim" },
-                { "kind": "adjustment", "adjust": "mine/grade", "mask": { "shape": "rect", "area": [0, 0, 10, 10] }, "at": [1, 2] },
+                { "kind": "adjustment", "adjust": "mine/grade", "mask": { "kind": "rect", "area": [0, 0, 10, 10] }, "at": [1, 2] },
                 { "kind": "media", "media": "/abs/short.mp4", "in": 1, "out": 3, "speed": 2, "at": 1, "width": 300, "conform": "fill",
                   "keyframes": [ { "at": 1, "opacity": 0, "ease": { "kind": "spring", "bounce": 0.3 } }, { "at": 1.5, "opacity": 1 } ] },
                 { "kind": "title", "text": "Hi", "style": "title", "at": [1, 2], "parent": "dim", "position": [50, 50] },
-                { "kind": "media", "media": "/abs/ding.wav", "at": 1.5, "fadeIn": 0.25, "fadeOut": 0.5 } ] } ] }
+                { "kind": "audio", "media": "/abs/ding.wav", "at": 1.5, "fadeIn": 0.25, "fadeOut": 0.5 } ] } ] }
             """#
     }
 

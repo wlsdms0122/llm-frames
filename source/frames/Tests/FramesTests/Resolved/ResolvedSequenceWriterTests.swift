@@ -99,7 +99,7 @@ struct ResolvedSequenceWriterTests {
     func pinsImageSequence() throws {
         // Given
         let document = #"""
-            { "kind": "sequence", "storyline": [ { "kind": "media", "media": { "imageSequence": "/abs/frames", "fps": 12 } } ] }
+            { "kind": "sequence", "storyline": [ { "kind": "media", "media": { "kind": "imageSequence", "directory": "/abs/frames", "fps": 12 } } ] }
             """#
 
         // When
@@ -467,7 +467,7 @@ struct ResolvedSequenceWriterTests {
         // Given
         let document = #"""
             { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "in": 0, "out": 3 } ],
-              "clips": [ { "kind": "media", "media": "/abs/bgm.m4a", "at": 1, "loop": true,
+              "clips": [ { "kind": "audio", "media": "/abs/bgm.m4a", "at": 1, "loop": true,
                            "keyframes": [ { "at": 0, "volume": 0.3, "pan": -1 }, { "at": 1, "volume": 0, "pan": 1 } ] } ] }
             """#
 
@@ -518,7 +518,7 @@ struct ResolvedSequenceWriterTests {
         // Given
         let document = ##"""
             { "kind": "sequence", "format": { "size": [2412, 5244] },
-              "theme": { "shapes": { "outline": { "stroke": { "width": 8, "color": "#ED2929" }, "radius": 18 } } },
+              "theme": { "shapes": { "outline": { "stroke": { "width": 8, "paint": "#ED2929" }, "radius": 18 } } },
               "storyline": [ { "kind": "media", "media": "/abs/run.mp4" } ], "clips": [
                 { "kind": "rect", "style": "outline", "area": [0, 0, 100, 100], "at": [0, 1] },
                 { "kind": "path", "points": [[500, 500], [600, 500]], "stroke": { "width": 10, "end": "frames/arrow" }, "at": [0, 1] },
@@ -545,7 +545,7 @@ struct ResolvedSequenceWriterTests {
         #expect(clips[0]["radius"]?.arrayValue?.first?.objectValue?["value"] == .array(Array(repeating: .number(18 * scale), count: 4)))
         #expect(clips[0]["fill"] == .null)
         #expect(clips[0]["stroke"] == .object(JSONObject(members: [
-            JSONMember(key: "color", value: held(.string("color(srgb 0.9294117647058824 0.1607843137254902 0.1607843137254902 / 1)"))),
+            JSONMember(key: "paint", value: held(.string("color(srgb 0.9294117647058824 0.1607843137254902 0.1607843137254902 / 1)"))),
             JSONMember(key: "width", value: held(.number(8 * scale))),
             JSONMember(key: "align", value: .string("center")),
             JSONMember(key: "join", value: .string("round")),
@@ -561,7 +561,7 @@ struct ResolvedSequenceWriterTests {
         #expect(clips[1]["closed"] == .bool(false))
         #expect(clips[1]["area"] == .null)
         #expect(clips[1]["outset"] == .null)
-        #expect(clips[1]["stroke"]?.objectValue?["color"] == held(.string(theme.color("accent").resolvedForm)))
+        #expect(clips[1]["stroke"]?.objectValue?["paint"] == held(.string(theme.color("accent").resolvedForm)))
         #expect(clips[1]["stroke"]?.objectValue?["end"] == end("arrow"))
         #expect(clips[1]["radius"] == .null)
         #expect(clips[1]["trim"]?.arrayValue?.first?.objectValue?["value"] == .array([.number(0), .number(1)]))
@@ -611,12 +611,12 @@ struct ResolvedSequenceWriterTests {
         // Given
         let document = #"""
             { "kind": "sequence", "format": { "size": [3840, 2160] },
-              "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "in": 0, "out": 4, "mask": { "shape": "ellipse", "area": [16, 16, 480, 480], "feather": 3 } } ],
+              "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "in": 0, "out": 4, "mask": { "kind": "ellipse", "area": [16, 16, 480, 480], "feather": 3 } } ],
               "clips": [
                 { "kind": "media", "media": "/abs/card.png", "at": [0, 4], "width": 160,
-                  "mask": [ { "shape": "rect", "width": 100, "height": 40, "position": [200, 300], "radius": 4, "invert": true, "mode": "intersect" },
-                            { "shape": "path", "points": [[0, 0], [10, 0], [5, 10]] } ] },
-                { "kind": "adjustment", "adjust": "frames/warm", "at": [0, 4], "mask": { "shape": "rect" }, "keyframes": [
+                  "mask": [ { "kind": "rect", "width": 100, "height": 40, "position": [200, 300], "radius": 4, "invert": true, "mode": "intersect" },
+                            { "kind": "path", "points": [[0, 0], [10, 0], [5, 10]] } ] },
+                { "kind": "adjustment", "adjust": "frames/warm", "at": [0, 4], "mask": { "kind": "rect" }, "keyframes": [
                     { "at": 1, "ease": "ease-out", "mask": { "area": [0, 0, 10, 10] } },
                     { "at": 3, "mask": { "area": [0, 0, 20, 20], "feather": 1 } } ] },
                 { "kind": "title", "text": "a", "style": "title", "at": [0, 4] } ] }

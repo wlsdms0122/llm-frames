@@ -159,7 +159,7 @@ struct CornerPinEvaluationTests {
         let sequence = try resolved(document: ##"""
             { "kind": "sequence", "storyline": [ { "id": "shot", "kind": "media", "media": "/abs/run.mp4", "cornerPin": \##(Self.pin),
               "shadow": { "radius": 10, "offset": [0, 0], "color": "#000000" },
-              "mask": [ { "shape": "rect", "area": [0, 0, 100, 100] } ] } ] }
+              "mask": [ { "kind": "rect", "area": [0, 0, 100, 100] } ] } ] }
             """##)
 
         // When
@@ -424,7 +424,7 @@ struct CornerPinEvaluationTests {
     @Test("a clip with a corner pin cuts its item by its masks inside the group, in its box, and the group by none")
     func cutsMasksInsideGroup() throws {
         // Given
-        let sequence = try resolved(#"{ "id": "card", "kind": "media", "media": "/abs/page.png", "width": 300, "at": [0, 4], "cornerPin": \#(Self.pin), "mask": [ { "shape": "rect", "area": [0, 0, 500, 400] } ] }"#)
+        let sequence = try resolved(#"{ "id": "card", "kind": "media", "media": "/abs/page.png", "width": 300, "at": [0, 4], "cornerPin": \#(Self.pin), "mask": [ { "kind": "rect", "area": [0, 0, 500, 400] } ] }"#)
 
         // When
         let list = sut.displayList(of: sequence, at: 1)
@@ -446,7 +446,7 @@ struct CornerPinEvaluationTests {
     @Test("a title with a corner pin, a background padding and a mask has its mask in its glyphs item's coordinates, its text box, as without a corner pin, and the text box at the padding in its box")
     func carriesTitleMasksWithGlyphs() throws {
         // Given
-        let title = ##""kind": "title", "text": "ab", "style": "title", "at": [0, 4], "paragraph": { "background": { "color": "#FF0000", "padding": [8, 12] } }, "mask": [ { "shape": "rect", "area": [0, 0, 20, 20] } ]"##
+        let title = ##""kind": "title", "text": "ab", "style": "title", "at": [0, 4], "paragraph": { "background": { "color": "#FF0000", "padding": [8, 12] } }, "mask": [ { "kind": "rect", "area": [0, 0, 20, 20] } ]"##
         let pinned = try resolved(#"{ "id": "card", \#(title), "cornerPin": \#(Self.pin) }"#)
         let placed = try resolved(#"{ "id": "card", \#(title), "position": [400, 300] }"#)
 

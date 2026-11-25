@@ -30,8 +30,8 @@ struct SequenceReaderTests {
                 { "kind": "solid", "color": "#000000", "duration": 1, "transition": "cut" }
               ],
               "clips": [
-                { "at": 1.0, "kind": "media", "media": "/abs/ding.wav", "in": 0, "out": 1.5 },
-                { "kind": "media", "media": { "imageSequence": "/abs/frames", "fps": 30 }, "loop": true, "lane": -1, "parent": "run", "placement": "top" },
+                { "at": 1.0, "kind": "audio", "media": "/abs/ding.wav", "in": 0, "out": 1.5 },
+                { "kind": "media", "media": { "kind": "imageSequence", "directory": "/abs/frames", "fps": 30 }, "loop": true, "lane": -1, "parent": "run", "placement": "top" },
                 { "kind": "adjustment", "adjust": "frames/vivid", "animation": { "entrance": "frames/pop", "exit": "none" } },
                 { "kind": "title", "text": [ { "text": "Ana\n" }, { "text": "Director", "style": "role" } ], "style": "name" }
               ] }
@@ -77,7 +77,7 @@ struct SequenceReaderTests {
     @Test("a page of a PDF reads as its file and its page number")
     func readsPage() throws {
         // Given
-        let document = try Fixture.json(#"{ "kind": "sequence", "storyline": [ { "kind": "media", "media": { "file": "/abs/deck.pdf", "page": 3 }, "colorSpace": "rec709" } ] }"#)
+        let document = try Fixture.json(#"{ "kind": "sequence", "storyline": [ { "kind": "media", "media": { "kind": "page", "file": "/abs/deck.pdf", "page": 3 }, "colorSpace": "rec709" } ] }"#)
 
         // When
         let sequence = sut.sequence(from: document)
@@ -111,7 +111,7 @@ struct SequenceReaderTests {
         // Given
         let document = try Fixture.json(#"""
             { "kind": "sequence", "storyline": [
-              { "kind": "media", "media": { "template": "shorts/leak", "args": { "clip": "/abs/run.mp4" } } },
+              { "kind": "media", "media": { "kind": "template", "template": "shorts/leak", "args": { "clip": "/abs/run.mp4" } } },
               { "kind": "media", "media": "/abs/run.mp4" }
             ] }
             """#)
@@ -164,7 +164,7 @@ struct SequenceReaderTests {
             { "kind": "sequence", "clips": [
               { "kind": "rect", "style": "outline", "width": 100, "height": 50, "radius": 8, "outset": 4, "fill": false,
                 "stroke": { "width": 2, "join": "bevel", "end": "frames/arrow" }, "shadow": true, "scale": 2, "rotation": 30 },
-              { "kind": "path", "points": [[0, 0], { "area": [0, 0, 10, 10], "point": "right" }], "closed": true,
+              { "kind": "path", "points": [[0, 0], { "vertex": { "area": [0, 0, 10, 10], "point": "right" } }], "closed": true,
                 "fill": "#FF0000", "stroke": false, "shadow": { "radius": 4, "color": "accent" },
                 "keyframes": [ { "at": 1, "trim": [0, 0.5] }, { "at": 2, "trim": [0, 1], "ease": "ease-in" } ] },
               { "kind": "ellipse", "area": [0, 0, 10, 10], "shadow": false } ] }
@@ -190,7 +190,7 @@ struct SequenceReaderTests {
         #expect(sequence.clips[1].content == .shape(ClipShape(
             kind: .path,
             points: PathProperty(
-                written: [try Fixture.json("[0, 0]"), try Fixture.json(#"{ "area": [0, 0, 10, 10], "point": "right" }"#)],
+                written: [try Fixture.json("[0, 0]"), try Fixture.json(#"{ "vertex": { "area": [0, 0, 10, 10], "point": "right" } }"#)],
                 keyframes: []
             ),
             isClosed: true,

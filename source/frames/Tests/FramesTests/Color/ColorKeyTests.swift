@@ -163,11 +163,11 @@ struct ColorKeyTests {
                 #"storyline[0] (compound): unknown key "toneMap""#
             ),
             (
-                #"{ "kind": "media", "media": "/abs/run.mp4", "connected": [ { "kind": "media", "media": { "template": "pack/intro" }, "at": [0, 1], "colorSpace": "rec709" } ] }"#,
+                #"{ "kind": "media", "media": "/abs/run.mp4", "connected": [ { "kind": "media", "media": { "kind": "template", "template": "pack/intro" }, "at": [0, 1], "colorSpace": "rec709" } ] }"#,
                 #"storyline[0].connected[0] (compound): unknown key "colorSpace""#
             ),
             (
-                #"{ "kind": "media", "media": "/abs/run.mp4", "connected": [ { "kind": "media", "media": "/abs/bgm.m4a", "at": 0, "colorSpace": "rec709" } ] }"#,
+                #"{ "kind": "media", "media": "/abs/run.mp4", "connected": [ { "kind": "audio", "media": "/abs/bgm.m4a", "at": 0, "colorSpace": "rec709" } ] }"#,
                 #"storyline[0].connected[0] (audio): unknown key "colorSpace""#
             ),
             (##"{ "kind": "solid", "color": "#000000", "duration": 1, "toneMap": true }"##, #"storyline[0] (solid): unknown key "toneMap""#)

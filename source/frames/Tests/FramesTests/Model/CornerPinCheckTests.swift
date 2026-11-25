@@ -82,7 +82,7 @@ struct CornerPinCheckTests {
         arguments: [
             (#"{ "kind": "solid", "color": "accent", "duration": 1, "cornerPin": PIN }"#, "storyline[1] (solid)"),
             (#"{ "kind": "media", "media": "/abs/run.mp4", "connected": [ { "kind": "adjustment", "adjust": "blur", "at": [0, 1], "cornerPin": PIN } ] }"#, "storyline[1].connected[0] (adjustment)"),
-            (#"{ "kind": "media", "media": "/abs/run.mp4", "connected": [ { "kind": "media", "media": "/abs/bgm.m4a", "at": 0, "cornerPin": PIN } ] }"#, "storyline[1].connected[0] (audio)"),
+            (#"{ "kind": "media", "media": "/abs/run.mp4", "connected": [ { "kind": "audio", "media": "/abs/bgm.m4a", "at": 0, "cornerPin": PIN } ] }"#, "storyline[1].connected[0] (audio)"),
             (#"{ "kind": "media", "media": "/abs/run.mp4", "connected": [ { "kind": "path", "fill": "accent", "points": [[0, 0], [10, 0], [0, 10]], "at": [0, 1], "cornerPin": PIN } ] }"#, "storyline[1].connected[0] (path)")
         ]
     )

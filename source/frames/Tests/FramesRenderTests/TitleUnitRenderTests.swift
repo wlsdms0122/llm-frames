@@ -96,7 +96,7 @@ struct TitleUnitRenderTests {
               "clips": [
                 { "id": "m", "kind": "rect", "area": [0, 0, 200, 180], "fill": "#B0B0B0", "at": [0, 2] },
                 { "kind": "title", "text": "AB CD", "style": "headline", "at": [0, 2], "opacity": 0.5, "blend": "multiply",
-                  "mask": { "shape": "ellipse", "area": [0, 0, 160, 70], "feather": 8 },
+                  "mask": { "kind": "ellipse", "area": [0, 0, 160, 70], "feather": 8 },
                   "trackMatte": { "clip": "m", "mode": "luma" }, \#(animation) } ] }
             """#
     }

@@ -10,7 +10,8 @@ extension OwnSpace {
     // MARK: - Initializer
     init(content: ClipContent) {
         switch content {
-        case .media:
+        // An audio clip draws nothing and is no parent, so nothing reads its space.
+        case .media, .audio:
             self = .media
 
         case .title:

@@ -81,7 +81,7 @@ struct DefaultFilterTests {
 
         // When
         let plan = try sut.plan(planner.plan(document: document(
-            #"{ "kind": "media", "media": { "template": "shorts/still", "args": { "clip": "/abs/run.mp4" } } }"#
+            #"{ "kind": "media", "media": { "kind": "template", "template": "shorts/still", "args": { "clip": "/abs/run.mp4" } } }"#
         )))
 
         // Then
@@ -93,7 +93,7 @@ struct DefaultFilterTests {
         // When
         let plan = try filmPlan(#"""
             { "kind": "sequence", "theme": { "defaults": { "filter": "film" } }, "format": { "size": [1080, 1920] },
-              "storyline": [ { "kind": "solid", "color": "#000000", "duration": 3 } ], "clips": [ { "kind": "media", "media": "/abs/bgm.m4a", "at": 0 } ] }
+              "storyline": [ { "kind": "solid", "color": "#000000", "duration": 3 } ], "clips": [ { "kind": "audio", "media": "/abs/bgm.m4a", "at": 0 } ] }
             """#)
 
         // Then

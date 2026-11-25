@@ -13,8 +13,8 @@ import Testing
 struct PagePinningTests {
     // MARK: - Property
     private static let pageClips = #"""
-        { "kind": "sequence", "storyline": [ { "kind": "media", "media": { "file": "/abs/deck.pdf", "page": 3 }, "duration": 2, "connected": [
-            { "kind": "media", "media": { "file": "/abs/deck.pdf", "page": 2 }, "at": [0, 1] } ] } ] }
+        { "kind": "sequence", "storyline": [ { "kind": "media", "media": { "kind": "page", "file": "/abs/deck.pdf", "page": 3 }, "duration": 2, "connected": [
+            { "kind": "media", "media": { "kind": "page", "file": "/abs/deck.pdf", "page": 2 }, "at": [0, 1] } ] } ] }
         """#
 
     private let hashes = FileHashTable()
@@ -25,7 +25,7 @@ struct PagePinningTests {
     func pinsPage() throws {
         // Given
         let document = #"""
-            { "kind": "sequence", "storyline": [ { "kind": "media", "media": { "file": "/abs/deck.pdf", "page": 3 }, "duration": 2 } ] }
+            { "kind": "sequence", "storyline": [ { "kind": "media", "media": { "kind": "page", "file": "/abs/deck.pdf", "page": 3 }, "duration": 2 } ] }
             """#
 
         // When
@@ -42,7 +42,7 @@ struct PagePinningTests {
     func writesOnePageFileAsPage() throws {
         // Given
         let named = #"{ "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/logo.pdf", "duration": 2 } ] }"#
-        let page = #"{ "kind": "sequence", "storyline": [ { "kind": "media", "media": { "file": "/abs/logo.pdf", "page": 1 }, "duration": 2 } ] }"#
+        let page = #"{ "kind": "sequence", "storyline": [ { "kind": "media", "media": { "kind": "page", "file": "/abs/logo.pdf", "page": 1 }, "duration": 2 } ] }"#
 
         // When
         let namedMedia = try writtenMedia(of: resolved(named))
@@ -142,8 +142,8 @@ struct PagePinningTests {
     func refusesPageInTwoColorSpaces() throws {
         // Given
         let document = #"""
-            { "kind": "sequence", "storyline": [ { "kind": "media", "media": { "file": "/abs/deck.pdf", "page": 3 }, "duration": 2, "connected": [
-                { "kind": "media", "media": { "file": "/abs/deck.pdf", "page": 3 }, "colorSpace": "display-p3", "at": [0, 1] } ] } ] }
+            { "kind": "sequence", "storyline": [ { "kind": "media", "media": { "kind": "page", "file": "/abs/deck.pdf", "page": 3 }, "duration": 2, "connected": [
+                { "kind": "media", "media": { "kind": "page", "file": "/abs/deck.pdf", "page": 3 }, "colorSpace": "display-p3", "at": [0, 1] } ] } ] }
             """#
 
         // When, Then
@@ -155,9 +155,9 @@ struct PagePinningTests {
     func acceptsPagesInTheirOwnColorSpaces() throws {
         // Given
         let document = #"""
-            { "kind": "sequence", "storyline": [ { "kind": "media", "media": { "file": "/abs/deck.pdf", "page": 3 }, "duration": 2, "connected": [
-                { "kind": "media", "media": { "file": "/abs/deck.pdf", "page": 4 }, "colorSpace": "display-p3", "at": [0, 1] },
-                { "kind": "media", "media": { "file": "/abs/deck.pdf", "page": 3 }, "colorSpace": "srgb", "at": [0, 1] } ] } ] }
+            { "kind": "sequence", "storyline": [ { "kind": "media", "media": { "kind": "page", "file": "/abs/deck.pdf", "page": 3 }, "duration": 2, "connected": [
+                { "kind": "media", "media": { "kind": "page", "file": "/abs/deck.pdf", "page": 4 }, "colorSpace": "display-p3", "at": [0, 1] },
+                { "kind": "media", "media": { "kind": "page", "file": "/abs/deck.pdf", "page": 3 }, "colorSpace": "srgb", "at": [0, 1] } ] } ] }
             """#
 
         // When, Then
@@ -169,7 +169,7 @@ struct PagePinningTests {
         // Given
         let document = #"""
             { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "out": 2, "connected": [
-                { "kind": "media", "media": { "file": "/abs/deck.pdf", "page": 3 }, "at": [0, 1] } ] } ] }
+                { "kind": "media", "media": { "kind": "page", "file": "/abs/deck.pdf", "page": 3 }, "at": [0, 1] } ] } ] }
             """#
 
         // When

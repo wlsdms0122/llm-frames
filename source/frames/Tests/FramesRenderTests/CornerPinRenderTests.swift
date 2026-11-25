@@ -240,7 +240,7 @@ struct CornerPinRenderTests {
         #"""
             { "kind": "sequence", "format": { "size": [640, 640], "fps": 10, "background": "#00000000", "colorSpace": "srgb" },
               "storyline": [ { "kind": "solid", "color": "#00000000", "duration": 1 } ],
-              "clips": [ { "kind": "media", "media": { "file": "\#(path)", "page": 1 }, "at": [0, 1], \#(keys) } ] }
+              "clips": [ { "kind": "media", "media": { "kind": "page", "file": "\#(path)", "page": 1 }, "at": [0, 1], \#(keys) } ] }
             """#
     }
 

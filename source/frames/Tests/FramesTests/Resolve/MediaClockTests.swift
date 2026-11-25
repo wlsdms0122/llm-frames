@@ -118,7 +118,7 @@ struct MediaClockTests {
         // Given
         let document = try Fixture.json(##"""
             { "kind": "sequence", "storyline": [ { "kind": "solid", "color": "#000000", "duration": 40 } ],
-              "clips": [ { "kind": "media", "media": "/abs/bgm.m4a", "loop": true }, { "at": [1, 5], "kind": "media", "media": "/abs/ding.wav" } ] }
+              "clips": [ { "kind": "audio", "media": "/abs/bgm.m4a", "loop": true }, { "at": [1, 5], "kind": "audio", "media": "/abs/ding.wav" } ] }
             """##)
 
         // When

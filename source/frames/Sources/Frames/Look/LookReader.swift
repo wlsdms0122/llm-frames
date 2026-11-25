@@ -49,7 +49,7 @@ struct LookReader: Sendable {
             return .list(zip(elements, structures).map { value(of: $0, as: $1) })
 
         case let .forms(forms):
-            return self.forms(json, as: forms)
+            return self.forms(json, forms: forms, as: structure)
 
         case let .choice(offNames, forms, _):
             return choice(json, offNames: offNames, forms: forms, as: structure)
@@ -83,13 +83,7 @@ struct LookReader: Sendable {
         case .array:
             return point(json, as: structure) ?? .leaf(json)
 
-        // An object that writes keys, none of them the structure's, is a named point where the structure takes one.
         case let .object(object):
-            let isPoint = !object.keys.isEmpty && !object.keys.contains { structure.structure(of: $0) != nil }
-            if isPoint, let point = point(json, as: structure) {
-                return point
-            }
-
             return .object(object.members.map { member in
                 let child = structure.structure(of: member.key) ?? .anyValue
                 return LookMember(key: member.key, value: value(of: member.value, as: child))
@@ -114,7 +108,8 @@ struct LookReader: Sendable {
 
     private func forms(
         _ json: JSONValue,
-        as forms: [(name: String, structure: ValueStructure)]
+        forms: [(name: String, structure: ValueStructure)],
+        as structure: ValueStructure
     ) -> LookValue {
         if json.boolValue == false {
             return .off
@@ -122,13 +117,15 @@ struct LookReader: Sendable {
         if json.stringValue != nil, let form = forms.first(where: { $0.name == ValueStructure.colorForm }) {
             return .form(form.name, value(of: json, as: form.structure))
         }
-        guard let member = json.objectValue?.members.first, json.objectValue?.members.count == 1,
-            let form = forms.first(where: { $0.name == member.key })
+        guard
+            let object = json.objectValue,
+            let form = structure.form(of: object),
+            let body = structure.structure(ofForm: form.name)
         else {
             return .leaf(json)
         }
 
-        return .form(form.name, value(of: member.value, as: form.structure))
+        return .form(form.name, value(of: .object(form.body), as: body))
     }
 
     // A form's body is read by the structure its form declares, and a partial choice's keys by the structure of the

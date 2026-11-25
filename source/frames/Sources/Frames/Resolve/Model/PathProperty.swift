@@ -95,7 +95,7 @@ struct PathProperty: Equatable, Sendable {
         PathKeyTable.point(of: vertex).flatMap(PositionForm.init(value:))
     }
 
-    // A vertex written as a point writes no tangent.
+    // A vertex written as `[x, y]` writes no tangent.
     private static func tangent(
         _ vertex: JSONValue,
         key: String

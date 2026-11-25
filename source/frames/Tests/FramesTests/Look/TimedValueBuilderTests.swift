@@ -22,15 +22,15 @@ struct TimedValueBuilderTests {
     @Test("a keyframe that writes only a stroke's colour keeps the style's width, and null points at it")
     func timesLeavesOverMergedValue() throws {
         // Given
-        let style = try Fixture.json(##"{ "width": 6, "color": "#000000", "cap": "round" }"##)
-        let keyframes = try keyframes([(0, ##"{ "width": 0 }"##), (1, ##"{ "width": null }"##), (2, ##"{ "color": "#FF0000" }"##)])
+        let style = try Fixture.json(##"{ "width": 6, "paint": "#000000", "cap": "round" }"##)
+        let keyframes = try keyframes([(0, ##"{ "width": 0 }"##), (1, ##"{ "width": null }"##), (2, ##"{ "paint": "#FF0000" }"##)])
 
         // When
         let timed = try timed(style: style, written: nil, keyframes: keyframes)
 
         // Then
         #expect(timed["width"] == .track([Keyframe(at: 0, value: .number(0)), Keyframe(at: 1, value: .number(6))]))
-        #expect(timed["color"] == .track([Keyframe(at: 2, value: .color(Color(written: "#FF0000")))]))
+        #expect(timed["paint"] == .form(ValueStructure.colorForm, .track([Keyframe(at: 2, value: .color(Color(written: "#FF0000")))])))
         #expect(timed["cap"] == .fixed(.string("round")))
         let sampled = timed.sampled(at: 0.5, as: LookStructureTable.stroke)
         #expect(sampled["width"]?.number == 3)
@@ -54,10 +54,10 @@ struct TimedValueBuilderTests {
     @Test("a fill colour in keyframes replaces a style's other form, and a gradient keyframe over a colour stops")
     func takesKeyframeForm() throws {
         // Given
-        let structure = ValueStructure.forms([("color", .leaf(.color)), ("linear", .object(ObjectStructure([])))])
+        let structure = ValueStructure.forms([("color", .leaf(.color)), ("kind:linear", .object(ObjectStructure([])))])
         let colors = try keyframes([(0, ##""#FF0000""##), (1, ##""#0000FF""##)], as: structure)
-        let gradient = try keyframes([(0, ##"{ "linear": {} }"##)], as: structure)
-        let style = reader.value(of: try Fixture.json(##"{ "linear": {} }"##), as: structure)
+        let gradient = try keyframes([(0, ##"{ "kind": "linear" }"##)], as: structure)
+        let style = reader.value(of: try Fixture.json(##"{ "kind": "linear" }"##), as: structure)
 
         // When
         let own = try sut.ownLayer(written: nil, keyframes: colors, as: structure, place: place)
@@ -65,7 +65,7 @@ struct TimedValueBuilderTests {
 
         // Then
         #expect(merged == .form("color", .unset))
-        #expect(throws: LookError.formsDiffer(place: place.keyframe(0), forms: ["color", "linear"])) {
+        #expect(throws: LookError.formsDiffer(place: place.keyframe(0), forms: ["color", "kind:linear"])) {
             try sut.ownLayer(written: .form("color", .leaf(.string("#FF0000"))), keyframes: gradient, as: structure, place: place)
         }
     }

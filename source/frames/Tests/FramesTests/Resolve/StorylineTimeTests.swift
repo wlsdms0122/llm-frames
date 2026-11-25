@@ -123,7 +123,7 @@ struct StorylineTimeTests {
     func timesImageSequence() throws {
         // Given
         let document = try Fixture.json(#"""
-            { "kind": "sequence", "storyline": [ { "kind": "media", "media": { "imageSequence": "/abs/frames", "fps": 4 }, "in": 1 } ] }
+            { "kind": "sequence", "storyline": [ { "kind": "media", "media": { "kind": "imageSequence", "directory": "/abs/frames", "fps": 4 }, "in": 1 } ] }
             """#)
 
         // When
