@@ -17,7 +17,10 @@ import os
 // their colour by the fixed formulas of FRAMES-26: in the colour space a reading names, or the one its tags name. A
 // `platform` reading instead converts the picture from its file's colour by Core Image's colour management. A page of a
 // PDF is checked and drawn by `PageReader`. A video, a sound track and a PDF are loaded once and kept, and a video read
-// forward has its next frame read ahead by `PictureLookahead`. The largest picture it holds is 16384 pixels on a side.
+// forward has its next frame read ahead by `PictureLookahead`. Made to convert on the GPU, on a machine with a Metal
+// device, it takes a video's frames read as working values to a surface by `MetalPictureConverter` wherever the
+// conversion's steps and the frame's placement allow, and every other picture on the CPU (FRAMES-21 Pictures). The
+// largest picture it holds is 16384 pixels on a side.
 // It times its reading of pictures and sound as `decode` and its conversion of them as `workingConversion`, that of a
 // frame read ahead apart as well, and tallies how it read each medium: a frame read ahead is decoded where it is read,
 // and read only when it is given (FRAMES-23 Runs). A page's draw is `decode` whole, any colour conversion included,
@@ -28,6 +31,8 @@ package final class AVFoundationDecoder: Sendable {
     package let largestPictureSide = 16_384
 
     private let converter = PictureConverter()
+    // Nil for a decoder made to convert on the CPU, and on a machine with no Metal device.
+    private let metal: MetalPictureConverter?
     private let managedConverter = ManagedPictureConverter()
     private let lookahead = PictureLookahead()
     private let videos = OSAllocatedUnfairLock<[String: VideoReader]>(initialState: [:])
@@ -39,7 +44,11 @@ package final class AVFoundationDecoder: Sendable {
     private let tallies = OSAllocatedUnfairLock<[ReadingKey: ReadingTally]>(initialState: [:])
 
     // MARK: - Initializer
-    package init() {}
+    // `conversion` is the processor a video's working values are converted on wherever the GPU runs their conversion;
+    // every other picture is converted on the CPU.
+    package init(conversion: ConversionDevice = .gpu) {
+        metal = conversion == .gpu ? MetalPictureConverter() : nil
+    }
 
     // MARK: - Public
     // MARK: - Private
@@ -111,6 +120,7 @@ package final class AVFoundationDecoder: Sendable {
         record(
             file,
             conversion: conversion,
+            device: .cpu,
             pixelFormat: pixelFormat,
             read: 1,
             decoded: 1,
@@ -121,12 +131,13 @@ package final class AVFoundationDecoder: Sendable {
         return picture
     }
 
-    // `read` pictures of `file` given and `decoded` decoded by `conversion`, nil for a `platform` reading, which only
-    // `transcode` makes and no run reports. A video's reader opened again is `reopened`, and a still's or a frame's
-    // file read again is `readFile` read before.
+    // `read` pictures of `file` given and `decoded` decoded by `conversion` on `device`, nil for a `platform` reading,
+    // which only `transcode` makes and no run reports. A video's reader opened again is `reopened`, and a still's or a
+    // frame's file read again is `readFile` read before.
     private func record(
         _ file: MediaFile,
         conversion: WorkingConversion?,
+        device: ConversionDevice,
         pixelFormat: String,
         read: Int,
         decoded: Int,
@@ -136,7 +147,7 @@ package final class AVFoundationDecoder: Sendable {
         guard let conversion else { return }
 
         tallies.withLock { tallies in
-            let key = ReadingKey(path: file.path, page: file.page, conversion: conversion)
+            let key = ReadingKey(path: file.path, page: file.page, conversion: conversion, device: device)
             var tally = tallies[key] ?? ReadingTally(order: tallies.count, pixelFormat: pixelFormat)
             tally.pixelFormat = pixelFormat
             tally.framesRead += read
@@ -183,6 +194,35 @@ package final class AVFoundationDecoder: Sendable {
         case let .platform(colorSpace):
             return (clock.measure(.workingConversion) { managedConverter.picture(from: image, in: colorSpace) }, nil)
         }
+    }
+
+    // A video frame's working values converted on the GPU, with the form they were converted by: nil for a decoder that
+    // converts on the CPU, for a reading other than `working`, and where the GPU does not run the conversion or the
+    // frame's placement. Tone mapping is of HDR pictures alone, whose steps are `formulas`, so a target peak changes
+    // nothing here.
+    private func surface(
+        of buffer: CVImageBuffer,
+        in video: VideoReader,
+        tagged: TaggedColor,
+        path: String,
+        reading: PictureReading,
+        clock: StageClock
+    ) throws -> (picture: PictureSurface, conversion: WorkingConversion)? {
+        guard let metal, case let .working(colorSpace, _) = reading else { return nil }
+        let conversion = try conversion(in: colorSpace, tagged: tagged, path: path)
+        if case .formulas = conversion.steps { return nil }
+
+        let surface = clock.measure(.workingConversion) {
+            metal.picture(
+                from: buffer,
+                storedSize: video.storedSize,
+                displaySize: video.displaySize,
+                transform: video.transform,
+                steps: conversion.steps
+            )
+        }
+
+        return surface.map { ($0, conversion.workingConversion) }
     }
 
     // The form a picture read by `reading` is converted by, nil for a `platform` reading.
@@ -324,7 +364,7 @@ extension AVFoundationDecoder: MediaDecoder {
         of file: MediaFile,
         atFrame index: Int,
         reading: PictureReading
-    ) throws -> Bitmap {
+    ) throws -> Pixels {
         if let page = file.page { throw DecoderError.pageFrame(file: file.path, page: page) }
         if !file.frameFiles.isEmpty {
             guard file.frameFiles.indices.contains(index) else {
@@ -335,13 +375,13 @@ extension AVFoundationDecoder: MediaDecoder {
             guard let still = try StillReader(path: path) else { throw DecoderError.unreadable(file: path) }
             try checkSize(still.displaySize, path: path)
 
-            return try picture(of: still, path: path, in: file, reading: reading)
+            return .bitmap(try picture(of: still, path: path, in: file, reading: reading))
         }
         if let still = try StillReader(path: file.path) {
             guard index == 0 else { throw DecoderError.noFrame(file: file.path, index: index, count: 1) }
             try checkSize(still.displaySize, path: file.path)
 
-            return try picture(of: still, path: file.path, in: file, reading: reading)
+            return .bitmap(try picture(of: still, path: file.path, in: file, reading: reading))
         }
 
         guard let video = try video(at: file.path) else { throw DecoderError.unreadable(file: file.path) }
@@ -368,12 +408,32 @@ extension AVFoundationDecoder: MediaDecoder {
             if case .platform = reading {
                 let image = try clock.measure(.decode) { try video.taggedImage(atFrame: index, path: path) }
 
-                return try picture(from: image, tagged: tagged, path: path, reading: reading, clock: clock).picture
+                let (picture, _) = try picture(from: image, tagged: tagged, path: path, reading: reading, clock: clock)
+
+                return .bitmap(picture)
             }
 
-            let (image, decoded, reopened) = try clock.measure(.decode) { try video.image(atFrame: index, path: path) }
+            let (buffer, decoded, reopened) = try clock.measure(.decode) {
+                try video.buffer(atFrame: index, path: path)
+            }
+            let surface = try surface(of: buffer, in: video, tagged: tagged, path: path, reading: reading, clock: clock)
+            if let surface {
+                record(
+                    file,
+                    conversion: surface.conversion,
+                    device: .gpu,
+                    pixelFormat: VideoReader.pixelFormat,
+                    read: 0,
+                    decoded: decoded,
+                    reopened: reopened,
+                    readFile: nil
+                )
+
+                return .surface(surface.picture)
+            }
+
             let (picture, conversion) = try picture(
-                from: image,
+                from: video.image(of: buffer),
                 tagged: tagged,
                 path: path,
                 reading: reading,
@@ -382,6 +442,7 @@ extension AVFoundationDecoder: MediaDecoder {
             record(
                 file,
                 conversion: conversion,
+                device: .cpu,
                 pixelFormat: VideoReader.pixelFormat,
                 read: 0,
                 decoded: decoded,
@@ -389,11 +450,19 @@ extension AVFoundationDecoder: MediaDecoder {
                 readFile: nil
             )
 
-            return picture
+            return .bitmap(picture)
+        }
+        let device: ConversionDevice = switch picture {
+        case .bitmap:
+            .cpu
+
+        case .surface:
+            .gpu
         }
         record(
             file,
             conversion: try workingConversion(of: reading, tagged: tagged, path: path),
+            device: device,
             pixelFormat: VideoReader.pixelFormat,
             read: 1,
             decoded: 0,
@@ -409,7 +478,7 @@ extension AVFoundationDecoder: MediaDecoder {
         region: PageRegion,
         scale: Double,
         reading: PictureReading
-    ) throws -> Bitmap {
+    ) throws -> Pixels {
         guard let (document, page) = try document(of: file) else { throw DecoderError.unreadable(file: file.path) }
         guard region.width >= 1, region.height >= 1, scale > 0 else {
             throw DecoderError.pageRegion(file: file.path, region: region, scale: scale)
@@ -436,6 +505,7 @@ extension AVFoundationDecoder: MediaDecoder {
         record(
             file,
             conversion: conversion,
+            device: .cpu,
             pixelFormat: PageReader.pixelFormat,
             read: 1,
             decoded: 1,
@@ -443,7 +513,7 @@ extension AVFoundationDecoder: MediaDecoder {
             readFile: nil
         )
 
-        return picture
+        return .bitmap(picture)
     }
 
     package func pageSize(of file: MediaFile) throws -> Size {
@@ -523,6 +593,7 @@ extension AVFoundationDecoder: MediaDecoder {
                     path: key.path,
                     page: key.page,
                     conversion: key.conversion,
+                    device: key.device,
                     pixelFormat: tally.pixelFormat,
                     framesRead: tally.framesRead,
                     framesDecoded: tally.framesDecoded,

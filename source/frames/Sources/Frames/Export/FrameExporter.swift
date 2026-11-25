@@ -281,7 +281,7 @@ package struct FrameExporter: Sendable {
     private func bitmap(of picture: PictureItemSource) throws -> Bitmap {
         switch picture {
         case let .media(frame):
-            try decoder.picture(of: frame)
+            try decoder.picture(of: frame).bitmap
 
         case let .displayList(list):
             try renderer.frame(of: list)

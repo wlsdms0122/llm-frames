@@ -42,6 +42,21 @@ package struct MediaColorConversion: Sendable {
         }
     }
 
+    // The conversion as the steps a GPU runs. An HDR picture's, which `working` tone maps or takes as display light,
+    // and an ICC profile's are `formulas`.
+    package var steps: ConversionSteps {
+        switch form {
+        case let .space(conversion):
+            conversion.workingSteps
+
+        case let .transfer(decodeTable, toLinearSRGB):
+            .decodeMatrixEncode(decodeTable: decodeTable, toLinearSRGB: toLinearSRGB)
+
+        case .profile, .perceptualQuantizer, .hybridLogGamma:
+            .formulas
+        }
+    }
+
     package var isHighDynamicRange: Bool {
         switch form {
         case let .space(conversion):

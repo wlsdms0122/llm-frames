@@ -7,13 +7,14 @@
 
 // How a decoder read the pictures of one medium by one conversion over a run (FRAMES-23 Runs): the medium's pinned
 // path, the directory of an image sequence, and its page, nil for a medium that is no page of a PDF; the conversion to
-// working values; how the decoder is given a picture's stored values, `<bits>-bit <integer | float> <channels>`; the
+// working values and the processor it ran on; how the decoder is given a picture's stored values, `<bits>-bit <integer | float> <channels>`; the
 // pictures it gave and decoded; and the times it opened a reader on the medium again after its first.
 package struct MediumReading: Equatable, Sendable {
     // MARK: - Property
     package let path: String
     package let page: Int?
     package let conversion: WorkingConversion
+    package let device: ConversionDevice
     package let pixelFormat: String
     package let framesRead: Int
     package let framesDecoded: Int
@@ -24,6 +25,7 @@ package struct MediumReading: Equatable, Sendable {
         path: String,
         page: Int?,
         conversion: WorkingConversion,
+        device: ConversionDevice,
         pixelFormat: String,
         framesRead: Int,
         framesDecoded: Int,
@@ -32,6 +34,7 @@ package struct MediumReading: Equatable, Sendable {
         self.path = path
         self.page = page
         self.conversion = conversion
+        self.device = device
         self.pixelFormat = pixelFormat
         self.framesRead = framesRead
         self.framesDecoded = framesDecoded

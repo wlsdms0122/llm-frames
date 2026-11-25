@@ -35,11 +35,14 @@ final class VideoReader: Sendable {
         frames.map(CMTimeGetSeconds)
     }
 
+    // The size of the picture as the file stores it, and the transform from its pixels to the displayed picture's,
+    // both with a top left origin.
+    let storedSize: CGSize
+    let transform: CGAffineTransform
+
     private let asset: AVURLAsset
     // A track is only read once it is loaded, which AVFoundation allows from any thread.
     nonisolated(unsafe) private let track: AVAssetTrack
-    private let storedSize: CGSize
-    private let transform: CGAffineTransform
     private let open = OSAllocatedUnfairLock<FrameReader?>(uncheckedState: nil)
 
     // MARK: - Initializer
@@ -81,7 +84,12 @@ final class VideoReader: Sendable {
     ) throws -> (image: CIImage, decoded: Int, reopened: Bool) {
         let (buffer, decoded, reopened) = try self.buffer(atFrame: index, path: path)
 
-        return (displayed(CIImage(cvImageBuffer: buffer, options: [.colorSpace: NSNull()])), decoded, reopened)
+        return (image(of: buffer), decoded, reopened)
+    }
+
+    // A buffer `buffer(atFrame:path:)` gave as it is displayed, with no colour matched.
+    func image(of buffer: CVImageBuffer) -> CIImage {
+        displayed(CIImage(cvImageBuffer: buffer, options: [.colorSpace: NSNull()]))
     }
 
     // The picture of frame `index` as it is displayed, tagged with the colour its frame carries, which Core Image's
@@ -93,10 +101,10 @@ final class VideoReader: Sendable {
         displayed(CIImage(cvImageBuffer: try buffer(atFrame: index, path: path).buffer))
     }
 
-    // MARK: - Private
-    // The buffer of frame `index`, the samples decoded to reach it, and whether a reader was opened again for it, which
-    // the first reader opened on the video is not.
-    private func buffer(
+    // The buffer of frame `index` as the file stores it, R'G'B' half floats as `image(atFrame:path:)` takes them, the
+    // samples decoded to reach it, and whether a reader was opened again for it, which the first reader opened on the
+    // video is not.
+    func buffer(
         atFrame index: Int,
         path: String
     ) throws -> (buffer: CVImageBuffer, decoded: Int, reopened: Bool) {
@@ -128,6 +136,7 @@ final class VideoReader: Sendable {
         return (shown, decoded, reopened)
     }
 
+    // MARK: - Private
     private static func facts(
         of track: AVAssetTrack,
         in asset: AVAsset,
