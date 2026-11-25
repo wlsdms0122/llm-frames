@@ -68,10 +68,10 @@ struct AudioFilterResolver: Sendable {
         kind: PlaceKind
     ) throws -> PublishedPreset<AudioPreset> {
         guard try presets.audio(instance) != nil, let published = try presets.publishedAudio(named: instance.name) else {
-            throw ResolveError.unknownPreset(
+            throw ResolveError.unknownReference(
                 place: instance.place,
                 kind: kind,
-                preset: try presets.unknown(.audio, named: instance.name)
+                reference: try presets.unknown(.audio, named: instance.name)
             )
         }
 

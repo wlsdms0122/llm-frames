@@ -45,7 +45,11 @@ struct StrokeHeadResolver: Sendable {
     ) throws -> TimedValue {
         guard case let .fixed(.string(name))? = end["preset"], name != Self.none else { return .off }
         guard let head = try presets.head(named: name) else {
-            throw ResolveError.unknownPreset(place: place, kind: kind, preset: try presets.unknown(.head, named: name))
+            throw ResolveError.unknownReference(
+                place: place,
+                kind: kind,
+                reference: try presets.unknown(.head, named: name)
+            )
         }
 
         let values = head.members.map { TimedMember(key: $0.key, value: .fixed($0.value)) }

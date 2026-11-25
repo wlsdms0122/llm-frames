@@ -43,7 +43,7 @@ struct MediaResolver: Sendable {
 
         case let .file(reference):
             guard let file = try library.mediaFile(named: reference) else {
-                throw ResolveError.missingMedia(place: place, kind: kind, reference: reference)
+                throw try missing(reference, place: place, kind: kind)
             }
             switch try medium(at: file, place: place, kind: kind, reference: reference) {
             case let .pdf(pageCount):
@@ -70,7 +70,7 @@ struct MediaResolver: Sendable {
                     try mediaFacts.probedImageSequence(at: directory)
                 })
             else {
-                throw ResolveError.missingMedia(place: place, kind: kind, reference: reference)
+                throw try missing(reference, place: place, kind: kind)
             }
             let sequence = ImageSequence(probed: probed, directory: directory, fps: fps)
             return MediaPlan(
@@ -82,7 +82,7 @@ struct MediaResolver: Sendable {
 
         case let .page(reference, page):
             guard let file = try library.mediaFile(named: reference) else {
-                throw ResolveError.missingMedia(place: place, kind: kind, reference: reference)
+                throw try missing(reference, place: place, kind: kind)
             }
             guard case let .pdf(pageCount) = try medium(at: file, place: place, kind: kind, reference: reference) else {
                 throw ModelError.pageOfNonPDF(place: place, kind: kind.label, reference: reference)
@@ -197,6 +197,15 @@ struct MediaResolver: Sendable {
 
     // MARK: - Private
     // A page is a still, of no length and no sound.
+    // The stop for media that is not there.
+    private func missing(
+        _ reference: String,
+        place: Place,
+        kind: PlaceKind
+    ) throws -> ResolveError {
+        .unknownReference(place: place, kind: kind, reference: try library.unknown(.media, named: reference))
+    }
+
     private func pagePlan(
         _ file: MediaFile,
         reference: String
@@ -216,7 +225,7 @@ struct MediaResolver: Sendable {
                 try mediaFacts.probedMedium(of: path)
             })
         else {
-            throw ResolveError.missingMedia(place: place, kind: kind, reference: reference)
+            throw try missing(reference, place: place, kind: kind)
         }
 
         return medium
@@ -264,7 +273,7 @@ struct MediaResolver: Sendable {
                 try mediaFacts.probedPage(number, of: path)
             })
         else {
-            throw ResolveError.missingMedia(place: place, kind: kind, reference: reference)
+            throw try missing(reference, place: place, kind: kind)
         }
 
         return MediaFile(path: path, size: probed.size, colorReading: .formulas(.srgb), page: number)
@@ -279,7 +288,7 @@ struct MediaResolver: Sendable {
         theme: MergedTheme
     ) throws -> MediaPlan {
         guard let document = try library.document(named: reference) else {
-            throw ResolveError.missingMedia(place: place, kind: kind, reference: reference)
+            throw try missing(reference, place: place, kind: kind)
         }
         let inner = try library.reading(file: document.file, name: reference)
         let sequence = SequenceReader().sequence(from: document.value, place: place)
@@ -299,7 +308,11 @@ struct MediaResolver: Sendable {
         theme: MergedTheme
     ) throws -> MediaPlan {
         guard let template = try library.template(named: name) else {
-            throw ModelError.unknownTemplate(place: place.appending(key: "template"), kind: kind.label, name: name)
+            throw ModelError.unknownReference(
+                place: place.appending(key: "template"),
+                kind: kind.label,
+                reference: try library.unknown(.template, named: name)
+            )
         }
 
         try optionChecker.check(template)

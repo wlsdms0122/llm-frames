@@ -11,4 +11,9 @@
 protocol MediaKindProvider: Sendable {
     func mediaKind(of reference: String) throws -> ProbedKind?
     func hasTemplate(named name: String) throws -> Bool
+    // The stop for `name`, which finds nothing of `kind`, with what is there to say about it.
+    func unknown(
+        _ kind: ReferenceKind,
+        named name: String
+    ) throws -> UnknownReference
 }

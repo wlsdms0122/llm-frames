@@ -71,6 +71,13 @@ package struct ReferenceLibrary: MediaKindProvider {
         try template(named: name) != nil
     }
 
+    func unknown(
+        _ kind: ReferenceKind,
+        named name: String
+    ) throws -> UnknownReference {
+        try packs.unknown(kind, named: name)
+    }
+
     // MARK: - Public
     // A theme is `<pack>/<name>` or an absolute path, so a bare name names none.
     func theme(named name: String) throws -> ThemeLayer? {
@@ -120,11 +127,19 @@ package struct ReferenceLibrary: MediaKindProvider {
         return try packs.file(of: reference, in: "media", pathExtension: nil)?.path
     }
 
-    // The `.cube` file a LUT reference names: a path as it is, and `<pack>/<name>` for `luts/<name>.cube` in the pack.
+    // The `.cube` file a LUT reference names: a path as it is, which pinning it reads, and `<pack>/<name>` for
+    // `luts/<name>.cube` in the pack, nil where the pack holds no such file.
     func lutFile(named reference: String) throws -> String? {
-        guard let reference = PackReference(reference) else { return nil }
+        let kind = ReferenceKind.lut
+        guard
+            let reference = PackReference(reference),
+            let file = try packs.file(of: reference, in: kind.folder, pathExtension: kind.pathExtension)
+        else {
+            return nil
+        }
+        if case .pack = reference, !packs.isFile(file) { return nil }
 
-        return try packs.file(of: reference, in: "luts", pathExtension: "cube")?.path
+        return file.path
     }
 
     // The library to read what a file names with, once the file is being read.

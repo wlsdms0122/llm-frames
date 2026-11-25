@@ -76,6 +76,44 @@ package struct PackLibrary: Sendable {
         return try names.sorted().compactMap { try pack(named: $0) }
     }
 
+    // The names of the packs there are, shipped and installed, in name order: the directories they are in, none of
+    // them read.
+    package func packNames() throws -> [String] {
+        let directories = try entries(in: installed).filter { isDirectory(installed.appendingPathComponent($0)) }
+            + entries(in: shipped).filter { isDirectory(shipped.appendingPathComponent($0)) }
+
+        return Set(directories).sorted()
+    }
+
+    // The names of `kind` the pack `pack` holds, as `<pack>/<name>`, in name order, or nil where no pack has that name.
+    package func names(
+        of kind: ReferenceKind,
+        inPack pack: String
+    ) throws -> [String]? {
+        try self.pack(named: pack).map { pack in try names(of: kind, in: pack).map { "\(pack.name)/\($0)" } }
+    }
+
+    // The `<name>`s of `kind` a pack holds, in name order, from its folder's listing alone. A tool is a directory, so a
+    // file in `tools/` is none.
+    func names(
+        of kind: ReferenceKind,
+        in pack: Pack
+    ) throws -> [String] {
+        let folder = pack.directory.appendingPathComponent(kind.folder, isDirectory: true)
+
+        return try names(in: folder, pathExtension: kind.pathExtension).filter { name in
+            kind != .tool || isDirectory(folder.appendingPathComponent(name, isDirectory: true))
+        }
+    }
+
+    // The stop for `name`, which finds nothing of `kind`, with what the packs that are there say about it.
+    package func unknown(
+        _ kind: ReferenceKind,
+        named name: String
+    ) throws -> UnknownReference {
+        try UnknownReference(kind: kind, name: name, packs: packNames) { pack in try names(of: kind, inPack: pack) }
+    }
+
     // What one of a pack's folders holds, by the names `<pack>/<name>` gives them, in name order. Where its kind of
     // file takes `pathExtension`, the name leaves it out and a file without it is not of that kind.
     package func names(
@@ -133,18 +171,18 @@ package struct PackLibrary: Sendable {
 
     // A file that is not there is nil, and one that is there but cannot be read stops.
     package func contents(of file: URL) throws -> Data? {
-        var isDirectory: ObjCBool = false
-        guard
-            FileManager.default.fileExists(atPath: file.path, isDirectory: &isDirectory),
-            !isDirectory.boolValue
-        else {
-            return nil
-        }
+        guard isFile(file) else { return nil }
         guard let data = FileManager.default.contents(atPath: file.path) else {
             throw PackError.unreadableFile(file: file.path)
         }
 
         return data
+    }
+
+    // Whether a file that is not a directory is there.
+    func isFile(_ url: URL) -> Bool {
+        var isDirectory: ObjCBool = false
+        return FileManager.default.fileExists(atPath: url.path, isDirectory: &isDirectory) && !isDirectory.boolValue
     }
 
     func isDirectory(_ url: URL) -> Bool {

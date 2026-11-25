@@ -29,7 +29,11 @@ struct DocumentThemeResolver: Sendable {
             return merged
 
         case let .missing(name):
-            throw ResolveError.unknownTheme(place: place.appending(key: "theme"), kind: kind, name: name)
+            throw ResolveError.unknownReference(
+                place: place.appending(key: "theme"),
+                kind: kind,
+                reference: try library.unknown(.theme, named: name)
+            )
         }
     }
 

@@ -25,6 +25,8 @@ protocol PresetProvider: Sendable {
         of kind: PresetKind,
         inPack pack: String
     ) throws -> [String]?
+    // The names of the packs there are, in name order.
+    func packNames() throws -> [String]
 }
 
 extension PresetProvider {
@@ -32,7 +34,9 @@ extension PresetProvider {
     func unknown(
         _ kind: PresetKind,
         named name: String
-    ) throws -> UnknownPreset {
-        try UnknownPreset(kind: kind, name: name) { pack in try names(of: kind, inPack: pack) }
+    ) throws -> UnknownReference {
+        try UnknownReference(kind: .preset(kind), name: name, packs: packNames) { pack in
+            try names(of: kind, inPack: pack)
+        }
     }
 }

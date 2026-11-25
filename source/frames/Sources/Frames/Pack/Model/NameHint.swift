@@ -5,48 +5,50 @@
 //  Created by JSilver on 11/25/26.
 //
 
-// What a message adds to a name that finds nothing in one of a pack's folders (FRAMES-17 Packs): what the name's pack
-// holds there, or for a name of another spelling the nearest name the pack `frames` holds there.
+// What a message adds to a name that finds nothing of its kind (FRAMES-17 Packs): what the name's pack holds of the
+// kind, the packs there are where its pack is not one of them, or for a name of another spelling the nearest name of
+// the kind the pack `frames` holds.
 package enum NameHint: Equatable, Sendable {
     // The name is `<pack>/<name>` and its pack is there, holding `names`; `nearest` is the one near the name, where one
     // is.
     case pack(pack: String, names: [String], nearest: String?)
-    // The name is not `<pack>/<name>`, and the pack `frames` holds `nearest`, which is near it.
-    case shipped(nearest: String)
-    // The name is an absolute path, its pack is not there, or it is of another spelling and near nothing frames ships.
-    case none
+    // The name is `<pack>/<name>` and no pack has that name; `packs` are the packs there are, and `nearest` the one near
+    // `pack`, where one is.
+    case unknownPack(pack: String, packs: [String], nearest: String?)
+    // The name is not `<pack>/<name>`, or is an absolute path where the kind takes none; `nearest` is the name the
+    // pack `frames` holds that is near it, where one is.
+    case spelling(nearest: String?)
 
     // MARK: - Property
     // The pack that ships with frames.
     static let shippedPack = "frames"
 
     // MARK: - Initializer
-    // `names` gives the names a pack holds in the folder, as `<pack>/<name>`, or nil where no pack has that name.
+    // `packs` gives the names of the packs there are, and `names` the names a pack holds of the kind, as
+    // `<pack>/<name>`, or nil where no pack has that name.
     package init(
         name: String,
+        packs: () throws -> [String],
         names: (String) throws -> [String]?
     ) rethrows {
         switch PackReference(name) {
-        case .path:
-            self = .none
-
         case let .pack(pack, written):
             guard let held = try names(pack) else {
-                self = .none
+                let there = try packs()
+                self = .unknownPack(pack: pack, packs: there, nearest: Self.nearest(to: pack, among: there))
                 return
             }
 
             self = .pack(pack: pack, names: held, nearest: Self.nearest(to: written, among: held))
 
-        case nil:
-            let nearest = Self.nearest(to: name, among: try names(Self.shippedPack) ?? [])
-            self = nearest.map { .shipped(nearest: $0) } ?? .none
+        case .path, nil:
+            self = .spelling(nearest: Self.nearest(to: name, among: try names(Self.shippedPack) ?? []))
         }
     }
 
     // MARK: - Public
-    // The sentences after the message's first, each led by ". ". `things` names what the folder holds, as
-    // `head presets`, and `rule` is how such a name is spelled.
+    // The sentences after the message's first, each led by ". ". `things` names what the kind is more than one of, as
+    // `head presets`, and `rule` is how a name of the kind is spelled.
     func text(
         things: String,
         rule: String
@@ -58,17 +60,20 @@ package enum NameHint: Equatable, Sendable {
                 : "The pack \(quoted(pack)) holds the \(things) \(names.joined(separator: ", "))"
             return ". " + (nearest.map { "Did you mean \(quoted($0))? " } ?? "") + held
 
-        case let .shipped(nearest):
-            return ". Did you mean \(quoted(nearest))? \(rule)"
+        case let .unknownPack(pack, packs, nearest):
+            let there = packs.isEmpty
+                ? "There is no pack \(quoted(pack)), and there are no packs"
+                : "There is no pack \(quoted(pack)), and the packs are \(packs.joined(separator: ", "))"
+            return ". " + (nearest.map { "Did you mean the pack \(quoted($0))? " } ?? "") + there
 
-        case .none:
-            return ". \(rule)"
+        case let .spelling(nearest):
+            return ". " + (nearest.map { "Did you mean \(quoted($0))? " } ?? "") + rule
         }
     }
 
     // MARK: - Private
-    // The first of `names` whose `<name>` is near `written`: at an edit distance of at most 1, or a third of the
-    // longer of the two where that is more.
+    // The first of `names` whose last part, its `<name>` or the whole of a pack's name, is near `written`: at an edit
+    // distance of at most 1, or a third of the longer of the two where that is more.
     private static func nearest(
         to written: String,
         among names: [String]
