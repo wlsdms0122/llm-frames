@@ -1,0 +1,2297 @@
+[
+ {
+  "arguments": [
+   "--version"
+  ],
+  "output": "0.1.0\n"
+ },
+ {
+  "arguments": [
+   "probe",
+   "/media/clip.mp4",
+   "--json"
+  ],
+  "output": {
+   "probe": "0.1.0",
+   "kind": "video",
+   "size": [
+    1280,
+    720
+   ],
+   "duration": 4,
+   "fps": 25,
+   "alpha": false,
+   "colorSpace": {
+    "name": "srgb",
+    "primaries": 1,
+    "transfer": 13,
+    "matrix": 1,
+    "bitDepth": 8,
+    "hdr": false
+   },
+   "audio": {
+    "channels": 2,
+    "sampleRate": 48000
+   },
+   "pages": null
+  }
+ },
+ {
+  "arguments": [
+   "timeline",
+   "<document>",
+   "--json"
+  ],
+  "output": {
+   "timeline": "0.1.0",
+   "duration": 7.7,
+   "storyline": [
+    {
+     "place": "storyline[0]#v",
+     "id": "v",
+     "media": "/media/clip.mp4",
+     "edit": [
+      0,
+      4
+     ],
+     "drawn": [
+      0,
+      4
+     ],
+     "clip": [
+      0,
+      4
+     ],
+     "sound": [
+      0,
+      4
+     ],
+     "speed": 1,
+     "timeRemap": false,
+     "transition": null
+    },
+    {
+     "place": "storyline[1]#fast",
+     "id": "fast",
+     "media": "/media/clip.mp4",
+     "edit": [
+      4,
+      5.7
+     ],
+     "drawn": [
+      4,
+      5.7
+     ],
+     "clip": [
+      0.5,
+      3.9
+     ],
+     "sound": [
+      4,
+      5.7
+     ],
+     "speed": 2,
+     "timeRemap": false,
+     "transition": null
+    },
+    {
+     "place": "storyline[2]#held",
+     "id": "held",
+     "media": "/media/clip.mp4",
+     "edit": [
+      5.7,
+      7.7
+     ],
+     "drawn": [
+      5.7,
+      7.7
+     ],
+     "clip": [
+      0,
+      2
+     ],
+     "sound": null,
+     "speed": 1,
+     "timeRemap": true,
+     "transition": null
+    }
+   ],
+   "clips": [
+    {
+     "place": "storyline[0]#v.connected[0]#k",
+     "id": "k",
+     "kind": "rect",
+     "visible": [
+      0,
+      4
+     ],
+     "sound": null,
+     "lane": 1,
+     "storyline": "storyline[0]#v",
+     "parent": "storyline[0]#v",
+     "animation": null
+    },
+    {
+     "place": "storyline[0]#v.connected[1]#a",
+     "id": "a",
+     "kind": "rect",
+     "visible": [
+      0,
+      4
+     ],
+     "sound": null,
+     "lane": 1,
+     "storyline": "storyline[0]#v",
+     "parent": "storyline[0]#v",
+     "animation": null
+    },
+    {
+     "place": "storyline[0]#v.connected[2]#n",
+     "id": "n",
+     "kind": "title",
+     "visible": [
+      2.2,
+      3
+     ],
+     "sound": null,
+     "lane": 1,
+     "storyline": "storyline[0]#v",
+     "parent": "storyline[0]#v",
+     "animation": null
+    },
+    {
+     "place": "storyline[2]#held.connected[0]",
+     "id": null,
+     "kind": "rect",
+     "visible": [
+      5.7,
+      7.7
+     ],
+     "sound": null,
+     "lane": 1,
+     "storyline": "storyline[2]#held",
+     "parent": "storyline[2]#held",
+     "animation": null
+    },
+    {
+     "place": "clips[0]#pip",
+     "id": "pip",
+     "kind": "video",
+     "visible": [
+      6,
+      7.7
+     ],
+     "sound": [
+      6,
+      7.7
+     ],
+     "lane": 1,
+     "storyline": null,
+     "parent": null,
+     "animation": null
+    },
+    {
+     "place": "clips[1]",
+     "id": null,
+     "kind": "rect",
+     "visible": [
+      7,
+      7.7
+     ],
+     "sound": null,
+     "lane": 1,
+     "storyline": null,
+     "parent": "clips[0]#pip",
+     "animation": null
+    },
+    {
+     "place": "clips[2]",
+     "id": null,
+     "kind": "rect",
+     "visible": [
+      0,
+      7.7
+     ],
+     "sound": null,
+     "lane": 1,
+     "storyline": null,
+     "parent": "clips[0]#pip",
+     "animation": null
+    }
+   ]
+  }
+ },
+ {
+  "arguments": [
+   "evaluate",
+   "<document>",
+   "--at",
+   "0"
+  ],
+  "output": {
+   "evaluate": "0.1.0",
+   "time": 0,
+   "size": [
+    1920,
+    1080
+   ],
+   "items": [
+    {
+     "place": null,
+     "id": null,
+     "kind": null,
+     "item": "background",
+     "bounds": [
+      0,
+      0,
+      1920,
+      1080
+     ],
+     "opacity": 1,
+     "transform": [
+      1,
+      0,
+      0,
+      1,
+      0,
+      0
+     ],
+     "rect": [
+      0,
+      0,
+      1920,
+      1080
+     ],
+     "cornerPins": null,
+     "characters": null
+    },
+    {
+     "place": "storyline[0]#v",
+     "id": "v",
+     "kind": "video",
+     "item": "picture",
+     "bounds": [
+      0,
+      0,
+      1920,
+      1080
+     ],
+     "opacity": 1,
+     "transform": [
+      1,
+      0,
+      0,
+      1,
+      0,
+      0
+     ],
+     "rect": [
+      0,
+      0,
+      1920,
+      1080
+     ],
+     "cornerPins": null,
+     "characters": null
+    },
+    {
+     "place": "storyline[0]#v.connected[0]#k",
+     "id": "k",
+     "kind": "rect",
+     "item": "path",
+     "bounds": [
+      0,
+      0,
+      4.5,
+      4.5
+     ],
+     "opacity": 1,
+     "transform": [
+      1.5,
+      0,
+      0,
+      1.5,
+      0,
+      0
+     ],
+     "rect": [
+      0,
+      0,
+      1,
+      1
+     ],
+     "cornerPins": null,
+     "characters": null
+    },
+    {
+     "place": "storyline[0]#v.connected[1]#a",
+     "id": "a",
+     "kind": "rect",
+     "item": "path",
+     "bounds": [
+      0,
+      0,
+      15,
+      15
+     ],
+     "opacity": 1,
+     "transform": [
+      1.5,
+      0,
+      0,
+      1.5,
+      0,
+      0
+     ],
+     "rect": [
+      0,
+      0,
+      10,
+      10
+     ],
+     "cornerPins": null,
+     "characters": null
+    },
+    {
+     "place": "clips[2]",
+     "id": null,
+     "kind": "rect",
+     "item": "path",
+     "bounds": [
+      1180,
+      120,
+      0.5,
+      0.5
+     ],
+     "opacity": 1,
+     "transform": [
+      0.5,
+      0,
+      0,
+      0.5,
+      1180,
+      120
+     ],
+     "rect": [
+      0,
+      0,
+      1,
+      1
+     ],
+     "cornerPins": null,
+     "characters": null
+    }
+   ],
+   "texts": []
+  }
+ },
+ {
+  "arguments": [
+   "locate",
+   "<document>",
+   "--at",
+   "0",
+   "--point",
+   "960,540"
+  ],
+  "output": {
+   "locate": "0.1.0",
+   "hits": [
+    {
+     "place": "storyline[0]#v",
+     "id": "v",
+     "kind": "video",
+     "item": "picture",
+     "media": "/media/clip.mp4",
+     "mediaTime": 0,
+     "point": [
+      640,
+      360
+     ],
+     "page": null
+    },
+    {
+     "place": null,
+     "id": null,
+     "kind": null,
+     "item": "background"
+    }
+   ]
+  }
+ },
+ {
+  "arguments": [
+   "ocr",
+   "/media/clip.mp4",
+   "--json",
+   "--at",
+   "0",
+   "--languages",
+   "en-US"
+  ],
+  "output": {
+   "ocr": "0.1.0",
+   "size": [
+    1280,
+    720
+   ],
+   "languages": [
+    "en-US"
+   ],
+   "frames": [
+    {
+     "time": 0,
+     "lines": [
+      {
+       "text": "Price 4.50",
+       "rect": [
+        101.923614,
+        110,
+        174.152771,
+        27
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ },
+ {
+  "arguments": [
+   "evaluate",
+   "<document>",
+   "--at",
+   "0.5"
+  ],
+  "output": {
+   "evaluate": "0.1.0",
+   "time": 0.5,
+   "size": [
+    1920,
+    1080
+   ],
+   "items": [
+    {
+     "place": null,
+     "id": null,
+     "kind": null,
+     "item": "background",
+     "bounds": [
+      0,
+      0,
+      1920,
+      1080
+     ],
+     "opacity": 1,
+     "transform": [
+      1,
+      0,
+      0,
+      1,
+      0,
+      0
+     ],
+     "rect": [
+      0,
+      0,
+      1920,
+      1080
+     ],
+     "cornerPins": null,
+     "characters": null
+    },
+    {
+     "place": "storyline[0]#v",
+     "id": "v",
+     "kind": "video",
+     "item": "picture",
+     "bounds": [
+      0,
+      0,
+      1920,
+      1080
+     ],
+     "opacity": 1,
+     "transform": [
+      1,
+      0,
+      0,
+      1,
+      0,
+      0
+     ],
+     "rect": [
+      0,
+      0,
+      1920,
+      1080
+     ],
+     "cornerPins": null,
+     "characters": null
+    },
+    {
+     "place": "storyline[0]#v.connected[0]#k",
+     "id": "k",
+     "kind": "rect",
+     "item": "path",
+     "bounds": [
+      0,
+      0,
+      4.5,
+      4.5
+     ],
+     "opacity": 1,
+     "transform": [
+      1.5,
+      0,
+      0,
+      1.5,
+      0,
+      0
+     ],
+     "rect": [
+      0,
+      0,
+      1,
+      1
+     ],
+     "cornerPins": null,
+     "characters": null
+    },
+    {
+     "place": "storyline[0]#v.connected[1]#a",
+     "id": "a",
+     "kind": "rect",
+     "item": "path",
+     "bounds": [
+      0,
+      0,
+      15,
+      15
+     ],
+     "opacity": 1,
+     "transform": [
+      1.5,
+      0,
+      0,
+      1.5,
+      0,
+      0
+     ],
+     "rect": [
+      0,
+      0,
+      10,
+      10
+     ],
+     "cornerPins": null,
+     "characters": null
+    },
+    {
+     "place": "clips[2]",
+     "id": null,
+     "kind": "rect",
+     "item": "path",
+     "bounds": [
+      1180,
+      120,
+      0.5,
+      0.5
+     ],
+     "opacity": 1,
+     "transform": [
+      0.5,
+      0,
+      0,
+      0.5,
+      1180,
+      120
+     ],
+     "rect": [
+      0,
+      0,
+      1,
+      1
+     ],
+     "cornerPins": null,
+     "characters": null
+    }
+   ],
+   "texts": []
+  }
+ },
+ {
+  "arguments": [
+   "locate",
+   "<document>",
+   "--at",
+   "0.5",
+   "--point",
+   "960,540"
+  ],
+  "output": {
+   "locate": "0.1.0",
+   "hits": [
+    {
+     "place": "storyline[0]#v",
+     "id": "v",
+     "kind": "video",
+     "item": "picture",
+     "media": "/media/clip.mp4",
+     "mediaTime": 0.48,
+     "point": [
+      640,
+      360
+     ],
+     "page": null
+    },
+    {
+     "place": null,
+     "id": null,
+     "kind": null,
+     "item": "background"
+    }
+   ]
+  }
+ },
+ {
+  "arguments": [
+   "ocr",
+   "/media/clip.mp4",
+   "--json",
+   "--at",
+   "0.48",
+   "--languages",
+   "en-US"
+  ],
+  "output": {
+   "ocr": "0.1.0",
+   "size": [
+    1280,
+    720
+   ],
+   "languages": [
+    "en-US"
+   ],
+   "frames": [
+    {
+     "time": 0.48,
+     "lines": [
+      {
+       "text": "Price 4.50",
+       "rect": [
+        101.923614,
+        110,
+        174.152771,
+        27
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ },
+ {
+  "arguments": [
+   "evaluate",
+   "<document>",
+   "--at",
+   "3"
+  ],
+  "output": {
+   "evaluate": "0.1.0",
+   "time": 3,
+   "size": [
+    1920,
+    1080
+   ],
+   "items": [
+    {
+     "place": null,
+     "id": null,
+     "kind": null,
+     "item": "background",
+     "bounds": [
+      0,
+      0,
+      1920,
+      1080
+     ],
+     "opacity": 1,
+     "transform": [
+      1,
+      0,
+      0,
+      1,
+      0,
+      0
+     ],
+     "rect": [
+      0,
+      0,
+      1920,
+      1080
+     ],
+     "cornerPins": null,
+     "characters": null
+    },
+    {
+     "place": "storyline[0]#v",
+     "id": "v",
+     "kind": "video",
+     "item": "picture",
+     "bounds": [
+      0,
+      0,
+      1920,
+      1080
+     ],
+     "opacity": 1,
+     "transform": [
+      1,
+      0,
+      0,
+      1,
+      0,
+      0
+     ],
+     "rect": [
+      0,
+      0,
+      1920,
+      1080
+     ],
+     "cornerPins": null,
+     "characters": null
+    },
+    {
+     "place": "storyline[0]#v.connected[0]#k",
+     "id": "k",
+     "kind": "rect",
+     "item": "path",
+     "bounds": [
+      0,
+      0,
+      4.5,
+      4.5
+     ],
+     "opacity": 1,
+     "transform": [
+      1.5,
+      0,
+      0,
+      1.5,
+      0,
+      0
+     ],
+     "rect": [
+      0,
+      0,
+      1,
+      1
+     ],
+     "cornerPins": null,
+     "characters": null
+    },
+    {
+     "place": "storyline[0]#v.connected[1]#a",
+     "id": "a",
+     "kind": "rect",
+     "item": "path",
+     "bounds": [
+      0,
+      0,
+      15,
+      15
+     ],
+     "opacity": 1,
+     "transform": [
+      1.5,
+      0,
+      0,
+      1.5,
+      0,
+      0
+     ],
+     "rect": [
+      0,
+      0,
+      10,
+      10
+     ],
+     "cornerPins": null,
+     "characters": null
+    },
+    {
+     "place": "clips[2]",
+     "id": null,
+     "kind": "rect",
+     "item": "path",
+     "bounds": [
+      1180,
+      120,
+      0.5,
+      0.5
+     ],
+     "opacity": 1,
+     "transform": [
+      0.5,
+      0,
+      0,
+      0.5,
+      1180,
+      120
+     ],
+     "rect": [
+      0,
+      0,
+      1,
+      1
+     ],
+     "cornerPins": null,
+     "characters": null
+    }
+   ],
+   "texts": []
+  }
+ },
+ {
+  "arguments": [
+   "locate",
+   "<document>",
+   "--at",
+   "3",
+   "--point",
+   "960,540"
+  ],
+  "output": {
+   "locate": "0.1.0",
+   "hits": [
+    {
+     "place": "storyline[0]#v",
+     "id": "v",
+     "kind": "video",
+     "item": "picture",
+     "media": "/media/clip.mp4",
+     "mediaTime": 3,
+     "point": [
+      640,
+      360
+     ],
+     "page": null
+    },
+    {
+     "place": null,
+     "id": null,
+     "kind": null,
+     "item": "background"
+    }
+   ]
+  }
+ },
+ {
+  "arguments": [
+   "ocr",
+   "/media/clip.mp4",
+   "--json",
+   "--at",
+   "3",
+   "--languages",
+   "en-US"
+  ],
+  "output": {
+   "ocr": "0.1.0",
+   "size": [
+    1280,
+    720
+   ],
+   "languages": [
+    "en-US"
+   ],
+   "frames": [
+    {
+     "time": 3,
+     "lines": [
+      {
+       "text": "Price 6.00",
+       "rect": [
+        701.866547,
+        510,
+        174.266907,
+        27
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ },
+ {
+  "arguments": [
+   "ocr",
+   "/media/clip.mp4",
+   "--json",
+   "--at",
+   "2.5",
+   "--languages",
+   "en-US"
+  ],
+  "output": {
+   "ocr": "0.1.0",
+   "size": [
+    1280,
+    720
+   ],
+   "languages": [
+    "en-US"
+   ],
+   "frames": [
+    {
+     "time": 2.5,
+     "lines": [
+      {
+       "text": "Price 6.00",
+       "rect": [
+        701.866547,
+        510,
+        174.266907,
+        27
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ },
+ {
+  "arguments": [
+   "evaluate",
+   "<document>",
+   "--at",
+   "2.2"
+  ],
+  "output": {
+   "evaluate": "0.1.0",
+   "time": 2.2,
+   "size": [
+    1920,
+    1080
+   ],
+   "items": [
+    {
+     "place": null,
+     "id": null,
+     "kind": null,
+     "item": "background",
+     "bounds": [
+      0,
+      0,
+      1920,
+      1080
+     ],
+     "opacity": 1,
+     "transform": [
+      1,
+      0,
+      0,
+      1,
+      0,
+      0
+     ],
+     "rect": [
+      0,
+      0,
+      1920,
+      1080
+     ],
+     "cornerPins": null,
+     "characters": null
+    },
+    {
+     "place": "storyline[0]#v",
+     "id": "v",
+     "kind": "video",
+     "item": "picture",
+     "bounds": [
+      0,
+      0,
+      1920,
+      1080
+     ],
+     "opacity": 1,
+     "transform": [
+      1,
+      0,
+      0,
+      1,
+      0,
+      0
+     ],
+     "rect": [
+      0,
+      0,
+      1920,
+      1080
+     ],
+     "cornerPins": null,
+     "characters": null
+    },
+    {
+     "place": "storyline[0]#v.connected[0]#k",
+     "id": "k",
+     "kind": "rect",
+     "item": "path",
+     "bounds": [
+      0,
+      0,
+      4.5,
+      4.5
+     ],
+     "opacity": 1,
+     "transform": [
+      1.5,
+      0,
+      0,
+      1.5,
+      0,
+      0
+     ],
+     "rect": [
+      0,
+      0,
+      1,
+      1
+     ],
+     "cornerPins": null,
+     "characters": null
+    },
+    {
+     "place": "storyline[0]#v.connected[1]#a",
+     "id": "a",
+     "kind": "rect",
+     "item": "path",
+     "bounds": [
+      0,
+      0,
+      15,
+      15
+     ],
+     "opacity": 1,
+     "transform": [
+      1.5,
+      0,
+      0,
+      1.5,
+      0,
+      0
+     ],
+     "rect": [
+      0,
+      0,
+      10,
+      10
+     ],
+     "cornerPins": null,
+     "characters": null
+    },
+    {
+     "place": "storyline[0]#v.connected[2]#n",
+     "id": "n",
+     "kind": "title",
+     "item": "glyphs",
+     "bounds": [
+      0,
+      0,
+      40.776,
+      72.216064
+     ],
+     "opacity": 1,
+     "transform": [
+      1,
+      0,
+      0,
+      1,
+      -10.776,
+      -42.216064
+     ],
+     "rect": [
+      0,
+      0,
+      51.552,
+      114.432129
+     ],
+     "cornerPins": null,
+     "characters": [
+      {
+       "text": "x",
+       "range": [
+        0,
+        1
+       ],
+       "level": 0,
+       "rect": [
+        0,
+        0,
+        51.552,
+        114.432129
+       ],
+       "baseline": 93.600586
+      }
+     ]
+    },
+    {
+     "place": "clips[2]",
+     "id": null,
+     "kind": "rect",
+     "item": "path",
+     "bounds": [
+      1180,
+      120,
+      0.5,
+      0.5
+     ],
+     "opacity": 1,
+     "transform": [
+      0.5,
+      0,
+      0,
+      0.5,
+      1180,
+      120
+     ],
+     "rect": [
+      0,
+      0,
+      1,
+      1
+     ],
+     "cornerPins": null,
+     "characters": null
+    }
+   ],
+   "texts": [
+    {
+     "place": "storyline[0]#v.connected[2]#n",
+     "id": "n",
+     "text": "x",
+     "writingMode": "horizontal-tb",
+     "direction": "ltr",
+     "size": [
+      51.552,
+      114.432129
+     ],
+     "box": [
+      0,
+      0,
+      51.552,
+      114.432129
+     ],
+     "transform": [
+      1,
+      0,
+      0,
+      1,
+      -10.776,
+      -42.216064
+     ],
+     "cornerPins": null,
+     "lines": [
+      {
+       "text": "x",
+       "range": [
+        0,
+        1
+       ],
+       "baseline": 93.600586,
+       "ascent": 93.600586,
+       "descent": 20.831543
+      }
+     ],
+     "words": [
+      {
+       "text": "x",
+       "range": [
+        0,
+        1
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ },
+ {
+  "arguments": [
+   "locate",
+   "<document>",
+   "--at",
+   "2.2",
+   "--point",
+   "960,540"
+  ],
+  "output": {
+   "locate": "0.1.0",
+   "hits": [
+    {
+     "place": "storyline[0]#v",
+     "id": "v",
+     "kind": "video",
+     "item": "picture",
+     "media": "/media/clip.mp4",
+     "mediaTime": 2.2,
+     "point": [
+      640,
+      360
+     ],
+     "page": null
+    },
+    {
+     "place": null,
+     "id": null,
+     "kind": null,
+     "item": "background"
+    }
+   ]
+  }
+ },
+ {
+  "arguments": [
+   "ocr",
+   "/media/clip.mp4",
+   "--json",
+   "--at",
+   "2.2",
+   "--languages",
+   "en-US"
+  ],
+  "output": {
+   "ocr": "0.1.0",
+   "size": [
+    1280,
+    720
+   ],
+   "languages": [
+    "en-US"
+   ],
+   "frames": [
+    {
+     "time": 2.2,
+     "lines": [
+      {
+       "text": "Price 6.00",
+       "rect": [
+        701.866547,
+        510,
+        174.266907,
+        27
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ },
+ {
+  "arguments": [
+   "evaluate",
+   "<document>",
+   "--at",
+   "4"
+  ],
+  "output": {
+   "evaluate": "0.1.0",
+   "time": 4,
+   "size": [
+    1920,
+    1080
+   ],
+   "items": [
+    {
+     "place": null,
+     "id": null,
+     "kind": null,
+     "item": "background",
+     "bounds": [
+      0,
+      0,
+      1920,
+      1080
+     ],
+     "opacity": 1,
+     "transform": [
+      1,
+      0,
+      0,
+      1,
+      0,
+      0
+     ],
+     "rect": [
+      0,
+      0,
+      1920,
+      1080
+     ],
+     "cornerPins": null,
+     "characters": null
+    },
+    {
+     "place": "storyline[1]#fast",
+     "id": "fast",
+     "kind": "video",
+     "item": "picture",
+     "bounds": [
+      0,
+      0,
+      1920,
+      1080
+     ],
+     "opacity": 1,
+     "transform": [
+      1,
+      0,
+      0,
+      1,
+      0,
+      0
+     ],
+     "rect": [
+      0,
+      0,
+      1920,
+      1080
+     ],
+     "cornerPins": null,
+     "characters": null
+    },
+    {
+     "place": "clips[2]",
+     "id": null,
+     "kind": "rect",
+     "item": "path",
+     "bounds": [
+      1180,
+      120,
+      0.5,
+      0.5
+     ],
+     "opacity": 1,
+     "transform": [
+      0.5,
+      0,
+      0,
+      0.5,
+      1180,
+      120
+     ],
+     "rect": [
+      0,
+      0,
+      1,
+      1
+     ],
+     "cornerPins": null,
+     "characters": null
+    }
+   ],
+   "texts": []
+  }
+ },
+ {
+  "arguments": [
+   "locate",
+   "<document>",
+   "--at",
+   "4",
+   "--point",
+   "960,540"
+  ],
+  "output": {
+   "locate": "0.1.0",
+   "hits": [
+    {
+     "place": "storyline[1]#fast",
+     "id": "fast",
+     "kind": "video",
+     "item": "picture",
+     "media": "/media/clip.mp4",
+     "mediaTime": 0.48,
+     "point": [
+      0.5,
+      0.5
+     ],
+     "page": null
+    },
+    {
+     "place": null,
+     "id": null,
+     "kind": null,
+     "item": "background"
+    }
+   ]
+  }
+ },
+ {
+  "arguments": [
+   "evaluate",
+   "<document>",
+   "--at",
+   "5.35"
+  ],
+  "output": {
+   "evaluate": "0.1.0",
+   "time": 5.35,
+   "size": [
+    1920,
+    1080
+   ],
+   "items": [
+    {
+     "place": null,
+     "id": null,
+     "kind": null,
+     "item": "background",
+     "bounds": [
+      0,
+      0,
+      1920,
+      1080
+     ],
+     "opacity": 1,
+     "transform": [
+      1,
+      0,
+      0,
+      1,
+      0,
+      0
+     ],
+     "rect": [
+      0,
+      0,
+      1920,
+      1080
+     ],
+     "cornerPins": null,
+     "characters": null
+    },
+    {
+     "place": "storyline[1]#fast",
+     "id": "fast",
+     "kind": "video",
+     "item": "picture",
+     "bounds": [
+      0,
+      0,
+      1920,
+      1080
+     ],
+     "opacity": 1,
+     "transform": [
+      1,
+      0,
+      0,
+      1,
+      0,
+      0
+     ],
+     "rect": [
+      0,
+      0,
+      1920,
+      1080
+     ],
+     "cornerPins": null,
+     "characters": null
+    },
+    {
+     "place": "clips[2]",
+     "id": null,
+     "kind": "rect",
+     "item": "path",
+     "bounds": [
+      1180,
+      120,
+      0.5,
+      0.5
+     ],
+     "opacity": 1,
+     "transform": [
+      0.5,
+      0,
+      0,
+      0.5,
+      1180,
+      120
+     ],
+     "rect": [
+      0,
+      0,
+      1,
+      1
+     ],
+     "cornerPins": null,
+     "characters": null
+    }
+   ],
+   "texts": []
+  }
+ },
+ {
+  "arguments": [
+   "locate",
+   "<document>",
+   "--at",
+   "5.35",
+   "--point",
+   "960,540"
+  ],
+  "output": {
+   "locate": "0.1.0",
+   "hits": [
+    {
+     "place": "storyline[1]#fast",
+     "id": "fast",
+     "kind": "video",
+     "item": "picture",
+     "media": "/media/clip.mp4",
+     "mediaTime": 3.2,
+     "point": [
+      0.5,
+      0.5
+     ],
+     "page": null
+    },
+    {
+     "place": null,
+     "id": null,
+     "kind": null,
+     "item": "background"
+    }
+   ]
+  }
+ },
+ {
+  "arguments": [
+   "ocr",
+   "/media/clip.mp4",
+   "--json",
+   "--at",
+   "3.2",
+   "--languages",
+   "en-US"
+  ],
+  "output": {
+   "ocr": "0.1.0",
+   "size": [
+    1280,
+    720
+   ],
+   "languages": [
+    "en-US"
+   ],
+   "frames": [
+    {
+     "time": 3.2,
+     "lines": [
+      {
+       "text": "Price 6.00",
+       "rect": [
+        701.866547,
+        510,
+        174.266907,
+        27
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ },
+ {
+  "arguments": [
+   "evaluate",
+   "<document>",
+   "--at",
+   "5.7"
+  ],
+  "output": {
+   "evaluate": "0.1.0",
+   "time": 5.7,
+   "size": [
+    1920,
+    1080
+   ],
+   "items": [
+    {
+     "place": null,
+     "id": null,
+     "kind": null,
+     "item": "background",
+     "bounds": [
+      0,
+      0,
+      1920,
+      1080
+     ],
+     "opacity": 1,
+     "transform": [
+      1,
+      0,
+      0,
+      1,
+      0,
+      0
+     ],
+     "rect": [
+      0,
+      0,
+      1920,
+      1080
+     ],
+     "cornerPins": null,
+     "characters": null
+    },
+    {
+     "place": "storyline[2]#held",
+     "id": "held",
+     "kind": "video",
+     "item": "picture",
+     "bounds": [
+      0,
+      0,
+      1920,
+      1080
+     ],
+     "opacity": 1,
+     "transform": [
+      1,
+      0,
+      0,
+      1,
+      0,
+      0
+     ],
+     "rect": [
+      0,
+      0,
+      1920,
+      1080
+     ],
+     "cornerPins": null,
+     "characters": null
+    },
+    {
+     "place": "storyline[2]#held.connected[0]",
+     "id": null,
+     "kind": "rect",
+     "item": "path",
+     "bounds": [
+      0,
+      0,
+      4.5,
+      4.5
+     ],
+     "opacity": 1,
+     "transform": [
+      1.5,
+      0,
+      0,
+      1.5,
+      0,
+      0
+     ],
+     "rect": [
+      0,
+      0,
+      1,
+      1
+     ],
+     "cornerPins": null,
+     "characters": null
+    },
+    {
+     "place": "clips[2]",
+     "id": null,
+     "kind": "rect",
+     "item": "path",
+     "bounds": [
+      1180,
+      120,
+      0.5,
+      0.5
+     ],
+     "opacity": 1,
+     "transform": [
+      0.5,
+      0,
+      0,
+      0.5,
+      1180,
+      120
+     ],
+     "rect": [
+      0,
+      0,
+      1,
+      1
+     ],
+     "cornerPins": null,
+     "characters": null
+    }
+   ],
+   "texts": []
+  }
+ },
+ {
+  "arguments": [
+   "locate",
+   "<document>",
+   "--at",
+   "5.7",
+   "--point",
+   "960,540"
+  ],
+  "output": {
+   "locate": "0.1.0",
+   "hits": [
+    {
+     "place": "storyline[2]#held",
+     "id": "held",
+     "kind": "video",
+     "item": "picture",
+     "media": "/media/clip.mp4",
+     "mediaTime": 3,
+     "point": [
+      640,
+      360
+     ],
+     "page": null
+    },
+    {
+     "place": null,
+     "id": null,
+     "kind": null,
+     "item": "background"
+    }
+   ]
+  }
+ },
+ {
+  "arguments": [
+   "evaluate",
+   "<document>",
+   "--at",
+   "7"
+  ],
+  "output": {
+   "evaluate": "0.1.0",
+   "time": 7,
+   "size": [
+    1920,
+    1080
+   ],
+   "items": [
+    {
+     "place": null,
+     "id": null,
+     "kind": null,
+     "item": "background",
+     "bounds": [
+      0,
+      0,
+      1920,
+      1080
+     ],
+     "opacity": 1,
+     "transform": [
+      1,
+      0,
+      0,
+      1,
+      0,
+      0
+     ],
+     "rect": [
+      0,
+      0,
+      1920,
+      1080
+     ],
+     "cornerPins": null,
+     "characters": null
+    },
+    {
+     "place": "storyline[2]#held",
+     "id": "held",
+     "kind": "video",
+     "item": "picture",
+     "bounds": [
+      0,
+      0,
+      1920,
+      1080
+     ],
+     "opacity": 1,
+     "transform": [
+      1,
+      0,
+      0,
+      1,
+      0,
+      0
+     ],
+     "rect": [
+      0,
+      0,
+      1920,
+      1080
+     ],
+     "cornerPins": null,
+     "characters": null
+    },
+    {
+     "place": "storyline[2]#held.connected[0]",
+     "id": null,
+     "kind": "rect",
+     "item": "path",
+     "bounds": [
+      0,
+      0,
+      4.5,
+      4.5
+     ],
+     "opacity": 1,
+     "transform": [
+      1.5,
+      0,
+      0,
+      1.5,
+      0,
+      0
+     ],
+     "rect": [
+      0,
+      0,
+      1,
+      1
+     ],
+     "cornerPins": null,
+     "characters": null
+    },
+    {
+     "place": "clips[0]#pip",
+     "id": "pip",
+     "kind": "video",
+     "item": "picture",
+     "bounds": [
+      1180,
+      120,
+      640,
+      360
+     ],
+     "opacity": 1,
+     "transform": [
+      1,
+      0,
+      0,
+      1,
+      1180,
+      120
+     ],
+     "rect": [
+      0,
+      0,
+      640,
+      360
+     ],
+     "cornerPins": null,
+     "characters": null
+    },
+    {
+     "place": "clips[1]",
+     "id": null,
+     "kind": "rect",
+     "item": "path",
+     "bounds": [
+      1177,
+      117,
+      6.5,
+      6.5
+     ],
+     "opacity": 1,
+     "transform": [
+      0.5,
+      0,
+      0,
+      0.5,
+      1180,
+      120
+     ],
+     "rect": [
+      0,
+      0,
+      1,
+      1
+     ],
+     "cornerPins": null,
+     "characters": null
+    },
+    {
+     "place": "clips[2]",
+     "id": null,
+     "kind": "rect",
+     "item": "path",
+     "bounds": [
+      1180,
+      120,
+      0.5,
+      0.5
+     ],
+     "opacity": 1,
+     "transform": [
+      0.5,
+      0,
+      0,
+      0.5,
+      1180,
+      120
+     ],
+     "rect": [
+      0,
+      0,
+      1,
+      1
+     ],
+     "cornerPins": null,
+     "characters": null
+    }
+   ],
+   "texts": []
+  }
+ },
+ {
+  "arguments": [
+   "locate",
+   "<document>",
+   "--at",
+   "7",
+   "--point",
+   "1500,300"
+  ],
+  "output": {
+   "locate": "0.1.0",
+   "hits": [
+    {
+     "place": "clips[0]#pip",
+     "id": "pip",
+     "kind": "video",
+     "item": "picture",
+     "media": "/media/clip.mp4",
+     "mediaTime": 2.48,
+     "point": [
+      640,
+      360
+     ],
+     "page": null
+    },
+    {
+     "place": "storyline[2]#held",
+     "id": "held",
+     "kind": "video",
+     "item": "picture",
+     "media": "/media/clip.mp4",
+     "mediaTime": 3,
+     "point": [
+      1000,
+      200
+     ],
+     "page": null
+    },
+    {
+     "place": null,
+     "id": null,
+     "kind": null,
+     "item": "background"
+    }
+   ]
+  }
+ },
+ {
+  "arguments": [
+   "ocr",
+   "/media/clip.mp4",
+   "--json",
+   "--at",
+   "2.48",
+   "--languages",
+   "en-US"
+  ],
+  "output": {
+   "ocr": "0.1.0",
+   "size": [
+    1280,
+    720
+   ],
+   "languages": [
+    "en-US"
+   ],
+   "frames": [
+    {
+     "time": 2.48,
+     "lines": [
+      {
+       "text": "Price 6.00",
+       "rect": [
+        701.866547,
+        510,
+        174.266907,
+        27
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ },
+ {
+  "arguments": [
+   "evaluate",
+   "<document>",
+   "--at",
+   "7.5"
+  ],
+  "output": {
+   "evaluate": "0.1.0",
+   "time": 7.5,
+   "size": [
+    1920,
+    1080
+   ],
+   "items": [
+    {
+     "place": null,
+     "id": null,
+     "kind": null,
+     "item": "background",
+     "bounds": [
+      0,
+      0,
+      1920,
+      1080
+     ],
+     "opacity": 1,
+     "transform": [
+      1,
+      0,
+      0,
+      1,
+      0,
+      0
+     ],
+     "rect": [
+      0,
+      0,
+      1920,
+      1080
+     ],
+     "cornerPins": null,
+     "characters": null
+    },
+    {
+     "place": "storyline[2]#held",
+     "id": "held",
+     "kind": "video",
+     "item": "picture",
+     "bounds": [
+      0,
+      0,
+      1920,
+      1080
+     ],
+     "opacity": 1,
+     "transform": [
+      1,
+      0,
+      0,
+      1,
+      0,
+      0
+     ],
+     "rect": [
+      0,
+      0,
+      1920,
+      1080
+     ],
+     "cornerPins": null,
+     "characters": null
+    },
+    {
+     "place": "storyline[2]#held.connected[0]",
+     "id": null,
+     "kind": "rect",
+     "item": "path",
+     "bounds": [
+      0,
+      0,
+      4.5,
+      4.5
+     ],
+     "opacity": 1,
+     "transform": [
+      1.5,
+      0,
+      0,
+      1.5,
+      0,
+      0
+     ],
+     "rect": [
+      0,
+      0,
+      1,
+      1
+     ],
+     "cornerPins": null,
+     "characters": null
+    },
+    {
+     "place": "clips[0]#pip",
+     "id": "pip",
+     "kind": "video",
+     "item": "picture",
+     "bounds": [
+      1180,
+      120,
+      640,
+      360
+     ],
+     "opacity": 1,
+     "transform": [
+      1,
+      0,
+      0,
+      1,
+      1180,
+      120
+     ],
+     "rect": [
+      0,
+      0,
+      640,
+      360
+     ],
+     "cornerPins": null,
+     "characters": null
+    },
+    {
+     "place": "clips[1]",
+     "id": null,
+     "kind": "rect",
+     "item": "path",
+     "bounds": [
+      1177,
+      117,
+      6.5,
+      6.5
+     ],
+     "opacity": 1,
+     "transform": [
+      0.5,
+      0,
+      0,
+      0.5,
+      1180,
+      120
+     ],
+     "rect": [
+      0,
+      0,
+      1,
+      1
+     ],
+     "cornerPins": null,
+     "characters": null
+    },
+    {
+     "place": "clips[2]",
+     "id": null,
+     "kind": "rect",
+     "item": "path",
+     "bounds": [
+      1180,
+      120,
+      0.5,
+      0.5
+     ],
+     "opacity": 1,
+     "transform": [
+      0.5,
+      0,
+      0,
+      0.5,
+      1180,
+      120
+     ],
+     "rect": [
+      0,
+      0,
+      1,
+      1
+     ],
+     "cornerPins": null,
+     "characters": null
+    }
+   ],
+   "texts": []
+  }
+ },
+ {
+  "arguments": [
+   "locate",
+   "<document>",
+   "--at",
+   "7.5",
+   "--point",
+   "1500,300"
+  ],
+  "output": {
+   "locate": "0.1.0",
+   "hits": [
+    {
+     "place": "clips[0]#pip",
+     "id": "pip",
+     "kind": "video",
+     "item": "picture",
+     "media": "/media/clip.mp4",
+     "mediaTime": 3,
+     "point": [
+      640,
+      360
+     ],
+     "page": null
+    },
+    {
+     "place": "storyline[2]#held",
+     "id": "held",
+     "kind": "video",
+     "item": "picture",
+     "media": "/media/clip.mp4",
+     "mediaTime": 3,
+     "point": [
+      1000,
+      200
+     ],
+     "page": null
+    },
+    {
+     "place": null,
+     "id": null,
+     "kind": null,
+     "item": "background"
+    }
+   ]
+  }
+ }
+]

@@ -1,0 +1,188 @@
+{
+  "kind": "sequence",
+  "format": {
+    "size": [
+      1920,
+      1080
+    ],
+    "fps": 25
+  },
+  "storyline": [
+    {
+      "id": "v",
+      "media": "/media/clip.mp4",
+      "in": 0,
+      "out": 4,
+      "connected": [
+        {
+          "id": "k",
+          "parent": "v",
+          "shape": "rect",
+          "stroke": {
+            "width": 6,
+            "color": "#E0303A"
+          },
+          "keyframes": [
+            {
+              "at": 0.5,
+              "area": {
+                "text": "Price",
+                "padding": 6
+              },
+              "ease": "step"
+            },
+            {
+              "at": 3,
+              "area": {
+                "text": "Price",
+                "padding": 6
+              }
+            }
+          ]
+        },
+        {
+          "id": "a",
+          "parent": "v",
+          "shape": "rect",
+          "fill": "#E0303A",
+          "area": [
+            0,
+            0,
+            10,
+            10
+          ],
+          "track": {
+            "time": 2.5,
+            "area": {
+              "text": "Price"
+            }
+          }
+        },
+        {
+          "id": "n",
+          "parent": "v",
+          "title": "x",
+          "style": "title",
+          "position": [
+            10,
+            10
+          ],
+          "track": {
+            "text": "Price"
+          },
+          "at": [
+            2.2,
+            3
+          ]
+        }
+      ],
+      "track": {
+        "text": "Price"
+      }
+    },
+    {
+      "id": "fast",
+      "media": "/media/clip.mp4",
+      "in": 0.5,
+      "out": 3.9,
+      "speed": 2,
+      "keyframes": [
+        {
+          "at": 0.5,
+          "crop": {
+            "text": "Price",
+            "padding": 40
+          }
+        },
+        {
+          "at": 3.2,
+          "crop": {
+            "text": "Price",
+            "padding": 40
+          }
+        }
+      ]
+    },
+    {
+      "id": "held",
+      "media": "/media/clip.mp4",
+      "in": 0,
+      "out": 2,
+      "keyframes": [
+        {
+          "at": 0,
+          "timeRemap": 3
+        },
+        {
+          "at": 2,
+          "timeRemap": 3
+        }
+      ],
+      "connected": [
+        {
+          "parent": "held",
+          "shape": "rect",
+          "stroke": {
+            "width": 6,
+            "color": "#E0303A"
+          },
+          "area": {
+            "text": "Price"
+          }
+        }
+      ]
+    }
+  ],
+  "clips": [
+    {
+      "id": "pip",
+      "at": [
+        6,
+        9
+      ],
+      "media": "/media/clip.mp4",
+      "in": 1.5,
+      "loop": true,
+      "width": 640,
+      "position": [
+        1500,
+        300
+      ]
+    },
+    {
+      "at": [
+        7,
+        9
+      ],
+      "parent": "pip",
+      "shape": "rect",
+      "stroke": {
+        "width": 6,
+        "color": "#30A0E0"
+      },
+      "area": {
+        "text": "Price"
+      }
+    },
+    {
+      "parent": "pip",
+      "shape": "rect",
+      "fill": "#E0303A",
+      "keyframes": [
+        {
+          "at": 7,
+          "area": {
+            "text": "Price",
+            "nth": 0
+          }
+        },
+        {
+          "at": 7.5,
+          "area": {
+            "text": "Price"
+          }
+        }
+      ]
+    }
+  ]
+}

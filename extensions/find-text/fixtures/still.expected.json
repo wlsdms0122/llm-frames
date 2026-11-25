@@ -1,0 +1,92 @@
+{
+  "kind": "sequence",
+  "format": {
+    "size": [
+      1920,
+      1080
+    ],
+    "fps": 25
+  },
+  "theme": {
+    "shapes": {
+      "box": {
+        "stroke": {
+          "width": 4,
+          "color": "#E0303A"
+        }
+      }
+    }
+  },
+  "storyline": [
+    {
+      "id": "board",
+      "media": "/media/board.png",
+      "duration": 2,
+      "connected": [
+        {
+          "id": "sour",
+          "parent": "board",
+          "shape": "rect",
+          "style": "box",
+          "area": [
+            80.000001,
+            297,
+            232,
+            30
+          ]
+        },
+        {
+          "id": "total",
+          "parent": "board",
+          "shape": "rect",
+          "style": "box",
+          "area": [
+            70,
+            471,
+            252,
+            38
+          ]
+        },
+        {
+          "id": "range",
+          "parent": "board",
+          "shape": "rect",
+          "style": "box",
+          "area": [
+            65.810524,
+            196,
+            258.189477,
+            227
+          ]
+        },
+        {
+          "id": "note",
+          "parent": "board",
+          "title": "here",
+          "style": "subtitle",
+          "anchor": "left",
+          "position": {
+            "area": [
+              747.215165,
+              468,
+              175.339584,
+              49
+            ],
+            "point": "right"
+          }
+        }
+      ]
+    },
+    {
+      "id": "zoom",
+      "media": "/media/board.png",
+      "duration": 2,
+      "crop": [
+        737.215165,
+        458,
+        195.339584,
+        69
+      ]
+    }
+  ]
+}
