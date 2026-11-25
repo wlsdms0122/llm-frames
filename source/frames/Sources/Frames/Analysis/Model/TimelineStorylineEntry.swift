@@ -7,7 +7,11 @@
 
 // `kind` is the clip's kind, `media` the pinned absolute path of its media file, an image sequence's directory for one,
 // nil for a solid and for a compound clip or a template instance, whose media `nested` gives, and `page` the page of a
-// PDF it shows, nil for every other medium. `clip` is `[in, out)` on its clip time, `sound` the range its sound plays
+// PDF it shows, nil for every other medium. `fps` is the rate an image sequence is read at, nil for every other
+// medium, whose files give its rate, and in a resolved document, which pins its frames' times and no rate. `instant`
+// is its `in` in sequence time, nil in a resolved document, which keeps no instant, `clock` the map of the times it
+// writes to sequence time, `space` where its `position` and `cornerPin` are written, output pixels, and `ownSpace`
+// where its `crop` and `mask` are. `clip` is `[in, out)` on its clip time, `sound` the range its sound plays
 // over, its split applied, or nil where it plays no sound, and `isTimeRemapped` whether its media time comes from
 // `timeRemap`, when its speed is 1. `time` is what its time map gives at the time the report is asked at, nil for a
 // report asked at none.
@@ -18,6 +22,11 @@ struct TimelineStorylineEntry: Equatable, Sendable {
     let kind: String
     let media: String?
     let page: Int?
+    let fps: Double?
+    let instant: Double?
+    let clock: TimelineClock
+    let space: CoordinateSpace
+    let ownSpace: CoordinateSpace
     let edit: TimeRange
     let drawn: TimeRange
     let clip: TimeRange
@@ -35,6 +44,11 @@ struct TimelineStorylineEntry: Equatable, Sendable {
         kind: String,
         media: String?,
         page: Int?,
+        fps: Double?,
+        instant: Double?,
+        clock: TimelineClock,
+        space: CoordinateSpace,
+        ownSpace: CoordinateSpace,
         edit: TimeRange,
         drawn: TimeRange,
         clip: TimeRange,
@@ -50,6 +64,11 @@ struct TimelineStorylineEntry: Equatable, Sendable {
         self.kind = kind
         self.media = media
         self.page = page
+        self.fps = fps
+        self.instant = instant
+        self.clock = clock
+        self.space = space
+        self.ownSpace = ownSpace
         self.edit = edit
         self.drawn = drawn
         self.clip = clip

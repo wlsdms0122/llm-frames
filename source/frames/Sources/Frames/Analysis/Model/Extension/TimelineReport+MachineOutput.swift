@@ -7,7 +7,8 @@
 
 // `{"timeline": "0.1.0", duration, storyline, clips}`, the object `timeline --json` prints, with `time` after
 // `duration` when it is asked at a time, where a storyline entry also has `clipTime` and every entry `mediaTime`.
-// Every entry has `kind`, `media`, its pinned path or `null`, and `page`. A nested document's object has the same form.
+// Every entry has `kind`, `media`, its pinned path or `null`, and `page`, and after its own keys `fps`, `instant`,
+// `clock`, `space` and `ownSpace`. A nested document's object has the same form.
 extension TimelineReport {
     // MARK: - Property
     package var machineOutput: JSONValue {
@@ -43,7 +44,7 @@ extension TimelineReport {
             JSONMember(key: "speed", value: .number(entry.speed)),
             JSONMember(key: "timeRemap", value: .bool(entry.isTimeRemapped)),
             JSONMember(key: "transition", value: transition ?? .null)
-        ]
+        ] + written(fps: entry.fps, instant: entry.instant, clock: entry.clock, space: entry.space, ownSpace: entry.ownSpace)
         let time = entry.time.map { time in
             [
                 JSONMember(key: "clipTime", value: .time(time.clipTime)),
@@ -77,10 +78,49 @@ extension TimelineReport {
             JSONMember(key: "storyline", value: text(entry.storyline)),
             JSONMember(key: "parent", value: text(entry.parent)),
             JSONMember(key: "animation", value: animation ?? .null)
-        ]
+        ] + written(fps: entry.fps, instant: entry.instant, clock: entry.clock, space: entry.space, ownSpace: entry.ownSpace)
         let time = entry.time.map { [JSONMember(key: "mediaTime", value: mediaTime($0.mediaTime))] }
 
         return .object(JSONObject(members: members + (time ?? []) + nested(entry.nested)))
+    }
+
+    // An entry's image sequence rate, instant, clock and spaces, `null` where it has none.
+    private func written(
+        fps: Double?,
+        instant: Double?,
+        clock: TimelineClock,
+        space: CoordinateSpace?,
+        ownSpace: CoordinateSpace?
+    ) -> [JSONMember] {
+        [
+            JSONMember(key: "fps", value: fps.map(JSONValue.number) ?? .null),
+            JSONMember(key: "instant", value: instant.map(JSONValue.time) ?? .null),
+            JSONMember(key: "clock", value: .object(JSONObject(members: [
+                JSONMember(key: "clip", value: text(clock.clip)),
+                JSONMember(key: "origin", value: .time(clock.origin)),
+                JSONMember(key: "speed", value: .number(clock.speed))
+            ]))),
+            JSONMember(key: "space", value: space.map(output) ?? .null),
+            JSONMember(key: "ownSpace", value: ownSpace.map(output) ?? .null)
+        ]
+    }
+
+    private func output(_ space: CoordinateSpace) -> JSONValue {
+        let (kind, clip): (String, String?) = switch space {
+        case .output:
+            ("output", nil)
+
+        case let .media(place):
+            ("media", place)
+
+        case let .box(place):
+            ("box", place)
+        }
+
+        return .object(JSONObject(members: [
+            JSONMember(key: "kind", value: .string(kind)),
+            JSONMember(key: "clip", value: text(clip))
+        ]))
     }
 
     // A span writes its length under the key its preset uses for it.

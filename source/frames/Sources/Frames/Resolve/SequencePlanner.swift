@@ -573,33 +573,8 @@ struct SequencePlanner: Sendable {
             cornerPin: cornerPin,
             crop: crop,
             mask: mask,
-            isInOutputPixels: isInOutputPixels(of: plan.parent, time: time)
+            isInOutputPixels: time.space(givenBy: plan.parent) == .output
         )
-    }
-
-    // Whether a clip's space is output pixels: an unparented clip's and a solid's are, and a storyline clip's with a
-    // corner pin gives its children output pixels. The chain is walked up past every shape placed by its geometry,
-    // every adjustment and every clip with a corner pin, which gives its children the space its corner pin is written
-    // in, and ParentFinder has ruled out a cycle, so it ends.
-    private func isInOutputPixels(
-        of parent: ClipParent?,
-        time: TimePlan
-    ) -> Bool {
-        var parent = parent
-        while case let .clip(index, _) = parent, time.clips[index].space == .parent || time.clips[index].isPinned {
-            parent = time.clips[index].parent
-        }
-
-        switch parent {
-        case .none:
-            return true
-
-        case let .storyline(index, _):
-            return time.storyline[index].source.media == nil || time.sequence.storyline[index].cornerPin != nil
-
-        case .clip:
-            return false
-        }
     }
 
     // A path's vertices as its entry holds them. A tracked path's vertex and tangents written without keyframes are

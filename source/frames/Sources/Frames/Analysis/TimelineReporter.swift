@@ -9,7 +9,8 @@ import Foundation
 
 // Plans a sequence without rendering and reports its time as `timeline` prints it, with every window as tracking
 // leaves it. It stops wherever the plan does. A resolved document is reported as it is written: it keeps no names, so
-// its presets are nil, and it holds an audio clip only as sound, so it reports none. Media is named by its pinned
+// its presets are nil, it holds an audio clip only as sound, so it reports none, it writes every instant in sequence
+// time and keeps no clip's instant, and it pins an image sequence's frame times and no rate. Media is named by its pinned
 // path in both. Asked at a sequence time, which may lie outside the sequence, every entry also gives what its time map
 // gives there (FRAMES-8), and a nested document is reported at the media time its clip shows.
 package struct TimelineReporter: Sendable {
@@ -46,6 +47,7 @@ package struct TimelineReporter: Sendable {
                     of: clip,
                     geometry: plan.storyline[index],
                     sound: sound(at: clip.place, in: plan),
+                    ownSpace: timePlan.ownSpace(of: clip),
                     at: time
                 )
             },
@@ -72,6 +74,7 @@ package struct TimelineReporter: Sendable {
                     of: storyline[index],
                     outgoing: storyline.indices.contains(index + 1) ? storyline[index + 1] : nil,
                     sound: sound(at: storyline[index].place, in: sequence),
+                    ownSpace: sequence.ownSpace(of: storyline[index]),
                     at: time
                 )
             },
@@ -91,6 +94,7 @@ package struct TimelineReporter: Sendable {
         of clip: StorylinePlan,
         geometry: StorylineGeometry,
         sound: TimeRange?,
+        ownSpace: CoordinateSpace,
         at time: Double?
     ) -> TimelineStorylineEntry {
         let media = clip.source.media
@@ -107,6 +111,11 @@ package struct TimelineReporter: Sendable {
             kind: clip.source.kind.label,
             media: media.flatMap(file(of:)),
             page: media.flatMap(page(of:)),
+            fps: media.flatMap(rate(of:)),
+            instant: clip.instant,
+            clock: TimelineClock(clip: clip.place.description, map: clip.map),
+            space: .output,
+            ownSpace: ownSpace,
             edit: clip.edit,
             drawn: clip.drawn,
             clip: clip.source.clipRange,
@@ -119,7 +128,7 @@ package struct TimelineReporter: Sendable {
         )
     }
 
-    // A media clip without a clock is a still.
+    // A media clip without a clock is a still, and an audio clip has no picture, so it writes no coordinates.
     private func entry(
         of clip: ClipPlan,
         geometry: ClipGeometry,
@@ -138,6 +147,7 @@ package struct TimelineReporter: Sendable {
         case nil:
             nil
         }
+        let isSound = clip.kind == .media(.audio)
         let shown = time.map { time in
             TimelineClipTime(mediaTime: clip.media.map { media in
                 shownTime(of: media, at: clip.mediaClock?.mediaTime(atSequenceTime: time) ?? 0)
@@ -150,6 +160,11 @@ package struct TimelineReporter: Sendable {
             kind: clip.kind.label,
             media: clip.media.flatMap(file(of:)),
             page: clip.media.flatMap(page(of:)),
+            fps: clip.media.flatMap(rate(of:)),
+            instant: clip.instant,
+            clock: TimelineClock(clip: clip.storyline.map { plan.storyline[$0].place.description }, map: clip.clock),
+            space: isSound ? nil : plan.space(givenBy: clip.parent),
+            ownSpace: isSound ? nil : plan.ownSpace(of: clip),
             visible: clip.visible,
             sound: sound,
             lane: clip.lane,
@@ -185,6 +200,7 @@ package struct TimelineReporter: Sendable {
         of clip: ResolvedStorylineClip,
         outgoing: ResolvedStorylineClip?,
         sound: TimeRange?,
+        ownSpace: CoordinateSpace,
         at time: Double?
     ) -> TimelineStorylineEntry {
         let edit = TimeRange(start: clip.start, end: clip.end)
@@ -205,6 +221,11 @@ package struct TimelineReporter: Sendable {
             kind: (clip.media.map { ClipKind.media(kind(of: $0)) } ?? .solid).label,
             media: clip.media.flatMap(file(of:)),
             page: clip.media.flatMap(page(of:)),
+            fps: nil,
+            instant: nil,
+            clock: .sequence,
+            space: .output,
+            ownSpace: ownSpace,
             edit: edit,
             drawn: drawn,
             clip: TimeRange(start: clip.in, end: clip.out),
@@ -237,6 +258,11 @@ package struct TimelineReporter: Sendable {
             kind: kind(of: clip.content),
             media: media.flatMap { file(of: $0.media) },
             page: media.flatMap { page(of: $0.media) },
+            fps: nil,
+            instant: nil,
+            clock: .sequence,
+            space: sequence.space(givenBy: clip.parent),
+            ownSpace: sequence.ownSpace(of: clip),
             visible: TimeRange(start: clip.start, end: clip.end),
             sound: media == nil ? nil : sound(at: clip.place, in: sequence),
             lane: clip.lane,
@@ -336,6 +362,13 @@ package struct TimelineReporter: Sendable {
         guard case let .file(file) = media.source else { return nil }
 
         return file.path
+    }
+
+    // An image sequence is read at the rate its media form writes, and every other medium's files give its rate.
+    private func rate(of media: MediaPlan) -> Double? {
+        guard case let .file(file) = media.source, !file.frameFiles.isEmpty else { return nil }
+
+        return file.fps
     }
 
     private func page(of media: MediaPlan) -> Int? {
