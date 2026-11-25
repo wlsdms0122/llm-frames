@@ -825,4 +825,5 @@ Times are rounded to the microsecond and positions, sizes, opacities and the num
 - [document/howto/](document/howto/): techniques that belong to no form, such as [motion graphics](document/howto/motion-graphics.md), [effects](document/howto/effects.md) and [text on a path](document/howto/text-on-a-path.md).
 - [packs/](packs/): packs kept beside frames, each a directory to copy into `$FRAMES_HOME/packs/`. A form's guide is its `guide.md`, such as [packs/demo/guide.md](packs/demo/guide.md).
 - [document/ARCHITECTURE.md](document/ARCHITECTURE.md): how an implementation is laid out.
+- [document/MEASUREMENTS.md](document/MEASUREMENTS.md): the measurements behind the specification's bounds and constants.
 - [spec/](spec/README.md): the specification.
