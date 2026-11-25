@@ -56,20 +56,20 @@ every media file is read through the decoder
 - **Motion blur:** a frame in which a clip with motion blur draws is an exposure of the whole picture, the mean of N sample lists of the frame that the renderer draws. Each sample is one instant of the exposure, the same for the whole frame, at which every parameter that takes time and that a clip with motion blur owns is read, clamped to the frame's instant's side of every jump the document writes on it, and every other as at the frame's instant. Clocks (`in`, `speed`, `loop`, `timeRemap`) carry each instant into compound clips. A sample moves pose and holds content (media frames, tracked motion, the grain seed) and which clips draw ([FRAMES-29](FRAMES-29/SPEC.md)).
 - **Decoder, renderer, mixer, encoder:** the four roles that read media and make pixels, sound and files ([FRAMES-21](FRAMES-21/SPEC.md)). Between the decoder and the encoder every picture holds working values, one extended-range sRGB for every sequence with one set of formulas. The sequence's colour space decides how its output is encoded and clipped, and by its peak, for `rec2100-pq` its `format.peak`, with each media clip's `toneMap`, whether an HDR picture brighter than that peak is tone mapped down to it on the way in ([FRAMES-26](FRAMES-26/SPEC.md)).
 - **Providers:** shaping, which resolve calls, and tracking and OCR, which the `track` and `ocr` commands call, and whose results a document writes as track data and rect areas ([FRAMES-21](FRAMES-21/SPEC.md)). They read media files (through the decoder) and fonts, never drawn pixels, so no resolved value depends on a renderer. A resolved document needs none of them again.
-- **Analysis:** commands that give the agent and extensions facts to write a document with, as versioned JSON ([FRAMES-23](FRAMES-23/SPEC.md)). They take no part in rendering.
+- **Analysis:** commands that give the agent and tools facts to write a document with, as versioned JSON ([FRAMES-23](FRAMES-23/SPEC.md)). They take no part in rendering.
 - **Transcode:** writes a delivery file at a quality level from a still, an audio file or a video file with the encoder role. It is not part of rendering.
 
 ### What frames leaves out
 
-- Effects as code run by a renderer: shaders and scripts. Packs carry data only, so every role can draw them. Filters, LUTs, matte transitions and blend modes cover most of what such effects are bought for, and the rest is made outside and arrives as media (the effects how-to). A per-pixel kernel carried as data in a portable shading language is where a later contract would add them.
+- Effects as code run by a renderer: shaders and scripts. Nothing in a pack runs while a role draws, so every role can draw what a pack holds. Filters, LUTs, matte transitions and blend modes cover most of what such effects are bought for, and the rest is made outside and arrives as media (the effects how-to). A per-pixel kernel carried as data in a portable shading language is where a later contract would add them.
 - Stabilisation.
 - Blur of the motion inside media: optical-flow motion blur and frame blending of retimed footage. Motion blur blurs the motion frames gives a clip, and its media frames are held over each frame's exposure ([FRAMES-29](FRAMES-29/SPEC.md)).
-- A loudness target. frames measures loudness with `loudness` and limits with the `limiter` op, and an extension writes the gain that reaches a target ([FRAMES-28](FRAMES-28/SPEC.md)).
+- A loudness target. frames measures loudness with `loudness` and limits with the `limiter` op, and a tool writes the gain that reaches a target ([FRAMES-28](FRAMES-28/SPEC.md)).
 - Ink bounds of text. `evaluate` reports where text lies by its characters' glyph boxes, made of advances, ascents and descents ([FRAMES-5](FRAMES-5/SPEC.md#units)), and a program that needs the outlines as drawn measures a frame from `extract`.
 - GIF and WebM output. Rendering makes MOV, MP4 and PNG.
 - Speech synthesis, recording and transcription. Sound arrives as files.
 - Generating graphics. They arrive as media.
-- SVG. Vector artwork arrives as a page of a PDF, and an extension converts SVG to PDF (`rsvg-convert -f pdf`, Inkscape) before it is named ([FRAMES-3](FRAMES-3/SPEC.md)).
+- SVG. Vector artwork arrives as a page of a PDF, and a tool converts SVG to PDF (`rsvg-convert -f pdf`, Inkscape) before it is named ([FRAMES-3](FRAMES-3/SPEC.md)).
 - Fetching packs over the network. Installing is copying.
 
 Adding any of these later raises the minor version ([FRAMES-18](FRAMES-18/SPEC.md)). Whoever adds one updates the key tables, the README and the specification together.
@@ -103,7 +103,7 @@ Read the specs by area, in this order:
 - Documents: [FRAMES-6](FRAMES-6/SPEC.md) documents and stills, then the sequence: [FRAMES-7](FRAMES-7/SPEC.md) keys, [FRAMES-8](FRAMES-8/SPEC.md) time, [FRAMES-9](FRAMES-9/SPEC.md) format and lanes, [FRAMES-10](FRAMES-10/SPEC.md) parenting, [FRAMES-11](FRAMES-11/SPEC.md) clip kinds, masks and track mattes, [FRAMES-12](FRAMES-12/SPEC.md) tracking, [FRAMES-27](FRAMES-27/SPEC.md) corner pin, [FRAMES-13](FRAMES-13/SPEC.md) audio, [FRAMES-28](FRAMES-28/SPEC.md) buses and loudness.
 - Looks and reuse: [FRAMES-14](FRAMES-14/SPEC.md), [FRAMES-15](FRAMES-15/SPEC.md) and [FRAMES-16](FRAMES-16/SPEC.md) presets, [FRAMES-22](FRAMES-22/SPEC.md) theme, [FRAMES-17](FRAMES-17/SPEC.md) packs and templates, [FRAMES-18](FRAMES-18/SPEC.md) versions.
 - The engine: [FRAMES-19](FRAMES-19/SPEC.md) resolved document, [FRAMES-20](FRAMES-20/SPEC.md) evaluation, [FRAMES-29](FRAMES-29/SPEC.md) motion blur, [FRAMES-21](FRAMES-21/SPEC.md) roles and providers.
-- Using it: [FRAMES-23](FRAMES-23/SPEC.md) commands and machine output, [FRAMES-24](FRAMES-24/SPEC.md) what a result keeps, [FRAMES-25](FRAMES-25/SPEC.md) layers, forms, guides and extensions.
+- Using it: [FRAMES-23](FRAMES-23/SPEC.md) commands and machine output, [FRAMES-24](FRAMES-24/SPEC.md) what a result keeps, [FRAMES-25](FRAMES-25/SPEC.md) layers, forms, guides and tools.
 
 ## Conformance
 

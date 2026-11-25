@@ -8,7 +8,7 @@ frames is versioned major.minor.patch, and everything frames reads or writes fol
 
 ## Motivation
 
-Packs and extensions are made once and used by many frames, and resolved documents are kept to make results again. One version with semantic rules tells each of them what still holds.
+Packs, and the tools they carry, are made once and used by many frames, and resolved documents are kept to make results again. One version with semantic rules tells each of them what still holds.
 
 ## Rules
 

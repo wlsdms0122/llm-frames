@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""frames-track-motion: fills each `track-motion` request of a document with the track data `frames track` prints.
+"""frames/track-motion: fills each `frames/track-motion` request of a document with the track data `frames track`
+prints.
 
-A request is an object with the key `tool` that stands where a value is still to be found, and the requests this
-extension fills are those whose `tool` is `track-motion`, standing as a clip's `track`. It reads from
+A request is an object with the key `tool` that stands where a value is still to be found, and the requests this tool
+fills are those whose `tool` is `frames/track-motion`, standing as a clip's `track`. It reads from
 `frames timeline --json` the media each clip's track follows and the frames it is followed over, and from
 `frames timeline --at` the frame its target is written on, follows the target with `frames track`, and prints the same
 document with each of its requests replaced by that track data. A request for any other tool is left as written. It
@@ -16,19 +17,18 @@ import subprocess
 import sys
 import tempfile
 
-SUPPORTED_MAJOR = 0
 GLOBAL_OPTIONS = ("--theme", "--decoder", "--renderer", "--mixer", "--encoder", "--shaper", "--tracker", "--ocr")
-TOOL = "track-motion"
+TOOL = "frames/track-motion"
 REQUEST_KEYS = {"tool", "target"}
 TARGET_KEYS = ("area", "cornerPin", "crop", "mask")
 AREA_KEYS = ("area", "crop")
 PLACEHOLDER = [0, 0, 1, 1]
-USAGE = """frames track-motion <document.json | ->
+USAGE = """frames frames/track-motion <document.json | ->
 
 Prints the document with every clip's track request replaced by the track data `frames track` prints for it:
 
-  "track": {"tool": "track-motion", "target": "area"}           the clip's own area
-  "track": {"tool": "track-motion", "target": [x, y, w, h]}     that area
+  "track": {"tool": "frames/track-motion", "target": "area"}           the clip's own area
+  "track": {"tool": "frames/track-motion", "target": [x, y, w, h]}     that area
 
 A target names one of the clip's own keys in the media pixels its track follows (area, cornerPin, crop, mask), or is
 an area in those pixels. It is written on the frame the clip's instant shows, or where the key it names is keyframed,
@@ -38,13 +38,13 @@ in perspective with --tracker planar. Track data and a request for any other too
   <document.json | ->           The document, as an absolute path, or - for standard input.
   --help                        Prints this help.
 
-The global options of frames given before `track-motion` are passed to every frames command it runs, so
-`frames --tracker planar track-motion doc.json` follows with the planar tracker. The frames it runs is the one on
-PATH, or the executable FRAMES_EXECUTABLE names."""
+The global options of frames given before `frames/track-motion` are passed to every frames command it runs, so
+`frames --tracker planar frames/track-motion doc.json` follows with the planar tracker. The frames it runs is the one
+that runs it, whose executable frames gives in FRAMES_EXECUTABLE."""
 
 
 class Stop(Exception):
-    """A reason the document cannot be written, printed as `frames-track-motion: <reason>`."""
+    """A reason the document cannot be written, printed as `frames/track-motion: <reason>`."""
 
 
 # MARK: - Frames
@@ -64,20 +64,7 @@ class Frames:
         if completed.returncode != 0:
             message = completed.stderr.strip() or f"exit {completed.returncode}"
             raise Stop(f"{shlex.join(completed.args)} failed: {message}")
-        output = json.loads(completed.stdout)
-        version = output.get(arguments[0])
-        if major(version) != SUPPORTED_MAJOR:
-            raise Stop(f"frames {arguments[0]} printed version {version!r}, and this extension reads {SUPPORTED_MAJOR}.x")
-        return output
-
-    def check_version(self):
-        try:
-            completed = subprocess.run([self.executable, "--version"], capture_output=True, text=True)
-        except OSError as error:
-            raise Stop(f"cannot run {self.executable}: {error.strerror}")
-        version = completed.stdout.strip()
-        if completed.returncode != 0 or major(version) != SUPPORTED_MAJOR:
-            raise Stop(f"{self.executable} --version is {version!r}, and this extension is written for {SUPPORTED_MAJOR}.x")
+        return json.loads(completed.stdout)
 
     def track(self, media, time, target, end, color_space):
         """What `frames track` prints for the target followed from the frame at `time` to the frame at `end`."""
@@ -91,12 +78,6 @@ class Frames:
         if key not in self.followed:
             self.followed[key] = self.report(arguments)
         return self.followed[key]
-
-
-def major(version):
-    """The major version of a version string, or None for anything else."""
-    head = version.split(".")[0] if isinstance(version, str) else ""
-    return int(head) if head.isdigit() else None
 
 
 # MARK: - Requests
@@ -210,16 +191,16 @@ def request_of(clip):
     """The clip's request, None where its `track` is absent, track data or a request for another tool."""
     for holder, key, path in requests_in(clip.value, "", []):
         if is_own(holder[key]) and not (holder is clip.value and key == "track"):
-            raise Stop(f"{clip.place}: {path}: a track-motion request stands as a clip's track")
+            raise Stop(f"{clip.place}: {path}: a frames/track-motion request stands as a clip's track")
     value = clip.value.get("track")
     if not is_own(value):
         return None
     where = f"{clip.place}: track"
     unknown = sorted(set(value) - REQUEST_KEYS)
     if unknown:
-        raise Stop(f"{where}: unknown key {json.dumps(unknown[0])} in a track-motion request. Allowed: {', '.join(sorted(REQUEST_KEYS))}")
+        raise Stop(f"{where}: unknown key {json.dumps(unknown[0])} in a frames/track-motion request. Allowed: {', '.join(sorted(REQUEST_KEYS))}")
     if "target" not in value:
-        raise Stop(f"{where}: a track-motion request names its target, one of the clip's own keys {', '.join(TARGET_KEYS)} or an area [x, y, w, h]")
+        raise Stop(f"{where}: a frames/track-motion request names its target, one of the clip's own keys {', '.join(TARGET_KEYS)} or an area [x, y, w, h]")
     target = value["target"]
     if isinstance(target, str):
         if target not in TARGET_KEYS:
@@ -410,7 +391,7 @@ def follow(request, frames, times):
     return {"time": before["time"], "frames": joined}
 
 
-# MARK: - The extension
+# MARK: - The tool
 
 def number_text(value):
     """A number as frames' machine output writes it, to the microsecond."""
@@ -437,7 +418,7 @@ def probe_document(document):
                 holder[key] = PLACEHOLDER
             else:
                 tool = holder[key]["tool"]
-                raise Stop(f"{clip.place}: {path}: a request for {json.dumps(tool)} stands where frames-track-motion has no value to time the document with, so it is filled first")
+                raise Stop(f"{clip.place}: {path}: a request for {json.dumps(tool)} stands where frames/track-motion has no value to time the document with, so it is filled first")
     return copy
 
 
@@ -487,7 +468,9 @@ def load(document):
     return value
 
 
-def run(arguments):
+def run(arguments, executable):
+    """The document with every request of this tool filled. `executable` is the frames that runs the tool, which every
+    frames command it needs is run with, or None where no frames gave it."""
     options, path = parse(arguments)
     document = load(path)
     clips = clips_of(document)
@@ -503,10 +486,11 @@ def run(arguments):
     if not requests:
         return document
 
-    frames = Frames(os.environ.get("FRAMES_EXECUTABLE") or "frames", options)
-    frames.check_version()
+    if executable is None:
+        raise Stop("FRAMES_EXECUTABLE is not set: the tool is run by frames, as frames frames/track-motion")
+    frames = Frames(executable, options)
 
-    with tempfile.TemporaryDirectory(prefix="frames-track-motion-") as directory:
+    with tempfile.TemporaryDirectory(prefix="track-motion-") as directory:
         probe_path = os.path.join(directory, "document.json")
         with open(probe_path, "w", encoding="utf-8") as file:
             json.dump(probe_document(document), file)
@@ -519,9 +503,9 @@ def run(arguments):
 
 def main():
     try:
-        document = run(sys.argv[1:])
+        document = run(sys.argv[1:], os.environ.get("FRAMES_EXECUTABLE"))
     except Stop as stop:
-        print(f"frames-track-motion: {stop}", file=sys.stderr)
+        print(f"{TOOL}: {stop}", file=sys.stderr)
         return 1
     json.dump(document, sys.stdout, ensure_ascii=False, indent=2)
     sys.stdout.write("\n")

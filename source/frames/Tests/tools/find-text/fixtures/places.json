@@ -11,7 +11,7 @@
             "shape": "rect",
             "fill": "#FF0000",
             "area": {
-              "tool": "find-text",
+              "tool": "frames/find-text",
               "text": "Total"
             }
           }
@@ -34,7 +34,7 @@
             "mask": {
               "shape": "rect",
               "area": {
-                "tool": "find-text",
+                "tool": "frames/find-text",
                 "text": "Total"
               }
             }
@@ -66,7 +66,7 @@
             "shape": "rect",
             "fill": "#FF0000",
             "area": {
-              "tool": "find-text",
+              "tool": "frames/find-text",
               "text": "Total"
             }
           }
@@ -93,7 +93,7 @@
             "shape": "rect",
             "fill": "#FF0000",
             "area": {
-              "tool": "find-text",
+              "tool": "frames/find-text",
               "text": "Total"
             }
           }
@@ -137,7 +137,7 @@
             "shape": "rect",
             "fill": "#FF0000",
             "area": {
-              "tool": "find-text",
+              "tool": "frames/find-text",
               "text": "Total",
               "nth": 1
             }

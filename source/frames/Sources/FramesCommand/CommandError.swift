@@ -24,7 +24,8 @@ enum CommandError: Error, Equatable, CustomStringConvertible, Sendable {
     case argumentsAfterHelp(arguments: [String])
     case unknownRole(option: String, role: String, name: String, known: [String])
     case unknownCommand(name: String)
-    case unstartableExtension(path: String, reason: String)
+    case unknownTool(UnknownTool)
+    case unstartableTool(path: String, reason: String)
     case unknownDocument(command: String, argument: String)
     case unknownTemplate(command: String, name: String)
     case missingFile(path: String)
@@ -87,8 +88,11 @@ enum CommandError: Error, Equatable, CustomStringConvertible, Sendable {
         case let .unknownCommand(name):
             "unknown command \(quoted(name))"
 
-        case let .unstartableExtension(path, reason):
-            "\(path): the extension cannot be started: \(reason)"
+        case let .unknownTool(tool):
+            "\(tool)"
+
+        case let .unstartableTool(path, reason):
+            "\(path): the tool cannot be started: \(reason)"
 
         case let .unknownDocument(command, argument):
             "\(command): the document \(quoted(argument)) is not an absolute path, <pack>/<name> or -, "

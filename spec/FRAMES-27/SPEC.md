@@ -134,13 +134,13 @@ Corner pin bounds taken after the tracked motion, the rectangle that bounds the 
 
 A corner pin that places a plane on which the clip's box may grow and shrink: the plane would need a rectangle of its own that the four points are the corners of, a key no clip has, where a compound clip of a fixed size already is that rectangle.
 
-A point form that gives another clip's position after its tracked motion, so that four tracked shapes give a corner pin its points: a clip area gives a clip's box before its own transform, as corner pin bounds do ([The key](#the-key)), and a form after it would be a second rule for one name. Four point tracks written as track data by an extension give the same corner pin.
+A point form that gives another clip's position after its tracked motion, so that four tracked shapes give a corner pin its points: a clip area gives a clip's box before its own transform, as corner pin bounds do ([The key](#the-key)), and a form after it would be a second rule for one name. Four point tracks written as track data by a tool give the same corner pin.
 
 A corner pin judged by the corners of everything the clip draws, its shadow and strokes included: a theme length, a shadow's radius, would then decide whether a placement stops or draws, and the same corner pin would stop under one style and not under another.
 
 ## Notes
 
-**Note.** Four point tracks drive a corner pin as an extension composes them ([FRAMES-25](../FRAMES-25/SPEC.md)): it runs `track` on four targets and writes track data whose quad on each frame is the four targets' centres there, in the corner pin's order.
+**Note.** Four point tracks drive a corner pin as a tool composes them ([FRAMES-25](../FRAMES-25/SPEC.md)): it runs `track` on four targets and writes track data whose quad on each frame is the four targets' centres there, in the corner pin's order.
 
 **Note.** The pixel limit that bounds a nested list's raster and a filtered picture is the renderer's own ([FRAMES-20](../FRAMES-20/SPEC.md#pictures)), and no rule fixes its value. The named test of [FRAMES-24](../FRAMES-24/SPEC.md) covers pictures carried inside their box. What a clip with a corner pin draws outside its box near the horizon, where K stretches lengths without bound, is drawn by the definition of [What a renderer holds](#what-a-renderer-holds), and lies outside that test.
 

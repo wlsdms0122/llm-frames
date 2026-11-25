@@ -42,7 +42,7 @@ struct PacksCommandTests {
             """)
     }
 
-    @Test("packs <pack> lists what the pack holds by kind, each by the name a document gives it, with the parameters of each preset and template under it")
+    @Test("packs <pack> lists what the pack holds by kind, each by the name a document or a command gives it, with the parameters of each preset and template under it and each tool after the files")
     func listsPackContents() throws {
         // Given
         let pack = try sut.addPack("shorts")
@@ -72,6 +72,9 @@ struct PacksCommandTests {
         try sut.write("", to: pack.appendingPathComponent("media/leak.mov"))
         try sut.write("", to: pack.appendingPathComponent("media/.DS_Store"))
         try sut.write("", to: pack.appendingPathComponent("fonts/Pretendard-Bold.otf"))
+        try sut.addTool("captions", in: pack, script: "#!/bin/sh\n")
+        try sut.addTool("autocut", in: pack, script: "#!/bin/sh\n")
+        try sut.write("", to: pack.appendingPathComponent("tools/notes.txt"))
 
         // When
         let code = sut.run(["packs", "shorts"])
@@ -91,6 +94,8 @@ struct PacksCommandTests {
             lut  shorts/warm
             media  shorts/leak.mov
             font  Pretendard-Bold.otf
+            tool  shorts/autocut  a tool for tests
+            tool  shorts/captions  a tool for tests
 
             """)
     }
@@ -167,6 +172,22 @@ struct PacksCommandTests {
         // Then
         #expect(code == 1)
         #expect(sut.standardError == "frames: shorts/intro: params.name (parameter): missing key \"description\"\n")
+    }
+
+    @Test("packs <pack> stops on a tool whose tool.json does not hold, naming its file")
+    func stopsOnBrokenTool() throws {
+        // Given
+        let pack = try sut.addPack("shorts")
+        try sut.addTool("autocut", in: pack, script: "#!/bin/sh\n")
+        let manifest = try sut.write(#"{ "description": "cuts silence", "run": "missing.sh" }"#, to: pack.appendingPathComponent("tools/autocut/tool.json"))
+
+        // When
+        let code = sut.run(["packs", "shorts"])
+
+        // Then
+        #expect(code == 1)
+        #expect(sut.standardError == "frames: \(manifest.path): run (tool): \"missing.sh\" is not an executable file in the tool's directory\n")
+        #expect(sut.standardOutput.isEmpty)
     }
 
     @Test("a pack that is not there, or one without a pack.json, stops")

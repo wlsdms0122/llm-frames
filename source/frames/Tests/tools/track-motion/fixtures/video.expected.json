@@ -4719,7 +4719,7 @@
           "parent": "shot",
           "shape": "rect",
           "area": {
-            "tool": "find-text",
+            "tool": "frames/find-text",
             "text": "Total"
           },
           "fill": "#FFFFFF",

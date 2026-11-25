@@ -653,39 +653,39 @@ struct SequenceCheckTests {
         "a request stops at the place it stands, naming the tool that fills it, wherever a value stands",
         arguments: [
             (
-                #"{ "id": "box", "shape": "rect", "parent": "shot", "area": { "tool": "find-text", "text": "Total", "padding": 8 } }"#,
+                #"{ "id": "box", "shape": "rect", "parent": "shot", "area": { "tool": "frames/find-text", "text": "Total", "padding": 8 } }"#,
                 "storyline[0]#shot.connected[0]#box.area",
-                "find-text"
+                "frames/find-text"
             ),
             (
-                #"{ "shape": "rect", "parent": "shot", "area": [10, 10, 50, 50], "track": { "tool": "track-motion", "target": "area" } }"#,
+                #"{ "shape": "rect", "parent": "shot", "area": [10, 10, 50, 50], "track": { "tool": "frames/track-motion", "target": "area" } }"#,
                 "storyline[0]#shot.connected[0].track",
-                "track-motion"
+                "frames/track-motion"
             ),
             (
-                #"{ "shape": "rect", "parent": "shot", "keyframes": [ { "at": 0, "area": [10, 10, 50, 50] }, { "at": 1, "area": { "tool": "find-text", "text": "Total" } } ] }"#,
+                #"{ "shape": "rect", "parent": "shot", "keyframes": [ { "at": 0, "area": [10, 10, 50, 50] }, { "at": 1, "area": { "tool": "frames/find-text", "text": "Total" } } ] }"#,
                 "storyline[0]#shot.connected[0].keyframes[1].area",
-                "find-text"
+                "frames/find-text"
             ),
             (
-                #"{ "shape": "path", "parent": "shot", "points": [ [0, 0], { "area": { "tool": "find-text", "from": "Total", "to": "42,000" }, "point": "right" } ] }"#,
+                #"{ "shape": "path", "parent": "shot", "points": [ [0, 0], { "area": { "tool": "frames/find-text", "from": "Total", "to": "42,000" }, "point": "right" } ] }"#,
                 "storyline[0]#shot.connected[0].points[1].area",
-                "find-text"
+                "frames/find-text"
             ),
             (
-                #"{ "shape": "path", "parent": "shot", "points": [ [0, 0], { "tool": "pointer", "at": "cursor" } ] }"#,
+                #"{ "shape": "path", "parent": "shot", "points": [ [0, 0], { "tool": "studio/pointer", "at": "cursor" } ] }"#,
                 "storyline[0]#shot.connected[0].points[1]",
-                "pointer"
+                "studio/pointer"
             ),
             (
-                #"{ "shape": "rect", "parent": "shot", "area": [10, 10, 50, 50], "opacity": { "tool": "fader", "param": "level" } }"#,
+                #"{ "shape": "rect", "parent": "shot", "area": [10, 10, 50, 50], "opacity": { "tool": "studio/fader", "param": "level" } }"#,
                 "storyline[0]#shot.connected[0].opacity",
-                "fader"
+                "studio/fader"
             ),
             (
-                #"{ "tool": "captions", "transcript": "/abs/talk.srt" }"#,
+                #"{ "tool": "studio/captions", "transcript": "/abs/talk.srt" }"#,
                 "storyline[0]#shot.connected[0]",
-                "captions"
+                "studio/captions"
             )
         ]
     )
@@ -720,18 +720,18 @@ struct SequenceCheckTests {
     func refusesRequestAsArgument() throws {
         // Given
         let document = try Fixture.json(#"""
-            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "filter": { "preset": "frames/vivid", "args": { "amount": { "tool": "grader" } } } } ] }
+            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "filter": { "preset": "frames/vivid", "args": { "amount": { "tool": "studio/grader" } } } } ] }
             """#)
 
         // When, Then
         let error = #expect(throws: ModelError.self) { try sut.check(document: document) }
-        #expect(error?.description == #"storyline[0].filter.args.amount (request): this is a request for the tool "grader", and a tool fills its requests before the document is given to frames"#)
+        #expect(error?.description == #"storyline[0].filter.args.amount (request): this is a request for the tool "studio/grader", and a tool fills its requests before the document is given to frames"#)
     }
 
     @Test("a tool key inside metadata is no request")
     func leavesToolInMetadata() throws {
         // Given
-        let document = try Fixture.json(#"{ "kind": "sequence", "clips": [ { "shape": "rect", "metadata": { "tool": "autocut", "cut": { "tool": "autocut" } } } ] }"#)
+        let document = try Fixture.json(#"{ "kind": "sequence", "clips": [ { "shape": "rect", "metadata": { "tool": "studio/autocut", "cut": { "tool": "studio/autocut" } } } ] }"#)
 
         // When, Then
         try sut.check(document: document)

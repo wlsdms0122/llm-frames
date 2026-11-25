@@ -14,7 +14,19 @@ import Testing
 @Suite("CommandShell Tests")
 struct CommandShellTests {
     // MARK: - Property
+    // A tool that writes its path and its arguments, one a line, to the file `FRAMES_TEST_RECORD` names.
+    private static let recordingScript = """
+        #!/bin/sh
+        printf '%s\\n' "$0" "$@" > "$FRAMES_TEST_RECORD"
+
+        """
+
     private let sut: TestShell
+
+    // The file a tool of these tests writes what it was given to.
+    private var record: String {
+        sut.directory.file("record.txt")
+    }
 
     // MARK: - Initializer
     init() throws {
@@ -134,34 +146,6 @@ struct CommandShellTests {
         #expect(sut.standardOutput.isEmpty)
     }
 
-    @Test("an extension gets --help among its arguments unchanged, so its help is its own")
-    func passesHelpToExtension() throws {
-        // Given
-        let bin = URL(fileURLWithPath: sut.directory.file("bin"), isDirectory: true)
-        let record = sut.directory.file("argv.txt")
-        let script = try sut.write(
-            """
-            #!/bin/sh
-            printf '%s\\n' "$0" "$@" > "$FRAMES_TEST_ARGV"
-            """,
-            to: bin.appendingPathComponent("frames-autocut")
-        )
-        try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: script.path)
-
-        // When
-        let code = sut.run(
-            ["--theme", "shorts/shorts", "autocut", "/abs/doc.json", "--help"],
-            variables: ["PATH": "\(bin.path):/usr/bin:/bin", "FRAMES_TEST_ARGV": record]
-        )
-
-        // Then
-        let argv = try String(contentsOfFile: record, encoding: .utf8).split(separator: "\n").map(String.init)
-        #expect(code == 0)
-        #expect(argv == [script.path, "--theme", "shorts/shorts", "/abs/doc.json", "--help"])
-        #expect(sut.standardOutput.isEmpty)
-        #expect(sut.standardError.isEmpty)
-    }
-
     @Test(
         "what stops prints frames: and the reason on standard error and exits with 1",
         arguments: [
@@ -237,61 +221,159 @@ struct CommandShellTests {
         #expect(sut.standardError == "frames: top level (sequence): a template resolves on the base theme and its own theme, so it takes no --theme\n")
     }
 
-    @Test("a command frames does not have runs frames-<name> from PATH with the global options and its arguments, and exits with its code")
-    func runsExtension() throws {
+    @Test("a pack's tool runs with the global options as written before its arguments, unchanged, and frames exits with its code")
+    func runsTool() throws {
         // Given
-        let bin = URL(fileURLWithPath: sut.directory.file("bin"), isDirectory: true)
-        let record = sut.directory.file("argv.txt")
-        let script = try sut.write(
-            """
-            #!/bin/sh
-            printf '%s\\n' "$0" "$@" > "$FRAMES_TEST_ARGV"
-            exit 3
-            """,
-            to: bin.appendingPathComponent("frames-autocut")
-        )
-        try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: script.path)
+        let program = try sut.addTool("autocut", in: try sut.addPack("studio"), script: Self.recordingScript + "exit 3\n")
 
         // When
         let code = sut.run(
-            ["--theme", "shorts/shorts", "autocut", "/abs/doc.json", "--gap", "0.5", "-"],
-            variables: ["PATH": "\(bin.path):/usr/bin:/bin", "FRAMES_TEST_ARGV": record]
+            ["--theme", "shorts/shorts", "--ocr", "vision", "studio/autocut", "/abs/doc.json", "--gap", "0.5", "-"],
+            variables: ["FRAMES_TEST_RECORD": record]
         )
 
         // Then
-        let argv = try String(contentsOfFile: record, encoding: .utf8).split(separator: "\n").map(String.init)
         #expect(code == 3)
-        #expect(argv == [script.path, "--theme", "shorts/shorts", "/abs/doc.json", "--gap", "0.5", "-"])
+        #expect(try recorded() == [
+            program.path, "--theme", "shorts/shorts", "--ocr", "vision", "/abs/doc.json", "--gap", "0.5", "-"
+        ])
+        #expect(sut.standardOutput.isEmpty)
         #expect(sut.standardError.isEmpty)
     }
 
-    @Test("a frames-<name> that is not executable or not on PATH is no extension")
-    func ignoresUnexecutableExtension() throws {
+    @Test("a tool gets --help among its arguments unchanged, so its help is its own")
+    func passesHelpToTool() throws {
         // Given
-        let bin = URL(fileURLWithPath: sut.directory.file("bin"), isDirectory: true)
-        try sut.write("#!/bin/sh\nexit 0\n", to: bin.appendingPathComponent("frames-autocut"))
+        let program = try sut.addTool("autocut", in: try sut.addPack("studio"), script: Self.recordingScript)
 
         // When
-        let code = sut.run(["autocut"], variables: ["PATH": bin.path])
+        let code = sut.run(["studio/autocut", "--help"], variables: ["FRAMES_TEST_RECORD": record])
+
+        // Then
+        #expect(code == 0)
+        #expect(try recorded() == [program.path, "--help"])
+        #expect(sut.standardOutput.isEmpty)
+        #expect(sut.standardError.isEmpty)
+    }
+
+    @Test("a tool runs with FRAMES_EXECUTABLE set to the frames that runs it, whatever the environment gave, and the rest of the environment as given")
+    func setsFramesExecutable() throws {
+        // Given
+        try sut.addTool(
+            "autocut",
+            in: try sut.addPack("studio"),
+            script: "#!/bin/sh\nprintf '%s\\n' \"$FRAMES_EXECUTABLE\" \"$FRAMES_TEST_OTHER\" > \"$FRAMES_TEST_RECORD\"\n"
+        )
+
+        // When
+        let code = sut.run(
+            ["studio/autocut"],
+            variables: ["FRAMES_TEST_RECORD": record, "FRAMES_EXECUTABLE": "/elsewhere/frames", "FRAMES_TEST_OTHER": "kept"]
+        )
+
+        // Then
+        #expect(code == 0)
+        #expect(try recorded() == [sut.executable.path, "kept"])
+    }
+
+    @Test("a tool of a shipped pack runs as one of an installed pack does")
+    func runsShippedTool() throws {
+        // Given
+        let program = try sut.addTool(
+            "autocut",
+            in: sut.shipped.appendingPathComponent("frames", isDirectory: true),
+            script: Self.recordingScript
+        )
+
+        // When
+        let code = sut.run(["frames/autocut", "/abs/doc.json"], variables: ["FRAMES_TEST_RECORD": record])
+
+        // Then
+        #expect(code == 0)
+        #expect(try recorded() == [program.path, "/abs/doc.json"])
+    }
+
+    @Test(
+        "a command word with a / that finds no tool stops with the name hint, and nothing runs",
+        arguments: [
+            ("studio/autocat", #"unknown tool "studio/autocat". Did you mean "studio/autocut"? The pack "studio" holds the tools studio/autocut, studio/captions"#),
+            ("studio/render", #"unknown tool "studio/render". The pack "studio" holds the tools studio/autocut, studio/captions"#),
+            ("frames/find-txt", #"unknown tool "frames/find-txt". The pack "frames" holds no tools"#),
+            ("nopack/autocut", #"unknown tool "nopack/autocut". A tool is named <pack>/<name>, and the ones frames ships are frames/<name>"#),
+            ("studio/autocut/more", #"unknown tool "studio/autocut/more". A tool is named <pack>/<name>, and the ones frames ships are frames/<name>"#),
+            ("/abs/autocut", #"unknown tool "/abs/autocut". A tool is named <pack>/<name>, and the ones frames ships are frames/<name>"#)
+        ]
+    )
+    func stopsOnUnknownTool(
+        name: String,
+        message: String
+    ) throws {
+        // Given
+        let pack = try sut.addPack("studio")
+        try sut.addTool("autocut", in: pack, script: Self.recordingScript)
+        try sut.addTool("captions", in: pack, script: Self.recordingScript)
+
+        // When
+        let code = sut.run([name], variables: ["FRAMES_TEST_RECORD": record])
 
         // Then
         #expect(code == 1)
-        #expect(sut.standardError == "frames: unknown command \"autocut\"\n")
+        #expect(sut.standardError == "frames: \(message)\n")
+        #expect(!FileManager.default.fileExists(atPath: record))
     }
 
-    @Test("a mistyped role name stops before an extension runs")
-    func checksRolesBeforeExtension() throws {
+    @Test("a word without a / is a command of frames, so a tool's bare name, and a frames-<name> on PATH, stop as an unknown command")
+    func stopsOnBareToolName() throws {
         // Given
-        let bin = URL(fileURLWithPath: sut.directory.file("bin"), isDirectory: true)
-        let script = try sut.write("#!/bin/sh\nexit 0\n", to: bin.appendingPathComponent("frames-autocut"))
-        try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: script.path)
+        let bin = URL(fileURLWithPath: sut.directory.file("path"), isDirectory: true)
+        try sut.addTool("find-text", in: sut.shipped.appendingPathComponent("frames", isDirectory: true), script: Self.recordingScript)
+        let onPath = try sut.write(Self.recordingScript, to: bin.appendingPathComponent("frames-find-text"))
+        try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: onPath.path)
 
         // When
-        let code = sut.run(["--decoder", "ffmpeg", "autocut"], variables: ["PATH": bin.path])
+        let code = sut.run(["find-text"], variables: ["PATH": "\(bin.path):/usr/bin:/bin", "FRAMES_TEST_RECORD": record])
+
+        // Then
+        #expect(code == 1)
+        #expect(sut.standardError == "frames: unknown command \"find-text\"\n")
+        #expect(!FileManager.default.fileExists(atPath: record))
+    }
+
+    @Test("a mistyped role name stops before a tool runs")
+    func checksRolesBeforeTool() throws {
+        // Given
+        try sut.addTool("autocut", in: try sut.addPack("studio"), script: Self.recordingScript)
+
+        // When
+        let code = sut.run(["--decoder", "ffmpeg", "studio/autocut"], variables: ["FRAMES_TEST_RECORD": record])
 
         // Then
         #expect(code == 1)
         #expect(sut.standardError == "frames: --decoder: unknown decoder \"ffmpeg\". Known: avfoundation\n")
+        #expect(!FileManager.default.fileExists(atPath: record))
+    }
+
+    @Test("a tool whose pack is written for another frames, or whose tool.json does not hold, stops before it runs")
+    func checksPackBeforeTool() throws {
+        // Given
+        let old = try sut.addPack("old", manifest: #"{ "engine": "^2.0" }"#)
+        try sut.addTool("autocut", in: old, script: Self.recordingScript)
+        let studio = try sut.addPack("studio")
+        try sut.addTool("autocut", in: studio, script: Self.recordingScript)
+        let manifest = studio.appendingPathComponent("tools/autocut/tool.json")
+        try sut.write(#"{ "description": "cuts silence", "run": "autocut.sh", "version": "1.0.0" }"#, to: manifest)
+
+        // When
+        let unsupported = sut.run(["old/autocut"], variables: ["FRAMES_TEST_RECORD": record])
+        let unsupportedError = sut.standardError
+        let unchecked = sut.run(["studio/autocut"], variables: ["FRAMES_TEST_RECORD": record])
+
+        // Then
+        #expect(unsupported == 1)
+        #expect(unchecked == 1)
+        #expect(unsupportedError == "frames: \(old.appendingPathComponent("pack.json").path): engine (manifest): pack \"old\" is written for frames ^2.0, and this is frames 0.1.0\n")
+        #expect(sut.standardError == "frames: \(manifest.path): top level (tool): unknown key \"version\". Allowed: description, run\n")
+        #expect(!FileManager.default.fileExists(atPath: record))
     }
 
     @Test("theme prints the base theme as it is written")
@@ -305,4 +387,7 @@ struct CommandShellTests {
     }
 
     // MARK: - Private
+    private func recorded() throws -> [String] {
+        try String(contentsOfFile: record, encoding: .utf8).split(separator: "\n").map(String.init)
+    }
 }

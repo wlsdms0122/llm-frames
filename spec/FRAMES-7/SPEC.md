@@ -111,7 +111,7 @@ A clip's `motionBlur` (a boolean, `false` by default) is whether the values it o
 
 `id` names a clip for whatever reads or changes the document, inside it and outside it ([FRAMES-25](../FRAMES-25/SPEC.md)), since a place like `storyline[1].connected[0]` moves when clips are added. It is a string, unique within its document (a nested document has its own), and a duplicate stops. `parent` ([FRAMES-10](../FRAMES-10/SPEC.md)) and a track matte's `clip` ([FRAMES-11](../FRAMES-11/SPEC.md)) name a clip by its `id`. Messages and machine output give it with the place.
 
-`metadata` is an object that frames does not read: what the programs that read and change a document keep on a clip ([FRAMES-25](../FRAMES-25/SPEC.md)), such as which extension added it and why, as an NLE keeps keywords and notes. Its contents are not checked, and resolve does not carry it into the resolved document.
+`metadata` is an object that frames does not read: what the programs that read and change a document keep on a clip ([FRAMES-25](../FRAMES-25/SPEC.md)), such as which tool added it and why, as an NLE keeps keywords and notes. Its contents are not checked, and resolve does not carry it into the resolved document.
 
 Which media row applies depends on what the media holds and on `picture`, so those keys are checked once the media has been probed. Where the media is a template parameter, the parameter's type picks the row, and a page given to an `image` parameter takes the keys of a page when the template is instantiated with it ([FRAMES-17](../FRAMES-17/SPEC.md)).
 

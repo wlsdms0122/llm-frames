@@ -153,6 +153,7 @@ struct ShippedAnimationPresetTests {
         let recorder = OutputRecorder()
         let environment = CommandEnvironment(
             variables: ["FRAMES_HOME": directory.file("home"), "PATH": "/usr/bin:/bin"],
+            executable: URL(fileURLWithPath: directory.file("frames")),
             shippedPacks: shipped,
             standardInput: { Data() }
         )

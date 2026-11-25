@@ -10,6 +10,9 @@ enum PackError: Error, Equatable, CustomStringConvertible, Sendable {
     case invalidEngine(place: Place, engine: String)
     case unsupportedEngine(place: Place, pack: String, engine: String, version: String)
     case duplicatePack(place: Place, name: String, shipped: String)
+    case missingToolManifest(place: Place)
+    case invalidRun(place: Place, run: String)
+    case unexecutableRun(place: Place, run: String)
     case unreadableFile(file: String)
     case circularReference(place: Place, files: [String])
     case unknownThemeOption(name: String)
@@ -35,6 +38,15 @@ enum PackError: Error, Equatable, CustomStringConvertible, Sendable {
         case let .duplicatePack(place, name, shipped):
             "\(place) (\(PackKeyTable.manifest.kind)): "
                 + "a pack named \(quoted(name)) ships with frames at \(shipped), so an installed one of that name stops. Rename or remove the installed one"
+
+        case let .missingToolManifest(place):
+            "\(place) (\(PackKeyTable.tool.kind)): a tool holds a tool.json, and this one has none"
+
+        case let .invalidRun(place, run):
+            "\(place) (\(PackKeyTable.tool.kind)): \(quoted(run)) is not the name of a file in the tool's directory"
+
+        case let .unexecutableRun(place, run):
+            "\(place) (\(PackKeyTable.tool.kind)): \(quoted(run)) is not an executable file in the tool's directory"
 
         case let .unreadableFile(file):
             "\(file): the file is there but cannot be read"

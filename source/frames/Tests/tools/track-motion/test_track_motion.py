@@ -1,14 +1,15 @@
-"""Checks frames-track-motion against frames output recorded in `fixtures/`, so it runs without frames.
+"""Checks the tool frames/track-motion of the pack `frames` against frames output recorded in `fixtures/`, so it runs
+without frames.
 
-Run from the repository root: python3 -m unittest discover -s extensions/track-motion
+Run from the repository root: python3 -m unittest discover -s source/frames/Tests/tools/track-motion
 
 `fixtures/video.json` and `fixtures/keyframed.json` name their media as `/media/moving.mp4`, `/media/board.png` and `/media/frames`, and each
-`*.calls.json` holds the frames commands the extension ran on it with what frames printed, the document it asks about
+`*.calls.json` holds the frames commands the tool ran on it with what frames printed, the document it asks about
 written as `<document>`. `moving.mp4` is a 3 second 640 by 360 video at 25 frames a second, rendered by frames, of a
 title `Total 42,000` and an orange card with a white stroke moving right over a dark solid, `frames` an image sequence
 of its frames, read at 25 frames a second, and `board.png` a still. The tracker is the default `point` tracker, which
-loses the card at 2.04 seconds. The video fixture holds a `find-text` request beside the `track-motion` ones, which the
-extension leaves as written.
+loses the card at 2.04 seconds. The video fixture holds a `frames/find-text` request beside the `frames/track-motion` ones, which the
+tool leaves as written.
 """
 
 import copy
@@ -19,15 +20,20 @@ import os
 import shlex
 import shutil
 import stat
+import sys
 import tempfile
 import unittest
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 FIXTURES = os.path.join(HERE, "fixtures")
-loader = importlib.machinery.SourceFileLoader("frames_track_motion", os.path.join(HERE, "frames-track-motion"))
+PROGRAM = os.path.join(HERE, os.pardir, os.pardir, os.pardir, "Sources", "FramesCommand", "Resources", "packs", "frames", "tools", "track-motion", "track-motion")
+# The program is one of frames' resources, which the build copies into its bundle, so no bytecode is written
+# beside it.
+sys.dont_write_bytecode = True
+loader = importlib.machinery.SourceFileLoader("frames_track_motion", PROGRAM)
 spec = importlib.util.spec_from_loader("frames_track_motion", loader)
-extension = importlib.util.module_from_spec(spec)
-loader.exec_module(extension)
+tool = importlib.util.module_from_spec(spec)
+loader.exec_module(tool)
 
 
 def fixture(name):
@@ -35,14 +41,11 @@ def fixture(name):
         return json.load(file)
 
 
-class Replay(extension.Frames):
+class Replay(tool.Frames):
     """Frames that answers each command with what the real one printed for it."""
 
     calls = []
     log = []
-
-    def check_version(self):
-        Replay.log.append(["--version"])
 
     def report(self, arguments):
         arguments = ["<document>" if argument.endswith("/document.json") else argument for argument in arguments]
@@ -55,24 +58,24 @@ class Replay(extension.Frames):
 
 class Case(unittest.TestCase):
     def setUp(self):
-        self.original = extension.Frames
-        extension.Frames = Replay
+        self.original = tool.Frames
+        tool.Frames = Replay
         Replay.log = []
 
     def tearDown(self):
-        extension.Frames = self.original
+        tool.Frames = self.original
 
     def run_document(self, document, calls, *options):
         Replay.calls = calls
-        directory = tempfile.mkdtemp(prefix="frames-track-motion-test-")
+        directory = tempfile.mkdtemp(prefix="track-motion-test-")
         self.addCleanup(shutil.rmtree, directory, True)
         path = os.path.join(directory, "document.json")
         with open(path, "w", encoding="utf-8") as file:
             json.dump(document, file)
-        return extension.run([path, *options])
+        return tool.run([path, *options], "frames")
 
     def stop(self, document, calls=None):
-        with self.assertRaises(extension.Stop) as raised:
+        with self.assertRaises(tool.Stop) as raised:
             self.run_document(document, calls or [])
         return str(raised.exception)
 
@@ -87,9 +90,9 @@ class Recorded(Case):
         self.clips = {clip["id"]: clip for clip in self.result["storyline"][0]["connected"]}
 
     def test_video(self):
-        # Given a shot with a box, a title, a corner pin and a rect whose tracks are requests, a find-text request, and
+        # Given a shot with a box, a title, a corner pin and a rect whose tracks are requests, a frames/find-text request, and
         # an image sequence
-        # When the extension runs
+        # When the tool runs
         # Then every track request is the track data frames printed, and nothing else of the document changes
         self.assertEqual(self.result, fixture("video.expected.json"))
 
@@ -139,7 +142,7 @@ class Recorded(Case):
         )
 
     def test_track_data_kept(self):
-        # Given track data already written, on a rect whose area is a find-text request
+        # Given track data already written, on a rect whose area is a frames/find-text request
         written = fixture("video.json")["storyline"][0]["connected"][4]
 
         # Then both are kept as written
@@ -159,12 +162,11 @@ class Recorded(Case):
 
     def test_probe_without_requests(self):
         # Then frames is asked only for reports, about the document with a value in the place of each request
-        self.assertEqual(Replay.log[0], ["--version"])
         self.assertEqual(self.commands("evaluate") + self.commands("render") + self.commands("resolve"), [])
-        probe = extension.probe_document(fixture("video.json"))
+        probe = tool.probe_document(fixture("video.json"))
         clips = {clip["id"]: clip for clip in probe["storyline"][0]["connected"]}
         self.assertEqual(["track" in clip for clip in clips.values()], [False, False, False, False, True])
-        self.assertEqual(clips["kept"]["area"], extension.PLACEHOLDER)
+        self.assertEqual(clips["kept"]["area"], tool.PLACEHOLDER)
 
 
 class Keyframed(Case):
@@ -178,7 +180,7 @@ class Keyframed(Case):
 
     def test_keyframed(self):
         # Given track requests that name keyframed keys as their targets
-        # When the extension runs
+        # When the tool runs
         # Then every request is the track data frames printed, and nothing else of the document changes
         self.assertEqual(self.result, fixture("keyframed.expected.json"))
 
@@ -206,7 +208,7 @@ class Keyframed(Case):
 
 
 class Places(Case):
-    """Documents of `fixtures/places.json`, each with the frames commands the extension ran on it in
+    """Documents of `fixtures/places.json`, each with the frames commands the tool ran on it in
     `fixtures/places.calls.json`."""
 
     documents = fixture("places.json")
@@ -252,31 +254,31 @@ class Places(Case):
         self.assertIn("storyline[0]#shot.connected[0]: keyframes[1] needs a number at", self.stop(document, self.calls["keyframed"]))
 
     def test_request_and_clip_targets(self):
-        # Given a target that is a find-text request and one named as another clip's box
+        # Given a target that is a frames/find-text request and one named as another clip's box
         # Then each stops before frames runs, the first since a request's arguments are values
-        self.assertIn('track.target: a request\'s arguments are values, and this one holds a request for "find-text"', self.place("text_target"))
+        self.assertIn('track.target: a request\'s arguments are values, and this one holds a request for "frames/find-text"', self.place("text_target"))
         self.assertIn("a clip area is the box of another clip", self.place("clip_target"))
         self.assertEqual(Replay.log, [])
 
     def test_unfilled_target(self):
-        # Given a track request whose target key holds a find-text request, statically and in a keyframe
+        # Given a track request whose target key holds a frames/find-text request, statically and in a keyframe
         document = copy.deepcopy(self.documents["clip_target"])
         clip = document["storyline"][0]["connected"][1]
-        clip["area"] = {"tool": "find-text", "text": "Total"}
-        clip["track"] = {"tool": "track-motion", "target": "area"}
+        clip["area"] = {"tool": "frames/find-text", "text": "Total"}
+        clip["track"] = {"tool": "frames/track-motion", "target": "area"}
         keyframed = copy.deepcopy(document)
         del keyframed["storyline"][0]["connected"][1]["area"]
         keyframed["storyline"][0]["connected"][1]["keyframes"] = [
-            {"at": 0, "area": [0, 0, 10, 10]}, {"at": 1, "area": {"tool": "find-text", "text": "Total"}}
+            {"at": 0, "area": [0, 0, 10, 10]}, {"at": 1, "area": {"tool": "frames/find-text", "text": "Total"}}
         ]
 
         # Then each stops before frames runs, naming the request that is not filled
         self.assertEqual(
             self.stop(document),
-            'storyline[0]#shot.connected[1]: track: its target "area" holds a request for "find-text" at area, which is not '
-            'filled yet: run frames find-text first, since the target is the value it finds'
+            'storyline[0]#shot.connected[1]: track: its target "area" holds a request for "frames/find-text" at area, which is not '
+            'filled yet: run frames frames/find-text first, since the target is the value it finds'
         )
-        self.assertIn('holds a request for "find-text" at keyframes[1].area', self.stop(keyframed))
+        self.assertIn('holds a request for "frames/find-text" at keyframes[1].area', self.stop(keyframed))
         self.assertEqual(Replay.log, [])
 
     def test_target_forms(self):
@@ -284,24 +286,24 @@ class Places(Case):
         document = copy.deepcopy(self.documents["bad_key"])
         clip = document["storyline"][0]["connected"][0]
         messages = []
-        for track in ({"tool": "track-motion"}, {"tool": "track-motion", "target": "position"}):
+        for track in ({"tool": "frames/track-motion"}, {"tool": "frames/track-motion", "target": "position"}):
             clip["track"] = track
             messages.append(self.stop(copy.deepcopy(document)))
 
         # Then each stops, naming what is wrong
-        self.assertIn("a track-motion request names its target", messages[0])
+        self.assertIn("a frames/track-motion request names its target", messages[0])
         self.assertIn('track.target: "position" is none of the clip\'s own keys a target lies in: area, cornerPin, crop, mask', messages[1])
 
     def test_unknown_key(self):
         # Given requests with a key they do not take, one of them a media time
         document = copy.deepcopy(self.documents["bad_key"])
-        document["storyline"][0]["connected"][0]["track"] = {"tool": "track-motion", "target": "area", "time": 0.4}
+        document["storyline"][0]["connected"][0]["track"] = {"tool": "frames/track-motion", "target": "area", "time": 0.4}
 
         # Then each stops before frames runs, naming the key
-        self.assertIn('unknown key "padding" in a track-motion request. Allowed: target, tool', self.place("bad_key"))
+        self.assertIn('unknown key "padding" in a frames/track-motion request. Allowed: target, tool', self.place("bad_key"))
         self.assertEqual(
             self.stop(document),
-            'storyline[0]#shot.connected[0]: track: unknown key "time" in a track-motion request. Allowed: target, tool'
+            'storyline[0]#shot.connected[0]: track: unknown key "time" in a frames/track-motion request. Allowed: target, tool'
         )
         self.assertEqual(Replay.log, [])
 
@@ -310,10 +312,10 @@ class Arguments(Case):
     def test_no_request(self):
         # Given a document whose track is a boolean, and one whose only request is for another tool
         document = {"kind": "sequence", "storyline": [{"media": "/media/moving.mp4", "track": True, "connected": [
-            {"shape": "rect", "area": {"tool": "find-text", "text": "Total"}, "track": {"tool": "other", "target": "area"}}
+            {"shape": "rect", "area": {"tool": "frames/find-text", "text": "Total"}, "track": {"tool": "other", "target": "area"}}
         ]}]}
 
-        # When the extension runs
+        # When the tool runs
         result = self.run_document(copy.deepcopy(document), [])
 
         # Then it is printed as it is, and frames is not run, so frames stops on what is not its own
@@ -323,45 +325,59 @@ class Arguments(Case):
     def test_nested(self):
         # Given a request inside a compound clip
         document = {"kind": "sequence", "storyline": [{"media": {"kind": "sequence", "storyline": [
-            {"media": "/media/moving.mp4", "track": {"tool": "track-motion", "target": [0, 0, 10, 10]}}
+            {"media": "/media/moving.mp4", "track": {"tool": "frames/track-motion", "target": [0, 0, 10, 10]}}
         ]}}]}
 
         # Then it stops, naming the place inside
         self.assertIn("storyline[0].media.storyline[0]: track: it is inside a compound clip", self.stop(document))
 
     def test_misplaced(self):
-        # Given a track-motion request as a clip's area
+        # Given a frames/track-motion request as a clip's area
         document = {"kind": "sequence", "storyline": [{"media": "/media/moving.mp4", "connected": [
-            {"shape": "rect", "area": {"tool": "track-motion", "target": [0, 0, 10, 10]}}
+            {"shape": "rect", "area": {"tool": "frames/track-motion", "target": [0, 0, 10, 10]}}
         ]}]}
 
         # Then it stops, since it stands as a clip's track
-        self.assertIn("storyline[0].connected[0]: area: a track-motion request stands as a clip's track", self.stop(document))
+        self.assertIn("storyline[0].connected[0]: area: a frames/track-motion request stands as a clip's track", self.stop(document))
 
     def test_relative_path(self):
         # Then a relative document path stops
-        with self.assertRaises(extension.Stop) as raised:
-            extension.parse(["edit.json"])
+        with self.assertRaises(tool.Stop) as raised:
+            tool.parse(["edit.json"])
         self.assertIn("is not an absolute path", str(raised.exception))
 
     def test_global_options(self):
         # Then the global options of frames are passed on
-        self.assertEqual(extension.parse(["--tracker", "planar", "/abs/edit.json"]), (["--tracker", "planar"], "/abs/edit.json"))
+        self.assertEqual(tool.parse(["--tracker", "planar", "/abs/edit.json"]), (["--tracker", "planar"], "/abs/edit.json"))
 
 
 class Failure(unittest.TestCase):
+    def test_without_frames(self):
+        # Given a document with a request, and no frames executable given
+        path = os.path.join(tempfile.mkdtemp(prefix="track-motion-test-"), "document.json")
+        self.addCleanup(shutil.rmtree, os.path.dirname(path), True)
+        with open(path, "w", encoding="utf-8") as file:
+            json.dump(fixture("video.json"), file)
+
+        # When the tool runs
+        with self.assertRaises(tool.Stop) as raised:
+            tool.run([path], None)
+
+        # Then it stops, since only frames gives the executable it runs
+        self.assertEqual(str(raised.exception), "FRAMES_EXECUTABLE is not set: the tool is run by frames, as frames frames/track-motion")
+
     def test_failed_command(self):
         # Given a frames that fails on every command, run with a global option
-        directory = tempfile.mkdtemp(prefix="frames-track-motion-test-")
+        directory = tempfile.mkdtemp(prefix="track-motion-test-")
         self.addCleanup(shutil.rmtree, directory, True)
         executable = os.path.join(directory, "frames")
         with open(executable, "w", encoding="utf-8") as file:
             file.write("#!/bin/sh\necho 'frames: no theme named \"brand/dark\"' >&2\nexit 1\n")
         os.chmod(executable, stat.S_IRWXU)
-        sut = extension.Frames(executable, ["--theme", "brand/dark"])
+        sut = tool.Frames(executable, ["--theme", "brand/dark"])
 
         # When it runs a report
-        with self.assertRaises(extension.Stop) as raised:
+        with self.assertRaises(tool.Stop) as raised:
             sut.report(["timeline", "/abs/edit json.json", "--json"])
 
         # Then the stop shows the command line it ran, with its global options, and what frames printed
