@@ -306,7 +306,7 @@ struct DocumentCommandTests {
         #expect(files.first?["codec"] as? String == "ProRes 422 HQ")
         #expect(files.first?["hardware"] is Bool)
         let memory = try #require(object["memory"] as? [String: Any])
-        #expect(memory["limit"] as? Int == Int(((ProcessInfo.processInfo.physicalMemory / 2) >> 20) << 20))
+        #expect(memory["limit"] as? Int == Int(((ProcessInfo.processInfo.physicalMemory * 3 / 8) >> 20) << 20))
         let holders = try #require(memory["holders"] as? [String: [String: Int]])
         #expect(Set(holders.keys) == ["readers", "readAhead", "turns", "pictures", "frames", "sound"])
         #expect(memory["floor"] as? Int == holders.values.reduce(0) { $0 + ($1["floor"] ?? 0) })
