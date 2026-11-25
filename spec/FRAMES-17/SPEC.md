@@ -18,7 +18,7 @@ A pack is a bundle of data that frames reads: presets, themes, templates, LUTs, 
 
 | Folder | Holds | Named as |
 | --- | --- | --- |
-| `presets/<transition, animation, filter or audio>/` | presets ([FRAMES-14](../FRAMES-14/SPEC.md), [FRAMES-15](../FRAMES-15/SPEC.md), [FRAMES-13](../FRAMES-13/SPEC.md)) | `<pack>/<name>` in a preset choice |
+| `presets/<transition, animation, filter, audio or head>/` | presets ([FRAMES-14](../FRAMES-14/SPEC.md), [FRAMES-15](../FRAMES-15/SPEC.md), [FRAMES-13](../FRAMES-13/SPEC.md)), heads among them a stroke's arrowheads ([FRAMES-11](../FRAMES-11/SPEC.md#shapes)) | `<pack>/<name>` in a preset choice, and a head in a stroke's `start` or `end` |
 | `themes/` | themes ([FRAMES-22](../FRAMES-22/SPEC.md)) | `<pack>/<name>` in `--theme` or a document `theme` |
 | `templates/` | templates ([Templates](#templates)) | `<pack>/<name>` in a template instance |
 | `luts/` | `.cube` LUTs | `<pack>/<name>` in a `lut` op |

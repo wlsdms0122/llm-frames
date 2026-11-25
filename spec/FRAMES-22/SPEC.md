@@ -149,7 +149,7 @@ A pack's theme lives in its `themes/` ([FRAMES-17](../FRAMES-17/SPEC.md)) and ho
   "shapes": {
     "bar":     { "fill": "accent", "radius": 4 },
     "outline": { "stroke": { "width": 6, "color": "accent" }, "radius": 12, "outset": 8 },
-    "pointer": { "stroke": { "width": 6, "color": "accent", "cap": "round", "end": { "shape": "line-arrow", "scale": 1.5 } } } },
+    "pointer": { "stroke": { "width": 6, "color": "accent", "cap": "round", "end": { "preset": "frames/line-arrow", "scale": 1.5 } } } },
   "border": { "width": 6, "color": "ink" },
   "defaults": { "transition": { "preset": "frames/fade", "seconds": 0.5 }, "filter": "frames/warm",
                 "animation": { "title": { "subtitle": "frames/fade", "name": "frames/slide-left" }, "media": "frames/fade" } } }

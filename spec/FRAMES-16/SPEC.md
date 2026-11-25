@@ -4,7 +4,7 @@ Status: accepted
 
 ## Summary
 
-The 41 presets that ship with frames as the pack `frames`, by name and look: 14 transitions, 13 animations and 14 filters.
+The 47 presets that ship with frames as the pack `frames`, by name and look: 14 transitions, 13 animations, 14 filters and 6 heads.
 
 ## Motivation
 
@@ -14,7 +14,7 @@ Every NLE comes with a stock set of transitions, title animations and looks (a c
 
 They are the pack `frames`, which ships with frames, so a document names them like any pack's presets: `frames/pop` ([FRAMES-17](../FRAMES-17/SPEC.md)). The tables give the names in the pack. The names, how each looks, and the preset files frames ships are the contract, so a template timed to `frames/pop` keeps its timing. Changing a shipped preset's numbers raises the major version ([FRAMES-18](../FRAMES-18/SPEC.md)). Seconds are the default length.
 
-None of them publishes parameters, so each is named bare, and `args` given to one stops as an unknown argument ([FRAMES-14](../FRAMES-14/SPEC.md)). Each description says how the preset looks and moves, never what it is for.
+None of them publishes parameters, so each is named bare. `args` given to a transition, an animation or a filter stops as an unknown argument ([FRAMES-14](../FRAMES-14/SPEC.md)), and a head takes no arguments ([FRAMES-11](../FRAMES-11/SPEC.md#shapes)). Each description says how the preset looks and moves, never what it is for.
 
 **transition (14)**
 
@@ -76,14 +76,42 @@ Every transition but `fade`, `dip-black` and `flash` eases in and out. All of th
 | `vignette` | darker towards the edges and corners |
 | `pixelate` | square blocks |
 
+**head (6)**
+
+The line endings Figma, Illustrator and PowerPoint share, named as Figma names them where it has a name, its line arrow, circle arrow and diamond arrow, with InDesign's solid square and bar. Each is given in units u of its stroke ([FRAMES-11](../FRAMES-11/SPEC.md#shapes)):
+
+| Name | Looks like | Length | The line stops (`inset`) |
+| --- | --- | --- | --- |
+| `arrow` | a filled triangle 4u wide at its base, its tip at the end | 4u | at the middle of its base, 4u back from the tip |
+| `line-arrow` | an open arrow, Figma's line arrow: the two sides of the `arrow` triangle, each a band u thick lying inside the triangle, meeting at the tip and cut along its base | 4u | where the bands' inner edges meet, √5 u back from the tip |
+| `circle` | a filled circle 4u across, touching the end | 4u | at its centre, 2u back |
+| `square` | a filled square 4u on a side, its front side across the end | 4u | at its centre, 2u back |
+| `diamond` | a filled rhombus 4u long and 4u wide, its front corner at the end | 4u | at its centre, 2u back |
+| `bar` | a filled bar 4u long across the stroke and u thick, its front side across the end | u | at its middle, u / 2 back |
+
+Their outlines, in the head's own coordinates with the tip at the origin and the base at x = -`length`, are straight segments through these points, and the circle's four cubic segments:
+
+| Name | `points` |
+| --- | --- |
+| `arrow` | `[-4, 2]`, `[0, 0]`, `[-4, -2]` |
+| `line-arrow` | `[0, 0]`, `[-4, 2]`, `[-4, r]`, `[-√5, 0]`, `[-4, -r]`, `[-4, -2]`, with r = (4 - √5) / 2, where a band's inner edge, u inside its side, meets the base |
+| `circle` | `[0, 0]`, `[-2, 2]`, `[-4, 0]`, `[-2, -2]`, each with its tangents k long along the circle, k = 4/3 × (√2 - 1) × 2 |
+| `square` | `[0, 2]`, `[0, -2]`, `[-4, -2]`, `[-4, 2]` |
+| `diamond` | `[0, 0]`, `[-2, -2]`, `[-4, 0]`, `[-2, 2]` |
+| `bar` | `[0, 2]`, `[0, -2]`, `[-1, -2]`, `[-1, 2]` |
+
+**Note.** A circle has no exact form in cubic Bézier segments. Four segments whose tangents are 4/3 × (√2 - 1) of the radius long, the circle Core Graphics and Skia draw for an ellipse, lie at most 0.027% of the radius off it, about a thousandth of a pixel for a head 4 pixels across, and pass through it at the four vertices.
+
 frames ships no audio preset. Audio filters are written in place or come from packs ([FRAMES-13](../FRAMES-13/SPEC.md)).
 
 ## Interactions
 
-Their format is [FRAMES-14](../FRAMES-14/SPEC.md) and [FRAMES-15](../FRAMES-15/SPEC.md). Changing their numbers is a major change ([FRAMES-18](../FRAMES-18/SPEC.md)). The base theme names none of them as a default ([FRAMES-22](../FRAMES-22/SPEC.md)). Which to use for a kind of result is a guide's judgement ([FRAMES-25](../FRAMES-25/SPEC.md)).
+Their format is [FRAMES-14](../FRAMES-14/SPEC.md) and [FRAMES-15](../FRAMES-15/SPEC.md), and for the heads [FRAMES-11](../FRAMES-11/SPEC.md#shapes). Changing their numbers is a major change ([FRAMES-18](../FRAMES-18/SPEC.md)). The base theme names none of them as a default ([FRAMES-22](../FRAMES-22/SPEC.md)). Which to use for a kind of result is a guide's judgement ([FRAMES-25](../FRAMES-25/SPEC.md)).
 
 ## Alternatives considered
 
 Shipping no presets: every pack would carry its own cross dissolve, and two packs' fades would differ. Presets made for one purpose, such as one that traces one kind of shape's outline in: a purpose is not frames's to ship (Tools, not purposes, README), and a shape's `trim` keyframes draw any stroke on ([FRAMES-11](../FRAMES-11/SPEC.md)). Descriptions that say when to use a preset: when to use one is a guide's judgement and differs by result, while how it looks is the same everywhere.
+
+An open arrow stroked as a polyline, two lines with the stroke's join at the tip: a miter would reach about 1.1 stroke widths past the end of the outline and a round join would round the tip. Bands lying inside the triangle keep the tip at the end.
 
 ## Notes
