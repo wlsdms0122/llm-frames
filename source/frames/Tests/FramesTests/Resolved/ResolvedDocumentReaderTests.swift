@@ -732,6 +732,40 @@ struct ResolvedDocumentReaderTests {
         #expect(error?.description == "clips[0].mask (clip): a mask list holds at least one mask, and a clip without one has null")
     }
 
+    @Test(
+        "a sound with both media and a nested sequence, or with neither, stops",
+        arguments: [
+            (
+                "nested",
+                #"{ "audio": [], "audioFilter": null }"#,
+                #"audio[0].nested (audio): a sound of media plays no nested sequence, so it is null, found {"audio": [], "audioFilter": null}"#
+            ),
+            (
+                "media",
+                "null",
+                "audio[0].media (audio): a sound without a nested sequence plays media, found null"
+            )
+        ]
+    )
+    func refusesSoundSource(
+        key: String,
+        value: String,
+        message: String
+    ) throws {
+        // Given
+        let root = try #require(try JSONReader().read(written(Self.documents[0])).objectValue)
+        var audio = try #require(root["audio"]?.arrayValue)
+        let sound = try #require(audio[0].objectValue)
+        audio[0] = .object(sound.setting(key, to: try Fixture.json(value)))
+        let text = JSONWriter().write(.object(root.setting("audio", to: .array(audio))))
+
+        // When
+        let error = #expect(throws: ModelError.self) { try sut.read(text) }
+
+        // Then
+        #expect(error?.description == message)
+    }
+
     @Test("a media clip's null crop stops, since a media clip carries its crops, the whole picture where none is written")
     func refusesNullMediaCrop() throws {
         // Given
