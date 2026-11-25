@@ -1,0 +1,678 @@
+[
+ {
+  "arguments": [
+   "timeline",
+   "<document>",
+   "--nested",
+   "storyline[0]#frame",
+   "--json"
+  ],
+  "output": {
+   "timeline": "0.1.0",
+   "duration": 2,
+   "storyline": [
+    {
+     "place": "storyline[0]#frame.media.storyline[0]#shot",
+     "id": "shot",
+     "kind": "image",
+     "media": "/media/screen.png",
+     "page": null,
+     "edit": [
+      0,
+      2
+     ],
+     "drawn": [
+      0,
+      2
+     ],
+     "clip": [
+      0,
+      2
+     ],
+     "sound": null,
+     "speed": 1,
+     "timeRemap": false,
+     "transition": null,
+     "fps": null,
+     "instant": 0,
+     "clock": {
+      "clip": "storyline[0]#frame.media.storyline[0]#shot",
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "output",
+      "clip": null
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "storyline[0]#frame.media.storyline[0]#shot"
+     },
+     "tracked": null
+    }
+   ],
+   "clips": [
+    {
+     "place": "storyline[0]#frame.media.storyline[0]#shot.connected[0]#box",
+     "id": "box",
+     "kind": "rect",
+     "media": null,
+     "page": null,
+     "visible": [
+      0,
+      2
+     ],
+     "sound": null,
+     "lane": 1,
+     "storyline": "storyline[0]#frame.media.storyline[0]#shot",
+     "parent": "storyline[0]#frame.media.storyline[0]#shot",
+     "animation": null,
+     "fps": null,
+     "instant": 0,
+     "clock": {
+      "clip": "storyline[0]#frame.media.storyline[0]#shot",
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "media",
+      "clip": "storyline[0]#frame.media.storyline[0]#shot"
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "storyline[0]#frame.media.storyline[0]#shot"
+     },
+     "tracked": null
+    },
+    {
+     "place": "storyline[0]#frame.media.storyline[0]#shot.connected[1]",
+     "id": null,
+     "kind": "title",
+     "media": null,
+     "page": null,
+     "visible": [
+      0,
+      2
+     ],
+     "sound": null,
+     "lane": 1,
+     "storyline": "storyline[0]#frame.media.storyline[0]#shot",
+     "parent": "storyline[0]#frame.media.storyline[0]#shot",
+     "animation": null,
+     "fps": null,
+     "instant": 0,
+     "clock": {
+      "clip": "storyline[0]#frame.media.storyline[0]#shot",
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "media",
+      "clip": "storyline[0]#frame.media.storyline[0]#shot"
+     },
+     "ownSpace": {
+      "kind": "text",
+      "clip": "storyline[0]#frame.media.storyline[0]#shot.connected[1]"
+     },
+     "tracked": null
+    }
+   ]
+  }
+ },
+ {
+  "arguments": [
+   "timeline",
+   "<document>",
+   "--nested",
+   "clips[0]#deep.media.storyline[0]#inner",
+   "--json"
+  ],
+  "output": {
+   "timeline": "0.1.0",
+   "duration": 3,
+   "storyline": [
+    {
+     "place": "clips[0]#deep.media.storyline[0]#inner.media.storyline[0]#move",
+     "id": "move",
+     "kind": "video",
+     "media": "/media/moving.mp4",
+     "page": null,
+     "edit": [
+      0,
+      3
+     ],
+     "drawn": [
+      0,
+      3
+     ],
+     "clip": [
+      0,
+      3
+     ],
+     "sound": [
+      0,
+      3
+     ],
+     "speed": 1,
+     "timeRemap": false,
+     "transition": null,
+     "fps": null,
+     "instant": 0,
+     "clock": {
+      "clip": "clips[0]#deep.media.storyline[0]#inner.media.storyline[0]#move",
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "output",
+      "clip": null
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "clips[0]#deep.media.storyline[0]#inner.media.storyline[0]#move"
+     },
+     "tracked": {
+      "clip": "clips[0]#deep.media.storyline[0]#inner.media.storyline[0]#move",
+      "first": 0,
+      "last": 2.96
+     }
+    }
+   ],
+   "clips": [
+    {
+     "place": "clips[0]#deep.media.storyline[0]#inner.media.storyline[0]#move.connected[0]",
+     "id": null,
+     "kind": "rect",
+     "media": null,
+     "page": null,
+     "visible": [
+      0.4,
+      3
+     ],
+     "sound": null,
+     "lane": 1,
+     "storyline": "clips[0]#deep.media.storyline[0]#inner.media.storyline[0]#move",
+     "parent": "clips[0]#deep.media.storyline[0]#inner.media.storyline[0]#move",
+     "animation": null,
+     "fps": null,
+     "instant": 0.4,
+     "clock": {
+      "clip": "clips[0]#deep.media.storyline[0]#inner.media.storyline[0]#move",
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "media",
+      "clip": "clips[0]#deep.media.storyline[0]#inner.media.storyline[0]#move"
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "clips[0]#deep.media.storyline[0]#inner.media.storyline[0]#move"
+     },
+     "tracked": {
+      "clip": "clips[0]#deep.media.storyline[0]#inner.media.storyline[0]#move",
+      "first": 0,
+      "last": 2.96
+     }
+    }
+   ]
+  }
+ },
+ {
+  "arguments": [
+   "timeline",
+   "<document>",
+   "--nested",
+   "storyline[0]#frame",
+   "--at",
+   "0",
+   "--json"
+  ],
+  "output": {
+   "timeline": "0.1.0",
+   "duration": 2,
+   "time": 0,
+   "storyline": [
+    {
+     "place": "storyline[0]#frame.media.storyline[0]#shot",
+     "id": "shot",
+     "kind": "image",
+     "media": "/media/screen.png",
+     "page": null,
+     "edit": [
+      0,
+      2
+     ],
+     "drawn": [
+      0,
+      2
+     ],
+     "clip": [
+      0,
+      2
+     ],
+     "sound": null,
+     "speed": 1,
+     "timeRemap": false,
+     "transition": null,
+     "fps": null,
+     "instant": 0,
+     "clock": {
+      "clip": "storyline[0]#frame.media.storyline[0]#shot",
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "output",
+      "clip": null
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "storyline[0]#frame.media.storyline[0]#shot"
+     },
+     "tracked": null,
+     "clipTime": 0,
+     "mediaTime": 0,
+     "box": {
+      "rect": [
+       0,
+       0,
+       800,
+       450
+      ],
+      "quad": [
+       [
+        0,
+        0
+       ],
+       [
+        960,
+        0
+       ],
+       [
+        960,
+        540
+       ],
+       [
+        0,
+        540
+       ]
+      ]
+     },
+     "masks": []
+    }
+   ],
+   "clips": [
+    {
+     "place": "storyline[0]#frame.media.storyline[0]#shot.connected[0]#box",
+     "id": "box",
+     "kind": "rect",
+     "media": null,
+     "page": null,
+     "visible": [
+      0,
+      2
+     ],
+     "sound": null,
+     "lane": 1,
+     "storyline": "storyline[0]#frame.media.storyline[0]#shot",
+     "parent": "storyline[0]#frame.media.storyline[0]#shot",
+     "animation": null,
+     "fps": null,
+     "instant": 0,
+     "clock": {
+      "clip": "storyline[0]#frame.media.storyline[0]#shot",
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "media",
+      "clip": "storyline[0]#frame.media.storyline[0]#shot"
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "storyline[0]#frame.media.storyline[0]#shot"
+     },
+     "tracked": null,
+     "mediaTime": null,
+     "box": {
+      "rect": [
+       0,
+       0,
+       1,
+       1
+      ],
+      "quad": [
+       [
+        0,
+        0
+       ],
+       [
+        1.2,
+        0
+       ],
+       [
+        1.2,
+        1.2
+       ],
+       [
+        0,
+        1.2
+       ]
+      ]
+     },
+     "masks": []
+    },
+    {
+     "place": "storyline[0]#frame.media.storyline[0]#shot.connected[1]",
+     "id": null,
+     "kind": "title",
+     "media": null,
+     "page": null,
+     "visible": [
+      0,
+      2
+     ],
+     "sound": null,
+     "lane": 1,
+     "storyline": "storyline[0]#frame.media.storyline[0]#shot",
+     "parent": "storyline[0]#frame.media.storyline[0]#shot",
+     "animation": null,
+     "fps": null,
+     "instant": 0,
+     "clock": {
+      "clip": "storyline[0]#frame.media.storyline[0]#shot",
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "media",
+      "clip": "storyline[0]#frame.media.storyline[0]#shot"
+     },
+     "ownSpace": {
+      "kind": "text",
+      "clip": "storyline[0]#frame.media.storyline[0]#shot.connected[1]"
+     },
+     "tracked": null,
+     "mediaTime": null,
+     "box": {
+      "rect": [
+       0,
+       0,
+       40.464,
+       27.959839
+      ],
+      "quad": [
+       [
+        1.2,
+        -13.379919
+       ],
+       [
+        41.664,
+        -13.379919
+       ],
+       [
+        41.664,
+        14.579919
+       ],
+       [
+        1.2,
+        14.579919
+       ]
+      ]
+     },
+     "masks": []
+    }
+   ]
+  }
+ },
+ {
+  "arguments": [
+   "ocr",
+   "/media/screen.png",
+   "--json",
+   "--languages",
+   "en-US"
+  ],
+  "output": {
+   "ocr": "0.1.0",
+   "size": [
+    800,
+    450
+   ],
+   "languages": [
+    "en-US"
+   ],
+   "frames": [
+    {
+     "time": 0,
+     "lines": [
+      {
+       "text": "Invoice 2026-11",
+       "rect": [
+        36,
+        45,
+        146,
+        14
+       ]
+      },
+      {
+       "text": "Paper 12.00",
+       "rect": [
+        38,
+        185,
+        112,
+        18
+       ]
+      },
+      {
+       "text": "Total 42,000",
+       "rect": [
+        458,
+        345,
+        112,
+        16
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ },
+ {
+  "arguments": [
+   "timeline",
+   "<document>",
+   "--nested",
+   "clips[0]#deep.media.storyline[0]#inner",
+   "--at",
+   "0.4",
+   "--json"
+  ],
+  "output": {
+   "timeline": "0.1.0",
+   "duration": 3,
+   "time": 0.4,
+   "storyline": [
+    {
+     "place": "clips[0]#deep.media.storyline[0]#inner.media.storyline[0]#move",
+     "id": "move",
+     "kind": "video",
+     "media": "/media/moving.mp4",
+     "page": null,
+     "edit": [
+      0,
+      3
+     ],
+     "drawn": [
+      0,
+      3
+     ],
+     "clip": [
+      0,
+      3
+     ],
+     "sound": [
+      0,
+      3
+     ],
+     "speed": 1,
+     "timeRemap": false,
+     "transition": null,
+     "fps": null,
+     "instant": 0,
+     "clock": {
+      "clip": "clips[0]#deep.media.storyline[0]#inner.media.storyline[0]#move",
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "output",
+      "clip": null
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "clips[0]#deep.media.storyline[0]#inner.media.storyline[0]#move"
+     },
+     "tracked": {
+      "clip": "clips[0]#deep.media.storyline[0]#inner.media.storyline[0]#move",
+      "first": 0,
+      "last": 2.96
+     },
+     "clipTime": 0.4,
+     "mediaTime": 0.4,
+     "box": {
+      "rect": [
+       0,
+       0,
+       640,
+       360
+      ],
+      "quad": [
+       [
+        0,
+        0
+       ],
+       [
+        640,
+        0
+       ],
+       [
+        640,
+        360
+       ],
+       [
+        0,
+        360
+       ]
+      ]
+     },
+     "masks": []
+    }
+   ],
+   "clips": [
+    {
+     "place": "clips[0]#deep.media.storyline[0]#inner.media.storyline[0]#move.connected[0]",
+     "id": null,
+     "kind": "rect",
+     "media": null,
+     "page": null,
+     "visible": [
+      0.4,
+      3
+     ],
+     "sound": null,
+     "lane": 1,
+     "storyline": "clips[0]#deep.media.storyline[0]#inner.media.storyline[0]#move",
+     "parent": "clips[0]#deep.media.storyline[0]#inner.media.storyline[0]#move",
+     "animation": null,
+     "fps": null,
+     "instant": 0.4,
+     "clock": {
+      "clip": "clips[0]#deep.media.storyline[0]#inner.media.storyline[0]#move",
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "media",
+      "clip": "clips[0]#deep.media.storyline[0]#inner.media.storyline[0]#move"
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "clips[0]#deep.media.storyline[0]#inner.media.storyline[0]#move"
+     },
+     "tracked": {
+      "clip": "clips[0]#deep.media.storyline[0]#inner.media.storyline[0]#move",
+      "first": 0,
+      "last": 2.96
+     },
+     "mediaTime": null,
+     "box": {
+      "rect": [
+       0,
+       0,
+       1,
+       1
+      ],
+      "quad": [
+       [
+        0,
+        0
+       ],
+       [
+        1,
+        0
+       ],
+       [
+        1,
+        1
+       ],
+       [
+        0,
+        1
+       ]
+      ]
+     },
+     "masks": []
+    }
+   ]
+  }
+ },
+ {
+  "arguments": [
+   "ocr",
+   "/media/moving.mp4",
+   "--json",
+   "--at",
+   "0.4",
+   "--languages",
+   "en-US"
+  ],
+  "output": {
+   "ocr": "0.1.0",
+   "size": [
+    640,
+    360
+   ],
+   "languages": [
+    "en-US"
+   ],
+   "frames": [
+    {
+     "time": 0.4,
+     "lines": [
+      {
+       "text": "Total 42,000",
+       "rect": [
+        293.829994,
+        123,
+        92.340012,
+        13
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ }
+]

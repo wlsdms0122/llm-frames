@@ -1,0 +1,137 @@
+{
+ "kind": "sequence",
+ "format": {
+  "size": [
+   1280,
+   720
+  ],
+  "fps": 25
+ },
+ "storyline": [
+  {
+   "id": "frame",
+   "kind": "media",
+   "media": {
+    "kind": "sequence",
+    "format": {
+     "size": [
+      960,
+      540
+     ]
+    },
+    "storyline": [
+     {
+      "id": "shot",
+      "kind": "media",
+      "media": "/media/screen.png",
+      "duration": 2,
+      "connected": [
+       {
+        "id": "box",
+        "parent": "shot",
+        "kind": "rect",
+        "area": [
+         452,
+         339,
+         124,
+         28
+        ],
+        "stroke": {
+         "width": 4,
+         "paint": "#22C55E"
+        }
+       },
+       {
+        "parent": "shot",
+        "kind": "title",
+        "text": "due",
+        "style": "subtitle",
+        "anchor": "left",
+        "position": {
+         "area": [
+          24,
+          33,
+          170,
+          38
+         ],
+         "point": "right"
+        }
+       }
+      ]
+     }
+    ]
+   }
+  }
+ ],
+ "clips": [
+  {
+   "id": "deep",
+   "kind": "media",
+   "at": [
+    0,
+    2
+   ],
+   "in": 1,
+   "scale": 0.4,
+   "position": [
+    960,
+    200
+   ],
+   "media": {
+    "kind": "sequence",
+    "format": {
+     "size": [
+      640,
+      360
+     ]
+    },
+    "storyline": [
+     {
+      "id": "inner",
+      "kind": "media",
+      "media": {
+       "kind": "sequence",
+       "format": {
+        "size": [
+         640,
+         360
+        ]
+       },
+       "storyline": [
+        {
+         "id": "move",
+         "kind": "media",
+         "media": "/media/moving.mp4",
+         "connected": [
+          {
+           "at": [
+            0.4,
+            3
+           ],
+           "parent": "move",
+           "kind": "rect",
+           "area": [
+            289.829994,
+            119,
+            100.340012,
+            21
+           ],
+           "track": {
+            "tool": "frames/track-motion",
+            "target": "area"
+           },
+           "stroke": {
+            "width": 3,
+            "paint": "#22C55E"
+           }
+          }
+         ]
+        }
+       ]
+      }
+     }
+    ]
+   }
+  }
+ ]
+}

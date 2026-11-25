@@ -39,8 +39,8 @@ area in those pixels, or names a clip of the same sequence, whose box is carried
 timeline --at reports it. It is written on the frame the clip's instant shows, or where the key it names is keyframed,
 the frame its first keyframe shows, and is followed from that frame. A mask is followed as the rectangle that bounds
 the clip's masks. A corner pin and a clip's box are followed as quadrilaterals, in perspective with --tracker planar.
-A request inside a compound clip written as a sequence object is filled on the nested sequence's own clock. Track data
-and a request for any other tool are left as written.
+A request inside a compound clip written as a sequence object is filled on the nested sequence's own clock. A request
+among a template instance's arguments stops. Track data and a request for any other tool are left as written.
 
   <document.json | ->           The document, as an absolute path, or - for standard input.
   --help                        Prints this help.
@@ -216,8 +216,31 @@ def requests_in(value, path, sink):
     return sink
 
 
+def check_template_arguments(clip):
+    """Stops on a request of this tool among the arguments of a clip's template instance, a sequence argument's clips
+    included, since where an argument lies is its template's, which `timeline` names by the template's places."""
+    media = clip.value.get("media")
+    if not (isinstance(media, dict) and media.get("kind") == "template"):
+        return
+    found = own_requests_anywhere(media.get("args"), "media.args")
+    if found:
+        raise Stop(f"{clip.place}: {found[0]}: a frames/track-motion request stands among the arguments of a template instance, whose clips are its template's, so it is not filled: write the track data")
+
+
+def own_requests_anywhere(value, path):
+    """The path of every request of this tool in a value, at any depth, nested documents included."""
+    if is_own(value):
+        return [path]
+    entries = value.items() if isinstance(value, dict) else enumerate(value) if isinstance(value, list) else []
+    found = []
+    for key, inner in entries:
+        found += own_requests_anywhere(inner, f"{path}[{key}]" if isinstance(value, list) else f"{path}.{key}")
+    return found
+
+
 def request_of(clip):
     """The clip's request, None where its `track` is absent, track data or a request for another tool."""
+    check_template_arguments(clip)
     for holder, key, path in requests_in(clip.value, "", []):
         if is_own(holder[key]) and not (holder is clip.value and key == "track"):
             raise Stop(f"{clip.place}: {path}: a frames/track-motion request stands as a clip's track")

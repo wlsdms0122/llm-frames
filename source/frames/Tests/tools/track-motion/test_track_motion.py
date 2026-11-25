@@ -7,8 +7,9 @@ Run from the repository root: python3 -m unittest discover -s source/frames/Test
 `*.calls.json` holds the frames commands the tool ran on it with what frames printed, the document it asks about
 written as `<document>`. `moving.mp4` is a 3 second 640 by 360 video at 25 frames a second, rendered by frames, of a
 title `Total 42,000` and an orange card with a white stroke moving right over a dark solid, `frames` an image sequence
-of its frames, read at 25 frames a second, and `board.png` a still. The tracker is the default `point` tracker, which
-loses the card at 2.04 seconds. The video fixture holds a `frames/find-text` request beside the `frames/track-motion` ones, which the
+of its frames extracted every 0.04 seconds, read at 25 frames a second, and `board.png` a still. The tracker is the
+default `point` tracker, which follows the card to the last frame and loses the area of the title within 0.12 seconds
+before and 0.08 seconds after 2 seconds. The video fixture holds a `frames/find-text` request beside the `frames/track-motion` ones, which the
 tool leaves as written.
 """
 
@@ -109,7 +110,7 @@ class Recorded(Case):
         self.assertEqual([arguments[arguments.index("--to") + 1] for arguments in tracks], ["0", "2.96"])
         times = [frame["time"] for frame in box["frames"]]
         self.assertEqual(times, sorted(set(times)))
-        self.assertEqual((times[0], times[-1], len(times)), (0, 2, 51))
+        self.assertEqual((times[0], times[-1], len(times)), (0, 2.96, 75))
 
     def test_area_request(self):
         # Given a title whose track request's target is an area, the same one the box writes
@@ -471,6 +472,21 @@ class Arguments(Case):
 
         # Then it stops, since it stands as a clip's track
         self.assertIn("storyline[0].connected[0]: area: a frames/track-motion request stands as a clip's track", self.stop(document))
+
+    def test_template_argument(self):
+        # Given a track request on a clip of a sequence argument of a template instance
+        document = {"kind": "sequence", "storyline": [{"id": "card", "kind": "media", "media": {"kind": "template", "template": "studio/card", "args": {
+            "screen": {"kind": "sequence", "storyline": [
+                {"kind": "media", "media": "/media/moving.mp4", "track": {"tool": "frames/track-motion", "target": [0, 0, 10, 10]}}
+            ]}
+        }}}]}
+
+        # When the tool runs
+        message = self.stop(document)
+
+        # Then it stops before frames is run, naming the argument, since where it lies is the template's
+        self.assertEqual(message, "storyline[0]#card: media.args.screen.storyline[0].track: a frames/track-motion request stands among the arguments of a template instance, whose clips are its template's, so it is not filled: write the track data")
+        self.assertEqual(Replay.log, [])
 
     def test_relative_path(self):
         # Then a relative document path stops
