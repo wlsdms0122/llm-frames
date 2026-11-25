@@ -32,6 +32,55 @@ struct TrackPlanner: Sendable {
         return TrackPlan(time: time.replacingClips(clips.map(\.plan)), storyline: storyline, clips: clips.map(\.track))
     }
 
+    // The media a storyline clip's track follows: its own video or image sequence, needed where it is drawn, and nil
+    // for a still, a solid or a compound clip.
+    func source(of plan: StorylinePlan) -> TrackSource? {
+        media(of: plan).map { media in
+            TrackSource(place: plan.place, file: media.file, clock: media.clock, drawn: plan.drawn)
+        }
+    }
+
+    // The media a connected or sequence clip's track follows: a media clip of video or image sequence without a corner
+    // pin follows its own, needed while it is visible, and any other clip, one with a corner pin included, its
+    // parent's, which must be the video or image sequence of a storyline clip or of a connected or sequence media clip
+    // without a corner pin. Under a storyline clip it is needed where that clip is drawn, and under any other parent
+    // while the clip is visible. Nil where there is none to follow.
+    func source(
+        of plan: ClipPlan,
+        in time: TimePlan
+    ) -> TrackSource? {
+        if !plan.isPinned, let media = media(of: plan) {
+            return TrackSource(place: plan.place, file: media.file, clock: media.clock, drawn: plan.visible)
+        }
+        guard let parent = plan.parent, let media = media(of: parent, in: time) else { return nil }
+
+        let place = switch parent {
+        case let .storyline(index, _):
+            time.storyline[index].place
+
+        case let .clip(index, _):
+            time.clips[index].place
+        }
+        return TrackSource(
+            place: place,
+            file: media.file,
+            clock: media.clock,
+            drawn: drawn(under: parent, of: plan, in: time)
+        )
+    }
+
+    // The timestamps of the first and the last frame of the media a track follows that its clock shows over the range
+    // it is needed, which `timeline` reports as `tracked`.
+    func shownFrames(
+        of source: TrackSource,
+        fps: Double
+    ) -> ClosedRange<Double> {
+        let shown = shownMediaTimes(on: source.clock, drawn: source.drawn, fps: fps)
+        let first = shown.min() ?? 0
+        let last = shown.max() ?? 0
+        return (source.file.frameTime(at: first) ?? first)...(source.file.frameTime(at: last) ?? last)
+    }
+
     // MARK: - Private
     private func track(
         _ plan: StorylinePlan,
@@ -42,17 +91,9 @@ struct TrackPlanner: Sendable {
 
         let place = written.place.appending(key: "track")
         let kind = PlaceKind.clip(plan.source.kind)
-        guard let media = media(of: plan) else { throw ResolveError.trackWithoutVideo(place: place, kind: kind) }
+        guard let source = source(of: plan) else { throw ResolveError.trackWithoutVideo(place: place, kind: kind) }
 
-        let followed = try self.followed(
-            data,
-            in: media,
-            at: plan.instant,
-            drawn: plan.drawn,
-            fps: fps,
-            place: place,
-            kind: kind
-        )
+        let followed = try self.followed(data, in: source, at: plan.instant, fps: fps, place: place, kind: kind)
         let isEditFollowed = followed.range.start <= plan.edit.start + Self.tolerance
             && followed.range.end >= plan.edit.end - Self.tolerance
         guard isEditFollowed else {
@@ -67,9 +108,6 @@ struct TrackPlanner: Sendable {
         return followed.track
     }
 
-    // A media clip of video or image sequence without a corner pin follows its own media, and the frames needed are
-    // those its clock shows while it is visible. Any other clip, one with a corner pin included, follows its parent's
-    // media.
     private func track(
         _ plan: ClipPlan,
         written: Clip,
@@ -80,57 +118,14 @@ struct TrackPlanner: Sendable {
 
         let place = written.place.appending(key: "track")
         let kind = PlaceKind.clip(plan.kind)
-        guard !plan.isPinned, let media = media(of: plan) else {
-            return try trackInParent(plan, written: written, data: data, time: time, fps: fps)
-        }
+        guard let source = source(of: plan, in: time) else { throw ResolveError.trackWithoutVideo(place: place, kind: kind) }
 
-        let followed = try self.followed(
-            data,
-            in: media,
-            at: plan.instant,
-            drawn: plan.visible,
-            fps: fps,
-            place: place,
-            kind: kind
-        )
-        try checkInstant(of: plan, followedBy: followed.track, in: media, place: place)
+        let followed = try self.followed(data, in: source, at: plan.instant, fps: fps, place: place, kind: kind)
+        try checkInstant(of: plan, followedBy: followed.track, in: source, place: place)
 
         return (
             try narrowed(plan, to: followed.range, place: written.place),
-            TrackedMedia(track: followed.track, file: media.file, clock: media.clock)
-        )
-    }
-
-    // The parent's media must be the video or image sequence of a storyline clip or of a connected or sequence media
-    // clip without a corner pin. The frames needed under a storyline clip are those it draws, and under any other parent
-    // those its clock shows while the clip is visible.
-    private func trackInParent(
-        _ plan: ClipPlan,
-        written: Clip,
-        data: TrackData,
-        time: TimePlan,
-        fps: Double
-    ) throws -> (plan: ClipPlan, track: TrackedMedia?) {
-        let place = written.place.appending(key: "track")
-        let kind = PlaceKind.clip(plan.kind)
-        guard let parent = plan.parent, let media = media(of: parent, in: time) else {
-            throw ResolveError.trackWithoutVideo(place: place, kind: kind)
-        }
-
-        let followed = try self.followed(
-            data,
-            in: media,
-            at: plan.instant,
-            drawn: drawn(under: parent, of: plan, in: time),
-            fps: fps,
-            place: place,
-            kind: kind
-        )
-        try checkInstant(of: plan, followedBy: followed.track, in: media, place: place)
-
-        return (
-            try narrowed(plan, to: followed.range, place: written.place),
-            TrackedMedia(track: followed.track, file: media.file, clock: media.clock)
+            TrackedMedia(track: followed.track, file: source.file, clock: source.clock)
         )
     }
 
@@ -188,14 +183,13 @@ struct TrackPlanner: Sendable {
     // the target, and a `time` that names no frame of the data stop.
     private func followed(
         _ data: TrackData,
-        in media: (file: MediaFile, clock: MediaClock),
+        in source: TrackSource,
         at instant: Double,
-        drawn: TimeRange,
         fps: Double,
         place: Place,
         kind: PlaceKind
     ) throws -> (track: Track, range: TimeRange) {
-        let file = media.file
+        let file = source.file
         let refuse = { (index: Int?, reason: TrackDataRefusal) in
             ResolveError.trackData(
                 place: index.map { place.appending(key: "frames").appending(index: $0) } ?? place,
@@ -229,13 +223,13 @@ struct TrackPlanner: Sendable {
         }
 
         let tracked = zip(times, frames).map { time, frame in TrackedFrame(time: time, quad: frame.quad) }
-        let shown = shownMediaTimes(on: media.clock, drawn: drawn, fps: fps)
+        let shown = shownMediaTimes(on: source.clock, drawn: source.drawn, fps: fps)
         return range(
             of: Track(target: target, mediaTime: targetTime, frames: tracked),
             needed: needed(shown: shown, from: targetTime, in: file),
             at: instant,
-            on: media.clock,
-            drawn: drawn,
+            on: source.clock,
+            drawn: source.drawn,
             file: file,
             fps: fps
         )
@@ -246,17 +240,17 @@ struct TrackPlanner: Sendable {
     private func checkInstant(
         of plan: ClipPlan,
         followedBy track: Track,
-        in media: (file: MediaFile, clock: MediaClock),
+        in source: TrackSource,
         place: Place
     ) throws {
-        let mediaTime = media.clock.mediaTime(atSequenceTime: plan.instant)
-        let shown = media.file.frameIndex(at: mediaTime)
-        guard !track.samples.contains(where: { media.file.frameIndex(at: $0.time) == shown }) else { return }
+        let mediaTime = source.clock.mediaTime(atSequenceTime: plan.instant)
+        let shown = source.file.frameIndex(at: mediaTime)
+        guard !track.samples.contains(where: { source.file.frameIndex(at: $0.time) == shown }) else { return }
 
         throw ResolveError.instantNotFollowed(
             place: place,
             kind: .clip(plan.kind),
-            mediaTime: media.file.frameTime(at: mediaTime) ?? mediaTime
+            mediaTime: source.file.frameTime(at: mediaTime) ?? mediaTime
         )
     }
 

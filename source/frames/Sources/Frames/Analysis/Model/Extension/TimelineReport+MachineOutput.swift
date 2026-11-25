@@ -8,7 +8,7 @@
 // `{"timeline": "0.1.0", duration, storyline, clips}`, the object `timeline --json` prints, with `time` after
 // `duration` when it is asked at a time, where a storyline entry also has `clipTime` and every entry `mediaTime`.
 // Every entry has `kind`, `media`, its pinned path or `null`, and `page`, and after its own keys `fps`, `instant`,
-// `clock`, `space` and `ownSpace`. A nested document's object has the same form.
+// `clock`, `space`, `ownSpace` and `tracked`. A nested document's object has the same form.
 extension TimelineReport {
     // MARK: - Property
     package var machineOutput: JSONValue {
@@ -44,7 +44,7 @@ extension TimelineReport {
             JSONMember(key: "speed", value: .number(entry.speed)),
             JSONMember(key: "timeRemap", value: .bool(entry.isTimeRemapped)),
             JSONMember(key: "transition", value: transition ?? .null)
-        ] + written(fps: entry.fps, instant: entry.instant, clock: entry.clock, space: entry.space, ownSpace: entry.ownSpace)
+        ] + written(entry.fps, entry.instant, entry.clock, entry.space, entry.ownSpace, entry.tracked)
         let time = entry.time.map { time in
             [
                 JSONMember(key: "clipTime", value: .time(time.clipTime)),
@@ -78,19 +78,20 @@ extension TimelineReport {
             JSONMember(key: "storyline", value: text(entry.storyline)),
             JSONMember(key: "parent", value: text(entry.parent)),
             JSONMember(key: "animation", value: animation ?? .null)
-        ] + written(fps: entry.fps, instant: entry.instant, clock: entry.clock, space: entry.space, ownSpace: entry.ownSpace)
+        ] + written(entry.fps, entry.instant, entry.clock, entry.space, entry.ownSpace, entry.tracked)
         let time = entry.time.map { [JSONMember(key: "mediaTime", value: mediaTime($0.mediaTime))] }
 
         return .object(JSONObject(members: members + (time ?? []) + nested(entry.nested)))
     }
 
-    // An entry's image sequence rate, instant, clock and spaces, `null` where it has none.
+    // An entry's image sequence rate, instant, clock, spaces and tracked media, `null` where it has none.
     private func written(
-        fps: Double?,
-        instant: Double?,
-        clock: TimelineClock,
-        space: CoordinateSpace?,
-        ownSpace: CoordinateSpace?
+        _ fps: Double?,
+        _ instant: Double?,
+        _ clock: TimelineClock,
+        _ space: CoordinateSpace?,
+        _ ownSpace: CoordinateSpace?,
+        _ tracked: TimelineTrack?
     ) -> [JSONMember] {
         [
             JSONMember(key: "fps", value: fps.map(JSONValue.number) ?? .null),
@@ -101,8 +102,17 @@ extension TimelineReport {
                 JSONMember(key: "speed", value: .number(clock.speed))
             ]))),
             JSONMember(key: "space", value: space.map(output) ?? .null),
-            JSONMember(key: "ownSpace", value: ownSpace.map(output) ?? .null)
+            JSONMember(key: "ownSpace", value: ownSpace.map(output) ?? .null),
+            JSONMember(key: "tracked", value: tracked.map(output) ?? .null)
         ]
+    }
+
+    private func output(_ tracked: TimelineTrack) -> JSONValue {
+        .object(JSONObject(members: [
+            JSONMember(key: "clip", value: .string(tracked.clip)),
+            JSONMember(key: "first", value: .time(tracked.first)),
+            JSONMember(key: "last", value: .time(tracked.last))
+        ]))
     }
 
     private func output(_ space: CoordinateSpace) -> JSONValue {
