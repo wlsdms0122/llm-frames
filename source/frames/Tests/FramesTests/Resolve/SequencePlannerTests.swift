@@ -506,15 +506,17 @@ struct SequencePlannerTests {
         ]
         let title = plan.clips[0].appearance
         #expect(plan.storyline[0].filter.filter() == graded)
-        #expect(title.opacity == .keyframes([
-            PropertyKeyframe(index: 0, at: 1, value: 0, ease: .linear),
-            PropertyKeyframe(index: 1, at: 2, value: 1, ease: .easeIn)
-        ]))
+        #expect(title.drawing == .picture(ClipComposite(
+            opacity: .keyframes([
+                PropertyKeyframe(index: 0, at: 1, value: 0, ease: .linear),
+                PropertyKeyframe(index: 1, at: 2, value: 1, ease: .easeIn)
+            ]),
+            blend: "screen"
+        )))
         #expect(title.scale == .value(Scale(2)))
         #expect(title.rotation == .value(0))
-        #expect(title.blend == "screen")
         #expect(title.shape == nil)
-        #expect(plan.clips[1].appearance.blend == "normal")
+        #expect(plan.clips[1].appearance.drawing == .picture(ClipComposite(opacity: .value(1), blend: "normal")))
         #expect(plan.clips[1].appearance.shape == ShapeAppearance(
             kind: .rect,
             geometry: .area(outset: .off, anchor: nil),

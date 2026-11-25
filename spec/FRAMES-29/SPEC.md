@@ -29,7 +29,7 @@ A keyframed move that a camera would smear is drawn today as a sharp picture tha
 - The shutter is static: it takes no keyframes, and it is the same for every frame and every clip of the output.
 - A compound clip's or a template instance's `format.motionBlur` applies only when it is rendered alone, as its `fps` does ([FRAMES-3](../FRAMES-3/SPEC.md)). Inside another sequence the key is allowed and has no effect, and the outermost sequence's shutter is the shutter of every clip it shows, the clips inside its compound clips and template instances included ([Compound clips and template instances](#compound-clips-and-template-instances)).
 
-A clip's `motionBlur` is `true` or `false`, and `false` by default. It is taken by every storyline clip (timed media, still and solid) and by every clip with a picture: a title, a shape, a visual media clip, a still media clip and an adjustment clip ([FRAMES-7](../FRAMES-7/SPEC.md)).
+A clip's `motionBlur` is `true` or `false`, and `false` by default. It is taken by every storyline clip (timed media, still and solid) and by every clip with a picture: a title, a shape, a visual media clip, a still media clip and an adjustment clip, and by a null, whose values its children and the clip areas that name it read ([FRAMES-7](../FRAMES-7/SPEC.md)).
 
 - It is a boolean, so it is static ([FRAMES-4](../FRAMES-4/SPEC.md)), and a keyframe that writes it stops.
 - On an audio clip it is an unknown key and stops at `check`, since an audio clip draws nothing.

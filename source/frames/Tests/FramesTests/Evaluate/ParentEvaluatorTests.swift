@@ -128,14 +128,14 @@ struct ParentEvaluatorTests {
     @Test(
         "a shape parent with an area or an adjustment parent with a mask gives the space they are written in, carried by its presentation",
         arguments: [
-            ResolvedClipContent.shape(ResolvedShape(
+            ResolvedPicture.shape(ResolvedShape(
                 area: [Keyframe(at: 0, value: Rectangle(x: 0, y: 0, width: 40, height: 20))],
                 fill: Color(written: "#FF0000")
             )),
             .adjustment(.filter([.blur(radius: 3)]))
         ]
     )
-    func mapsAreaParent(content: ResolvedClipContent) {
+    func mapsAreaParent(content: ResolvedPicture) {
         // Given
         let isShape = if case .shape = content { true } else { false }
         let mask = ResolvedMask(
@@ -476,7 +476,7 @@ struct ParentEvaluatorTests {
 
     private func clip(
         id: String,
-        content: ResolvedClipContent,
+        content: ResolvedPicture,
         start: Double = 0,
         end: Double = 4,
         parent: String? = nil,
@@ -489,10 +489,12 @@ struct ParentEvaluatorTests {
         ResolvedClip(
             place: "clips[0]",
             id: id,
-            content: content,
+            content: .picture(
+                content,
+                ResolvedComposite(lane: 1, opacity: [Keyframe(at: 0, value: 1)], blend: "normal")
+            ),
             start: start,
             end: end,
-            lane: 1,
             storyline: nil,
             parent: parent,
             box: box,
@@ -500,10 +502,8 @@ struct ParentEvaluatorTests {
             mask: mask,
             trackMatte: nil,
             track: track,
-            opacity: [Keyframe(at: 0, value: 1)],
             scale: box == nil ? nil : [Keyframe(at: 0, value: Scale(scale))],
             rotation: box == nil ? nil : [Keyframe(at: 0, value: 0)],
-            blend: "normal",
             animation: .none
         )
     }

@@ -10,4 +10,5 @@ enum ClipContent: Equatable, Sendable {
     case title(ClipTitle)
     case shape(ClipShape)
     case adjust
+    case null(ClipNull)
 }

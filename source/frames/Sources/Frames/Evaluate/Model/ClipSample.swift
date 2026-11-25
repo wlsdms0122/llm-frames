@@ -13,8 +13,6 @@ struct ClipSample: Equatable, Sendable {
     let window: TimeRange
     let animation: MotionSample
     let schedule: UnitSchedule?
-    let opacity: Double
-    let blend: String
     let ownScale: Scale
 
     var lengthFactor: Double {
@@ -34,8 +32,6 @@ struct ClipSample: Equatable, Sendable {
         self.window = window
         self.animation = animation
         self.schedule = schedule
-        self.opacity = clip.opacity.opacity(at: time)
-        self.blend = clip.blend
         self.ownScale = (clip.scale.map { $0.value(at: time) } ?? .identity).multiplied(by: animation.motion.value(of: .scale))
     }
 

@@ -556,7 +556,7 @@ struct ShapeKeyframeTests {
             """#
         let plan = try Fixture.documentPlanner.plan(try Fixture.json(document))
         let clips = try ResolvedSequence(plan: plan, hashes: FileHashTable()).clips
-        guard case let .shape(shape) = clips.first?.content else {
+        guard case let .picture(.shape(shape), _) = clips.first?.content else {
             Issue.record("the clip is a shape")
             return ResolvedShape(area: [], fill: nil)
         }

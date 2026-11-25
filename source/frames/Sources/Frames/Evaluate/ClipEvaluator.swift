@@ -29,21 +29,42 @@ struct ClipEvaluator: Sendable {
         seed: Int,
         at time: SampleTime
     ) -> [DisplayItem] {
+        // A null draws nothing.
+        guard case let .picture(content, composite) = clip.content else { return [] }
+
         if clip.cornerPin != nil {
-            let group = self.group(of: clip, in: space, picture: picture, compositing: compositing, seed: seed, at: time)
+            let group = self.group(
+                of: clip,
+                content: content,
+                composite: composite,
+                in: space,
+                picture: picture,
+                compositing: compositing,
+                seed: seed,
+                at: time
+            )
             return group.map { [$0.cut(by: [], trackMatte: trackMatte)] } ?? []
         }
 
         let mask = masks(of: clip, in: space, at: time)
 
-        return drawn(clip, in: space, picture: picture, compositing: compositing, seed: seed, at: time)
-            .map { $0.cut(by: mask, trackMatte: trackMatte) }
+        return drawn(
+            clip,
+            content: content,
+            composite: composite,
+            in: space,
+            picture: picture,
+            compositing: compositing,
+            seed: seed,
+            at: time
+        )
+        .map { $0.cut(by: mask, trackMatte: trackMatte) }
     }
 
     // The map from the space the clip gives its children to output pixels: a title's box at the time, a media clip's
     // media pixels, a box shape's box, or the space a placed shape's geometry or an adjustment's mask is written in.
     // A clip with a corner pin gives the space its corner pin is written in, moved by its tracked motion and not by its
-    // plane (FRAMES-10). Opacity and reveal take no part.
+    // plane (FRAMES-10). A null gives the space a rect placed the same way gives. Opacity and reveal take no part.
     func childTransform(
         of clip: ResolvedClip,
         in space: ClipSpace,
@@ -53,7 +74,7 @@ struct ClipEvaluator: Sendable {
         guard clip.cornerPin == nil else { return space.tracked(by: clip.parentTrack, at: time).transform }
 
         switch clip.content {
-        case let .title(text):
+        case let .picture(.title(text), _):
             guard let box = clip.box else { return space.transform }
 
             let drawn = text.box(at: time)
@@ -61,7 +82,7 @@ struct ClipEvaluator: Sendable {
             let transform = presentation(of: clip, box: box, size: size, sample: sample, in: space, at: time).transform
             return AffineTransform(translation: Point(x: drawn.x, y: drawn.y)).concatenating(transform)
 
-        case .media:
+        case .picture(.media, _):
             guard let box = clip.box else { return space.transform }
 
             let transform = presentation(of: clip, box: box, size: box.size, sample: sample, in: space, at: time)
@@ -75,21 +96,26 @@ struct ClipEvaluator: Sendable {
                 ))
                 .concatenating(transform)
 
-        case let .shape(shape):
+        case let .picture(.shape(shape), _):
             return shapeEvaluator.transform(of: shape, clip: clip, sample: sample, in: space, at: time)
 
-        case .adjustment:
+        case .picture(.adjustment, _):
             let transform = adjustPresentation(of: clip, sample: sample, in: space, at: time).transform
             guard clip.mask == nil else { return transform }
 
             // Without a mask the adjustment acts in output pixels, and its children are still in its parent's space.
             return space.tracked(by: clip.parentTrack, at: time).transform.concatenating(transform)
+
+        case let .null(null):
+            return transform(of: null, clip: clip, sample: sample, in: space, at: time)
         }
     }
 
     // MARK: - Private
     private func drawn(
         _ clip: ResolvedClip,
+        content: ResolvedPicture,
+        composite: ResolvedComposite,
         in space: ClipSpace,
         picture: PictureItemSource?,
         compositing: Compositing,
@@ -98,7 +124,7 @@ struct ClipEvaluator: Sendable {
     ) -> [DisplayItem] {
         let sample = ClipSample(clip: clip, at: time)
 
-        switch clip.content {
+        switch content {
         case let .title(text):
             // A title carries its box.
             guard let box = clip.box else { return [] }
@@ -111,6 +137,7 @@ struct ClipEvaluator: Sendable {
                 drawn: text.box(at: time),
                 origin: text.textBoxInBox(at: time),
                 sample: sample,
+                composite: composite,
                 in: space,
                 content: .glyphs(glyphs),
                 at: time
@@ -157,16 +184,17 @@ struct ClipEvaluator: Sendable {
                 drawn: Rectangle(x: 0, y: 0, width: box.size.width, height: box.size.height),
                 origin: .identity,
                 sample: sample,
+                composite: composite,
                 in: space,
                 content: .picture(item),
                 at: time
             ) { item.receiverBox(carriedBy: $0) }]
 
         case let .shape(shape):
-            return shapeEvaluator.items(of: shape, clip: clip, sample: sample, in: space, at: time)
+            return shapeEvaluator.items(of: shape, clip: clip, sample: sample, composite: composite, in: space, at: time)
 
         case let .adjustment(filter):
-            return [adjustItem(of: clip, filter: filter, sample: sample, in: space, at: time)]
+            return [adjustItem(of: clip, filter: filter, sample: sample, composite: composite, in: space, at: time)]
         }
     }
 
@@ -180,6 +208,8 @@ struct ClipEvaluator: Sendable {
     // ellipse is drawn in the box its `width` and `height` give at the time, its own masks in that box.
     private func group(
         of clip: ResolvedClip,
+        content: ResolvedPicture,
+        composite: ResolvedComposite,
         in space: ClipSpace,
         picture: PictureItemSource?,
         compositing: Compositing,
@@ -196,7 +226,7 @@ struct ClipEvaluator: Sendable {
             receiver: (AffineTransform) -> Rectangle,
             ownSpace: AffineTransform
         )
-        switch clip.content {
+        switch content {
         case let .title(text):
             let drawn = text.box(at: time)
             let glyphs = GlyphsItem(text: text, factor: sample.lengthFactor, at: time)
@@ -243,7 +273,7 @@ struct ClipEvaluator: Sendable {
 
         case let .shape(shape):
             let plane = { (box: Rectangle) in
-                ItemPresentation(area: box, opacity: sample.opacity, motion: sample.animation.motion).transform
+                ItemPresentation(area: box, opacity: 1, motion: sample.animation.motion).transform
             }
             guard let drawn = shapeEvaluator.flat(shape, sample: sample, plane: plane, at: time) else { return nil }
 
@@ -267,7 +297,11 @@ struct ClipEvaluator: Sendable {
             return nil
         }
 
-        let plane = ItemPresentation(area: flat.box, opacity: sample.opacity, motion: sample.animation.motion)
+        let plane = ItemPresentation(
+            area: flat.box,
+            opacity: composite.opacity.opacity(at: time),
+            motion: sample.animation.motion
+        )
         let bounds = flat.receiver(flat.origin.concatenating(plane.transform))
         let transform = plane.transform.concatenating(AffineTransform(translation: Point(x: -bounds.x, y: -bounds.y)))
         let itemTransform = flat.origin.concatenating(transform)
@@ -282,7 +316,7 @@ struct ClipEvaluator: Sendable {
             ItemMask(mask: mask, transform: flat.ownSpace.concatenating(itemTransform), factor: sample.lengthFactor)
         }
         var items = [item]
-        if case let .title(text) = clip.content, case let .glyphs(glyphs) = flat.content, let schedule = sample.schedule,
+        if case let .picture(.title(text), _) = clip.content, case let .glyphs(glyphs) = flat.content, let schedule = sample.schedule,
            let units = text.units, !units.isEmpty {
             items = [group(
                 of: clip,
@@ -301,7 +335,7 @@ struct ClipEvaluator: Sendable {
         return DisplayItem(
             transform: space.tracked(by: clip.parentTrack, at: time).transform,
             opacity: plane.opacity,
-            blend: sample.blend,
+            blend: composite.blend,
             content: .picture(PictureItem(
                 source: .displayList(DisplayList(
                     size: Size(width: bounds.width, height: bounds.height),
@@ -415,6 +449,7 @@ struct ClipEvaluator: Sendable {
         drawn: Rectangle,
         origin: AffineTransform,
         sample: ClipSample,
+        composite: ResolvedComposite,
         in space: ClipSpace,
         content: DisplayContent,
         at time: SampleTime,
@@ -428,8 +463,8 @@ struct ClipEvaluator: Sendable {
 
         return DisplayItem(
             transform: transform,
-            opacity: presentation.opacity,
-            blend: sample.blend,
+            opacity: presentation.opacity * composite.opacity.opacity(at: time),
+            blend: composite.blend,
             reveal: sample.animation.revealRectangle(wiping: receiver(transform)),
             content: content
         )
@@ -452,8 +487,7 @@ struct ClipEvaluator: Sendable {
         let values = KeyframedValues(
             position: Point(x: anchor.x - box.anchor.x, y: anchor.y - box.anchor.y),
             scale: clip.scale.map { $0.value(at: time) } ?? .identity,
-            rotation: (clip.rotation.map { $0.value(at: time) } ?? 0) + tracked.transform.rotation,
-            opacity: sample.opacity
+            rotation: (clip.rotation.map { $0.value(at: time) } ?? 0) + tracked.transform.rotation
         )
 
         return ItemPresentation(box: size, anchor: box.anchor, values: values, motion: sample.animation.motion)
@@ -466,6 +500,7 @@ struct ClipEvaluator: Sendable {
         of clip: ResolvedClip,
         filter: TimedValue,
         sample: ClipSample,
+        composite: ResolvedComposite,
         in space: ClipSpace,
         at time: SampleTime
     ) -> DisplayItem {
@@ -479,14 +514,15 @@ struct ClipEvaluator: Sendable {
 
         return DisplayItem(
             transform: presentation.transform,
-            opacity: presentation.opacity,
-            blend: sample.blend,
+            opacity: presentation.opacity * composite.opacity.opacity(at: time),
+            blend: composite.blend,
             reveal: sample.animation.revealRectangle(wiping: receiver),
             content: .adjust(adjust)
         )
     }
 
-    // The animation acts about the centre of the masks' bounding box, or of the list's frame without a mask.
+    // The animation acts about the centre of the masks' bounding box, or of the list's frame without a mask. The
+    // opacity is the animation's, which the clip's own multiplies where it is drawn.
     private func adjustPresentation(
         of clip: ResolvedClip,
         sample: ClipSample,
@@ -494,15 +530,52 @@ struct ClipEvaluator: Sendable {
         at time: SampleTime
     ) -> ItemPresentation {
         guard let bounds = maskBounds(of: clip, in: space, at: time) else {
-            return ItemPresentation(area: space.frame, opacity: sample.opacity, motion: sample.animation.motion)
+            return ItemPresentation(area: space.frame, opacity: 1, motion: sample.animation.motion)
         }
 
         return ItemPresentation(
             area: bounds,
-            opacity: sample.opacity,
+            opacity: 1,
             motion: sample.animation.motion,
             carriedBy: space.tracked(by: clip.parentTrack, at: time).transform
         )
+    }
+
+    // The map from the space a null gives its children to output pixels, which is a rect's placed the same way: by its
+    // box, `width` by `height` at the time with its anchor point at the same fraction of it, or by its area, about its
+    // anchor point. A null placed by its box carries it in its entry.
+    private func transform(
+        of null: ResolvedNull,
+        clip: ResolvedClip,
+        sample: ClipSample,
+        in space: ClipSpace,
+        at time: SampleTime
+    ) -> AffineTransform {
+        let tracked = space.tracked(by: clip.parentTrack, at: time)
+        switch null.geometry {
+        case let .box(width, height):
+            guard let box = clip.box else { return tracked.transform }
+
+            let size = Size(width: width.value(at: time), height: height.value(at: time))
+            let anchor = Point(
+                x: box.size.width > 0 ? box.anchor.x * size.width / box.size.width : 0,
+                y: box.size.height > 0 ? box.anchor.y * size.height / box.size.height : 0
+            )
+            let sized = ResolvedBox(size: size, position: box.position, anchor: anchor)
+            return presentation(of: clip, box: sized, size: size, sample: sample, in: space, at: time).transform
+
+        case let .area(area, placement):
+            let bounds = space.area(of: area, track: clip.parentTrack, at: time)
+            let motion = sample.animation.motion
+            return AffineTransform(
+                placing: bounds,
+                anchor: placement.anchor,
+                position: placement.position.map { space.point(of: $0, track: clip.parentTrack, at: time) },
+                scale: sample.ownScale,
+                rotation: (clip.rotation.map { $0.value(at: time) } ?? 0) + motion.value(of: .rotation),
+                moved: Point(x: motion.value(of: .x) * bounds.width, y: motion.value(of: .y) * bounds.height)
+            ).concatenating(tracked.transform)
+        }
     }
 
     // A placed shape and an adjustment write their masks in their parent's space, a title in its text box, which lies
@@ -517,7 +590,7 @@ struct ClipEvaluator: Sendable {
         let masks = clip.space == .parent
             ? space.masks(of: mask, track: clip.parentTrack, at: time)
             : clip.ownMasks(at: time)
-        let inBox = if case let .title(text) = clip.content {
+        let inBox = if case let .picture(.title(text), _) = clip.content {
             text.textBoxInBox(at: time)
         } else {
             AffineTransform.identity

@@ -27,8 +27,7 @@ extension ResolvedSequence {
                 )
             },
             clips: try time.clips.indices
-                .filter { time.clips[$0].kind != .media(.audio) }
-                .map { try ResolvedClip(plan: time.clips[$0], geometry: plan.clips[$0], hashes: hashes) },
+                .compactMap { try ResolvedClip(plan: time.clips[$0], geometry: plan.clips[$0], hashes: hashes) },
             audio: try plan.sound.map { try ResolvedSound(plan: $0, hashes: hashes) },
             audioFilter: try plan.audioFilter.pinningFiles(hashes: hashes)
         )

@@ -18,6 +18,7 @@ struct ShapeEvaluatorTests {
     // MARK: - Property
     private static let red = Color(written: "#FF0000")
     private static let frame = Rectangle(x: 0, y: 0, width: 200, height: 100)
+    private static let composite = ResolvedComposite(lane: 1, opacity: [Keyframe(at: 0, value: 1)], blend: "normal")
     private static let area = Rectangle(x: 40, y: 20, width: 40, height: 20)
     private static let stroke = PathStroke(width: 4, paint: .color(red), join: .round, cap: .butt, start: .none, end: .none)
     private static let shadow = DropShadow(radius: 6, offset: Point(x: 2, y: 4), color: red)
@@ -44,7 +45,7 @@ struct ShapeEvaluatorTests {
         let shape = try #require(resolvedShape(of: clip))
 
         // When
-        let items = sut.items(of: shape, clip: clip, sample: ClipSample(clip: clip, at: SampleTime(1)), in: parent, at: SampleTime(1))
+        let items = sut.items(of: shape, clip: clip, sample: ClipSample(clip: clip, at: SampleTime(1)), composite: Self.composite, in: parent, at: SampleTime(1))
 
         // Then
         let item = try #require(items.first)
@@ -76,6 +77,7 @@ struct ShapeEvaluatorTests {
             of: shape,
             clip: clip,
             sample: ClipSample(clip: clip, at: SampleTime(1)),
+            composite: Self.composite,
             in: ClipSpace(frame: Self.frame),
             at: SampleTime(1)
         )
@@ -98,7 +100,7 @@ struct ShapeEvaluatorTests {
         let shape = try #require(resolvedShape(of: clip))
 
         // When
-        let item = try #require(sut.items(of: shape, clip: clip, sample: ClipSample(clip: clip, at: SampleTime(1)), in: space, at: SampleTime(1))
+        let item = try #require(sut.items(of: shape, clip: clip, sample: ClipSample(clip: clip, at: SampleTime(1)), composite: Self.composite, in: space, at: SampleTime(1))
             .first)
 
         // Then
@@ -130,7 +132,7 @@ struct ShapeEvaluatorTests {
         let clip = clip(shape, box: nil, rotation: 90)
 
         // When
-        let item = try #require(sut.items(of: shape, clip: clip, sample: ClipSample(clip: clip, at: SampleTime(1)), in: space, at: SampleTime(1))
+        let item = try #require(sut.items(of: shape, clip: clip, sample: ClipSample(clip: clip, at: SampleTime(1)), composite: Self.composite, in: space, at: SampleTime(1))
             .first)
 
         // Then
@@ -152,7 +154,7 @@ struct ShapeEvaluatorTests {
         let clip = clip(shape, box: box, rotation: 90)
 
         // When
-        let item = try #require(sut.items(of: shape, clip: clip, sample: ClipSample(clip: clip, at: SampleTime(1)), in: space, at: SampleTime(1))
+        let item = try #require(sut.items(of: shape, clip: clip, sample: ClipSample(clip: clip, at: SampleTime(1)), composite: Self.composite, in: space, at: SampleTime(1))
             .first)
 
         // Then
@@ -178,7 +180,7 @@ struct ShapeEvaluatorTests {
         let clip = clip(shape, box: box)
 
         // When
-        let item = try #require(sut.items(of: shape, clip: clip, sample: ClipSample(clip: clip, at: SampleTime(1)), in: space, at: SampleTime(1))
+        let item = try #require(sut.items(of: shape, clip: clip, sample: ClipSample(clip: clip, at: SampleTime(1)), composite: Self.composite, in: space, at: SampleTime(1))
             .first)
 
         // Then
@@ -202,7 +204,7 @@ struct ShapeEvaluatorTests {
         let shape = try #require(resolvedShape(of: clip))
 
         // When
-        let item = try #require(sut.items(of: shape, clip: clip, sample: ClipSample(clip: clip, at: SampleTime(0.25)), in: space, at: SampleTime(0.25))
+        let item = try #require(sut.items(of: shape, clip: clip, sample: ClipSample(clip: clip, at: SampleTime(0.25)), composite: Self.composite, in: space, at: SampleTime(0.25))
             .first)
 
         // Then
@@ -246,7 +248,7 @@ struct ShapeEvaluatorTests {
         let clip = clip(shape, box: nil)
 
         // When
-        let item = try #require(sut.items(of: shape, clip: clip, sample: ClipSample(clip: clip, at: SampleTime(1)), in: parent, at: SampleTime(1))
+        let item = try #require(sut.items(of: shape, clip: clip, sample: ClipSample(clip: clip, at: SampleTime(1)), composite: Self.composite, in: parent, at: SampleTime(1))
             .first)
 
         // Then
@@ -301,7 +303,7 @@ struct ShapeEvaluatorTests {
         let clip = clip(shape, box: nil, entrance: entrance)
 
         // When
-        let item = try #require(sut.items(of: shape, clip: clip, sample: ClipSample(clip: clip, at: SampleTime(0.25)), in: space, at: SampleTime(0.25))
+        let item = try #require(sut.items(of: shape, clip: clip, sample: ClipSample(clip: clip, at: SampleTime(0.25)), composite: Self.composite, in: space, at: SampleTime(0.25))
             .first)
 
         // Then
@@ -340,7 +342,7 @@ struct ShapeEvaluatorTests {
         let clip = clip(shape, box: nil, scale: scale)
 
         // When
-        let item = try #require(sut.items(of: shape, clip: clip, sample: ClipSample(clip: clip, at: SampleTime(1)), in: space, at: SampleTime(1)).first)
+        let item = try #require(sut.items(of: shape, clip: clip, sample: ClipSample(clip: clip, at: SampleTime(1)), composite: Self.composite, in: space, at: SampleTime(1)).first)
 
         // Then
         guard case let .path(path) = item.content, let drawn = path.stroke else {
@@ -367,7 +369,7 @@ struct ShapeEvaluatorTests {
         let clip = clip(shape, box: nil)
 
         // When
-        let items = sut.items(of: shape, clip: clip, sample: ClipSample(clip: clip, at: SampleTime(1)), in: space, at: SampleTime(1))
+        let items = sut.items(of: shape, clip: clip, sample: ClipSample(clip: clip, at: SampleTime(1)), composite: Self.composite, in: space, at: SampleTime(1))
 
         // Then
         #expect(items.first?.content == .path(PathItem(geometry: .ellipse(Self.area), fill: nil, stroke: Self.stroke)))
@@ -386,7 +388,7 @@ struct ShapeEvaluatorTests {
         let sample = ClipSample(clip: clip, at: SampleTime(1))
 
         // When
-        let items = sut.items(of: shape, clip: clip, sample: sample, in: space, at: SampleTime(1))
+        let items = sut.items(of: shape, clip: clip, sample: sample, composite: Self.composite, in: space, at: SampleTime(1))
         let children = sut.transform(of: shape, clip: clip, sample: sample, in: space, at: SampleTime(1))
 
         // Then
@@ -430,6 +432,7 @@ struct ShapeEvaluatorTests {
             of: shape,
             clip: clip,
             sample: ClipSample(clip: clip, at: SampleTime(1)),
+            composite: Self.composite,
             in: ClipSpace(frame: Self.frame),
             at: SampleTime(1)
         )
@@ -464,7 +467,7 @@ struct ShapeEvaluatorTests {
     }
 
     private func resolvedShape(of clip: ResolvedClip) -> ResolvedShape? {
-        guard case let .shape(shape) = clip.content else { return nil }
+        guard case let .picture(.shape(shape), _) = clip.content else { return nil }
 
         return shape
     }
@@ -556,10 +559,9 @@ struct ShapeEvaluatorTests {
         ResolvedClip(
             place: "clips[0]",
             id: nil,
-            content: .shape(shape),
+            content: .picture(.shape(shape), Self.composite),
             start: 0,
             end: 4,
-            lane: 1,
             storyline: nil,
             parent: nil,
             box: box,
@@ -567,10 +569,8 @@ struct ShapeEvaluatorTests {
             mask: nil,
             trackMatte: nil,
             track: nil,
-            opacity: [Keyframe(at: 0, value: 1)],
             scale: scale.map { [Keyframe(at: 0, value: $0)] },
             rotation: rotation.map { [Keyframe(at: 0, value: $0)] },
-            blend: "normal",
             animation: ResolvedAnimation(entrance: entrance, loop: nil, exit: nil, units: nil)
         )
     }

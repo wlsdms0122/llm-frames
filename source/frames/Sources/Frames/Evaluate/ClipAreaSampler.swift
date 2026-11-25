@@ -116,7 +116,7 @@ struct ClipAreaSampler: Sendable {
         in space: ClipSpace,
         at time: SampleTime
     ) -> Rectangle {
-        if case let .shape(shape) = named.content, let geometry = geometryBox(of: shape, writtenBy: named, at: time) {
+        if let shape = geometry(of: named), let geometry = geometryBox(of: shape, writtenBy: named, at: time) {
             return geometry
         }
         guard let box = named.box else { return Rectangle(x: 0, y: 0, width: 0, height: 0) }
@@ -139,11 +139,11 @@ struct ClipAreaSampler: Sendable {
         of named: ResolvedClip,
         at time: SampleTime
     ) -> Rectangle {
-        if case let .shape(shape) = named.content, let geometry = geometryBox(of: shape, writtenBy: named, at: time) {
+        if let shape = geometry(of: named), let geometry = geometryBox(of: shape, writtenBy: named, at: time) {
             return geometry
         }
         guard let box = named.box else { return Rectangle(x: 0, y: 0, width: 0, height: 0) }
-        if case .media = named.content, let crop = named.crop(at: time) {
+        if case .picture(.media, _) = named.content, let crop = named.crop(at: time) {
             return crop
         }
 
@@ -151,15 +151,29 @@ struct ClipAreaSampler: Sendable {
         return Rectangle(x: 0, y: 0, width: extent.width, height: extent.height)
     }
 
+    // The geometry of a shape, or of a null, whose box is a rect's given the same way, nil for any other clip.
+    private func geometry(of named: ResolvedClip) -> ShapeGeometry? {
+        switch named.content {
+        case let .picture(.shape(shape), _):
+            shape.geometry
+
+        case let .null(null):
+            null.geometry.shape
+
+        case .picture(.title, _), .picture(.media, _), .picture(.adjustment, _):
+            nil
+        }
+    }
+
     // A shape placed by its geometry's area or the box of its path's curve (FRAMES-11 Shapes), nil for one placed by its
     // box.
     private func geometryBox(
-        of shape: ResolvedShape,
+        of geometry: ShapeGeometry,
         writtenBy named: ResolvedClip,
         at time: SampleTime
     ) -> Rectangle? {
         let sampler = ClipAreaSampler(sequence: sequence, clip: named)
-        switch shape.geometry {
+        switch geometry {
         case .box:
             return nil
 
@@ -178,8 +192,8 @@ struct ClipAreaSampler: Sendable {
         }
     }
 
-    // The named clip's box at a time in its own pixels, with its anchor point at the origin: a box shape's `width` and
-    // `height`, its anchor at the same fraction of them; a title's box at the time, about the anchor point resolve
+    // The named clip's box at a time in its own pixels, with its anchor point at the origin: a box shape's or a box
+    // null's `width` and `height`, its anchor at the same fraction of them; a title's box at the time, about the anchor point resolve
     // placed, which stays while the box changes; and any other clip's box.
     private func extent(
         of named: ResolvedClip,
@@ -187,8 +201,8 @@ struct ClipAreaSampler: Sendable {
         at time: SampleTime
     ) -> Rectangle {
         switch named.content {
-        case let .shape(shape):
-            guard case let .box(width, height, _) = shape.geometry else { return extent(of: box) }
+        case .picture(.shape, _), .null:
+            guard case let .box(width, height, _) = geometry(of: named) else { return extent(of: box) }
 
             let size = Size(width: width.value(at: time), height: height.value(at: time))
             return Rectangle(
@@ -198,7 +212,7 @@ struct ClipAreaSampler: Sendable {
                 height: size.height
             )
 
-        case let .title(text):
+        case let .picture(.title(text), _):
             let drawn = text.box(at: time)
             return Rectangle(
                 x: drawn.x - box.anchor.x,
@@ -207,7 +221,7 @@ struct ClipAreaSampler: Sendable {
                 height: drawn.height
             )
 
-        case .media, .adjustment:
+        case .picture(.media, _), .picture(.adjustment, _):
             return extent(of: box)
         }
     }

@@ -6,14 +6,16 @@
 //
 
 // A connected or sequence clip as resolve decided it, every static property one keyframe at the clip's instant but a
-// followed value true on the track's frame, which stays a static value. A title, a media clip or a shape given by
-// `width` and `height` carries its box, or its corner pin where one places it, and a shape placed by its geometry
-// carries its placement in its own entry. Scale and rotation belong to anything drawn but an adjustment and a clip with
-// a corner pin.
+// followed value true on the track's frame, which stays a static value. A title, a media clip, or a shape or a null
+// given by `width` and `height` carries its box, or its corner pin where one places it, and a shape or a null placed by
+// its geometry carries its placement in its own entry. Scale and rotation belong to anything drawn but an adjustment
+// and a clip with a corner pin.
 extension ResolvedClip {
     // MARK: - Property
     // MARK: - Initializer
-    init(
+    // An audio clip, the one clip with a picture to composite and no lane to stack it in, has no clips entry: its sound
+    // is one of the sequence's audio entries.
+    init?(
         plan: ClipPlan,
         geometry: ClipGeometry,
         hashes: any FileHashProvider
@@ -21,8 +23,24 @@ extension ResolvedClip {
         let instant = plan.instant
         let appearance = geometry.appearance
         let onTrackFrame = geometry.onTrackFrame
-        let content = try Self.content(of: plan, geometry: geometry, hashes: hashes)
-        let isTransformed = if case .adjustment = content { false } else { geometry.cornerPin == nil }
+        let content: ResolvedClipContent
+        switch appearance.drawing {
+        case let .picture(composite):
+            guard let lane = plan.lane else { return nil }
+
+            content = .picture(
+                try Self.picture(of: plan, geometry: geometry, hashes: hashes),
+                ResolvedComposite(
+                    lane: lane,
+                    opacity: composite.opacity.keyframes(at: instant) { $0 },
+                    blend: composite.blend
+                )
+            )
+
+        case let .null(null):
+            content = .null(ResolvedNull(geometry: NullGeometry(plan: null, geometry: geometry, instant: instant)))
+        }
+        let isTransformed = if case .picture(.adjustment, _) = content { false } else { geometry.cornerPin == nil }
 
         self.init(
             place: plan.place.description,
@@ -30,7 +48,6 @@ extension ResolvedClip {
             content: content,
             start: plan.visible.start,
             end: plan.visible.end,
-            lane: plan.lane,
             storyline: plan.storyline,
             parent: plan.parent?.id,
             box: geometry.box.map { box in
@@ -51,10 +68,8 @@ extension ResolvedClip {
             mask: geometry.mask,
             trackMatte: plan.trackMatte,
             track: try geometry.track.map { try ResolvedTrack(track: $0, hashes: hashes) },
-            opacity: appearance.opacity.keyframes(at: instant) { $0 },
             scale: isTransformed ? appearance.scale.keyframes(at: instant) { $0 } : nil,
             rotation: isTransformed ? appearance.rotation.keyframes(at: instant) { $0 } : nil,
-            blend: appearance.blend,
             isMotionBlurred: plan.isMotionBlurred,
             animation: ResolvedAnimation(plan: plan.animation)
         )
@@ -64,11 +79,11 @@ extension ResolvedClip {
     // MARK: - Private
     // A title is the one clip set as text, a shape the one with a shape appearance, and a media clip the one with a
     // picture that fills its box, so what is left is an adjustment.
-    private static func content(
+    private static func picture(
         of plan: ClipPlan,
         geometry: ClipGeometry,
         hashes: any FileHashProvider
-    ) throws -> ResolvedClipContent {
+    ) throws -> ResolvedPicture {
         let appearance = geometry.appearance
         let filter = try appearance.filter.pinningFiles(hashes: hashes)
 

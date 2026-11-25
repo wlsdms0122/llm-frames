@@ -116,7 +116,6 @@ struct ContentFitPlanner: Sendable {
                     content: clip.content,
                     start: clip.start,
                     end: clip.end,
-                    lane: clip.lane,
                     storyline: clip.storyline,
                     parent: clip.parent,
                     box: clip.box,
@@ -125,10 +124,8 @@ struct ContentFitPlanner: Sendable {
                     mask: clip.mask,
                     trackMatte: clip.trackMatte,
                     track: clip.track,
-                    opacity: clip.opacity,
                     scale: clip.scale,
                     rotation: clip.rotation,
-                    blend: clip.blend,
                     isMotionBlurred: clip.isMotionBlurred,
                     animation: .none
                 )
@@ -197,7 +194,7 @@ struct ContentFitPlanner: Sendable {
         in space: ClipSpace
     ) -> Rectangle? {
         switch clip.content {
-        case let .title(text):
+        case let .picture(.title(text), _):
             // The child map places the title's box at the time, and its glyphs item lies in its text box inside it.
             let time = SampleTime(0)
             let transform = text.textBoxInBox(at: time)
@@ -206,7 +203,7 @@ struct ContentFitPlanner: Sendable {
                 .map { bounds(of: $0, by: transform) }
                 .reduce(nil) { union, extent in union?.union(extent) ?? extent }
 
-        case .media:
+        case .picture(.media, _):
             guard let box = clip.box else { return nil }
 
             // The child map carries the media's crop onto the box.
@@ -215,10 +212,10 @@ struct ContentFitPlanner: Sendable {
                 ?? Rectangle(x: 0, y: 0, width: box.size.width, height: box.size.height)
             return bounds(of: drawn, by: transform)
 
-        case let .shape(shape):
-            return extent(of: shape, clip: clip, in: space)
+        case let .picture(.shape(shape), composite):
+            return extent(of: shape, composite: composite, clip: clip, in: space)
 
-        case .adjustment:
+        case .picture(.adjustment, _), .null:
             return nil
         }
     }
@@ -227,11 +224,19 @@ struct ContentFitPlanner: Sendable {
     // measured.
     private func extent(
         of shape: ResolvedShape,
+        composite: ResolvedComposite,
         clip: ResolvedClip,
         in space: ClipSpace
     ) -> Rectangle? {
         let sample = ClipSample(clip: clip, at: SampleTime(0))
-        let items = shapeEvaluator.items(of: shape, clip: clip, sample: sample, in: space, at: SampleTime(0))
+        let items = shapeEvaluator.items(
+            of: shape,
+            clip: clip,
+            sample: sample,
+            composite: composite,
+            in: space,
+            at: SampleTime(0)
+        )
         guard let item = items.first, case let .path(path) = item.content else { return nil }
 
         return path.drawnBounds(carriedBy: item.transform, under: item.transform)

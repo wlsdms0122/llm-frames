@@ -6,7 +6,9 @@
 //
 
 // A clip of a document as its track matte chains see it, its place and kind as messages name them. `refusal` is the
-// kind that keeps it from being a track matte, nil for a connected or sequence media clip, title or shape.
+// kind that keeps it from being a track matte, nil for a connected or sequence media clip, title or shape, and
+// `areaRefusal` the kind that keeps a clip area from naming it: a clip area reads a box and not a picture, so a null,
+// which has a box and draws nothing, may be named by one.
 struct TrackMatteLink: Equatable, Sendable {
     // MARK: - Property
     let place: Place
@@ -14,6 +16,10 @@ struct TrackMatteLink: Equatable, Sendable {
     let id: String?
     let trackMatte: TrackMatte?
     let refusal: TrackMatteRefusal?
+
+    var areaRefusal: TrackMatteRefusal? {
+        refusal == .null ? nil : refusal
+    }
 
     // MARK: - Initializer
     init(

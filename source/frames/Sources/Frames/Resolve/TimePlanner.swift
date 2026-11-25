@@ -503,6 +503,9 @@ struct TimePlanner: Sendable {
 
         case .adjust:
             return ClipSource(kind: .adjust)
+
+        case .null:
+            return ClipSource(kind: .null)
         }
     }
 
@@ -666,7 +669,8 @@ struct TimePlanner: Sendable {
         of clip: Clip,
         kind: ClipKind
     ) throws -> Int? {
-        guard kind != .media(.audio) else { return nil }
+        // An audio clip and a null draw no picture, so they are stacked in no lane.
+        guard kind != .media(.audio), kind != .null else { return nil }
 
         let lane = clip.lane ?? 1
         guard lane != 0 else {
@@ -704,7 +708,8 @@ struct TimePlanner: Sendable {
         return try animationPlan(AnimationChoice(value: merged, place: place) ?? .none, of: clip, place: clip.place, kind: kind)
     }
 
-    private func defaultAnimationPath(for content: ClipContent) -> [String] {
+    // The path of the theme's default animation a clip takes, nil for a null, which no theme default names.
+    private func defaultAnimationPath(for content: ClipContent) -> [String]? {
         switch content {
         case let .title(title):
             ["defaults", "animation", "title", title.style]
@@ -717,6 +722,9 @@ struct TimePlanner: Sendable {
 
         case .adjust:
             ["defaults", "animation", "adjust"]
+
+        case .null:
+            nil
         }
     }
 
@@ -736,6 +744,9 @@ struct TimePlanner: Sendable {
 
         case .adjust:
             defaults.adjustAnimation
+
+        case .null:
+            nil
         }
     }
 

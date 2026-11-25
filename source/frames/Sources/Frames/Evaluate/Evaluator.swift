@@ -127,18 +127,22 @@ package struct Evaluator: Sendable {
         at sample: SampleInstant,
         seed: Int
     ) -> [DisplayItem] {
+        // A null is stacked in no lane, since it draws nothing.
         sequence.clips.enumerated()
-            .filter { _, clip in
-                // Resolution sets every clip's lane.
-                let lane = clip.lane ?? 1
-                return (side == .below ? lane < 0 : lane > 0)
+            .compactMap { offset, clip -> (lane: Int, offset: Int, clip: ResolvedClip)? in
+                guard case let .picture(_, composite) = clip.content else { return nil }
+
+                return (composite.lane, offset, clip)
+            }
+            .filter { lane, _, clip in
+                (side == .below ? lane < 0 : lane > 0)
                     && TimeRange(start: clip.start, end: clip.end).contains(sample.frameTime)
                     && !sequence.isMatte(clip)
             }
             .sorted { left, right in
-                (left.element.lane ?? 1, left.offset) < (right.element.lane ?? 1, right.offset)
+                (left.lane, left.offset) < (right.lane, right.offset)
             }
-            .flatMap { _, clip in
+            .flatMap { _, _, clip in
                 let trackMatte = trackMatte(clip.trackMatte, in: sequence, parents: parents, at: sample, seed: seed)
                 return items(
                     of: clip,
@@ -211,7 +215,7 @@ package struct Evaluator: Sendable {
         at sample: SampleInstant,
         seed: Int
     ) -> PictureItemSource? {
-        guard case let .media(media) = clip.content else { return nil }
+        guard case let .picture(.media(media), _) = clip.content else { return nil }
 
         return source(
             of: media.media,

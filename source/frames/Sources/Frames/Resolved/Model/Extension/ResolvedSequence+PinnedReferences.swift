@@ -48,16 +48,16 @@ extension ResolvedSequence {
 
     private func references(of clip: ResolvedClip) -> [PinnedReference] {
         switch clip.content {
-        case let .title(text):
+        case let .picture(.title(text), _):
             return references(of: text, place: clip.place)
 
-        case .shape:
+        case .picture(.shape, _), .null:
             return []
 
-        case let .adjustment(filter):
+        case let .picture(.adjustment(filter), _):
             return references(of: filter, place: clip.place)
 
-        case let .media(media):
+        case let .picture(.media(media), _):
             return references(of: media.media, place: clip.place, colorSpace: media.colorSpace)
                 + references(of: media.filter, place: clip.place)
         }

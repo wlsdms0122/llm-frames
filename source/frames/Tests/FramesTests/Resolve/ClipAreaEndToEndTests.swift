@@ -456,7 +456,7 @@ struct ClipAreaEndToEndTests {
     ) throws -> Rectangle {
         let clip = try #require(sequence.clips.first { $0.id == id })
         let box = try #require(clip.box)
-        guard case let .title(text) = clip.content else {
+        guard case let .picture(.title(text), _) = clip.content else {
             Issue.record("the clip is a title")
             return Rectangle(x: 0, y: 0, width: 0, height: 0)
         }

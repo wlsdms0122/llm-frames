@@ -27,6 +27,9 @@ extension TrackMatteLink {
         case .media(.audio):
             .audio
 
+        case .null:
+            .null
+
         case .media, .title, .shape, .solid:
             nil
         }

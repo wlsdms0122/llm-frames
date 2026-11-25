@@ -1393,7 +1393,7 @@ struct EvaluatorTests {
     }
 
     private func clip(
-        _ content: ResolvedClipContent,
+        _ content: ResolvedPicture,
         id: String? = nil,
         start: Double = 0,
         end: Double = 4,
@@ -1411,10 +1411,12 @@ struct EvaluatorTests {
         ResolvedClip(
             place: "clips[0]",
             id: id,
-            content: content,
+            content: .picture(
+                content,
+                ResolvedComposite(lane: lane, opacity: [Keyframe(at: 0, value: opacity)], blend: blend)
+            ),
             start: start,
             end: end,
-            lane: lane,
             storyline: storyline,
             parent: parent,
             box: box,
@@ -1422,10 +1424,8 @@ struct EvaluatorTests {
             mask: mask,
             trackMatte: nil,
             track: track,
-            opacity: [Keyframe(at: 0, value: opacity)],
             scale: box == nil ? nil : [Keyframe(at: 0, value: .identity)],
             rotation: box == nil ? nil : [Keyframe(at: 0, value: 0)],
-            blend: blend,
             animation: animation
         )
     }
@@ -1440,10 +1440,12 @@ struct EvaluatorTests {
         ResolvedClip(
             place: "clips[0]",
             id: id,
-            content: .shape(shape),
+            content: .picture(
+                .shape(shape),
+                ResolvedComposite(lane: 1, opacity: [Keyframe(at: 0, value: 1)], blend: "normal")
+            ),
             start: 0,
             end: 4,
-            lane: 1,
             storyline: 0,
             parent: parent,
             box: nil,
@@ -1451,10 +1453,8 @@ struct EvaluatorTests {
             mask: nil,
             trackMatte: nil,
             track: nil,
-            opacity: [Keyframe(at: 0, value: 1)],
             scale: [Keyframe(at: 0, value: .identity)],
             rotation: [Keyframe(at: 0, value: rotation)],
-            blend: "normal",
             animation: .none
         )
     }

@@ -393,7 +393,7 @@ struct ResolvedDocumentReaderTests {
         let read = try sut.read(text)
 
         // Then
-        guard case let .title(title) = read.clips.first?.content else {
+        guard case let .picture(.title(title), _) = read.clips.first?.content else {
             Issue.record("the first clip is not a title")
             return
         }
@@ -506,7 +506,12 @@ struct ResolvedDocumentReaderTests {
         // Then
         let entry = try JSONReader().read(text).objectValue?["clips"]?.arrayValue?.first?.objectValue
         #expect(entry?["blend"] == .string("screen"))
-        #expect(sequence.clips.map(\.blend) == ["screen"])
+        let blends = sequence.clips.compactMap { clip -> String? in
+            guard case let .picture(_, composite) = clip.content else { return nil }
+
+            return composite.blend
+        }
+        #expect(blends == ["screen"])
         #expect(list.items.last?.blend == "screen")
     }
 
@@ -925,7 +930,7 @@ struct ResolvedDocumentReaderTests {
         let read = try sut.read(String(contentsOf: file, encoding: .utf8))
 
         // Then
-        guard case let .title(title) = read.clips.first?.content else {
+        guard case let .picture(.title(title), _) = read.clips.first?.content else {
             Issue.record("the first clip is not a title")
             return
         }
@@ -953,7 +958,7 @@ struct ResolvedDocumentReaderTests {
         let read = try sut.read(writer.write(document))
 
         // Then
-        guard case let .title(title) = read.clips.first?.content else {
+        guard case let .picture(.title(title), _) = read.clips.first?.content else {
             Issue.record("the first clip is not a title")
             return
         }
@@ -1020,7 +1025,7 @@ struct ResolvedDocumentReaderTests {
         // The Hebrew letters lie at level 1 and the digits and Latin letters at level 2 by I2. The space after `ב` is R
         // by N1 and the one before `c` takes the paragraph's direction by N2, both at level 1, so the line is placed
         // c d, space, 1 2, space, ב א from left to right.
-        guard case let .title(title) = read.clips.first?.content else {
+        guard case let .picture(.title(title), _) = read.clips.first?.content else {
             Issue.record("the first clip is not a title")
             return
         }
@@ -1065,7 +1070,7 @@ struct ResolvedDocumentReaderTests {
         let error = #expect(throws: ModelError.self) { try sut.read(reordered) }
 
         // Then
-        guard case let .title(title) = read.clips.first?.content else {
+        guard case let .picture(.title(title), _) = read.clips.first?.content else {
             Issue.record("the first clip is not a title")
             return
         }
@@ -1117,7 +1122,7 @@ struct ResolvedDocumentReaderTests {
         let error = #expect(throws: ModelError.self) { try sut.read(changed) }
 
         // Then
-        guard case let .title(title) = read.clips.first?.content else {
+        guard case let .picture(.title(title), _) = read.clips.first?.content else {
             Issue.record("the first clip is not a title")
             return
         }
@@ -1149,7 +1154,7 @@ struct ResolvedDocumentReaderTests {
         let error = #expect(throws: ModelError.self) { try sut.read(changed) }
 
         // Then
-        guard case let .title(title) = read.clips.first?.content else {
+        guard case let .picture(.title(title), _) = read.clips.first?.content else {
             Issue.record("the first clip is not a title")
             return
         }
@@ -1185,9 +1190,9 @@ struct ResolvedDocumentReaderTests {
         let error = #expect(throws: ModelError.self) { try sut.read(unreadable) }
 
         // Then
-        guard case let .title(title) = read.clips.first?.content,
-            case let .title(narrowedTitle) = readNarrowed.clips.first?.content,
-            case let .title(rewrittenTitle) = rewritten.clips.first?.content
+        guard case let .picture(.title(title), _) = read.clips.first?.content,
+            case let .picture(.title(narrowedTitle), _) = readNarrowed.clips.first?.content,
+            case let .picture(.title(rewrittenTitle), _) = rewritten.clips.first?.content
         else {
             Issue.record("the first clip is not a title")
             return
@@ -1214,7 +1219,7 @@ struct ResolvedDocumentReaderTests {
         // Then
         #expect(read == document)
         #expect(writer.write(read) == text)
-        guard case let .title(title) = read.clips.first?.content else {
+        guard case let .picture(.title(title), _) = read.clips.first?.content else {
             Issue.record("the first clip is not a title")
             return
         }
@@ -1477,7 +1482,7 @@ struct ResolvedDocumentReaderTests {
         // Tracking lies between `a` and `b`, `b` and the space, and the space and the Arabic word, and not between the
         // word's letters. Read without their scripts, the word's pens lie closer than the tracking between its letters
         // would put them.
-        guard case let .title(title) = read.clips.first?.content else {
+        guard case let .picture(.title(title), _) = read.clips.first?.content else {
             Issue.record("the first clip is not a title")
             return
         }
@@ -1521,7 +1526,7 @@ struct ResolvedDocumentReaderTests {
         let error = #expect(throws: ModelError.self) { try sut.read(moved) }
 
         // Then
-        guard case let .title(title) = read.clips.first?.content else {
+        guard case let .picture(.title(title), _) = read.clips.first?.content else {
             Issue.record("the first clip is not a title")
             return
         }
@@ -1559,7 +1564,7 @@ struct ResolvedDocumentReaderTests {
         let read = try sut.read(document)
 
         // Then
-        guard case let .title(title) = read.clips.first?.content else {
+        guard case let .picture(.title(title), _) = read.clips.first?.content else {
             Issue.record("the first clip is not a title")
             return
         }

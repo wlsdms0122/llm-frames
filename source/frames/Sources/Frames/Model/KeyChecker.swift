@@ -1092,6 +1092,9 @@ struct KeyChecker: Sendable {
         case "adjust":
             return [.adjust]
 
+        case "null":
+            return [.null]
+
         default:
             return [.solid]
         }
