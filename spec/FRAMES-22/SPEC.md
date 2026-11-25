@@ -110,7 +110,7 @@ A shape style is a named set of defaults for a shape clip, as a text style is fo
 | Property | Form |
 | --- | --- |
 | `fill` | a colour, a gradient ([FRAMES-11](../FRAMES-11/SPEC.md)), or `false` for none |
-| `stroke` | `{color, gradient, width, align, join, cap, start, end, dash, dashOffset}`, its `color` a colour and its `gradient` a gradient, at most one of the two, and its `start` and `end` each an arrowhead's name or `{shape, scale}`, or `false` for none |
+| `stroke` | `{color, gradient, width, align, join, cap, start, end, dash, dashOffset}`, its `color` a colour and its `gradient` a gradient, at most one of the two, and its `start` and `end` each `none`, a head preset's name or `{preset, scale}` ([FRAMES-11](../FRAMES-11/SPEC.md#shapes)), or `false` for none |
 | `radius` | a theme length, or a list of four `[topLeft, topRight, bottomRight, bottomLeft]`: the corner radii of a `rect` ([FRAMES-11](../FRAMES-11/SPEC.md#shapes)) |
 | `outset` | a theme length: how far the outline a `rect` or `ellipse` draws grows on every side, its box staying as written |
 | `shadow` | `true` for on, with a weaker theme's shadow for this style or else the theme `shadow`, `false` for none, or `{radius, offset, color}`, whose missing keys come from the theme `shadow` |
