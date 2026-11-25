@@ -11,7 +11,7 @@ A few rules hold everywhere:
 - Every object has a fixed set of keys. A misspelt key stops with its place, so a typo never renders as no effect.
 - A reference that matches more than one thing stops and lists what it matched.
 - A value that still does its job is clamped (a transition longer than its clips, an `out` past the end of the media), and one that cannot stops (a clip that is never visible, a one-line title wider than its room).
-- The resolved document is a lockfile: recognised text, tracks, text layout, themes, presets and templates are written into it as values, and the files it still needs are pinned by hash, so it makes the same result again.
+- The resolved document is a lockfile: tracks, text layout, themes, presets and templates are written into it as values, and the files it still needs are pinned by hash, so it makes the same result again.
 - `render` writes a master at full quality. Delivery files are made from the same frames (`--deliver`) or from the master (`transcode`), and a render made only to look at or hand over writes the delivery file alone (`-o` an `.mp4`).
 
 The specification in [`spec/`](spec/README.md) is the contract for every rule, and this page is the way in for someone who uses the tool. Each section below links to the spec that holds the full rules.
@@ -118,11 +118,11 @@ frames render /path/to/edit.json -o /path/to/out/edit.mp4
 
 ```
 frames [--theme <pack/name | /abs/theme.json>] [--decoder <name>] [--renderer <name>] [--mixer <name>]
-       [--encoder <name>] [--shaper <name>] [--tracker <name>] [--ocr <name>] [--ocr-languages <tag>[,<tag>...]]
+       [--encoder <name>] [--shaper <name>] [--tracker <name>] [--ocr <name>]
        <command> ...
 ```
 
-Global options go before the command. `--theme` merges a theme under every document's own theme. The role and provider options pick an implementation by name: the decoder, the mixer and the encoder are `avfoundation`, the renderer `quartz`, the OCR provider `vision`, the shaper `coretext` and the tracker `point`, which are also the defaults. `--tracker planar` picks the tracker that follows a plane in perspective, the one a tracked `cornerPin` rides on a screen or a sign. `--ocr-languages` gives the OCR provider the recognition languages as BCP 47 tags in order of preference (`ko-KR,en-US`); without it the provider detects the language of each picture, which reads text in one language, accents and Chinese and Japanese included. Give it for lines that mix scripts, such as Korean with English words and numbers, with the non-Latin language first: `vision` reads only what the listed languages cover, led by the first, so `ko-KR,en-US` reads `Total 12,000원` and `en-US,ko-KR` misses the Korean.
+Global options go before the command. `--theme` merges a theme under every document's own theme. The role and provider options pick an implementation by name: the decoder, the mixer and the encoder are `avfoundation`, the renderer `quartz`, the OCR provider `vision`, the shaper `coretext` and the tracker `point`, which are also the defaults. `--tracker planar` picks the tracker that follows a plane in perspective, the one a tracked `cornerPin` rides on a screen or a sign.
 
 Paths are absolute. Where a command takes a document, it also takes a resolved document, a pack template (`<pack>/<name>`), or `-` for standard input. On success a command that writes a file prints one line with its path and size. On failure it prints `frames: <reason>` to standard error and exits with 1, and without a command it prints its usage to standard error and exits with 64. `frames --help` prints the usage and what each global option takes, and `frames <command> --help` prints what that command does and each of its arguments and options with its default, both to standard output with exit 0. A message names the place in the document, a path of keys and indexes with a clip's `id` after its index. With `opacity` misspelt on the logo of the first edit:
 
@@ -155,7 +155,7 @@ frames transcode /path/to/out/edit.mov -o /path/to/out/edit-small.mp4 --quality 
 | --- | --- |
 | `probe <media> [--page <n>] [--json]` | the kind (`image`, `page`, `video`, `audio`, `imageSequence`), size, duration, frame rate, alpha, colour space and audio of a file or a directory of PNGs, and the page count of a PDF (without `--page`, a PDF of more pages gives only its page count) |
 | `loudness <media \| document> [--from <t>] [--to <t>] [--args <args.json>] [--json]` | the integrated loudness, loudness range, largest momentary and short-term loudness, true peak and sample peak of a document's mix, after the sequence's `audioFilter`, or of the mix of one clip of a medium, without rendering pictures. `--from` and `--to` measure part of it, read as part of the whole sound. `--args` with a medium stops, since a medium has no parameters to take them |
-| `ocr <still \| video> [--page <n>] [--at <t> \| --from <t> --to <t> --step <s>] [--languages <tag>[,<tag>...]] [--color-space <name>] [--json]` | the recognised lines, `[x, y, w, h]  text` in media pixels, for a page of a PDF in points, in the order a text area's `nth` counts them |
+| `ocr <still \| video> [--page <n>] [--at <t> \| --from <t> --to <t> --step <s>] [--languages <tag>[,<tag>...]] [--color-space <name>] [--json]` | the recognised lines, `[x, y, w, h]  text` in media pixels, for a page of a PDF in points, top to bottom by row and left to right within a row. `--languages` gives the recognition languages |
 | `track <video> --at <t> --area <area> [--to <t>] [--color-space <name>]` | the four corners of an area on every frame the tracker follows, and the motion fitted to them, as JSON |
 | `extract <video \| document> <outdir> [--from <t>] [--to <t>] [--step 1]` | frames as full-size PNGs, `0000.png`, `0001.png`, ... |
 | `sheet <video \| document> -o <out.png> [--from <t>] [--to <t>] [--step 1] [--cols 6]` | frames laid out in one picture, each at most 480 pixels on its longer side and labelled with its time |
@@ -163,7 +163,7 @@ frames transcode /path/to/out/edit.mov -o /path/to/out/edit-small.mp4 --quality 
 | `evaluate <document> --at <t> [--args <args.json>]` | the display list at a time: what is drawn, by which clip, where, and where each title's lines, words and characters lie, as JSON |
 | `locate <document> --at <t> --point <x,y> [--args <args.json>]` | the clips under a point of the output at a time, and for media the frame and pixel it shows, for a page of a PDF its page and the point in points |
 
-Given a video, `extract` and `sheet` take the frames shown at media times. Given a document they draw it at sequence times as `still` does, so what you check is what `render` makes, as an SDR sRGB preview. `ocr` and `track` read the media in the colour space `--color-space` names, as a clip's `colorSpace` corrects it. `--area` takes an area as JSON text: `'[10, 20, 300, 40]'` or `'{"text": "Flat white"}'`.
+Given a video, `extract` and `sheet` take the frames shown at media times. Given a document they draw it at sequence times as `still` does, so what you check is what `render` makes, as an SDR sRGB preview. `ocr` and `track` read the media in the colour space `--color-space` names, as a clip's `colorSpace` corrects it. `ocr --languages` takes the recognition languages as BCP 47 tags in order of preference (`ko-KR,en-US`); without it the provider detects the language of each picture, which reads text in one language, accents and Chinese and Japanese included. Give it for lines that mix scripts, such as Korean with English words and numbers, with the non-Latin language first: `vision` reads only what the listed languages cover, led by the first, so `ko-KR,en-US` reads `Total 12,000원` and `en-US,ko-KR` misses the Korean. `--area` takes a rectangle as JSON text: `'[10, 20, 300, 40]'`.
 
 ```sh
 frames probe /path/to/interview.mov
@@ -201,6 +201,8 @@ frames autocut /path/to/raw.json | frames captions - | frames render - -o /path/
 ```
 
 An extension checks `frames --version` against the versions it is written for. [document/GUIDE.md](document/GUIDE.md) shows how to write one.
+
+The frames repository keeps first-party extensions under `extensions/`. `frames find-text` takes a document whose areas name a place by its text on screen and writes each as the rectangle `frames ocr` finds there, so `frames find-text /path/to/edit.json | frames render - -o /path/to/out/edit.mp4` renders it ([extensions/find-text](extensions/find-text/README.md)).
 
 ## Document reference
 
@@ -374,10 +376,9 @@ An area is a rectangle in the coordinate space of the clip that writes it. A poi
 | Form | Means |
 | --- | --- |
 | `[x, y, w, h]` | that rectangle |
-| `{"text": "Flat white", "nth": 0, "padding": 8}` | the recognised line that contains the text, compared without whitespace. More than one match stops and lists them, and `nth` picks one, counted from 0, top to bottom and left to right |
-| `{"from": "Sourdough", "to": "Flat white", "fromNth": 0, "toNth": 0, "padding": 8}` | the rectangle around both lines and every line between them |
+| `{"clip": "<id>", "padding": p}` | the box of that clip at the same instant, grown by `padding`, a theme length: a connected or sequence media clip, title or shape with the same parent or none, or the parent of the clip that writes it |
 
-`padding` grows a found area on every side, in pixels of the picture searched, also past the picture's edges: an area keeps what is written or found, and the part of a crop beyond the media is transparent. A text form needs a picture to search, so it is allowed where the coordinates are a video's, a still's or an image sequence's media pixels: in a storyline or media clip's own `crop`, `mask` and `track`, and in the coordinates of a clip parented to such a clip. On video the text is searched in the frame at the instant the area takes effect: a keyframe's `at`, or the clip's start, and a `track` object's target on the frame its `time` names. `frames ocr` shows what can be pointed at, in the order `nth` counts. [FRAMES-2](spec/FRAMES-2/SPEC.md)
+An area keeps what is written, also past the picture's edges, and the part of a crop beyond the media is transparent. A place found in a picture is written as the rectangle it was found at. `frames ocr` prints every line of text it recognises in a medium with its rectangle in media pixels, which are the coordinates of a storyline or media clip's own `crop`, `mask` and `track` target and of a clip parented to it, and the extension `frames find-text` writes those rectangles into a document that names the lines by their text ([Extensions](#extensions)). A clip area makes a bar fit a title whatever its text, and a label sit at a point of the box it names. [FRAMES-2](spec/FRAMES-2/SPEC.md)
 
 ### Titles and runs
 
@@ -512,17 +513,17 @@ The B-roll plays inside the letters of the word, and the logo, cut to a circle i
     { "id": "menu", "media": "/path/to/board.png", "duration": 4,
       "connected": [
         { "parent": "menu", "shape": "rect", "area": [0, 0, 1600, 1000], "fill": "#000000A0",
-          "mask": { "shape": "rect", "area": { "text": "Cinnamon bun" }, "invert": true, "feather": 4 } },
-        { "id": "box", "parent": "menu", "shape": "rect", "area": { "text": "Cinnamon bun" }, "style": "outline",
+          "mask": { "shape": "rect", "area": [212, 548, 486, 64], "invert": true, "feather": 4 } },
+        { "id": "box", "parent": "menu", "shape": "rect", "area": [212, 548, 486, 64], "style": "outline",
           "keyframes": [ { "at": 0.5, "trim": [0, 0], "ease": "ease-out" }, { "at": 1.2, "trim": [0, 1] } ] },
         { "at": [1.2, 4], "parent": "box", "title": "New this week", "style": "note",
-          "anchor": "left", "position": { "area": { "text": "Cinnamon bun", "padding": 28 }, "point": "right" },
+          "anchor": "left", "position": { "area": { "clip": "box", "padding": 28 }, "point": "right" },
           "animation": "frames/fade" } ] }
   ]
 }
 ```
 
-The board is fitted to the 1920 by 1080 frame, and every clip on it is written in the board's own pixels. A dark rect covers the board except the line `Cinnamon bun 3.80`, found by its text. An outline traces itself around that line with `trim` keyframes, and a note fades in to its right.
+The board is fitted to the 1920 by 1080 frame, and every clip on it is written in the board's own pixels. A dark rect covers the board except the line `Cinnamon bun 3.80`, at the rectangle `frames ocr /path/to/board.png` reports for it. An outline traces itself around that line with `trim` keyframes, and a note fades in 28 to the right of the outline's box, its parent.
 
 ### Blend modes and adjustment clips
 
