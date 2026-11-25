@@ -60,11 +60,16 @@ class Case(unittest.TestCase):
         extension.Frames = self.original
 
     def run_document(self, document, calls, *options):
+        return self.run_with_report(document, calls, *options)[0]
+
+    def run_with_report(self, document, calls, *options):
+        """The filled document and the report of each request filled."""
         Replay.calls = calls
         path = os.path.join(self.directory(), "document.json")
         with open(path, "w", encoding="utf-8") as file:
             json.dump(document, file)
-        return extension.run([path, *options])
+        filled, _, report = extension.run([path, *options])
+        return filled, report
 
     def directory(self):
         directory = tempfile.mkdtemp(prefix="frames-find-text-test-")
@@ -160,6 +165,45 @@ class Recorded(Case):
         self.assertEqual([clip["track"] for clip in shot["connected"][1:]], [clip["track"] for clip in document["storyline"][0]["connected"][1:]])
         self.assertEqual(shot["connected"][1]["area"], [99.90329, 118, 146.19342, 23])
 
+    def test_report_still(self):
+        # Given the still fixture
+        document = fixture("still.json")
+
+        # When the extension writes the rectangles with their report
+        result, report = self.run_with_report(copy.deepcopy(document), fixture("still.calls.json"))
+
+        # Then each request filled is reported in the order of the document, with its place, its request as written,
+        # the still read, the lines it matched and the rectangle written
+        self.assertEqual([(entry["place"], entry["key"]) for entry in report], [
+            ("storyline[0]#board.connected[0]#sour", "area"),
+            ("storyline[0]#board.connected[1]#total", "area"),
+            ("storyline[0]#board.connected[2]#range", "area"),
+            ("storyline[0]#board.connected[3]#note", "position.area"),
+            ("storyline[1]#zoom", "crop")
+        ])
+        self.assertEqual(report[1], {
+            "place": "storyline[0]#board.connected[1]#total", "key": "area",
+            "request": {"tool": "find-text", "text": "Total", "nth": 1, "padding": 8},
+            "media": "/media/board.png", "mediaTime": None, "page": None,
+            "lines": [{"text": "Total saved 1.00", "rect": [77.795659, 483, 238.387482, 23]}],
+            "rect": result["storyline"][0]["connected"][1]["area"]
+        })
+        self.assertEqual([line["text"] for line in report[2]["lines"]], ["Flat white 4.50", "Sourdough 6.00", "Total 10.50"])
+        self.assertEqual(report[3]["rect"], result["storyline"][0]["connected"][3]["position"]["area"])
+
+    def test_report_video(self):
+        # Given the video fixture
+        # When the extension writes the rectangles with their report
+        result, report = self.run_with_report(fixture("video.json"), fixture("video.calls.json"), "--languages", "en-US")
+
+        # Then each keyframe's request names the frame read by its media time and the line shown on it
+        keyframes = [entry for entry in report if entry["place"] == "storyline[0]#v.connected[0]#k"]
+        self.assertEqual([(entry["key"], entry["media"], entry["mediaTime"], entry["page"]) for entry in keyframes], [
+            ("keyframes[0].area", "/media/clip.mp4", 0.48, None), ("keyframes[1].area", "/media/clip.mp4", 3, None)
+        ])
+        self.assertEqual([[line["text"] for line in entry["lines"]] for entry in keyframes], [["Price 4.50"], ["Price 6.00"]])
+        self.assertEqual([entry["rect"] for entry in keyframes], [keyframe["area"] for keyframe in result["storyline"][0]["connected"][0]["keyframes"]])
+
     def test_no_text_forms(self):
         # Given a document whose areas are rectangles
         document = {"kind": "sequence", "storyline": [{"solid": "#000000", "duration": 1}]}
@@ -178,7 +222,7 @@ class Matching(unittest.TestCase):
     reading = extension.Reading(output["size"], output["frames"][0]["lines"])
 
     def find(self, form):
-        return extension.find(form, self.reading, "place", "board.png")
+        return extension.find(form, self.reading, "place", "board.png")[0]
 
     def test_whitespace(self):
         # Given text written without its spaces
@@ -463,12 +507,47 @@ class Reading(unittest.TestCase):
     def test_options(self):
         # Given the global options frames passes before the extension's arguments
         # When they are parsed
-        options, document, languages = extension.parse(["--theme", "demo/dark", "/a/b.json", "--languages", "en-US"])
+        options, document, languages, report = extension.parse(["--theme", "demo/dark", "/a/b.json", "--languages", "en-US"])
 
         # Then the global options are kept for every frames command and the languages for ocr
         self.assertEqual(options, ["--theme", "demo/dark"])
         self.assertEqual(document, "/a/b.json")
         self.assertEqual(languages, "en-US")
+        self.assertIsNone(report)
+
+    def test_report_path(self):
+        # Given a report path with an extension in upper case
+        # When it is parsed
+        report = extension.parse(["/a/b.json", "--report", "/a/b.report.JSON"])[3]
+
+        # Then it is kept
+        self.assertEqual(report, "/a/b.report.JSON")
+
+        # And a relative path, another extension and the document's own path each stop before the document is read
+        for path, message in (
+            ("b.report.json", '--report "b.report.json" is not an absolute path, and paths are absolute'),
+            ("/a/b.txt", '--report "/a/b.txt": a report is written to a .json file'),
+            ("/a/b.json", '--report "/a/b.json": the report would be written over the document')
+        ):
+            with self.assertRaises(extension.Stop) as raised:
+                extension.parse(["/nowhere/b.json" if path == "b.report.json" else "/a/b.json", "--report", path])
+            self.assertEqual(str(raised.exception), message)
+
+    def test_write_report(self):
+        # Given a request filled
+        directory = tempfile.mkdtemp(prefix="frames-find-text-test-")
+        self.addCleanup(shutil.rmtree, directory, True)
+        path = os.path.join(directory, "report.json")
+        filled = [{"place": "clips[0]", "key": "area", "rect": [1, 2, 3, 4]}]
+
+        # When the report is written
+        extension.write_report(path, filled)
+
+        # Then its first key names the tool and its version, and it holds the requests
+        with open(path, encoding="utf-8") as file:
+            text = file.read()
+        self.assertTrue(text.startswith('{\n  "find-text": "0.1.0",'))
+        self.assertEqual(json.loads(text), {"find-text": "0.1.0", "requests": filled})
 
 
 if __name__ == "__main__":
