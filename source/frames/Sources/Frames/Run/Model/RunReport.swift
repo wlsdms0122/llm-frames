@@ -9,7 +9,8 @@
 // decoder's and the encoder's, each summed over the threads that ran it. `readAhead` is the part of `decode` and
 // `workingConversion` the decoder ran on threads of its own reading ahead. `waitingOnEncoder` and `waitingOnDecoder`
 // are the render's thread's time in the encoder and waiting on the decoder's reading ahead, and `other` the rest of
-// `seconds` that no stage on the render's thread and no waiting holds.
+// `seconds` that no stage on the render's thread and no waiting holds. `memory` is what the run's budget saw
+// (FRAMES-30 Report).
 package struct RunReport: Equatable, Sendable {
     // MARK: - Property
     package let frames: Int
@@ -24,6 +25,7 @@ package struct RunReport: Equatable, Sendable {
     package let waitingOnDecoder: Double
     package let media: [MediumReading]
     package let files: [FileEncoding]
+    package let memory: MemoryUsage
 
     package var framesPerSecond: Double {
         Double(frames) / seconds
@@ -46,7 +48,8 @@ package struct RunReport: Equatable, Sendable {
         machine: MachineFacts,
         roles: RoleNames,
         recorder: RunRecorder,
-        readings: MediaReadings
+        readings: MediaReadings,
+        memory: MemoryUsage
     ) {
         self.frames = run.frames
         self.seconds = seconds
@@ -60,6 +63,7 @@ package struct RunReport: Equatable, Sendable {
         self.waitingOnDecoder = readings.waiting
         self.media = readings.media
         self.files = run.files
+        self.memory = memory
     }
 
     // MARK: - Public

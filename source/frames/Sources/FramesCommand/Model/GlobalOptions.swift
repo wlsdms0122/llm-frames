@@ -20,6 +20,7 @@ struct GlobalOptions: Equatable, Sendable {
         ocr: nil,
         shaper: nil,
         tracker: nil,
+        memory: nil,
         written: []
     )
 
@@ -31,6 +32,8 @@ struct GlobalOptions: Equatable, Sendable {
     let ocr: String?
     let shaper: String?
     let tracker: String?
+    // Nil where `--memory` is not written, so the run's limit is the default.
+    let memory: MemorySize?
     let written: [String]
 
     // MARK: - Initializer
@@ -43,6 +46,7 @@ struct GlobalOptions: Equatable, Sendable {
         ocr: String?,
         shaper: String?,
         tracker: String?,
+        memory: MemorySize?,
         written: [String]
     ) {
         self.theme = theme
@@ -53,6 +57,7 @@ struct GlobalOptions: Equatable, Sendable {
         self.ocr = ocr
         self.shaper = shaper
         self.tracker = tracker
+        self.memory = memory
         self.written = written
     }
 

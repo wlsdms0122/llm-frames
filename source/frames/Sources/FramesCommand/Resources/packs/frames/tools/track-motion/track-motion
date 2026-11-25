@@ -19,7 +19,7 @@ import subprocess
 import sys
 import tempfile
 
-GLOBAL_OPTIONS = ("--theme", "--decoder", "--renderer", "--mixer", "--encoder", "--shaper", "--tracker", "--ocr")
+GLOBAL_OPTIONS = ("--theme", "--decoder", "--renderer", "--mixer", "--encoder", "--shaper", "--tracker", "--ocr", "--memory")
 TOOL = "frames/track-motion"
 REQUEST_KEYS = {"tool", "target"}
 CLIP_TARGET_KEYS = {"clip"}

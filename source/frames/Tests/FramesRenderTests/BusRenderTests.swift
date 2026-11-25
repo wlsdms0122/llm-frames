@@ -99,7 +99,8 @@ struct BusRenderTests {
             decoder: decoder,
             renderer: QuartzRenderer(decoder: decoder),
             mixer: AVFoundationMixer(decoder: decoder),
-            encoder: AVFoundationEncoder()
+            encoder: AVFoundationEncoder(),
+            budget: MemoryBudget(limit: .unlimited)
         )
     }
 

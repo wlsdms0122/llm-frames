@@ -13,7 +13,8 @@ import os
 // forward by a steady step, as a render reads a clip. Frames are kept apart for each file and reading. Once two frames
 // of one file and reading are read, the second forward of the first, the frame as far on again from the second is read
 // ahead on a thread made for that read by the same read, so it holds the same bits, while fewer frames than the machine
-// has processors are being read ahead; past that the frame is read where it is asked. AVFoundation finishes a read's
+// has processors are being read ahead and the run's budget grants its `readAhead` the frame's bytes until the frame is
+// given or let go of (FRAMES-30); past either the frame is read where it is asked. AVFoundation finishes a read's
 // work on Swift's shared pool and on the 64 threads Dispatch runs its concurrent queues on, and itself holds one of those
 // 64 waiting for each read it makes sample data ready for, so reads on threads of either pool, or near 64 reads at once
 // on any threads, hold every thread that work needs. A frame asked for that is not the one read
@@ -25,6 +26,7 @@ final class PictureLookahead: Sendable {
     // MARK: - Property
     private static let readsAtOnce = ProcessInfo.processInfo.activeProcessorCount
 
+    private let budget: MemoryBudget
     private let entries = OSAllocatedUnfairLock<[Entry]>(initialState: [])
     private let readsAhead = OSAllocatedUnfairLock<Int>(initialState: 0)
     private let waiting = OSAllocatedUnfairLock<Double>(initialState: 0)
@@ -35,12 +37,17 @@ final class PictureLookahead: Sendable {
     }
 
     // MARK: - Initializer
+    init(budget: MemoryBudget) {
+        self.budget = budget
+    }
+
     // MARK: - Public
-    // Frame `index` of the file at `path`, of `count` frames, as `read` reads it.
+    // Frame `index` of the file at `path`, of `count` frames, as `read` reads it, each picture of `bytes`.
     func picture(
         atFrame index: Int,
         of path: String,
         count: Int,
+        bytes: Int,
         reading: PictureReading,
         read: @escaping @Sendable (_ index: Int, _ isAhead: Bool) throws -> Pixels
     ) throws -> Pixels {
@@ -64,16 +71,22 @@ final class PictureLookahead: Sendable {
             let next = index + (index - entry.index)
             guard index > entry.index, next < count else { return nil }
 
-            return readsAhead.withLock { reads in
-                guard reads < Self.readsAtOnce else { return nil }
+            return readsAhead.withLock { [budget] reads in
+                guard reads < Self.readsAtOnce, budget.take(bytes, for: .readAhead) else { return nil }
                 reads += 1
 
-                return ReadAhead(index: next)
+                return ReadAhead(index: next, bytes: bytes)
             }
         }
-        entries.withLock { entries in
+        let replaced = entries.withLock { entries in
+            let replaced = entries.filter { $0.path == path && $0.reading == reading }
             entries.removeAll { $0.path == path && $0.reading == reading }
             entries.append(Entry(path: path, reading: reading, index: index, ahead: ahead))
+
+            return replaced
+        }
+        for ahead in replaced.compactMap(\.ahead) where ahead.letGo() {
+            budget.give(ahead.bytes, for: .readAhead)
         }
         if let ahead {
             let thread = Thread { [readsAhead] in
@@ -88,7 +101,8 @@ final class PictureLookahead: Sendable {
     }
 
     // MARK: - Private
-    // The picture of a frame being read ahead once its read ends, the time waited for it kept.
+    // The picture of a frame being read ahead once its read ends, the time waited for it kept, and its bytes given
+    // back to the budget, since the picture is the caller's once it is given.
     private func wait(for ahead: ReadAhead) -> Pixels? {
         let start = ContinuousClock.now
         defer {
@@ -96,7 +110,10 @@ final class PictureLookahead: Sendable {
             waiting.withLock { $0 += waited }
         }
 
-        return ahead.picture()
+        let picture = ahead.picture()
+        if ahead.letGo() { budget.give(ahead.bytes, for: .readAhead) }
+
+        return picture
     }
 }
 
@@ -111,19 +128,35 @@ extension PictureLookahead {
         let ahead: ReadAhead?
     }
 
-    // A frame being read ahead: `picture()` waits for its read and gives the picture, or nil where the read failed.
+    // A frame being read ahead, of `bytes`: `picture()` waits for its read and gives the picture, or nil where the read
+    // failed, and `letGo()` is true once, for whoever lets go of the frame first, its caller or the read that replaces
+    // it.
     private final class ReadAhead: Sendable {
         // MARK: - Property
         let index: Int
+        let bytes: Int
         private let done = DispatchSemaphore(value: 0)
         private let result = OSAllocatedUnfairLock<Pixels?>(initialState: nil)
+        private let isHeld = OSAllocatedUnfairLock<Bool>(initialState: true)
 
         // MARK: - Initializer
-        init(index: Int) {
+        init(
+            index: Int,
+            bytes: Int
+        ) {
             self.index = index
+            self.bytes = bytes
         }
 
         // MARK: - Public
+        func letGo() -> Bool {
+            isHeld.withLock { isHeld in
+                defer { isHeld = false }
+
+                return isHeld
+            }
+        }
+
         func finish(_ picture: Pixels?) {
             result.withLock { $0 = picture }
             done.signal()

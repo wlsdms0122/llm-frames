@@ -13,12 +13,15 @@ import Foundation
 // order: the output paths and the time, every pinned file's hash, the decoder on every pinned media, the mixer on the
 // mix plan, the renderer on every frame's display list, and the encoder on each target. A run's recorder times each
 // stage the pipeline runs and the time it spends in the encoder, and is told of every frame drawn (FRAMES-23 Runs).
+// The run's budget is given the floors of the frames in flight and of the mixed sound once the roles have checked
+// everything, and a limit under the run's floor is refused there, in `check` (FRAMES-30 The budget).
 package struct RenderPipeline: Sendable {
     // MARK: - Property
     private let decoder: any MediaDecoder
     private let renderer: any Renderer
     private let mixer: any Mixer
     private let encoder: any Encoder
+    private let budget: MemoryBudget
     private let pinned: PinnedReferenceChecker
     private let evaluator = Evaluator()
 
@@ -27,9 +30,17 @@ package struct RenderPipeline: Sendable {
         decoder: any MediaDecoder,
         renderer: any Renderer,
         mixer: any Mixer,
-        encoder: any Encoder
+        encoder: any Encoder,
+        budget: MemoryBudget
     ) {
-        self.init(decoder: decoder, renderer: renderer, mixer: mixer, encoder: encoder, hasher: FileHasher())
+        self.init(
+            decoder: decoder,
+            renderer: renderer,
+            mixer: mixer,
+            encoder: encoder,
+            budget: budget,
+            hasher: FileHasher()
+        )
     }
 
     init(
@@ -37,12 +48,14 @@ package struct RenderPipeline: Sendable {
         renderer: any Renderer,
         mixer: any Mixer,
         encoder: any Encoder,
+        budget: MemoryBudget,
         hasher: any FileHashProvider
     ) {
         self.decoder = decoder
         self.renderer = renderer
         self.mixer = mixer
         self.encoder = encoder
+        self.budget = budget
         self.pinned = PinnedReferenceChecker(decoder: decoder, hasher: hasher)
     }
 
@@ -110,6 +123,8 @@ package struct RenderPipeline: Sendable {
         try recorder.measure(.check, reading: decoder) {
             try renderer.check(list, ofFrameAt: time)
             try encoder.check(target)
+            budget.require(frameBytes(of: sequence.format), for: .frames)
+            try budget.checkFloor()
         }
 
         let frame = try recorder.measure(.draw, reading: decoder) { try renderer.frame(of: list) }
@@ -140,6 +155,9 @@ package struct RenderPipeline: Sendable {
             for target in targets {
                 try encoder.check(target)
             }
+            budget.require((1 + FrameWriteQueue.depth) * frameBytes(of: format), for: .frames)
+            budget.require(mix.plan.length * 2 * MemoryLayout<Float>.size, for: .sound)
+            try budget.checkFloor()
         }
 
         // A sequence without sound mixes to silence, so every master and delivery carries one sound track.
@@ -167,6 +185,11 @@ package struct RenderPipeline: Sendable {
         }
 
         return RenderRun(frames: times.count, files: writers.map(\.encoding))
+    }
+
+    // The bytes of one output frame of working values, RGBA half floats.
+    private func frameBytes(of format: ResolvedFormat) -> Int {
+        Int(format.size.width) * Int(format.size.height) * 4 * MemoryLayout<UInt16>.size
     }
 
     private func pathExtension(of path: String) -> String {

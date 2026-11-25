@@ -15,7 +15,8 @@ import Foundation
 // returns, nothing of the queue holds a writer.
 final class FrameWriteQueue: @unchecked Sendable {
     // MARK: - Property
-    private static let depth = 2
+    // The frames held by the writers at once, written and waiting.
+    static let depth = 2
 
     private let writers: [any VideoWriter]
     private let queues: [DispatchQueue]

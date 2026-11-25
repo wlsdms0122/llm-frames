@@ -18,7 +18,7 @@ import subprocess
 import sys
 import tempfile
 
-GLOBAL_OPTIONS = ("--theme", "--decoder", "--renderer", "--mixer", "--encoder", "--shaper", "--tracker", "--ocr")
+GLOBAL_OPTIONS = ("--theme", "--decoder", "--renderer", "--mixer", "--encoder", "--shaper", "--tracker", "--ocr", "--memory")
 TOOL = "frames/find-text"
 TEXT_KEYS = {"tool", "text", "nth", "padding", "aspectRatio"}
 RANGE_KEYS = {"tool", "from", "to", "fromNth", "toNth", "padding", "aspectRatio"}
