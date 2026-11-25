@@ -54,17 +54,25 @@ struct ParentEvaluator: Sendable {
         return parentSpace.drawing(clip, of: sequence)
     }
 
+    // The storyline clip's transition motion at the sample, which carries everything its picture draws and the space it
+    // gives its children.
+    func motion(
+        ofStoryline index: Int,
+        at sample: SampleInstant
+    ) -> AffineTransform {
+        let motion = transitionSampler.motion(of: index, in: sequence.storyline, at: sample).motion
+
+        return ItemPresentation(area: sequence.format.frame, opacity: 1, motion: motion).transform
+    }
+
     // MARK: - Private
     private func transform(
         of index: Int,
         at time: SampleTime
     ) -> AffineTransform {
         let storyline = sequence.storyline
-        let entry = storyline[index]
-        let own = entry.spaceTransform(at: storyline.valueTime(ofEntry: index, in: time.sample))
-        let sample = transitionSampler.motion(of: index, in: storyline, at: time.sample)
-        let motion = ItemPresentation(area: sequence.format.frame, opacity: 1, motion: sample.motion).transform
+        let own = storyline[index].spaceTransform(at: storyline.valueTime(ofEntry: index, in: time.sample))
 
-        return own.concatenating(motion)
+        return own.concatenating(motion(ofStoryline: index, at: time.sample))
     }
 }

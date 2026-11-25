@@ -49,9 +49,7 @@ struct FrameConverter: Sendable {
         _ frame: Bitmap,
         into buffer: CVPixelBuffer
     ) -> Bool {
-        for (key, value) in attachments {
-            CVBufferSetAttachment(buffer, key, value, .shouldPropagate)
-        }
+        tag(buffer)
 
         let width = CVPixelBufferGetWidth(buffer)
         let height = CVPixelBufferGetHeight(buffer)
@@ -86,6 +84,13 @@ struct FrameConverter: Sendable {
         }
 
         return true
+    }
+
+    // Tags the buffer with the output's colour space, as a frame converted into it on any processor is.
+    func tag(_ buffer: CVPixelBuffer) {
+        for (key, value) in attachments {
+            CVBufferSetAttachment(buffer, key, value, .shouldPropagate)
+        }
     }
 
     // MARK: - Private

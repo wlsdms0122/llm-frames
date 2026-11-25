@@ -29,7 +29,7 @@ struct CommandUsageTests {
             render    <document.json> -o <out.mov | out.mp4 | out.png> [--at <t>] [--deliver <out.mp4>] [--args <args.json>] [--report <report.json>] [--progress text|json|none]
             still     <document.json> --at <t>[,<t>...] -o <out.png> [--args <args.json>]
             resolve   <document.json> -o <resolved.json> [--args <args.json>]
-            timeline  <document.json> [--at <t>] [--args <args.json>] [--json]
+            timeline  <document.json> [--at <t>] [--nested <place>] [--args <args.json>] [--json]
             evaluate  <document.json> --at <t> [--args <args.json>]
             locate    <document.json> --at <t> --point <x,y> [--args <args.json>]
             probe     <media> [--page <n>] [--json]

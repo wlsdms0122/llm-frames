@@ -335,6 +335,29 @@ struct ContentFitTests {
         #expect(plan.clips[2].area?.firstValue == .clip(ClipArea(clip: "sub", padding: 2000 * (1000 / 1920.0))))
     }
 
+    @Test("a clip area naming a storyline picture takes the box measured at the picture's pixel size, so the clip is measured and grows the frame")
+    func measuresClipAreaOnStorylinePicture() throws {
+        // Given
+        let plan = try plan(##"""
+            { "storyline": [ { "id": "page", "kind": "media", "media": "/abs/page.png", "duration": 1 } ],
+              "clips": [ { "kind": "rect", "fill": "#FFD43B80", "area": { "clip": "page", "padding": 192 }, "at": [0, 1] } ] }
+            """##)
+
+        // When
+        let resolved = try ResolvedSequence(plan: plan, hashes: PlaceholderHasher())
+        let item = try #require(Evaluator().displayList(of: resolved, at: 0).items.last { $0.origin?.kind == "rect" })
+        guard case let .path(path) = item.content, case let .rect(rectangle, _) = path.geometry else {
+            Issue.record("the clip draws no rect")
+            return
+        }
+
+        // Then
+        // The length scale is 1000 / 1920, so the padding is 100 output pixels round the 1000 by 800 box.
+        #expect(plan.format.size == Size(width: 1200, height: 1000))
+        #expect(plan.storyline[0].appearance.box?.position == .value(.point(Point(x: 600, y: 500))))
+        #expect(Rectangle(bounding: item.transform.apply(toCornersOf: rectangle)) == Rectangle(x: 0, y: 0, width: 1200, height: 1000))
+    }
+
     @Test("a box with neither a position nor a placement, its style's included, sits with its top left at the origin and is measured")
     func measuresUnplacedTitle() throws {
         // When

@@ -75,7 +75,7 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
     case trackMatteKind(place: Place, kind: PlaceKind, id: String, matte: TrackMatteRefusal)
     case trackMatteCycle(place: Place, kind: PlaceKind, ids: [String])
     case unknownClipArea(place: Place, kind: PlaceKind, id: String)
-    case clipAreaKind(place: Place, kind: PlaceKind, id: String, named: TrackMatteRefusal)
+    case clipAreaKind(place: Place, kind: PlaceKind, id: String, named: ClipAreaRefusal)
     case clipAreaAcrossSpaces(place: Place, kind: PlaceKind, id: String, parent: String?, namedParent: String?)
     case clipAreaCycle(place: Place, kind: PlaceKind, ids: [String])
     case clipAreaOnStoryline(place: Place, kind: PlaceKind)
@@ -333,8 +333,8 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
             "\(place) (\(kind.label)): no clip of this document has the id \(quoted(id))"
 
         case let .clipAreaKind(place, kind, id, named):
-            "\(place) (\(kind.label)): \(quoted(id)) is \(words(of: named)), "
-                + "and a clip area names a connected or sequence media clip, title, shape or null"
+            "\(place) (\(kind.label)): \(quoted(id)) is \(words(of: named)), and a clip area names a storyline "
+                + "clip with media, or a connected or sequence media clip, title, shape or null"
 
         case let .clipAreaAcrossSpaces(place, kind, id, parent, namedParent):
             "\(place) (\(kind.label)): this clip's parent is \(parent.map(quoted) ?? "none") and the parent of "
@@ -459,6 +459,19 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
 
         case let .tooLong(duration):
             "is \(number(duration)) seconds long, and an impulse response is at most \(number(MixConvolution.longestDuration)) seconds"
+        }
+    }
+
+    private func words(of refusal: ClipAreaRefusal) -> String {
+        switch refusal {
+        case .solid:
+            "a solid"
+
+        case .adjustment:
+            "an adjustment clip"
+
+        case .audio:
+            "an audio clip"
         }
     }
 

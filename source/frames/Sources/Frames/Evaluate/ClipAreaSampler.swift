@@ -13,7 +13,8 @@
 // padding is divided by the map's length factor; a shape placed by its geometry gives its geometry's box. Named as the
 // parent, it is its box in the space it gives its children. Resolve has checked that every id names a clip that may be
 // named and that no cycle holds, so the walk through clip areas the named clip writes ends. A clip with a corner pin
-// gives its corner pin bounds, its padding not divided by a length factor.
+// gives its corner pin bounds, its padding not divided by a length factor. A storyline clip, which only an unparented
+// clip or a child of it names, gives its box in output pixels or its crop in its media pixels.
 struct ClipAreaSampler: Sendable {
     // MARK: - Property
     private let sequence: ResolvedSequence
@@ -82,6 +83,9 @@ struct ClipAreaSampler: Sendable {
         of area: ClipArea,
         at time: SampleTime
     ) -> Rectangle {
+        if let index = sequence.storyline.firstIndex(where: { $0.id == area.clip }) {
+            return storylineBox(of: index, at: time).grown(by: area.padding)
+        }
         guard let named = sequence.clips.first(where: { $0.id == area.clip }) else {
             return Rectangle(x: 0, y: 0, width: 0, height: 0)
         }
@@ -108,6 +112,37 @@ struct ClipAreaSampler: Sendable {
         let clock = named.parentTrack == nil ? nil : ParentEvaluator(sequence: sequence).space(of: named, at: time).clock
         let areas = ClipAreaSampler(sequence: sequence, clip: named)
         return named.cornerPinBounds(areas: areas, clock: clock, at: time) ?? Rectangle(x: 0, y: 0, width: 0, height: 0)
+    }
+
+    // A storyline clip's box at the instant held to its drawn range, its transitions included, before its own `scale`,
+    // `rotation` and transition motion, as any named clip's box is taken before its own transform and animation: its
+    // corner pin bounds where it has one, in output pixels, which it gives its children too; to a child, its crop in its
+    // media pixels, the space it gives the child; and to an unparented clip, the frame its crop fills with its anchor
+    // point at its position, in output pixels. A solid, which no clip area names, gives an empty box.
+    private func storylineBox(
+        of index: Int,
+        at time: SampleTime
+    ) -> Rectangle {
+        let storyline = sequence.storyline
+        let entry = storyline[index]
+        let held = storyline.valueTime(ofEntry: index, in: time.sample)
+        if let cornerPin = entry.cornerPin(at: held) {
+            return Rectangle(bounding: cornerPin.corners)
+        }
+        if clip.parent == entry.id {
+            return entry.crop(at: held)
+        }
+        guard case .media = entry.content, case let .transform(box, _, _) = entry.placement else {
+            return Rectangle(x: 0, y: 0, width: 0, height: 0)
+        }
+
+        let anchor = box.position.mapValues(\.fixed).value(at: held)
+        return Rectangle(
+            x: anchor.x - box.anchor.x,
+            y: anchor.y - box.anchor.y,
+            width: box.size.width,
+            height: box.size.height
+        )
     }
 
     // The named clip's box in the space it is drawn in.

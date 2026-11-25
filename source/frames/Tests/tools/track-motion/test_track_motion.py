@@ -3,7 +3,7 @@ without frames.
 
 Run from the repository root: python3 -m unittest discover -s source/frames/Tests/tools/track-motion
 
-`fixtures/video.json` and `fixtures/keyframed.json` name their media as `/media/moving.mp4`, `/media/board.png` and `/media/frames`, and each
+`fixtures/video.json`, `fixtures/keyframed.json` and `fixtures/targets.json` name their media as `/media/moving.mp4`, `/media/board.png` and `/media/frames`, and each
 `*.calls.json` holds the frames commands the tool ran on it with what frames printed, the document it asks about
 written as `<document>`. `moving.mp4` is a 3 second 640 by 360 video at 25 frames a second, rendered by frames, of a
 title `Total 42,000` and an orange card with a white stroke moving right over a dark solid, `frames` an image sequence
@@ -207,6 +207,143 @@ class Keyframed(Case):
         )
 
 
+class Targets(Case):
+    """`fixtures/targets.json`: a 640 by 360 shot conformed to a 1280 by 720 sequence, so its media pixels are half the
+    output's, with requests whose targets are clips in output pixels (a rect, the same rect turned by 20 degrees, a
+    rect on a corner pin), a rect that names itself, a half size media clip whose target is its ellipse mask, an
+    adjustment clip without a box, and a compound clip whose nested storyline clip from media second 0.5 holds a rect
+    that names itself, from nested time 0.4, so at its instant -0.1 on the nested clock."""
+
+    def setUp(self):
+        super().setUp()
+        self.document = fixture("targets.json")
+        self.calls = fixture("targets.calls.json")
+        self.result = self.run_document(copy.deepcopy(self.document), self.calls)
+        self.clips = {clip["id"]: clip for clip in self.result["storyline"][0]["connected"]}
+
+    def followed(self, media_time):
+        """The --quad or --area value of each track run from the frame at a media time, from the log."""
+        tracks = [arguments for arguments in self.commands("track") if arguments[arguments.index("--at") + 1] == media_time]
+        return [json.loads(arguments[arguments.index("--to") - 1]) for arguments in tracks]
+
+    def test_targets(self):
+        # Given requests whose targets are clips and a mask, in the document and in a compound clip
+        # When the tool runs
+        # Then every request is the track data frames printed, and nothing else of the document changes
+        self.assertEqual(self.result, fixture("targets.expected.json"))
+
+    def test_clip_in_output_pixels(self):
+        # Given a rect parented to the shot whose target is a rect written in output pixels over the same place
+        # Then the target is the rect's quad carried into the shot's media pixels, followed from the frame at 0.4
+        self.assertIn(
+            ["track", "/media/moving.mp4", "--at", "0.4", "--quad", "[[160, 194.5], [296, 194.5], [296, 290.5], [160, 290.5]]", "--to", "0"],
+            Replay.log
+        )
+        self.assertNotIn("track", self.clips["outline"])
+        self.assertEqual(self.clips["cover"]["track"]["time"], 0.4)
+
+    def test_turned_clip(self):
+        # Given a title whose target is a rect turned by 20 degrees about its centre
+        quad = self.followed("1")[0]
+
+        # Then its quadrilateral is followed, the rect's corners turned about the centre of its area in media pixels
+        centre = (278, 233)
+        for point, corner in zip(quad, [(210, 185), (346, 185), (346, 281), (210, 281)]):
+            x, y = corner[0] - centre[0], corner[1] - centre[1]
+            self.assertAlmostEqual(point[0], centre[0] + x * 0.9396926 - y * 0.3420201, places=4)
+            self.assertAlmostEqual(point[1], centre[1] + x * 0.3420201 + y * 0.9396926, places=4)
+
+    def test_corner_pinned_clip(self):
+        # Given a rect whose target is a rect placed by its corner pin in output pixels
+        # Then the corner pin is followed as the quadrilateral it covers in media pixels
+        self.assertEqual(self.followed("1.2"), [[[220, 180], [360, 190], [355, 280], [225, 275]]] * 2)
+
+    def test_itself(self):
+        # Given a rect whose target names itself
+        # Then what it covers is followed, its own area in the shot's media pixels
+        quads = [json.loads(arguments[5]) for arguments in self.commands("track") if arguments[4] == "--quad"]
+        self.assertIn([[160, 194], [296, 194], [296, 290], [160, 290]], quads)
+
+    def test_mask(self):
+        # Given a media clip tracked in its own media whose target is its ellipse mask, shown at half size
+        # Then the rectangle that bounds the mask is followed in its media pixels, from the frame its instant shows
+        self.assertIn(
+            ["track", "/media/moving.mp4", "--at", "0", "--area", "[130, 170, 160, 130]", "--to", "0.4"],
+            Replay.log
+        )
+
+    def test_nested(self):
+        # Given a rect inside a compound clip whose instant on the nested clock is -0.1
+        nested = self.result["clips"][0]["media"]["storyline"][0]["connected"][0]
+
+        # Then it is read from the nested sequence's report on its own clock and its track data is written in place
+        self.assertIn(["timeline", "<document>", "--nested", "clips[0]#inner", "--json"], Replay.log)
+        self.assertIn(["timeline", "<document>", "--nested", "clips[0]#inner", "--at", "-0.1", "--json"], Replay.log)
+        self.assertIn(
+            ["track", "/media/moving.mp4", "--at", "0.4", "--quad", "[[124, 202], [252, 202], [252, 290], [124, 290]]", "--to", "0.48"],
+            Replay.log
+        )
+        self.assertEqual(nested["track"]["time"], 0.4)
+
+    def test_unknown_clip(self):
+        # Given a clip target whose id no clip has, and one inside the compound clip that names a clip outside it
+        document = copy.deepcopy(self.document)
+        document["storyline"][0]["connected"][1]["track"]["target"] = {"clip": "nobody"}
+        inside = copy.deepcopy(self.document)
+        inside["clips"][0]["media"]["storyline"][0]["connected"][0]["track"]["target"] = {"clip": "outline"}
+
+        # Then each stops, naming the id
+        self.assertEqual(
+            self.stop(document, self.calls),
+            'storyline[0]#shot.connected[1]#cover: track.target: no clip of the sequence has the id "nobody"'
+        )
+        self.assertEqual(
+            self.stop(inside, self.calls),
+            'clips[0]#inner.media.storyline[0]#innerShot.connected[0]#innerBox: track.target: no clip of the sequence has the id "outline"'
+        )
+
+    def test_clip_without_box(self):
+        # Given a clip target naming an adjustment clip
+        document = copy.deepcopy(self.document)
+        document["storyline"][0]["connected"][1]["track"]["target"] = {"clip": "wash"}
+
+        # Then it stops, since an adjustment clip has no box
+        self.assertEqual(
+            self.stop(document, self.calls),
+            "storyline[0]#shot.connected[1]#cover: track.target: storyline[0]#shot.connected[8]#wash has no box to follow"
+        )
+
+
+class Homography(unittest.TestCase):
+    def test_projective_map(self):
+        # Given a quadrilateral and a rectangle
+        quad = [[440, 360], [720, 380], [710, 560], [450, 550]]
+        rectangle = [[0, 0], [272, 0], [272, 192], [0, 192]]
+
+        # When the map from the quadrilateral to the rectangle is found
+        sut = tool.homography(quad, rectangle)
+
+        # Then it takes each corner to its counterpart, and the quadrilateral's centre inside the rectangle
+        for point, corner in zip(quad, rectangle):
+            self.assertEqual([round(value, 6) for value in tool.projected(sut, point)], corner)
+        centre = tool.projected(sut, [580, 462.5])
+        self.assertTrue(0 < centre[0] < 272 and 0 < centre[1] < 192)
+
+    def test_degenerate(self):
+        # Given a quadrilateral with three corners on one line
+        quad = [[0, 0], [10, 0], [20, 0], [0, 10]]
+
+        # Then no map is found
+        self.assertIsNone(tool.homography(quad, [[0, 0], [1, 0], [1, 1], [0, 1]]))
+
+    def test_beyond_horizon(self):
+        # Given the map of a quadrilateral in perspective, and a point on the far side of its horizon
+        sut = tool.homography([[0, 0], [100, 0], [60, 50], [40, 50]], [[0, 0], [1, 0], [1, 1], [0, 1]])
+
+        # Then the point is carried nowhere
+        self.assertIsNone(tool.projected(sut, [50, 1000]))
+
+
 class Places(Case):
     """Documents of `fixtures/places.json`, each with the frames commands the tool ran on it in
     `fixtures/places.calls.json`."""
@@ -240,11 +377,6 @@ class Places(Case):
             "of storyline[0]#shot, which its track follows"
         )
 
-    def test_mask(self):
-        # Given a storyline clip whose one target is its mask
-        # Then it stops, since no report gives the bounds of a mask
-        self.assertIn("it follows the bounds of the clip's masks, which no report gives", self.place("mask_target"))
-
     def test_keyframe_without_number_at(self):
         # Given a track request that names a keyframed area, whose keyframe has no number at
         document = copy.deepcopy(self.documents["keyframed"])
@@ -254,10 +386,19 @@ class Places(Case):
         self.assertIn("storyline[0]#shot.connected[0]: keyframes[1] needs a number at", self.stop(document, self.calls["keyframed"]))
 
     def test_request_and_clip_targets(self):
-        # Given a target that is a frames/find-text request and one named as another clip's box
+        # Given a target that is a frames/find-text request, a clip target with a padding and one whose id is no string
+        padded = copy.deepcopy(self.documents["clip_target"])
+        padded["storyline"][0]["connected"][1]["track"]["target"]["padding"] = 8
+        numbered = copy.deepcopy(self.documents["clip_target"])
+        numbered["storyline"][0]["connected"][1]["track"]["target"]["clip"] = 1
+
         # Then each stops before frames runs, the first since a request's arguments are values
         self.assertIn('track.target: a request\'s arguments are values, and this one holds a request for "frames/find-text"', self.place("text_target"))
-        self.assertIn("a clip area is the box of another clip", self.place("clip_target"))
+        self.assertEqual(
+            self.stop(padded),
+            'storyline[0]#shot.connected[1]: track.target: unknown key "padding" in a clip target. Allowed: clip'
+        )
+        self.assertIn("track.target.clip: a clip target names a clip by its id, a string", self.stop(numbered))
         self.assertEqual(Replay.log, [])
 
     def test_unfilled_target(self):
@@ -321,15 +462,6 @@ class Arguments(Case):
         # Then it is printed as it is, and frames is not run, so frames stops on what is not its own
         self.assertEqual(result, document)
         self.assertEqual(Replay.log, [])
-
-    def test_nested(self):
-        # Given a request inside a compound clip
-        document = {"kind": "sequence", "storyline": [{"kind": "media", "media": {"kind": "sequence", "storyline": [
-            {"kind": "media", "media": "/media/moving.mp4", "track": {"tool": "frames/track-motion", "target": [0, 0, 10, 10]}}
-        ]}}]}
-
-        # Then it stops, naming the place inside
-        self.assertIn("storyline[0].media.storyline[0]: track: it is inside a compound clip", self.stop(document))
 
     def test_misplaced(self):
         # Given a frames/track-motion request as a clip's area

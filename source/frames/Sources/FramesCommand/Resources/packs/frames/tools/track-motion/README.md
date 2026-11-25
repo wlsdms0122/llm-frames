@@ -6,7 +6,7 @@
 frames frames/track-motion /path/to/edit.json | frames render - -o /path/to/out/edit.mp4
 ```
 
-frames takes a clip's `track` as track data `{"time": t, "frames": [...]}` alone ([FRAMES-12](../../../../../../../../../spec/FRAMES-12/SPEC.md#track-data)), and `frames track` follows a rectangle or a quadrilateral in a video or an image sequence and prints that data. This tool joins the two: it reads only frames' machine output (`timeline --json`, `timeline --at <t> --json` and `track`), never a resolved document, and links no frames code. A target named by its text on screen is the clip's own `area` holding a request for [`frames/find-text`](../find-text/README.md), which runs first:
+frames takes a clip's `track` as track data `{"time": t, "frames": [...]}` alone ([FRAMES-12](../../../../../../../../../spec/FRAMES-12/SPEC.md#track-data)), and `frames track` follows a rectangle or a quadrilateral in a video or an image sequence and prints that data. This tool joins the two: it reads only frames' machine output (`timeline --json`, `timeline --at <t> --json`, `timeline --nested <place>` and `track`), never a resolved document, and links no frames code. A target named by its text on screen is the clip's own `area` holding a request for [`frames/find-text`](../find-text/README.md), which runs first:
 
 ```sh
 frames frames/find-text /path/to/edit.json | frames frames/track-motion - | frames render - -o /path/to/out/edit.mp4
@@ -29,11 +29,12 @@ A request is a hole a tool fills ([FRAMES-25](../../../../../../../../../spec/FR
 ```json
 "track": { "tool": "frames/track-motion", "target": "area" }
 "track": { "tool": "frames/track-motion", "target": [150, 194, 132, 92] }
+"track": { "tool": "frames/track-motion", "target": { "clip": "outline" } }
 ```
 
 A track says how a clip moves with something in its media. It is followed from one frame, the **frame the target is written on**, where the clip stands as written, and on every other frame the clip moves as that thing moved from there. That frame is the one the clip's instant shows (where the clip starts, or a storyline clip's `in`), and where the named key is keyframed, the one its first keyframe shows, as `frames timeline` reports them. The target and the clip's values are written on it. So a request says one thing:
 
-- `target`, required: **what is followed**, a box around the thing on that frame. It is the name of one of the clip's own keys, `area`, `cornerPin`, `crop` or `mask`, whose value is that box, or an area `[x, y, w, h]` written in the request. Either is in the media pixels the track follows, the pixels of the video the clip is parented to, or of the clip's own video for a storyline clip's `crop` and `mask`.
+- `target`, required: **what is followed**, a box around the thing on that frame. It is the name of one of the clip's own keys, `area`, `cornerPin`, `crop` or `mask`, whose value is that box, or an area `[x, y, w, h]` written in the request. Either is in the media pixels the track follows, the pixels of the video the clip is parented to, or of the clip's own video for a storyline clip's `crop` and `mask`. It can also name a clip of the same sequence, `{"clip": "<id>"}`, whose box is what is followed, wherever that clip lies.
 
 **A worked example.** A shot shows a card that slides right, and a green box is to stay on the card from 0.4 seconds.
 
@@ -47,10 +48,10 @@ The tool follows the card from that frame backwards and forwards, and writes wha
 - A target key filled by `frames/find-text` is found on the frame the clip's instant shows, and a keyframe's on the frame that keyframe shows, so the track starts from the rectangle found on its own frame. A track followed from any other frame is track data written by `frames track` or another tool.
 - A key the clip does not write stops, and so does one that is not in the media pixels the track follows (a title's own box, output pixels). A crop written as `{"scale": s}` is no area and stops.
 - A key named as the target that still holds a request stops, naming that request, since the target is the value it finds: run that tool first. A target that is itself a request stops, since a request's arguments are values: write the request in the clip's own key and name the key.
-- A target that names `mask` stops, since no report gives the bounds of a clip's masks: write the area to follow.
+- A target that names `mask` follows the rectangle that bounds every one of the clip's masks on that frame, as `timeline --at` reports where each lies (`masks`), carried into the media pixels followed. So a mask placed by its size, a path mask and a keyframed mask are followed by what they cover there, without feather.
 - A keyframed target key is the value of its first keyframe, the one at the earliest `at` and, of those written at that `at`, the one written last, which the key takes there.
 - A corner pin is followed from its quadrilateral, its four points in their order, with `frames track --quad`, so with `--tracker planar` it is followed in perspective. A corner pin with a point that names a clip area stops.
-- A clip area `{"clip": ...}` as the target stops, since no report gives another clip's box in the media pixels followed.
+- A clip target `{"clip": "<id>"}` follows what the clip with that `id` covers on that frame: its `box.quad` in `timeline --at` at the clip's instant, carried into the media pixels followed by the map from the followed clip's `box.quad` to its `box.rect`, and given to `frames track --quad`, so a box turned, scaled or on a corner pin is followed as the quadrilateral it covers. The clip named is any clip of the same sequence with a box, in output pixels, parented to another clip or the clip that writes the request itself, and nothing is written on it: only the clip that writes the request takes the track data. An `id` no clip of the sequence has, a clip without a box (an adjustment clip, a solid, an audio clip), and a followed clip whose box covers no area at that instant stop. A clip target holds `clip` alone, and takes no `padding`: a target larger than a clip is written as an area.
 - A request holds `tool` and `target` alone, and any other key stops. A request for this tool anywhere but a clip's `track` stops.
 - Track data, and a request for any other tool, are left as written, so this tool and another chain in either order where neither needs a value the other finds.
 
@@ -62,16 +63,16 @@ Every fact the tool acts on is in a report of a copy of the document with a valu
 - `media` and `fps` of the entry at `tracked.clip`: the file or image sequence directory given to `frames track`, with `fps` as `--fps` for an image sequence.
 - `space` and `ownSpace` of the clip's entry: whether the key a request names lies in the media pixels its track follows.
 - `instant` of the clip's entry, and the `mediaTime` of the entry at `tracked.clip` in `timeline --at <instant> --json`: the frame the clip's instant shows, `speed`, `in`, `loop`, `timeRemap` and a parent's time map applied by frames.
+- `box` and `masks` of the entries in `timeline --at <instant> --json`: where a clip target's box and the clip's masks lie in output pixels, and `box` of the entry at `tracked.clip`, whose `rect` and `quad` give the map from output pixels back into the media pixels followed ([FRAMES-23](../../../../../../../../../spec/FRAMES-23/SPEC.md#a-clips-times-and-spaces)).
+- For a request inside a compound clip written as a sequence object (`{"kind": "sequence", ...}`), every fact above comes from `timeline --nested <place> --json` and `timeline --nested <place> --at <instant> --json`, the report of the nested sequence at the compound clip's place on its own clock, so its instant may lie at a time the outer sequence never shows it. Its clip target names a clip of that nested sequence.
 - `clock` of the clip's entry, `{clip, origin, speed}`, the map frames reports from the times the clip writes to sequence time: a keyframed target's first keyframe lies at sequence time `origin + at / speed`, and the `mediaTime` of the entry at `tracked.clip` in `timeline --at` at that time is the frame it shows. The tool applies the map as reported and derives no rule of its own.
 
 The target is followed with `frames track` from the track's frame to `first`, and from it to `last`, as `--to`, and the frames of both are joined in time order, so it is followed over every frame the clip can show and no further. The tracked clip's `colorSpace`, as the document writes it, is given as `--color-space`. A `track` that stops (a target lost on its own frame, a time past the media) stops the tool with the command line it ran and frames' message.
 
 ## What it does not cover
 
-Where a fact is in no report, the tool stops and names it:
-
-- The bounds of a clip's masks, which a target `mask` would follow: `evaluate` reports no masks, and a path mask, a mask placed by its size or a keyframed one has no rectangle written in the document. Write the area to follow.
-- Requests inside a compound clip or template instance, or inside a sequence document named as media by its file: `timeline --at` gives a nested document's clips only at the outer sequence's times. Run the tool on the nested document first.
+- A sequence document named as media by its file is a document of its own, which the tool does not write: run the tool on it first.
+- The clips of a template instance are its template's, which hold no request.
 
 ## Example
 
