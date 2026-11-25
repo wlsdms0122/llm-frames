@@ -5,20 +5,26 @@
 //  Created by JSilver on 11/16/26.
 //
 
-// What resolve found for a storyline clip's picture, with keyframes in sequence time. `crop` and `mask` are found in
-// its media, nil for the whole picture and for no mask. `filter` is timed, `off` for none, its lengths in output
-// pixels, and `color` is a solid's colour. `isCropOnTrackFrame` says a tracked clip's crop is written without
-// keyframes and true on the track's frame.
+// What resolve found for a storyline clip's picture, with keyframes in sequence time. `content` is what it shows. `crop`
+// and `mask` are found in its media, nil for the whole picture and for no mask. `filter` is timed, `off` for none, its
+// lengths in output pixels. `isCropOnTrackFrame` says a tracked clip's crop is written without keyframes and true on
+// the track's frame.
 struct StorylineGeometry: Equatable, Sendable {
     // MARK: - Property
     let crop: PropertyValue<Rectangle>?
     let mask: [ResolvedMask]?
     let track: Track?
     let isCropOnTrackFrame: Bool
-    let nested: SequencePlan?
     let filter: TimedValue
-    let color: [Keyframe<Color>]?
+    let content: StorylineContent
     let appearance: StorylineAppearance
+
+    // The plan of the nested sequence it shows, nil for a solid and a media file.
+    var nested: SequencePlan? {
+        guard case let .nested(nested) = content else { return nil }
+
+        return nested
+    }
 
     // MARK: - Initializer
     init(
@@ -26,18 +32,16 @@ struct StorylineGeometry: Equatable, Sendable {
         mask: [ResolvedMask]?,
         track: Track?,
         isCropOnTrackFrame: Bool = false,
-        nested: SequencePlan?,
         filter: TimedValue = .off,
-        color: [Keyframe<Color>]? = nil,
+        content: StorylineContent,
         appearance: StorylineAppearance
     ) {
         self.crop = crop
         self.mask = mask
         self.track = track
         self.isCropOnTrackFrame = isCropOnTrackFrame
-        self.nested = nested
         self.filter = filter
-        self.color = color
+        self.content = content
         self.appearance = appearance
     }
 

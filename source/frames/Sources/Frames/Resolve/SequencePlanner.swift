@@ -110,7 +110,6 @@ struct SequencePlanner: Sendable {
                 mask: storylineMasks[index],
                 track: tracked.storyline[index],
                 isCropOnTrackFrame: time.sequence.storyline[index].isCropOnTrackFrame,
-                nested: storylineNested[index],
                 filter: try appearances.filter(
                     time.sequence.storyline[index].filter,
                     key: "filter",
@@ -122,9 +121,10 @@ struct SequencePlanner: Sendable {
                     scale: lengthScale,
                     theme: time.theme
                 ),
-                color: try appearances.color(
-                    of: time.sequence.storyline[index],
-                    plan: time.storyline[index],
+                content: try content(
+                    of: time.storyline[index],
+                    written: time.sequence.storyline[index],
+                    nested: storylineNested[index],
                     theme: time.theme
                 ),
                 appearance: try appearances.appearance(
@@ -211,6 +211,24 @@ struct SequencePlanner: Sendable {
     }
 
     // MARK: - Private
+    // A storyline clip with media shows its nested sequence's plan, which a nested sequence has, or its media file, and
+    // one without media is a solid.
+    private func content(
+        of plan: StorylinePlan,
+        written: StorylineClip,
+        nested: SequencePlan?,
+        theme: MergedTheme
+    ) throws -> StorylineContent {
+        if let nested {
+            return .nested(nested)
+        }
+        if case let .file(file) = plan.source.media?.source {
+            return .file(file)
+        }
+
+        return .solid(try appearances.color(of: written, plan: plan, theme: theme))
+    }
+
     private func nested(_ media: MediaPlan) throws -> SequencePlan? {
         switch media.source {
         case .file:

@@ -267,9 +267,8 @@ struct ContentFitPlanner: Sendable {
             crop: geometry.crop,
             mask: geometry.mask,
             track: geometry.track,
-            nested: geometry.nested,
             filter: geometry.filter,
-            color: geometry.color,
+            content: geometry.content,
             appearance: StorylineAppearance(
                 box: box,
                 cornerPin: cornerPin,
