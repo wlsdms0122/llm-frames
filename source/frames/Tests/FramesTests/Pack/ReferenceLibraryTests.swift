@@ -88,7 +88,7 @@ struct ReferenceLibraryTests {
         // Then
         #expect(parameters == [Parameter(name: "clip", type: .video, defaultValue: .string("shorts/gone.mov"), description: "the clip")])
         #expect(missing == nil)
-        #expect(throws: ModelError.missingMedia(place: Place(file: "shorts/promo", components: [.key("storyline"), .index(1, id: nil), .key("media")]), kind: "storyline clip", reference: "shorts/gone.mov")) {
+        #expect(throws: ModelError.unknownReference(place: Place(file: "shorts/promo", components: [.key("storyline"), .index(1, id: nil), .key("media")]), kind: "storyline clip", reference: UnknownReference(kind: .media, name: "shorts/gone.mov", hint: .pack(pack: "shorts", names: [], nearest: nil)))) {
             try sut.template(named: "shorts/promo")
         }
     }

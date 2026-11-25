@@ -83,8 +83,7 @@ struct PresetTable: PresetProvider {
         of kind: PresetKind,
         inPack pack: String
     ) throws -> [String]? {
-        let all = [Array(transitions.keys), Array(animations.keys), Array(filters.keys), Array(audio.keys), Array(heads.keys)]
-        guard pack == "frames" || all.joined().contains(where: { $0.hasPrefix("\(pack)/") }) else { return nil }
+        guard try packNames().contains(pack) else { return nil }
 
         let names: [String] = switch kind {
         case .transition: Array(transitions.keys)
@@ -94,6 +93,17 @@ struct PresetTable: PresetProvider {
         case .head: Array(heads.keys)
         }
         return names.filter { $0.hasPrefix("\(pack)/") }.sorted()
+    }
+
+    func packNames() throws -> [String] {
+        let all = [Array(transitions.keys), Array(animations.keys), Array(filters.keys), Array(audio.keys), Array(heads.keys)]
+        let packs = all.joined().compactMap { name -> String? in
+            guard case let .pack(pack, _)? = PackReference(name) else { return nil }
+
+            return pack
+        }
+
+        return Set(packs + ["frames"]).sorted()
     }
 
     // MARK: - Private

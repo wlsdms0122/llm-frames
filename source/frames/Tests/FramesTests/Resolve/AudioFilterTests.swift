@@ -278,7 +278,7 @@ struct AudioFilterTests {
     @Test("an audio preset that no pack holds stops as an unknown audio preset")
     func refusesUnknownPreset() throws {
         // When, Then
-        #expect(throws: ResolveError.unknownPreset(place: clip.appending(key: "audioFilter"), kind: .clip(.media(.audio)), preset: UnknownPreset(kind: .audio, name: "mine/none", hint: .pack(pack: "mine", names: ["mine/gate", "mine/limit", "mine/voice"], nearest: nil)))) {
+        #expect(throws: ResolveError.unknownReference(place: clip.appending(key: "audioFilter"), kind: .clip(.media(.audio)), reference: UnknownReference(kind: .preset(.audio), name: "mine/none", hint: .pack(pack: "mine", names: ["mine/gate", "mine/limit", "mine/voice"], nearest: nil)))) {
             try plan(#"""
                 { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "out": 4 } ],
                   "clips": [ { "kind": "audio", "media": "/abs/bgm.m4a", "audioFilter": "mine/none" } ] }

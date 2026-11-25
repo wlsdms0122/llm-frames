@@ -74,7 +74,7 @@ struct PresetLibraryTests {
         #expect(near.description == #"unknown head preset "shorts/hok". Did you mean "shorts/hook"? The pack "shorts" holds the head presets shorts/hook, shorts/tick"#)
         #expect(far.description == #"unknown head preset "shorts/spiral". The pack "shorts" holds the head presets shorts/hook, shorts/tick"#)
         #expect(empty.description == #"unknown transition preset "shorts/flash". The pack "shorts" holds no transition presets"#)
-        #expect(missing.description == #"unknown head preset "nopack/hook". A preset is named <pack>/<name>, and the ones frames ships are frames/<name>"#)
+        #expect(missing.description == #"unknown head preset "nopack/hook". There is no pack "nopack", and the packs are shorts"#)
     }
 
     @Test("a preset that is not there, or in a pack that is not there, is none", arguments: ["flash", "shorts/flash", "nopack/flash", "/abs/flash.json", "a/b/c"])

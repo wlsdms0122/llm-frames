@@ -167,9 +167,9 @@ struct DocumentPlannerTests {
         "a theme that names nothing stops",
         arguments: [
             (nil, ##"{ "kind": "sequence", "theme": "shorts/none", "storyline": [ { "kind": "solid", "color": "#000000", "duration": 1 } ] }"##,
-             #"theme (sequence): unknown theme "shorts/none". A theme is named <pack>/<name> or by an absolute path"#),
+             #"theme (sequence): unknown theme "shorts/none". The pack "shorts" holds the themes shorts/shorts"#),
             ("nopack/shorts", ##"{ "kind": "sequence", "storyline": [ { "kind": "solid", "color": "#000000", "duration": 1 } ] }"##,
-             #"--theme: unknown theme "nopack/shorts". A theme is named <pack>/<name> or by an absolute path"#)
+             #"--theme: unknown theme "nopack/shorts". There is no pack "nopack", and the packs are shorts"#)
         ] as [(String?, String, String)]
     )
     func refusesUnknownTheme(theme: String?, text: String, message: String) throws {
@@ -405,7 +405,7 @@ struct DocumentPlannerTests {
 
         // When, Then
         let error = #expect(throws: ModelError.self) { try sut.plan(document) }
-        #expect(error?.description == #"storyline[0].media.template (storyline clip): unknown template "shorts/none""#)
+        #expect(error?.description == #"storyline[0].media.template (storyline clip): unknown template "shorts/none". The pack "shorts" holds the templates shorts/leak"#)
     }
 
     @Test("a title's `character.font` inside a pack's template looks in that pack's fonts before the machine's")

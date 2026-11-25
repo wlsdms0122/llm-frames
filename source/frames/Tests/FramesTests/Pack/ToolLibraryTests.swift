@@ -121,7 +121,7 @@ struct ToolLibraryTests {
         arguments: [
             ("studio/autocat", #"unknown tool "studio/autocat". Did you mean "studio/autocut"? The pack "studio" holds the tools studio/autocut, studio/captions"#),
             ("studio/render", #"unknown tool "studio/render". The pack "studio" holds the tools studio/autocut, studio/captions"#),
-            ("nopack/autocut", #"unknown tool "nopack/autocut". A tool is named <pack>/<name>, and the ones frames ships are frames/<name>"#),
+            ("nopack/autocut", #"unknown tool "nopack/autocut". There is no pack "nopack", and the packs are studio"#),
             ("/abs/autocut", #"unknown tool "/abs/autocut". A tool is named <pack>/<name>, and the ones frames ships are frames/<name>"#)
         ]
     )
