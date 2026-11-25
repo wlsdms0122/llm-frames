@@ -245,21 +245,22 @@ A document is a JSON object whose `kind` is `"sequence"`. Its keys are checked o
 - `connected` clips belong to one storyline clip, live on its clip time and move when it moves, as connected clips do in an NLE.
 - `clips` are sequence clips, on the sequence clock.
 
-A clip is a media clip (`media`), a title (`title`), a shape (`shape`), an adjustment clip (`adjust`) or, on the storyline only, a solid (`solid`, a colour that fills the frame). Exactly one of these keys is present. An audio clip is a media clip that takes no picture, because its media holds only sound or because it is written with `"picture": false`, and a clip with a picture is every other clip. Which media row applies is decided once the media is probed.
+A clip says what it is with `kind`, which every clip writes: `media` (a media clip), `title`, `rect`, `ellipse` or `path` (a shape), `adjustment` (an adjustment clip), `solid` (a colour that fills the frame) or `null` (a box that draws nothing and carries a transform for other clips to follow). A storyline clip is a `media` or a `solid`, and a connected or a sequence clip is any kind but a `solid`. Each kind's content has a key of its own: a media clip's media is `media`, a title's text `text`, an adjustment clip's filter `adjust` and a solid's colour `color`, and a shape and a null are made of the keys of their geometry. A clip without `kind` stops, and so does a key outside its kind's row, the content key of another kind included, so `text` on a `rect` stops. An audio clip is a media clip that takes no picture, because its media holds only sound or because it is written with `"picture": false`, and a clip with a picture is every other clip. Which media row applies is decided once the media is probed.
 
 | Clip | Keys |
 | --- | --- |
-| storyline clip, timed media (video, image sequence, compound) | `id, metadata, media, colorSpace, toneMap, in, out, speed, crop, filter, transition, anchor, position, scale, rotation, cornerPin, opacity, blend, motionBlur, mask, trackMatte, track, radius, border, shadow, volume, pan, fadeIn, fadeOut, split, keyframes, connected`, and `audioFilter` on a video or a compound clip |
-| storyline clip, still (image or page, a page without `toneMap`) | `id, metadata, media, colorSpace, toneMap, duration, crop, filter, transition, anchor, position, scale, rotation, cornerPin, opacity, blend, motionBlur, mask, trackMatte, radius, border, shadow, keyframes, connected` |
-| storyline clip, solid | `id, metadata, solid, duration, transition, motionBlur, keyframes, connected` |
-| every clip with a picture (connected and sequence) | `id, metadata, at, lane, parent, opacity, blend, motionBlur, mask, trackMatte, track, animation, keyframes` |
+| storyline clip, timed media (video, image sequence, compound) | `id, metadata, kind, media, colorSpace, toneMap, in, out, speed, crop, filter, transition, anchor, position, scale, rotation, cornerPin, opacity, blend, motionBlur, mask, trackMatte, track, radius, border, shadow, volume, pan, fadeIn, fadeOut, split, keyframes, connected`, and `audioFilter` on a video or a compound clip |
+| storyline clip, still (image or page, a page without `toneMap`) | `id, metadata, kind, media, colorSpace, toneMap, duration, crop, filter, transition, anchor, position, scale, rotation, cornerPin, opacity, blend, motionBlur, mask, trackMatte, radius, border, shadow, keyframes, connected` |
+| storyline clip, solid | `id, metadata, kind, color, duration, transition, motionBlur, keyframes, connected` |
+| every clip with a picture (connected and sequence) | `id, metadata, kind, at, lane, parent, opacity, blend, motionBlur, mask, trackMatte, track, animation, keyframes` |
 | visual media clip (video, image sequence, compound) | every clip with a picture's, `audioFilter` on a video or a compound clip and `split`, `media, picture, colorSpace, toneMap, in, out, speed, loop, volume, pan, fadeIn, fadeOut, placement, position, anchor, scale, rotation, cornerPin, crop, conform, filter, width, height, radius, border, shadow` |
 | still media clip (image or page, a page without `toneMap`) | every clip with a picture's, `media, colorSpace, toneMap, placement, position, anchor, scale, rotation, cornerPin, crop, conform, filter, width, height, radius, border, shadow` |
-| audio clip | `id, metadata, at, media, in, out, speed, loop, volume, pan, fadeIn, fadeOut, audioFilter, keyframes` |
+| audio clip | `id, metadata, kind, at, media, in, out, speed, loop, volume, pan, fadeIn, fadeOut, audioFilter, keyframes` |
 | audio clip of a video's, a compound clip's or a template instance's sound (`"picture": false`) | every audio clip's, `picture` |
-| title clip | every clip with a picture's, `title, style, character, paragraph, width, placement, position, anchor, scale, rotation, cornerPin` |
-| shape clip | every clip with a picture's, `shape, style, area, width, height, placement, position, anchor, points, closed, radius, outset, fill, stroke, trim, shadow, scale, rotation`, and `cornerPin` on a rect or ellipse given by `width` and `height` |
-| adjustment clip | every clip with a picture's, `adjust` |
+| title clip | every clip with a picture's, `text, style, character, paragraph, width, placement, position, anchor, scale, rotation, cornerPin` |
+| shape clip (`rect`, `ellipse`, `path`) | every clip with a picture's, `style, area, width, height, placement, position, anchor, points, closed, radius, outset, fill, stroke, trim, shadow, scale, rotation`, and `cornerPin` on a rect or ellipse given by `width` and `height` |
+| adjustment clip (`adjustment`) | every clip with a picture's, `adjust` |
+| null clip | `id, metadata, kind, at, parent, motionBlur, track, animation, keyframes, area, width, height, placement, position, anchor, scale, rotation` |
 
 - `id` names a clip for `parent`, a track matte's `clip`, messages, machine output and the programs that change a document. It is unique within its document, and a duplicate stops.
 - `metadata` is an object frames does not read: what a program that changes the document keeps on a clip, as an NLE keeps keywords and notes.
@@ -329,7 +330,7 @@ Any keyframable property takes a static value or keyframes. A keyframe is `{at, 
 | --- | --- |
 | sequence, by its own `keyframes` | `audioFilter` |
 | storyline clip with media | `crop, position, scale, rotation, cornerPin, opacity, mask, filter, radius, border, shadow`, `volume`, `pan` and `timeRemap` on timed media, and `audioFilter` on a video or a compound clip with sound |
-| storyline clip, solid | `solid` |
+| storyline clip, solid | `color` |
 | media clip | `position, scale, rotation, cornerPin, opacity, crop, mask, filter, radius, border, shadow`, `volume`, `pan` and `timeRemap` on timed media, and `audioFilter` on a video or a compound clip with sound |
 | audio clip | `volume, pan`, and `audioFilter` where it takes one |
 | title clip | `position, scale, rotation, cornerPin, opacity, mask`, in `character` its `color`, `stroke`, `tracking`, `baselineShift`, `highlight` and `underline`, and in `paragraph` its `lineHeight` and `background` |
@@ -382,7 +383,7 @@ An area keeps what is written, also past the picture's edges, and the part of a 
 
 ### Titles and runs
 
-A title clip's `title` is a string or a list of runs `{text, style}`, and its `style` names a theme text style and is required.
+A title's `text` is a string or a list of runs `{text, style}`, and its `style` names a theme text style and is required.
 
 - A run's `style` gives that run its character attributes (`font`, `size`, `weight`, `italic`, `tracking`, `kerning`, `features`, `baselineShift`, `color`, `stroke`, `highlight`, `underline`, `textOrientation`, `textCombineUpright`). The clip's style gives the paragraph its attributes (`placement`, `offset`, `writingMode`, `direction`, `align`, `lineHeight`, `lines`, `background`). A run without `style` is in the clip's style.
 - `character` on a title merges character attributes over every run's style, leaf by leaf, as After Effects' Character panel sets a text layer, so `"character": {"color": "accent"}` colours every run and keeps each run's size. `paragraph` merges `writingMode`, `direction`, `align`, `lineHeight` and `background` over the clip style's. Their lengths are theme lengths. What decides faces, shaping and line breaks (`font`, `size`, `weight`, `italic`, `kerning`, `features`, `textOrientation`, `textCombineUpright`, `writingMode`, `direction`, `align`) is static, and the rest takes keyframes ([Keyframes and eases](#keyframes-and-eases)). A title changes size through its `scale`.
@@ -416,9 +417,9 @@ The title wraps at 900 pixels, its lines 110 apart from baseline to baseline, al
 
 ### Shapes
 
-`shape` is `rect`, `ellipse` or `path`.
+A shape is a clip of kind `rect`, `ellipse` or `path`.
 
-| shape | Geometry | Keys of its own |
+| kind | Geometry | Keys of its own |
 | --- | --- | --- |
 | `rect` | `area`, or `width` and `height` placed as a box | `radius`, `outset` |
 | `ellipse` | as a rect: the ellipse inscribed in its box | `outset` |

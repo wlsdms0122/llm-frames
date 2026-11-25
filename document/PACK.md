@@ -242,7 +242,7 @@ A template resolves on the base theme and its own `theme`. The theme of the docu
 
 ### What frames checks
 
-A template is checked once against its parameter types, before any argument: each media parameter's type picks the keys its clip takes, and a choice is checked with every option at every place it stands, as if each option were written there. So a choice of `rect` and `path` in `shape`, beside `points`, stops, since a `rect` takes no `points`. A template that passes has its keys and types right for every argument of the right type. Then each use is checked, and a message about the arguments names the args file first:
+A template is checked once against its parameter types, before any argument: each media parameter's type picks the keys its clip takes, and a choice is checked with every option at every place it stands, as if each option were written there. So a choice of `rect` and `path` in a clip's `kind`, beside `points`, stops, since a `rect` takes no `points`. A clip's `kind` takes a parameter only as a choice whose options are each `rect`, `ellipse` or `path`, and any other parameter there stops. A template that passes has its keys and types right for every argument of the right type. Then each use is checked, and a message about the arguments names the args file first:
 
 | Stops | Message |
 | --- | --- |

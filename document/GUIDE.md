@@ -50,6 +50,8 @@ size 1280x720
 
 Write the storyline, connected clips, titles, shapes, masks and sound. The keys of every object are in [FRAMES-7](../spec/FRAMES-7/SPEC.md).
 
+Every clip says what it is with `kind`: `media`, `title`, `rect`, `ellipse`, `path`, `adjustment`, `solid` or `null`. Its content stands beside it under a key of its own, a media clip's file or template instance as `media`, a title's text as `text`, an adjustment clip's filter as `adjust` and a solid's colour as `color`, so a lower third is `{"kind": "title", "text": "Mina Park", "style": "name"}` and a bar under it `{"kind": "rect", "width": 400, "height": 6, "fill": "accent"}`.
+
 - Cut the storyline with `in` and `out` from the sheets, and put transitions where the picture changes place or time.
 - Connect titles, shapes and B-roll to the storyline clip they belong to, so they move when it moves. Put what belongs to the whole sequence (music, a logo) in `clips`.
 - Give a shape or a title that sits on something in the picture `parent` set to that clip's `id`, and write its area in the clip's media pixels or by the text on screen. It then moves, scales and turns with the picture ([FRAMES-10](../spec/FRAMES-10/SPEC.md)).
