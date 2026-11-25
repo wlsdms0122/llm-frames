@@ -264,7 +264,7 @@ The decoding service and the process held together 1.2 to 1.4 times the budget's
 
 ### A decoded frame read through a texture cache
 
-Supports: [Rules](../spec/FRAMES-21/SPEC.md#rules), the decoder reading a decoded frame through textures made on its own surface, and the alternative of a Core Video texture cache in [Alternatives considered](../spec/FRAMES-30/SPEC.md#alternatives-considered).
+Supports: [Pictures](../spec/FRAMES-21/SPEC.md#pictures), the decoder reading a decoded frame through textures made on its own surface, and the alternative of a Core Video texture cache in [Alternatives considered](../spec/FRAMES-30/SPEC.md#alternatives-considered).
 
 On: the reference machine, the render of 8 videos of the ladder above at a limit of 2 GB, with the decoder reading each decoded frame through a Core Video texture cache.
 
