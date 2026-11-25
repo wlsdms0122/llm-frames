@@ -13,11 +13,12 @@ import IOSurface
 import Metal
 import os
 
-// Takes a decoded frame's R'G'B' half floats to working values on the GPU, by `WorkingKernelSource`, into a new
-// surface (FRAMES-21 Pictures), once per frame. It runs the steps of a conversion that `ConversionSteps` names other
-// than `formulas`, from a pixel buffer whose pixels map onto the displayed picture's one to one. Each conversion is
-// run whole before the surface is given. The Metal device, its queue and the pipeline are used from any thread, and
-// the texture cache and the decode tables under a lock.
+// Takes a decoded frame's R'G'B' half floats to working values on the GPU, by `WorkingKernelSource`, into a surface no
+// picture holds (FRAMES-21 Pictures), once per frame. It runs the steps of a conversion that `ConversionSteps` names
+// other than `formulas`, from a pixel buffer whose pixels map onto the displayed picture's one to one. Each surface
+// keeps the texture the function writes it through, since the GPU maps a surface's memory anew for each texture made on
+// it. Each conversion is run whole before the surface is given. The Metal device, its queue and the pipeline are used
+// from any thread, and the texture cache and the decode tables under a lock.
 final class MetalPictureConverter: @unchecked Sendable {
     // MARK: - Property
     private let device: any MTLDevice
@@ -27,7 +28,7 @@ final class MetalPictureConverter: @unchecked Sendable {
     private let decodeTables = OSAllocatedUnfairLock<[TransferFunction: any MTLBuffer]>(uncheckedState: [:])
     // The table bound where the steps decode by none.
     private let emptyTable: any MTLBuffer
-    private let surfaces = SurfacePool()
+    private let surfaces: SurfacePool<any MTLTexture>
 
     // MARK: - Initializer
     // Nil on a machine with no Metal device.
@@ -62,6 +63,17 @@ final class MetalPictureConverter: @unchecked Sendable {
         self.pipeline = pipeline
         self.textureCache = OSAllocatedUnfairLock(uncheckedState: cache)
         self.emptyTable = emptyTable
+        self.surfaces = SurfacePool { [device] surface in
+            device.makeTexture(
+                descriptor: Self.descriptor(
+                    width: IOSurfaceGetWidth(surface),
+                    height: IOSurfaceGetHeight(surface),
+                    usage: .shaderWrite
+                ),
+                iosurface: surface,
+                plane: 0
+            )
+        }
     }
 
     // MARK: - Public
@@ -83,20 +95,12 @@ final class MetalPictureConverter: @unchecked Sendable {
             CVPixelBufferGetHeight(buffer) == Int(storedSize.height),
             Self.isWholePixelMap(transform),
             let (placement, matrix, table) = arguments(of: steps, transform: transform),
-            let surface = surfaces.surface(width: width, height: height),
-            let output = device.makeTexture(
-                descriptor: Self.descriptor(width: width, height: height, usage: .shaderWrite),
-                iosurface: surface.surface,
-                plane: 0
-            ),
+            let (_, output, picture) = surfaces.surface(width: width, height: height),
             let stored = texture(of: buffer)
         else {
             return nil
         }
 
-        // The picture counts the surface in use before the lock it was taken under is left, so no other conversion
-        // takes it.
-        let picture = surface.picture
         guard
             let commands = queue.makeCommandBuffer(),
             let encoder = commands.makeComputeCommandEncoder()

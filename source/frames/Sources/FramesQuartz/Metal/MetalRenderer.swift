@@ -19,7 +19,7 @@ package final class MetalRenderer: Sendable {
     private let pictures: MediaPictureCache
     private let tables = LookUpTableCache()
     private let fonts = FontLibrary()
-    private let surfaces = SurfacePool()
+    private let surfaces = SurfacePool<Void>()
 
     // MARK: - Initializer
     package init(decoder: any MediaDecoder) {
@@ -72,10 +72,13 @@ extension MetalRenderer: Renderer {
         try DisplayListChecker(tables: tables).check(list)
     }
 
+    // Once the frame is drawn, the media pictures it did not use are let go of.
     package func frame(of list: DisplayList) throws -> Pixels {
-        try autoreleasepool {
+        defer { pictures.frameDrawn() }
+
+        return try autoreleasepool {
             let raster = Raster(holding: list.size)
-            guard let (surface, picture) = surfaces.surface(width: raster.width, height: raster.height) else {
+            guard let (surface, _, picture) = surfaces.surface(width: raster.width, height: raster.height) else {
                 throw QuartzError.unmadeBitmap(width: raster.width, height: raster.height)
             }
 
