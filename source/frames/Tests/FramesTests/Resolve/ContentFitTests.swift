@@ -53,8 +53,8 @@ struct ContentFitTests {
 
         // Then
         #expect(plan.format.size == Size(width: 400, height: 200))
-        #expect(resolved.storyline[0].placement.size == Size(width: 400, height: 200))
-        #expect(resolved.storyline[0].crop.values == [
+        #expect(resolved.storyline[0].picture.placement.size == Size(width: 400, height: 200))
+        #expect(resolved.storyline[0].picture.crop.values == [
             Crop(Rectangle(x: 0, y: 0, width: 400, height: 200)),
             Crop(Rectangle(x: -50, y: 0, width: 200, height: 100))
         ])
@@ -226,7 +226,7 @@ struct ContentFitTests {
         // Then
         #expect(plan.format.size == Size(width: 320, height: 220))
         #expect(plan.storyline[0].appearance.box == nil)
-        guard case let .transform(box, _, _) = resolved.storyline[0].placement else {
+        guard case let .transform(box, _, _) = resolved.storyline[0].picture.placement else {
             Issue.record("the solid is placed by a corner pin")
             return
         }

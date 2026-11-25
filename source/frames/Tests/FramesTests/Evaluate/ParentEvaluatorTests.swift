@@ -408,30 +408,30 @@ struct ParentEvaluatorTests {
                 ResolvedStorylineClip(
                     place: "storyline[0]",
                     id: "shot",
-                    content: .media(ResolvedStorylineMedia(media: .pinned(media))),
+                    content: .media(ResolvedStorylineMedia(
+                        media: .pinned(media),
+                        picture: ResolvedStorylinePicture(
+                            crop: .keyframes(crop ?? [Keyframe(at: 0, value: Crop(whole))]),
+                            filling: size,
+                            from: 0
+                        )
+                    )),
                     in: 0,
                     out: 2,
                     speed: 1,
                     start: 0,
                     end: 2,
-                    crop: .keyframes(crop ?? [Keyframe(at: 0, value: Crop(whole))]),
-                    track: nil,
-                    filter: .off,
-                    transition: nil,
-                    filling: size
+                    transition: nil
                 ),
                 ResolvedStorylineClip(
                     place: "storyline[1]",
                     id: "next",
-                    content: .solid([Keyframe(at: 2, value: red)]),
+                    content: .solid(ResolvedSolid(color: [Keyframe(at: 2, value: red)], size: size, conform: .fit)),
                     in: 0,
                     out: 2,
                     speed: 1,
                     start: 2,
                     end: 4,
-                    crop: .keyframes([]),
-                    track: nil,
-                    filter: .off,
                     transition: ResolvedTransition(
                         start: 1.5,
                         end: 2.5,
@@ -440,8 +440,7 @@ struct ParentEvaluatorTests {
                         outgoing: nil,
                         cover: nil,
                         matte: nil
-                    ),
-                    filling: size
+                    )
                 )
             ],
             clips: clips,

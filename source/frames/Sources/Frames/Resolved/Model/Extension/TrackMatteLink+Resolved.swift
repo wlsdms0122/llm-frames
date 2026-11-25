@@ -18,7 +18,7 @@ extension TrackMatteLink {
             place: place,
             kind: .genericClip(.storyline),
             id: entry.id,
-            trackMatte: entry.trackMatte,
+            trackMatte: entry.picture.trackMatte,
             refusal: .storyline
         )
     }

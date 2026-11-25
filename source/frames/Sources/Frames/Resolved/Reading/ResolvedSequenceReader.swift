@@ -60,7 +60,7 @@ struct ResolvedSequenceReader: Sendable {
     func sequence(_ object: PlacedJSONObject) throws -> ResolvedSequence {
         let format = try format(object.member("format"))
         let writtenStoryline = try object.member("storyline").elements()
-        let storyline = try writtenStoryline.map(storyline)
+        let storyline = try writtenStoryline.map { try self.storyline($0, format: format) }
         let written = try object.member("clips").elements()
         let clips = try written.map(clip)
         try checkParents(of: clips, places: written.map(\.place), storyline: storyline)
@@ -128,7 +128,7 @@ struct ResolvedSequenceReader: Sendable {
         storylinePlaces: [Place]
     ) throws {
         for (entry, place) in zip(storyline, storylinePlaces) {
-            guard let track = entry.track else { continue }
+            guard let track = entry.picture.track else { continue }
             guard case let .media(shown) = entry.content, case let .pinned(media) = shown.media, track.media == media else {
                 throw trackedMediaMismatch(at: place, followsParent: false)
             }
@@ -287,8 +287,12 @@ struct ResolvedSequenceReader: Sendable {
 
     // An entry is of kind `media` or `solid`. An entry with media has a corner pin, and a solid has none. A solid's
     // `media`, `colorSpace`, `toneMap` and `timeRemap` are null, and an entry with media has `color` null. An entry
-    // with a corner pin has `size`, and its `position`, `anchor`, `scale` and `rotation` are null.
-    private func storyline(_ value: PlacedJSONValue) throws -> ResolvedStorylineClip {
+    // with a corner pin has `size`, and its `position`, `anchor`, `scale` and `rotation` are null. A solid fills the
+    // frame of `format`, so the keys of its picture hold the frame's picture, as the writer writes them.
+    private func storyline(
+        _ value: PlacedJSONValue,
+        format: ResolvedFormat
+    ) throws -> ResolvedStorylineClip {
         let keys = [
             "place", "id", "kind", "media", "color", "colorSpace", "toneMap", "in", "out", "speed", "timeRemap", "start",
             "end", "size", "position", "anchor", "cornerPin", "crop", "mask", "trackMatte", "track", "opacity", "scale",
@@ -308,6 +312,20 @@ struct ResolvedSequenceReader: Sendable {
                 )
             }
         }
+        let start = try entry.member("start").number()
+        let picture = ResolvedStorylinePicture(
+            placement: try placement(of: entry, cornerPin: isMedia ? try cornerPin(of: entry) : nil),
+            crop: try values.crops(entry.member("crop")),
+            mask: try values.masks(entry.member("mask")),
+            trackMatte: try entry.member("trackMatte").optional(trackMatte),
+            track: try entry.member("track").optional(track),
+            filter: try values.timed(entry.member("filter"), as: LookStructureTable.resolvedFilter),
+            opacity: try values.numbers(entry.member("opacity")),
+            blend: try entry.member("blend").string(),
+            radius: try values.timed(entry.member("radius"), as: LookStructureTable.radius),
+            border: try values.timed(entry.member("border"), as: LookStructureTable.border, kind: "border"),
+            shadow: try values.timed(entry.member("shadow"), as: LookStructureTable.shadow, kind: "shadow")
+        )
         let content: ResolvedStorylineContent
         if isMedia {
             let media = try self.media(entry.member("media"))
@@ -316,13 +334,25 @@ struct ResolvedSequenceReader: Sendable {
                 media: media,
                 colorSpace: reading.colorSpace,
                 isToneMapped: reading.isToneMapped,
-                timeRemap: try entry.member("timeRemap").optional(values.numbers)
+                timeRemap: try entry.member("timeRemap").optional(values.numbers),
+                picture: picture
             ))
         } else {
             try checkNoReading(of: entry)
-            content = .solid(try values.keyframes(entry.member("color"), read: values.color))
+            let solid = ResolvedSolid(
+                color: try values.keyframes(entry.member("color"), read: values.color),
+                size: format.size,
+                conform: format.conform
+            )
+            guard picture == solid.picture(at: start) else {
+                throw ModelError.invalidValue(
+                    place: entry.place,
+                    kind: entry.kind,
+                    reason: "a solid fills its frame, so its entry holds the frame's picture, found another"
+                )
+            }
+            content = .solid(solid)
         }
-        let cornerPin = isMedia ? try self.cornerPin(of: entry) : nil
 
         return ResolvedStorylineClip(
             place: try entry.member("place").string(),
@@ -331,20 +361,9 @@ struct ResolvedSequenceReader: Sendable {
             in: try entry.member("in").number(),
             out: try entry.member("out").number(),
             speed: try entry.member("speed").number(),
-            start: try entry.member("start").number(),
+            start: start,
             end: try entry.member("end").number(),
-            crop: try values.crops(entry.member("crop")),
-            mask: try values.masks(entry.member("mask")),
-            trackMatte: try entry.member("trackMatte").optional(trackMatte),
-            track: try entry.member("track").optional(track),
-            filter: try values.timed(entry.member("filter"), as: LookStructureTable.resolvedFilter),
-            placement: try placement(of: entry, cornerPin: cornerPin),
-            opacity: try values.numbers(entry.member("opacity")),
-            blend: try entry.member("blend").string(),
             isMotionBlurred: try entry.member("motionBlur").bool(),
-            radius: try values.timed(entry.member("radius"), as: LookStructureTable.radius),
-            border: try values.timed(entry.member("border"), as: LookStructureTable.border, kind: "border"),
-            shadow: try values.timed(entry.member("shadow"), as: LookStructureTable.shadow, kind: "shadow"),
             transition: try entry.member("transition").optional(transition)
         )
     }
@@ -352,7 +371,9 @@ struct ResolvedSequenceReader: Sendable {
     // What a clip draws decides the keys it holds: its content's, then a corner pin, scale and rotation for anything but
     // an adjustment, and how a picture is drawn and composited for anything but a null. Only a media clip's `crop` is
     // other than null. A shape or a null without `size` is placed by its geometry, and its `position` and `anchor` are its
-    // own. A clip with a corner pin has `size`, and its `position`, `anchor`, `scale` and `rotation` are null.
+    // own, and an adjustment whose `size`, `position` and `anchor` are null applies over the whole frame. A title and a
+    // media clip have `size`. A clip with a corner pin has `size`, and its `position`, `anchor`, `scale` and `rotation`
+    // are null, and a path, placed by its points, has none.
     private func clip(_ value: PlacedJSONValue) throws -> ResolvedClip {
         let written = try value.object(kind: "clip", keys: Self.clipKeys + Self.contentKeys)
         let kind = try written.member("kind").name(among: Self.kinds) { Self.kinds.contains($0) ? $0 : nil }
@@ -371,8 +392,16 @@ struct ResolvedSequenceReader: Sendable {
         let shape = ShapeKind(rawValue: kind)
         let isPlacedByGeometry = shape != nil || isNull
         let cornerPin = isTransformed && !isNull ? try cornerPin(of: clip) : nil
+        if shape == .path, cornerPin != nil {
+            let written = try clip.member("cornerPin")
+            throw ModelError.invalidValue(
+                place: written.place,
+                kind: written.kind,
+                reason: "a path is placed by its points, so its corner pin is null, found \(written.value.written)"
+            )
+        }
         let box: ResolvedBox? = if
-            cornerPin != nil || size.isNull && (isPlacedByGeometry || position.isNull && anchor.isNull)
+            cornerPin != nil || size.isNull && (isPlacedByGeometry || !isTransformed && position.isNull && anchor.isNull)
         {
             nil
         } else {

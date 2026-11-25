@@ -13,11 +13,11 @@ extension ResolvedStorylineClip {
     // MARK: - Initializer
     // MARK: - Public
     func presentation(at time: SampleTime) -> ItemPresentation {
-        guard case let .transform(box, scale, rotation) = placement else {
-            let size = placement.size
+        guard case let .transform(box, scale, rotation) = picture.placement else {
+            let size = picture.placement.size
             return ItemPresentation(
                 area: Rectangle(x: 0, y: 0, width: size.width, height: size.height),
-                opacity: opacity.opacity(at: time),
+                opacity: picture.opacity.opacity(at: time),
                 motion: Motion()
             )
         }
@@ -30,7 +30,7 @@ extension ResolvedStorylineClip {
                 position: Point(x: anchor.x - box.anchor.x, y: anchor.y - box.anchor.y),
                 scale: scale.value(at: time),
                 rotation: rotation.value(at: time),
-                opacity: opacity.opacity(at: time)
+                opacity: picture.opacity.opacity(at: time)
             ),
             motion: Motion()
         )

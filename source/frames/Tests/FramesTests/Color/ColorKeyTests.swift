@@ -230,7 +230,7 @@ struct ColorKeyTests {
         // When
         let resolved = try resolved(document)
         let spaces = resolved.storyline.map { entry in
-            FilterEntry.entries(of: entry.filter, at: SampleTime(0))
+            FilterEntry.entries(of: entry.picture.filter, at: SampleTime(0))
                 .flatMap(\.operations)
                 .compactMap { operation -> LookUpTableSpace? in
                     guard case let .lut(_, _, space) = operation else { return nil }

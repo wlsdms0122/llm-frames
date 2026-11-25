@@ -28,7 +28,7 @@ struct GeometryPastMediaTests {
 
         // Then
         #expect(numericList == scaledList)
-        #expect(numeric.storyline[0].crop.values == [Crop(Rectangle(x: -603, y: -1311, width: 2412, height: 5244))])
+        #expect(numeric.storyline[0].picture.crop.values == [Crop(Rectangle(x: -603, y: -1311, width: 2412, height: 5244))])
     }
 
     @Test("a rect parented to a storyline clip keeps its width past the media's edge")

@@ -762,6 +762,74 @@ struct ResolvedDocumentReaderTests {
         #expect(error?.description == message)
     }
 
+    @Test(
+        "a solid's entry whose picture is not its frame's stops, since a solid takes no key that places or draws it",
+        arguments: [
+            ("scale", #"[ { "at": 0, "value": [2, 2], "ease": "linear" } ]"#),
+            ("opacity", #"[ { "at": 0, "value": 0.5, "ease": "linear" } ]"#),
+            ("blend", #""multiply""#)
+        ]
+    )
+    func refusesSolidPicture(
+        key: String,
+        value: String
+    ) throws {
+        // Given
+        let root = try #require(try JSONReader().read(written(Self.documents[1])).objectValue)
+        var storyline = try #require(root["storyline"]?.arrayValue)
+        let solid = try #require(storyline[0].objectValue)
+        storyline[0] = .object(solid.setting(key, to: try Fixture.json(value)))
+        let text = JSONWriter().write(.object(root.setting("storyline", to: .array(storyline))))
+
+        // When
+        let error = #expect(throws: ModelError.self) { try sut.read(text) }
+
+        // Then
+        #expect(
+            error?.description
+                == "storyline[0] (storyline clip): a solid fills its frame, so its entry holds the frame's picture, found another"
+        )
+    }
+
+    @Test("a path with a corner pin stops, since a path is placed by its points")
+    func refusesPathCornerPin() throws {
+        // Given
+        var text = try replacing(
+            "cornerPin",
+            ofClip: 5,
+            with: #"[ { "at": 0, "value": [[0, 0], [100, 0], [100, 100], [0, 100]], "ease": "linear" } ]"#,
+            in: written(Self.documents[3])
+        )
+        for key in ["position", "anchor", "scale", "rotation"] {
+            text = try replacing(key, ofClip: 5, with: "null", in: text)
+        }
+        text = try replacing("size", ofClip: 5, with: "[100, 100]", in: text)
+
+        // When
+        let error = #expect(throws: ModelError.self) { try sut.read(text) }
+
+        // Then
+        #expect(
+            error?.description
+                == #"clips[5].cornerPin (clip): a path is placed by its points, so its corner pin is null, found [{"at": 0, "value": [[0, 0], [100, 0], [100, 100], [0, 100]], "ease": "linear"}]"#
+        )
+    }
+
+    @Test("a title or a media clip without a box stops, since each always has one", arguments: [0, 1])
+    func refusesPictureWithoutBox(clip index: Int) throws {
+        // Given
+        var text = try written(Self.documents[0])
+        for key in ["size", "position", "anchor"] {
+            text = try replacing(key, ofClip: index, with: "null", in: text)
+        }
+
+        // When
+        let error = #expect(throws: ModelError.self) { try sut.read(text) }
+
+        // Then
+        #expect(error?.description == "clips[\(index)].size (clip): expected a list of 2 numbers, found null")
+    }
+
     @Test("a media clip's null crop stops, since a media clip carries its crops, the whole picture where none is written")
     func refusesNullMediaCrop() throws {
         // Given

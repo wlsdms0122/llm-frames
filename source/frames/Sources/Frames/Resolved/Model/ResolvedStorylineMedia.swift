@@ -8,25 +8,28 @@
 // The media a storyline entry shows. `colorSpace` is the space that overrides its file's tags, nil where they apply,
 // and `isToneMapped` its `toneMap`, nil for a page, which takes none, and for a nested sequence, whose pictures are
 // working values already. `timeRemap` is keyframes in sequence time whose values are media seconds, nil for none, when
-// clip time is media time.
+// clip time is media time. `picture` is how its picture is placed and drawn.
 struct ResolvedStorylineMedia: Equatable, Sendable {
     // MARK: - Property
     let media: ResolvedMediaContent
     let colorSpace: ColorSpace?
     let isToneMapped: Bool?
     let timeRemap: [Keyframe<Double>]?
+    let picture: ResolvedStorylinePicture
 
     // MARK: - Initializer
     init(
         media: ResolvedMediaContent,
         colorSpace: ColorSpace? = nil,
         isToneMapped: Bool? = nil,
-        timeRemap: [Keyframe<Double>]? = nil
+        timeRemap: [Keyframe<Double>]? = nil,
+        picture: ResolvedStorylinePicture
     ) {
         self.media = media
         self.colorSpace = colorSpace
         self.isToneMapped = isToneMapped
         self.timeRemap = timeRemap
+        self.picture = picture
     }
 
     // MARK: - Public

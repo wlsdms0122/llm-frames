@@ -550,17 +550,22 @@ struct RenderPipelineTests {
         let entry = ResolvedStorylineClip(
             place: "storyline[0]",
             id: nil,
-            content: .media(ResolvedStorylineMedia(media: .pinned(media ?? video), colorSpace: mediaColorSpace)),
+            content: .media(ResolvedStorylineMedia(
+                media: .pinned(media ?? video),
+                colorSpace: mediaColorSpace,
+                picture: ResolvedStorylinePicture(
+                    crop: .keyframes([Keyframe(at: 0, value: Crop(whole))]),
+                    filter: filter,
+                    filling: size,
+                    from: 0
+                )
+            )),
             in: 0,
             out: duration,
             speed: 1,
             start: 0,
             end: duration,
-            crop: .keyframes([Keyframe(at: 0, value: Crop(whole))]),
-            track: nil,
-            filter: filter,
-            transition: nil,
-            filling: size
+            transition: nil
         )
 
         return ResolvedSequence(

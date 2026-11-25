@@ -133,7 +133,7 @@ struct ClipAreaSampler: Sendable {
         if clip.parent == entry.id {
             return entry.crop(at: held)
         }
-        guard case .media = entry.content, case let .transform(box, _, _) = entry.placement else {
+        guard case .media = entry.content, case let .transform(box, _, _) = entry.picture.placement else {
             return Rectangle(x: 0, y: 0, width: 0, height: 0)
         }
 

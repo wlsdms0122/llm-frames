@@ -292,7 +292,7 @@ package struct Evaluator: Sendable {
         let frame = sequence.format.frame
         let entry = sequence.storyline[index]
         let time = sequence.storyline.valueTime(ofEntry: index, in: sample)
-        let trackMatte = trackMatte(entry.trackMatte, in: sequence, parents: parents, at: sample, seed: seed)
+        let trackMatte = trackMatte(entry.picture.trackMatte, in: sequence, parents: parents, at: sample, seed: seed)
         let items = innerItems(
             of: entry,
             in: sequence.storyline.drawnRange(ofEntry: index),
@@ -310,13 +310,13 @@ package struct Evaluator: Sendable {
         )
         let picture = PictureItem(source: .displayList(list), rectangle: frame, destination: frame, matte: matte)
         let motion = transitionSampler.motion(of: index, in: sequence.storyline, at: sample)
-        let opacity = if case .cornerPin = entry.placement { entry.opacity.opacity(at: time) } else { 1.0 }
+        let opacity = if case .cornerPin = entry.picture.placement { entry.picture.opacity.opacity(at: time) } else { 1.0 }
         let presentation = ItemPresentation(area: frame, opacity: opacity, motion: motion.motion)
 
         return DisplayItem(
             transform: presentation.transform,
             opacity: presentation.opacity,
-            blend: entry.blend,
+            blend: entry.picture.blend,
             reveal: motion.revealRectangle(wiping: frame),
             content: .picture(picture),
             origin: ItemOrigin(entry: entry)
@@ -334,7 +334,7 @@ package struct Evaluator: Sendable {
     ) -> [DisplayItem] {
         let size: Size
         let scale: [Keyframe<Scale>]
-        switch entry.placement {
+        switch entry.picture.placement {
         case let .cornerPin(cornerPin):
             let group = group(
                 of: entry,
@@ -372,22 +372,22 @@ package struct Evaluator: Sendable {
                 ),
                 rectangle: entry.crop(at: time),
                 destination: box,
-                filter: FilterEntry.entries(of: entry.filter, at: time),
-                radius: entry.radius.sampled(at: time, as: LookStructureTable.radius).cornerRadii ?? .zero,
+                filter: FilterEntry.entries(of: entry.picture.filter, at: time),
+                radius: entry.picture.radius.sampled(at: time, as: LookStructureTable.radius).cornerRadii ?? .zero,
                 border: MediaBorder(
-                    sampled: entry.border.sampled(at: time, as: LookStructureTable.border),
+                    sampled: entry.picture.border.sampled(at: time, as: LookStructureTable.border),
                     factor: factor,
                     isSample: time.sample.isSample
                 ),
                 shadow: DropShadow(
-                    sampled: entry.shadow.sampled(at: time, as: LookStructureTable.shadow),
+                    sampled: entry.picture.shadow.sampled(at: time, as: LookStructureTable.shadow),
                     factor: factor,
                     carried: 1
                 )
             ))
 
-        case let .solid(color):
-            content = .path(PathItem(filling: box, color: color.value(at: time)))
+        case let .solid(solid):
+            content = .path(PathItem(filling: box, color: solid.color.value(at: time)))
         }
 
         let item = DisplayItem(
@@ -433,14 +433,14 @@ package struct Evaluator: Sendable {
             ),
             rectangle: entry.crop(at: time),
             destination: box,
-            filter: FilterEntry.entries(of: entry.filter, at: time),
-            radius: entry.radius.sampled(at: time, as: LookStructureTable.radius).cornerRadii ?? .zero,
+            filter: FilterEntry.entries(of: entry.picture.filter, at: time),
+            radius: entry.picture.radius.sampled(at: time, as: LookStructureTable.radius).cornerRadii ?? .zero,
             border: MediaBorder(
-                sampled: entry.border.sampled(at: time, as: LookStructureTable.border),
+                sampled: entry.picture.border.sampled(at: time, as: LookStructureTable.border),
                 factor: 1,
                 isSample: time.sample.isSample
             ),
-            shadow: DropShadow(sampled: entry.shadow.sampled(at: time, as: LookStructureTable.shadow), factor: 1, carried: 1)
+            shadow: DropShadow(sampled: entry.picture.shadow.sampled(at: time, as: LookStructureTable.shadow), factor: 1, carried: 1)
         )
         let bounds = item.receiverBox(carriedBy: .identity)
         let shift = AffineTransform(translation: Point(x: -bounds.x, y: -bounds.y))
