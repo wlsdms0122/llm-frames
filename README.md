@@ -343,7 +343,7 @@ Any keyframable property takes a static value or keyframes. A keyframe is `{at, 
 | `back-out`, `bounce-out` | overshoots, bounces |
 | `step` | holds, then jumps at the end |
 | `[x1, y1, x2, y2]` | a cubic Bezier, as CSS `cubic-bezier()` |
-| `{"spring": {"bounce": b}}` | a damped spring, b between -1 and 1: 0 settles without overshoot, higher swings past and back |
+| `{"kind": "spring", "bounce": b}` | a damped spring, b between -1 and 1: 0 settles without overshoot, higher swings past and back |
 
 A `crop` keyframes its size in log space, so a zoom keeps one speed. In `mask`, `filter`, `adjust`, `fill`, `stroke`, `shadow`, `border`, `character`, `paragraph` and `audioFilter` a keyframe writes the numbers and colours that move, over the clip's static value merged over its style. Names, booleans, files and the form of a value (a mask's `shape`, `invert` and `mode`, a filter's presets and ops, a gradient's kind and number of stops, a stroke's or a border's `align`, a stroke's `join` and `cap`) are static on the clip, and a keyframe that writes one stops. A keyframe's `mask` is a list as long as the clip's, whose masks write only the geometry, `radius` and `feather` they move. A `radius` keyframe may write one number where the next writes four: the number is four equal radii, and each corner moves apart. A leaf written `null` in a keyframe is the merged value at that instant, so a keyframe can point back at the static value or the style's. A leaf whose keyframes all lie before or all after the range its clip is visible in (for the sequence's own keyframes, the sequence) stops, since only one value would ever show.
 

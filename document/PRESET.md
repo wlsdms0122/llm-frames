@@ -73,7 +73,7 @@ An ease is a name, a cubic Bézier or a spring. The formulas are [FRAMES-4](../s
 | `bounce-out` | lands and bounces three times |
 | `step` | holds the start until the end of the span |
 | `[x1, y1, x2, y2]` | a cubic Bézier, as CSS `cubic-bezier()` writes it. `x1` and `x2` lie in 0 to 1 |
-| `{ "spring": { "bounce": b } }` | a damped spring that lands exactly at the end of the span |
+| `{ "kind": "spring", "bounce": b }` | a damped spring that lands exactly at the end of the span |
 
 A spring's `bounce` lies between -1 and 1, both ends excluded. At 0 it settles with no overshoot. Above about 0.134 it swings past the end and back before it settles, more the higher it is. Below 0 it approaches more slowly. The span's length sets the spring's speed, so the same bounce over 0.3 seconds is a snap and over 1 second a slow settle. A spring above 0 overshoots like `back-out`: a property whose keys reach `t: 1` swings past its last value.
 

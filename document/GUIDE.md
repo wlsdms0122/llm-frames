@@ -310,7 +310,7 @@ After a blade at clip second 1 of `demo`, which is sequence second 2:
       "connected": [
         { "id": "ring", "at": [0.5, 1], "parent": "demo", "kind": "rect", "area": [150, 377, 196, 42],
           "stroke": { "paint": "#F59E0B", "width": 4 }, "radius": 6,
-          "animation": { "entrance": "frames/fade", "exit": "none" } },
+          "animation": { "preset": "frames/fade", "exit": "none" } },
         { "id": "badge", "at": [0, 3], "kind": "title", "text": "DEMO", "style": "subtitle", "placement": "top-right" } ] },
     { "id": "demo-2", "kind": "media", "media": "/path/to/recording.mov", "in": 1, "out": 3,
       "transition": "cut", "fadeOut": 0.5,
@@ -318,7 +318,7 @@ After a blade at clip second 1 of `demo`, which is sequence second 2:
       "connected": [
         { "id": "ring-2", "at": [1, 1.4], "parent": "demo-2", "kind": "rect", "area": [150, 377, 196, 42],
           "stroke": { "paint": "#F59E0B", "width": 4 }, "radius": 6,
-          "animation": { "entrance": "none", "exit": "frames/fade" } },
+          "animation": { "preset": "frames/fade", "entrance": "none" } },
         { "id": "note", "at": [1.2, 2.4], "parent": "demo-2", "kind": "title", "text": "Shipping is added here", "style": "subtitle",
           "anchor": "top-left", "position": [420, 380] } ] }
   ] }
