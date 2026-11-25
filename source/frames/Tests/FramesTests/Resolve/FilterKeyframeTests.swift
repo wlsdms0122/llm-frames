@@ -397,7 +397,6 @@ struct FilterKeyframeTests {
             """#)
         let planner = TimePlanner(mediaFacts: Fixture.mediaFacts, presets: presets, library: Fixture.library)
         let sut = SequencePlanner(
-            tracker: Fixture.tracker,
             shaper: Fixture.shaper,
             presets: presets,
             library: Fixture.library

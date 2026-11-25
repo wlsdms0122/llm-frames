@@ -16,6 +16,12 @@ struct MotionBlurEvaluationTests {
     // MARK: - Property
     private let sut = Evaluator()
     private let offsets = (0 ..< 16).map { 0.00125 * (Double($0) + 0.5) }
+    // The track data of a tracker whose target [100, 100, 200, 40] drifts 100 pixels a second over `/abs/screen.mp4`,
+    // which shows a new frame every 0.1 seconds, followed from media second 0.
+    private var driftingTrack: String {
+        TrackerTable(frameTimes: ["/abs/screen.mp4": Fixture.screenFrameTimes], drift: Point(x: 100, y: 0))
+            .data(Quad(Rectangle(x: 100, y: 100, width: 200, height: 40)), in: "/abs/screen.mp4", atMediaTime: 0, over: 0...2)
+    }
     // A loop that slides its clip half its box to the right each second with its wipe complete throughout.
     private let drift = AnimationPreset(
         description: "",
@@ -720,9 +726,9 @@ struct MotionBlurEvaluationTests {
         // Given
         // The exposure of the frame at 0.99 crosses from the media frame at 0.9 to the one at 1, whose motions differ by
         // 10 pixels.
-        let sequence = try drifting(#"""
+        let sequence = try resolved(#"""
             { "kind": "sequence", "format": { "size": [1920, 1080], "fps": 25 },
-              "storyline": [ { "media": "/abs/screen.mp4", "in": 0, "out": 2, "crop": [100, 100, 200, 40], "track": true, "motionBlur": true } ] }
+              "storyline": [ { "media": "/abs/screen.mp4", "in": 0, "out": 2, "crop": [100, 100, 200, 40], "track": \#(driftingTrack), "motionBlur": true } ] }
             """#)
 
         // When
@@ -746,11 +752,11 @@ struct MotionBlurEvaluationTests {
                 { "kind": "sequence", "format": { "size": [1920, 1080], "fps": 25 },
                   "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "in": 0, "out": 2, "connected": [
                     { "id": "box", "shape": "rect", "stroke": { "width": 8 }, "parent": "screen", "at": [0, 2], "area": [100, 100, 200, 40],
-                      "track": true, "motionBlur": \#(isMotionBlurred) } ] } ] }
+                      "track": \#(driftingTrack), "motionBlur": \#(isMotionBlurred) } ] } ] }
                 """#
         }
-        let blurred = try drifting(document(true))
-        let sharp = try drifting(document(false))
+        let blurred = try resolved(document(true))
+        let sharp = try resolved(document(false))
 
         // When
         let samples = try #require(sut.displayList(of: blurred, at: 0.99).samples)
@@ -906,21 +912,6 @@ struct MotionBlurEvaluationTests {
         let planner = DocumentPlanner(
             mediaFacts: Fixture.mediaFacts,
             presets: presets,
-            tracker: Fixture.tracker,
-            shaper: Fixture.shaper,
-            library: Fixture.library
-        )
-
-        return try ResolvedSequence(plan: planner.plan(Fixture.json(document)), hashes: FileHashTable())
-    }
-
-    // Resolved with a tracker whose target drifts 100 pixels a second over `/abs/screen.mp4`, which shows a new frame
-    // every 0.1 seconds.
-    private func drifting(_ document: String) throws -> ResolvedSequence {
-        let planner = DocumentPlanner(
-            mediaFacts: Fixture.mediaFacts,
-            presets: Fixture.presets,
-            tracker: TrackerTable(frameTimes: ["/abs/screen.mp4": Fixture.screenFrameTimes], drift: Point(x: 100, y: 0)),
             shaper: Fixture.shaper,
             library: Fixture.library
         )

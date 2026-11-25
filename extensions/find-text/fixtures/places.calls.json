@@ -52,7 +52,8 @@
       "ownSpace": {
        "kind": "media",
        "clip": "storyline[0]#b"
-      }
+      },
+      "tracked": null
      }
     ],
     "clips": [
@@ -85,7 +86,8 @@
       "ownSpace": {
        "kind": "output",
        "clip": null
-      }
+      },
+      "tracked": null
      }
     ]
    }
@@ -144,7 +146,8 @@
       "ownSpace": {
        "kind": "media",
        "clip": "storyline[0]#b"
-      }
+      },
+      "tracked": null
      }
     ],
     "clips": [
@@ -177,7 +180,8 @@
       "ownSpace": {
        "kind": "box",
        "clip": "storyline[0]#b.connected[0]"
-      }
+      },
+      "tracked": null
      }
     ]
    }
@@ -236,7 +240,8 @@
       "ownSpace": {
        "kind": "media",
        "clip": "storyline[0]#b"
-      }
+      },
+      "tracked": null
      }
     ],
     "clips": [
@@ -269,7 +274,8 @@
       "ownSpace": {
        "kind": "box",
        "clip": "storyline[0]#b.connected[0]#t"
-      }
+      },
+      "tracked": null
      },
      {
       "place": "storyline[0]#b.connected[1]",
@@ -300,7 +306,8 @@
       "ownSpace": {
        "kind": "box",
        "clip": "storyline[0]#b.connected[0]#t"
-      }
+      },
+      "tracked": null
      }
     ]
    }
@@ -359,7 +366,8 @@
       "ownSpace": {
        "kind": "output",
        "clip": null
-      }
+      },
+      "tracked": null
      }
     ],
     "clips": [
@@ -392,7 +400,8 @@
       "ownSpace": {
        "kind": "output",
        "clip": null
-      }
+      },
+      "tracked": null
      }
     ]
    }
@@ -451,7 +460,8 @@
       "ownSpace": {
        "kind": "media",
        "clip": "storyline[0]#b"
-      }
+      },
+      "tracked": null
      }
     ],
     "clips": [
@@ -484,7 +494,8 @@
       "ownSpace": {
        "kind": "media",
        "clip": "storyline[0]#b.connected[0]#p"
-      }
+      },
+      "tracked": null
      },
      {
       "place": "storyline[0]#b.connected[1]",
@@ -515,7 +526,8 @@
       "ownSpace": {
        "kind": "media",
        "clip": "storyline[0]#b"
-      }
+      },
+      "tracked": null
      }
     ]
    }
@@ -570,6 +582,7 @@
        "kind": "media",
        "clip": "storyline[0]#b"
       },
+      "tracked": null,
       "clipTime": 0,
       "mediaTime": 0
      }
@@ -605,6 +618,7 @@
        "kind": "media",
        "clip": "storyline[0]#b.connected[0]#p"
       },
+      "tracked": null,
       "mediaTime": 0
      },
      {
@@ -637,6 +651,7 @@
        "kind": "media",
        "clip": "storyline[0]#b"
       },
+      "tracked": null,
       "mediaTime": null
      }
     ]
@@ -714,6 +729,100 @@
         ]
        }
       ]
+     }
+    ]
+   }
+  }
+ ],
+ "track_on_still": [
+  {
+   "arguments": [
+    "--version"
+   ],
+   "output": "0.1.0\n"
+  },
+  {
+   "arguments": [
+    "timeline",
+    "<document>",
+    "--json"
+   ],
+   "output": {
+    "timeline": "0.1.0",
+    "duration": 2,
+    "storyline": [
+     {
+      "place": "storyline[0]#b",
+      "id": "b",
+      "kind": "image",
+      "media": "/media/board.png",
+      "page": null,
+      "edit": [
+       0,
+       2
+      ],
+      "drawn": [
+       0,
+       2
+      ],
+      "clip": [
+       0,
+       2
+      ],
+      "sound": null,
+      "speed": 1,
+      "timeRemap": false,
+      "transition": null,
+      "fps": null,
+      "instant": 0,
+      "clock": {
+       "clip": "storyline[0]#b",
+       "origin": 0,
+       "speed": 1
+      },
+      "space": {
+       "kind": "output",
+       "clip": null
+      },
+      "ownSpace": {
+       "kind": "media",
+       "clip": "storyline[0]#b"
+      },
+      "tracked": null
+     }
+    ],
+    "clips": [
+     {
+      "place": "storyline[0]#b.connected[0]",
+      "id": null,
+      "kind": "rect",
+      "media": null,
+      "page": null,
+      "visible": [
+       0,
+       2
+      ],
+      "sound": null,
+      "lane": 1,
+      "storyline": "storyline[0]#b",
+      "parent": "storyline[0]#b",
+      "animation": null,
+      "fps": null,
+      "instant": 0,
+      "clock": {
+       "clip": "storyline[0]#b",
+       "origin": 0,
+       "speed": 1
+      },
+      "space": {
+       "kind": "media",
+       "clip": "storyline[0]#b"
+      },
+      "ownSpace": {
+       "kind": "media",
+       "clip": "storyline[0]#b"
+      },
+      "tracked": null
      }
     ]
    }

@@ -1,0 +1,18 @@
+{
+  "kind": "sequence",
+  "format": { "size": [640, 360], "fps": 25 },
+  "storyline": [
+    { "solid": "#1E2630", "duration": 0.5 },
+    { "id": "shot", "media": "/media/moving.mp4", "in": 0.2, "speed": 0.5,
+      "connected": [
+        { "id": "box", "at": [0.2, 2.6], "parent": "shot", "shape": "rect", "stroke": { "width": 4, "color": "#3DDC84" },
+          "keyframes": [ { "at": 0.6, "area": [148, 200, 128, 88] }, { "at": 1.6, "area": [268, 190, 128, 88] } ],
+          "track": true },
+        { "id": "pin", "at": [0.2, 2.6], "parent": "shot", "media": "/media/board.png",
+          "keyframes": [ { "at": 1, "cornerPin": [[196, 196], [324, 196], [324, 284], [196, 284]] },
+                         { "at": 0.6, "cornerPin": [[146, 200], [276, 200], [276, 290], [146, 290]] },
+                         { "at": 0.6, "cornerPin": [[148, 200], [276, 200], [276, 288], [148, 288]] } ],
+          "track": true }
+      ] }
+  ]
+}

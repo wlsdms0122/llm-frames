@@ -5,7 +5,7 @@
 //  Created by JSilver on 11/16/26.
 //
 
-// What the tracker or track data followed: `target` is the target's quad before padding on the track's frame at
+// What track data followed: `target` is the target's quad on the track's frame at
 // `mediaTime`, and `samples` its quad and fitted motion on every frame followed, in time order. A time before the first
 // frame or after the last holds the nearest one, as a handle past the end of the media holds its edge frame.
 struct Track: Equatable, Sendable {
@@ -25,7 +25,7 @@ struct Track: Equatable, Sendable {
         self.samples = samples
     }
 
-    // The motion fitted to each frame the tracker reported.
+    // The motion fitted to each frame of the data.
     init(
         target: Quad,
         mediaTime: Double,

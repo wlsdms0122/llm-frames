@@ -128,14 +128,14 @@ struct SequenceReaderTests {
         #expect(sequence.storyline[1].media?.source == .argument(.file("/abs/run.mp4"), theme: theme))
     }
 
-    @Test("the geometry keys read as written: the format's size and conform, areas and track targets")
+    @Test("the geometry keys read as written: the format's size and conform, areas and track data")
     func readsGeometryKeys() throws {
         // Given
         let document = try Fixture.json(#"""
             { "kind": "sequence", "format": { "size": [1080, 1920], "conform": "fill" },
-              "storyline": [ { "media": "/abs/screen.mp4", "track": true, "crop": { "scale": 2 }, "connected": [
+              "storyline": [ { "media": "/abs/screen.mp4", "track": { "time": 1, "frames": [] }, "crop": { "scale": 2 }, "connected": [
                 { "shape": "ellipse", "area": { "clip": "t", "padding": 6 }, "fill": "accent",
-                  "track": [10, 20, 30, 40] },
+                  "track": { "time": 0.5, "frames": [ { "time": 0.5, "quad": [[10, 20], [40, 20], [40, 60], [10, 60]] } ] } },
                 { "id": "t", "title": "t", "style": "title", "width": 300, "parent": "screen",
                   "position": { "area": [1, 2, 3, 4], "point": "top-left" } } ] } ] }
             """#)
@@ -148,11 +148,11 @@ struct SequenceReaderTests {
         let title = sequence.storyline[0].connected[1]
         #expect(sequence.format.size == .fixed(Size(width: 1080, height: 1920)))
         #expect(sequence.format.conform == .fill)
-        #expect(sequence.storyline[0].track == .own(time: nil))
+        #expect(sequence.storyline[0].track == TrackData(time: 1, frames: []))
         #expect(sequence.storyline[0].crop == .value(.scale(2)))
         #expect(ellipse.area == .value(.clip("t", padding: 6)))
         #expect(ellipse.content == .shape(ClipShape(kind: .ellipse, fill: LookProperty(written: .string("accent")))))
-        #expect(ellipse.track == .area(.rectangle(Rectangle(x: 10, y: 20, width: 30, height: 40)), time: nil))
+        #expect(ellipse.track == TrackData(time: 0.5, frames: [TrackDataFrame(time: 0.5, quad: Quad(Rectangle(x: 10, y: 20, width: 30, height: 40)))]))
         #expect(title.width == 300)
         #expect(title.position == .value(.area(.rectangle(Rectangle(x: 1, y: 2, width: 3, height: 4)), point: "top-left")))
     }

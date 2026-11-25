@@ -39,5 +39,10 @@ struct QuadTrackerTable: TrackerProvider {
         }
     }
 
+    // The track data a document writes for `base` followed on every frame of `quads`, whose `time` it names.
+    func data(atMediaTime time: Double) -> String {
+        quads.map { TrackedFrame(time: $0.time, quad: $0.quad) }.trackData(time: time)
+    }
+
     // MARK: - Private
 }

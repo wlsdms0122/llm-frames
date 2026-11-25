@@ -27,7 +27,7 @@ struct FrameConverterTests {
     func copiesSixteenBitRGBA(keepsAlpha: Bool) throws {
         // Given
         let sut = FrameConverter(keepsAlpha: keepsAlpha, output: ColorConversion(space: .srgb))
-        let buffer = try pixelBuffer(format: kCVPixelFormatType_64RGBALE)
+        let buffer = try pixelBuffer(format: kCVPixelFormatType_64RGBALE, width: 3)
 
         // When
         sut.copy(bitmap(components), into: buffer)
@@ -51,7 +51,7 @@ struct FrameConverterTests {
     func copiesOverBlackToBGRA() throws {
         // Given
         let sut = FrameConverter(keepsAlpha: false, output: ColorConversion(space: .srgb))
-        let buffer = try pixelBuffer(format: kCVPixelFormatType_32BGRA)
+        let buffer = try pixelBuffer(format: kCVPixelFormatType_32BGRA, width: 3)
 
         // When
         sut.copy(bitmap(components), into: buffer)
@@ -59,6 +59,38 @@ struct FrameConverterTests {
         // Then
         let grey = UInt8((30_000.0 * 255 / 65_535).rounded())
         #expect(read(buffer, as: UInt8.self, count: 12) == [0, 0, 128, 255, 0, 0, 0, 255, grey, grey, grey, 255])
+    }
+
+    @Test(
+        "a BGRA row of runs, single and alternating pixels takes the bytes of each pixel copied alone",
+        arguments: [(ColorSpace.srgb, true), (.srgb, false), (.displayP3, true), (.rec2020, false)]
+    )
+    func copiesRowToBGRAAsPixelsAlone(
+        space: ColorSpace,
+        keepsAlpha: Bool
+    ) throws {
+        // Given
+        let sut = FrameConverter(keepsAlpha: keepsAlpha, output: ColorConversion(space: space))
+        let white: [UInt16] = [65_535, 65_535, 65_535, 65_535]
+        let grey: [UInt16] = [30_000, 30_000, 30_000, 65_535]
+        let halfGrey: [UInt16] = [15_000, 15_000, 15_000, 32_768]
+        let red: [UInt16] = [40_000, 2_000, 1_000, 65_535]
+        let clear: [UInt16] = [0, 0, 0, 0]
+        let pixels = [white, white, white, red, grey, halfGrey, halfGrey, red, grey, red, grey, clear, clear, white]
+        let row = Array(pixels.joined())
+        let buffer = try pixelBuffer(format: kCVPixelFormatType_32BGRA, width: pixels.count)
+
+        // When
+        sut.copy(bitmap(row), into: buffer)
+
+        // Then
+        let alone = try pixels.flatMap { pixel in
+            let single = try pixelBuffer(format: kCVPixelFormatType_32BGRA, width: 1)
+            sut.copy(bitmap(pixel), into: single)
+
+            return read(single, as: UInt8.self, count: 4)
+        }
+        #expect(read(buffer, as: UInt8.self, count: row.count) == alone)
     }
 
     @Test(
@@ -71,7 +103,7 @@ struct FrameConverterTests {
     ) throws {
         // Given
         let sut = FrameConverter(keepsAlpha: false, output: ColorConversion(space: space))
-        let buffer = try pixelBuffer(format: kCVPixelFormatType_64RGBAHalf)
+        let buffer = try pixelBuffer(format: kCVPixelFormatType_64RGBAHalf, width: 3)
 
         // When
         sut.copy(bitmap([65_535, 65_535, 65_535, 65_535, 0, 0, 0, 0, 0, 0, 0, 65_535]), into: buffer)
@@ -97,9 +129,12 @@ struct FrameConverterTests {
         )
     }
 
-    private func pixelBuffer(format: OSType) throws -> CVPixelBuffer {
+    private func pixelBuffer(
+        format: OSType,
+        width: Int
+    ) throws -> CVPixelBuffer {
         var buffer: CVPixelBuffer?
-        CVPixelBufferCreate(nil, components.count / 4, 1, format, nil, &buffer)
+        CVPixelBufferCreate(nil, width, 1, format, nil, &buffer)
 
         return try #require(buffer)
     }

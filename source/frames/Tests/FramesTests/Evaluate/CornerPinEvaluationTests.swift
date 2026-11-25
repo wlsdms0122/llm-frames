@@ -484,19 +484,20 @@ struct CornerPinEvaluationTests {
         let target = Quad(Rectangle(x: 0, y: 0, width: 100, height: 100))
         let far = Quad(topLeft: Point(x: 0, y: 0), topRight: Point(x: 100, y: 0), bottomRight: Point(x: 60, y: 50), bottomLeft: Point(x: 40, y: 50))
         let quads = [(0.0, target)] + (1...10).map { (Double($0) / 10, far) }
+        let track = QuadTrackerTable(base: target, quads: quads).data(atMediaTime: 0)
         let corners = ["top-left", "top-right", "bottom-right", "bottom-left"]
             .map { #"{ "area": { "clip": "bar" }, "point": "\#($0)" }"# }
             .joined(separator: ", ")
         let document = #"""
             { "kind": "sequence", "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "out": 1, "connected": [
                 { "id": "bar", "shape": "rect", "fill": "accent", "area": [20, 20, 60, 30], "parent": "screen", "at": [0, 1] },
-                { "id": "tracked", "media": "/abs/card.png", "parent": "screen", "at": [0, 1], "width": 300, "track": { "time": 0, "area": [0, 0, 100, 100] },
+                { "id": "tracked", "media": "/abs/card.png", "parent": "screen", "at": [0, 1], "width": 300, "track": \#(track),
                   "keyframes": [ { "at": 0.5, "cornerPin": [[10, 10], [90, 10], [90, 40], [10, 40]] },
                                  { "at": 0.9, "cornerPin": [\#(corners)] } ] },
                 { "id": "still", "media": "/abs/card.png", "parent": "screen", "at": [0, 1], "width": 300,
                   "cornerPin": [[10, 10], [90, 10], [90, 40], [10, 40]] } ] } ] }
             """#
-        let sequence = try resolved(document: document, tracker: QuadTrackerTable(base: target, quads: quads))
+        let sequence = try resolved(document: document)
 
         // When
         let list = sut.displayList(of: sequence, at: 0.5)
@@ -526,14 +527,15 @@ struct CornerPinEvaluationTests {
         let target = Quad(Rectangle(x: 0, y: 0, width: 100, height: 100))
         let far = Quad(topLeft: Point(x: 0, y: 0), topRight: Point(x: 100, y: 0), bottomRight: Point(x: 60, y: 50), bottomLeft: Point(x: 40, y: 50))
         let quads = [(0.0, target)] + (1...10).map { (Double($0) / 10, far) }
+        let track = QuadTrackerTable(base: target, quads: quads).data(atMediaTime: 0)
         let pin = #"[[10, 10], [90, 10], { "area": { "clip": "bar" }, "point": "bottom-right" }, [10, 40]]"#
         let document = #"""
             { "kind": "sequence", "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "out": 1, "connected": [
                 { "id": "bar", "shape": "rect", "fill": "accent", "area": [20, 20, 60, 30], "parent": "screen", "at": [0, 1] },
-                { "id": "tracked", "media": "/abs/card.png", "parent": "screen", "at": [0, 1], "width": 300, "track": { "time": 0, "area": [0, 0, 100, 100] },
+                { "id": "tracked", "media": "/abs/card.png", "parent": "screen", "at": [0, 1], "width": 300, "track": \#(track),
                   "keyframes": [ { "at": 0.5, "cornerPin": \#(pin) }, { "at": 0.9, "cornerPin": \#(pin) } ] } ] } ] }
             """#
-        let sequence = try resolved(document: document, tracker: QuadTrackerTable(base: target, quads: quads))
+        let sequence = try resolved(document: document)
 
         // When
         let list = sut.displayList(of: sequence, at: 0.5)
@@ -560,12 +562,13 @@ struct CornerPinEvaluationTests {
         let target = Quad(Rectangle(x: 0, y: 0, width: 100, height: 100))
         let far = Quad(topLeft: Point(x: 0, y: 0), topRight: Point(x: 100, y: 0), bottomRight: Point(x: 60, y: 50), bottomLeft: Point(x: 40, y: 50))
         let quads = [(0.0, target)] + (1...10).map { (Double($0) / 10, far) }
+        let track = QuadTrackerTable(base: target, quads: quads).data(atMediaTime: 0)
         let document = #"""
             { "kind": "sequence", "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "out": 1, "connected": [
-                { "id": "pinned", "media": "/abs/card.png", "parent": "screen", "at": [0, 1], "width": 300, "track": { "time": 0, "area": [0, 0, 100, 100] },
+                { "id": "pinned", "media": "/abs/card.png", "parent": "screen", "at": [0, 1], "width": 300, "track": \#(track),
                   "cornerPin": [[10, -60], [90, -60], [90, -40], [10, -40]] } ] } ] }
             """#
-        let sequence = try resolved(document: document, tracker: QuadTrackerTable(base: target, quads: quads))
+        let sequence = try resolved(document: document)
 
         // When
         let onTarget = sut.displayList(of: sequence, at: 0.05)
@@ -608,19 +611,19 @@ struct CornerPinEvaluationTests {
         // at 0.58333, between the instants 0.583125 and 0.584375 of the frame at 0.57.
         let target = Quad(Rectangle(x: 0, y: 0, width: 100, height: 100))
         let far = Quad(topLeft: Point(x: 0, y: 0), topRight: Point(x: 100, y: 0), bottomRight: Point(x: 60, y: 50), bottomLeft: Point(x: 40, y: 50))
-        let tracker = QuadTrackerTable(base: target, quads: [(0.0, target)] + (1...10).map { (Double($0) / 10, far) })
+        let track = QuadTrackerTable(base: target, quads: [(0.0, target)] + (1...10).map { (Double($0) / 10, far) }).data(atMediaTime: 0)
         let document = { (isMotionBlurred: Bool) in
             #"""
                 { "kind": "sequence", "format": { "size": [1920, 1080], "fps": 25 },
                   "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "out": 1, "connected": [
                     { "id": "pinned", "media": "/abs/card.png", "parent": "screen", "at": [0, 1], "width": 300,
-                      "motionBlur": \#(isMotionBlurred), "track": { "time": 0, "area": [0, 0, 100, 100] },
+                      "motionBlur": \#(isMotionBlurred), "track": \#(track),
                       "keyframes": [ { "at": 0, "cornerPin": [[10, -60], [90, -60], [90, -40], [10, -40]], "ease": "linear" },
                                      { "at": 1, "cornerPin": [[10, 0], [90, 0], [70, 31.25], [30, 31.25]] } ] } ] } ] }
                 """#
         }
-        let blurred = try resolved(document: document(true), tracker: tracker)
-        let sharp = try resolved(document: document(false), tracker: tracker)
+        let blurred = try resolved(document: document(true))
+        let sharp = try resolved(document: document(false))
 
         // When
         let list = sut.displayList(of: blurred, at: 0.57)
@@ -670,12 +673,13 @@ struct CornerPinEvaluationTests {
         let near = Quad(topLeft: Point(x: 0, y: 0), topRight: Point(x: 100, y: 0), bottomRight: Point(x: 90, y: 90), bottomLeft: Point(x: 10, y: 90))
         let far = Quad(topLeft: Point(x: 0, y: 0), topRight: Point(x: 100, y: 0), bottomRight: Point(x: 60, y: 50), bottomLeft: Point(x: 40, y: 50))
         let quads = [(0.0, target)] + (1...20).map { (Double($0) / 10, $0 < 10 ? near : far) }
+        let track = QuadTrackerTable(base: target, quads: quads).data(atMediaTime: 0)
         let sequence = try resolved(document: #"""
             { "kind": "sequence", "format": { "size": [1920, 1080], "fps": 25 },
               "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "out": 2, "connected": [
                 { "id": "pinned", "media": "/abs/card.png", "parent": "screen", "at": [0, 2], "width": 300, "motionBlur": true,
-                  "track": { "time": 0, "area": [0, 0, 100, 100] }, "cornerPin": [[10, 10], [90, 10], [90, 40], [10, 40]] } ] } ] }
-            """#, tracker: QuadTrackerTable(base: target, quads: quads))
+                  "track": \#(track), "cornerPin": [[10, 10], [90, 10], [90, 40], [10, 40]] } ] } ] }
+            """#)
 
         // When
         let samples = try #require(sut.displayList(of: sequence, at: 0.99).samples)
@@ -741,27 +745,11 @@ struct CornerPinEvaluationTests {
 
     private func resolved(
         document: String,
-        tracker: any TrackerProvider
-    ) throws -> ResolvedSequence {
-        let planner = DocumentPlanner(
-            mediaFacts: Fixture.mediaFacts,
-            presets: Fixture.presets,
-            tracker: tracker,
-            shaper: Fixture.shaper,
-            library: Fixture.library
-        )
-
-        return try ResolvedSequence(plan: planner.plan(Fixture.json(document)), hashes: FileHashTable())
-    }
-
-    private func resolved(
-        document: String,
         presets: any PresetProvider
     ) throws -> ResolvedSequence {
         let planner = DocumentPlanner(
             mediaFacts: Fixture.mediaFacts,
             presets: presets,
-            tracker: Fixture.tracker,
             shaper: Fixture.shaper,
             library: Fixture.library
         )

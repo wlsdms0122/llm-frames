@@ -74,7 +74,6 @@ struct DefaultFilterTests {
         let library = directory.library()
         let planner = TimePlanner(mediaFacts: Fixture.mediaFacts, presets: Fixture.presets, library: library)
         let sut = SequencePlanner(
-            tracker: Fixture.tracker,
             shaper: Fixture.shaper,
             presets: Fixture.presets,
             library: library
@@ -129,7 +128,6 @@ struct DefaultFilterTests {
     private func filmPlan(_ document: String) throws -> SequencePlan {
         let planner = TimePlanner(mediaFacts: Fixture.mediaFacts, presets: presets, library: Fixture.library)
         let sut = SequencePlanner(
-            tracker: Fixture.tracker,
             shaper: Fixture.shaper,
             presets: presets,
             library: Fixture.library

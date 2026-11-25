@@ -16,6 +16,7 @@ import Foundation
 package struct TimelineReporter: Sendable {
     // MARK: - Property
     private let planner: DocumentPlanner
+    private let tracks = TrackPlanner()
 
     // MARK: - Initializer
     package init(planner: DocumentPlanner) {
@@ -48,6 +49,7 @@ package struct TimelineReporter: Sendable {
                     geometry: plan.storyline[index],
                     sound: sound(at: clip.place, in: plan),
                     ownSpace: timePlan.ownSpace(of: clip),
+                    tracked: tracks.source(of: clip).map { tracked($0, fps: timePlan.fps) },
                     at: time
                 )
             },
@@ -95,6 +97,7 @@ package struct TimelineReporter: Sendable {
         geometry: StorylineGeometry,
         sound: TimeRange?,
         ownSpace: CoordinateSpace,
+        tracked: TimelineTrack?,
         at time: Double?
     ) -> TimelineStorylineEntry {
         let media = clip.source.media
@@ -116,6 +119,7 @@ package struct TimelineReporter: Sendable {
             clock: TimelineClock(clip: clip.place.description, map: clip.map),
             space: .output,
             ownSpace: ownSpace,
+            tracked: tracked,
             edit: clip.edit,
             drawn: clip.drawn,
             clip: clip.source.clipRange,
@@ -165,6 +169,7 @@ package struct TimelineReporter: Sendable {
             clock: TimelineClock(clip: clip.storyline.map { plan.storyline[$0].place.description }, map: clip.clock),
             space: isSound ? nil : plan.space(givenBy: clip.parent),
             ownSpace: isSound ? nil : plan.ownSpace(of: clip),
+            tracked: isSound ? nil : tracks.source(of: clip, in: plan).map { tracked($0, fps: plan.fps) },
             visible: clip.visible,
             sound: sound,
             lane: clip.lane,
@@ -181,6 +186,14 @@ package struct TimelineReporter: Sendable {
             time: shown,
             nested: geometry.nested.map { report(of: $0, at: shown?.mediaTime) }
         )
+    }
+
+    private func tracked(
+        _ source: TrackSource,
+        fps: Double
+    ) -> TimelineTrack {
+        let frames = tracks.shownFrames(of: source, fps: fps)
+        return TimelineTrack(clip: source.place.description, first: frames.lowerBound, last: frames.upperBound)
     }
 
     private func span(_ span: PresetSpan) -> TimelineSpan {
@@ -226,6 +239,7 @@ package struct TimelineReporter: Sendable {
             clock: .sequence,
             space: .output,
             ownSpace: ownSpace,
+            tracked: nil,
             edit: edit,
             drawn: drawn,
             clip: TimeRange(start: clip.in, end: clip.out),
@@ -263,6 +277,7 @@ package struct TimelineReporter: Sendable {
             clock: .sequence,
             space: sequence.space(givenBy: clip.parent),
             ownSpace: sequence.ownSpace(of: clip),
+            tracked: nil,
             visible: TimeRange(start: clip.start, end: clip.end),
             sound: media == nil ? nil : sound(at: clip.place, in: sequence),
             lane: clip.lane,

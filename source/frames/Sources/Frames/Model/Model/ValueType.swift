@@ -46,8 +46,6 @@ indirect enum ValueType: Equatable, Sendable {
     case oneOf([ValueType])
     case area
     case crop
-    // `track` (FRAMES-12 The track): `true`, an object holding any of `time`, `area` and `frames`, or else an area.
-    case track
     // A mask, or a list of at least one mask, each taking the keys of its shape.
     case masks
     // A title's text: a string, or a list of at least one run.

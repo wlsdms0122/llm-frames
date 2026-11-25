@@ -29,13 +29,13 @@ struct ResolveEndToEndTests {
 
     // MARK: - Initializer
     // MARK: - Test
-    @Test("a sequence on generated media resolves through the real decoder, tracker and shaper")
+    @Test("a sequence on generated media resolves through the real decoder and shaper, with track data the point tracker gives")
     func resolvesOnRealProviders() async throws {
         // Given
         let directory = try TemporaryDirectory()
         let packs = try TemporaryDirectory()
         let (document, drawn) = try await screenDocument(in: directory)
-        let sut = planner(packs: packs, tracker: PointTracker(decoder: decoder))
+        let sut = planner(packs: packs)
 
         // When
         let plan = try sut.plan(document)
@@ -72,7 +72,7 @@ struct ResolveEndToEndTests {
               "clips": [ { "at": [0, 1], "title": [ { "text": "Ana", "style": "name" }, { "text": " Ruiz\nDirector" } ],
                            "style": "role", "position": [400, 225] } ] }
             """#)
-        let sut = planner(packs: packs, tracker: PointTracker(decoder: decoder))
+        let sut = planner(packs: packs)
 
         // When
         let plan = try sut.plan(document)
@@ -100,7 +100,7 @@ struct ResolveEndToEndTests {
         let directory = try TemporaryDirectory()
         let packs = try TemporaryDirectory()
         let (document, drawn) = try await screenDocument(in: directory)
-        let plan = try planner(packs: packs, tracker: PointTracker(decoder: decoder)).plan(document)
+        let plan = try planner(packs: packs).plan(document)
         let resolved = try ResolvedSequence(plan: plan, hashes: FileHasher())
         let sut = Evaluator()
 
@@ -120,7 +120,7 @@ struct ResolveEndToEndTests {
         }
     }
 
-    @Test("a corner pin tracked by the planar tracker on a poster turning in perspective lies on the poster's projected corners")
+    @Test("a corner pin tracked by the track data the planar tracker gives on a poster turning in perspective lies on the poster's projected corners")
     func pinsCornersOnPlanarTrack() async throws {
         // Given
         let directory = try TemporaryDirectory()
@@ -157,14 +157,19 @@ struct ResolveEndToEndTests {
             return try #require(homography.apply(to: pinned))
         }
         let corners = truth[0].corners.map { "[\($0.x), \($0.y)]" }.joined(separator: ", ")
+        // The track command follows a rectangle, so it is given one inside the poster on the first frame, and the
+        // homography of the poster's plane its quads give carries the corner pin.
+        let area = inscribed(in: placement(0), margin: 4)
+        let report = try TrackReporter(mediaFacts: decoder, tracker: PlanarTracker(decoder: decoder))
+            .report(of: file, target: .area("[\(area.x), \(area.y), \(area.width), \(area.height)]"), at: 0)
         let document = try Fixture.json(#"""
             { "kind": "sequence", "format": { "size": [640, 360], "fps": 30 },
               "storyline": [ { "id": "poster", "media": "\#(file)", "connected": [
                 { "id": "card", "shape": "rect", "fill": "#FF0000", "width": 100, "height": 50, "parent": "poster",
-                  "cornerPin": [\#(corners)], "track": { "time": 0 } } ] } ] }
+                  "cornerPin": [\#(corners)], "track": \#(report.frames.trackData(time: report.time)) } ] } ] }
             """#)
         let resolved = try ResolvedSequence(
-            plan: try planner(packs: packs, tracker: PlanarTracker(decoder: decoder)).plan(document),
+            plan: try planner(packs: packs).plan(document),
             hashes: FileHasher()
         )
         let sut = EvaluationReporter()
@@ -185,25 +190,25 @@ struct ResolveEndToEndTests {
     }
 
     // MARK: - Private
-    // The screen recording with a box on its scrolling line as drawn on the first frame, tracking it, and a title
-    // over it. The drawn boxes of the scrolling line come back in frame order.
+    // The screen recording with a box on its scrolling line as drawn on the first frame, tracking it by the track data
+    // the point tracker gives from there, as the track command prints it, and a title over it. The drawn boxes of the
+    // scrolling line come back in frame order.
     private func screenDocument(in directory: TemporaryDirectory) async throws -> (JSONValue, [Rectangle]) {
         let file = directory.file("screen.mov")
         let drawn = try await ScreenRecording(scale: 0.5).write(to: file)
         let line = "[\(drawn[0].x), \(drawn[0].y), \(drawn[0].width), \(drawn[0].height)]"
+        let report = try TrackReporter(mediaFacts: decoder, tracker: PointTracker(decoder: decoder))
+            .report(of: file, target: .area(line), at: 0)
         let document = try Fixture.json(#"""
             { "kind": "sequence",
-              "storyline": [ { "id": "screen", "media": "\#(file)", "connected": [ { "shape": "rect", "stroke": { "width": 8 }, "area": \#(line), "parent": "screen", "track": true } ] } ],
+              "storyline": [ { "id": "screen", "media": "\#(file)", "connected": [ { "shape": "rect", "stroke": { "width": 8 }, "area": \#(line), "parent": "screen", "track": \#(report.frames.trackData(time: report.time)) } ] } ],
               "clips": [ { "at": [0, 1], "title": "결제 완료", "style": "title" } ] }
             """#)
 
         return (document, drawn)
     }
 
-    private func planner(
-        packs: TemporaryDirectory,
-        tracker: any TrackerProvider
-    ) -> DocumentPlanner {
+    private func planner(packs: TemporaryDirectory) -> DocumentPlanner {
         let library = ReferenceLibrary(
             packs: PackLibrary(installed: URL(fileURLWithPath: packs.path), shipped: URL(fileURLWithPath: packs.path)),
             mediaFacts: decoder
@@ -212,10 +217,22 @@ struct ResolveEndToEndTests {
         return DocumentPlanner(
             mediaFacts: decoder,
             presets: Fixture.presets,
-            tracker: tracker,
             shaper: CoreTextShaper(),
             library: library
         )
+    }
+
+    // The largest rectangle inside a convex quad whose edges run near the axes, `margin` in from each side.
+    private func inscribed(
+        in quad: Quad,
+        margin: Double
+    ) -> Rectangle {
+        let left = max(quad.topLeft.x, quad.bottomLeft.x) + margin
+        let right = min(quad.topRight.x, quad.bottomRight.x) - margin
+        let top = max(quad.topLeft.y, quad.topRight.y) + margin
+        let bottom = min(quad.bottomLeft.y, quad.bottomRight.y) - margin
+
+        return Rectangle(x: left, y: top, width: right - left, height: bottom - top)
     }
 
     // The box's stroke carried by its item's transform to output pixels, as the rectangle around its corners.

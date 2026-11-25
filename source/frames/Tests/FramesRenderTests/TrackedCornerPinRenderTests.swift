@@ -9,12 +9,14 @@ import Foundation
 import FramesAVFoundation
 import FramesQuartz
 import FramesTestMedia
+import FramesTracker
 import Testing
 
 @testable import Frames
 
-// Tracked clips with corner pins over a real video, resolved on the real providers, with the `point` tracker, and
-// evaluated or drawn by the real renderer (FRAMES-12, FRAMES-27). Serialized, since AVAssetReader needs a free thread
+// Tracked clips with corner pins over a real video, given track data written or followed by the `point` tracker as the
+// `track` command does, resolved on the real providers, and evaluated or drawn by the real renderer (FRAMES-12,
+// FRAMES-27). Serialized, since AVAssetReader needs a free thread
 // of the shared pool.
 @Suite("Tracked Corner Pin Render Tests", .serialized)
 struct TrackedCornerPinRenderTests {
@@ -61,18 +63,21 @@ struct TrackedCornerPinRenderTests {
         }
     }
 
-    @Test("a clip tracked by the point tracker and a pinned clip tracked on the same target agree on its corners on every frame followed")
+    @Test("a clip and a pinned clip given the track data the point tracker gives on their target agree on its corners on every frame followed")
     func agreesWithPointTrackerMotion() async throws {
         // Given
         let directory = try TemporaryDirectory()
         let path = try await video(in: directory)
         let patch = Quad(Self.patch)
+        let decoder = AVFoundationDecoder()
+        let report = try TrackReporter(mediaFacts: decoder, tracker: PointTracker(decoder: decoder))
+            .report(of: path, target: .area("[60, 80, 96, 48]"), at: 0)
         let document = try DocumentResolver().resolve(##"""
             { "kind": "sequence", "format": { "size": [320, 240], "fps": 10 },
               "storyline": [ { "id": "shot", "media": "\##(path)", "in": 0, "out": 1, "connected": [
-                { "id": "area", "shape": "rect", "area": [60, 80, 96, 48], "fill": "#FF0000", "parent": "shot", "at": [0, 1], "track": true },
+                { "id": "area", "shape": "rect", "area": [60, 80, 96, 48], "fill": "#FF0000", "parent": "shot", "at": [0, 1], "track": \##(report.trackData) },
                 { "id": "pinned", "shape": "rect", "width": 96, "height": 48, "fill": "#00FF00", "parent": "shot", "at": [0, 1],
-                  "cornerPin": \##(written(patch)), "track": true } ] } ] }
+                  "cornerPin": \##(written(patch)), "track": \##(report.trackData) } ] } ] }
             """##)
 
         // When

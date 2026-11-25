@@ -84,6 +84,35 @@ struct AVFoundationDecoderTests {
         #expect(pictures.allSatisfy { $0.width == 320 && $0.height == 240 && $0.depth == .halfFloat })
     }
 
+    @Test("frames read forward, by steps of two, backward and in two readings are the pictures each read alone gives")
+    func readsAheadAsAlone() async throws {
+        // Given
+        let directory = try TemporaryDirectory()
+        let file = directory.file("even.mp4")
+        try await MovieWriter(size: size, frameTimes: evenTimes, end: 1).write(to: file) { canvas, index in
+            canvas.fill(red: 40, green: 90, blue: 200)
+            canvas.drawCode(index)
+        }
+        let sut = AVFoundationDecoder()
+        let media = MediaFile(path: file, size: size, frameTimes: evenTimes)
+        let analysis = PictureReading.analysis(colorSpace: nil)
+        let reads: [(Int, PictureReading)] = [
+            (0, .tagged), (1, .tagged), (2, .tagged), (3, .tagged), (5, .tagged), (7, .tagged), (9, .tagged),
+            (4, .tagged), (5, .tagged), (6, .tagged), (6, analysis), (7, analysis), (8, .tagged), (8, analysis),
+            (9, analysis), (10, .tagged), (29, .tagged), (28, .tagged), (27, .tagged)
+        ]
+
+        // When
+        let pictures = try reads.map { index, reading in try sut.picture(of: media, atFrame: index, reading: reading) }
+
+        // Then
+        let alone = try reads.map { index, reading in
+            try AVFoundationDecoder().picture(of: media, atFrame: index, reading: reading)
+        }
+        #expect(pictures == alone)
+        #expect(pictures.filter { $0.depth == .halfFloat }.map(code) == reads.filter { $0.1 == .tagged }.map(\.0))
+    }
+
     @Test("a video written at uneven times keeps its real timestamps, and its frames are read by them")
     func keepsVariableFrameTimes() async throws {
         // Given

@@ -177,12 +177,12 @@ struct SequencePlannerTests {
     @Test("a tracked clip keeps what was followed, and its window narrows to the frames followed")
     func tracks() throws {
         // Given
-        let sut = planner(followed: 0...1.9)
+        let track = data(followed: 0...1.9)
 
         // When
         let plan = try sut.plan(Fixture.planner.plan(document: Fixture.json(#"""
             { "kind": "sequence", "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "in": 1, "out": 3,
-              "connected": [ { "shape": "rect", "stroke": { "width": 8 }, "parent": "screen", "area": [100, 100, 200, 40], "at": [1.5, 2.5], "track": [100, 100, 200, 40] } ] } ] }
+              "connected": [ { "shape": "rect", "stroke": { "width": 8 }, "parent": "screen", "area": [100, 100, 200, 40], "at": [1.5, 2.5], "track": \#(track) } ] } ] }
             """#)))
 
         // Then
@@ -194,16 +194,17 @@ struct SequencePlannerTests {
     @Test("keyframes that all fall outside the window tracking narrowed stop, on the narrowed window")
     func refusesKeyframesOutsideNarrowedWindow() throws {
         // Given
-        let sut = planner(followed: 0...1.9)
-        let time = try Fixture.planner.plan(document: Fixture.json(#"""
-            { "kind": "sequence", "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "in": 1, "out": 3,
-              "connected": [ { "shape": "rect", "stroke": { "width": 8 }, "parent": "screen", "area": [100, 100, 200, 40], "at": [1.5, 2.5], "track": [100, 100, 200, 40],
-                               "keyframes": [ { "at": 2.2, "opacity": 0 }, { "at": 2.4, "opacity": 1 } ] } ] } ] }
-            """#))
+        let time = { (track: String) in
+            try Fixture.planner.plan(document: Fixture.json(#"""
+                { "kind": "sequence", "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "in": 1, "out": 3,
+                  "connected": [ { "shape": "rect", "stroke": { "width": 8 }, "parent": "screen", "area": [100, 100, 200, 40], "at": [1.5, 2.5], "track": \#(track),
+                                   "keyframes": [ { "at": 2.2, "opacity": 0 }, { "at": 2.4, "opacity": 1 } ] } ] } ] }
+                """#))
+        }
 
         // When, Then
-        #expect(throws: Never.self) { try Fixture.sequencePlanner.plan(time) }
-        let error = #expect(throws: ResolveError.self) { try sut.plan(time) }
+        #expect(throws: Never.self) { try sut.plan(time(data())) }
+        let error = #expect(throws: ResolveError.self) { try sut.plan(time(data(followed: 0...1.9))) }
         #expect(error?.description == #"storyline[0]#screen.connected[0].keyframes (rect): every keyframe of "opacity" lies outside [0.5, 1), so only one of its values would ever show"#)
     }
 
@@ -747,41 +748,23 @@ struct SequencePlannerTests {
         #expect(error.map(String.init(describing:)) == message)
     }
 
-    @Test(
-        "a failing provider stops, naming the place that asked it, the media and its media time, then its message",
-        arguments: [
-            (
-                ProviderKind.tracker,
-                #"{ "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4", "track": [100, 100, 200, 40] } ] }"#,
-                #"storyline[0].track (video): the tracker failed on "/abs/screen.mp4" at media second 0: no model"#
-            ),
-            (
-                ProviderKind.shaping,
-                #"{ "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4", "connected": [ { "title": "Hi", "style": "title", "at": [0, 1] } ] } ] }"#,
-                "storyline[0].connected[0].title (title): the shaping provider failed: no model"
-            )
-        ]
-    )
-    func namesFailingProvider(
-        provider: ProviderKind,
-        document: String,
-        message: String
-    ) throws {
+    @Test("a failing shaping provider stops, naming the place that asked it, then its message")
+    func namesFailingProvider() throws {
         // Given
-        let failure = ProviderFailure("no model")
         let sut = SequencePlanner(
-            tracker: provider == .tracker ? FailingTracker(failure) as any TrackerProvider : Fixture.tracker,
-            shaper: provider == .shaping ? FailingShaper(failure) as any ShapingProvider : Fixture.shaper,
+            shaper: FailingShaper(ProviderFailure("no model")),
             presets: Fixture.presets,
             library: Fixture.library
         )
-        let time = try Fixture.planner.plan(document: Fixture.json(document))
+        let time = try Fixture.planner.plan(document: Fixture.json(#"""
+            { "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4", "connected": [ { "title": "Hi", "style": "title", "at": [0, 1] } ] } ] }
+            """#))
 
         // When
         let error = #expect(throws: ProviderError.self) { try sut.plan(time) }
 
         // Then
-        #expect(error?.description == message)
+        #expect(error?.description == "storyline[0].connected[0].title (title): the shaping provider failed: no model")
     }
 
     // MARK: - Private
@@ -815,15 +798,13 @@ struct SequencePlannerTests {
         try sut.plan(Fixture.planner.plan(document: Fixture.json(document)))
     }
 
-    private func planner(followed: ClosedRange<Double>) -> SequencePlanner {
-        SequencePlanner(
-            tracker: TrackerTable(
-                frameTimes: ["/abs/screen.mp4": Fixture.screenFrameTimes],
-                followed: ["/abs/screen.mp4": followed]
-            ),
-            shaper: Fixture.shaper,
-            presets: Fixture.presets,
-            library: Fixture.library
+    // The track data the fake tracker gives for [100, 100, 200, 40] followed in `/abs/screen.mp4` from media second 1.5,
+    // over the media the storyline clip draws.
+    private func data(followed: ClosedRange<Double>? = nil) -> String {
+        TrackerTable(
+            frameTimes: ["/abs/screen.mp4": Fixture.screenFrameTimes],
+            followed: followed.map { ["/abs/screen.mp4": $0] } ?? [:]
         )
+        .data(Quad(Fixture.total), in: "/abs/screen.mp4", atMediaTime: 1.5, over: 1...3)
     }
 }

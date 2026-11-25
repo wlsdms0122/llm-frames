@@ -3,7 +3,9 @@
 
 It reads a document whose areas and points may name text, asks frames where and when each one is searched, reads
 the media with `frames ocr --json`, and prints the same document with every text form replaced by a rectangle in
-the media pixels it is written in. It reads only frames' machine output and never a resolved document.
+the media pixels it is written in. A text form that names the target of a `track` request becomes the request's
+rectangle, and the request is left for `frames track-motion`. It reads only frames' machine output and never a
+resolved document.
 """
 
 import json
@@ -178,13 +180,6 @@ class Clip:
         self.value = value
         self.place = place
 
-    def written(self, key):
-        """Whether the clip writes the key, on the clip or in a keyframe."""
-        keyframes = self.value.get("keyframes")
-        return key in self.value or (
-            isinstance(keyframes, list) and any(isinstance(keyframe, dict) and key in keyframe for keyframe in keyframes)
-        )
-
 
 class Found:
     """A text form in the document: where it is, the container that holds it and its key there."""
@@ -327,20 +322,11 @@ def searched_place(found, times):
 
 
 def tracked_place(found, times):
-    """The place of the clip whose media a `track` follows: its own media for a video or an image sequence without a
-    corner pin, and its parent's media otherwise, a parent with a corner pin giving none (FRAMES-12)."""
-    clip = found.clip
-    entry = times.entry(clip.place)
-    if entry["kind"] == "video" and not clip.written("cornerPin"):
-        return clip.place
-    parent = entry.get("parent")
-    if parent is None:
-        refuse(found, "a clip without a parent tracks nothing but its own video")
-    if times.written(parent).written("cornerPin"):
-        refuse(found, f"its parent {parent} has a corner pin, which gives no media to track")
-    if times.entry(parent)["media"] is None:
-        refuse(found, f"its parent {parent} has no media of its own")
-    return parent
+    """The place of the clip whose media a `track` request follows, as its entry reports it in `tracked`."""
+    tracked = times.entry(found.clip.place)["tracked"]
+    if tracked is None:
+        refuse(found, "timeline reports no video or image sequence for its track to follow")
+    return tracked["clip"]
 
 
 # MARK: - The frame searched
@@ -436,8 +422,8 @@ def rect_text(rect):
 
 
 def probe_document(document, found):
-    """The document with every text form in a placeholder rectangle and every track removed, so frames resolves it
-    without searching or tracking, and times its clips as it times the document."""
+    """The document with every text form in a placeholder rectangle and every `track` removed, since a request is no
+    value frames takes, so frames resolves it and times its clips as it times the document before any is followed."""
     copy = json.loads(json.dumps(document))
     by_place = {clip.place: clip for clip in clips_of(copy)}
     for entry in found:

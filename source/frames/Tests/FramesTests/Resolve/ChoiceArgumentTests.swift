@@ -216,7 +216,6 @@ struct ChoiceArgumentTests {
         DocumentPlanner(
             mediaFacts: Fixture.mediaFacts,
             presets: PresetLibrary(packs: directory.packs),
-            tracker: Fixture.tracker,
             shaper: Fixture.shaper,
             library: directory.library()
         )

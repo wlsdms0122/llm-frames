@@ -11,12 +11,17 @@ import Testing
 
 // `/abs/screen.mp4` has a frame every 0.1 media seconds. Its storyline clip plays media [1, 3) over the edit range
 // [0, 2), and a connected clip's `at` is in that media time, so at sequence time t it shows media time t + 1: the
-// instant 0 shows media 1, and time 0.5 shows media 1.5, the frame `{"time": 1.5}` names. The tracker moves the target
-// 10 pixels down per media second from the frame it is given, so the motion at media 1 moves 5 pixels up.
+// instant 0 shows media 1, and time 0.5 shows media 1.5, the frame the track data's time 1.5 names. The track data is
+// what a fake tracker gives that moves the target 10 pixels down per media second from the frame it is given, so the
+// motion at media 1 moves 5 pixels up.
 @Suite("TrackFrame Tests")
 struct TrackFrameTests {
     // MARK: - Property
     private let sut = Evaluator()
+    private let tracker = TrackerTable(frameTimes: ["/abs/screen.mp4": Fixture.screenFrameTimes], drift: Point(x: 0, y: 10))
+    private var track: String {
+        tracker.data(Quad(Rectangle(x: 100, y: 100, width: 200, height: 40)), in: "/abs/screen.mp4", atMediaTime: 1.5)
+    }
 
     // MARK: - Initializer
     // MARK: - Test
@@ -24,7 +29,7 @@ struct TrackFrameTests {
     func keepsWrittenStaticOnTrackFrame() throws {
         // Given
         let sequence = try resolved(#"""
-            { "id": "tracked", "shape": "rect", "fill": "#FFFFFF", "parent": "screen", "area": [100, 100, 200, 40], "at": [1, 3], "track": { "time": 1.5 } },
+            { "id": "tracked", "shape": "rect", "fill": "#FFFFFF", "parent": "screen", "area": [100, 100, 200, 40], "at": [1, 3], "track": \#(track) },
             { "id": "still", "shape": "rect", "fill": "#FFFFFF", "parent": "screen", "area": [100, 100, 200, 40], "at": [1, 3] }
             """#)
 
@@ -46,8 +51,8 @@ struct TrackFrameTests {
     func bringsKeyframedAreaBack() throws {
         // Given
         let sequence = try resolved(#"""
-            { "id": "static", "shape": "rect", "fill": "#FFFFFF", "parent": "screen", "area": [100, 100, 200, 40], "at": [1, 3], "track": { "time": 1.5, "area": [100, 100, 200, 40] } },
-            { "id": "keyed", "shape": "rect", "fill": "#FFFFFF", "parent": "screen", "at": [1, 3], "track": { "time": 1.5, "area": [100, 100, 200, 40] },
+            { "id": "static", "shape": "rect", "fill": "#FFFFFF", "parent": "screen", "area": [100, 100, 200, 40], "at": [1, 3], "track": \#(track) },
+            { "id": "keyed", "shape": "rect", "fill": "#FFFFFF", "parent": "screen", "at": [1, 3], "track": \#(track),
               "keyframes": [ { "at": 1, "area": [100, 100, 200, 40] }, { "at": 2, "area": [100, 100, 200, 40] } ] },
             { "id": "still", "shape": "rect", "fill": "#FFFFFF", "parent": "screen", "area": [100, 100, 200, 40], "at": [1, 3] }
             """#)
@@ -74,7 +79,7 @@ struct TrackFrameTests {
     func keepsStaticMaskLeavesOnTrackFrame() throws {
         // Given
         let sequence = try resolved(#"""
-            { "id": "tracked", "shape": "rect", "fill": "#FFFFFF", "parent": "screen", "area": [100, 100, 200, 40], "at": [1, 3], "track": { "time": 1.5, "area": [100, 100, 200, 40] },
+            { "id": "tracked", "shape": "rect", "fill": "#FFFFFF", "parent": "screen", "area": [100, 100, 200, 40], "at": [1, 3], "track": \#(track),
               "mask": [ { "shape": "rect", "area": [110, 110, 50, 20] } ], "keyframes": [ { "at": 1, "mask": [ { "radius": 4 } ] } ] },
             { "id": "still", "shape": "rect", "fill": "#FFFFFF", "parent": "screen", "area": [100, 100, 200, 40], "at": [1, 3] }
             """#)
@@ -97,7 +102,7 @@ struct TrackFrameTests {
     func keepsStaticPathLeavesOnTrackFrame() throws {
         // Given
         let sequence = try resolved(#"""
-            { "id": "tracked", "shape": "path", "stroke": { "width": 4 }, "parent": "screen", "at": [1, 3], "track": { "time": 1.5, "area": [100, 100, 200, 40] },
+            { "id": "tracked", "shape": "path", "stroke": { "width": 4 }, "parent": "screen", "at": [1, 3], "track": \#(track),
               "points": [[100, 100], { "vertex": [300, 100], "inTangent": [0, 20] }, { "vertex": { "area": [100, 100, 200, 40], "point": "left" } }],
               "keyframes": [ { "at": 1, "points": [{ "outTangent": [10, 0] }, {}, {}] }, { "at": 2, "points": [{ "outTangent": [20, 0] }, {}, {}] } ] }
             """#)
@@ -123,8 +128,15 @@ struct TrackFrameTests {
     @Test("a corner pin tracked where every quad is a similarity image of the target is drawn as written, inside the track's motion")
     func drawsTrackedCornerPinAsWritten() throws {
         // Given
+        let pin = Quad(
+            topLeft: Point(x: 100, y: 100),
+            topRight: Point(x: 500, y: 120),
+            bottomRight: Point(x: 480, y: 400),
+            bottomLeft: Point(x: 120, y: 380)
+        )
+        let track = tracker.data(pin, in: "/abs/screen.mp4", atMediaTime: 1)
         let sequence = try resolved(#"""
-            { "id": "tracked", "media": "/abs/card.png", "width": 300, "parent": "screen", "at": [1, 3], "cornerPin": [[100, 100], [500, 120], [480, 400], [120, 380]], "track": true },
+            { "id": "tracked", "media": "/abs/card.png", "width": 300, "parent": "screen", "at": [1, 3], "cornerPin": [[100, 100], [500, 120], [480, 400], [120, 380]], "track": \#(track) },
             { "id": "still", "media": "/abs/card.png", "width": 300, "parent": "screen", "at": [1, 3], "cornerPin": [[100, 100], [500, 120], [480, 400], [120, 380]] }
             """#)
 
@@ -132,7 +144,7 @@ struct TrackFrameTests {
         let list = sut.displayList(of: sequence, at: 0.5)
 
         // Then
-        // The track's frame is the one the instant shows, media 1, and at media 1.5 the target has moved 5 pixels down.
+        // The track's frame is media 1, the one the instant shows, and at media 1.5 the target has moved 5 pixels down.
         let tracked = try #require(list.items.first { $0.origin?.id == "tracked" })
         let still = try #require(list.items.first { $0.origin?.id == "still" })
         guard case let .picture(trackedPicture) = tracked.content, case let .picture(stillPicture) = still.content else {
@@ -148,19 +160,12 @@ struct TrackFrameTests {
 
     // MARK: - Private
     private func resolved(_ connected: String) throws -> ResolvedSequence {
-        let planner = DocumentPlanner(
-            mediaFacts: Fixture.mediaFacts,
-            presets: Fixture.presets,
-            tracker: TrackerTable(frameTimes: ["/abs/screen.mp4": Fixture.screenFrameTimes], drift: Point(x: 0, y: 10)),
-            shaper: Fixture.shaper,
-            library: Fixture.library
-        )
         let document = #"""
             { "kind": "sequence", "storyline": [
                 { "id": "screen", "media": "/abs/screen.mp4", "in": 1, "out": 3, "connected": [ \#(connected) ] } ] }
             """#
 
-        return try ResolvedSequence(plan: planner.plan(Fixture.json(document)), hashes: FileHashTable())
+        return try ResolvedSequence(plan: Fixture.documentPlanner.plan(Fixture.json(document)), hashes: FileHashTable())
     }
 
     // The rectangle of each clip's path carried by its item's transform to output pixels, and the vertical scale of

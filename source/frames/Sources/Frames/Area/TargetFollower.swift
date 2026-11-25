@@ -5,7 +5,7 @@
 //  Created by JSilver on 11/19/26.
 //
 
-// Follows a target in a video with the tracker provider, which reads only the media's pixels (FRAMES-12 The track). The
+// Follows a target in a video with the tracker provider, which reads only the media's pixels (FRAMES-23 `track`). The
 // provider is given the target's quad where it lies inside the picture, and otherwise the rectangle that bounds the
 // part inside, and each quad r it reports for what it was given, g, is carried to the whole target by H(g → r). A
 // target with no part inside is followed on no frame. A frame whose carried quad is not strictly convex, or runs the

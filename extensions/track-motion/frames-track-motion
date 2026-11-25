@@ -1,0 +1,472 @@
+#!/usr/bin/env python3
+"""frames-track-motion: writes each target a document asks to be followed as the track data `frames track` prints.
+
+It reads a document whose clips may write a track request, reads from `frames timeline --json` the media each clip's
+track follows and the frames it is followed over, and from `frames timeline --at` the frame a request is written on,
+follows the target with `frames track`, and prints the same document with each request replaced by that track data.
+It reads only frames' machine output and never a resolved document.
+"""
+
+import json
+import os
+import subprocess
+import sys
+import tempfile
+
+SUPPORTED_MAJOR = 0
+GLOBAL_OPTIONS = ("--theme", "--decoder", "--renderer", "--mixer", "--encoder", "--shaper", "--tracker", "--ocr")
+REQUEST_KEYS = {"time", "area"}
+DATA_KEYS = {"time", "frames"}
+TEXT_KEYS = {"text", "from", "to"}
+USAGE = """frames track-motion <document.json | ->
+
+Prints the document with every clip's track request replaced by the track data `frames track` prints for it:
+
+  "track": true                       the clip's own area, corner pin or crop, on the frame its instant shows,
+                                      or its first keyframe's value on the frame that keyframe's time shows
+  "track": [x, y, w, h]               that area, on the frame the clip's instant shows
+  "track": {"time": t}                the clip's own area, corner pin or crop, on the frame media time t names
+  "track": {"time": t, "area": a}     the area a, on the frame media time t names
+
+Track data already written ({"time", "frames"}) is kept. A corner pin is followed from its quadrilateral, in
+perspective with --tracker planar.
+
+  <document.json | ->           The document, as an absolute path, or - for standard input.
+  --help                        Prints this help.
+
+The global options of frames given before `track-motion` are passed to every frames command it runs, so
+`frames --tracker planar track-motion doc.json` follows with the planar tracker. The frames it runs is the one on
+PATH, or the executable FRAMES_EXECUTABLE names."""
+
+
+class Stop(Exception):
+    """A reason the document cannot be written, printed as `frames-track-motion: <reason>`."""
+
+
+# MARK: - Frames
+
+class Frames:
+    """Runs frames commands and reads their machine output."""
+
+    def __init__(self, executable, options):
+        self.executable = executable
+        self.options = options
+        self.followed = {}
+
+    def report(self, arguments):
+        completed = subprocess.run(
+            [self.executable] + self.options + arguments, capture_output=True, text=True
+        )
+        if completed.returncode != 0:
+            message = completed.stderr.strip() or f"exit {completed.returncode}"
+            raise Stop(f"frames {arguments[0]} failed: {message}")
+        output = json.loads(completed.stdout)
+        version = output.get(arguments[0])
+        if major(version) != SUPPORTED_MAJOR:
+            raise Stop(f"frames {arguments[0]} printed version {version!r}, and this extension reads {SUPPORTED_MAJOR}.x")
+        return output
+
+    def check_version(self):
+        try:
+            completed = subprocess.run([self.executable, "--version"], capture_output=True, text=True)
+        except OSError as error:
+            raise Stop(f"cannot run {self.executable}: {error.strerror}")
+        version = completed.stdout.strip()
+        if completed.returncode != 0 or major(version) != SUPPORTED_MAJOR:
+            raise Stop(f"{self.executable} --version is {version!r}, and this extension is written for {SUPPORTED_MAJOR}.x")
+
+    def track(self, media, time, target, end, color_space):
+        """What `frames track` prints for the target followed from the frame at `time` to the frame at `end`."""
+        arguments = ["track", media.path]
+        if media.fps is not None:
+            arguments += ["--fps", number_text(media.fps)]
+        arguments += ["--at", number_text(time), target.option, json.dumps(target.value), "--to", number_text(end)]
+        if color_space is not None:
+            arguments += ["--color-space", color_space]
+        key = tuple(arguments)
+        if key not in self.followed:
+            self.followed[key] = self.report(arguments)
+        return self.followed[key]
+
+
+def major(version):
+    """The major version of a version string, or None for anything else."""
+    head = version.split(".")[0] if isinstance(version, str) else ""
+    return int(head) if head.isdigit() else None
+
+
+# MARK: - Requests
+
+class Clip:
+    """A clip of the outermost document at its place, as reports name it."""
+
+    def __init__(self, value, place):
+        self.value = value
+        self.place = place
+
+    def keyframes_writing(self, key):
+        """The keyframes that write the key."""
+        keyframes = self.value.get("keyframes")
+        if not isinstance(keyframes, list):
+            return []
+        return [keyframe for keyframe in keyframes if isinstance(keyframe, dict) and key in keyframe]
+
+    def written(self, key):
+        """Whether the clip writes the key, on the clip or in a keyframe."""
+        return key in self.value or bool(self.keyframes_writing(key))
+
+
+class Request:
+    """A clip's track request: the area it names, None for the clip's own geometry, and the media time of the track's
+    frame where it names one, None for the frame the clip's instant shows."""
+
+    def __init__(self, clip, area, time):
+        self.clip = clip
+        self.area = area
+        self.time = time
+
+    @property
+    def where(self):
+        return f"{self.clip.place}: track"
+
+
+class Target:
+    """What `frames track` is given: a rectangle `[x, y, w, h]` with `--area`, or four points with `--quad`."""
+
+    def __init__(self, option, value):
+        self.option = option
+        self.value = value
+
+
+class Media:
+    """The media a track follows: a video, or an image sequence's directory with the rate it is read at."""
+
+    def __init__(self, path, fps):
+        self.path = path
+        self.fps = fps
+
+
+def place_name(base, value):
+    identifier = value.get("id") if isinstance(value, dict) else None
+    return f"{base}#{identifier}" if isinstance(identifier, str) else base
+
+
+def clips_of(document):
+    clips = []
+    for index, value in enumerate(document.get("storyline") or []):
+        if not isinstance(value, dict):
+            continue
+        place = place_name(f"storyline[{index}]", value)
+        clips.append(Clip(value, place))
+        for inner, connected in enumerate(value.get("connected") or []):
+            if isinstance(connected, dict):
+                clips.append(Clip(connected, place_name(f"{place}.connected[{inner}]", connected)))
+    for index, value in enumerate(document.get("clips") or []):
+        if isinstance(value, dict):
+            clips.append(Clip(value, place_name(f"clips[{index}]", value)))
+    return clips
+
+
+def is_number(value):
+    return isinstance(value, (int, float)) and not isinstance(value, bool)
+
+
+def is_rectangle(value):
+    return isinstance(value, list) and len(value) == 4 and all(is_number(number) for number in value)
+
+
+def is_point(value):
+    return isinstance(value, list) and len(value) == 2 and all(is_number(number) for number in value)
+
+
+def request_of(clip):
+    """The clip's request, None where it writes no `track` or writes track data."""
+    if "track" not in clip.value:
+        return None
+    value = clip.value["track"]
+    where = f"{clip.place}: track"
+    if value is True:
+        return Request(clip, None, None)
+    if isinstance(value, dict) and "frames" in value:
+        unknown = sorted(set(value) - DATA_KEYS)
+        if unknown:
+            raise Stop(f"{where}: unknown key {json.dumps(unknown[0])} in track data. Allowed: frames, time")
+        return None
+    if isinstance(value, dict) and "time" in value:
+        unknown = sorted(set(value) - REQUEST_KEYS)
+        if unknown:
+            raise Stop(f"{where}: unknown key {json.dumps(unknown[0])} in a request. Allowed: area, time")
+        if not is_number(value["time"]):
+            raise Stop(f"{where}.time: the media time of the track's frame is a number")
+        area = area_of(value["area"], f"{where}.area") if "area" in value else None
+        return Request(clip, area, value["time"])
+    if isinstance(value, (list, dict)):
+        return Request(clip, area_of(value, where), None)
+    raise Stop(f"{where}: a request is true, an area [x, y, w, h], {{\"time\": t}} or {{\"time\": t, \"area\": a}}")
+
+
+def area_of(value, where):
+    """A target area, a rectangle in the media pixels the track follows."""
+    if is_rectangle(value):
+        return value
+    if isinstance(value, dict) and TEXT_KEYS & set(value):
+        raise Stop(f"{where}: a place named by its text is written as a rectangle by `frames find-text`, run before `frames track-motion`")
+    if isinstance(value, dict) and "clip" in value:
+        raise Stop(f"{where}: a clip area is the box of another clip, which no report gives in the media pixels followed")
+    raise Stop(f"{where}: a target is an area [x, y, w, h] in the media pixels the track follows")
+
+
+def nested_request(document, place):
+    """The place of the first request inside a nested document, or None."""
+    for clip in clips_of(document):
+        if request_of(clip) is not None:
+            return f"{place}.{clip.place}"
+        media = clip.value.get("media")
+        if isinstance(media, dict) and media.get("kind") == "sequence":
+            inner = nested_request(media, f"{place}.{clip.place}.media")
+            if inner:
+                return inner
+    return None
+
+
+# MARK: - The target
+
+def own_target(request, entry, tracked):
+    """The target `true` and `{"time": t}` follow and the sequence time whose frame it is on: of the clip's `area`,
+    `cornerPin`, `crop` and `mask`, the one written in the media pixels its track follows, as its entry reports the
+    space of each, `space` for an area and a corner pin and `ownSpace` for a crop and a mask, on the clip's instant,
+    or where it is keyframed, its first keyframe's value on that keyframe's `at` carried by the clip's clock."""
+    clip = request.clip
+    followed = {"kind": "media", "clip": tracked["clip"]}
+    candidates = [key for key in ("area", "cornerPin") if entry["space"] == followed]
+    candidates += [key for key in ("crop", "mask") if entry["ownSpace"] == followed]
+    present = [key for key in candidates if clip.written(key) and not is_scale_crop(clip, key)]
+    if len(present) > 1:
+        raise Stop(f"{request.where}: the clip writes its {' and '.join(present)} in the media pixels it follows, so it names its target")
+    if not present:
+        raise Stop(
+            f"{request.where}: the clip writes no area, corner pin, crop or mask in the media pixels of "
+            f"{tracked['clip']}, which it follows, so it names its target"
+        )
+    key = present[0]
+    where = f"{request.where} ({key})"
+    if key == "mask":
+        raise Stop(f"{where}: it follows the bounds of the clip's masks, which no report gives: name the area to follow")
+    keyframes = clip.keyframes_writing(key)
+    if keyframes and request.time is not None:
+        raise Stop(f"{where}: it is keyframed, and a keyframe's value is where it is at its own time, so none is written on the frame time names")
+    if keyframes:
+        index, first = first_keyframe(clip, key)
+        value = first[key]
+        where = f"{clip.place}: keyframes[{index}].{key}"
+        instant = keyframe_instant(clip, index, entry)
+    else:
+        value = clip.value[key]
+        instant = entry["instant"]
+    if key == "cornerPin":
+        if not (isinstance(value, list) and len(value) == 4 and all(is_point(point) for point in value)):
+            raise Stop(f"{where}: a corner pin is followed from four points [x, y], and a clip area names no point in the media")
+        return Target("--quad", value), instant
+    return Target("--area", area_of(value, where)), instant
+
+
+def first_keyframe(clip, key):
+    """The index and the keyframe of the value the key takes at its first keyframe's `at`: of the keyframes that write
+    it at the earliest `at`, the one written last, which the leaf takes at that `at`."""
+    keyframes = clip.value["keyframes"]
+    indices = [index for index, keyframe in enumerate(keyframes) if isinstance(keyframe, dict) and key in keyframe]
+    for index in indices:
+        if not is_number(keyframes[index].get("at")):
+            raise Stop(f"{clip.place}: keyframes[{index}] needs a number at")
+    earliest = min(keyframes[index]["at"] for index in indices)
+    index = [index for index in indices if keyframes[index]["at"] == earliest][-1]
+    return index, keyframes[index]
+
+
+def keyframe_instant(clip, index, entry):
+    """The sequence time of a keyframe's `at`, carried by the clock the clip's entry reports, `origin + at / speed`."""
+    at = clip.value["keyframes"][index]["at"]
+    clock = entry["clock"]
+    return rounded(clock["origin"] + at / clock["speed"])
+
+
+def is_scale_crop(clip, key):
+    """Whether the key is a crop written as `{scale}`, which is no area."""
+    if key != "crop":
+        return False
+    crops = ([clip.value["crop"]] if "crop" in clip.value else []) + [
+        keyframe["crop"] for keyframe in clip.keyframes_writing("crop")
+    ]
+    return any(isinstance(crop, dict) and "scale" in crop for crop in crops)
+
+
+# MARK: - Times
+
+class Times:
+    """Reads each clip's entry from `timeline`, and from `timeline --at` the frame its time map shows at an instant."""
+
+    def __init__(self, frames, probe_path, clips):
+        self.frames = frames
+        self.probe_path = probe_path
+        self.clips = {clip.place: clip for clip in clips}
+        self.entries = None
+        self.shown_at = {}
+
+    def entry(self, place):
+        """A clip's `timeline` entry: its kind, media, rate, instant, spaces and tracked media."""
+        if self.entries is None:
+            self.entries = entries_by_place(self.frames.report(["timeline", self.probe_path, "--json"]))
+        return self.entries[place]
+
+    def written(self, place):
+        """The clip of the document at a place a report names."""
+        return self.clips[place]
+
+    def shown(self, place, time):
+        """A clip's `timeline --at` entry at a sequence time, whose `mediaTime` is the frame its time map shows."""
+        if time not in self.shown_at:
+            report = self.frames.report(["timeline", self.probe_path, "--at", number_text(time), "--json"])
+            self.shown_at[time] = entries_by_place(report)
+        return self.shown_at[time][place]
+
+
+def entries_by_place(report):
+    return {entry["place"]: entry for entry in report["storyline"] + report["clips"]}
+
+
+# MARK: - Following
+
+def follow(request, frames, times):
+    """The track data of one request: the target followed from the track's frame to the first and to the last frame
+    `tracked` reports, the frames of both joined in time order."""
+    entry = times.entry(request.clip.place)
+    tracked = entry["tracked"]
+    if tracked is None:
+        raise Stop(f"{request.where}: timeline reports no video or image sequence for its track to follow")
+    if request.area is not None:
+        target, instant = Target("--area", request.area), entry["instant"]
+    else:
+        target, instant = own_target(request, entry, tracked)
+    source = times.entry(tracked["clip"])
+    media = Media(source["media"], source["fps"])
+    time = request.time
+    if time is None:
+        time = times.shown(tracked["clip"], instant)["mediaTime"]
+    color_space = times.written(tracked["clip"]).value.get("colorSpace")
+    before = frames.track(media, time, target, tracked["first"], color_space)
+    after = frames.track(media, time, target, tracked["last"], color_space)
+    # Both are followed from the track's frame, so the frames of `after` that `before` lacks lie past its frames.
+    times_before = {frame["time"] for frame in before["frames"]}
+    joined = before["frames"] + [frame for frame in after["frames"] if frame["time"] not in times_before]
+    return {"time": before["time"], "frames": joined}
+
+
+# MARK: - The extension
+
+def number_text(value):
+    """A number as frames' machine output writes it, to the microsecond."""
+    value = rounded(value)
+    return str(int(value)) if float(value).is_integer() else repr(value)
+
+
+def rounded(value):
+    value = round(float(value), 6)
+    return int(value) if value.is_integer() else value
+
+
+def probe_document(document):
+    """The document without any clip's `track`, since a request is no value frames takes, so frames resolves it and
+    reports every clip's whole window."""
+    copy = json.loads(json.dumps(document))
+    for clip in clips_of(copy):
+        clip.value.pop("track", None)
+    return copy
+
+
+def parse(arguments):
+    options = []
+    document = None
+    index = 0
+    while index < len(arguments):
+        argument = arguments[index]
+        if argument in ("--help", "-h"):
+            print(USAGE)
+            sys.exit(0)
+        if argument in GLOBAL_OPTIONS:
+            if index + 1 >= len(arguments):
+                raise Stop(f"{argument} needs a value")
+            options += [argument, arguments[index + 1]]
+            index += 2
+            continue
+        if argument.startswith("--"):
+            raise Stop(f"unknown option {argument}")
+        if document is not None:
+            raise Stop(f"one document is taken, and {argument} is a second")
+        document = argument
+        index += 1
+    if document is None:
+        raise Stop("a document is needed, as an absolute path or -")
+    if document != "-" and not document.startswith("/"):
+        raise Stop(f"<document.json> {json.dumps(document)} is not an absolute path, and paths are absolute")
+    return options, document
+
+
+def load(document):
+    try:
+        if document == "-":
+            text = sys.stdin.read()
+        else:
+            with open(document, encoding="utf-8") as file:
+                text = file.read()
+    except OSError as error:
+        raise Stop(f"cannot read {document}: {error.strerror}")
+    try:
+        value = json.loads(text)
+    except json.JSONDecodeError as error:
+        raise Stop(f"{document} is not JSON: {error}")
+    if not isinstance(value, dict) or value.get("kind") != "sequence":
+        raise Stop(f"{document} is not a sequence document")
+    return value
+
+
+def run(arguments):
+    options, path = parse(arguments)
+    document = load(path)
+    clips = clips_of(document)
+    for clip in clips:
+        media = clip.value.get("media")
+        if isinstance(media, dict) and media.get("kind") == "sequence":
+            inner = nested_request(media, f"{clip.place}.media")
+            if inner:
+                raise Stop(f"{inner}: track: it is inside a compound clip or template instance, and timeline --at gives a nested document's clips at the outer sequence's times only")
+    requests = [request for request in (request_of(clip) for clip in clips) if request is not None]
+    if not requests:
+        return document
+
+    frames = Frames(os.environ.get("FRAMES_EXECUTABLE") or "frames", options)
+    frames.check_version()
+
+    with tempfile.TemporaryDirectory(prefix="frames-track-motion-") as directory:
+        probe_path = os.path.join(directory, "document.json")
+        with open(probe_path, "w", encoding="utf-8") as file:
+            json.dump(probe_document(document), file)
+        times = Times(frames, probe_path, clips)
+        tracks = [follow(request, frames, times) for request in requests]
+    for request, track in zip(requests, tracks):
+        request.clip.value["track"] = track
+    return document
+
+
+def main():
+    try:
+        document = run(sys.argv[1:])
+    except Stop as stop:
+        print(f"frames-track-motion: {stop}", file=sys.stderr)
+        return 1
+    json.dump(document, sys.stdout, ensure_ascii=False, indent=2)
+    sys.stdout.write("\n")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

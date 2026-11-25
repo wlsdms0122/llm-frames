@@ -187,13 +187,12 @@ enum Fixture {
     static let send = Rectangle(x: 400, y: 1200, width: 200, height: 60)
     static let total = Rectangle(x: 100, y: 100, width: 200, height: 40)
 
-    // The target is followed on every frame and holds still.
+    // The target is followed on every frame and holds still, which a test writes as a clip's track data.
     static let tracker = TrackerTable(frameTimes: ["/abs/screen.mp4": screenFrameTimes, "/abs/short.mp4": [0, 1, 2, 3]])
 
     static let shaper = ShaperTable()
 
     static let sequencePlanner = SequencePlanner(
-        tracker: tracker,
         shaper: shaper,
         presets: presets,
         library: library
@@ -202,7 +201,6 @@ enum Fixture {
     static let documentPlanner = DocumentPlanner(
         mediaFacts: mediaFacts,
         presets: presets,
-        tracker: tracker,
         shaper: shaper,
         library: library
     )

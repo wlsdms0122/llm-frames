@@ -5,28 +5,26 @@
 //  Created by JSilver on 11/17/26.
 //
 
-// `{"track": "0.1.0", time, target, frames}`, the object `track` always prints: the media time of `--at`, the target's
-// quad there, and each frame `{time, quad, motion}`, a quad as four points `[x, y]` in media pixels and the motion as
-// the matrix `[a, b, c, d, tx, ty]`, as the resolved document writes them.
+// `{"track": "0.1.0", time, frames}`, the object `track` always prints: the media time of `--at`, and each frame
+// `{time, quad}`, a quad as four points `[x, y]` in media pixels. Without its first key it is the track data a clip's
+// `track` takes.
 extension TrackReport {
     // MARK: - Property
     package var machineOutput: JSONValue {
         .object(JSONObject(members: [
             JSONMember(key: "track", value: .string(FramesVersion.current)),
-            JSONMember(key: "time", value: .time(track.mediaTime)),
-            JSONMember(key: "target", value: quad(track.target)),
-            JSONMember(key: "frames", value: .array(track.samples.map(output)))
+            JSONMember(key: "time", value: .time(time)),
+            JSONMember(key: "frames", value: .array(frames.map(output)))
         ]))
     }
 
     // MARK: - Initializer
     // MARK: - Public
     // MARK: - Private
-    private func output(_ sample: TrackSample) -> JSONValue {
+    private func output(_ frame: TrackedFrame) -> JSONValue {
         .object(JSONObject(members: [
-            JSONMember(key: "time", value: .time(sample.time)),
-            JSONMember(key: "quad", value: quad(sample.quad)),
-            JSONMember(key: "motion", value: .array(sample.motion.transform.matrix.map(JSONValue.measure)))
+            JSONMember(key: "time", value: .time(frame.time)),
+            JSONMember(key: "quad", value: quad(frame.quad))
         ]))
     }
 
