@@ -56,7 +56,7 @@ struct PlatformReadingTests {
             of: MediaFile(path: path),
             atFrame: 0,
             reading: .platform(colorSpace: space)
-        )
+        ).bitmap
 
         // Then
         #expect(read.depth == .halfFloat)

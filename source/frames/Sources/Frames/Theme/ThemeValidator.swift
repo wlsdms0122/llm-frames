@@ -139,7 +139,7 @@ struct ThemeValidator: Sendable {
                 reference: try presets.unknown(.transition, named: instance.name)
             )
         }
-        if case let .color(color) = preset.cover?.source {
+        if case let .solid(color) = preset.cover?.source {
             _ = try theme.presetColor(color, place: instance.place, kind: .themeDefaults)
         }
 

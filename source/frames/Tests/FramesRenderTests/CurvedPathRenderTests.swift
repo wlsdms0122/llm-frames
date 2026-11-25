@@ -41,7 +41,7 @@ struct CurvedPathRenderTests {
         let list = Evaluator().displayList(of: sequence, at: 1)
 
         // When
-        let bitmap = try sut.frame(of: list)
+        let bitmap = try sut.bitmap(of: list)
 
         // Then
         let (middle, chord) = try middles(of: "curve", in: list)
@@ -69,7 +69,7 @@ struct CurvedPathRenderTests {
         let sequence = try DocumentResolver().resolve(document(clips: [curve]))
 
         // When
-        let bitmap = try sut.frame(of: Evaluator().displayList(of: sequence, at: time))
+        let bitmap = try sut.bitmap(of: Evaluator().displayList(of: sequence, at: time))
 
         // Then
         expect(bitmap, at: [(160, 120), (160, 165), (160, 210)], white: white)
@@ -90,7 +90,7 @@ struct CurvedPathRenderTests {
         let sequence = try DocumentResolver().resolve(document(clips: [rect]))
 
         // When
-        let bitmap = try sut.frame(of: Evaluator().displayList(of: sequence, at: 1))
+        let bitmap = try sut.bitmap(of: Evaluator().displayList(of: sequence, at: 1))
 
         // Then
         expect(bitmap, at: [(160, 120), (160, 60), (60, 120)], white: [true, true, true])

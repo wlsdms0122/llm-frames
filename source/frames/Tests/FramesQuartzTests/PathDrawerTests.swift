@@ -64,7 +64,7 @@ struct PathDrawerTests {
         let path = PathItem(geometry: .polyline(points, isClosed: true), fill: .color(Self.black), stroke: nil)
 
         // When
-        let bitmap = try sut.frame(of: list([path]))
+        let bitmap = try sut.bitmap(of: list([path]))
 
         // Then
         #expect(alpha(bitmap, 50, 50) > 0.99)
@@ -79,7 +79,7 @@ struct PathDrawerTests {
         let path = PathItem(geometry: .polyline(points, isClosed: false), fill: .color(Self.black), stroke: nil)
 
         // When
-        let bitmap = try sut.frame(of: list([path]))
+        let bitmap = try sut.bitmap(of: list([path]))
 
         // Then
         #expect(alpha(bitmap, 30, 30) > 0.99)
@@ -106,7 +106,7 @@ struct PathDrawerTests {
         let path = stroked(.polyline(points, isClosed: false), width: 20, join: join)
 
         // When
-        let bitmap = try sut.frame(of: list([path]))
+        let bitmap = try sut.bitmap(of: list([path]))
 
         // Then
         expect(bitmap, at: [(58, 41), (56, 43), (52, 47)], inked: inked)
@@ -120,7 +120,7 @@ struct PathDrawerTests {
         let path = stroked(.polyline(points, isClosed: false), width: 10, join: .miter)
 
         // When
-        let bitmap = try sut.frame(of: list([path]))
+        let bitmap = try sut.bitmap(of: list([path]))
 
         // Then
         #expect(alpha(bitmap, 85, 50) > 0.99)
@@ -146,7 +146,7 @@ struct PathDrawerTests {
         let path = stroked(.polyline(points, isClosed: false), width: 10, cap: cap)
 
         // When
-        let bitmap = try sut.frame(of: list([path]))
+        let bitmap = try sut.bitmap(of: list([path]))
 
         // Then
         expect(bitmap, at: [(68, 50), (73, 50), (74, 45)], inked: inked)
@@ -172,7 +172,7 @@ struct PathDrawerTests {
         let path = stroked(.rect(Rectangle(x: 10, y: 10, width: 80, height: 40), radius: 0), width: 4, trim: trim)
 
         // When
-        let bitmap = try sut.frame(of: list([path]))
+        let bitmap = try sut.bitmap(of: list([path]))
 
         // Then
         expect(bitmap, at: [(40, 10), (89, 30), (50, 49), (10, 30)], inked: inked)
@@ -195,7 +195,7 @@ struct PathDrawerTests {
         let path = stroked(.rect(Rectangle(x: 10, y: 10, width: 80, height: 40), radius: 10), width: 4, trim: trim)
 
         // When
-        let bitmap = try sut.frame(of: list([path]))
+        let bitmap = try sut.bitmap(of: list([path]))
 
         // Then
         expect(bitmap, at: [(30, 10), (10, 25)], inked: inked)
@@ -218,7 +218,7 @@ struct PathDrawerTests {
         let path = stroked(.ellipse(Rectangle(x: 10, y: 30, width: 80, height: 40)), width: 4, trim: trim)
 
         // When
-        let bitmap = try sut.frame(of: list([path]))
+        let bitmap = try sut.bitmap(of: list([path]))
 
         // Then
         expect(bitmap, at: [(78, 35), (78, 64), (21, 64), (21, 35), (89, 48), (89, 51)], inked: inked)
@@ -242,7 +242,7 @@ struct PathDrawerTests {
         let path = stroked(.polyline(points, isClosed: false), width: 4, trim: trim)
 
         // When
-        let bitmap = try sut.frame(of: list([path]))
+        let bitmap = try sut.bitmap(of: list([path]))
 
         // Then
         expect(bitmap, at: [(15, 50), (35, 50), (50, 65), (50, 85)], inked: inked)
@@ -254,8 +254,8 @@ struct PathDrawerTests {
         let geometry = Self.bulge
 
         // When
-        let whole = try sut.frame(of: list([stroked(geometry, width: 4)]))
-        let half = try sut.frame(of: list([stroked(geometry, width: 4, trim: Trim(start: 0, end: 0.5))]))
+        let whole = try sut.bitmap(of: list([stroked(geometry, width: 4)]))
+        let half = try sut.bitmap(of: list([stroked(geometry, width: 4, trim: Trim(start: 0, end: 0.5))]))
 
         // Then
         expect(whole, at: [(50, 80), (50, 20), (50, 50)], inked: [true, false, false])
@@ -287,7 +287,7 @@ struct PathDrawerTests {
         )
 
         // When
-        let bitmap = try sut.frame(of: list([stroked(geometry, width: 10, join: join)]))
+        let bitmap = try sut.bitmap(of: list([stroked(geometry, width: 10, join: join)]))
 
         // Then
         expect(bitmap, at: [(49, 58), (49, 65), (50, 65)], inked: inked)
@@ -311,7 +311,7 @@ struct PathDrawerTests {
         let path = stroked(Self.bulge, width: 10, cap: cap, trim: Trim(start: 0, end: 0.5))
 
         // When
-        let bitmap = try sut.frame(of: list([path]))
+        let bitmap = try sut.bitmap(of: list([path]))
 
         // Then
         expect(bitmap, at: [(47, 79), (52, 79), (54, 75)], inked: inked)
@@ -347,7 +347,7 @@ struct PathDrawerTests {
         )
 
         // When
-        let bitmap = try sut.frame(of: list([PathItem(geometry: Self.bulge, fill: nil, stroke: stroke)]))
+        let bitmap = try sut.bitmap(of: list([PathItem(geometry: Self.bulge, fill: nil, stroke: stroke)]))
 
         // Then
         let ends = (1..<8).map { Double($0) * eighth }
@@ -363,7 +363,7 @@ struct PathDrawerTests {
         let path = stroked(.polyline(points, isClosed: false), width: 4, end: .arrow)
 
         // When
-        let bitmap = try sut.frame(of: list([path]))
+        let bitmap = try sut.bitmap(of: list([path]))
 
         // Then
         expect(bitmap, at: [(40, 51), (40, 53), (73, 43), (75, 43), (75, 41), (85, 49), (90, 50), (9, 50)], inked: [
@@ -380,7 +380,7 @@ struct PathDrawerTests {
         let path = stroked(.polyline(points, isClosed: false), width: 4, start: .arrow, end: .arrow)
 
         // When
-        let bitmap = try sut.frame(of: list([path]))
+        let bitmap = try sut.bitmap(of: list([path]))
 
         // Then
         expect(bitmap, at: [(19, 46), (20, 46), (24, 44), (14, 50), (8, 50), (31, 50)], inked: [
@@ -401,7 +401,7 @@ struct PathDrawerTests {
         let rect = stroked(.rect(Rectangle(x: 20, y: 50, width: 60, height: 40), radius: 0), width: 4, end: .arrow)
 
         // When
-        let bitmap = try sut.frame(of: list([line, rect]))
+        let bitmap = try sut.bitmap(of: list([line, rect]))
 
         // Then
         // A head at the rect's end, its tip at (20, 50) pointing up the left edge, would cover (16, 62).
@@ -423,7 +423,7 @@ struct PathDrawerTests {
         let path = stroked(.polyline(points, isClosed: false), width: 4, end: StrokeEnd(head: shape, scale: scale))
 
         // When
-        let bitmap = try sut.frame(of: list([path]))
+        let bitmap = try sut.bitmap(of: list([path]))
 
         // Then
         expect(bitmap, at: inked + blank, inked: inked.map { _ in true } + blank.map { _ in false })
@@ -441,7 +441,7 @@ struct PathDrawerTests {
         let path = stroked(Self.bulge, width: 4, end: StrokeEnd(head: .arrow, scale: 2))
 
         // When
-        let bitmap = try sut.frame(of: list([path]))
+        let bitmap = try sut.bitmap(of: list([path]))
 
         // Then
         expect(bitmap, at: [(89, 22), (89, 23), (76, 42), (84, 50), (99, 42)], inked: [true, true, true, true, false])
@@ -465,7 +465,7 @@ struct PathDrawerTests {
         )
 
         // When
-        let bitmap = try sut.frame(of: list([path]))
+        let bitmap = try sut.bitmap(of: list([path]))
 
         // Then
         expect(bitmap, at: [(16, 44), (11, 49), (24, 37), (29, 40), (16, 42), (9, 49), (24, 35), (30, 40)], inked: [
@@ -491,7 +491,7 @@ struct PathDrawerTests {
         let path = PathItem(geometry: .polyline([Point(x: 10, y: 50), Point(x: 90, y: 50)], isClosed: false), fill: nil, stroke: stroke)
 
         // When
-        let bitmap = try sut.frame(of: list([path]))
+        let bitmap = try sut.bitmap(of: list([path]))
 
         // Then
         expect(bitmap, at: [(18, 43), (28, 49), (36, 49), (44, 49), (52, 49), (60, 49), (68, 49), (59, 60), (87, 49)], inked: [
@@ -518,7 +518,7 @@ struct PathDrawerTests {
         )
 
         // When
-        let bitmap = try sut.frame(of: list([arrow, crossing]))
+        let bitmap = try sut.bitmap(of: list([arrow, crossing]))
 
         // Then
         // The round cap at the head's base, x = 74, reaches 2 into the head, and the path crosses itself at (50, 65).
@@ -546,7 +546,7 @@ struct PathDrawerTests {
         )
 
         // When
-        let bitmap = try sut.frame(of: list([path]))
+        let bitmap = try sut.bitmap(of: list([path]))
 
         // Then
         #expect(bitmap.pixel(x: 50, y: 21) == [0, 0, 1, 1])
@@ -577,7 +577,7 @@ struct PathDrawerTests {
         let path = stroked(geometry, width: width, end: .arrow, trim: trim)
 
         // When
-        let whole = try sut.frame(of: list([path]))
+        let whole = try sut.bitmap(of: list([path]))
 
         // Then
         let above = Int(outline.y - width / 2)
@@ -620,7 +620,7 @@ struct PathDrawerTests {
         let path = stroked(geometry, width: 10, join: join, cap: cap)
 
         // When
-        let whole = try sut.frame(of: list([path]))
+        let whole = try sut.bitmap(of: list([path]))
 
         // Then
         #expect(alpha(whole, x, y) > 0.99, "pixel (\(x), \(y)) past the grown outline is drawn")
@@ -637,7 +637,7 @@ struct PathDrawerTests {
         let list = DisplayList(size: Size(width: 100, height: 100), background: Color(written: "#00000000"), seed: 0, items: [item])
 
         // When
-        let bitmap = try sut.frame(of: list)
+        let bitmap = try sut.bitmap(of: list)
 
         // Then
         expect(
@@ -657,7 +657,7 @@ struct PathDrawerTests {
         let list = DisplayList(size: Size(width: 100, height: 100), background: Color(written: "#00000000"), seed: 0, items: [item])
 
         // When
-        let bitmap = try sut.frame(of: list)
+        let bitmap = try sut.bitmap(of: list)
 
         // Then
         expect(bitmap, at: [(40, 51), (40, 53), (73, 43), (75, 43), (75, 41), (85, 49), (90, 50)], inked: [
@@ -710,7 +710,7 @@ struct PathDrawerTests {
         let list = DisplayList(size: Size(width: 100, height: 100), background: Color(written: "#00000000"), seed: 0, items: [item])
 
         // When
-        let bitmap = try sut.frame(of: list)
+        let bitmap = try sut.bitmap(of: list)
 
         // Then
         expect(bitmap, at: (inked + blank).map { ($0, 50) }, inked: inked.map { _ in true } + blank.map { _ in false })
@@ -724,7 +724,7 @@ struct PathDrawerTests {
         let path = PathItem(geometry: .polyline([Point(x: 10, y: 50), Point(x: 90, y: 50)], isClosed: false), fill: nil, stroke: stroke)
 
         // When
-        let bitmap = try sut.frame(of: list([path]))
+        let bitmap = try sut.bitmap(of: list([path]))
 
         // Then
         expect(bitmap, at: [(10, 50), (30, 50), (42, 50), (60, 50), (78, 50), (85, 50), (80, 53)], inked: [
@@ -751,7 +751,7 @@ struct PathDrawerTests {
         let path = PathItem(geometry: .polyline([Point(x: 10, y: 50), Point(x: 90, y: 50)], isClosed: false), fill: nil, stroke: stroke)
 
         // When
-        let bitmap = try sut.frame(of: list([path]))
+        let bitmap = try sut.bitmap(of: list([path]))
 
         // Then
         expect(bitmap, at: [(30, 50), (34, 54), (40, 50)], inked: inked)
@@ -773,10 +773,10 @@ struct PathDrawerTests {
         }
 
         // When
-        let bitmap = try sut.frame(of: list([path([0, 0])]))
+        let bitmap = try sut.bitmap(of: list([path([0, 0])]))
 
         // Then
-        #expect(bitmap == (try sut.frame(of: list([path(nil)]))))
+        #expect(bitmap == (try sut.bitmap(of: list([path(nil)]))))
         expect(bitmap, at: [(20, 50), (40, 50)], inked: [true, true])
     }
 
@@ -792,7 +792,7 @@ struct PathDrawerTests {
         let list = DisplayList(size: Size(width: 100, height: 100), background: Color(written: "#00000000"), seed: 0, items: [item])
 
         // When
-        let bitmap = try sut.frame(of: list)
+        let bitmap = try sut.bitmap(of: list)
 
         // Then
         // The points of the ellipse halfway along each quarter.
@@ -825,7 +825,7 @@ struct PathDrawerTests {
         let path = stroked(geometry, width: 10, align: align)
 
         // When
-        let bitmap = try sut.frame(of: list([path]))
+        let bitmap = try sut.bitmap(of: list([path]))
 
         // Then
         expect(bitmap, at: [(8, 49), (12, 49), (17, 49), (22, 49), (28, 49), (32, 49)], inked: inked)
@@ -847,7 +847,7 @@ struct PathDrawerTests {
         let path = stroked(square, width: 10, align: .outside, join: join)
 
         // When
-        let bitmap = try sut.frame(of: list([path]))
+        let bitmap = try sut.bitmap(of: list([path]))
 
         // Then
         expect(bitmap, at: [(11, 11), (15, 15)], inked: inked)
@@ -872,7 +872,7 @@ struct PathDrawerTests {
         let path = stroked(.rect(Rectangle(x: 20, y: 20, width: 60, height: 60), radius: 10), width: 10, align: align)
 
         // When
-        let bitmap = try sut.frame(of: list([path]))
+        let bitmap = try sut.bitmap(of: list([path]))
 
         // Then
         expect(bitmap, at: [(25, 25), (17, 17), (12, 12)], inked: inked)
@@ -902,7 +902,7 @@ struct PathDrawerTests {
         )
 
         // When
-        let bitmap = try sut.frame(of: list([path]))
+        let bitmap = try sut.bitmap(of: list([path]))
 
         // Then
         // The dashes lie from x = 30 to 40 and from 50 to 60 along the top edge, 10 deep below it.
@@ -964,8 +964,8 @@ struct PathDrawerTests {
             seed: 0,
             items: [DisplayItem(reveal: box, content: .path(path))]
         )
-        let whole = try sut.frame(of: list([path]))
-        let clipped = try sut.frame(of: revealed)
+        let whole = try sut.bitmap(of: list([path]))
+        let clipped = try sut.bitmap(of: revealed)
         let (maxX, maxY) = (box.x + box.width, box.y + box.height)
         let pixels = (0..<100).flatMap { y in (0..<100).map { x in (x, y) } }
         let inside = pixels.filter { x, y in

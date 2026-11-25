@@ -89,7 +89,7 @@ struct TrackFrameTests {
 
         // Then
         let clip = try #require(read.clips.first { $0.id == "tracked" })
-        guard case let .rect(.area(area), radius) = clip.mask?.first?.geometry else {
+        guard case let .rect(.area(area), radius) = clip.composite?.mask?.first?.geometry else {
             Issue.record("the tracked clip's mask is not a rect placed by its area")
             return
         }

@@ -321,7 +321,7 @@ struct PresetValueResolverTests {
             audio: .constantPower,
             incoming: nil,
             outgoing: nil,
-            cover: Cover(source: .color("shadow"), span: Span(ease: .linear, keys: [])),
+            cover: Cover(source: .solid("shadow"), span: Span(ease: .linear, keys: [])),
             matte: nil
         )
 
@@ -329,7 +329,7 @@ struct PresetValueResolverTests {
         let resolved = try sut.transition(preset, theme: .base, place: .root, kind: .clip(.media(.video)))
 
         // Then
-        #expect(resolved.cover?.source == .color("color(srgb 0 0 0 / 0.5019607843137255)"))
+        #expect(resolved.cover?.source == .solid("color(srgb 0 0 0 / 0.5019607843137255)"))
     }
 
     @Test(

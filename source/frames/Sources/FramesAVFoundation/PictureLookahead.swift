@@ -36,15 +36,15 @@ final class PictureLookahead: Sendable {
         of path: String,
         count: Int,
         reading: PictureReading,
-        read: @escaping @Sendable (_ index: Int, _ isAhead: Bool) throws -> Bitmap
-    ) throws -> Bitmap {
+        read: @escaping @Sendable (_ index: Int, _ isAhead: Bool) throws -> Pixels
+    ) throws -> Pixels {
         let (entry, pending) = entries.withLock { entries in
             (
                 entries.first { $0.path == path && $0.reading == reading },
                 entries.filter { $0.path == path }.compactMap(\.ahead)
             )
         }
-        let picture: Bitmap
+        let picture: Pixels
         if let ahead = entry?.ahead, ahead.index == index, let readAhead = wait(for: ahead) {
             picture = readAhead
         } else {
@@ -72,7 +72,7 @@ final class PictureLookahead: Sendable {
 
     // MARK: - Private
     // The picture of a frame being read ahead once its read ends, the time waited for it kept.
-    private func wait(for ahead: ReadAhead) -> Bitmap? {
+    private func wait(for ahead: ReadAhead) -> Pixels? {
         let start = ContinuousClock.now
         defer {
             let waited = (ContinuousClock.now - start).seconds
@@ -98,7 +98,7 @@ extension PictureLookahead {
         // MARK: - Property
         let index: Int
         private let done = DispatchSemaphore(value: 0)
-        private let result = OSAllocatedUnfairLock<Bitmap?>(initialState: nil)
+        private let result = OSAllocatedUnfairLock<Pixels?>(initialState: nil)
 
         // MARK: - Initializer
         init(index: Int) {
@@ -106,12 +106,12 @@ extension PictureLookahead {
         }
 
         // MARK: - Public
-        func finish(_ picture: Bitmap?) {
+        func finish(_ picture: Pixels?) {
             result.withLock { $0 = picture }
             done.signal()
         }
 
-        func picture() -> Bitmap? {
+        func picture() -> Pixels? {
             done.wait()
             done.signal()
 

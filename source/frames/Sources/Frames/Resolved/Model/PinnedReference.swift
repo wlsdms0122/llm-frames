@@ -27,10 +27,10 @@ enum PinnedReference: Equatable, Sendable {
         switch self {
         case let .media(media, _, _), let .sound(media, _):
             switch media.source {
-            case let .file(file):
+            case let .file(file, _):
                 [file]
 
-            case let .imageSequence(files):
+            case let .imageSequence(files, _):
                 files
 
             case let .page(file, _):

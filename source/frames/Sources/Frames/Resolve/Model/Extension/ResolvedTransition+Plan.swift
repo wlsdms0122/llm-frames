@@ -18,8 +18,8 @@ extension ResolvedTransition {
         // A cover or matte that shows media has it probed in the plan.
         let cover = try definition.cover.flatMap { cover -> ResolvedCover? in
             switch (cover.source, plan.coverMedia) {
-            case let (.color(color), _):
-                return ResolvedCover(source: .color(Color(written: color)), span: cover.span)
+            case let (.solid(color), _):
+                return ResolvedCover(source: .solid(Color(written: color)), span: cover.span)
 
             case let (.media, .some(media)), let (.page, .some(media)):
                 return ResolvedCover(

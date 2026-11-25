@@ -180,7 +180,7 @@ package struct FrameExporter: Sendable {
             guard case let .displayList(list) = frame.picture, isDrawn(list) else { return ContactSheetCell(frame) }
 
             let path = folder.appendingPathComponent("\(index).png").path
-            try encoder.writeAnalysisPicture(of: renderer.frame(of: list), in: sequenceOutput, to: path)
+            try encoder.writeAnalysisPicture(of: renderer.frame(of: list).bitmap, in: sequenceOutput, to: path)
             let media = try PinnedMedia(file: MediaFile(path: path, size: frames.size), hashes: hasher)
 
             let picture = MediaFrame(media: media, index: 0, reading: .analysis(colorSpace: nil))
@@ -194,7 +194,7 @@ package struct FrameExporter: Sendable {
         )
         try renderer.check(sheet)
 
-        try encoder.writeAnalysisPicture(of: try renderer.frame(of: sheet), in: ColorConversion(space: .srgb), to: output)
+        try encoder.writeAnalysisPicture(of: try renderer.frame(of: sheet).bitmap, in: ColorConversion(space: .srgb), to: output)
     }
 
     private func frames(
@@ -281,10 +281,10 @@ package struct FrameExporter: Sendable {
     private func bitmap(of picture: PictureItemSource) throws -> Bitmap {
         switch picture {
         case let .media(frame):
-            try decoder.picture(of: frame)
+            try decoder.picture(of: frame).bitmap
 
         case let .displayList(list):
-            try renderer.frame(of: list)
+            try renderer.frame(of: list).bitmap
         }
     }
 

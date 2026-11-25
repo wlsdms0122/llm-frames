@@ -57,6 +57,13 @@ These are the acceptance tests.
 - A role that lacks a feature refuses before it starts.
 - No temporary files are left.
 
+### Tolerances
+
+**A role gives the same bytes on every run, and a second one of a role lies within a tolerance of the reference** ([FRAMES-21](../FRAMES-21/SPEC.md#rules)). Rendering the same resolved document twice on the same machine, decoder and renderer gives frames before encoding whose bytes hash the same. The bounds below compare each component on a 0 to 1 scale, v being the reference's value at that pixel.
+
+- A renderer against `quartz` on the same display lists and the same decoder, checked on `metal` ([Notes](#notes)): at a pixel that no edge of a picture, path, mask or glyph and no resampled picture reaches, each component within 2⁻⁹ × max(1, |v|), and the mean difference of the components over those pixels within 2⁻¹²; where a picture is resampled, within twice the bounds of the corner pin set above, 0.2 for each component and 0.01 on average; at an edge, alpha within 1/8 and the edge's position within 1/8 of a pixel.
+- The `avfoundation` decoder's conversion of a video frame on the GPU against its conversion of the same frame on the CPU, which is the reference ([FRAMES-21](../FRAMES-21/SPEC.md#pictures)): each component within 2⁻¹⁰ × max(1, |v|), and the mean difference of the components over the frame within 2⁻¹⁸. Two conversions of the same frame on the GPU give the same bytes.
+
 ## Interactions
 
 Each check restates a rule of [FRAMES-4](../FRAMES-4/SPEC.md), [FRAMES-6](../FRAMES-6/SPEC.md), [FRAMES-8](../FRAMES-8/SPEC.md), [FRAMES-9](../FRAMES-9/SPEC.md), [FRAMES-10](../FRAMES-10/SPEC.md), [FRAMES-11](../FRAMES-11/SPEC.md), [FRAMES-12](../FRAMES-12/SPEC.md), [FRAMES-13](../FRAMES-13/SPEC.md), [FRAMES-20](../FRAMES-20/SPEC.md), [FRAMES-21](../FRAMES-21/SPEC.md), [FRAMES-27](../FRAMES-27/SPEC.md) or [FRAMES-28](../FRAMES-28/SPEC.md), which holds it. The checks are made with the commands of [FRAMES-23](../FRAMES-23/SPEC.md).
@@ -65,6 +72,10 @@ The checks of motion blur restate [FRAMES-29](../FRAMES-29/SPEC.md).
 
 ## Alternatives considered
 
-Checking against reference renders pixel by pixel: two renderers are promised the same geometry, text, timing and operations, not the same pixels ([FRAMES-21](../FRAMES-21/SPEC.md)), so a check names what a result keeps on any renderer.
+A renderer checked against `quartz` to the bit, or against no reference at all: a GPU's single precision arithmetic differs from the CPU's in the last bits of a half float, so the same bits would hold every renderer to `quartz`'s arithmetic, and checks that name only what a result keeps, as the rules above do, leave a renderer free to drift in colour by more than rounding. So the rules name what a result keeps on any renderer, and [Tolerances](#tolerances) hold a renderer to `quartz` on the same display lists, within bounds that rounding stays inside and a wrong formula does not.
 
 ## Notes
+
+**Note.** Measured on the reference machine (Apple M1 Pro) with the `avfoundation` decoder, on three frames each of 640 by 360 gradients written as HEVC Main 10 in `display-p3` and `rec2020`, values from -0.05 to 1.05, and as 8-bit H.264 in `rec709` and `srgb`, a frame converted on the GPU against the same frame converted on the CPU: the largest difference of a component over max(1, |v|) was 9.7e-4 in `display-p3` and `rec2020`, one step of a half float just above 1, and 4.9e-4 in `rec709`, the mean difference at most 3.8e-7, and `srgb`, whose conversion is the identity, gave the same bits. A frame of a 1206 by 2622 Display P3 screen recording rendered with a title to a 16-bit PNG differed in 2 of its 12.6 million components, by one step of a half float. Two conversions of a frame on the GPU gave the same bytes.
+
+**Note.** Measured on the reference machine (Apple M1 Pro) with `metal` against `quartz` on eleven frames of 160 by 90 to 1024 by 1024 pixels (a video under a moving title, in the encoded and the linear form, a scaled still half transparent in `screen`, shapes with a stroke, rounded corners, a shadow and a feathered mask, an adjustment cut by a track matte, a crossfade, a corner pin and motion blur): the largest difference of a flat pixel's component over max(1, |v|) was 9.7e-4, one step of a half float just below 1, in the linear form, and 2.4e-4 in the encoded form, the mean difference at most 6.8e-5, and at other pixels at most 9.8e-4 in a component and 0 in alpha. The corner pin, the motion blur and the adjustment, which `metal` draws by the drawing of `quartz`, gave the same bits. The flat bounds hold these with a factor of two and are measured. No case resampled a picture with detail on the GPU or moved an edge, so the bounds of a resampled picture and of an edge are a draft. Two runs of `metal` on these frames, by one renderer and by two, gave the same bytes.

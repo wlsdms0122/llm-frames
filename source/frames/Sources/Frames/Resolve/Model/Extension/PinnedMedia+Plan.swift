@@ -17,12 +17,18 @@ extension PinnedMedia {
         let source: PinnedSource = if let page = file.page {
             .page(try PinnedFile(path: file.path, hashes: hashes), page: page)
         } else if file.frameFiles.isEmpty {
-            .file(try PinnedFile(path: file.path, hashes: hashes))
+            .file(
+                try PinnedFile(path: file.path, hashes: hashes),
+                frameTimes: file.frameTimes.isEmpty ? nil : file.frameTimes
+            )
         } else {
-            .imageSequence(try file.frameFiles.map { try PinnedFile(path: $0, hashes: hashes) })
+            .imageSequence(
+                try file.frameFiles.map { try PinnedFile(path: $0, hashes: hashes) },
+                frameTimes: file.frameTimes
+            )
         }
 
-        self.init(source: source, frameTimes: file.frameTimes)
+        self.init(source: source)
     }
 
     // MARK: - Public

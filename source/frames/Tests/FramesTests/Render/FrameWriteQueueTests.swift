@@ -24,7 +24,7 @@ struct FrameWriteQueueTests {
 
         // When
         for frame in 0..<8 {
-            try sut.append(Bitmap(frame: frame))
+            try sut.append(.bitmap(Bitmap(frame: frame)))
         }
         try sut.finish()
 
@@ -51,7 +51,7 @@ struct FrameWriteQueueTests {
         // When
         let error = #expect(throws: FailingVideoWriter.Failure.self) {
             for frame in 0..<8 {
-                try sut.append(Bitmap(frame: frame))
+                try sut.append(.bitmap(Bitmap(frame: frame)))
             }
             try sut.finish()
         }

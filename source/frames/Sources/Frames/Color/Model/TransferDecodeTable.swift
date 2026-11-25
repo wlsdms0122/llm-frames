@@ -17,7 +17,8 @@ package struct TransferDecodeTable: Equatable, Sendable {
     nonisolated(unsafe) private static var tables: [TransferFunction: TransferDecodeTable] = [:]
 
     package let transfer: TransferFunction
-    private let values: [Double]
+    // The decoded value of each half float, by its bit pattern.
+    package let values: [Double]
 
     // MARK: - Initializer
     // The shared table of `transfer`.

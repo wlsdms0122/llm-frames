@@ -56,7 +56,7 @@ struct ResolvedValueReader: Sendable {
                 try pinned(element.object(keys: ["file", "sha256"]))
             }
 
-            return PinnedMedia(source: .imageSequence(files), frameTimes: try media.member("frames").numbers())
+            return PinnedMedia(source: .imageSequence(files, frameTimes: try media.member("frames").numbers()))
 
         case "page":
             let media = try value.object(keys: ["kind", "file", "sha256", "page"])
@@ -66,10 +66,9 @@ struct ResolvedValueReader: Sendable {
         default:
             let media = try value.object(keys: ["kind", "file", "sha256", "frames"])
 
-            return PinnedMedia(
-                source: .file(try pinned(media)),
-                frameTimes: try media.member("frames").optional { try $0.numbers() } ?? []
-            )
+            let frames = try media.member("frames")
+
+            return PinnedMedia(source: .file(try pinned(media), frameTimes: try frames.optional(frameTimes)))
         }
     }
 
@@ -646,6 +645,20 @@ struct ResolvedValueReader: Sendable {
     }
 
     // MARK: - Private
+    // A video file's frame times: a list of at least one, as an image or a sound file has null.
+    private func frameTimes(_ list: PlacedJSONValue) throws -> [Double] {
+        let times = try list.numbers()
+        guard !times.isEmpty else {
+            throw ModelError.invalidValue(
+                place: list.place,
+                kind: list.kind,
+                reason: "a video file's frames hold at least one time, and an image or a sound file has null"
+            )
+        }
+
+        return times
+    }
+
     private func clipArea(_ value: PlacedJSONValue) throws -> ClipArea {
         let object = try value.object(keys: ["clip", "padding"])
         return ClipArea(clip: try object.member("clip").string(), padding: try object.member("padding").number())

@@ -48,7 +48,7 @@ struct DecoderColorTests {
         let sut = AVFoundationDecoder()
 
         // When
-        let picture = try sut.picture(of: MediaFile(path: file), atFrame: 0, reading: .tagged)
+        let picture = try sut.picture(of: MediaFile(path: file), atFrame: 0, reading: .tagged).bitmap
 
         // Then
         let value = workingValue(in: picture, x: 32, y: 32)
@@ -76,7 +76,7 @@ struct DecoderColorTests {
         let sut = AVFoundationDecoder()
 
         // When
-        let picture = try sut.picture(of: MediaFile(path: file), atFrame: 0, reading: .tagged)
+        let picture = try sut.picture(of: MediaFile(path: file), atFrame: 0, reading: .tagged).bitmap
 
         // Then
         let value = workingValue(in: picture, x: 32, y: 32)
@@ -94,7 +94,7 @@ struct DecoderColorTests {
 
         // When
         let probed = try #require(try sut.probedMedia(of: file))
-        let picture = try sut.picture(of: MediaFile(path: file), atFrame: 0, reading: .tagged)
+        let picture = try sut.picture(of: MediaFile(path: file), atFrame: 0, reading: .tagged).bitmap
 
         // Then
         let expected = TransferFunction.sRGB.encode(pow(128.0 / 255, 2.4))
@@ -118,8 +118,8 @@ struct DecoderColorTests {
             of: MediaFile(path: file),
             atFrame: 0,
             reading: .working(colorSpace: nil, targetPeak: 203)
-        )
-        let unmapped = try sut.picture(of: MediaFile(path: file), atFrame: 0, reading: .tagged)
+        ).bitmap
+        let unmapped = try sut.picture(of: MediaFile(path: file), atFrame: 0, reading: .tagged).bitmap
 
         // Then
         let light = ToneMapping(sourcePeak: 1000, targetPeak: 203).mapped(RGB(red: 1000, green: 1000, blue: 1000))
@@ -145,7 +145,7 @@ struct DecoderColorTests {
             of: MediaFile(path: file),
             atFrame: 0,
             reading: .working(colorSpace: .rec709, targetPeak: nil)
-        )
+        ).bitmap
 
         // Then
         let value = workingValue(in: picture, x: 32, y: 32)
@@ -168,12 +168,12 @@ struct DecoderColorTests {
             of: MediaFile(path: file),
             atFrame: 0,
             reading: .working(colorSpace: .rec2100PQ, targetPeak: 203)
-        )
+        ).bitmap
         let tagged = try sut.picture(
             of: MediaFile(path: file),
             atFrame: 0,
             reading: .working(colorSpace: nil, targetPeak: 203)
-        )
+        ).bitmap
 
         // Then
         let light = PerceptualQuantizer().displayLight(encoded: Double(code) / 255)
@@ -203,8 +203,8 @@ struct DecoderColorTests {
         let sut = AVFoundationDecoder()
 
         // When
-        let widePicture = try sut.picture(of: MediaFile(path: wide), atFrame: 0, reading: .analysis(colorSpace: nil))
-        let brightPicture = try sut.picture(of: MediaFile(path: bright), atFrame: 0, reading: .analysis(colorSpace: nil))
+        let widePicture = try sut.picture(of: MediaFile(path: wide), atFrame: 0, reading: .analysis(colorSpace: nil)).bitmap
+        let brightPicture = try sut.picture(of: MediaFile(path: bright), atFrame: 0, reading: .analysis(colorSpace: nil)).bitmap
 
         // Then
         #expect(widePicture.depth == .eight)
@@ -231,7 +231,7 @@ struct DecoderColorTests {
         #expect(probed.colorSpace?.name == nil)
         #expect(probed.colorSpace?.reading == .platform)
         let error = #expect(throws: DecoderError.self) {
-            try sut.picture(of: MediaFile(path: file), atFrame: 0, reading: .tagged)
+            try sut.picture(of: MediaFile(path: file), atFrame: 0, reading: .tagged).bitmap
         }
         guard case let .unconvertibleColor(refused, _)? = error else {
             Issue.record("\(String(describing: error))")

@@ -39,7 +39,7 @@ final class TimedDecoder: MediaDecoder, @unchecked Sendable {
         of file: MediaFile,
         atFrame index: Int,
         reading: PictureReading
-    ) throws -> Bitmap {
+    ) throws -> Pixels {
         clock.advance(by: readSeconds)
         lock.withLock {
             reads += 1
@@ -54,7 +54,7 @@ final class TimedDecoder: MediaDecoder, @unchecked Sendable {
         region: PageRegion,
         scale: Double,
         reading: PictureReading
-    ) throws -> Bitmap {
+    ) throws -> Pixels {
         try decoder.picture(of: file, region: region, scale: scale, reading: reading)
     }
 
@@ -88,6 +88,7 @@ final class TimedDecoder: MediaDecoder, @unchecked Sendable {
                     path: "/abs/run.mp4",
                     page: nil,
                     conversion: .identity,
+                    device: .cpu,
                     pixelFormat: "16-bit float RGBA",
                     framesRead: reads,
                     framesDecoded: reads,

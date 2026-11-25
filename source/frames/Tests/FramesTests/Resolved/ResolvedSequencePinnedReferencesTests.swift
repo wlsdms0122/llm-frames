@@ -23,8 +23,7 @@ struct ResolvedSequencePinnedReferencesTests {
     private let card = Self.media("/abs/card.png")
     private let music = Self.media("/abs/bgm.m4a")
     private let frames = PinnedMedia(
-        source: .imageSequence([Self.pinned("/abs/frames/1.png"), Self.pinned("/abs/frames/2.png")]),
-        frameTimes: [0, 0.5]
+        source: .imageSequence([Self.pinned("/abs/frames/1.png"), Self.pinned("/abs/frames/2.png")], frameTimes: [0, 0.5])
     )
 
     // MARK: - Initializer
@@ -66,7 +65,7 @@ struct ResolvedSequencePinnedReferencesTests {
         #expect(references == [
             .media(video, place: "storyline[0]", colorSpace: .rec709),
             .file(lut, place: "storyline[0]"),
-            .media(PinnedMedia(source: .file(map)), place: "storyline[0]", colorSpace: nil),
+            .media(PinnedMedia(source: .file(map, frameTimes: nil)), place: "storyline[0]", colorSpace: nil),
             .media(frames, place: "storyline[1]", colorSpace: nil),
             .media(stinger, place: "storyline[1]", colorSpace: nil),
             .media(wipe, place: "storyline[1]", colorSpace: .displayP3),
@@ -131,7 +130,7 @@ struct ResolvedSequencePinnedReferencesTests {
     }
 
     private static func media(_ path: String) -> PinnedMedia {
-        PinnedMedia(source: .file(pinned(path)))
+        PinnedMedia(source: .file(pinned(path), frameTimes: nil))
     }
 
     private func pinned(_ path: String) -> PinnedFile {
@@ -208,13 +207,8 @@ struct ResolvedSequencePinnedReferencesTests {
             end: 2,
             storyline: nil,
             parent: nil,
-            box: nil,
-            crop: nil,
-            mask: nil,
-            trackMatte: nil,
+            placement: .box(nil),
             track: nil,
-            scale: nil,
-            rotation: nil,
             animation: .none
         )
     }

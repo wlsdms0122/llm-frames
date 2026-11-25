@@ -34,7 +34,7 @@ struct FrameDrawerTests {
         let item = DisplayItem(transform: AffineTransform(a: 2, b: 0, c: 0, d: 2, tx: 0, ty: 0), content: .path(path))
 
         // When
-        let bitmap = try sut.frame(of: list(size: 120, background: "#00000000", items: [item]))
+        let bitmap = try sut.bitmap(of: list(size: 120, background: "#00000000", items: [item]))
 
         // Then
         // Right of x = 62 lies only the shadow: the box (75, 65, 10, 10) blurred, its alpha centred on (80, 70) with a
@@ -73,7 +73,7 @@ struct FrameDrawerTests {
         let item = DisplayItem(opacity: 0.5, content: .path(path))
 
         // When
-        let bitmap = try sut.frame(of: list(size: 40, background: "#FF0000", items: [item]))
+        let bitmap = try sut.bitmap(of: list(size: 40, background: "#FF0000", items: [item]))
 
         // Then
         expect(bitmap.pixel(x: 20, y: 20), equals: [1, 0.5, 0.5, 1])
@@ -102,7 +102,7 @@ struct FrameDrawerTests {
         )))
 
         // When
-        let bitmap = try sut.frame(of: list(size: 60, background: "#00000000", items: [bar, outside]))
+        let bitmap = try sut.bitmap(of: list(size: 60, background: "#00000000", items: [bar, outside]))
 
         // Then
         expect(bitmap.pixel(x: 20, y: 35), equals: [0, 0, 0, 1])
@@ -133,7 +133,7 @@ struct FrameDrawerTests {
         )
 
         // When
-        let bitmap = try sut.frame(of: list(size: 50, background: "#00000000", items: [item]))
+        let bitmap = try sut.bitmap(of: list(size: 50, background: "#00000000", items: [item]))
 
         // Then
         expect(bitmap.pixel(x: 15, y: 20), equals: [1, 1, 1, 1])
@@ -159,7 +159,7 @@ struct FrameDrawerTests {
         )
 
         // When
-        let bitmap = try sut.frame(of: list(size: 40, background: "#00000000", items: [item]))
+        let bitmap = try sut.bitmap(of: list(size: 40, background: "#00000000", items: [item]))
 
         // Then
         #expect(abs(bitmap.pixel(x: 20, y: 20)[3] - 0.25) < 0.01)
@@ -183,7 +183,7 @@ struct FrameDrawerTests {
         )
 
         // When
-        let bitmap = try sut.frame(of: list(size: 40, background: "#FF0000", items: [item]))
+        let bitmap = try sut.bitmap(of: list(size: 40, background: "#FF0000", items: [item]))
 
         // Then
         expect(bitmap.pixel(x: 10, y: 20), equals: [0, 0, 0, 1])
@@ -207,8 +207,8 @@ struct FrameDrawerTests {
         let behind = DisplayItem(content: .path(PathItem(filling: Rectangle(x: 10, y: 50, width: 100, height: 20), color: Self.black)))
 
         // When
-        let without = try sut.frame(of: list(size: 120, background: "#808080", items: [behind, item]))
-        let with = try sut.frame(of: list(size: 120, background: "#808080", items: [behind, revealed]))
+        let without = try sut.bitmap(of: list(size: 120, background: "#808080", items: [behind, item]))
+        let with = try sut.bitmap(of: list(size: 120, background: "#808080", items: [behind, revealed]))
 
         // Then
         #expect(without == with)

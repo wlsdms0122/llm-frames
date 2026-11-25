@@ -40,8 +40,8 @@ struct NestedListDrawingTests {
         let inPlace = items.map { item in moved(item, by: transform) }
 
         // When
-        let nested = try sut.frame(of: list(size: 40, items: [shown]))
-        let drawn = try sut.frame(of: list(size: 40, items: inPlace))
+        let nested = try sut.bitmap(of: list(size: 40, items: [shown]))
+        let drawn = try sut.bitmap(of: list(size: 40, items: inPlace))
         let scaledUp = try scaledUp(scene, by: transform, size: 40)
 
         // Then
@@ -66,8 +66,8 @@ struct NestedListDrawingTests {
         let whole = Rectangle(x: 0, y: 0, width: 40, height: 40)
 
         // When
-        let inPlace = try sut.frame(of: list(size: 40, items: [backdrop, DisplayItem(content: .picture(picture(of: scene)))]))
-        let apart = try sut.frame(of: list(size: 40, items: [backdrop, DisplayItem(reveal: whole, content: .picture(picture(of: scene)))]))
+        let inPlace = try sut.bitmap(of: list(size: 40, items: [backdrop, DisplayItem(content: .picture(picture(of: scene)))]))
+        let apart = try sut.bitmap(of: list(size: 40, items: [backdrop, DisplayItem(reveal: whole, content: .picture(picture(of: scene)))]))
 
         // Then
         #expect(difference(inPlace, apart).largest < 0.001)
@@ -95,8 +95,8 @@ struct NestedListDrawingTests {
         let inPlace = items.map { item in moved(item, by: transform) }
 
         // When
-        let nested = try sut.frame(of: list(size: 40, items: [shown]))
-        let drawn = try sut.frame(of: list(size: 40, items: inPlace))
+        let nested = try sut.bitmap(of: list(size: 40, items: [shown]))
+        let drawn = try sut.bitmap(of: list(size: 40, items: inPlace))
         let scaledUp = try scaledUp(scene, by: transform, size: 40)
 
         // Then
@@ -121,8 +121,8 @@ struct NestedListDrawingTests {
         let filled = PathItem(geometry: band(), fill: .color(Self.white), stroke: nil)
 
         // When
-        let line = try sut.frame(of: list(size: 40, items: [shown(stroked, by: transform)]))
-        let band = try sut.frame(of: list(size: 40, items: [shown(filled, by: transform)]))
+        let line = try sut.bitmap(of: list(size: 40, items: [shown(stroked, by: transform)]))
+        let band = try sut.bitmap(of: list(size: 40, items: [shown(filled, by: transform)]))
 
         // Then
         #expect(difference(line, band).largest < 0.03)
@@ -139,8 +139,8 @@ struct NestedListDrawingTests {
         )
 
         // When
-        let small = try sut.frame(of: list(size: 40, items: [once]))
-        let large = try sut.frame(of: list(size: 80, items: [twice]))
+        let small = try sut.bitmap(of: list(size: 40, items: [once]))
+        let large = try sut.bitmap(of: list(size: 80, items: [twice]))
 
         // Then
         let averaged = halved(large)
@@ -175,7 +175,7 @@ struct NestedListDrawingTests {
         let item = DisplayItem(transform: Frames.AffineTransform(a: 2, b: 0, c: 0, d: 2, tx: 0, ty: 0), content: .picture(picture))
 
         // When
-        let bitmap = try sut.frame(of: list(size: 20, items: [item]))
+        let bitmap = try sut.bitmap(of: list(size: 20, items: [item]))
 
         // Then
         #expect(bitmap.pixel(x: 15, y: 12) == [0, 0, 0, 1])
@@ -202,7 +202,7 @@ struct NestedListDrawingTests {
         )
 
         // When
-        let bitmap = try sut.frame(of: DisplayList(
+        let bitmap = try sut.bitmap(of: DisplayList(
             size: Size(width: 64, height: 48),
             background: Self.white,
             seed: 0,
@@ -230,8 +230,8 @@ struct NestedListDrawingTests {
         )
 
         // When
-        let cut = try sut.frame(of: list(size: 40, items: [item]))
-        let uncut = try sut.frame(of: list(width: 80, height: 40, items: [item]))
+        let cut = try sut.bitmap(of: list(size: 40, items: [item]))
+        let uncut = try sut.bitmap(of: list(width: 80, height: 40, items: [item]))
 
         // Then
         #expect(difference(cut, uncut).largest < 0.03)
@@ -254,8 +254,8 @@ struct NestedListDrawingTests {
         )
 
         // When
-        let cut = try sut.frame(of: list(size: 40, items: [item]))
-        let uncut = try sut.frame(of: list(width: 80, height: 40, items: [item]))
+        let cut = try sut.bitmap(of: list(size: 40, items: [item]))
+        let uncut = try sut.bitmap(of: list(width: 80, height: 40, items: [item]))
 
         // Then
         #expect(difference(cut, uncut).largest < 0.03)
@@ -274,8 +274,8 @@ struct NestedListDrawingTests {
         let revealed = DisplayItem(transform: transform, reveal: shown, content: .picture(picture(of: scene)))
 
         // When
-        let cut = try sut.frame(of: list(size: 40, items: [cropped]))
-        let whole = try sut.frame(of: list(width: 80, height: 40, items: [revealed]))
+        let cut = try sut.bitmap(of: list(size: 40, items: [cropped]))
+        let whole = try sut.bitmap(of: list(width: 80, height: 40, items: [revealed]))
 
         // Then
         #expect(difference(cut, whole).largest < 0.03)
@@ -432,7 +432,7 @@ struct NestedListDrawingTests {
         by transform: Frames.AffineTransform,
         size: Int
     ) throws -> Bitmap {
-        let image = try sut.frame(of: list).cgImage()
+        let image = try sut.bitmap(of: list).cgImage()
         let frame = try FrameContext(width: size, height: size, compositing: .encoded)
         frame.context.concatenate(CGAffineTransform(transform))
         frame.context.drawUpright(image, in: CGRect(x: 0, y: 0, width: image.width, height: image.height))

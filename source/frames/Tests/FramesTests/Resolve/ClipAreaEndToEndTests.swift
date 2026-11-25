@@ -260,7 +260,7 @@ struct ClipAreaEndToEndTests {
               "mask": [ { "kind": "rect", "area": { "clip": "name", "padding": 24 } },
                         { "kind": "path", "points": [ [0, 0], { "vertex": { "area": { "clip": "name" }, "point": "top-right" } }, [0, 10] ] } ] }
             """##
-        let masks = try resolved(clips: [movingTitle, clip]).clips[1].mask
+        let masks = try resolved(clips: [movingTitle, clip]).clips[1].composite?.mask
         let place = Place.root.appending(key: "clips").appending(index: 1).appending(key: "mask")
 
         // When

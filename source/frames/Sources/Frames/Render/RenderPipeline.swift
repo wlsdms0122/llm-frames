@@ -113,7 +113,7 @@ package struct RenderPipeline: Sendable {
         }
 
         let frame = try recorder.measure(.draw, reading: decoder) { try renderer.frame(of: list) }
-        let file = try recorder.measureWaitingOnEncoder { try encoder.writeImage(frame, for: target) }
+        let file = try recorder.measureWaitingOnEncoder { try encoder.writeImage(frame.bitmap, for: target) }
         recorder.drew(frame: 1, of: 1)
 
         return RenderRun(frames: 1, files: [file])

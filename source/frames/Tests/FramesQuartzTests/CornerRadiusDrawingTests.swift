@@ -41,7 +41,7 @@ struct CornerRadiusDrawingTests {
         let rect = PathItem(geometry: .rect(Self.box, radius: Self.corners), fill: .color(Color(written: "#000000")), stroke: nil)
 
         // When
-        let bitmap = try sut.frame(of: list(items: [DisplayItem(content: .path(rect))]))
+        let bitmap = try sut.bitmap(of: list(items: [DisplayItem(content: .path(rect))]))
 
         // Then
         expect(bitmap, at: Self.cutOff, inked: false)
@@ -55,7 +55,7 @@ struct CornerRadiusDrawingTests {
         let mask = ItemMask(geometry: .rect(Self.box, radius: Self.corners), transform: .identity, feather: 0, isInverted: false, mode: .add)
 
         // When
-        let bitmap = try sut.frame(of: list(items: [DisplayItem(mask: [mask], content: .path(fill))]))
+        let bitmap = try sut.bitmap(of: list(items: [DisplayItem(mask: [mask], content: .path(fill))]))
 
         // Then
         expect(bitmap, at: Self.cutOff, inked: false)
@@ -77,7 +77,7 @@ struct CornerRadiusDrawingTests {
         )
 
         // When
-        let bitmap = try sut.frame(of: list(items: [DisplayItem(content: .picture(picture))]))
+        let bitmap = try sut.bitmap(of: list(items: [DisplayItem(content: .picture(picture))]))
 
         // Then
         #expect(bitmap.pixel(x: 7, y: 7) == [1, 0, 0, 1])
@@ -100,7 +100,7 @@ struct CornerRadiusDrawingTests {
         let rect = PathItem(geometry: .rect(Self.box, radius: radius), fill: .color(Color(written: "#000000")), stroke: nil)
 
         // When
-        let bitmap = try sut.frame(of: list(items: [DisplayItem(content: .path(rect))]))
+        let bitmap = try sut.bitmap(of: list(items: [DisplayItem(content: .path(rect))]))
 
         // Then
         expect(bitmap, at: [(24, 24)], inked: false)
@@ -118,7 +118,7 @@ struct CornerRadiusDrawingTests {
             canvas.fill(red: 255, green: 255, blue: 255)
         }
 
-        return MediaFrame(media: PinnedMedia(source: .file(PinnedFile(path: path, sha256: ""))), index: 0)
+        return MediaFrame(media: PinnedMedia(source: .file(PinnedFile(path: path, sha256: ""), frameTimes: nil)), index: 0)
     }
 
     private func expect(

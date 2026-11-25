@@ -90,8 +90,8 @@ struct PresetValueResolver: Sendable {
     ) throws -> TransitionPreset {
         let cover = try preset.cover.map { cover in
             switch cover.source {
-            case let .color(color):
-                Cover(source: .color(try theme.presetColor(color, place: place, kind: kind)), span: cover.span)
+            case let .solid(color):
+                Cover(source: .solid(try theme.presetColor(color, place: place, kind: kind)), span: cover.span)
 
             case let .media(media):
                 Cover(

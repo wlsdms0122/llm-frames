@@ -16,13 +16,12 @@ struct MediaFilePinnedMediaTests {
     @Test("pinned media gives the decoder its file and frame times, and an image sequence its directory and frame files")
     func convertsPinnedMedia() {
         // Given
-        let video = PinnedMedia(source: .file(PinnedFile(path: "/media/a.mov", sha256: "")), frameTimes: [0, 0.5])
+        let video = PinnedMedia(source: .file(PinnedFile(path: "/media/a.mov", sha256: ""), frameTimes: [0, 0.5]))
         let sequence = PinnedMedia(
             source: .imageSequence([
                 PinnedFile(path: "/media/shots/0001.png", sha256: ""),
                 PinnedFile(path: "/media/shots/0002.png", sha256: "")
-            ]),
-            frameTimes: [0, 0.04]
+            ], frameTimes: [0, 0.04])
         )
 
         // When

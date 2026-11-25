@@ -584,14 +584,17 @@ package struct DisplayListReader: Sendable {
         return peak
     }
 
-    // An image sequence has a frame per file, a video one per frame time, and an image the one frame 0.
+    // An image sequence has a frame per file, a video one per frame time, and an image and a page the one frame 0.
     private func frameCount(of media: PinnedMedia) -> Int {
         switch media.source {
-        case let .imageSequence(files):
+        case let .imageSequence(files, _):
             files.count
 
-        case .file, .page:
-            max(media.frameTimes.count, 1)
+        case let .file(_, frameTimes):
+            frameTimes?.count ?? 1
+
+        case .page:
+            1
         }
     }
 

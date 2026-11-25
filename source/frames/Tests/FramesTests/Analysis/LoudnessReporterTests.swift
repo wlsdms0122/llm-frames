@@ -25,7 +25,7 @@ struct LoudnessReporterTests {
         let directory = try TemporaryDirectory()
         let path = directory.file("bgm.m4a")
         try Data([1, 2, 3]).write(to: URL(fileURLWithPath: path))
-        let pinned = PinnedMedia(source: .file(PinnedFile(path: path, sha256: try FileHasher().sha256(ofFile: path))))
+        let pinned = PinnedMedia(source: .file(PinnedFile(path: path, sha256: try FileHasher().sha256(ofFile: path)), frameTimes: nil))
         try Data([1, 2, 4]).write(to: URL(fileURLWithPath: path))
 
         let log = RoleCallLog()
@@ -65,7 +65,7 @@ struct LoudnessReporterTests {
     @Test("a resolved document whose files are as they were pinned is checked by the decoder and the mixer, then mixed")
     func mixesPinnedSequence() throws {
         // Given
-        let pinned = PinnedMedia(source: .file(PinnedFile(path: "/abs/bgm.m4a", sha256: "sha256-of-/abs/bgm.m4a")))
+        let pinned = PinnedMedia(source: .file(PinnedFile(path: "/abs/bgm.m4a", sha256: "sha256-of-/abs/bgm.m4a"), frameTimes: nil))
         let log = RoleCallLog()
         let sut = LoudnessReporter(
             decoder: RecordingDecoder(log: log),

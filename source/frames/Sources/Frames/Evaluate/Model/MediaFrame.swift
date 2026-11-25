@@ -17,10 +17,10 @@ package struct MediaFrame: Equatable, Sendable {
 
     var file: PinnedFile {
         switch media.source {
-        case let .file(file), let .page(file, _):
+        case let .file(file, _), let .page(file, _):
             file
 
-        case let .imageSequence(files):
+        case let .imageSequence(files, _):
             if case let .frame(index) = picture { files[index] } else { files[0] }
         }
     }

@@ -335,15 +335,15 @@ package struct TimelineReporter: Sendable {
         TimelineSpan(preset: nil, length: span.length)
     }
 
-    // The kind of a storyline clip's media, as far as what it shows tells it: a pinned medium without frame times is a
-    // still.
+    // The kind of a storyline clip's media, as far as what it shows tells it: pinned media is a video, an image or a page
+    // by what it pins.
     private func kind(of media: ResolvedMediaContent) -> MediaKind {
         switch media {
         case .nested:
             .sequence
 
         case let .pinned(pinned):
-            pinned.page != nil ? .page : pinned.frameTimes.isEmpty ? .image : .video
+            MediaKind(pinned: pinned)
         }
     }
 
@@ -385,10 +385,10 @@ package struct TimelineReporter: Sendable {
         guard case let .pinned(pinned) = media else { return nil }
 
         switch pinned.source {
-        case let .file(file):
+        case let .file(file, _):
             return file.path
 
-        case let .imageSequence(files):
+        case let .imageSequence(files, _):
             return files.first.map { URL(fileURLWithPath: $0.path).deletingLastPathComponent().path }
 
         case let .page(file, _):

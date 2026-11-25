@@ -40,7 +40,7 @@ struct CornerPinDrawingTests {
         let picture = pinned(list(size: 64, items: [fill(Self.box, Self.red)]), destination: Self.box)
 
         // When
-        let bitmap = try sut.frame(of: output(DisplayItem(content: .picture(picture))))
+        let bitmap = try sut.bitmap(of: output(DisplayItem(content: .picture(picture))))
 
         // Then
         let centre = Self.cornerPin.centroid
@@ -64,7 +64,7 @@ struct CornerPinDrawingTests {
         )
 
         // When
-        let bitmap = try sut.frame(of: output(item))
+        let bitmap = try sut.bitmap(of: output(item))
 
         // Then
         let centre = Self.cornerPin.centroid
@@ -86,7 +86,7 @@ struct CornerPinDrawingTests {
         let item = DisplayItem(opacity: 0.5, mask: [mask], content: .picture(picture))
 
         // When
-        let bitmap = try sut.frame(of: output(item))
+        let bitmap = try sut.bitmap(of: output(item))
 
         // Then
         expect(bitmap, at: Point(x: 40, y: 65), equals: [1, 0.5, 0.5, 1])
@@ -113,7 +113,7 @@ struct CornerPinDrawingTests {
         let picture = pinned(halves, destination: destination, cornerPin: cornerPin)
 
         // When
-        let bitmap = try sut.frame(of: output(DisplayItem(content: .picture(picture))))
+        let bitmap = try sut.bitmap(of: output(DisplayItem(content: .picture(picture))))
 
         // Then
         // The halves meet where the corner pin carries the box's middle, about 15 output pixels a list pixel.
@@ -143,7 +143,7 @@ struct CornerPinDrawingTests {
         let picture = pinned(halves, destination: destination, cornerPin: cornerPin)
 
         // When
-        let bitmap = try sut.frame(of: output(DisplayItem(content: .picture(picture))))
+        let bitmap = try sut.bitmap(of: output(DisplayItem(content: .picture(picture))))
 
         // Then
         // The corner pin stretches the list's bottom row more than 30 times, past the limit, while 12 output pixels
@@ -179,7 +179,7 @@ struct CornerPinDrawingTests {
         let picture = pinned(list(size: 8, items: [page]), destination: destination, cornerPin: cornerPin)
 
         // When
-        _ = try sut.frame(of: output(DisplayItem(content: .picture(picture))))
+        _ = try sut.bitmap(of: output(DisplayItem(content: .picture(picture))))
 
         // Then
         // The corner pin stretches the list's bottom row more than 30 times, past the limit of twice the output's
@@ -210,7 +210,7 @@ struct CornerPinDrawingTests {
         )
 
         // When
-        let bitmap = try sut.frame(of: output(DisplayItem(content: .picture(picture))))
+        let bitmap = try sut.bitmap(of: output(DisplayItem(content: .picture(picture))))
 
         // Then
         // The region's left edge is the destination's, so the list's green part lies at x -16 to 0 of the item.

@@ -33,7 +33,7 @@ struct TrackPointTests {
             }
         let probed = try #require(try decoder.probedMedia(of: file))
         let media = MediaFile(path: file, size: probed.size, frameTimes: probed.frames)
-        let images = try (0..<2).map { index in GreyImage(picture: try decoder.picture(of: media, atFrame: index)) }
+        let images = try (0..<2).map { index in GreyImage(picture: try decoder.picture(of: media, atFrame: index).bitmap) }
         let ends = [CGPoint(x: 180, y: 850), CGPoint(x: 500, y: 850)]
         let points = try ends.map { end in
             try #require(TrackPoint(

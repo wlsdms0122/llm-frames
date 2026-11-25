@@ -26,16 +26,16 @@ struct ResolvedValueWriter: Sendable {
     // `page`.
     func media(_ media: PinnedMedia) -> JSONValue {
         let members = switch media.source {
-        case let .file(file):
+        case let .file(file, frameTimes):
             [JSONMember(key: "kind", value: .string("file"))] + pinned(file) + [
-                JSONMember(key: "frames", value: media.frameTimes.isEmpty ? .null : numbers(media.frameTimes))
+                JSONMember(key: "frames", value: frameTimes.map { numbers($0) } ?? .null)
             ]
 
-        case let .imageSequence(files):
+        case let .imageSequence(files, frameTimes):
             [
                 JSONMember(key: "kind", value: .string("imageSequence")),
                 JSONMember(key: "files", value: .array(files.map { .object(JSONObject(members: pinned($0))) })),
-                JSONMember(key: "frames", value: numbers(media.frameTimes))
+                JSONMember(key: "frames", value: numbers(frameTimes))
             ]
 
         case let .page(file, page):

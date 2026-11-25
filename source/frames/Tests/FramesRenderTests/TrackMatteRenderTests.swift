@@ -57,6 +57,6 @@ struct TrackMatteRenderTests {
                          { "kind": "media", "media": "\#(blue)", "at": [0, 1], "trackMatte": { "clip": "m", "mode": "luma" } } ] }
             """#)
 
-        return try QuartzRenderer(decoder: AVFoundationDecoder()).frame(of: Evaluator().displayList(of: document, at: 0.5))
+        return try QuartzRenderer(decoder: AVFoundationDecoder()).bitmap(of: Evaluator().displayList(of: document, at: 0.5))
     }
 }
