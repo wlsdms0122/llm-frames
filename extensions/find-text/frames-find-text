@@ -18,8 +18,8 @@ import tempfile
 SUPPORTED_MAJOR = 0
 GLOBAL_OPTIONS = ("--theme", "--decoder", "--renderer", "--mixer", "--encoder", "--shaper", "--tracker", "--ocr")
 TOOL = "find-text"
-TEXT_KEYS = {"tool", "text", "nth", "padding"}
-RANGE_KEYS = {"tool", "from", "to", "fromNth", "toNth", "padding"}
+TEXT_KEYS = {"tool", "text", "nth", "padding", "aspectRatio"}
+RANGE_KEYS = {"tool", "from", "to", "fromNth", "toNth", "padding", "aspectRatio"}
 AREA_KEYS = ("area", "crop")
 PLACEHOLDER = [0, 0, 1, 1]
 USAGE = """frames find-text <document.json | -> [--languages <tag>[,<tag>...]]
@@ -30,6 +30,8 @@ Prints the document with every request for find-text, standing where an area doe
   {"tool": "find-text", "text": t, "nth": n, "padding": p}          the recognised line that contains t
   {"tool": "find-text", "from": a, "to": b, "fromNth": n, "toNth": m, "padding": p}
                                                                     the lines from the one with a to the one with b
+
+Either takes "aspectRatio": [w, h], which grows the padded rectangle to that ratio inside the picture searched.
 
 A request for any other tool is left as written.
 
@@ -77,6 +79,7 @@ class Frames:
             raise Stop(f"{self.executable} --version is {version!r}, and this extension is written for {SUPPORTED_MAJOR}.x")
 
     def ocr(self, picture, color_space, languages):
+        """What `ocr --json` reads in a picture: its size and the lines of its one frame."""
         key = (picture.path, picture.time, picture.page, picture.fps, color_space, languages)
         if key not in self.readings:
             arguments = ["ocr", picture.path, "--json"]
@@ -90,8 +93,17 @@ class Frames:
                 arguments += ["--color-space", color_space]
             if languages is not None:
                 arguments += ["--languages", languages]
-            self.readings[key] = self.report(arguments)["frames"][0]["lines"]
+            report = self.report(arguments)
+            self.readings[key] = Reading(report["size"], report["frames"][0]["lines"])
         return self.readings[key]
+
+
+class Reading:
+    """The lines `ocr` recognises in one picture, and the picture's size, in the pixels the lines are in."""
+
+    def __init__(self, size, lines):
+        self.size = size
+        self.lines = lines
 
 
 def major(version):
@@ -133,8 +145,15 @@ def check_text_form(value, where):
         if key in value and (not isinstance(value[key], int) or isinstance(value[key], bool) or value[key] < 0):
             raise Stop(f"{where}: {key} is a whole number, 0 or more")
     padding = value.get("padding", 0)
-    if not isinstance(padding, (int, float)) or isinstance(padding, bool) or padding < 0:
+    if not is_number(padding) or padding < 0:
         raise Stop(f"{where}: padding is a number, 0 or more")
+    ratio = value.get("aspectRatio", [1, 1])
+    if not isinstance(ratio, list) or len(ratio) != 2 or not all(is_number(part) and part > 0 for part in ratio):
+        raise Stop(f"{where}: aspectRatio is [w, h], two numbers above 0")
+
+
+def is_number(value):
+    return isinstance(value, (int, float)) and not isinstance(value, bool) and value == value and abs(value) != float("inf")
 
 
 def squeeze(text):
@@ -160,8 +179,9 @@ def pick(lines, text, nth, where, source):
     return found[nth]
 
 
-def find(form, lines, where, source):
-    """The rectangle a request names among the lines of one picture, padding included."""
+def find(form, reading, where, source):
+    """The rectangle a request names among the lines of one picture, padding and aspect ratio included."""
+    lines = reading.lines
     if text_form_kind(form) == "text":
         rect = pick(lines, form["text"], form.get("nth"), where, source)["rect"]
     else:
@@ -174,7 +194,30 @@ def find(form, lines, where, source):
         ]
         rect = bounding(rects)
     padding = form.get("padding", 0)
-    return [rounded(rect[0] - padding), rounded(rect[1] - padding), rounded(rect[2] + 2 * padding), rounded(rect[3] + 2 * padding)]
+    rect = [rect[0] - padding, rect[1] - padding, rect[2] + 2 * padding, rect[3] + 2 * padding]
+    if "aspectRatio" in form:
+        rect = fitted(rect, form["aspectRatio"], reading.size, where, source)
+    return [rounded(value) for value in rect]
+
+
+def fitted(rect, ratio, size, where, source):
+    """The part of a rectangle inside a picture of `size`, grown about its centre along one axis to `ratio`, then
+    slid to lie inside the picture."""
+    width, height = size
+    left, top = max(rect[0], 0), max(rect[1], 0)
+    right, bottom = min(rect[0] + rect[2], width), min(rect[1] + rect[3], height)
+    inside = [left, top, right - left, bottom - top]
+    wanted = ratio[0] / ratio[1]
+    if inside[2] / inside[3] < wanted:
+        grown = [inside[3] * wanted, inside[3]]
+    else:
+        grown = [inside[2], inside[2] / wanted]
+    if rounded(grown[0]) > width or rounded(grown[1]) > height:
+        raise Stop(f"{where}: {source} is {number_text(width)}x{number_text(height)}, which holds no rectangle of aspect ratio {number_text(ratio[0])}:{number_text(ratio[1])} around {rect_text(inside)}, the padded text inside it")
+    grown = [min(grown[0], width), min(grown[1], height)]
+    x = min(max(left + inside[2] / 2 - grown[0] / 2, 0), width - grown[0])
+    y = min(max(top + inside[3] / 2 - grown[1] / 2, 0), height - grown[1])
+    return [x, y, grown[0], grown[1]]
 
 
 def bounding(rects):
@@ -559,8 +602,8 @@ def run(arguments):
         rects = []
         for entry, place in zip(found, searched):
             read = picture_of(entry, place, times)
-            lines = frames.ocr(read, times.written(place).value.get("colorSpace"), languages)
-            rects.append(find(entry.form, lines, entry.where, read.describe()))
+            reading = frames.ocr(read, times.written(place).value.get("colorSpace"), languages)
+            rects.append(find(entry.form, reading, entry.where, read.describe()))
     for entry, rect in zip(found, rects):
         entry.holder[entry.key] = rect
     return document
