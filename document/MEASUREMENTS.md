@@ -150,3 +150,21 @@ Supports: the reasons [Alternatives considered](../spec/FRAMES-21/SPEC.md#altern
 - Closing the reader read longest ago with no turns: a render of 64 videos of 320 by 180 pixels shown at once, 240 frames, took 73.1 s that way, 31 s with a reader open on each and 25.0 s with turns, which opened 515 readers again and decoded each of the 15360 frames it read once.
 - Reading ahead up to 32 frames: renders of 16 and 24 videos of 1206 by 2622 pixels shown at once took 31.3 and 70.7 s reading up to 10 frames ahead and 30.8 and 70.0 s reading up to 32, and with up to 32 a render of 64 small videos shown at once had a reader give no frame.
 - Several Metal command queues: a render of 24 videos of 1206 by 2622 pixels took 131 s with four queues against 121 s with one, and 129 s of system time against 90 s.
+
+## FRAMES-28
+
+### The limiter's true peak over its ceiling
+
+Supports: the limiter check of [FRAMES-24](../spec/FRAMES-24/SPEC.md#rules), a `truePeak` at most the ceiling plus 0.05 dB, and the range of `lookahead` from 0.0015 in [Limiter](../spec/FRAMES-28/SPEC.md#limiter).
+
+On: the limiter at a `ceiling` of -1, the output's `truePeak` read by frames' meter from the output's own samples.
+
+Numbers: at a `lookahead` of 0.0015, 0.005 and 0.05 and a `release` of 0.000001, 0.1 and 1, the five signals of the limiter check of FRAMES-24 read at most 0.019 dB over the ceiling, on the noise bursts at a `lookahead` of 0.0015 and a `release` of 0.000001, and under 0.004 dB over it from a `lookahead` of 0.005. Other sounds (sines from 50 Hz to 0.45 of the sample rate, square waves, clicks, white noise and noise bursts up to 50 dB over full scale, and a dense mix 8 dB over full scale, at a `release` from 0.000001 to 1) read at most 0.025 dB over, on white noise 50 dB over full scale at a `lookahead` of 0.0015 and a `release` of 0.000001. With a look-ahead of one sample or none the output read up to 2 dB over the ceiling.
+
+### A limited mix on another meter
+
+Supports: the Note that another meter interpolates otherwise than the four points of the Annex 2 filter.
+
+On: mixes limited by frames' limiter, read with a 16 times interpolator.
+
+Numbers: the mixes read up to 0.23 dB above their ceiling, and the same mixes limited 0.25 dB lower read under the ceiling there.
