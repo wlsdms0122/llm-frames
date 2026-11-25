@@ -387,11 +387,12 @@ struct ContentFitTests {
             // (520, 10), so nothing of it lies above the stroked outline.
             (#"{ "shape": "rect", "area": [400, 0, 100, 50], "stroke": { "width": 64, "end": "frames/arrow" }, "trim": [0, 0.5], "at": [0, 1] }"#, Size(width: 520, height: 206)),
             // Ending 1 below the top right corner at the tip (500, 1), the head's base lies 40 back along the stroke at
-            // (461, 0), so the head runs along the chord between them, a base corner at (461.5, -20.0).
+            // (461, 0), so the head runs along the chord between them, grown to it, a base corner at (461.5, -19.5).
             (#"{ "shape": "rect", "area": [400, 0, 100, 50], "stroke": { "width": 64, "end": "frames/arrow" }, "trim": [0, 0.3366666666666667], "at": [0, 1] }"#, Size(width: 506, height: 220)),
             // A fifth of the way round from its top, the ellipse's head runs along the chord from its base 40 back
-            // along the curve, at (458.4, 0.4), to its tip at (495.1, 14.2), a base corner at (465.5, -18.3).
-            (#"{ "shape": "ellipse", "area": [400, 0, 100, 50], "stroke": { "width": 64, "end": "frames/arrow" }, "trim": [0, 0.2], "at": [0, 1] }"#, Size(width: 506, height: 220)),
+            // along the curve, at (458.4, 0.4), to its tip at (495.1, 14.2), 39.3 long, so the head is 39.3 / 40 of its
+            // size on a straight end and a base corner lies at (465.4, -18.0).
+            (#"{ "shape": "ellipse", "area": [400, 0, 100, 50], "stroke": { "width": 64, "end": "frames/arrow" }, "trim": [0, 0.2], "at": [0, 1] }"#, Size(width: 506, height: 218)),
             (#"{ "shape": "path", "points": [[400, 0], [400, 100]], "stroke": { "width": 64 }, "at": [0, 1] }"#, Size(width: 406, height: 206)),
             (#"{ "shape": "path", "points": [[400, 0], [400, 100]], "stroke": { "width": 64, "end": "frames/arrow" }, "at": [0, 1] }"#, Size(width: 420, height: 206)),
             // At scale 2 the arrowhead is 80 long and 80 wide, and a bar is 40 across the end.

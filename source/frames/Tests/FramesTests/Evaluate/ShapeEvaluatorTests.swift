@@ -265,17 +265,18 @@ struct ShapeEvaluatorTests {
 
     // The rect is 40 by 20 at (40, 20), so its outline is 120 long. A stroke 4 wide grows the box by half its width,
     // and an arrowhead 16 long and wide is added where it lies: at the bottom right corner, pointing down, half a trim
-    // along, and 1 below the top right corner, with its base 16 above the tip and so above the box, at 41 / 120.
+    // along, and 1 below the top right corner at 41 / 120, where a corner of its base lies above the box.
     @Test(
         "a closed rect's arrowhead adds its own box to the receiver box only where a trim leaves part of its outline undrawn",
         arguments: [
             (Trim.whole, Rectangle(x: 38, y: 18, width: 44, height: 24)),
             (Trim(start: 0, end: 0.5), Rectangle(x: 38, y: 18, width: 50, height: 24)),
-            // Ending 1 below the top right corner at (80, 21), the head runs along the chord from its base 16 back
-            // along the stroke at (65, 20), its upper base corner 8 across the chord, 120 / √226 above the top edge.
+            // Ending 1 below the top right corner at (80, 21), the head runs along the chord (15, 1) from its base 16
+            // back along the stroke at (65, 20), grown to √226 / 4 a unit, so its upper base corner lies 2 units, half
+            // the chord, across it at (65.5, 12.5), 7.5 above the top edge.
             (
                 Trim(start: 0, end: 41.0 / 120),
-                Rectangle(x: 38, y: 20 - 120 / 226.0.squareRoot(), width: 44, height: 22 + 120 / 226.0.squareRoot())
+                Rectangle(x: 38, y: 12.5, width: 44, height: 29.5)
             )
         ]
     )

@@ -298,7 +298,7 @@ struct DisplayListReaderTests {
         (["1", "4", "stroke", "cap"], #""round""#, "samples[1][4].stroke.cap (path)"),
         (["1", "4", "stroke", "end"], #"{ "vertices": [[-4, 2], [0, 0], [-4, -2]], "inTangents": [[0, 0], [0, 0], [0, 0]], "outTangents": [[0, 0], [0, 0], [0, 0]], "length": 4, "inset": 4, "scale": 1 }"#, "samples[1][4].stroke.end (path)"),
         (["1", "5", "stroke", "end", "inset"], "2", "samples[1][5].stroke.end.inset (path)"),
-        (["1", "5", "stroke", "end", "vertices", "0"], "[-4, 1]", "samples[1][5].stroke.end.vertices[0] (path)"),
+        (["1", "5", "stroke", "end", "vertices", "0"], "[-4, 1]", "samples[1][5].stroke.end.vertices[0][1] (path)"),
         (["1", "4", "stroke", "dash"], "[2, 2]", "samples[1][4].stroke.dash (path)"),
         (["1", "6", "runs", "0", "file"], #""/abs/Other.ttf""#, "samples[1][6].runs[0].file (glyphs)"),
         (["1", "6", "runs", "0", "face"], #""Inter-Regular""#, "samples[1][6].runs[0].face (glyphs)"),
