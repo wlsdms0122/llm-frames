@@ -56,7 +56,7 @@ struct ArgumentScannerTests {
     @Test(
         "an unknown option, a missing value, a repeated option, an extra argument and a relative path stop, naming the command",
         arguments: [
-            (["/abs/doc.json", "--fps", "30"], #"render: unknown option "--fps". Allowed: -o, --at, --deliver, --args"#),
+            (["/abs/doc.json", "--fps", "30"], #"render: unknown option "--fps". Allowed: -o, --at, --deliver, --args, --report, --progress"#),
             (["/abs/doc.json", "-o"], "render: -o takes a value, <out.mov | out.mp4 | out.png>"),
             (["/abs/doc.json", "-o", "/abs/a.mov", "-o", "/abs/b.mov"], "render: -o is given more than once"),
             (["/abs/doc.json", "/abs/other.json", "-o", "/abs/a.mov"], #"render: unexpected argument "/abs/other.json""#),
