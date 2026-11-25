@@ -398,6 +398,29 @@ class Reading(unittest.TestCase):
             "ocr", "/media/deck.pdf", "--json", "--page", "3", "--color-space", "display-p3", "--languages", "ko-KR,en-US"
         ]])
 
+    def test_failed_command(self):
+        # Given a frames that stops on every command, run with a theme and without
+        directory = tempfile.mkdtemp(prefix="frames-find-text-test-")
+        self.addCleanup(shutil.rmtree, directory, True)
+        executable = os.path.join(directory, "frames")
+        with open(executable, "w", encoding="utf-8") as file:
+            file.write('#!/bin/sh\necho \'frames: shape style "outline" is not in shapes\' >&2\nexit 1\n')
+        os.chmod(executable, 0o755)
+
+        # When each runs timeline
+        messages = []
+        for options in (["--theme", "shorts/shorts", "--ocr", "vision"], []):
+            with self.assertRaises(extension.Stop) as raised:
+                extension.Frames(executable, options).report(["timeline", "/tmp/a b/document.json", "--json"])
+            messages.append(str(raised.exception))
+
+        # Then each names the command line it ran, its global options included, and what frames said
+        self.assertEqual(messages, [
+            f"{executable} --theme shorts/shorts --ocr vision timeline '/tmp/a b/document.json' --json failed: "
+            'frames: shape style "outline" is not in shapes',
+            f"{executable} timeline '/tmp/a b/document.json' --json failed: frames: shape style \"outline\" is not in shapes"
+        ])
+
     def test_options(self):
         # Given the global options frames passes before the extension's arguments
         # When they are parsed
