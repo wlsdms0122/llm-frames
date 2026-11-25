@@ -243,7 +243,7 @@ struct MixPlanReaderTests {
 
         // Then
         #expect(segment?.keys == ["media", "mediaStart", "speed", "start", "end", "filter", "envelope", "pan"])
-        #expect(band?.objectValue?.keys == ["type", "frequency", "q"])
+        #expect(band?.objectValue?.keys == ["kind", "frequency", "q"])
         #expect(band?.objectValue?["frequency"] == .array([.array([.number(0), .number(80)]), .array([.number(1), .number(160)])]))
         #expect(band?.objectValue?["q"] == .number(0.7071))
         #expect(entries?[1].objectValue?["mix"]?.arrayValue?.count == 3)
@@ -259,8 +259,8 @@ struct MixPlanReaderTests {
         let limiter = segment?["filter"]?.arrayValue?.last?.objectValue?["ops"]?.arrayValue?.first?.objectValue
 
         // Then
-        #expect(limiter?.keys == ["op", "gain", "ceiling", "lookahead", "release"])
-        #expect(limiter?["op"] == .string("limiter"))
+        #expect(limiter?.keys == ["kind", "gain", "ceiling", "lookahead", "release"])
+        #expect(limiter?["kind"] == .string("limiter"))
         #expect(limiter?["gain"] == .array([.array([.number(0), .number(0)]), .array([.number(3), .number(4.5)])]))
         #expect(limiter?["ceiling"] == .number(-1) && limiter?["lookahead"] == .number(0.005))
     }
@@ -275,8 +275,8 @@ struct MixPlanReaderTests {
         let convolution = segment?["filter"]?.arrayValue?.last?.objectValue?["ops"]?.arrayValue?.last?.objectValue
 
         // Then
-        #expect(convolution?.keys == ["op", "file", "sha256", "gain"])
-        #expect(convolution?["op"] == .string("convolve"))
+        #expect(convolution?.keys == ["kind", "file", "sha256", "gain"])
+        #expect(convolution?["kind"] == .string("convolve"))
         #expect(convolution?["file"] == .string("/abs/hall.wav"))
         #expect(convolution?["sha256"] == .string(Self.impulseResponseHash))
         #expect(convolution?["gain"] == .number(-6))
@@ -286,19 +286,19 @@ struct MixPlanReaderTests {
         "a filter entry, op or band written in a form the writer never writes stops, naming its place",
         arguments: [
             (
-                #""type": "highPass","#,
-                #""type": "notch","#,
-                #"segments[0].filter[0].ops[0].bands[0].type (band): unknown value "notch". Allowed: lowShelf, highShelf, peak, lowPass, highPass"#
+                #""kind": "highPass","#,
+                #""kind": "notch","#,
+                #"segments[0].filter[0].ops[0].bands[0].kind (band): unknown value "notch". Allowed: lowShelf, highShelf, peak, lowPass, highPass"#
             ),
             (
-                #""type": "highPass","#,
-                #""type": "highPass", "gain": 3,"#,
-                #"segments[0].filter[0].ops[0].bands[0] (highPass band): unknown key "gain". Allowed: type, frequency, q"#
+                #""kind": "highPass","#,
+                #""kind": "highPass", "gain": 3,"#,
+                #"segments[0].filter[0].ops[0].bands[0] (highPass band): unknown key "gain". Allowed: kind, frequency, q"#
             ),
             (
-                #""op": "compressor","#,
-                #""op": "saturator","#,
-                #"segments[0].filter[0].ops[1].op (audio op): unknown value "saturator". Allowed: eq, compressor, gate, limiter, convolve"#
+                #""kind": "compressor","#,
+                #""kind": "saturator","#,
+                #"segments[0].filter[0].ops[1].kind (audio op): unknown value "saturator". Allowed: eq, compressor, gate, limiter, convolve"#
             ),
             (
                 #""lookahead": 0.005"#,
@@ -306,14 +306,14 @@ struct MixPlanReaderTests {
                 #"segments[0].filter[2].ops[0].lookahead (limiter): expected a number, found a list of 1"#
             ),
             (
-                #""op": "limiter","#,
-                #""op": "limiter", "threshold": -1,"#,
-                #"segments[0].filter[2].ops[0] (limiter): unknown key "threshold". Allowed: op, gain, ceiling, lookahead, release"#
+                #""kind": "limiter","#,
+                #""kind": "limiter", "threshold": -1,"#,
+                #"segments[0].filter[2].ops[0] (limiter): unknown key "threshold". Allowed: kind, gain, ceiling, lookahead, release"#
             ),
             (
-                #""op": "convolve","#,
-                #""op": "convolve", "threshold": -1,"#,
-                #"segments[0].filter[2].ops[1] (convolve): unknown key "threshold". Allowed: op, file, sha256, gain"#
+                #""kind": "convolve","#,
+                #""kind": "convolve", "threshold": -1,"#,
+                #"segments[0].filter[2].ops[1] (convolve): unknown key "threshold". Allowed: kind, file, sha256, gain"#
             ),
             (
                 #""sha256": "\#(impulseResponseHash)","#,
@@ -326,9 +326,9 @@ struct MixPlanReaderTests {
                 #"segments[0].filter[2].ops[1].gain (convolve): expected a number or a list of [time, value] points, found "loud""#
             ),
             (
-                #""op": "compressor","#,
-                #""op": "compressor", "hold": 0,"#,
-                #"segments[0].filter[0].ops[1] (compressor): unknown key "hold". Allowed: op, threshold, ratio, knee, attack, release, makeup"#
+                #""kind": "compressor","#,
+                #""kind": "compressor", "hold": 0,"#,
+                #"segments[0].filter[0].ops[1] (compressor): unknown key "hold". Allowed: kind, threshold, ratio, knee, attack, release, makeup"#
             ),
             (
                 #""threshold": -18,"#,
