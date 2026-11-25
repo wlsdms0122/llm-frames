@@ -130,7 +130,7 @@ package struct Evaluator: Sendable {
         // A null is stacked in no lane, since it draws nothing.
         sequence.clips.enumerated()
             .compactMap { offset, clip -> (lane: Int, offset: Int, clip: ResolvedClip)? in
-                guard case let .picture(_, composite) = clip.content else { return nil }
+                guard let composite = clip.composite else { return nil }
 
                 return (composite.lane, offset, clip)
             }
@@ -215,7 +215,7 @@ package struct Evaluator: Sendable {
         at sample: SampleInstant,
         seed: Int
     ) -> PictureItemSource? {
-        guard case let .picture(.media(media), _) = clip.content else { return nil }
+        guard case let .picture(.media(media), _, _) = clip.content else { return nil }
 
         return source(
             of: media.media,

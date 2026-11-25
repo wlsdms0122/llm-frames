@@ -45,7 +45,7 @@ struct ShapeEvaluatorTests {
         let shape = try #require(resolvedShape(of: clip))
 
         // When
-        let items = sut.items(of: shape, clip: clip, sample: ClipSample(clip: clip, at: SampleTime(1)), composite: Self.composite, in: parent, at: SampleTime(1))
+        let items = sut.items(of: shape, clip: clip, placed: placedTransform(of: clip), sample: ClipSample(clip: clip, at: SampleTime(1)), composite: Self.composite, in: parent, at: SampleTime(1))
 
         // Then
         let item = try #require(items.first)
@@ -76,6 +76,7 @@ struct ShapeEvaluatorTests {
         let items = sut.items(
             of: shape,
             clip: clip,
+            placed: placedTransform(of: clip),
             sample: ClipSample(clip: clip, at: SampleTime(1)),
             composite: Self.composite,
             in: ClipSpace(frame: Self.frame),
@@ -100,7 +101,7 @@ struct ShapeEvaluatorTests {
         let shape = try #require(resolvedShape(of: clip))
 
         // When
-        let item = try #require(sut.items(of: shape, clip: clip, sample: ClipSample(clip: clip, at: SampleTime(1)), composite: Self.composite, in: space, at: SampleTime(1))
+        let item = try #require(sut.items(of: shape, clip: clip, placed: placedTransform(of: clip), sample: ClipSample(clip: clip, at: SampleTime(1)), composite: Self.composite, in: space, at: SampleTime(1))
             .first)
 
         // Then
@@ -132,7 +133,7 @@ struct ShapeEvaluatorTests {
         let clip = clip(shape, box: nil, rotation: 90)
 
         // When
-        let item = try #require(sut.items(of: shape, clip: clip, sample: ClipSample(clip: clip, at: SampleTime(1)), composite: Self.composite, in: space, at: SampleTime(1))
+        let item = try #require(sut.items(of: shape, clip: clip, placed: placedTransform(of: clip), sample: ClipSample(clip: clip, at: SampleTime(1)), composite: Self.composite, in: space, at: SampleTime(1))
             .first)
 
         // Then
@@ -154,7 +155,7 @@ struct ShapeEvaluatorTests {
         let clip = clip(shape, box: box, rotation: 90)
 
         // When
-        let item = try #require(sut.items(of: shape, clip: clip, sample: ClipSample(clip: clip, at: SampleTime(1)), composite: Self.composite, in: space, at: SampleTime(1))
+        let item = try #require(sut.items(of: shape, clip: clip, placed: placedTransform(of: clip), sample: ClipSample(clip: clip, at: SampleTime(1)), composite: Self.composite, in: space, at: SampleTime(1))
             .first)
 
         // Then
@@ -180,7 +181,7 @@ struct ShapeEvaluatorTests {
         let clip = clip(shape, box: box)
 
         // When
-        let item = try #require(sut.items(of: shape, clip: clip, sample: ClipSample(clip: clip, at: SampleTime(1)), composite: Self.composite, in: space, at: SampleTime(1))
+        let item = try #require(sut.items(of: shape, clip: clip, placed: placedTransform(of: clip), sample: ClipSample(clip: clip, at: SampleTime(1)), composite: Self.composite, in: space, at: SampleTime(1))
             .first)
 
         // Then
@@ -204,7 +205,7 @@ struct ShapeEvaluatorTests {
         let shape = try #require(resolvedShape(of: clip))
 
         // When
-        let item = try #require(sut.items(of: shape, clip: clip, sample: ClipSample(clip: clip, at: SampleTime(0.25)), composite: Self.composite, in: space, at: SampleTime(0.25))
+        let item = try #require(sut.items(of: shape, clip: clip, placed: placedTransform(of: clip), sample: ClipSample(clip: clip, at: SampleTime(0.25)), composite: Self.composite, in: space, at: SampleTime(0.25))
             .first)
 
         // Then
@@ -248,7 +249,7 @@ struct ShapeEvaluatorTests {
         let clip = clip(shape, box: nil)
 
         // When
-        let item = try #require(sut.items(of: shape, clip: clip, sample: ClipSample(clip: clip, at: SampleTime(1)), composite: Self.composite, in: parent, at: SampleTime(1))
+        let item = try #require(sut.items(of: shape, clip: clip, placed: placedTransform(of: clip), sample: ClipSample(clip: clip, at: SampleTime(1)), composite: Self.composite, in: parent, at: SampleTime(1))
             .first)
 
         // Then
@@ -303,7 +304,7 @@ struct ShapeEvaluatorTests {
         let clip = clip(shape, box: nil, entrance: entrance)
 
         // When
-        let item = try #require(sut.items(of: shape, clip: clip, sample: ClipSample(clip: clip, at: SampleTime(0.25)), composite: Self.composite, in: space, at: SampleTime(0.25))
+        let item = try #require(sut.items(of: shape, clip: clip, placed: placedTransform(of: clip), sample: ClipSample(clip: clip, at: SampleTime(0.25)), composite: Self.composite, in: space, at: SampleTime(0.25))
             .first)
 
         // Then
@@ -342,7 +343,7 @@ struct ShapeEvaluatorTests {
         let clip = clip(shape, box: nil, scale: scale)
 
         // When
-        let item = try #require(sut.items(of: shape, clip: clip, sample: ClipSample(clip: clip, at: SampleTime(1)), composite: Self.composite, in: space, at: SampleTime(1)).first)
+        let item = try #require(sut.items(of: shape, clip: clip, placed: placedTransform(of: clip), sample: ClipSample(clip: clip, at: SampleTime(1)), composite: Self.composite, in: space, at: SampleTime(1)).first)
 
         // Then
         guard case let .path(path) = item.content, let drawn = path.stroke else {
@@ -369,7 +370,7 @@ struct ShapeEvaluatorTests {
         let clip = clip(shape, box: nil)
 
         // When
-        let items = sut.items(of: shape, clip: clip, sample: ClipSample(clip: clip, at: SampleTime(1)), composite: Self.composite, in: space, at: SampleTime(1))
+        let items = sut.items(of: shape, clip: clip, placed: placedTransform(of: clip), sample: ClipSample(clip: clip, at: SampleTime(1)), composite: Self.composite, in: space, at: SampleTime(1))
 
         // Then
         #expect(items.first?.content == .path(PathItem(geometry: .ellipse(Self.area), fill: nil, stroke: Self.stroke)))
@@ -388,8 +389,8 @@ struct ShapeEvaluatorTests {
         let sample = ClipSample(clip: clip, at: SampleTime(1))
 
         // When
-        let items = sut.items(of: shape, clip: clip, sample: sample, composite: Self.composite, in: space, at: SampleTime(1))
-        let children = sut.transform(of: shape, clip: clip, sample: sample, in: space, at: SampleTime(1))
+        let items = sut.items(of: shape, clip: clip, placed: placedTransform(of: clip), sample: sample, composite: Self.composite, in: space, at: SampleTime(1))
+        let children = sut.transform(of: shape, clip: clip, placed: placedTransform(of: clip), sample: sample, in: space, at: SampleTime(1))
 
         // Then
         #expect(items.isEmpty)
@@ -431,6 +432,7 @@ struct ShapeEvaluatorTests {
         let items = sut.items(
             of: shape,
             clip: clip,
+            placed: placedTransform(of: clip),
             sample: ClipSample(clip: clip, at: SampleTime(1)),
             composite: Self.composite,
             in: ClipSpace(frame: Self.frame),
@@ -467,9 +469,18 @@ struct ShapeEvaluatorTests {
     }
 
     private func resolvedShape(of clip: ResolvedClip) -> ResolvedShape? {
-        guard case let .picture(.shape(shape), _) = clip.content else { return nil }
+        guard case let .picture(.shape(shape), _, _) = clip.content else { return nil }
 
         return shape
+    }
+
+    // The transform a shape clip of these tests is placed by, the identity where it has none.
+    private func placedTransform(of clip: ResolvedClip) -> ResolvedTransform {
+        guard case let .picture(_, .transform(transform), _) = clip.content else {
+            return ResolvedTransform(box: nil, scale: [Keyframe(at: 0, value: .identity)], rotation: [Keyframe(at: 0, value: 0)])
+        }
+
+        return transform
     }
 
     // A stroked shape with a shadow, corners of radius 2, by each placement.
@@ -559,16 +570,15 @@ struct ShapeEvaluatorTests {
         ResolvedClip(
             place: "clips[0]",
             id: nil,
-            content: .picture(.shape(shape), Self.composite),
+            content: .picture(.shape(shape), .transform(ResolvedTransform(
+                box: box,
+                scale: [Keyframe(at: 0, value: scale ?? .identity)],
+                rotation: [Keyframe(at: 0, value: rotation ?? 0)]
+            )), Self.composite),
             start: 0,
             end: 4,
             storyline: nil,
             parent: nil,
-            placement: .transform(ResolvedTransform(
-                box: box,
-                scale: [Keyframe(at: 0, value: scale ?? .identity)],
-                rotation: [Keyframe(at: 0, value: rotation ?? 0)]
-            )),
             track: nil,
             animation: ResolvedAnimation(entrance: entrance, loop: nil, exit: nil, units: nil)
         )

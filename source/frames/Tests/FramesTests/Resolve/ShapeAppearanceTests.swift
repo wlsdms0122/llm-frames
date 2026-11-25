@@ -347,7 +347,10 @@ struct ShapeAppearanceTests {
         let clips = try ResolvedSequence(plan: plan(document), hashes: FileHashTable()).clips
 
         // Then
-        guard case let .picture(.shape(rect), _) = clips[0].content, case let .picture(.shape(path), _) = clips[1].content else {
+        guard
+            case let .picture(.shape(rect), _, _) = clips[0].content,
+            case let .picture(.shape(path), .transform(pathTransform), _) = clips[1].content
+        else {
             Issue.record("both clips are shapes")
             return
         }
@@ -359,7 +362,7 @@ struct ShapeAppearanceTests {
         #expect(points.map(\.vertex.values) == [[.point(Point(x: 10, y: 20))], [.point(total.point(named: "left"))]])
         #expect(isClosed)
         #expect(placement.anchor == nil)
-        #expect(clips[1].box == nil)
+        #expect(pathTransform.box == nil)
     }
 
     // MARK: - Private
@@ -395,7 +398,7 @@ struct ShapeAppearanceTests {
 
     private func resolvedShape(_ clip: String) throws -> ResolvedShape {
         let clips = try ResolvedSequence(plan: plan(document(clip)), hashes: FileHashTable()).clips
-        guard case let .picture(.shape(shape), _) = clips.first?.content else {
+        guard case let .picture(.shape(shape), _, _) = clips.first?.content else {
             Issue.record("the clip is a shape")
             return ResolvedShape(area: [], fill: nil)
         }

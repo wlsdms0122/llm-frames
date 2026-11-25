@@ -1,15 +1,20 @@
 //
-//  ResolvedPlacement.swift
+//  ResolvedPicturePlacement.swift
 //  Frames
 //
 //  Created by JSilver on 11/25/26.
 //
 
-// How a connected clip is placed in its parent's space: by a transform, by a corner pin, or, for an adjustment, by its
-// box alone. A title, a shape and a media clip are placed by a transform or a corner pin, a null by a transform, and an
-// adjustment, which is neither scaled nor rotated, by its box or over the whole frame where it has none (FRAMES-27).
-enum ResolvedPlacement: Equatable, Sendable {
+// How a title, a shape or a media clip is placed in its parent's space: by a transform, or by a corner pin, which
+// places it instead (FRAMES-27). A shape placed by its geometry is placed by a transform without a box. Resolve gives a
+// corner pin only to a title, a media clip, and a rect or an ellipse given by `width` and `height`; the resolved reader
+// also takes a path with a corner pin, which then draws nothing.
+enum ResolvedPicturePlacement: Equatable, Sendable {
     case transform(ResolvedTransform)
     case cornerPin(ResolvedCornerPin)
-    case box(ResolvedBox?)
+
+    // MARK: - Property
+    // MARK: - Initializer
+    // MARK: - Public
+    // MARK: - Private
 }

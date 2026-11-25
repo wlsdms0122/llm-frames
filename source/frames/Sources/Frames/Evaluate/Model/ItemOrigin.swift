@@ -26,16 +26,16 @@ package struct ItemOrigin: Equatable, Sendable {
 
     init(clip: ResolvedClip) {
         let kind: ClipKind = switch clip.content {
-        case .picture(.title, _):
+        case .picture(.title, _, _):
             .title
 
-        case let .picture(.shape(shape), _):
+        case let .picture(.shape(shape), _, _):
             .shape(shape.kind.rawValue)
 
-        case .picture(.adjustment, _):
+        case .adjustment:
             .adjust
 
-        case let .picture(.media(media), _):
+        case let .picture(.media(media), _, _):
             .media(Self.kind(of: media.media))
 
         case .null:

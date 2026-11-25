@@ -124,28 +124,29 @@ struct ResolvedSequenceWriter: Sendable {
     // or blend.
     private func clip(_ clip: ResolvedClip) -> JSONValue {
         let number = { (keyframes: [Keyframe<Double>]) in values.numbers(keyframes) }
-        let isAdjustment = if case .picture(.adjustment, _) = clip.content { true } else { false }
+        let isAdjustment = if case .adjustment = clip.content { true } else { false }
+        let placed = placed(clip.content)
         let scaleAndRotation = isAdjustment ? [] : [
-            JSONMember(key: "scale", value: clip.scale.map(values.scales) ?? .null),
-            JSONMember(key: "rotation", value: clip.rotation.map(number) ?? .null)
+            JSONMember(key: "scale", value: placed.transform.map { values.scales($0.scale) } ?? .null),
+            JSONMember(key: "rotation", value: placed.transform.map { number($0.rotation) } ?? .null)
         ]
-        let cornerPin = clip.cornerPin.map { pin in
+        let cornerPin = placed.cornerPin.map { pin in
             values.followed(pin.points) { points in .array(points.corners.map(values.geometryPoint)) }
         }
         let placement: GeometryPlacement? = switch clip.content {
-        case let .picture(.shape(shape), _):
+        case let .picture(.shape(shape), _, _):
             shape.geometry.placement
 
         case let .null(null):
             null.geometry.shape.placement
 
-        case .picture:
+        case .picture, .adjustment:
             nil
         }
-        let position = clip.box?.position ?? placement?.position
-        let anchor = clip.box.map { values.point($0.anchor) } ?? placement?.anchor.map(values.geometryAnchor)
+        let position = placed.box?.position ?? placement?.position
+        let anchor = placed.box.map { values.point($0.anchor) } ?? placement?.anchor.map(values.geometryAnchor)
         let box = [
-            JSONMember(key: "size", value: (clip.box?.size ?? clip.cornerPin?.size).map(values.size) ?? .null),
+            JSONMember(key: "size", value: (placed.box?.size ?? placed.cornerPin?.size).map(values.size) ?? .null),
             JSONMember(key: "position", value: position.map { values.followed($0, value: values.geometryPoint) } ?? .null),
             JSONMember(key: "anchor", value: anchor ?? .null)
         ]
@@ -168,22 +169,31 @@ struct ResolvedSequenceWriter: Sendable {
             JSONMember(key: "animation", value: values.animation(clip.animation))
         ]
 
-        switch clip.content {
-        case let .picture(picture, composite):
-            let geometry = box + (isAdjustment ? [] : [JSONMember(key: "cornerPin", value: cornerPin ?? .null)]) + [
-                JSONMember(key: "crop", value: crop(of: picture).map(crops) ?? .null),
+        // A picture and an adjustment write their content, their crop and their corner pin where they take one.
+        let drawn = { (content: [JSONMember], cornerPin: [JSONMember], crop: FollowedValue<Crop>?, composite: ResolvedComposite) in
+            let geometry = box + cornerPin + [
+                JSONMember(key: "crop", value: crop.map(crops) ?? .null),
                 JSONMember(key: "mask", value: values.masks(composite.mask)),
                 JSONMember(key: "trackMatte", value: composite.trackMatte.map(trackMatte) ?? .null),
                 track
             ]
 
-            return .object(JSONObject(members: head + content(picture) + window + [
+            return JSONValue.object(JSONObject(members: head + content + window + [
                 JSONMember(key: "lane", value: .number(Double(composite.lane)))
             ] + parent + geometry + [
                 JSONMember(key: "opacity", value: number(composite.opacity))
             ] + scaleAndRotation + [
                 JSONMember(key: "blend", value: .string(composite.blend))
             ] + tail))
+        }
+
+        switch clip.content {
+        case let .picture(picture, _, composite):
+            let pin = [JSONMember(key: "cornerPin", value: cornerPin ?? .null)]
+            return drawn(content(picture), pin, crop(of: picture), composite)
+
+        case let .adjustment(filter, _, composite):
+            return drawn([JSONMember(key: "adjust", value: values.timed(filter))], [], nil, composite)
 
         case let .null(null):
             return .object(JSONObject(
@@ -198,19 +208,39 @@ struct ResolvedSequenceWriter: Sendable {
         return media.crop
     }
 
+    // How a clip is placed, in the keys its entry writes: the transform of anything drawn but an adjustment where no
+    // corner pin places it, with the box it holds, the corner pin of a picture one places, and an adjustment's box.
+    private func placed(
+        _ content: ResolvedClipContent
+    ) -> (transform: ResolvedTransform?, cornerPin: ResolvedCornerPin?, box: ResolvedBox?) {
+        switch content {
+        case let .picture(_, .transform(transform), _):
+            (transform, nil, transform.box)
+
+        case let .null(null):
+            (null.transform, nil, null.transform.box)
+
+        case let .picture(_, .cornerPin(cornerPin), _):
+            (nil, cornerPin, nil)
+
+        case let .adjustment(_, box, _):
+            (nil, nil, box)
+        }
+    }
+
     // The clip's kind as its document names it.
     private func kind(of content: ResolvedClipContent) -> String {
         switch content {
-        case .picture(.title, _):
+        case .picture(.title, _, _):
             "title"
 
-        case let .picture(.shape(shape), _):
+        case let .picture(.shape(shape), _, _):
             shape.kind.rawValue
 
-        case .picture(.adjustment, _):
+        case .adjustment:
             "adjustment"
 
-        case .picture(.media, _):
+        case .picture(.media, _, _):
             "media"
 
         case .null:
@@ -225,9 +255,6 @@ struct ResolvedSequenceWriter: Sendable {
 
         case let .shape(shape):
             return self.shape(shape)
-
-        case let .adjustment(filter):
-            return [JSONMember(key: "adjust", value: values.timed(filter))]
 
         case let .media(clip):
             let timing = clip.timing.map(self.timing) ?? []

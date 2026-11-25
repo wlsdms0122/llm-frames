@@ -6,7 +6,9 @@
 //
 
 // A clip placed by its box and moved by `scale` and `rotation`, keyframes in sequence time. `box` is nil for a shape
-// or a null placed by its geometry, which carries its placement, and for a title or a media clip that fills the frame.
+// placed by its area or its points and for a null placed by its area, whose geometry carries where it goes. Resolve
+// gives every title, media clip, and rect, ellipse or null given by `width` and `height` a box; the resolved reader also
+// takes a title or a media clip whose `size`, `position` and `anchor` are all null, which then draws nothing.
 struct ResolvedTransform: Equatable, Sendable {
     // MARK: - Property
     let box: ResolvedBox?

@@ -10,7 +10,7 @@ extension ResolvedClip {
     // MARK: - Property
     // Nil for a clip not animated by unit.
     var unitSchedule: UnitSchedule? {
-        guard case let .picture(.title(text), _) = content, let units = text.units, let stagger = animation.units else {
+        guard case let .picture(.title(text), _, _) = content, let units = text.units, let stagger = animation.units else {
             return nil
         }
 

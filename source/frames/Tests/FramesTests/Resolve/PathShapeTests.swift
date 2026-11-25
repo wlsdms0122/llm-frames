@@ -152,7 +152,7 @@ struct PathShapeTests {
             """#)
 
         // Then
-        guard case let .picture(.shape(shape), _) = clips[1].content, case let .points(vertices, _, _) = shape.geometry else {
+        guard case let .picture(.shape(shape), _, _) = clips[1].content, case let .points(vertices, _, _) = shape.geometry else {
             Issue.record("the second clip is a path")
             return
         }
@@ -195,7 +195,7 @@ struct PathShapeTests {
             { "kind": "rect", "area": { "clip": "curve" }, "fill": "accent", "at": [0, 1] }
             """#)), hashes: FileHashTable())
         let rect = sequence.clips[1]
-        guard case let .picture(.shape(shape), _) = rect.content, case let .area(area, _, _) = shape.geometry, let value = area.values.first else {
+        guard case let .picture(.shape(shape), _, _) = rect.content, case let .area(area, _, _) = shape.geometry, let value = area.values.first else {
             Issue.record("the rect is placed by its area")
             return
         }
@@ -247,7 +247,7 @@ struct PathShapeTests {
     }
 
     private func resolvedShape(_ clip: String) throws -> ResolvedShape {
-        guard case let .picture(.shape(shape), _) = try resolvedClips(clip).first?.content else {
+        guard case let .picture(.shape(shape), _, _) = try resolvedClips(clip).first?.content else {
             Issue.record("the clip is a shape")
             return ResolvedShape(area: [], fill: nil)
         }

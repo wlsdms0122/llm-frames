@@ -19,8 +19,7 @@ extension ResolvedClip {
     var ownTrackedMedia: PinnedMedia? {
         guard
             track != nil,
-            cornerPin == nil,
-            case let .picture(.media(media), _) = content,
+            case let .picture(.media(media), .transform, _) = content,
             case let .pinned(pinned) = media.media,
             pinned.frameTimes != nil
         else {
@@ -36,13 +35,6 @@ extension ResolvedClip {
 
     // MARK: - Initializer
     // MARK: - Public
-    // A media clip's crop in its media pixels, nil for any other clip, which shows no media.
-    func crop(at time: SampleTime) -> Rectangle? {
-        guard case let .picture(.media(media), _) = content else { return nil }
-
-        return crop(of: media, at: time)
-    }
-
     // The crop in its media pixels of `media`, the clip's own picture, where its track moves it.
     func crop(
         of media: ResolvedMediaClip,

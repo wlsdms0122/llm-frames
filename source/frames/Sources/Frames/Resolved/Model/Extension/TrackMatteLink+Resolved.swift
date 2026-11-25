@@ -29,13 +29,13 @@ extension TrackMatteLink {
         kind: PlaceKind
     ) {
         let refusal: TrackMatteRefusal? = switch clip.content {
-        case .picture(.adjustment, _):
+        case .adjustment:
             .adjustment
 
         case .null:
             .null
 
-        case .picture(.title, _), .picture(.shape, _), .picture(.media, _):
+        case .picture(.title, _, _), .picture(.shape, _, _), .picture(.media, _, _):
             nil
         }
 

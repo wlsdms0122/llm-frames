@@ -112,7 +112,7 @@ struct TrackFrameTests {
 
         // Then
         let clip = try #require(read.clips.first { $0.id == "tracked" })
-        guard case let .picture(.shape(shape), _) = clip.content, case let .points(vertices, _, _) = shape.geometry else {
+        guard case let .picture(.shape(shape), _, _) = clip.content, case let .points(vertices, _, _) = shape.geometry else {
             Issue.record("the tracked clip is a path")
             return
         }
@@ -204,7 +204,7 @@ struct TrackFrameTests {
         of id: String,
         in sequence: ResolvedSequence
     ) -> FollowedValue<GeometryArea>? {
-        guard let clip = sequence.clips.first(where: { $0.id == id }), case let .picture(.shape(shape), _) = clip.content,
+        guard let clip = sequence.clips.first(where: { $0.id == id }), case let .picture(.shape(shape), _, _) = clip.content,
               case let .area(area, _, _) = shape.geometry else { return nil }
 
         return area

@@ -1016,8 +1016,8 @@ struct EvaluatorTests {
     @Test("a parented adjustment is an item above the storyline picture, its mask carried by its parent's map")
     func carriesParentedAdjustment() throws {
         // Given
-        let adjustment = clip(
-            .adjustment(.filter([.blur(radius: 3)])),
+        let adjustment = adjustment(
+            .filter([.blur(radius: 3)]),
             storyline: 0,
             parent: "shot",
             mask: [ResolvedMask(
@@ -1059,8 +1059,8 @@ struct EvaluatorTests {
             SpanKey(t: 0, values: [.reveal: 0]),
             SpanKey(t: 1, values: [.reveal: 1])
         ]))
-        let adjustment = clip(
-            .adjustment(.filter([.blur(radius: 2)])),
+        let adjustment = adjustment(
+            .filter([.blur(radius: 2)]),
             storyline: 0,
             animation: ResolvedAnimation(entrance: entrance, loop: nil, exit: nil, units: nil)
         )
@@ -1392,6 +1392,32 @@ struct EvaluatorTests {
         )
     }
 
+    // An adjustment of `filter` over the whole frame.
+    private func adjustment(
+        _ filter: TimedValue,
+        storyline: Int? = nil,
+        parent: String? = nil,
+        mask: [ResolvedMask]? = nil,
+        opacity: Double = 1,
+        animation: ResolvedAnimation = .none
+    ) -> ResolvedClip {
+        ResolvedClip(
+            place: "clips[0]",
+            id: nil,
+            content: .adjustment(
+                filter,
+                nil,
+                ResolvedComposite(lane: 1, opacity: [Keyframe(at: 0, value: opacity)], blend: "normal", mask: mask)
+            ),
+            start: 0,
+            end: 4,
+            storyline: storyline,
+            parent: parent,
+            track: nil,
+            animation: animation
+        )
+    }
+
     private func clip(
         _ content: ResolvedPicture,
         id: String? = nil,
@@ -1412,15 +1438,13 @@ struct EvaluatorTests {
             id: id,
             content: .picture(
                 content,
+                .transform(ResolvedTransform(box: box, scale: [Keyframe(at: 0, value: .identity)], rotation: [Keyframe(at: 0, value: 0)])),
                 ResolvedComposite(lane: lane, opacity: [Keyframe(at: 0, value: opacity)], blend: blend, mask: mask)
             ),
             start: start,
             end: end,
             storyline: storyline,
             parent: parent,
-            placement: box.map { box in
-                .transform(ResolvedTransform(box: box, scale: [Keyframe(at: 0, value: .identity)], rotation: [Keyframe(at: 0, value: 0)]))
-            } ?? .box(nil),
             track: track,
             animation: animation
         )
@@ -1438,13 +1462,13 @@ struct EvaluatorTests {
             id: id,
             content: .picture(
                 .shape(shape),
+                .transform(ResolvedTransform(box: nil, scale: [Keyframe(at: 0, value: .identity)], rotation: [Keyframe(at: 0, value: rotation)])),
                 ResolvedComposite(lane: 1, opacity: [Keyframe(at: 0, value: 1)], blend: "normal")
             ),
             start: 0,
             end: 4,
             storyline: 0,
             parent: parent,
-            placement: .transform(ResolvedTransform(box: nil, scale: [Keyframe(at: 0, value: .identity)], rotation: [Keyframe(at: 0, value: rotation)])),
             track: nil,
             animation: .none
         )

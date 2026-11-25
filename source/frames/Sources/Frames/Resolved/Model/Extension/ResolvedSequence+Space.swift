@@ -16,7 +16,7 @@ extension ResolvedSequence {
     // no cycle, so it ends. A solid and a storyline clip with a corner pin give output pixels.
     func space(givenBy parent: String?) -> CoordinateSpace {
         var parent = parent
-        while let id = parent, let clip = clips.first(where: { $0.id == id }), clip.space == .parent || clip.cornerPin != nil {
+        while let id = parent, let clip = clips.first(where: { $0.id == id }), givesParentSpace(clip) {
             parent = clip.parent
         }
         guard let id = parent else { return .output }
@@ -43,7 +43,7 @@ extension ResolvedSequence {
             .media(clip.place)
 
         case .box:
-            if case .picture(.title, _) = clip.content { .text(clip.place) } else { .box(clip.place) }
+            if case .picture(.title, _, _) = clip.content { .text(clip.place) } else { .box(clip.place) }
 
         case .parent:
             space(givenBy: clip.parent)
@@ -62,4 +62,11 @@ extension ResolvedSequence {
     }
 
     // MARK: - Private
+    // A shape placed by its geometry and an adjustment give their parent's space, and a clip with a corner pin the
+    // space its corner pin is written in, which is its parent's.
+    private func givesParentSpace(_ clip: ResolvedClip) -> Bool {
+        if case .picture(_, .cornerPin, _) = clip.content { return true }
+
+        return clip.space == .parent
+    }
 }

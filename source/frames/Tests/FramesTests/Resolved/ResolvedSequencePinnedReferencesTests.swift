@@ -200,13 +200,13 @@ struct ResolvedSequencePinnedReferencesTests {
             id: nil,
             content: .picture(
                 content,
+                .transform(ResolvedTransform(box: nil, scale: [], rotation: [])),
                 ResolvedComposite(lane: 1, opacity: [Keyframe(at: 0, value: 1)], blend: "normal")
             ),
             start: 0,
             end: 2,
             storyline: nil,
             parent: nil,
-            placement: .box(nil),
             track: nil,
             animation: .none
         )

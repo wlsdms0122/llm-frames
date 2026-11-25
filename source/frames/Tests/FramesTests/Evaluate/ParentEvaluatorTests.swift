@@ -126,29 +126,38 @@ struct ParentEvaluatorTests {
 
     @Test(
         "a shape parent with an area or an adjustment parent with a mask gives the space they are written in, carried by its presentation",
-        arguments: [
-            ResolvedPicture.shape(ResolvedShape(
-                area: [Keyframe(at: 0, value: Rectangle(x: 0, y: 0, width: 40, height: 20))],
-                fill: Color(written: "#FF0000")
-            )),
-            .adjustment(.filter([.blur(radius: 3)]))
-        ]
+        arguments: ["shape", "adjustment"]
     )
-    func mapsAreaParent(content: ResolvedPicture) {
+    func mapsAreaParent(kind: String) {
         // Given
-        let isShape = if case .shape = content { true } else { false }
+        let isShape = kind == "shape"
         let mask = ResolvedMask(
             geometry: .rect(Rectangle(x: 0, y: 0, width: 40, height: 20), radius: 0),
             feather: 0,
             isInverted: false,
             mode: .add
         )
-        let parent = clip(
-            id: "bar",
-            content: content,
-            parent: "shot",
-            mask: isShape ? nil : [mask]
+        let shape = ResolvedShape(
+            area: [Keyframe(at: 0, value: Rectangle(x: 0, y: 0, width: 40, height: 20))],
+            fill: Color(written: "#FF0000")
         )
+        let parent = isShape
+            ? clip(id: "bar", content: .shape(shape), parent: "shot")
+            : ResolvedClip(
+                place: "clips[0]",
+                id: "bar",
+                content: .adjustment(
+                    .filter([.blur(radius: 3)]),
+                    nil,
+                    ResolvedComposite(lane: 1, opacity: [Keyframe(at: 0, value: 1)], blend: "normal", mask: [mask])
+                ),
+                start: 0,
+                end: 4,
+                storyline: nil,
+                parent: "shot",
+                track: nil,
+                animation: .none
+            )
         let child = fill(parent: "bar")
         let sut = ParentEvaluator(sequence: sequence(clips: [parent, child]))
 
@@ -487,15 +496,17 @@ struct ParentEvaluatorTests {
             id: id,
             content: .picture(
                 content,
+                .transform(ResolvedTransform(
+                    box: box,
+                    scale: [Keyframe(at: 0, value: box == nil ? .identity : Scale(scale))],
+                    rotation: [Keyframe(at: 0, value: 0)]
+                )),
                 ResolvedComposite(lane: 1, opacity: [Keyframe(at: 0, value: 1)], blend: "normal", mask: mask)
             ),
             start: start,
             end: end,
             storyline: nil,
             parent: parent,
-            placement: box.map { box in
-                .transform(ResolvedTransform(box: box, scale: [Keyframe(at: 0, value: Scale(scale))], rotation: [Keyframe(at: 0, value: 0)]))
-            } ?? .box(nil),
             track: track,
             animation: .none
         )

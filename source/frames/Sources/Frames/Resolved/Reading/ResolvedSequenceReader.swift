@@ -170,7 +170,7 @@ struct ResolvedSequenceReader: Sendable {
 
         let content: ResolvedMediaContent? = if let entry = storyline.first(where: { $0.id == id }) {
             if case let .media(media) = entry.content { media.media } else { nil }
-        } else if case let .picture(.media(media), _) = clips.first(where: { $0.id == id })?.content {
+        } else if case let .picture(.media(media), _, _) = clips.first(where: { $0.id == id })?.content {
             media.media
         } else {
             nil
@@ -378,30 +378,38 @@ struct ResolvedSequenceReader: Sendable {
         } else {
             try box(size: size, position: position, anchor: anchor)
         }
-        let placement: ResolvedPlacement = if !isTransformed {
-            .box(box)
-        } else if let cornerPin {
-            .cornerPin(cornerPin)
-        } else {
-            .transform(ResolvedTransform(
-                box: box,
-                scale: try values.scales(clip.member("scale")),
-                rotation: try values.numbers(clip.member("rotation"))
-            ))
-        }
-        let content: ResolvedClipContent = if isNull {
-            .null(try null(clip, isPlacedByBox: box != nil))
-        } else {
-            .picture(
-                try picture(of: clip, kind: kind, shape: shape, isPlacedByBox: box != nil || cornerPin != nil),
-                ResolvedComposite(
-                    lane: try clip.member("lane").integer(),
-                    opacity: try values.numbers(clip.member("opacity")),
-                    blend: try clip.member("blend").string(),
-                    mask: try values.masks(clip.member("mask")),
-                    trackMatte: try clip.member("trackMatte").optional(trackMatte)
-                )
+        let composite = {
+            ResolvedComposite(
+                lane: try clip.member("lane").integer(),
+                opacity: try values.numbers(clip.member("opacity")),
+                blend: try clip.member("blend").string(),
+                mask: try values.masks(clip.member("mask")),
+                trackMatte: try clip.member("trackMatte").optional(trackMatte)
             )
+        }
+        let content: ResolvedClipContent
+        if isTransformed {
+            let transform = {
+                ResolvedTransform(
+                    box: box,
+                    scale: try values.scales(clip.member("scale")),
+                    rotation: try values.numbers(clip.member("rotation"))
+                )
+            }
+            if isNull {
+                content = .null(try null(clip, transform: try transform()))
+            } else {
+                let placement: ResolvedPicturePlacement = if let cornerPin {
+                    .cornerPin(cornerPin)
+                } else {
+                    .transform(try transform())
+                }
+                let picture = try picture(of: clip, kind: kind, shape: shape, isPlacedByBox: box != nil || cornerPin != nil)
+                content = .picture(picture, placement, try composite())
+            }
+        } else {
+            let filter = try values.timed(clip.member("adjust"), as: LookStructureTable.resolvedFilter)
+            content = .adjustment(filter, box, try composite())
         }
 
         if !isNull, kind != "media" {
@@ -423,7 +431,6 @@ struct ResolvedSequenceReader: Sendable {
             end: try clip.member("end").number(),
             storyline: try clip.member("storyline").optional { try $0.integer() },
             parent: try clip.member("parent").optional { try $0.string() },
-            placement: placement,
             track: try clip.member("track").optional(track),
             isMotionBlurred: try clip.member("motionBlur").bool(),
             animation: try values.animation(clip.member("animation"))
@@ -512,9 +519,6 @@ struct ResolvedSequenceReader: Sendable {
         if kind == "title" {
             return .title(try values.text(clip.member("title")))
         }
-        if kind == "adjustment" {
-            return .adjustment(try values.timed(clip.member("adjust"), as: LookStructureTable.resolvedFilter))
-        }
 
         let timing = clip.contains("origin") ? try self.timing(of: clip) : nil
         let media = try self.media(clip.member("media"))
@@ -540,9 +544,9 @@ struct ResolvedSequenceReader: Sendable {
     // which carries its position and its anchor point, without one.
     private func null(
         _ clip: PlacedJSONObject,
-        isPlacedByBox: Bool
+        transform: ResolvedTransform
     ) throws -> ResolvedNull {
-        let geometry: NullGeometry = if isPlacedByBox {
+        let geometry: NullGeometry = if transform.box != nil {
             .box(width: try values.numbers(clip.member("width")), height: try values.numbers(clip.member("height")))
         } else {
             .area(
@@ -551,7 +555,7 @@ struct ResolvedSequenceReader: Sendable {
             )
         }
 
-        return ResolvedNull(geometry: geometry)
+        return ResolvedNull(geometry: geometry, transform: transform)
     }
 
     // A shape's geometry, then how it is drawn: a path by its points, a rect or an ellipse with a box by its

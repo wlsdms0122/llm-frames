@@ -93,7 +93,11 @@ struct CornerPinEvaluationTests {
         let list = sut.displayList(of: sequence, at: 1)
 
         // Then
-        let size = try #require(sequence.clips.first?.cornerPin?.size)
+        guard case let .picture(_, .cornerPin(pin), _)? = sequence.clips.first?.content else {
+            Issue.record("the rect is not placed by its corner pin")
+            return
+        }
+        let size = pin.size
         let box = Rectangle(x: 0, y: 0, width: size.width, height: size.height)
         let group = try #require(list.items.last)
         guard

@@ -85,13 +85,13 @@ struct ClipEvaluatorTests {
                     crop: .keyframes([Keyframe(at: 0, value: Crop(Rectangle(x: 0, y: 0, width: 80, height: 40)))]),
                     appearance: appearance
                 )),
+                .transform(ResolvedTransform(box: box(size: Size(width: 80, height: 40), at: Point(x: 100, y: 100), anchor: Point(x: 40, y: 20)), scale: [Keyframe(at: 0, value: .identity)], rotation: [Keyframe(at: 0, value: 0)])),
                 ResolvedComposite(lane: 1, opacity: [Keyframe(at: 0, value: 1)], blend: "normal")
             ),
             start: 0,
             end: 4,
             storyline: nil,
             parent: nil,
-            placement: .transform(ResolvedTransform(box: box(size: Size(width: 80, height: 40), at: Point(x: 100, y: 100), anchor: Point(x: 40, y: 20)), scale: [Keyframe(at: 0, value: .identity)], rotation: [Keyframe(at: 0, value: 0)])),
             track: nil,
             animation: ResolvedAnimation(entrance: entrance, loop: nil, exit: nil, units: nil)
         )
@@ -130,13 +130,13 @@ struct ClipEvaluatorTests {
                     crop: .keyframes([Keyframe(at: 0, value: Crop(Rectangle(x: 0, y: 0, width: 80, height: 40)))]),
                     appearance: appearance
                 )),
+                .transform(ResolvedTransform(box: box(size: Size(width: 80, height: 40), at: Point(x: 100, y: 100), anchor: Point(x: 40, y: 20)), scale: [Keyframe(at: 0, value: Scale(x: 2, y: 2))], rotation: [Keyframe(at: 0, value: 0)])),
                 ResolvedComposite(lane: 1, opacity: [Keyframe(at: 0, value: 1)], blend: "normal")
             ),
             start: 0,
             end: 4,
             storyline: nil,
             parent: nil,
-            placement: .transform(ResolvedTransform(box: box(size: Size(width: 80, height: 40), at: Point(x: 100, y: 100), anchor: Point(x: 40, y: 20)), scale: [Keyframe(at: 0, value: Scale(x: 2, y: 2))], rotation: [Keyframe(at: 0, value: 0)])),
             track: nil,
             animation: ResolvedAnimation(entrance: entrance, loop: nil, exit: nil, units: nil)
         )
@@ -284,7 +284,7 @@ struct ClipEvaluatorTests {
 
         default:
             geometry = .rect(Rectangle(x: 40, y: 20, width: 40, height: 20), radius: 0)
-            clip = masked(.adjustment(.filter([.blur(radius: 2)])), mask: geometry, animation: doubling)
+            clip = masked(adjustment: .filter([.blur(radius: 2)]), mask: geometry, animation: doubling)
             expected = [(Point(x: 60, y: 30), Point(x: 130, y: 60)), (Point(x: 40, y: 20), Point(x: 50, y: 20))]
         }
 
@@ -314,7 +314,8 @@ struct ClipEvaluatorTests {
         // The parent doubles its space, the clip is at scale 3 where it takes one, and its entrance doubles it.
         let area = Rectangle(x: 0, y: 0, width: 40, height: 20)
         let geometry = PathGeometry.ellipse(area)
-        let content: ResolvedPicture = switch kind {
+        // Nil for the adjustment.
+        let content: ResolvedPicture? = switch kind {
         case "title":
             .title(text())
 
@@ -322,17 +323,18 @@ struct ClipEvaluatorTests {
             .shape(ResolvedShape(area: [Keyframe(at: 0, value: area)], fill: white))
 
         default:
-            .adjustment(.filter([.blur(radius: 2)]))
+            nil
         }
-        let isAdjustment = kind == "adjustment"
-        let clip = masked(
-            content,
-            mask: geometry,
-            feather: 1.5,
-            box: kind == "title" ? box(size: text().size, at: Point(x: 0, y: 0), anchor: Point(x: 0, y: 0)) : nil,
-            scale: isAdjustment ? nil : 3,
-            animation: doubling
-        )
+        let clip = content.map { content in
+            masked(
+                content,
+                mask: geometry,
+                feather: 1.5,
+                box: kind == "title" ? box(size: text().size, at: Point(x: 0, y: 0), anchor: Point(x: 0, y: 0)) : nil,
+                scale: 3,
+                animation: doubling
+            )
+        } ?? masked(adjustment: .filter([.blur(radius: 2)]), mask: geometry, feather: 1.5, animation: doubling)
 
         // When
         let items = sut.items(of: clip, in: parent, picture: nil, trackMatte: nil, compositing: .encoded, seed: 0, at: SampleTime(1))
@@ -392,17 +394,17 @@ struct ClipEvaluatorTests {
             id: nil,
             content: .picture(
                 .title(text),
+                .transform(ResolvedTransform(box: ResolvedBox(
+                size: text.size,
+                position: [Keyframe(at: 0, value: Point(x: 100, y: 200))],
+                anchor: Point(x: 50, y: 40)
+            ), scale: [Keyframe(at: 0, value: Scale(scale))], rotation: [Keyframe(at: 0, value: rotation)])),
                 ResolvedComposite(lane: 1, opacity: [Keyframe(at: 0, value: opacity)], blend: "normal")
             ),
             start: 0,
             end: 4,
             storyline: nil,
             parent: nil,
-            placement: .transform(ResolvedTransform(box: ResolvedBox(
-                size: text.size,
-                position: [Keyframe(at: 0, value: Point(x: 100, y: 200))],
-                anchor: Point(x: 50, y: 40)
-            ), scale: [Keyframe(at: 0, value: Scale(scale))], rotation: [Keyframe(at: 0, value: rotation)])),
             track: nil,
             animation: animation
         )
@@ -436,26 +438,47 @@ struct ClipEvaluatorTests {
         rotation: Double? = nil,
         animation: ResolvedAnimation = .none
     ) -> ResolvedClip {
-        let isAdjustment = if case .adjustment = content { true } else { false }
-
-        return ResolvedClip(
-            place: "clips[0]",
-            id: nil,
-            content: .picture(
+        clip(
+            .picture(
                 content,
-                ResolvedComposite(lane: 1, opacity: [Keyframe(at: 0, value: 1)], blend: "normal", mask: mask)
-            ),
-            start: 0,
-            end: 4,
-            storyline: nil,
-            parent: nil,
-            placement: isAdjustment
-                ? .box(box)
-                : .transform(ResolvedTransform(
+                .transform(ResolvedTransform(
                     box: box,
                     scale: [Keyframe(at: 0, value: Scale(scale ?? 1))],
                     rotation: [Keyframe(at: 0, value: rotation ?? 0)]
                 )),
+                ResolvedComposite(lane: 1, opacity: [Keyframe(at: 0, value: 1)], blend: "normal", mask: mask)
+            ),
+            animation: animation
+        )
+    }
+
+    // An adjustment of `filter` over the whole frame visible from 0 to 4 with one mask of `geometry`.
+    private func masked(
+        adjustment filter: TimedValue,
+        mask geometry: PathGeometry,
+        feather: Double = 0,
+        animation: ResolvedAnimation = .none
+    ) -> ResolvedClip {
+        let mask = [ResolvedMask(geometry: geometry, feather: feather, isInverted: false, mode: .add)]
+
+        return clip(
+            .adjustment(filter, nil, ResolvedComposite(lane: 1, opacity: [Keyframe(at: 0, value: 1)], blend: "normal", mask: mask)),
+            animation: animation
+        )
+    }
+
+    private func clip(
+        _ content: ResolvedClipContent,
+        animation: ResolvedAnimation
+    ) -> ResolvedClip {
+        ResolvedClip(
+            place: "clips[0]",
+            id: nil,
+            content: content,
+            start: 0,
+            end: 4,
+            storyline: nil,
+            parent: nil,
             track: nil,
             animation: animation
         )

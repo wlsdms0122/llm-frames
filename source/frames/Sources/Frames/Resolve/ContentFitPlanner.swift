@@ -111,7 +111,6 @@ struct ContentFitPlanner: Sendable {
                     end: clip.end,
                     storyline: clip.storyline,
                     parent: clip.parent,
-                    placement: clip.placement,
                     track: clip.track,
                     isMotionBlurred: clip.isMotionBlurred,
                     animation: .none
@@ -184,7 +183,7 @@ struct ContentFitPlanner: Sendable {
         in space: ClipSpace
     ) -> Rectangle? {
         switch clip.content {
-        case let .picture(.title(text), _):
+        case let .picture(.title(text), _, _):
             // The child map places the title's box at the time, and its glyphs item lies in its text box inside it.
             let time = SampleTime(0)
             let transform = text.textBoxInBox(at: time)
@@ -193,18 +192,22 @@ struct ContentFitPlanner: Sendable {
                 .map { bounds(of: $0, by: transform) }
                 .reduce(nil) { union, extent in union?.union(extent) ?? extent }
 
-        case let .picture(.media(media), _):
-            guard clip.box != nil else { return nil }
+        case let .picture(.media(media), placement, _):
+            guard case let .transform(placed) = placement, placed.box != nil else { return nil }
 
             // The child map carries the media's crop onto the box.
             let transform = clipEvaluator.childTransform(of: clip, in: space, at: SampleTime(0))
             let drawn = clip.crop(of: media, at: SampleTime(0))
             return bounds(of: drawn, by: transform)
 
-        case let .picture(.shape(shape), composite):
-            return extent(of: shape, composite: composite, clip: clip, in: space)
+        case let .picture(.shape(shape), .transform(transform), composite):
+            return extent(of: shape, transform: transform, composite: composite, clip: clip, in: space)
 
-        case .picture(.adjustment, _), .null:
+        case .picture(.shape, .cornerPin, _):
+            // A shape its corner pin places is not measured, as a media clip one places is not.
+            return nil
+
+        case .adjustment, .null:
             return nil
         }
     }
@@ -213,6 +216,7 @@ struct ContentFitPlanner: Sendable {
     // measured.
     private func extent(
         of shape: ResolvedShape,
+        transform: ResolvedTransform,
         composite: ResolvedComposite,
         clip: ResolvedClip,
         in space: ClipSpace
@@ -221,6 +225,7 @@ struct ContentFitPlanner: Sendable {
         let items = shapeEvaluator.items(
             of: shape,
             clip: clip,
+            placed: transform,
             sample: sample,
             composite: composite,
             in: space,
