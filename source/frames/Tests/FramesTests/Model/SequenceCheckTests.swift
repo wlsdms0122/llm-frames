@@ -169,7 +169,7 @@ struct SequenceCheckTests {
             (##""fill": { "radial": { "stops": [[0, "#000000"], [1, "#FFFFFF", 2]] } }"##, "fill.radial.stops[1] ("),
             (##""fill": { "linear": { }, "radial": { } }"##, "fill (gradient): "),
             (##""stroke": { "width": 2, "color": "#FFFFFF", "gradient": { "radial": { } } }"##, "stroke (stroke): "),
-            (##""keyframes": [ { "at": 0, "fill": { "linear": { "stops": [[0, null], [1.5, null]] } } } ]"##, "keyframes[0].fill.linear.stops[1][0] (")
+            (##""keyframes": [ { "at": 0, "fill": { "kind": "linear", "stops": [[0, null], [1.5, null]] } } ]"##, "keyframes[0].fill.linear.stops[1][0] (")
         ]
     )
     func refusesGradient(
@@ -193,9 +193,9 @@ struct SequenceCheckTests {
         let document = try Fixture.json(#"""
             { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "connected": [
                 { "kind": "rect", "area": [0, 0, 10, 10], "at": [0, 1],
-                  "fill": { "linear": { "from": [0, 0], "to": [1, 1], "stops": [[0, "accent"], [0.5, "#FF0000"], [0.5, "#0000FF80"], [1, "#FFFFFF"]] } },
-                  "stroke": { "width": 2, "gradient": { "radial": { "center": [0.5, 0.5], "stops": [[0, "#000000"], [1, "#FFFFFF"]] } } },
-                  "keyframes": [ { "at": 0, "fill": { "linear": { "stops": [[null, "#000000"], [0.6, null], [null, null], [0.2, null]] } } } ] } ] } ] }
+                  "fill": { "kind": "linear", "from": [0, 0], "to": [1, 1], "stops": [[0, "accent"], [0.5, "#FF0000"], [0.5, "#0000FF80"], [1, "#FFFFFF"]] },
+                  "stroke": { "width": 2, "paint": { "kind": "radial", "center": [0.5, 0.5], "stops": [[0, "#000000"], [1, "#FFFFFF"]] } },
+                  "keyframes": [ { "at": 0, "fill": { "kind": "linear", "stops": [[null, "#000000"], [0.6, null], [null, null], [0.2, null]] } } ] } ] } ] }
             """#)
 
         // When, Then
@@ -431,7 +431,7 @@ struct SequenceCheckTests {
                 "clips[0].outset (rect): -1 is not 0 or more"
             ),
             (
-                #"{ "clips": [ { "kind": "rect", "area": [0, 0, 10, 10], "fill": { "radial": { "radius": 0 } } } ] }"#,
+                #"{ "clips": [ { "kind": "rect", "area": [0, 0, 10, 10], "fill": { "kind": "radial", "radius": 0 } } ] }"#,
                 "clips[0].fill.radial.radius (radial gradient): 0 is not above 0"
             ),
             (
@@ -439,11 +439,11 @@ struct SequenceCheckTests {
                 "clips[0].radius (image): -8 is not 0 or more"
             ),
             (
-                #"{ "clips": [ { "kind": "adjustment", "adjust": "frames/vivid", "at": [0, 1], "mask": { "shape": "rect", "area": [0, 0, 10, 10], "feather": -1 } } ] }"#,
+                #"{ "clips": [ { "kind": "adjustment", "adjust": "frames/vivid", "at": [0, 1], "mask": { "kind": "rect", "area": [0, 0, 10, 10], "feather": -1 } } ] }"#,
                 "clips[0].mask.feather (rect mask): -1 is not 0 or more"
             ),
             (
-                #"{ "clips": [ { "kind": "adjustment", "adjust": "frames/vivid", "at": [0, 1], "mask": { "shape": "rect", "width": 0, "height": 10, "position": [5, 5] } } ] }"#,
+                #"{ "clips": [ { "kind": "adjustment", "adjust": "frames/vivid", "at": [0, 1], "mask": { "kind": "rect", "width": 0, "height": 10, "position": [5, 5] } } ] }"#,
                 "clips[0].mask.width (rect mask): 0 is not above 0"
             )
         ]
@@ -463,11 +463,11 @@ struct SequenceCheckTests {
     @Test(
         "a shape takes its appearance keys in every form they have",
         arguments: [
-            #"{ "kind": "rect", "width": 100, "height": 50, "placement": "top", "radius": 8, "outset": 2, "fill": false, "stroke": { "color": "accent", "width": 4, "join": "miter", "cap": "square", "start": "frames/arrow", "end": "none" }, "shadow": true }"#,
+            #"{ "kind": "rect", "width": 100, "height": 50, "placement": "top", "radius": 8, "outset": 2, "fill": false, "stroke": { "paint": "accent", "width": 4, "join": "miter", "cap": "square", "start": "frames/arrow", "end": "none" }, "shadow": true }"#,
             ##"{ "kind": "ellipse", "area": [0, 0, 10, 10], "fill": "#FFFFFF80", "stroke": false, "trim": [0.25, 0], "shadow": { "radius": 4 } }"##,
             #"{ "kind": "path", "points": [[0, 0], [9, 9]], "stroke": { "width": 2, "start": "frames/line-arrow", "end": { "preset": "frames/circle", "scale": 2 } } }"#,
             #"{ "kind": "path", "points": [[0, 0], [9, 9]], "stroke": { "width": 2, "start": { "scale": 1.5 }, "end": "/abs/heads/bar.json" } }"#,
-            #"{ "kind": "path", "points": [[0, 0], { "area": [0, 0, 10, 10], "point": "center" }], "closed": true, "style": "outline", "shadow": false }"#,
+            #"{ "kind": "path", "points": [[0, 0], { "vertex": { "area": [0, 0, 10, 10], "point": "center" } }], "closed": true, "style": "outline", "shadow": false }"#,
             #"{ "kind": "path", "fill": "accent", "keyframes": [ { "at": 0, "points": [[0, 0], [2, 2]], "trim": [0, 0.5], "position": [1, 1], "scale": 2, "rotation": 90 } ] }"#,
             #"{ "kind": "rect", "fill": "accent", "keyframes": [ { "at": 0, "width": 10, "height": 20, "radius": 2, "area": [0, 0, 1, 1] } ] }"#
         ]
@@ -708,7 +708,7 @@ struct SequenceCheckTests {
                 "frames/find-text"
             ),
             (
-                #"{ "kind": "path", "parent": "shot", "points": [ [0, 0], { "area": { "tool": "frames/find-text", "from": "Total", "to": "42,000" }, "point": "right" } ] }"#,
+                #"{ "kind": "path", "parent": "shot", "points": [ [0, 0], { "vertex": { "area": { "tool": "frames/find-text", "from": "Total", "to": "42,000" }, "point": "right" } } ] }"#,
                 "storyline[0]#shot.connected[0].points[1].area",
                 "frames/find-text"
             ),
@@ -1263,7 +1263,7 @@ struct SequenceCheckTests {
             """#
         let written = try Fixture.json(#"{ "kind": "sequence", "\#(list)": [ { \#(keys), "mask": \#(masks) } ] }"#)
         let keyframed = try Fixture.json(#"""
-            { "kind": "sequence", "\#(list)": [ { \#(keys), "mask": { "shape": "ellipse" }, "keyframes": [
+            { "kind": "sequence", "\#(list)": [ { \#(keys), "mask": { "kind": "ellipse" }, "keyframes": [
                 { "at": 0, "mask": { "area": [0, 0, 10, 10] } },
                 { "at": 1, "mask": { "area": [10, 10, 20, 20], "feather": 4 } } ] } ] }
             """#)
@@ -1282,7 +1282,7 @@ struct SequenceCheckTests {
                 "connected": [ { "id": "matte", "kind": "title", "text": "a", "style": "headline", "at": [0, 2] },
                                { "id": "grade", "metadata": { "by": "x" }, "kind": "adjustment", "adjust": "frames/vivid", "at": [0, 2],
                                  "lane": 2, "parent": "shot", "blend": "screen",
-                                 "mask": { "shape": "rect", "area": [0, 0, 10, 10] },
+                                 "mask": { "kind": "rect", "area": [0, 0, 10, 10] },
                                  "trackMatte": { "clip": "matte", "mode": "alpha" }, "track": { "time": 0, "frames": [] },
                                  "animation": "frames/fade", "keyframes": [ { "at": 0, "opacity": 1 } ] },
                                { "kind": "adjustment", "adjust": "frames/vivid", "at": [0, 2], "opacity": 0.5 } ] } ] }
@@ -1297,12 +1297,12 @@ struct SequenceCheckTests {
         arguments: [
             (
                 "clips",
-                #"{ "kind": "media", "media": "/abs/bgm.m4a", "mask": { "shape": "rect", "area": [0, 0, 10, 10] } }"#,
+                #"{ "kind": "media", "media": "/abs/bgm.m4a", "mask": { "kind": "rect", "area": [0, 0, 10, 10] } }"#,
                 #"clips[0] (audio): unknown key "mask". Allowed: "#
             ),
             (
                 "storyline",
-                ##"{ "kind": "solid", "color": "#000000", "duration": 2, "mask": { "shape": "rect", "area": [0, 0, 10, 10] } }"##,
+                ##"{ "kind": "solid", "color": "#000000", "duration": 2, "mask": { "kind": "rect", "area": [0, 0, 10, 10] } }"##,
                 #"storyline[0] (solid): unknown key "mask". Allowed: "#
             ),
             (

@@ -22,7 +22,7 @@ struct PathVertexCheckTests {
             #"{ "kind": "path", "at": [0, 1], "points": [ [0, 0], { "vertex": [10, 0], "inTangent": [-4, 0], "outTangent": [4, 0] } ] }"#,
             #"{ "kind": "path", "at": [0, 1], "points": [ { "vertex": { "area": [0, 0, 10, 10], "point": "top" } }, [10, 10] ] }"#,
             #"{ "kind": "path", "at": [0, 1], "points": [ [0, 0], [10, 0] ], "keyframes": [ { "at": 0, "points": [ { "outTangent": [5, 5] }, {} ] } ] }"#,
-            #"{ "kind": "rect", "width": 10, "height": 10, "at": [0, 1], "mask": { "shape": "path", "points": [ { "vertex": [0, 0], "outTangent": [5, -5] }, { "vertex": [10, 0], "outTangent": [-5, 5] } ] } }"#
+            #"{ "kind": "rect", "width": 10, "height": 10, "at": [0, 1], "mask": { "kind": "path", "points": [ { "vertex": [0, 0], "outTangent": [5, -5] }, { "vertex": [10, 0], "outTangent": [-5, 5] } ] } }"#
         ]
     )
     func takesVertices(clip: String) throws {

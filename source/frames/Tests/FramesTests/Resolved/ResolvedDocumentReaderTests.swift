@@ -89,7 +89,7 @@ struct ResolvedDocumentReaderTests {
         // points.
         ##"""
         { "kind": "sequence",
-          "theme": { "shapes": { "outline": { "stroke": { "width": 8, "color": "#ED2929" }, "radius": 18 } } },
+          "theme": { "shapes": { "outline": { "stroke": { "width": 8, "paint": "#ED2929" }, "radius": 18 } } },
           "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "in": 0, "out": 4 } ],
           "clips": [
             { "kind": "rect", "style": "outline", "area": [10, 20, 300, 200], "outset": 6, "shadow": { "radius": 4 },
@@ -100,7 +100,7 @@ struct ResolvedDocumentReaderTests {
               "stroke": { "width": 3, "align": "outside", "join": "bevel", "cap": "square" }, "rotation": 30, "at": [0, 4] },
             { "kind": "ellipse", "area": [100, 100, 80, 40], "anchor": "bottom-right", "position": [400, 300], "fill": "#FFFFFF80",
               "shadow": true, "scale": 2, "at": [0, 4] },
-            { "kind": "path", "stroke": { "width": 6, "start": { "preset": "frames/circle", "scale": 2 }, "end": "frames/line-arrow", "color": "#00FF00" }, "at": [0, 4],
+            { "kind": "path", "stroke": { "width": 6, "start": { "preset": "frames/circle", "scale": 2 }, "end": "frames/line-arrow", "paint": "#00FF00" }, "at": [0, 4],
               "keyframes": [ { "at": 0, "points": [[0, 0], [100, 50], [200, 0]], "trim": [0, 0] },
                              { "at": 1, "points": [[0, 100], [100, 150], [200, 100]], "trim": [0.2, 1], "rotation": 45 } ] },
             { "kind": "path", "points": [[300, 300], [400, 300], [350, 380]], "closed": true, "fill": "accent", "stroke": false,
@@ -113,15 +113,15 @@ struct ResolvedDocumentReaderTests {
         // path, inverted, feathered, in each mode, static and keyframed.
         #"""
         { "kind": "sequence", "storyline": [ { "id": "screen", "kind": "media", "media": "/abs/screen.mp4", "in": 0, "out": 3,
-            "mask": { "shape": "rect", "area": [96, 96, 208, 48], "radius": 6, "feather": 2, "invert": true },
+            "mask": { "kind": "rect", "area": [96, 96, 208, 48], "radius": 6, "feather": 2, "invert": true },
             "connected": [
               { "kind": "adjustment", "adjust": "mine/grade", "parent": "screen", "mask": [
-                  { "shape": "ellipse", "width": 60, "height": 30, "position": [100, 100], "mode": "subtract" },
-                  { "shape": "path", "points": [[0, 0], [100, 0], [50, 80]], "mode": "intersect" } ] },
-              { "kind": "rect", "fill": "#FF000080", "parent": "screen", "area": [0, 0, 500, 500], "mask": { "shape": "ellipse" }, "keyframes": [
+                  { "kind": "ellipse", "width": 60, "height": 30, "position": [100, 100], "mode": "subtract" },
+                  { "kind": "path", "points": [[0, 0], [100, 0], [50, 80]], "mode": "intersect" } ] },
+              { "kind": "rect", "fill": "#FF000080", "parent": "screen", "area": [0, 0, 500, 500], "mask": { "kind": "ellipse" }, "keyframes": [
                   { "at": 0, "ease": "ease-out", "mask": { "area": [100, 100, 200, 40], "feather": 1 } },
                   { "at": 2, "mask": { "area": [0, 0, 50, 50], "feather": 3 } } ] },
-              { "kind": "title", "text": "Hi", "style": "title", "parent": "screen", "position": [300, 300], "mask": { "shape": "path" }, "keyframes": [
+              { "kind": "title", "text": "Hi", "style": "title", "parent": "screen", "position": [300, 300], "mask": { "kind": "path" }, "keyframes": [
                   { "at": 0, "mask": { "points": [[0, 0], [10, 0], [5, 10]] } },
                   { "at": 1, "mask": { "points": [[0, 0], [20, 0], [10, 20]] } } ] } ] } ] }
         """#,
@@ -1588,7 +1588,7 @@ struct ResolvedDocumentReaderTests {
                 { "kind": "rect", "fill": "#FFD43B80", "area": [86, 86, 228, 68], "parent": "screen", "track": \#(boxTrack) },
                 { "kind": "path", "points": [[500, 500], [600, 550]], "stroke": { "width": 10, "end": "frames/arrow" }, "at": [1, 2], "lane": -1 },
                 { "kind": "rect", "area": [0, 0, 100, 100], "fill": "#0000008C", "at": [1, 2], "id": "dim" },
-                { "kind": "adjustment", "adjust": "mine/grade", "mask": { "shape": "rect", "area": [0, 0, 10, 10] }, "at": [1, 2] },
+                { "kind": "adjustment", "adjust": "mine/grade", "mask": { "kind": "rect", "area": [0, 0, 10, 10] }, "at": [1, 2] },
                 { "kind": "media", "media": "/abs/short.mp4", "in": 1, "out": 3, "speed": 2, "at": 1, "width": 300, "conform": "fill",
                   "keyframes": [ { "at": 1, "opacity": 0, "ease": { "spring": { "bounce": 0.3 } } }, { "at": 1.5, "opacity": 1 } ] },
                 { "kind": "title", "text": "Hi", "style": "title", "at": [1, 2], "parent": "dim", "position": [50, 50] },

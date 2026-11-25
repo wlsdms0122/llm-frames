@@ -303,7 +303,7 @@ struct TemplateCheckTests {
         // Given
         let document = try Fixture.json(#"""
             { "kind": "sequence", "params": { "s": { "type": "choice", "options": ["rect", "ellipse"], "description": "the s" } },
-              "clips": [ { "kind": "adjustment", "adjust": "frames/vivid", "at": [0, 1], "mask": { "shape": { "param": "s" }, "area": [0, 0, 10, 10] } } ] }
+              "clips": [ { "kind": "adjustment", "adjust": "frames/vivid", "at": [0, 1], "mask": { "kind": { "param": "s" }, "area": [0, 0, 10, 10] } } ] }
             """#)
 
         // When

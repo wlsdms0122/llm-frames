@@ -80,7 +80,7 @@ struct TrackFrameTests {
         // Given
         let sequence = try resolved(#"""
             { "id": "tracked", "kind": "rect", "fill": "#FFFFFF", "parent": "screen", "area": [100, 100, 200, 40], "at": [1, 3], "track": \#(track),
-              "mask": [ { "shape": "rect", "area": [110, 110, 50, 20] } ], "keyframes": [ { "at": 1, "mask": [ { "radius": 4 } ] } ] },
+              "mask": [ { "kind": "rect", "area": [110, 110, 50, 20] } ], "keyframes": [ { "at": 1, "mask": [ { "radius": 4 } ] } ] },
             { "id": "still", "kind": "rect", "fill": "#FFFFFF", "parent": "screen", "area": [100, 100, 200, 40], "at": [1, 3] }
             """#)
 

@@ -139,7 +139,7 @@ struct SequencePlannerTests {
         "a numeric area under a shape or adjustment parent keeps what is written past the edges of the media it is in",
         arguments: [
             #"{ "id": "parent", "kind": "rect", "stroke": { "width": 8 }, "parent": "screen", "area": [0, 0, 100, 100] }"#,
-            #"{ "id": "parent", "kind": "adjustment", "adjust": "mine/grade", "parent": "screen", "mask": { "shape": "rect", "area": [0, 0, 100, 100] } }"#
+            #"{ "id": "parent", "kind": "adjustment", "adjust": "mine/grade", "parent": "screen", "mask": { "kind": "rect", "area": [0, 0, 100, 100] } }"#
         ]
     )
     func keepsAreaUnderShape(parent: String) throws {
@@ -494,7 +494,7 @@ struct SequencePlannerTests {
                   "keyframes": [ { "at": 3, "opacity": 0 }, { "at": 4, "opacity": 1, "ease": "ease-in" } ] } ] } ],
               "clips": [
                 { "kind": "rect", "stroke": { "width": 8 }, "area": [0, 0, 10, 10], "at": [0, 1] },
-                { "kind": "adjustment", "adjust": ["mine/grade"], "mask": { "shape": "rect", "area": [0, 0, 10, 10] }, "at": [0, 1] } ] }
+                { "kind": "adjustment", "adjust": ["mine/grade"], "mask": { "kind": "rect", "area": [0, 0, 10, 10] }, "at": [0, 1] } ] }
             """#
 
         // When
@@ -615,11 +615,11 @@ struct SequencePlannerTests {
         let plan = try plan(#"""
             { "kind": "sequence", "format": { "size": [3840, 2160] }, "storyline": [ { "kind": "media", "media": "/abs/run.mp4" } ], "clips": [
                 { "kind": "adjustment", "adjust": "frames/warm", "at": [0, 1], "mask": [
-                    { "shape": "rect", "area": [10, 20, 100, 50], "radius": 6, "feather": 3, "invert": true, "mode": "subtract" },
-                    { "shape": "ellipse", "area": [0, 0, 40, 20] },
-                    { "shape": "rect", "width": 100, "height": 40, "position": [200, 300] },
-                    { "shape": "ellipse", "width": 60, "height": 30, "position": [30, 15], "mode": "intersect" },
-                    { "shape": "path", "points": [[0, 0], [100, 0], [50, 80]], "feather": 1 } ] } ] }
+                    { "kind": "rect", "area": [10, 20, 100, 50], "radius": 6, "feather": 3, "invert": true, "mode": "subtract" },
+                    { "kind": "ellipse", "area": [0, 0, 40, 20] },
+                    { "kind": "rect", "width": 100, "height": 40, "position": [200, 300] },
+                    { "kind": "ellipse", "width": 60, "height": 30, "position": [30, 15], "mode": "intersect" },
+                    { "kind": "path", "points": [[0, 0], [100, 0], [50, 80]], "feather": 1 } ] } ] }
             """#)
 
         // Then
@@ -642,7 +642,7 @@ struct SequencePlannerTests {
         // When
         let plan = try plan(#"""
             { "kind": "sequence", "format": { "size": [1920, 1080] }, "storyline": [ { "kind": "media", "media": "/abs/run.mp4" } ], "clips": [
-                { "kind": "adjustment", "adjust": "frames/warm", "at": [0, 4], "mask": [ { "shape": "rect" }, { "shape": "path", "mode": "subtract" } ], "keyframes": [
+                { "kind": "adjustment", "adjust": "frames/warm", "at": [0, 4], "mask": [ { "kind": "rect" }, { "kind": "path", "mode": "subtract" } ], "keyframes": [
                     { "at": 1, "ease": "ease-in", "mask": [ { "area": [0, 0, 100, 100], "radius": 4 }, { "points": [[0, 0], [10, 0], [5, 10]] } ] },
                     { "at": 2, "mask": [ { "feather": 2 }, { } ] },
                     { "at": 3, "mask": [ { "area": [50, 50, 200, 100], "radius": 8 }, { "points": [[0, 10], [10, 10], [5, 20]] } ] } ] } ] }

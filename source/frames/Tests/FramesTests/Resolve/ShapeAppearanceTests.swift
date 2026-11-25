@@ -108,7 +108,7 @@ struct ShapeAppearanceTests {
                 #"clips[0].fill (rect): colour "ink" is not in colors"#
             ),
             (
-                #"{ "kind": "path", "points": [[0, 0], [1, 1]], "stroke": { "width": 2, "color": "ink" } }"#,
+                #"{ "kind": "path", "points": [[0, 0], [1, 1]], "stroke": { "width": 2, "paint": "ink" } }"#,
                 #"clips[0].stroke.color (path): colour "ink" is not in colors"#
             ),
             (
@@ -201,7 +201,7 @@ struct ShapeAppearanceTests {
             { "kind": "sequence", "format": { "size": [960, 540] },
               "theme": { "shapes": { "bar": { "stroke": false, "fill": "#FFFFFF" } } },
               "storyline": [ { "kind": "media", "media": "/abs/screen.mp4" } ],
-              "clips": [ { "kind": "rect", "area": [0, 0, 10, 10], "style": "bar", "stroke": { "color": "#FF0000" }, "at": [0, 1] } ] }
+              "clips": [ { "kind": "rect", "area": [0, 0, 10, 10], "style": "bar", "stroke": { "paint": "#FF0000" }, "at": [0, 1] } ] }
             """##
 
         // When, Then
@@ -339,7 +339,7 @@ struct ShapeAppearanceTests {
         let document = #"""
             { "kind": "sequence", "storyline": [ { "id": "screen", "kind": "media", "media": "/abs/screen.mp4", "connected": [
                 { "kind": "rect", "area": [100, 100, 200, 40], "parent": "screen", "fill": "accent" },
-                { "kind": "path", "parent": "screen", "points": [[10, 20], { "area": [100, 100, 200, 40], "point": "left" }],
+                { "kind": "path", "parent": "screen", "points": [[10, 20], { "vertex": { "area": [100, 100, 200, 40], "point": "left" } }],
                   "closed": true, "stroke": { "width": 4, "end": "frames/arrow" } } ] } ] }
             """#
 

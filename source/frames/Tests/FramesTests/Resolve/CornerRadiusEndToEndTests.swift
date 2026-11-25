@@ -101,7 +101,7 @@ struct CornerRadiusEndToEndTests {
                 { "kind": "rect", "width": 400, "height": 300, "position": [960, 540], "fill": "accent", "radius": 12, "at": [0, 4] },
                 { "kind": "media", "media": "/abs/card.png", "at": [0, 4], "width": 400, "radius": 12 },
                 { "kind": "title", "text": "Hi", "style": "chip", "at": [0, 4], "position": [960, 540] },
-                { "kind": "adjustment", "adjust": "frames/warm", "at": [0, 4], "mask": { "shape": "rect", "area": [0, 0, 400, 300], "radius": 4 } } ] }
+                { "kind": "adjustment", "adjust": "frames/warm", "at": [0, 4], "mask": { "kind": "rect", "area": [0, 0, 400, 300], "radius": 4 } } ] }
             """##)
         let list = evaluator.displayList(of: sequence, at: 1)
         let document = try JSONReader().read(writer.write(sequence))

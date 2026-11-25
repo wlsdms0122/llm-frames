@@ -83,7 +83,7 @@ struct CurvedPathRenderTests {
         // Given
         let rect = ##"""
             { "kind": "rect", "area": [0, 0, 320, 240], "fill": "#FFFFFF", "at": [0, 2], "animation": "none",
-              "mask": { "shape": "path", "feather": 2, "points": [
+              "mask": { "kind": "path", "feather": 2, "points": [
                 { "vertex": [40, 120], "inTangent": [60, 100], "outTangent": [60, -100] },
                 { "vertex": [280, 120], "inTangent": [-60, -100], "outTangent": [-60, 100] } ] } }
             """##

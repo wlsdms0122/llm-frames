@@ -86,7 +86,7 @@ struct MaskEndToEndTests {
         // Given
         let sut = try resolved(#"""
             { "kind": "sequence", "format": { "size": [1920, 1080] }, "storyline": [ { "kind": "solid", "color": "#202020", "duration": 4 } ],
-              "clips": [ { "kind": "adjustment", "adjust": "frames/warm", "at": [0, 4], "mask": { "shape": "ellipse", "height": 40, "position": [500, 300] },
+              "clips": [ { "kind": "adjustment", "adjust": "frames/warm", "at": [0, 4], "mask": { "kind": "ellipse", "height": 40, "position": [500, 300] },
                 "keyframes": [ { "at": 0, "ease": "ease-in", "mask": { "width": 100 } }, { "at": 2, "mask": { "width": 300 } } ] } ] }
             """#)
 
@@ -113,7 +113,7 @@ struct MaskEndToEndTests {
         let sut = try resolved(#"""
             { "kind": "sequence", "storyline": [ { "id": "screen", "kind": "media", "media": "/abs/screen.mp4", "connected": [
                 { "id": "box", "kind": "rect", "stroke": { "width": 8 }, "parent": "screen", "area": [0, 0, 600, 600], "scale": 2, "at": [0, 4] },
-                { "kind": "adjustment", "adjust": "frames/warm", "parent": "box", "at": [0, 4], "mask": { "shape": "rect" }, "keyframes": [
+                { "kind": "adjustment", "adjust": "frames/warm", "parent": "box", "at": [0, 4], "mask": { "kind": "rect" }, "keyframes": [
                     { "at": 0, "mask": { "area": [0, 0, 100, 100] } },
                     { "at": 2, "mask": { "area": [0, 0, 50, 50] } } ] } ] } ] }
             """#)

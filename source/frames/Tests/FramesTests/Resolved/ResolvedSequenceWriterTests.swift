@@ -518,7 +518,7 @@ struct ResolvedSequenceWriterTests {
         // Given
         let document = ##"""
             { "kind": "sequence", "format": { "size": [2412, 5244] },
-              "theme": { "shapes": { "outline": { "stroke": { "width": 8, "color": "#ED2929" }, "radius": 18 } } },
+              "theme": { "shapes": { "outline": { "stroke": { "width": 8, "paint": "#ED2929" }, "radius": 18 } } },
               "storyline": [ { "kind": "media", "media": "/abs/run.mp4" } ], "clips": [
                 { "kind": "rect", "style": "outline", "area": [0, 0, 100, 100], "at": [0, 1] },
                 { "kind": "path", "points": [[500, 500], [600, 500]], "stroke": { "width": 10, "end": "frames/arrow" }, "at": [0, 1] },
@@ -611,12 +611,12 @@ struct ResolvedSequenceWriterTests {
         // Given
         let document = #"""
             { "kind": "sequence", "format": { "size": [3840, 2160] },
-              "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "in": 0, "out": 4, "mask": { "shape": "ellipse", "area": [16, 16, 480, 480], "feather": 3 } } ],
+              "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "in": 0, "out": 4, "mask": { "kind": "ellipse", "area": [16, 16, 480, 480], "feather": 3 } } ],
               "clips": [
                 { "kind": "media", "media": "/abs/card.png", "at": [0, 4], "width": 160,
-                  "mask": [ { "shape": "rect", "width": 100, "height": 40, "position": [200, 300], "radius": 4, "invert": true, "mode": "intersect" },
-                            { "shape": "path", "points": [[0, 0], [10, 0], [5, 10]] } ] },
-                { "kind": "adjustment", "adjust": "frames/warm", "at": [0, 4], "mask": { "shape": "rect" }, "keyframes": [
+                  "mask": [ { "kind": "rect", "width": 100, "height": 40, "position": [200, 300], "radius": 4, "invert": true, "mode": "intersect" },
+                            { "kind": "path", "points": [[0, 0], [10, 0], [5, 10]] } ] },
+                { "kind": "adjustment", "adjust": "frames/warm", "at": [0, 4], "mask": { "kind": "rect" }, "keyframes": [
                     { "at": 1, "ease": "ease-out", "mask": { "area": [0, 0, 10, 10] } },
                     { "at": 3, "mask": { "area": [0, 0, 20, 20], "feather": 1 } } ] },
                 { "kind": "title", "text": "a", "style": "title", "at": [0, 4] } ] }

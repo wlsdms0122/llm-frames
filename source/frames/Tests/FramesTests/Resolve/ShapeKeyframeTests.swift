@@ -242,9 +242,9 @@ struct ShapeKeyframeTests {
         // Given
         let clip = ##"""
             { "kind": "rect", "area": [0, 0, 10, 10],
-              "fill": { "radial": { "center": [0.5, 0.5], "radius": 0.5, "stops": [[0, "#FF0000"], [1, "#0000FF"]] } },
-              "keyframes": [ { "at": 0, "fill": { "radial": { "center": [0.2, 0.2] } } },
-                             { "at": 1, "fill": { "radial": { "center": [0.8, 0.8] } } } ] }
+              "fill": { "kind": "radial", "center": [0.5, 0.5], "radius": 0.5, "stops": [[0, "#FF0000"], [1, "#0000FF"]] },
+              "keyframes": [ { "at": 0, "fill": { "kind": "radial", "center": [0.2, 0.2] } },
+                             { "at": 1, "fill": { "kind": "radial", "center": [0.8, 0.8] } } ] }
             """##
 
         // When, Then
@@ -378,9 +378,9 @@ struct ShapeKeyframeTests {
         // When
         let sized = try resolvedShape(##"""
             { "kind": "rect", "area": [0, 0, 10, 10],
-              "fill": { "radial": { "center": [0, 0], "radius": 0.5, "stops": [[0, "#000000"], [1, "#FFFFFF"]] } } }
+              "fill": { "kind": "radial", "center": [0, 0], "radius": 0.5, "stops": [[0, "#000000"], [1, "#FFFFFF"]] } }
             """##)
-        let moved = try resolvedShape(#"{ "kind": "rect", "area": [0, 0, 10, 10], "style": "glow", "fill": { "radial": { "center": [1, 1] } } }"#)
+        let moved = try resolvedShape(#"{ "kind": "rect", "area": [0, 0, 10, 10], "style": "glow", "fill": { "kind": "radial", "center": [1, 1] } }"#)
 
         // Then
         let box = Rectangle(x: 0, y: 0, width: 4, height: 3)
@@ -393,8 +393,8 @@ struct ShapeKeyframeTests {
         "a stop naming a colour the theme lacks, a keyframe of another kind, and a null stop leaf in keyframes giving another number of stops than the style's, whose list replaces the style's, stop",
         arguments: [
             ##""fill": { "linear": { "from": [0, 0], "to": [1, 0], "stops": [[0, "ink"], [1, "#FFFFFF"]] } }"##,
-            ##""style": "ramp", "keyframes": [ { "at": 0, "fill": { "linear": { "stops": [[0, null], [1, null]] } } }, { "at": 1, "fill": { "linear": { "stops": [[0.5, null], [1, null]] } } } ]"##,
-            ##""style": "ramp", "keyframes": [ { "at": 0, "fill": { "radial": { "center": [0, 0] } } }, { "at": 1, "fill": { "radial": { "center": [1, 1] } } } ]"##
+            ##""style": "ramp", "keyframes": [ { "at": 0, "fill": { "kind": "linear", "stops": [[0, null], [1, null]] } }, { "at": 1, "fill": { "kind": "linear", "stops": [[0.5, null], [1, null]] } } ]"##,
+            ##""style": "ramp", "keyframes": [ { "at": 0, "fill": { "kind": "radial", "center": [0, 0] } }, { "at": 1, "fill": { "kind": "radial", "center": [1, 1] } } ]"##
         ]
     )
     func refusesGradient(written: String) throws {
@@ -410,9 +410,9 @@ struct ShapeKeyframeTests {
         // When
         let shape = try resolvedShape(##"""
             { "kind": "rect", "area": [0, 0, 10, 10], "style": "glow",
-              "fill": { "radial": { "stops": [[0, "#000000"], [1, "#00000000"]] } },
-              "keyframes": [ { "at": 0, "fill": { "radial": { "center": [0, 0], "stops": [[null, null], [0.5, null]] } } },
-                             { "at": 1, "fill": { "radial": { "center": [1, 1], "stops": [[null, "#FFFFFF"], [null, null]] } } } ] }
+              "fill": { "kind": "radial", "stops": [[0, "#000000"], [1, "#00000000"]] },
+              "keyframes": [ { "at": 0, "fill": { "kind": "radial", "center": [0, 0], "stops": [[null, null], [0.5, null]] } },
+                             { "at": 1, "fill": { "kind": "radial", "center": [1, 1], "stops": [[null, "#FFFFFF"], [null, null]] } } ] }
             """##)
 
         // Then
@@ -429,8 +429,8 @@ struct ShapeKeyframeTests {
         // When
         let shape = try resolvedShape(##"""
             { "kind": "rect", "area": [0, 0, 10, 10], "style": "glow",
-              "keyframes": [ { "at": 0, "fill": { "radial": { "stops": [[null, null], [0.5, "#000000"]] } } },
-                             { "at": 1, "fill": { "radial": { "stops": [[null, null], [1, "#FFFFFF"]] } } } ] }
+              "keyframes": [ { "at": 0, "fill": { "kind": "radial", "stops": [[null, null], [0.5, "#000000"]] } },
+                             { "at": 1, "fill": { "kind": "radial", "stops": [[null, null], [1, "#FFFFFF"]] } } ] }
             """##)
 
         // Then
@@ -475,8 +475,8 @@ struct ShapeKeyframeTests {
         // third to about 1.05.
         let shape = try resolvedShape(##"""
             { "kind": "rect", "area": [0, 0, 10, 10], "style": "ramp",
-              "keyframes": [ { "at": 0, "fill": { "linear": { "stops": [[0, "#FF0000"], [0.95, "#00FF00"], [0.5, "#0000FF"]] } }, "ease": "back-out" },
-                             { "at": 1, "fill": { "linear": { "stops": [[0.9, "#FF0000"], [0.95, "#00FF00"], [1, "#0000FF"]] } } } ] }
+              "keyframes": [ { "at": 0, "fill": { "kind": "linear", "stops": [[0, "#FF0000"], [0.95, "#00FF00"], [0.5, "#0000FF"]] }, "ease": "back-out" },
+                             { "at": 1, "fill": { "kind": "linear", "stops": [[0.9, "#FF0000"], [0.95, "#00FF00"], [1, "#0000FF"]] } } ] }
             """##)
 
         // Then
@@ -493,8 +493,8 @@ struct ShapeKeyframeTests {
         let painted = try resolvedShape(##"{ "kind": "rect", "area": [0, 0, 10, 10], "style": "glow", "fill": "#FF0000" }"##)
         let keyed = try resolvedShape(##"""
             { "kind": "rect", "area": [0, 0, 10, 10], "style": "glow",
-              "keyframes": [ { "at": 0, "fill": "#000000", "stroke": { "color": "#000000" } },
-                             { "at": 1, "fill": "#FFFFFF", "stroke": { "color": "#FFFFFF" } } ] }
+              "keyframes": [ { "at": 0, "fill": "#000000", "stroke": { "paint": "#000000" } },
+                             { "at": 1, "fill": "#FFFFFF", "stroke": { "paint": "#FFFFFF" } } ] }
             """##)
 
         // Then
@@ -509,9 +509,9 @@ struct ShapeKeyframeTests {
         // Given
         let shape = try resolvedShape(##"""
             { "kind": "rect", "area": [0, 0, 10, 10], "style": "glow",
-              "fill": { "radial": { "stops": [[0, "#000000"], [1, "#FFFFFF"]] } },
-              "keyframes": [ { "at": 0, "fill": { "radial": { "radius": 0.5, "stops": [[0.2, null], [null, "#FF0000"]] } } },
-                             { "at": 1, "fill": { "radial": { "radius": 1, "stops": [[null, null], [null, null]] } } } ] }
+              "fill": { "kind": "radial", "stops": [[0, "#000000"], [1, "#FFFFFF"]] },
+              "keyframes": [ { "at": 0, "fill": { "kind": "radial", "radius": 0.5, "stops": [[0.2, null], [null, "#FF0000"]] } },
+                             { "at": 1, "fill": { "kind": "radial", "radius": 1, "stops": [[null, null], [null, null]] } } ] }
             """##)
         let writer = ResolvedValueWriter()
         let reader = ResolvedValueReader()
@@ -544,14 +544,14 @@ struct ShapeKeyframeTests {
             { "kind": "sequence", "format": { "size": [960, 540] },
               "theme": { "colors": { "brand": "#123456" },
                          "shadow": { "radius": 20, "offset": [0, 8], "color": "#00000080" },
-                         "shapes": { "bar": { "stroke": { "width": \#(width), "color": "#ED2929" }, "radius": 12, "shadow": { "radius": 10 } },
+                         "shapes": { "bar": { "stroke": { "width": \#(width), "paint": "#ED2929" }, "radius": 12, "shadow": { "radius": 10 } },
                                      "dashed": { "stroke": { "width": 4, "dash": [10, 5] } },
                                      "pointer": { "stroke": { "width": 4, "end": { "preset": "frames/diamond", "scale": 2 } } },
-                                     "glow": { "fill": { "radial": { "center": [0.25, 0.5], "stops": [[0, "brand"], [1, "#00000000"]] } },
-                                               "stroke": { "width": 2, "gradient": { "linear": { "from": [0.25, 0], "to": [1, 0.5],
-                                                           "stops": [[0, "#FF0000"], [1, "#0000FF"]] } } } },
-                                     "ramp": { "fill": { "linear": { "from": [0, 0], "to": [1, 0],
-                                               "stops": [[0, "#FF0000"], [0.5, "#00FF00"], [1, "#0000FF"]] } } } } },
+                                     "glow": { "fill": { "kind": "radial", "center": [0.25, 0.5], "stops": [[0, "brand"], [1, "#00000000"]] },
+                                               "stroke": { "width": 2, "paint": { "kind": "linear", "from": [0.25, 0], "to": [1, 0.5],
+                                                           "stops": [[0, "#FF0000"], [1, "#0000FF"]] } } },
+                                     "ramp": { "fill": { "kind": "linear", "from": [0, 0], "to": [1, 0],
+                                               "stops": [[0, "#FF0000"], [0.5, "#00FF00"], [1, "#0000FF"]] } } } },
               "storyline": [ { "kind": "media", "media": "/abs/screen.mp4" } ], "clips": [ \#(clip.dropLast(1)), "at": [0, 1] } ] }
             """#
         let plan = try Fixture.documentPlanner.plan(try Fixture.json(document))

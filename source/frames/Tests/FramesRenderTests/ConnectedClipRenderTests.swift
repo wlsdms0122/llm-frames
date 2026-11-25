@@ -187,7 +187,7 @@ struct ConnectedClipRenderTests {
             { "kind": "sequence", "format": { "size": [180, 320] },
               "storyline": [ { "id": "screen", "kind": "media", "media": "\#(file)",
                                "keyframes": [ { "at": 0, "crop": { "scale": 1 } }, { "at": 0.9, "crop": { "scale": 1.25 } } ],
-                               "connected": [ { "kind": "rect", "stroke": { "width": 40, "color": "#ED2929" }, "area": \#(area), "parent": "screen", "track": \#(report.trackData) } ] } ] }
+                               "connected": [ { "kind": "rect", "stroke": { "width": 40, "paint": "#ED2929" }, "area": \#(area), "parent": "screen", "track": \#(report.trackData) } ] } ] }
             """#)
         let sut = QuartzRenderer(decoder: AVFoundationDecoder())
 
@@ -310,8 +310,8 @@ struct ConnectedClipRenderTests {
     @Test(
         "a frame that fits its content holds a sharp miter join and a square cap on a diagonal end whole, its margin left clear",
         arguments: [
-            ##"{ "kind": "path", "points": [[60, 40], [120, 60], [60, 80]], "stroke": { "width": 10, "color": "#FF0000", "join": "miter" }, "at": [0, 1] }"##,
-            ##"{ "kind": "path", "points": [[60, 60], [100, 100]], "stroke": { "width": 10, "color": "#FF0000", "cap": "square" }, "at": [0, 1] }"##
+            ##"{ "kind": "path", "points": [[60, 40], [120, 60], [60, 80]], "stroke": { "width": 10, "paint": "#FF0000", "join": "miter" }, "at": [0, 1] }"##,
+            ##"{ "kind": "path", "points": [[60, 60], [100, 100]], "stroke": { "width": 10, "paint": "#FF0000", "cap": "square" }, "at": [0, 1] }"##
         ]
     )
     func fitsJoinAndCap(shape: String) throws {
@@ -348,7 +348,7 @@ struct ConnectedClipRenderTests {
             { "kind": "sequence", "format": { "fps": 10 },
               "storyline": [ { "kind": "media", "media": "\#(file)", "duration": 1 } ],
               "clips": [ { "kind": "rect", "area": [0, 0, 160, 90], "fill": "#00000080", "at": [0, 1],
-                           "mask": { "shape": "ellipse", "area": [40, 20, 80, 50], "invert": true } } ] }
+                           "mask": { "kind": "ellipse", "area": [40, 20, 80, 50], "invert": true } } ] }
             """#)
         let sut = QuartzRenderer(decoder: AVFoundationDecoder())
 
@@ -377,7 +377,7 @@ struct ConnectedClipRenderTests {
             { "kind": "sequence", "format": { "fps": 10 }, "theme": { "baseWidth": 160 },
               "storyline": [ { "kind": "media", "media": "\#(below)", "duration": 1 } ],
               "clips": [ { "kind": "media", "media": "\#(file)", "width": 80, "position": [80, 45], "at": [0, 1],
-                           "mask": { "shape": "ellipse", "area": [0, 0, 40, 40], "feather": 2 } } ] }
+                           "mask": { "kind": "ellipse", "area": [0, 0, 40, 40], "feather": 2 } } ] }
             """#)
         let sut = QuartzRenderer(decoder: AVFoundationDecoder())
 
