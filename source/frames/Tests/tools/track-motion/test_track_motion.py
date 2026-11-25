@@ -473,6 +473,21 @@ class Arguments(Case):
         # Then it stops, since it stands as a clip's track
         self.assertIn("storyline[0].connected[0]: area: a frames/track-motion request stands as a clip's track", self.stop(document))
 
+    def test_template_argument(self):
+        # Given a track request on a clip of a sequence argument of a template instance
+        document = {"kind": "sequence", "storyline": [{"id": "card", "kind": "media", "media": {"kind": "template", "template": "studio/card", "args": {
+            "screen": {"kind": "sequence", "storyline": [
+                {"kind": "media", "media": "/media/moving.mp4", "track": {"tool": "frames/track-motion", "target": [0, 0, 10, 10]}}
+            ]}
+        }}}]}
+
+        # When the tool runs
+        message = self.stop(document)
+
+        # Then it stops before frames is run, naming the argument, since where it lies is the template's
+        self.assertEqual(message, "storyline[0]#card: media.args.screen.storyline[0].track: a frames/track-motion request stands among the arguments of a template instance, whose clips are its template's, so it is not filled: write the track data")
+        self.assertEqual(Replay.log, [])
+
     def test_relative_path(self):
         # Then a relative document path stops
         with self.assertRaises(tool.Stop) as raised:

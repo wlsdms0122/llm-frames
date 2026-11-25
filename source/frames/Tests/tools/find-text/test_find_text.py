@@ -9,6 +9,12 @@ the document it asks about written as `<document>`. `board.png` is a still of si
 video at 25 frames a second that shows `Price 4.50` at the top left before 2 seconds and `Price 6.00` at the bottom
 right from 2 seconds, and `frames` an image sequence of its frames every half second, read at 2 frames a second.
 The documents hold `frames/track-motion` requests beside `frames/find-text` ones, which the tool leaves as written.
+
+`fixtures/nested.json` names `/media/screen.png`, an 800 by 450 still rendered by frames of three lines of text with
+`Total 42,000` at its bottom right, and `/media/moving.mp4`, a 3 second 640 by 360 video at 25 frames a second,
+rendered by frames, that shows `Total 42,000` at its top. Its requests stand only inside compound clips written as
+sequence objects: the still's, one level deep, and the video's, two levels deep inside a clip that shows its nested
+sequence from second 1, so the frame its request is searched on is one the outer sequence never shows.
 """
 
 import copy
@@ -206,6 +212,38 @@ class Recorded(Case):
         ])
         self.assertEqual([[line["text"] for line in entry["lines"]] for entry in keyframes], [["Price 4.50"], ["Price 6.00"]])
         self.assertEqual([entry["rect"] for entry in keyframes], [keyframe["area"] for keyframe in result["storyline"][0]["connected"][0]["keyframes"]])
+
+    def test_nested(self):
+        # Given requests inside compound clips written as sequence objects, one and two levels deep
+        document = fixture("nested.json")
+
+        # When the tool writes the rectangles
+        result = self.run_document(document, fixture("nested.calls.json"), "--languages", "en-US")
+
+        # Then each is the rectangle ocr reports in the nested clip's media, and only the nested sequences are read
+        self.assertEqual(result, fixture("nested.expected.json"))
+        self.assertEqual([arguments for arguments in self.commands("timeline")], [
+            ["timeline", "<document>", "--nested", "storyline[0]#frame", "--json"],
+            ["timeline", "<document>", "--nested", "clips[0]#deep.media.storyline[0]#inner", "--json"],
+            ["timeline", "<document>", "--nested", "storyline[0]#frame", "--at", "0", "--json"],
+            ["timeline", "<document>", "--nested", "clips[0]#deep.media.storyline[0]#inner", "--at", "0.4", "--json"]
+        ])
+
+    def test_nested_frame(self):
+        # Given a request on a video two levels deep whose instant is 0.4 on its nested sequence's own clock
+        # When the tool writes the rectangles with their report
+        result, report = self.run_with_report(fixture("nested.json"), fixture("nested.calls.json"), "--languages", "en-US")
+
+        # Then the frame read is the one that instant shows on the nested clock, and the report names the nested place
+        self.assertEqual([(entry["place"], entry["key"], entry["media"], entry["mediaTime"]) for entry in report], [
+            ("storyline[0]#frame.media.storyline[0]#shot.connected[0]#box", "area", "/media/screen.png", None),
+            ("storyline[0]#frame.media.storyline[0]#shot.connected[1]", "position.area", "/media/screen.png", None),
+            ("clips[0]#deep.media.storyline[0]#inner.media.storyline[0]#move.connected[0]", "area", "/media/moving.mp4", 0.4)
+        ])
+        self.assertEqual([[line["text"] for line in entry["lines"]] for entry in report], [["Total 42,000"], ["Invoice 2026-11"], ["Total 42,000"]])
+        moved = result["clips"][0]["media"]["storyline"][0]["media"]["storyline"][0]["connected"][0]
+        self.assertEqual(moved["area"], report[2]["rect"])
+        self.assertEqual(moved["track"], {"tool": "frames/track-motion", "target": "area"})
 
     def test_no_text_forms(self):
         # Given a document whose areas are rectangles
@@ -467,18 +505,32 @@ class Places(Case):
             tool.probe_document(pointed)
         self.assertIn('storyline[0]#b.connected[0]: position: a request for "other" stands where frames/find-text has no value', str(raised.exception))
 
-    def test_compound(self):
-        # Given a crop that names text inside a compound clip
-        document = {"kind": "sequence", "storyline": [{"kind": "media", "media": {"kind": "sequence", "storyline": [
-            {"id": "b", "kind": "media", "media": self.board, "duration": 2, "crop": {"tool": "frames/find-text", "text": "Total"}}
+    def test_template_argument(self):
+        # Given a crop that names text in a sequence argument of a template instance
+        document = {"kind": "sequence", "storyline": [{"id": "card", "kind": "media", "media": {"kind": "template", "template": "studio/card", "args": {
+            "screen": {"kind": "sequence", "storyline": [
+                {"kind": "media", "media": self.board, "duration": 2, "crop": {"tool": "frames/find-text", "text": "Total"}}
+            ]}
+        }}}]}
+
+        # When the tool runs
+        message = self.stop(document)
+
+        # Then it stops before frames is run, naming the argument, since where it lies is the template's
+        self.assertEqual(message, "storyline[0]#card: media.args.screen.storyline[0].crop: a frames/find-text request stands among the arguments of a template instance, whose clips are its template's, so it is not filled: write the rectangle")
+        self.assertEqual(Replay.log, [])
+
+    def test_template_argument_in_nested_sequence(self):
+        # Given a template instance inside a compound clip whose argument is a request
+        document = {"kind": "sequence", "storyline": [{"id": "outer", "kind": "media", "media": {"kind": "sequence", "clips": [
+            {"id": "card", "kind": "media", "at": [0, 2], "media": {"kind": "template", "template": "studio/card", "args": {"box": {"tool": "frames/find-text", "text": "Total"}}}}
         ]}}]}
 
         # When the tool runs
         message = self.stop(document)
 
-        # Then it stops naming the place inside the nested document
-        self.assertIn("storyline[0].media.storyline[0]#b: crop", message)
-        self.assertIn("inside a compound clip", message)
+        # Then it stops at the instance's nested place
+        self.assertEqual(message, "storyline[0]#outer.media.clips[0]#card: media.args.box: a frames/find-text request stands among the arguments of a template instance, whose clips are its template's, so it is not filled: write the rectangle")
 
     def test_mixed_form(self):
         # Given a frames/find-text request that mixes its text with a clip area's key
