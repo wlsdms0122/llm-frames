@@ -106,7 +106,7 @@
       }
     ]
   },
-  "keyframed_time": {
+  "keyframed": {
     "kind": "sequence",
     "storyline": [
       {
@@ -143,8 +143,7 @@
             ],
             "track": {
               "tool": "track-motion",
-              "target": "area",
-              "time": 0.4
+              "target": "area"
             }
           }
         ]
@@ -261,7 +260,6 @@
                 128,
                 88
               ],
-              "time": 0.4,
               "padding": 4
             }
           }

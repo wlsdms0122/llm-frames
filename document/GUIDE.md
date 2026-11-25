@@ -305,7 +305,7 @@ After a blade at clip second 1 of `demo`, which is sequence second 2:
 - The ring is parented to `demo` and crosses the cut, so each part gets a copy parented to it, with its window cut at clip second 1: `ring` from sequence second 1.5 to 2, `ring-2` from 2 to 2.4. Its fade in stays on the first and its fade out on the second.
 - The note starts at clip second 1.2, inside `demo-2`, so it goes there with the same `at`, and its parent becomes `demo-2`.
 - The tag had no `at`, so it first takes `demo`'s edit range in clip time, `[0, 3]`, and stays on `demo`. Unparented, it plays its whole window across the edit point.
-- A document that holds requests is bladed after `frames find-text` and `frames track-motion` have filled them with rectangles and track data, since a static area request is searched on the frame its clip starts on and a track request without `time` follows its target from that frame, and `ring-2` starts at the edit point and not at clip second 0.5.
+- A document that holds requests is bladed after `frames find-text` and `frames track-motion` have filled them with rectangles and track data, since a static area request is searched on the frame its clip starts on and a track request follows its target from that frame, and `ring-2` starts at the edit point and not at clip second 0.5.
 
 Check that nothing moved: `timeline` gives the same duration and the same visible ranges, and `still` at the same instants draws the same frames.
 

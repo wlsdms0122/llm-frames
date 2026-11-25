@@ -16,7 +16,9 @@ import importlib.machinery
 import importlib.util
 import json
 import os
+import shlex
 import shutil
+import stat
 import tempfile
 import unittest
 
@@ -113,24 +115,28 @@ class Recorded(Case):
         self.assertEqual(len(self.commands("track")), 8)
 
     def test_corner_pin(self):
-        # Given a clip whose track request names its corner pin as the target, with time 1
+        # Given a clip from 1 second whose track request names its corner pin as the target
         pin = self.clips["pin"]["track"]
 
-        # Then its quadrilateral is followed with --quad from the frame at media second 1
+        # Then its quadrilateral is followed with --quad from the frame its instant shows
         self.assertEqual(pin["time"], 1)
+        self.assertIn(["timeline", "<document>", "--at", "1", "--json"], Replay.log)
         self.assertIn(
             ["track", "/media/moving.mp4", "--at", "1", "--quad", "[[192, 192], [328, 194], [326, 288], [194, 286]]", "--to", "0"],
             Replay.log
         )
         self.assertEqual(pin["frames"][[frame["time"] for frame in pin["frames"]].index(1)]["quad"], [[192, 192], [328, 194], [326, 288], [194, 286]])
 
-    def test_time_and_area(self):
-        # Given a rect whose track request's target is an area, with time 2
+    def test_area_on_instant(self):
+        # Given a rect from 2 seconds whose track request's target is an area
         total = self.clips["total"]["track"]
 
-        # Then the area is followed from the frame at media second 2, and no instant is asked for
+        # Then the area is followed from the frame its instant shows, each instant asked for once
         self.assertEqual(total["time"], 2)
-        self.assertEqual(self.commands("timeline"), [["timeline", "<document>", "--json"], ["timeline", "<document>", "--at", "0.4", "--json"]])
+        self.assertEqual(
+            [arguments[3] for arguments in self.commands("timeline") if "--at" in arguments],
+            ["0.4", "1", "2", "3.4"]
+        )
 
     def test_track_data_kept(self):
         # Given track data already written, on a rect whose area is a find-text request
@@ -140,11 +146,12 @@ class Recorded(Case):
         self.assertEqual((self.clips["kept"]["track"], self.clips["kept"]["area"]), (written["track"], written["area"]))
 
     def test_image_sequence(self):
-        # Given an image sequence whose track request names its own crop as the target, with time 0.4
+        # Given an image sequence from 3 seconds whose track request names its own crop, keyframed at clip time 0.4
         sequence = self.result["storyline"][1]["track"]
 
-        # Then it is followed in the directory at the rate its entry reports, as --fps
+        # Then it is followed in the directory at the rate its entry reports, as --fps, from the frame its keyframe shows
         self.assertEqual(sequence["time"], 0.4)
+        self.assertIn(["timeline", "<document>", "--at", "3.4", "--json"], Replay.log)
         self.assertIn(
             ["track", "/media/frames", "--fps", "25", "--at", "0.4", "--area", "[124, 202, 128, 88]", "--to", "2"],
             Replay.log
@@ -236,20 +243,13 @@ class Places(Case):
         # Then it stops, since no report gives the bounds of a mask
         self.assertIn("it follows the bounds of the clip's masks, which no report gives", self.place("mask_target"))
 
-    def test_keyframed_time(self):
-        # Given a track request that names a keyframed area, with a time
-        # Then it stops, since no keyframe is written on the frame t names
-        self.assertIn("none is written on the frame time names", self.place("keyframed_time"))
-
-    def test_keyframe_without_time(self):
+    def test_keyframe_without_number_at(self):
         # Given a track request that names a keyframed area, whose keyframe has no number at
-        document = copy.deepcopy(self.documents["keyframed_time"])
-        clip = document["storyline"][0]["connected"][0]
-        del clip["track"]["time"]
-        clip["keyframes"][1]["at"] = "1"
+        document = copy.deepcopy(self.documents["keyframed"])
+        document["storyline"][0]["connected"][0]["keyframes"][1]["at"] = "1"
 
         # Then it stops, naming the keyframe
-        self.assertIn("storyline[0]#shot.connected[0]: keyframes[1] needs a number at", self.stop(document, self.calls["keyframed_time"]))
+        self.assertIn("storyline[0]#shot.connected[0]: keyframes[1] needs a number at", self.stop(document, self.calls["keyframed"]))
 
     def test_request_and_clip_targets(self):
         # Given a target that is a find-text request and one named as another clip's box
@@ -280,25 +280,30 @@ class Places(Case):
         self.assertEqual(Replay.log, [])
 
     def test_target_forms(self):
-        # Given requests without a target, with a target that names no key a target lies in, and with a time that is
-        # not a number
+        # Given requests without a target, and with a target that names no key a target lies in
         document = copy.deepcopy(self.documents["bad_key"])
         clip = document["storyline"][0]["connected"][0]
         messages = []
-        for track in ({"tool": "track-motion"}, {"tool": "track-motion", "target": "position"},
-                      {"tool": "track-motion", "target": "area", "time": "1"}):
+        for track in ({"tool": "track-motion"}, {"tool": "track-motion", "target": "position"}):
             clip["track"] = track
             messages.append(self.stop(copy.deepcopy(document)))
 
         # Then each stops, naming what is wrong
         self.assertIn("a track-motion request names its target", messages[0])
         self.assertIn('track.target: "position" is none of the clip\'s own keys a target lies in: area, cornerPin, crop, mask', messages[1])
-        self.assertIn("track.time: the media time of the frame the target is written on is a number", messages[2])
 
     def test_unknown_key(self):
-        # Given a request with a key it does not take
-        # Then it stops, naming the key
-        self.assertIn('unknown key "padding" in a track-motion request. Allowed: target, time, tool', self.place("bad_key"))
+        # Given requests with a key they do not take, one of them a media time
+        document = copy.deepcopy(self.documents["bad_key"])
+        document["storyline"][0]["connected"][0]["track"] = {"tool": "track-motion", "target": "area", "time": 0.4}
+
+        # Then each stops before frames runs, naming the key
+        self.assertIn('unknown key "padding" in a track-motion request. Allowed: target, tool', self.place("bad_key"))
+        self.assertEqual(
+            self.stop(document),
+            'storyline[0]#shot.connected[0]: track: unknown key "time" in a track-motion request. Allowed: target, tool'
+        )
+        self.assertEqual(Replay.log, [])
 
 
 class Arguments(Case):
@@ -342,6 +347,28 @@ class Arguments(Case):
     def test_global_options(self):
         # Then the global options of frames are passed on
         self.assertEqual(extension.parse(["--tracker", "planar", "/abs/edit.json"]), (["--tracker", "planar"], "/abs/edit.json"))
+
+
+class Failure(unittest.TestCase):
+    def test_failed_command(self):
+        # Given a frames that fails on every command, run with a global option
+        directory = tempfile.mkdtemp(prefix="frames-track-motion-test-")
+        self.addCleanup(shutil.rmtree, directory, True)
+        executable = os.path.join(directory, "frames")
+        with open(executable, "w", encoding="utf-8") as file:
+            file.write("#!/bin/sh\necho 'frames: no theme named \"brand/dark\"' >&2\nexit 1\n")
+        os.chmod(executable, stat.S_IRWXU)
+        sut = extension.Frames(executable, ["--theme", "brand/dark"])
+
+        # When it runs a report
+        with self.assertRaises(extension.Stop) as raised:
+            sut.report(["timeline", "/abs/edit json.json", "--json"])
+
+        # Then the stop shows the command line it ran, with its global options, and what frames printed
+        self.assertEqual(
+            str(raised.exception),
+            f"{shlex.quote(executable)} --theme brand/dark timeline '/abs/edit json.json' --json failed: frames: no theme named \"brand/dark\""
+        )
 
 
 if __name__ == "__main__":
