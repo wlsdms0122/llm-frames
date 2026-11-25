@@ -10,6 +10,7 @@ reads only frames' machine output and never a resolved document.
 
 import json
 import os
+import shlex
 import subprocess
 import sys
 import tempfile
@@ -55,12 +56,11 @@ class Frames:
         self.readings = {}
 
     def report(self, arguments):
-        completed = subprocess.run(
-            [self.executable] + self.options + arguments, capture_output=True, text=True
-        )
+        command = [self.executable] + self.options + arguments
+        completed = subprocess.run(command, capture_output=True, text=True)
         if completed.returncode != 0:
             message = completed.stderr.strip() or f"exit {completed.returncode}"
-            raise Stop(f"frames {arguments[0]} failed: {message}")
+            raise Stop(f"{shlex.join(command)} failed: {message}")
         output = json.loads(completed.stdout)
         version = output.get(arguments[0])
         if major(version) != SUPPORTED_MAJOR:
