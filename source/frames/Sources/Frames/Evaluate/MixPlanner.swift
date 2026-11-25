@@ -64,24 +64,28 @@ package struct MixPlanner: Sendable {
         fps: Double
     ) -> (segments: [MixSegment], buses: [MixBus]) {
         let own = paths(of: sound, through: path)
-        guard let media = sound.media else {
-            return ([], own.compactMap { path in bus(of: sound, through: path, fps: fps) })
-        }
+        switch sound.source {
+        case let .pinned(media):
+            return (own.map { path in MixSegment(media: media, path: path, fps: fps) }, [])
 
-        return (own.map { path in MixSegment(media: media, path: path, fps: fps) }, [])
+        case let .nested(nested, audioFilter):
+            return ([], own.compactMap { path in bus(of: nested, audioFilter: audioFilter, through: path, fps: fps) })
+        }
     }
 
+    // `audioFilter` is the nested sequence's own, its bus's chain.
     private func bus(
-        of sound: ResolvedSound,
+        of nested: [ResolvedSound],
+        audioFilter: TimedValue,
         through path: MixPath,
         fps: Double
     ) -> MixBus? {
-        let parts = sound.nested.map { nested in self.parts(of: nested, through: path, fps: fps) }
+        let parts = nested.map { nested in self.parts(of: nested, through: path, fps: fps) }
         let segments = parts.flatMap(\.segments)
         let buses = parts.flatMap(\.buses)
         guard !segments.isEmpty || !buses.isEmpty else { return nil }
 
-        return MixBus(path: path, segments: segments, buses: buses, fps: fps)
+        return MixBus(path: path, segments: segments, buses: buses, nestedAudioFilter: audioFilter, fps: fps)
     }
 
     private func paths(

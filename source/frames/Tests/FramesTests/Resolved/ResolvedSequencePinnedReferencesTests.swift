@@ -218,8 +218,7 @@ struct ResolvedSequencePinnedReferencesTests {
     ) -> ResolvedSound {
         ResolvedSound(
             place: place,
-            media: media,
-            nested: [],
+            source: .pinned(media),
             played: PlayedRange(
                 map: TimeMap(origin: 0, in: 0, speed: 1),
                 out: 2,

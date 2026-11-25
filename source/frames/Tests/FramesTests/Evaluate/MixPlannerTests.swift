@@ -34,7 +34,7 @@ struct MixPlannerTests {
             TimedMember(key: "ops", value: .list([.form("kind:eq", .object([TimedMember(key: "bands", value: .list([band]))]))])),
             TimedMember(key: "mix", value: .track([Keyframe(at: 0, value: .number(1))]))
         ])
-        let audio = [sound(music, start: 0, end: 2, audioFilter: .list([entry]))]
+        let audio = [sound(.pinned(music), start: 0, end: 2, audioFilter: .list([entry]))]
 
         // When
         let plan = sut.mix(of: sequence(audio, fps: 4, duration: 2))
@@ -58,7 +58,7 @@ struct MixPlannerTests {
     @Test("a sound at a static volume is one segment at that gain, centred, with points only at its ends")
     func playsStaticVolume() {
         // Given
-        let audio = [sound(music, in: 2, start: 0, end: 1, volume: [Keyframe(at: 0, value: 0.5)])]
+        let audio = [sound(.pinned(music), in: 2, start: 0, end: 1, volume: [Keyframe(at: 0, value: 0.5)])]
 
         // When
         let plan = sut.mix(of: sequence(audio, fps: 4, duration: 1))
@@ -80,7 +80,7 @@ struct MixPlannerTests {
     @Test("a sound whose `in` plays before it is heard starts at the media time its clock gives at its start")
     func startsOnItsClock() {
         // Given
-        let audio = [sound(music, in: 2, origin: 0.5, speed: 2, start: 1, end: 1.5, volume: [Keyframe(at: 1, value: 1)])]
+        let audio = [sound(.pinned(music), in: 2, origin: 0.5, speed: 2, start: 1, end: 1.5, volume: [Keyframe(at: 1, value: 1)])]
 
         // When
         let plan = sut.mix(of: sequence(audio, fps: 2, duration: 2))
@@ -107,7 +107,7 @@ struct MixPlannerTests {
             Keyframe(at: 1, value: 1.0),
             Keyframe(at: 1.1, value: 0.5)
         ]
-        let audio = [sound(music, start: 0, end: 1.5, volume: volume)]
+        let audio = [sound(.pinned(music), start: 0, end: 1.5, volume: volume)]
 
         // When
         let plan = sut.mix(of: sequence(audio, fps: 4, duration: 1.5))
@@ -131,7 +131,7 @@ struct MixPlannerTests {
         // Given
         let audio = [
             sound(
-                music,
+                .pinned(music),
                 start: 0,
                 end: 2,
                 fadeIn: TimeRange(start: 0, end: 0.25),
@@ -150,7 +150,7 @@ struct MixPlannerTests {
     @Test("a looping sound a split starts before its origin plays the media before `in` and its first repeat as one segment")
     func playsLeadOfLoop() {
         // Given
-        let audio = [sound(music, in: 2, origin: 3, out: 4, loop: true, start: 2, end: 6, audible: TimeRange(start: 2, end: 6))]
+        let audio = [sound(.pinned(music), in: 2, origin: 3, out: 4, loop: true, start: 2, end: 6, audible: TimeRange(start: 2, end: 6))]
 
         // When
         let plan = sut.mix(of: sequence(audio, fps: 2, duration: 6))
@@ -165,8 +165,8 @@ struct MixPlannerTests {
         // Given
         let transition = Crossfade(range: TimeRange(start: 1.5, end: 2.5), curve: .constantGain)
         let audio = [
-            sound(music, in: 0, start: 0, end: 2.5, outgoing: transition),
-            sound(voice, in: 9.5, start: 1.5, end: 4, incoming: transition)
+            sound(.pinned(music), in: 0, start: 0, end: 2.5, outgoing: transition),
+            sound(.pinned(voice), in: 9.5, start: 1.5, end: 4, incoming: transition)
         ]
 
         // When
@@ -200,8 +200,8 @@ struct MixPlannerTests {
         // Given
         let transition = Crossfade(range: TimeRange(start: 1, end: 2), curve: .constantPower)
         let audio = [
-            sound(music, start: 0, end: 2, outgoing: transition),
-            sound(voice, start: 1, end: 3, incoming: transition)
+            sound(.pinned(music), start: 0, end: 2, outgoing: transition),
+            sound(.pinned(voice), start: 1, end: 3, incoming: transition)
         ]
 
         // When
@@ -225,7 +225,7 @@ struct MixPlannerTests {
         // Given
         let audio = [
             sound(
-                music,
+                .pinned(music),
                 start: 0,
                 end: 2,
                 volume: [Keyframe(at: 0, value: 0.5)],
@@ -247,7 +247,7 @@ struct MixPlannerTests {
         // Given
         let pan = [Keyframe(at: 2.5, value: -1.0, ease: .easeInOut), Keyframe(at: 3, value: 1.0)]
         let transition = Crossfade(range: TimeRange(start: 1, end: 2), curve: .constantPower)
-        let audio = [sound(music, start: 0, end: 4, pan: pan, outgoing: transition)]
+        let audio = [sound(.pinned(music), start: 0, end: 4, pan: pan, outgoing: transition)]
 
         // When
         let plan = sut.mix(of: sequence(audio, fps: 4, duration: 4))
@@ -262,7 +262,7 @@ struct MixPlannerTests {
     func samplesEasedPan() throws {
         // Given
         let pan = [Keyframe(at: 0, value: -1.0, ease: .easeIn), Keyframe(at: 1, value: 1.0)]
-        let audio = [sound(music, start: 0, end: 1.5, pan: pan)]
+        let audio = [sound(.pinned(music), start: 0, end: 1.5, pan: pan)]
 
         // When
         let plan = sut.mix(of: sequence(audio, fps: 4, duration: 1.5))
@@ -276,8 +276,8 @@ struct MixPlannerTests {
     @Test("a compound clip's pan is added to its sounds', the sum cut to -1 and 1")
     func addsNestedPan() throws {
         // Given
-        let nested = sound(music, start: 0, end: 1, pan: [Keyframe(at: 0, value: -1.0), Keyframe(at: 1, value: 1.0)])
-        let audio = [sound(nil, nested: [nested], start: 0, end: 1, pan: [Keyframe(at: 0, value: 0.5)])]
+        let nested = sound(.pinned(music), start: 0, end: 1, pan: [Keyframe(at: 0, value: -1.0), Keyframe(at: 1, value: 1.0)])
+        let audio = [sound(.nested([nested], audioFilter: .off), start: 0, end: 1, pan: [Keyframe(at: 0, value: 0.5)])]
 
         // When
         let plan = sut.mix(of: sequence(audio, fps: 4, duration: 1))
@@ -292,7 +292,7 @@ struct MixPlannerTests {
         // Given
         let audio = [
             sound(
-                music,
+                .pinned(music),
                 in: 8,
                 start: 0,
                 end: 2.5,
@@ -321,7 +321,7 @@ struct MixPlannerTests {
     @Test("a loop is one segment per repeat from `in`, each starting where the last ends, the last cut where the sound ends")
     func repeatsLoop() {
         // Given
-        let audio = [sound(music, in: 1, out: 3, speed: 2, loop: true, start: 0, end: 2.5)]
+        let audio = [sound(.pinned(music), in: 1, out: 3, speed: 2, loop: true, start: 0, end: 2.5)]
 
         // When
         let plan = sut.mix(of: sequence(audio, fps: 2, duration: 2.5))
@@ -337,9 +337,9 @@ struct MixPlannerTests {
     @Test("a compound clip is a bus: its sound mapped through its clock, its level on the bus and in no segment's gain")
     func mapsNestedSound() {
         // Given
-        let nested = sound(music, in: 0, start: 10, end: 14, fadeIn: TimeRange(start: 10, end: 11))
+        let nested = sound(.pinned(music), in: 0, start: 10, end: 14, fadeIn: TimeRange(start: 10, end: 11))
         let audio = [
-            sound(nil, nested: [nested], in: 10, speed: 2, start: 1, end: 3, volume: [Keyframe(at: 1, value: 0.5)])
+            sound(.nested([nested], audioFilter: .off), in: 10, speed: 2, start: 1, end: 3, volume: [Keyframe(at: 1, value: 0.5)])
         ]
 
         // When
@@ -370,8 +370,8 @@ struct MixPlannerTests {
     @Test("a nested sound that starts before its compound clip is heard is cut to the compound clip's span")
     func cutsNestedSoundToOuter() {
         // Given
-        let nested = sound(music, in: 5, start: 0, end: 2, fadeIn: TimeRange(start: 0, end: 2))
-        let audio = [sound(nil, nested: [nested], in: 1, start: 3, end: 4)]
+        let nested = sound(.pinned(music), in: 5, start: 0, end: 2, fadeIn: TimeRange(start: 0, end: 2))
+        let audio = [sound(.nested([nested], audioFilter: .off), in: 1, start: 3, end: 4)]
 
         // When
         let plan = sut.mix(of: sequence(audio, fps: 2, duration: 4))
@@ -401,10 +401,10 @@ struct MixPlannerTests {
     func repeatsNestedSounds() {
         // Given
         let nested = [
-            sound(music, start: 0.5, end: 1),
-            sound(voice, start: 0, end: 0.25)
+            sound(.pinned(music), start: 0.5, end: 1),
+            sound(.pinned(voice), start: 0, end: 0.25)
         ]
-        let audio = [sound(nil, nested: nested, out: 1, loop: true, start: 0, end: 2.5)]
+        let audio = [sound(.nested(nested, audioFilter: .off), out: 1, loop: true, start: 0, end: 2.5)]
 
         // When
         let plan = sut.mix(of: sequence(audio, fps: 4, duration: 2.5))
@@ -441,9 +441,9 @@ struct MixPlannerTests {
     @Test("the first repeat's bus of a looping compound clip a split starts early starts where its sound does")
     func startsFirstRepeatWithSound() {
         // Given
-        let nested = [sound(music, start: 0, end: 2)]
+        let nested = [sound(.pinned(music), start: 0, end: 2)]
         let audio = [
-            sound(nil, nested: nested, in: 0, origin: 1, out: 1, loop: true, start: 0.5, end: 2.5)
+            sound(.nested(nested, audioFilter: .off), in: 0, origin: 1, out: 1, loop: true, start: 0.5, end: 2.5)
         ]
 
         // When
@@ -457,11 +457,15 @@ struct MixPlannerTests {
     @Test("a compound clip inside a compound clip is a bus inside its bus, each with its own level, their pans on the sound")
     func nestsBuses() {
         // Given
-        let inner = sound(nil, nested: [sound(music, start: 0, end: 2)], start: 0, end: 2, volume: [Keyframe(at: 0, value: 0.8)])
+        let inner = sound(
+            .nested([sound(.pinned(music), start: 0, end: 2)], audioFilter: .off),
+            start: 0,
+            end: 2,
+            volume: [Keyframe(at: 0, value: 0.8)]
+        )
         let audio = [
             sound(
-                nil,
-                nested: [inner, sound(voice, start: 0, end: 1)],
+                .nested([inner, sound(.pinned(voice), start: 0, end: 1)], audioFilter: .off),
                 start: 0,
                 end: 2,
                 volume: [Keyframe(at: 0, value: 0.5)],
@@ -514,10 +518,10 @@ struct MixPlannerTests {
     @Test("a bus that holds no segment and no bus is left out, at every level")
     func leavesOutSilentBus() {
         // Given
-        let unheard = sound(nil, nested: [sound(music, start: 5, end: 6)], start: 0, end: 1)
+        let unheard = sound(.nested([sound(.pinned(music), start: 5, end: 6)], audioFilter: .off), start: 0, end: 1)
         let audio = [
-            sound(nil, nested: [unheard], start: 0, end: 1),
-            sound(nil, nested: [unheard, sound(voice, start: 0, end: 1)], start: 1, end: 2)
+            sound(.nested([unheard], audioFilter: .off), start: 0, end: 1),
+            sound(.nested([unheard, sound(.pinned(voice), start: 0, end: 1)], audioFilter: .off), start: 1, end: 2)
         ]
 
         // When
@@ -536,9 +540,7 @@ struct MixPlannerTests {
         let ownChain = TimedValue.list([limiter(gain: [Keyframe(at: 1, value: .number(3))])])
         let audio = [
             sound(
-                nil,
-                nested: [sound(music, start: 0, end: 2)],
-                nestedAudioFilter: nestedChain,
+                .nested([sound(.pinned(music), start: 0, end: 2)], audioFilter: nestedChain),
                 speed: 2,
                 start: 1,
                 end: 2,
@@ -566,7 +568,7 @@ struct MixPlannerTests {
         // Given
         let nestedChain = TimedValue.list([limiter(gain: [Keyframe(at: 0, value: .number(0)), Keyframe(at: 1, value: .number(4))])])
         let audio = [
-            sound(nil, nested: [sound(music, start: 0, end: 1)], nestedAudioFilter: nestedChain, out: 1, loop: true, start: 0, end: 2)
+            sound(.nested([sound(.pinned(music), start: 0, end: 1)], audioFilter: nestedChain), out: 1, loop: true, start: 0, end: 2)
         ]
 
         // When
@@ -587,7 +589,7 @@ struct MixPlannerTests {
     func carriesSequenceFilter() throws {
         // Given
         let chain = TimedValue.list([limiter(gain: [Keyframe(at: 0, value: .number(0)), Keyframe(at: 1, value: .number(4))])])
-        let resolved = sequence([sound(music, start: 0, end: 1)], fps: 4, duration: 1, audioFilter: chain)
+        let resolved = sequence([sound(.pinned(music), start: 0, end: 1)], fps: 4, duration: 1, audioFilter: chain)
 
         // When
         let plan = sut.mix(of: resolved)
@@ -649,9 +651,7 @@ struct MixPlannerTests {
     // MARK: - Private
     // A sound heard over its whole range at volume 1 and centred unless told otherwise.
     private func sound(
-        _ media: PinnedMedia?,
-        nested: [ResolvedSound] = [],
-        nestedAudioFilter: TimedValue = .off,
+        _ source: ResolvedSoundSource,
         in: Double = 0,
         origin: Double? = nil,
         out: Double = 100,
@@ -670,9 +670,7 @@ struct MixPlannerTests {
     ) -> ResolvedSound {
         ResolvedSound(
             place: "sound",
-            media: media,
-            nested: nested,
-            nestedAudioFilter: nestedAudioFilter,
+            source: source,
             played: PlayedRange(
                 map: TimeMap(origin: origin ?? start, in: `in`, speed: speed),
                 out: out,

@@ -141,8 +141,7 @@ struct LoudnessReporterTests {
     private func sequence(playing media: PinnedMedia) -> ResolvedSequence {
         let sound = ResolvedSound(
             place: "audio[0]",
-            media: media,
-            nested: [],
+            source: .pinned(media),
             played: PlayedRange(map: TimeMap(origin: 0, in: 0, speed: 1), out: 1, loop: false),
             start: 0,
             end: 1,

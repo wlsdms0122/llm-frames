@@ -326,8 +326,8 @@ struct ResolvedSequenceWriter: Sendable {
     private func sound(_ sound: ResolvedSound) -> JSONValue {
         .object(JSONObject(members: [
             JSONMember(key: "place", value: .string(sound.place)),
-            JSONMember(key: "media", value: sound.media.map(values.media) ?? .null),
-            JSONMember(key: "nested", value: nested(of: sound)),
+            JSONMember(key: "media", value: media(of: sound.source)),
+            JSONMember(key: "nested", value: nested(of: sound.source)),
             JSONMember(key: "in", value: .number(sound.played.in)),
             JSONMember(key: "origin", value: .number(sound.played.origin)),
             JSONMember(key: "out", value: .number(sound.played.out)),
@@ -346,14 +346,21 @@ struct ResolvedSequenceWriter: Sendable {
         ]))
     }
 
+    // A sound's pinned media, `null` for a nested sequence.
+    private func media(of source: ResolvedSoundSource) -> JSONValue {
+        guard case let .pinned(media) = source else { return .null }
+
+        return values.media(media)
+    }
+
     // A nested sequence's sound as its resolved sequence writes it, its audio entries and its own audio filter, `null`
     // for a media file.
-    private func nested(of sound: ResolvedSound) -> JSONValue {
-        guard sound.media == nil else { return .null }
+    private func nested(of source: ResolvedSoundSource) -> JSONValue {
+        guard case let .nested(nested, audioFilter) = source else { return .null }
 
         return .object(JSONObject(members: [
-            JSONMember(key: "audio", value: .array(sound.nested.map(self.sound))),
-            JSONMember(key: "audioFilter", value: values.timed(sound.nestedAudioFilter))
+            JSONMember(key: "audio", value: .array(nested.map(self.sound))),
+            JSONMember(key: "audioFilter", value: values.timed(audioFilter))
         ]))
     }
 

@@ -67,14 +67,17 @@ extension ResolvedSequence {
         }
     }
 
-    // A nested sequence's own audio filter is its sound's `nestedAudioFilter`.
+    // A nested sequence's own audio filter is in its sound's source.
     private func references(of sound: ResolvedSound) -> [PinnedReference] {
-        let media = sound.media.map { [PinnedReference.sound($0, place: sound.place)] } ?? []
+        let source = switch sound.source {
+        case let .pinned(media):
+            [PinnedReference.sound(media, place: sound.place)]
 
-        return media
-            + sound.nested.flatMap(references(of:))
-            + references(ofAudioFilter: sound.nestedAudioFilter, place: sound.place)
-            + references(ofAudioFilter: sound.audioFilter, place: sound.place)
+        case let .nested(nested, audioFilter):
+            nested.flatMap(references(of:)) + references(ofAudioFilter: audioFilter, place: sound.place)
+        }
+
+        return source + references(ofAudioFilter: sound.audioFilter, place: sound.place)
     }
 
     private func references(

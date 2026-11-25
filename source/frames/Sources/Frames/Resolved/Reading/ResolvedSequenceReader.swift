@@ -622,21 +622,46 @@ struct ResolvedSequenceReader: Sendable {
         ))
     }
 
+    // A sound plays its media, with `nested` null, or a nested sequence's sounds, with `media` null.
+    private func source(of sound: PlacedJSONObject) throws -> ResolvedSoundSource {
+        let media = try sound.member("media")
+        let nested = try sound.member("nested")
+        if !media.isNull {
+            guard nested.isNull else {
+                throw ModelError.invalidValue(
+                    place: nested.place,
+                    kind: nested.kind,
+                    reason: "a sound of media plays no nested sequence, so it is null, found \(nested.value.written)"
+                )
+            }
+
+            return .pinned(try values.media(media))
+        }
+        guard !nested.isNull else {
+            throw ModelError.invalidValue(
+                place: media.place,
+                kind: media.kind,
+                reason: "a sound without a nested sequence plays media, found null"
+            )
+        }
+
+        let object = try nested.object(kind: "nested", keys: ["audio", "audioFilter"])
+        return .nested(
+            try object.member("audio").elements().map(self.sound),
+            audioFilter: try values.timed(object.member("audioFilter"), as: LookStructureTable.resolvedAudioFilter)
+        )
+    }
+
     private func sound(_ value: PlacedJSONValue) throws -> ResolvedSound {
         let sound = try value.object(kind: "audio", keys: [
             "place", "media", "nested", "in", "origin", "out", "speed", "loop", "start", "end", "audible", "volume",
             "pan", "fadeIn", "fadeOut", "incoming", "outgoing", "audioFilter"
         ])
         let range = { (key: String) in try sound.member(key).optional(values.range) }
-        let nested = try sound.member("nested").optional { try $0.object(kind: "nested", keys: ["audio", "audioFilter"]) }
 
         return ResolvedSound(
             place: try sound.member("place").string(),
-            media: try sound.member("media").optional(values.media),
-            nested: try nested?.member("audio").elements().map(self.sound) ?? [],
-            nestedAudioFilter: try nested.map { nested in
-                try values.timed(nested.member("audioFilter"), as: LookStructureTable.resolvedAudioFilter)
-            } ?? .off,
+            source: try source(of: sound),
             played: PlayedRange(
                 map: TimeMap(
                     origin: try sound.member("origin").number(),
