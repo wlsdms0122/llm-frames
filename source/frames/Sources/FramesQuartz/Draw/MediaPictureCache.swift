@@ -18,7 +18,7 @@ final class MediaPictureCache: Sendable {
     private static let picturesPerFile = 4
 
     private let decoder: any MediaDecoder
-    private let pictures = OSAllocatedUnfairLock<[String: [(picture: MediaPicture, reading: PictureReading, image: CGImage)]]>(
+    private let pictures = OSAllocatedUnfairLock<[String: [(picture: MediaPicture, reading: PictureReading, pixels: Pixels, image: CGImage)]]>(
         uncheckedState: [:]
     )
     private let pages = OSAllocatedUnfairLock<[String: [(request: PageRequest, image: CGImage)]]>(uncheckedState: [:])
@@ -36,21 +36,12 @@ final class MediaPictureCache: Sendable {
     // The frame's picture as the decoder gives it for the frame, read as the frame says: working values, or an analysis
     // picture for a transition matte.
     func image(of frame: MediaFrame) throws -> CGImage {
-        let picture = frame.picture
-        let reading = frame.reading
-        let file = MediaFile(media: frame.media)
-        let kept = pictures.withLock { pictures in
-            pictures[file.path]?.first { $0.picture == picture && $0.reading == reading }?.image
-        }
-        if let kept { return kept }
+        try picture(of: frame).image
+    }
 
-        let image = try decoder.picture(of: frame).bitmap.cgImage()
-        pictures.withLock { pictures in
-            let others = (pictures[file.path] ?? []).filter { $0.picture != picture || $0.reading != reading }
-            pictures[file.path] = Array((others + [(picture, reading, image)]).suffix(Self.picturesPerFile))
-        }
-
-        return image
+    // The frame's pixels as the decoder gives them, the same picture `image(of:)` gives.
+    func pixels(of frame: MediaFrame) throws -> Pixels {
+        try picture(of: frame).pixels
     }
 
     // `region` of the grid of the frame's page at `scale`, read as the frame says.
@@ -79,4 +70,22 @@ final class MediaPictureCache: Sendable {
     }
 
     // MARK: - Private
+    private func picture(of frame: MediaFrame) throws -> (pixels: Pixels, image: CGImage) {
+        let picture = frame.picture
+        let reading = frame.reading
+        let file = MediaFile(media: frame.media)
+        let kept = pictures.withLock { pictures in
+            pictures[file.path]?.first { $0.picture == picture && $0.reading == reading }
+        }
+        if let kept { return (kept.pixels, kept.image) }
+
+        let pixels = try decoder.picture(of: frame)
+        let image = try pixels.bitmap.cgImage()
+        pictures.withLock { pictures in
+            let others = (pictures[file.path] ?? []).filter { $0.picture != picture || $0.reading != reading }
+            pictures[file.path] = Array((others + [(picture, reading, pixels, image)]).suffix(Self.picturesPerFile))
+        }
+
+        return (pixels, image)
+    }
 }

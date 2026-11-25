@@ -29,7 +29,7 @@ struct RoleFactory: Sendable {
         role: "renderer",
         option: "--renderer",
         defaultName: "quartz",
-        builders: ["quartz": { QuartzRenderer(decoder: $0) }]
+        builders: ["metal": { MetalRenderer(decoder: $0) }, "quartz": { QuartzRenderer(decoder: $0) }]
     )
     private let mixers = RoleTable<@Sendable (any MediaDecoder) -> any Mixer>(
         role: "mixer",
