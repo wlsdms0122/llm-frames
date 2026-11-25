@@ -15,7 +15,7 @@ extension TimePlan {
         for file in mediaFiles {
             guard let space = file.taggedColorSpace else { continue }
 
-            spaces[file.frameFiles.first ?? file.path] = space
+            spaces[Self.firstPinnedPath(of: file)] = space
         }
 
         return spaces
@@ -35,6 +35,14 @@ extension TimePlan {
     // MARK: - Initializer
     // MARK: - Public
     // MARK: - Private
+    private static func firstPinnedPath(of file: MediaFile) -> String {
+        guard case let .imageSequence(frameFiles, _, _, _, _) = file.kind, let first = frameFiles.first else {
+            return file.path
+        }
+
+        return first
+    }
+
     private static func mediaFiles(of media: MediaPlan?) -> [MediaFile] {
         switch media?.source {
         case let .file(file):

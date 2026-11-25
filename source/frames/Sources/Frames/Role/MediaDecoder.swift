@@ -6,8 +6,8 @@
 //
 
 // Reads the pictures and sound of media files. Frames are named by index: frame i of a video or an image sequence is
-// the one at `file.frameTimes[i]`. A page of a PDF, a file whose `page` is set, is read by a region of its pixel grid at
-// a scale (FRAMES-21 Rules), not by frame.
+// the one at `file.frameTimes[i]`. A page of a PDF, a file of kind `page`, is read by a region of its pixel grid at a
+// scale (FRAMES-21 Rules), not by frame.
 package protocol MediaDecoder: Sendable {
     // The largest picture the decoder holds, as the most pixels on a side. A frame or a region of a page larger than it
     // on either side is refused, naming its size.
@@ -15,7 +15,7 @@ package protocol MediaDecoder: Sendable {
 
     // Frame `index` of `file`, a video, a still or an image sequence directory, read as `reading` says: working values
     // at depth `halfFloat`, as a bitmap or a surface (FRAMES-21 Pictures), or an analysis picture at depth `eight`, a
-    // bitmap. A still has the one frame 0. A video whose frames count differently from the pinned `frameTimes` stops,
+    // bitmap. A still has the one frame 0. A video whose frames count differently from its `frameTimes` stops,
     // and so does a picture no fixed formula converts, an image with a LUT-based ICC profile or a video with a code
     // point H.273 reserves, unless `reading` names its colour space.
     func picture(
@@ -44,7 +44,7 @@ package protocol MediaDecoder: Sendable {
     func colorReading(of file: MediaFile) throws -> ColorReading
 
     // Refuses, before any frame is read, a file it cannot read, a picture larger than `largestPictureSide`, a video
-    // whose frames count differently from the pinned `frameTimes`, a page it does not read (FRAMES-3 PDF pages), and,
+    // whose frames count differently from its `frameTimes`, a page it does not read (FRAMES-3 PDF pages), and,
     // where `reading` is how its pictures are to be read, a picture that reading would stop at: one no fixed formula
     // converts, with no colour space named. `reading` is nil where no picture is read, or where the caller reads it as
     // `colorReading(of:)` says.
@@ -83,7 +83,7 @@ extension MediaDecoder {
     // A display list's media frame, read as the frame says: a frame by its index, and a page whole as a provider reads
     // it.
     package func picture(of frame: MediaFrame) throws -> Pixels {
-        let file = MediaFile(media: frame.media)
+        let file = MediaFile(picture: frame.media)
         switch frame.picture {
         case let .frame(index):
             return try picture(of: file, atFrame: index, reading: frame.reading)

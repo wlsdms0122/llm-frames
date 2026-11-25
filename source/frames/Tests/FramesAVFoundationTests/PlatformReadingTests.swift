@@ -35,7 +35,7 @@ struct PlatformReadingTests {
         )
 
         // When
-        let reading = try AVFoundationDecoder().colorReading(of: MediaFile(path: path))
+        let reading = try AVFoundationDecoder().colorReading(of: MediaFile.still(path))
 
         // Then
         #expect(reading == .formulas(space))
@@ -53,7 +53,7 @@ struct PlatformReadingTests {
 
         // When
         let read = try AVFoundationDecoder().picture(
-            of: MediaFile(path: path),
+            of: MediaFile.still(path),
             atFrame: 0,
             reading: .platform(colorSpace: space)
         ).bitmap

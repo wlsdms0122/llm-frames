@@ -177,9 +177,7 @@ struct TransitionTimeTests {
         let transition = try #require(plan.storyline[1].transition)
         #expect(transition.coverMedia?.file == MediaFile(
             path: "/abs/deck.pdf",
-            size: Size(width: 595.276, height: 841.89),
-            colorReading: .formulas(.srgb),
-            page: 3
+            kind: .page(3, size: Size(width: 595.276, height: 841.89))
         ))
         #expect(transition.matteMedia?.file.page == 1)
         #expect(transition.matteMedia?.file.size == Size(width: 200, height: 100))

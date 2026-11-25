@@ -49,7 +49,7 @@ struct RenderOutputTests {
         // Then
         let decoder = AVFoundationDecoder()
         for name in ["out.mov", "out.mp4"] {
-            let frame = try decoder.picture(of: MediaFile(path: output.file(name)), atFrame: 0).bitmap
+            let frame = try decoder.picture(of: try probedVideo(output.file(name)), atFrame: 0).bitmap
             let centre = (Int(box.center.x), Int(box.center.y))
             #expect(
                 frame.isPixel(x: centre.0, y: centre.1, [0, 0, 255], tolerance: tolerance),
@@ -162,7 +162,7 @@ struct RenderOutputTests {
         #expect(written.audio.mChannelsPerFrame == delivered.audio.mChannelsPerFrame)
 
         let decoder = AVFoundationDecoder()
-        let frame = try decoder.picture(of: MediaFile(path: alone.file("out.mp4")), atFrame: 0).bitmap
+        let frame = try decoder.picture(of: try probedVideo(alone.file("out.mp4")), atFrame: 0).bitmap
         let centre = (Int(box.center.x), Int(box.center.y))
         #expect(
             frame.isPixel(x: centre.0, y: centre.1, [0, 0, 255], tolerance: tolerance),
@@ -273,7 +273,7 @@ struct RenderOutputTests {
 
         // Then
         #expect(try contents(of: output) == ["out.png"])
-        let picture = try AVFoundationDecoder().picture(of: MediaFile(path: output.file("out.png")), atFrame: 0).bitmap
+        let picture = try AVFoundationDecoder().picture(of: MediaFile.still(output.file("out.png")), atFrame: 0).bitmap
         #expect(picture.width == 160 && picture.height == 90)
         #expect(picture.isPixel(x: 80, y: 45, color, tolerance: 1.0 / 255))
     }
@@ -294,7 +294,7 @@ struct RenderOutputTests {
         try sut.render(document, to: output.file("out.png"), at: 0, delivery: nil)
 
         // Then
-        let picture = try AVFoundationDecoder().picture(of: MediaFile(path: output.file("out.png")), atFrame: 0).bitmap
+        let picture = try AVFoundationDecoder().picture(of: MediaFile.still(output.file("out.png")), atFrame: 0).bitmap
         #expect(picture.width == 200 && picture.height == 110)
         #expect(picture.isPixel(x: 100, y: 55, [128, 128, 128], tolerance: 1.0 / 255))
         #expect(picture.isPixel(x: 10, y: 55, [0, 0, 0], tolerance: 1.0 / 255))
@@ -302,6 +302,13 @@ struct RenderOutputTests {
     }
 
     // MARK: - Private
+    // The video a render wrote, named by the frames the decoder's probe finds in it.
+    private func probedVideo(_ path: String) throws -> MediaFile {
+        let probed = try #require(try AVFoundationDecoder().probedMedia(of: path))
+
+        return MediaFile.video(path, frameTimes: probed.frames)
+    }
+
     private func pipeline(failingAtFrame failure: Int? = nil) -> RenderPipeline {
         let decoder = AVFoundationDecoder()
         let renderer = QuartzRenderer(decoder: decoder)

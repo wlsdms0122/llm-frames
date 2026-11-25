@@ -77,6 +77,22 @@ package final class AVFoundationDecoder: Sendable {
         return (document, page)
     }
 
+    private func stillColorReading(at path: String) throws -> ColorReading {
+        guard let still = try StillReader(path: path) else { throw DecoderError.unreadable(file: path) }
+
+        return try still.taggedColor(path: path).colorReading
+    }
+
+    // A nil reading checks no colour.
+    private func checkStill(
+        at path: String,
+        reading: PictureReading?
+    ) throws {
+        guard let still = try StillReader(path: path) else { throw DecoderError.unreadable(file: path) }
+        try checkSize(still.displaySize, path: path)
+        if let reading { try checkColor(try still.taggedColor(path: path), in: reading.colorSpace, path: path) }
+    }
+
     // A picture larger than the decoder holds stops, naming its size.
     private func checkSize(
         _ size: Size,
@@ -365,30 +381,41 @@ extension AVFoundationDecoder: MediaDecoder {
         atFrame index: Int,
         reading: PictureReading
     ) throws -> Pixels {
-        if let page = file.page { throw DecoderError.pageFrame(file: file.path, page: page) }
-        if !file.frameFiles.isEmpty {
-            guard file.frameFiles.indices.contains(index) else {
-                throw DecoderError.noFrame(file: file.path, index: index, count: file.frameFiles.count)
-            }
+        let frameTimes: [Double]
+        switch file.kind {
+        case let .video(times, _, _, _):
+            frameTimes = times
 
-            let path = file.frameFiles[index]
-            guard let still = try StillReader(path: path) else { throw DecoderError.unreadable(file: path) }
-            try checkSize(still.displaySize, path: path)
-
-            return .bitmap(try picture(of: still, path: path, in: file, reading: reading))
-        }
-        if let still = try StillReader(path: file.path) {
+        case .still:
+            guard let still = try StillReader(path: file.path) else { throw DecoderError.unreadable(file: file.path) }
             guard index == 0 else { throw DecoderError.noFrame(file: file.path, index: index, count: 1) }
             try checkSize(still.displaySize, path: file.path)
 
             return .bitmap(try picture(of: still, path: file.path, in: file, reading: reading))
+
+        case let .imageSequence(frameFiles, _, _, _, _):
+            guard frameFiles.indices.contains(index) else {
+                throw DecoderError.noFrame(file: file.path, index: index, count: frameFiles.count)
+            }
+
+            let path = frameFiles[index]
+            guard let still = try StillReader(path: path) else { throw DecoderError.unreadable(file: path) }
+            try checkSize(still.displaySize, path: path)
+
+            return .bitmap(try picture(of: still, path: path, in: file, reading: reading))
+
+        case let .page(page, _):
+            throw DecoderError.pageFrame(file: file.path, page: page)
+
+        case .sound:
+            throw DecoderError.unreadable(file: file.path)
         }
 
         guard let video = try video(at: file.path) else { throw DecoderError.unreadable(file: file.path) }
         try checkSize(video.displaySize, path: file.path)
         let count = video.frames.count
-        guard file.frameTimes.isEmpty || file.frameTimes.count == count else {
-            throw DecoderError.frameCount(file: file.path, pinned: file.frameTimes.count, counted: count)
+        guard frameTimes.count == count else {
+            throw DecoderError.frameCount(file: file.path, pinned: frameTimes.count, counted: count)
         }
         guard video.frames.indices.contains(index) else {
             throw DecoderError.noFrame(file: file.path, index: index, count: count)
@@ -524,55 +551,60 @@ extension AVFoundationDecoder: MediaDecoder {
 
     // A page's untagged colour is `srgb`, which a written colour space replaces.
     package func colorReading(of file: MediaFile) throws -> ColorReading {
-        if try document(of: file) != nil { return .formulas(.srgb) }
-        let path = file.frameFiles.first ?? file.path
-        if let still = try StillReader(path: path) { return try still.taggedColor(path: path).colorReading }
-        guard let video = try video(at: path) else { throw DecoderError.unreadable(file: path) }
+        switch file.kind {
+        case .video:
+            guard let video = try video(at: file.path) else { throw DecoderError.unreadable(file: file.path) }
 
-        return video.taggedColor.colorReading
+            return video.taggedColor.colorReading
+
+        case .still:
+            return try stillColorReading(at: file.path)
+
+        case let .imageSequence(frameFiles, _, _, _, _):
+            guard let first = frameFiles.first else { throw DecoderError.unreadable(file: file.path) }
+
+            return try stillColorReading(at: first)
+
+        case .page:
+            guard try document(at: file.path) != nil else { throw DecoderError.noDocument(file: file.path) }
+
+            return .formulas(.srgb)
+
+        case .sound:
+            throw DecoderError.unreadable(file: file.path)
+        }
     }
 
     package func check(
         _ file: MediaFile,
         reading: PictureReading?
     ) throws {
-        if let (document, page) = try document(of: file) {
+        // A nil reading reads only sound, so no colour is checked.
+        switch file.kind {
+        case let .video(frameTimes, _, _, _):
+            guard let video = try video(at: file.path) else { throw DecoderError.unreadable(file: file.path) }
+            try checkSize(video.displaySize, path: file.path)
+            guard frameTimes.count == video.frames.count else {
+                throw DecoderError.frameCount(file: file.path, pinned: frameTimes.count, counted: video.frames.count)
+            }
+            if let reading { try checkColor(video.taggedColor, in: reading.colorSpace, path: file.path) }
+
+        case .still:
+            try checkStill(at: file.path, reading: reading)
+
+        case let .imageSequence(frameFiles, _, _, _, _):
+            for path in frameFiles {
+                try checkStill(at: path, reading: reading)
+            }
+
+        case let .page(page, _):
+            guard let document = try document(at: file.path) else { throw DecoderError.noDocument(file: file.path) }
             _ = try document.page(page)
             try document.check(page, reading: reading)
 
-            return
-        }
-
-        // A nil reading reads only sound, so no colour is checked.
-        if !file.frameFiles.isEmpty {
-            for path in file.frameFiles {
-                guard let still = try StillReader(path: path) else { throw DecoderError.unreadable(file: path) }
-                try checkSize(still.displaySize, path: path)
-                if let reading { try checkColor(try still.taggedColor(path: path), in: reading.colorSpace, path: path) }
-            }
-
-            return
-        }
-        if let still = try StillReader(path: file.path) {
-            try checkSize(still.displaySize, path: file.path)
-            if let reading {
-                try checkColor(try still.taggedColor(path: file.path), in: reading.colorSpace, path: file.path)
-            }
-
-            return
-        }
-
-        // A file without a picture track is sound, or no media at all.
-        guard let video = try video(at: file.path) else {
+        case .sound:
             guard (try? soundTrack(at: file.path)) != nil else { throw DecoderError.unreadable(file: file.path) }
-
-            return
         }
-        try checkSize(video.displaySize, path: file.path)
-        guard file.frameTimes.isEmpty || file.frameTimes.count == video.frames.count else {
-            throw DecoderError.frameCount(file: file.path, pinned: file.frameTimes.count, counted: video.frames.count)
-        }
-        if let reading { try checkColor(video.taggedColor, in: reading.colorSpace, path: file.path) }
     }
 
     package func sound(

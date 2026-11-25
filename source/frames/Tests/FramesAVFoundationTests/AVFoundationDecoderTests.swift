@@ -74,7 +74,7 @@ struct AVFoundationDecoderTests {
             canvas.draw("\(index)", font: "Helvetica-Bold", size: 96, x: 120, y: 80)
         }
         let sut = AVFoundationDecoder()
-        let media = MediaFile(path: file, size: size, frameTimes: evenTimes)
+        let media = MediaFile.video(file, frameTimes: evenTimes)
 
         // When
         let pictures = try evenTimes.indices.map { try sut.picture(of: media, atFrame: $0).bitmap }
@@ -94,7 +94,7 @@ struct AVFoundationDecoderTests {
             canvas.drawCode(index)
         }
         let sut = AVFoundationDecoder()
-        let media = MediaFile(path: file, size: size, frameTimes: evenTimes)
+        let media = MediaFile.video(file, frameTimes: evenTimes)
         let analysis = PictureReading.analysis(colorSpace: nil)
         let reads: [(Int, PictureReading)] = [
             (0, .tagged), (1, .tagged), (2, .tagged), (3, .tagged), (5, .tagged), (7, .tagged), (9, .tagged),
@@ -127,7 +127,7 @@ struct AVFoundationDecoderTests {
 
         // When
         let probed = try #require(try sut.probedMedia(of: file))
-        let media = MediaFile(path: file, size: size, frameTimes: probed.frames)
+        let media = MediaFile.video(file, frameTimes: probed.frames)
         let pictures = try times.indices.map { try sut.picture(of: media, atFrame: $0).bitmap }
 
         // Then
@@ -162,7 +162,7 @@ struct AVFoundationDecoderTests {
 
         // When
         let probed = try #require(try sut.probedMedia(of: file))
-        let media = MediaFile(path: file, size: size, frameTimes: probed.frames)
+        let media = MediaFile.video(file, frameTimes: probed.frames)
         let pictures = try probed.frames.indices.map { try sut.picture(of: media, atFrame: $0).bitmap }
 
         // Then
@@ -188,7 +188,7 @@ struct AVFoundationDecoderTests {
 
         // When
         let probed = try #require(try sut.probedMedia(of: file))
-        let picture = try sut.picture(of: MediaFile(path: file, frameTimes: probed.frames), atFrame: 1).bitmap
+        let picture = try sut.picture(of: MediaFile.video(file, frameTimes: probed.frames), atFrame: 1).bitmap
 
         // Then
         #expect(probed.size == Size(width: 240, height: 320))
@@ -306,14 +306,14 @@ struct AVFoundationDecoderTests {
 
         // When
         let probed = try #require(try sut.probedMedia(of: file))
-        let picture = try sut.picture(of: MediaFile(path: file), atFrame: 0).bitmap
+        let picture = try sut.picture(of: MediaFile.still(file), atFrame: 0).bitmap
 
         // Then
         #expect(probed.kind == .image && probed.size == Size(width: 200, height: 100) && probed.hasAlpha)
         #expect(probed.colorSpace?.name == .srgb)
         #expect(picture.width == 200 && picture.height == 100)
         #expect(code(in: picture) == 37)
-        let error = #expect(throws: DecoderError.self) { try sut.picture(of: MediaFile(path: file), atFrame: 1).bitmap }
+        let error = #expect(throws: DecoderError.self) { try sut.picture(of: MediaFile.still(file), atFrame: 1).bitmap }
         #expect(error?.description == "media \(file) has no frame 1: it has 1")
     }
 
@@ -337,9 +337,9 @@ struct AVFoundationDecoderTests {
         let sut = AVFoundationDecoder()
 
         // When
-        let videoPicture = try sut.picture(of: MediaFile(path: video), atFrame: 0).bitmap
-        let stillPicture = try sut.picture(of: MediaFile(path: still), atFrame: 0).bitmap
-        let deepPicture = try sut.picture(of: MediaFile(path: deep), atFrame: 0).bitmap
+        let videoPicture = try sut.picture(of: MediaFile.video(video, frameTimes: [0]), atFrame: 0).bitmap
+        let stillPicture = try sut.picture(of: MediaFile.still(still), atFrame: 0).bitmap
+        let deepPicture = try sut.picture(of: MediaFile.still(deep), atFrame: 0).bitmap
 
         // Then
         let videoPixel = pixel(in: videoPicture, x: 160, y: 120)
@@ -365,7 +365,7 @@ struct AVFoundationDecoderTests {
 
         // When
         let probed = try #require(try sut.probedImageSequence(at: directory.path))
-        let media = MediaFile(path: directory.path, size: probed.size, frameFiles: probed.files)
+        let media = MediaFile.imageSequence(directory.path, frameFiles: probed.files, fps: 30)
         let pictures = try probed.files.indices.map { try sut.picture(of: media, atFrame: $0).bitmap }
 
         // Then
@@ -438,7 +438,7 @@ struct AVFoundationDecoderTests {
 
         // When
         let error = #expect(throws: DecoderError.self) {
-            try sut.picture(of: MediaFile(path: file, frameTimes: [0, 0.5]), atFrame: 0).bitmap
+            try sut.picture(of: MediaFile.video(file, frameTimes: [0, 0.5]), atFrame: 0).bitmap
         }
 
         // Then
@@ -457,14 +457,14 @@ struct AVFoundationDecoderTests {
 
         // When
         let error = #expect(throws: DecoderError.self) {
-            try sut.check(MediaFile(path: file, frameTimes: [0, 0.5]), reading: .tagged)
+            try sut.check(MediaFile.video(file, frameTimes: [0, 0.5]), reading: .tagged)
         }
 
         // Then
         #expect(
             error?.description == "media \(file) has 30 frames where the resolved document pins 2. Resolve it again"
         )
-        #expect(throws: Never.self) { try sut.check(MediaFile(path: file, frameTimes: evenTimes), reading: .tagged) }
+        #expect(throws: Never.self) { try sut.check(MediaFile.video(file, frameTimes: evenTimes), reading: .tagged) }
     }
 
     @Test("checking a file passes one with only sound, and still refuses one that is no media")
@@ -478,10 +478,10 @@ struct AVFoundationDecoderTests {
         let sut = AVFoundationDecoder()
 
         // When
-        let error = #expect(throws: DecoderError.self) { try sut.check(MediaFile(path: broken), reading: nil) }
+        let error = #expect(throws: DecoderError.self) { try sut.check(MediaFile.sound(broken), reading: nil) }
 
         // Then
-        #expect(throws: Never.self) { try sut.check(MediaFile(path: sound), reading: nil) }
+        #expect(throws: Never.self) { try sut.check(MediaFile.sound(sound), reading: nil) }
         #expect(error?.description.hasPrefix("media \(broken) cannot be read") == true, "\(String(describing: error))")
     }
 
@@ -495,7 +495,7 @@ struct AVFoundationDecoderTests {
         let sut = AVFoundationDecoder()
 
         // When
-        let sound = try sut.sound(of: MediaFile(path: file), from: 0.25, to: 0.75)
+        let sound = try sut.sound(of: MediaFile.sound(file), from: 0.25, to: 0.75)
 
         // Then
         #expect(sound.sampleRate == 44_100 && sound.channels == 2 && sound.layout.labels == [.left, .right])
@@ -519,7 +519,7 @@ struct AVFoundationDecoderTests {
         let sut = AVFoundationDecoder()
 
         // When
-        let sound = try sut.sound(of: MediaFile(path: file), from: 0, to: 0.5)
+        let sound = try sut.sound(of: MediaFile.sound(file), from: 0, to: 0.5)
 
         // Then
         #expect(sound.channels == 1 && sound.layout.labels == [.mono])
@@ -539,7 +539,7 @@ struct AVFoundationDecoderTests {
         let sut = AVFoundationDecoder()
 
         // When
-        let sound = try sut.sound(of: MediaFile(path: file), from: 0.25, to: 0.5)
+        let sound = try sut.sound(of: MediaFile.sound(file), from: 0.25, to: 0.5)
 
         // Then
         #expect(sound.sampleRate == 48_000 && sound.channels == 1 && sound.layout.labels == [.mono])
@@ -556,8 +556,8 @@ struct AVFoundationDecoderTests {
         let sut = AVFoundationDecoder()
 
         // When
-        let past = try sut.sound(of: MediaFile(path: file), from: 0.5, to: 2)
-        let empty = try sut.sound(of: MediaFile(path: file), from: 0.5, to: 0.5)
+        let past = try sut.sound(of: MediaFile.sound(file), from: 0.5, to: 2)
+        let empty = try sut.sound(of: MediaFile.sound(file), from: 0.5, to: 0.5)
 
         // Then
         #expect(past.frameCount == 24_000)
@@ -573,7 +573,7 @@ struct AVFoundationDecoderTests {
         let sut = AVFoundationDecoder()
 
         // When
-        let sound = try sut.sound(of: MediaFile(path: file), from: 0, to: 0.1)
+        let sound = try sut.sound(of: MediaFile.sound(file), from: 0, to: 0.1)
 
         // Then
         #expect(sound.channels == 6)
@@ -605,7 +605,7 @@ struct AVFoundationDecoderTests {
         let sut = AVFoundationDecoder()
 
         // When
-        let sound = try sut.sound(of: MediaFile(path: file), from: 0, to: 0.1)
+        let sound = try sut.sound(of: MediaFile.sound(file), from: 0, to: 0.1)
 
         // Then
         #expect(sound.channels == channels)
@@ -625,7 +625,7 @@ struct AVFoundationDecoderTests {
         let sut = AVFoundationDecoder()
 
         // When
-        let sound = try sut.sound(of: MediaFile(path: file), from: 0, to: 1)
+        let sound = try sut.sound(of: MediaFile.sound(file), from: 0, to: 1)
 
         // Then
         #expect(sound.frameCount > 47_000)
@@ -642,7 +642,7 @@ struct AVFoundationDecoderTests {
         let sut = AVFoundationDecoder()
 
         // When
-        let error = #expect(throws: DecoderError.self) { try sut.sound(of: MediaFile(path: file), from: 0, to: 1) }
+        let error = #expect(throws: DecoderError.self) { try sut.sound(of: MediaFile.sound(file), from: 0, to: 1) }
 
         // Then
         #expect(error?.description == "media \(file) has no sound track")
@@ -659,7 +659,7 @@ struct AVFoundationDecoderTests {
             canvas.fill(red: Double(40 + index), green: 128, blue: Double(200 - index))
             canvas.drawCode(index % 64)
         }
-        let media = MediaFile(path: file, frameTimes: times)
+        let media = MediaFile.video(file, frameTimes: times)
         let order = Array(0..<45) + [44, 44, 12, 13, 14, 80, 81, 3]
         let sut = AVFoundationDecoder()
 
@@ -686,16 +686,16 @@ struct AVFoundationDecoderTests {
             canvas.fill(red: 128, green: 128, blue: 128)
         }
         let sut = AVFoundationDecoder()
-        let media = MediaFile(path: video, size: size, frameTimes: evenTimes)
+        let media = MediaFile.video(video, frameTimes: evenTimes)
 
         // When
         for index in [0, 1, 2, 2, 20] {
             _ = try sut.picture(of: media, atFrame: index).bitmap
         }
-        _ = try sut.picture(of: MediaFile(path: still), atFrame: 0).bitmap
+        _ = try sut.picture(of: MediaFile.still(still), atFrame: 0).bitmap
         _ = try sut.picture(of: media, atFrame: 5).bitmap
-        _ = try sut.picture(of: MediaFile(path: still), atFrame: 0).bitmap
-        _ = try sut.picture(of: MediaFile(path: still), atFrame: 0, reading: .platform(colorSpace: .srgb)).bitmap
+        _ = try sut.picture(of: MediaFile.still(still), atFrame: 0).bitmap
+        _ = try sut.picture(of: MediaFile.still(still), atFrame: 0, reading: .platform(colorSpace: .srgb)).bitmap
         let readings = sut.readings()
 
         // Then
@@ -730,7 +730,7 @@ struct AVFoundationDecoderTests {
             canvas.drawCode(index)
         }
         let sut = AVFoundationDecoder()
-        let media = MediaFile(path: video, size: size, frameTimes: evenTimes)
+        let media = MediaFile.video(video, frameTimes: evenTimes)
 
         // When
         let pictures = try [0, 1, 0].map { try sut.picture(of: media, atFrame: $0).bitmap }

@@ -32,7 +32,7 @@ extension DisplayList {
 
             switch picture.source {
             case let .media(frame):
-                let path = MediaFile(media: frame.media).path
+                let path = MediaFile(picture: frame.media).path
 
                 return (path as NSString).lastPathComponent == name ? [picture] : []
 
@@ -48,7 +48,7 @@ extension DisplayList {
             guard
                 case let .picture(picture) = item.content,
                 case let .media(frame) = picture.source,
-                (MediaFile(media: frame.media).path as NSString).lastPathComponent == name
+                (MediaFile(picture: frame.media).path as NSString).lastPathComponent == name
             else {
                 return nil
             }

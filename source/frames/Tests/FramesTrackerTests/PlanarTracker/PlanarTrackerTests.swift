@@ -65,7 +65,7 @@ struct PlanarTrackerTests {
         }
         let movie = PlaneMovie(size: size, frameTimes: [], end: 0, poster: poster, background: background, placement: placement)
         let frameTimes = (0..<count).map { Double($0) / 30 }
-        let media = MediaFile(path: "drawn.mov", size: size, frameTimes: frameTimes)
+        let media = MediaFile.video("drawn.mov", frameTimes: frameTimes)
         let truth = try (0..<count).map { try corners(of: target, at: placement($0)) }
         let decoder = PictureDecoder(pictures: (0..<count).map { movie.picture(at: $0) }, width: 640, height: 360)
         let sut = PlanarTracker(decoder: decoder)
@@ -185,7 +185,7 @@ struct PlanarTrackerTests {
         .write(to: file)
         let probed = try #require(try decoder.probedMedia(of: file))
 
-        return MediaFile(path: file, size: probed.size, frameTimes: probed.frames)
+        return MediaFile.video(file, frameTimes: probed.frames)
     }
 
     // Where the corners of `quad`, in the poster's pixels, lie when the poster's corners lie at `placement`.

@@ -40,7 +40,7 @@ struct PictureResamplingTests {
         let decoder = AVFoundationDecoder()
         let sut: any Renderer = renderer == "quartz" ? QuartzRenderer(decoder: decoder) : MetalRenderer(decoder: decoder)
         let frame = try still()
-        let source = try decoder.picture(of: MediaFile(media: frame.media), atFrame: 0).bitmap
+        let source = try decoder.picture(of: MediaFile(picture: frame.media), atFrame: 0).bitmap
         let placements = [0.25, 0.625, 1, 1.375, 3].map { ($0, 0.0) } + [(1, 17.0), (0.625, 17.0)]
 
         for (scale, degrees) in placements {

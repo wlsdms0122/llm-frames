@@ -438,9 +438,10 @@ package struct TimelineReporter: Sendable {
 
     // An image sequence is read at the rate its media form writes, and every other medium's files give its rate.
     private func rate(of media: MediaPlan) -> Double? {
-        guard case let .file(file) = media.source, !file.frameFiles.isEmpty else { return nil }
+        guard case let .file(file) = media.source else { return nil }
+        guard case let .imageSequence(_, _, fps, _, _) = file.kind else { return nil }
 
-        return file.fps
+        return fps
     }
 
     private func page(of media: MediaPlan) -> Int? {

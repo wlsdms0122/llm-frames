@@ -40,7 +40,8 @@ final class ImpulseResponseCache: Sendable {
 
         let sound: SoundBuffer
         do {
-            sound = try decoder.sound(of: MediaFile(path: file.path), from: 0, to: MixConvolution.longestDuration)
+            let source = MediaFile(path: file.path, kind: .sound)
+            sound = try decoder.sound(of: source, from: 0, to: MixConvolution.longestDuration)
         } catch {
             throw MixerError.unreadable(place: place, reason: "\(error)")
         }

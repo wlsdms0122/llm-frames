@@ -22,11 +22,13 @@ struct ImageSequence: Equatable, Sendable {
     ) {
         self.file = MediaFile(
             path: directory,
-            fps: fps,
-            size: probed.size,
-            frameTimes: probed.files.indices.map { Double($0) / fps },
-            frameFiles: probed.files,
-            colorReading: probed.colorSpace?.reading
+            kind: .imageSequence(
+                frameFiles: probed.files,
+                frameTimes: probed.files.indices.map { Double($0) / fps },
+                fps: fps,
+                size: probed.size,
+                colorReading: probed.colorSpace?.reading
+            )
         )
         self.duration = Double(probed.files.count) / fps
     }

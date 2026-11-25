@@ -51,8 +51,8 @@ struct VisionOCRTests {
         let sut = VisionOCR(decoder: decoder)
 
         // When
-        let lines = try sut.lines(in: MediaFile(path: file), atMediaTime: 0, languages: Self.languages, colorSpace: nil)
-        let again = try sut.lines(in: MediaFile(path: file), atMediaTime: 0, languages: Self.languages, colorSpace: nil)
+        let lines = try sut.lines(in: MediaFile.still(file), atMediaTime: 0, languages: Self.languages, colorSpace: nil)
+        let again = try sut.lines(in: MediaFile.still(file), atMediaTime: 0, languages: Self.languages, colorSpace: nil)
 
         // Then
         #expect(Set(lines.map(\.text)) == Set(drawn.keys))
@@ -79,7 +79,7 @@ struct VisionOCRTests {
         let sut = VisionOCR(decoder: decoder)
 
         // When
-        let media = MediaFile(path: file, size: probed.size, frameTimes: probed.frames)
+        let media = MediaFile.video(file, frameTimes: probed.frames)
         let lines = try sut.lines(in: media, atMediaTime: 0, languages: Self.languages, colorSpace: nil)
 
         // Then
@@ -100,7 +100,7 @@ struct VisionOCRTests {
             canvas.draw(words[index], font: "Helvetica", size: 64, x: 100, y: 140)
         }
         let probed = try #require(try decoder.probedMedia(of: file))
-        let media = MediaFile(path: file, size: probed.size, frameTimes: probed.frames)
+        let media = MediaFile.video(file, frameTimes: probed.frames)
         let sut = VisionOCR(decoder: decoder)
 
         // When
@@ -137,7 +137,7 @@ struct VisionOCRTests {
         let sut = VisionOCR(decoder: decoder)
 
         // When
-        let lines = try sut.lines(in: MediaFile(path: file), atMediaTime: 0, languages: Self.languages, colorSpace: nil)
+        let lines = try sut.lines(in: MediaFile.still(file), atMediaTime: 0, languages: Self.languages, colorSpace: nil)
 
         // Then
         let line = try #require(lines.first)
@@ -158,7 +158,7 @@ struct VisionOCRTests {
             canvas.draw(text, font: "AppleSDGothicNeo-Regular", size: 32, x: 60, y: 150)
         }
         let probed = try #require(try decoder.probedMedia(of: file))
-        let media = MediaFile(path: file, size: probed.size, frameTimes: probed.frames)
+        let media = MediaFile.video(file, frameTimes: probed.frames)
         let sut = VisionOCR(decoder: decoder)
 
         // When
@@ -187,7 +187,7 @@ struct VisionOCRTests {
         let sut = VisionOCR(decoder: decoder)
 
         // When
-        let page = MediaFile(path: file, size: Size(width: 300, height: 200), page: 1)
+        let page = MediaFile.page(file, page: 1)
         let lines = try sut.lines(in: page, atMediaTime: 0, languages: Self.languages, colorSpace: nil)
 
         // Then
@@ -211,7 +211,7 @@ struct VisionOCRTests {
         let sut = VisionOCR(decoder: decoder)
 
         // When
-        let lines = try sut.lines(in: MediaFile(path: file), atMediaTime: 0, languages: Self.languages, colorSpace: nil)
+        let lines = try sut.lines(in: MediaFile.still(file), atMediaTime: 0, languages: Self.languages, colorSpace: nil)
 
         // Then
         #expect(lines.map(\.text) == expected)

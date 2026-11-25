@@ -850,7 +850,7 @@ struct ResolvedSequenceReader: Sendable {
         let read = try colorSpace.optional { value in
             try value.name(among: VocabularyTable.colorSpaces, ColorSpace.init)
         }
-        if let refused = MediaFile(media: media).pageRefusedColorSpace(read) {
+        if let refused = MediaFile(picture: media).pageRefusedColorSpace(read) {
             throw pageColorSpaceError(colorSpace, refused: refused)
         }
 
@@ -873,7 +873,7 @@ struct ResolvedSequenceReader: Sendable {
         let colorSpace = try entry.member("colorSpace")
         let toneMap = try entry.member("toneMap")
 
-        let file = MediaFile(media: pinned)
+        let file = MediaFile(picture: pinned)
         let read = try colorSpace.optional { try $0.name(among: VocabularyTable.colorSpaces, ColorSpace.init) }
         let isToneMapped = file.page == nil ? try toneMap.bool() : try toneMap.optional { try $0.bool() }
         switch file.pageRefusal(colorSpace: read, isToneMapped: isToneMapped) {

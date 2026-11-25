@@ -181,7 +181,7 @@ package struct FrameExporter: Sendable {
 
             let path = folder.appendingPathComponent("\(index).png").path
             try encoder.writeAnalysisPicture(of: renderer.frame(of: list).bitmap, in: sequenceOutput, to: path)
-            let media = try PinnedMedia(file: MediaFile(path: path, size: frames.size), hashes: hasher)
+            let media = PinnedMedia(source: .file(try PinnedFile(path: path, hashes: hasher), frameTimes: nil))
 
             let picture = MediaFrame(media: media, index: 0, reading: .analysis(colorSpace: nil))
             return ContactSheetCell(SampledFrame(time: frame.time, picture: .media(picture)))
@@ -250,7 +250,7 @@ package struct FrameExporter: Sendable {
         }
 
         let times = try range.times(end: probed.duration, kind: "video")
-        let file = MediaFile(path: path, fps: probed.fps, size: size, frameTimes: probed.frames)
+        let file = MediaFile(path: path, probed: probed)
 
         return try frames(of: file, size: size, times: times)
     }

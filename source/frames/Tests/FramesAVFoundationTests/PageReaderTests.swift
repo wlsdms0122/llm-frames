@@ -79,7 +79,7 @@ struct PageReaderTests {
         // Given
         let path = directory.file("rectangles.pdf")
         try PageFile.write([PageFile.page(Self.rectangles)], to: path)
-        let file = MediaFile(path: path, page: 1)
+        let file = MediaFile.page(path, page: 1)
         let whole = try #require(PageRegion(wholePageOf: Size(width: 400, height: 300), scale: 1.5, largest: sut.largestPictureSide))
         let region = PageRegion(x: 150, y: 90, width: 300, height: 180)
 
@@ -106,7 +106,7 @@ struct PageReaderTests {
         // Given
         let path = directory.file("small.pdf")
         try PageFile.write([PageFile.page("1 0 0 rg 0 0 10 10 re f", mediaBox: [0, 0, 100, 100])], to: path)
-        let file = MediaFile(path: path, page: 1)
+        let file = MediaFile.page(path, page: 1)
 
         // When
         let picture = try sut.picture(of: file, region: PageRegion(x: 0, y: 50, width: 100, height: 100), scale: 1, reading: .tagged).bitmap
@@ -123,7 +123,7 @@ struct PageReaderTests {
         // Given
         let path = directory.file("paper.pdf")
         try PageFile.write([PageFile.page("0 0 0 rg 0 90 10 10 re f", mediaBox: [0, 0, 100, 100])], to: path)
-        let file = MediaFile(path: path, page: 1)
+        let file = MediaFile.page(path, page: 1)
         let region = PageRegion(x: 0, y: 0, width: 100, height: 100)
 
         // When
@@ -148,7 +148,7 @@ struct PageReaderTests {
             ])],
             to: path
         )
-        let file = MediaFile(path: path, page: 1)
+        let file = MediaFile.page(path, page: 1)
 
         // When
         let picture = try sut.picture(of: file, region: PageRegion(x: 0, y: 0, width: 100, height: 100), scale: 1, reading: .tagged).bitmap
@@ -164,7 +164,7 @@ struct PageReaderTests {
         // Given
         let path = directory.file("request.pdf")
         try PageFile.write([PageFile.page("0 g 0 0 10 10 re f")], to: path)
-        let file = MediaFile(path: path, page: 1)
+        let file = MediaFile.page(path, page: 1)
         let largest = sut.largestPictureSide
         let empty = PageRegion(x: 0, y: 0, width: 0, height: 10)
         let large = PageRegion(x: 0, y: 0, width: largest + 1, height: 1)
@@ -194,7 +194,7 @@ struct PageReaderTests {
             [PageFile.page("BT /F1 12 Tf 10 10 Td (a) Tj ET", resources: ["Font": .dictionary(["F1": PageFile.helvetica])])],
             to: path
         )
-        let file = MediaFile(path: path, page: 1)
+        let file = MediaFile.page(path, page: 1)
 
         // When
         let error = #expect(throws: DecoderError.self) { try sut.check(file, reading: .tagged) }
@@ -210,7 +210,7 @@ struct PageReaderTests {
         // Given
         let path = directory.file("cmyk.pdf")
         try PageFile.write([PageFile.page("0 0 0 1 k 0 0 10 10 re f", mediaBox: [0, 0, 10, 10])], to: path)
-        let file = MediaFile(path: path, page: 1)
+        let file = MediaFile.page(path, page: 1)
 
         // When
         let probed = try sut.probedPage(1, of: path)
@@ -248,7 +248,7 @@ struct PageReaderTests {
         // Given
         let path = directory.file("untagged.pdf")
         try PageFile.write([PageFile.page("0 1 0 rg 0 0 10 10 re f", mediaBox: [0, 0, 10, 10])], to: path)
-        let file = MediaFile(path: path, page: 1)
+        let file = MediaFile.page(path, page: 1)
         let region = PageRegion(x: 0, y: 0, width: 10, height: 10)
 
         // When
@@ -271,7 +271,7 @@ struct PageReaderTests {
             [PageFile.page("/C0 cs 0.5 sc 0 0 10 10 re f 1 0 0 rg 0 0 5 5 re f", resources: ["ColorSpace": .dictionary(["C0": calibrated])])],
             to: path
         )
-        let file = MediaFile(path: path, page: 1)
+        let file = MediaFile.page(path, page: 1)
 
         // When
         // Then

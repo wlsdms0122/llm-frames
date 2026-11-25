@@ -14,18 +14,18 @@ extension PinnedMedia {
         file: MediaFile,
         hashes: any FileHashProvider
     ) throws {
-        let source: PinnedSource = if let page = file.page {
+        let source: PinnedSource = switch file.kind {
+        case let .video(frameTimes, _, _, _):
+            .file(try PinnedFile(path: file.path, hashes: hashes), frameTimes: frameTimes.isEmpty ? nil : frameTimes)
+
+        case .still, .sound:
+            .file(try PinnedFile(path: file.path, hashes: hashes), frameTimes: nil)
+
+        case let .imageSequence(frameFiles, frameTimes, _, _, _):
+            .imageSequence(try frameFiles.map { try PinnedFile(path: $0, hashes: hashes) }, frameTimes: frameTimes)
+
+        case let .page(page, _):
             .page(try PinnedFile(path: file.path, hashes: hashes), page: page)
-        } else if file.frameFiles.isEmpty {
-            .file(
-                try PinnedFile(path: file.path, hashes: hashes),
-                frameTimes: file.frameTimes.isEmpty ? nil : file.frameTimes
-            )
-        } else {
-            .imageSequence(
-                try file.frameFiles.map { try PinnedFile(path: $0, hashes: hashes) },
-                frameTimes: file.frameTimes
-            )
         }
 
         self.init(source: source)

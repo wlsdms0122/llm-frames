@@ -14,9 +14,13 @@ import Testing
 @Suite("TargetFollower Tests")
 struct TargetFollowerTests {
     // MARK: - Property
-    private let file = MediaFile(path: "/abs/screen.mp4", size: Size(width: 1206, height: 2622), frameTimes: [0, 1])
+    private let file = MediaFile.video("/abs/screen.mp4", frameTimes: [0, 1], size: Size(width: 1206, height: 2622))
     private let sut = TargetFollower(tracker: TrackerTable(frameTimes: ["/abs/screen.mp4": [0, 1]], growth: 0.5))
-    private let sixFrames = MediaFile(path: "/abs/screen.mp4", size: Size(width: 1206, height: 2622), frameTimes: [0, 1, 2, 3, 4, 5])
+    private let sixFrames = MediaFile.video(
+        "/abs/screen.mp4",
+        frameTimes: [0, 1, 2, 3, 4, 5],
+        size: Size(width: 1206, height: 2622)
+    )
 
     // MARK: - Initializer
     // MARK: - Test
