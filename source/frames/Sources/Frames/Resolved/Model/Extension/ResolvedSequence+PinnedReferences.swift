@@ -99,7 +99,7 @@ extension ResolvedSequence {
                 .file(file, place: place)
 
             case let .displace(file, _, _):
-                .media(PinnedMedia(source: .file(file)), place: place, colorSpace: nil)
+                .media(PinnedMedia(source: .file(file, frameTimes: nil)), place: place, colorSpace: nil)
 
             case .exposure, .contrast, .saturation, .temperature, .hue, .sepia, .levels, .blur, .sharpen, .bloom,
                 .vignette, .pixelate, .grain:
@@ -129,7 +129,7 @@ extension ResolvedSequence {
                     return nil
                 }
 
-                return .sound(PinnedMedia(source: .file(PinnedFile(path: path, sha256: sha256))), place: place)
+                return .sound(PinnedMedia(source: .file(PinnedFile(path: path, sha256: sha256), frameTimes: nil)), place: place)
             }
         }
     }

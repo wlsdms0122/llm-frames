@@ -22,7 +22,7 @@ extension ResolvedClip {
             cornerPin == nil,
             case let .picture(.media(media), _) = content,
             case let .pinned(pinned) = media.media,
-            !pinned.frameTimes.isEmpty
+            pinned.frameTimes != nil
         else {
             return nil
         }
@@ -38,7 +38,7 @@ extension ResolvedClip {
     // MARK: - Public
     // A media clip's crop in its media pixels.
     func crop(at time: SampleTime) -> Rectangle? {
-        guard let crop else { return nil }
+        guard case let .picture(.media(media), _) = content, let crop = media.crop else { return nil }
         guard let track, let clock = ownMediaClock else { return crop.value(at: time).rectangle }
 
         return track.crop(of: crop, on: clock, at: time)
@@ -46,7 +46,7 @@ extension ResolvedClip {
 
     // The clip's masks in its own space.
     func ownMasks(at time: SampleTime) -> [MaskSample] {
-        guard let mask else { return [] }
+        guard let mask = composite?.mask else { return [] }
         guard let track, let clock = ownMediaClock else { return mask.map { $0.sampled(at: time) } }
 
         return track.masks(of: mask, on: clock, at: time)

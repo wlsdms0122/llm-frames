@@ -102,7 +102,7 @@ struct PresetReaderTests {
         #expect(preset.audio == .constantGain)
         #expect(preset.incoming?.ease == .easeInOut)
         #expect(preset.outgoing?.ease == .linear)
-        #expect(preset.cover?.source == .color("#FFFFFF"))
+        #expect(preset.cover?.source == .solid("#FFFFFF"))
         #expect(preset.cover?.span.ease == .easeInOut)
         #expect(preset.cover?.span.keys.count == 3)
         #expect(preset.matte == nil)
@@ -339,7 +339,7 @@ struct PresetReaderTests {
 
         // Then
         #expect(preset.seconds == 0.7)
-        #expect(preset.cover?.source == .color("#000000"))
+        #expect(preset.cover?.source == .solid("#000000"))
         #expect(preset.cover?.span.ease == .linear)
         #expect(preset.incoming?.ease == .spring(bounce: 0.2))
     }

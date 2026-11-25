@@ -20,8 +20,7 @@ struct LocationReporterTests {
     private let red = Color(written: "#FF0000")
     // Frames every half second, the third at 1.
     private let video = PinnedMedia(
-        source: .file(PinnedFile(path: "/abs/run.mp4", sha256: String(repeating: "a", count: 64))),
-        frameTimes: [0, 0.5, 1, 1.5]
+        source: .file(PinnedFile(path: "/abs/run.mp4", sha256: String(repeating: "a", count: 64)), frameTimes: [0, 0.5, 1, 1.5])
     )
     private let clip = ItemOrigin(place: "clips[1]#shot", id: "shot", kind: "video")
     private let rect = ItemOrigin(place: "clips[0]", id: nil, kind: "rect")

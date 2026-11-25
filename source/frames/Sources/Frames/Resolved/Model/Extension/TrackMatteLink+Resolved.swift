@@ -39,7 +39,7 @@ extension TrackMatteLink {
             nil
         }
 
-        self.init(place: place, kind: kind, id: clip.id, trackMatte: clip.trackMatte, refusal: refusal)
+        self.init(place: place, kind: kind, id: clip.id, trackMatte: clip.composite?.trackMatte, refusal: refusal)
     }
 
     // MARK: - Public

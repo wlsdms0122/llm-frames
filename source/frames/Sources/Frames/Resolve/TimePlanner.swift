@@ -378,7 +378,7 @@ struct TimePlanner: Sendable {
         case let .page(path, page):
             try media(path, page, definition.cover?.colorSpace)
 
-        case .color, nil:
+        case .solid, nil:
             nil
         }
 

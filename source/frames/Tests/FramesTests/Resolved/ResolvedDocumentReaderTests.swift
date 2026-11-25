@@ -37,7 +37,7 @@ struct ResolvedDocumentReaderTests {
                 audio: .constantGain,
                 incoming: nil,
                 outgoing: Span(ease: .spring(bounce: -0.4), revealFrom: .top, keys: [SpanKey(t: 0, values: [.y: 0]), SpanKey(t: 1, values: [.y: 1])]),
-                cover: Cover(source: .color("#FFFFFF"), span: Span(ease: .linear, keys: [SpanKey(t: 0.5, values: [.opacity: 1])])),
+                cover: Cover(source: .solid("#FFFFFF"), span: Span(ease: .linear, keys: [SpanKey(t: 0.5, values: [.opacity: 1])])),
                 matte: nil
             )
         ]) { $1 },

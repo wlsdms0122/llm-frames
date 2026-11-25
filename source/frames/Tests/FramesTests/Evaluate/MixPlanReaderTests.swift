@@ -18,10 +18,9 @@ struct MixPlanReaderTests {
     private static let hash = String(repeating: "b", count: 64)
     private static let impulseResponseHash = String(repeating: "c", count: 64)
     private static let video = PinnedMedia(
-        source: .file(PinnedFile(path: "/abs/run.mp4", sha256: hash)),
-        frameTimes: [0, 0.033367, 0.066733]
+        source: .file(PinnedFile(path: "/abs/run.mp4", sha256: hash), frameTimes: [0, 0.033367, 0.066733])
     )
-    private static let music = PinnedMedia(source: .file(PinnedFile(path: "/abs/bgm.m4a", sha256: hash)))
+    private static let music = PinnedMedia(source: .file(PinnedFile(path: "/abs/bgm.m4a", sha256: hash), frameTimes: nil))
 
     // An audio filter of every op: an `eq` with a band of each kind, its high pass sweeping up, a compressor, a gate
     // fading in by its `mix`, and a limiter whose `gain` moves followed by a convolution whose `gain` holds.

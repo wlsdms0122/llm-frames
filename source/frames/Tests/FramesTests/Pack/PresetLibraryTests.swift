@@ -113,10 +113,10 @@ struct PresetLibraryTests {
 
         // Then
         #expect(given.seconds == 1.2)
-        #expect(given.cover?.source == .color("#1B3A6B"))
+        #expect(given.cover?.source == .solid("#1B3A6B"))
         #expect(given.incoming?.ease == .linear)
         #expect(defaults.seconds == 0.7)
-        #expect(defaults.cover?.source == .color("#000000"))
+        #expect(defaults.cover?.source == .solid("#000000"))
     }
 
     @Test(

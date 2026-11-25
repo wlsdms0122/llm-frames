@@ -461,13 +461,21 @@ struct ClipAppearancePlanner: Sendable {
     }
 
     // MARK: - Private
-    // A null is placed by its box, a rect's: `area`, or both of `width` and `height`. Any other clip's picture
-    // composites by its `opacity`, 1 when not written, and its `blend`, `normal` when not written.
+    // A null is placed by its box, a rect's: `area`, or both of `width` and `height`. An audio clip draws nothing. Any
+    // other clip's picture composites by its `opacity`, 1 when not written, and its `blend`, `normal` when not written.
     private func drawing(
         of plan: ClipPlan,
         written: Clip
     ) throws -> ClipDrawing {
-        guard case let .null(null) = written.content else {
+        let null: ClipNull
+        switch written.content {
+        case let .null(content):
+            null = content
+
+        case .audio:
+            return .sound
+
+        case .media, .title, .shape, .adjust:
             return .picture(ClipComposite(
                 opacity: property(written.opacity, plain: 1, clock: plan.clock),
                 blend: written.blend ?? "normal"

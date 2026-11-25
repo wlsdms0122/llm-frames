@@ -14,14 +14,14 @@ extension MediaFile {
     // MARK: - Initializer
     package init(media: PinnedMedia) {
         switch media.source {
-        case let .file(file):
-            self.init(path: file.path, frameTimes: media.frameTimes)
+        case let .file(file, frameTimes):
+            self.init(path: file.path, frameTimes: frameTimes ?? [])
 
-        case let .imageSequence(files):
+        case let .imageSequence(files, frameTimes):
             let paths = files.map(\.path)
             let directory = paths.first.map { URL(fileURLWithPath: $0).deletingLastPathComponent().path } ?? ""
 
-            self.init(path: directory, frameTimes: media.frameTimes, frameFiles: paths)
+            self.init(path: directory, frameTimes: frameTimes, frameFiles: paths)
 
         case let .page(file, page):
             self.init(path: file.path, page: page)

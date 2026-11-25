@@ -17,7 +17,7 @@ enum ResolvedMediaContent: Equatable, Sendable {
     var frames: ClosedRange<Double>? {
         switch self {
         case let .pinned(media):
-            ClosedRange(frameTimes: media.frameTimes)
+            media.frameTimes.flatMap(ClosedRange.init(frameTimes:))
 
         case let .nested(sequence):
             ClosedRange(sequenceDuration: sequence.format.duration)

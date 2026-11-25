@@ -118,14 +118,8 @@ struct ContentFitPlanner: Sendable {
                     end: clip.end,
                     storyline: clip.storyline,
                     parent: clip.parent,
-                    box: clip.box,
-                    cornerPin: clip.cornerPin,
-                    crop: clip.crop,
-                    mask: clip.mask,
-                    trackMatte: clip.trackMatte,
+                    placement: clip.placement,
                     track: clip.track,
-                    scale: clip.scale,
-                    rotation: clip.rotation,
                     isMotionBlurred: clip.isMotionBlurred,
                     animation: .none
                 )

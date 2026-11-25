@@ -384,7 +384,7 @@ struct PresetReader: Sendable {
         let object = value.objectValue ?? JSONObject()
         let media = object["media"]
         let source: CoverSource = if object["kind"]?.stringValue == "solid" {
-            .color(object["color"]?.stringValue ?? "")
+            .solid(object["color"]?.stringValue ?? "")
         } else if let page = media?.objectValue {
             .page(page["file"]?.stringValue ?? "", page: Self.page(of: page))
         } else {

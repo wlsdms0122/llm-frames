@@ -29,12 +29,10 @@ struct EvaluatorTests {
     ]
     // Frames every quarter second from 0 to 4.75.
     private let first = PinnedMedia(
-        source: .file(PinnedFile(path: "/abs/first.mp4", sha256: String(repeating: "a", count: 64))),
-        frameTimes: (0..<20).map { Double($0) / 4 }
+        source: .file(PinnedFile(path: "/abs/first.mp4", sha256: String(repeating: "a", count: 64)), frameTimes: (0..<20).map { Double($0) / 4 })
     )
     private let second = PinnedMedia(
-        source: .file(PinnedFile(path: "/abs/second.mp4", sha256: String(repeating: "b", count: 64))),
-        frameTimes: (0..<20).map { Double($0) / 4 }
+        source: .file(PinnedFile(path: "/abs/second.mp4", sha256: String(repeating: "b", count: 64)), frameTimes: (0..<20).map { Double($0) / 4 })
     )
     // What the storyline entries of these tests are named by, and a clip of each kind drawn at `clips[0]`.
     private let videoEntry = ItemOrigin(place: "storyline", id: nil, kind: "video")
@@ -119,7 +117,7 @@ struct EvaluatorTests {
             over: .incoming,
             incoming: nil,
             outgoing: nil,
-            cover: ResolvedCover(source: .color(white), span: span),
+            cover: ResolvedCover(source: .solid(white), span: span),
             matte: nil
         ))
 
@@ -137,7 +135,7 @@ struct EvaluatorTests {
     @Test("each item names the clip that drew it, and a transition cover none")
     func namesDrawingClips() {
         // Given
-        let cover = ResolvedCover(source: .color(white), span: Span(ease: .linear, keys: []))
+        let cover = ResolvedCover(source: .solid(white), span: Span(ease: .linear, keys: []))
         let transition = ResolvedTransition(
             start: 1.5,
             end: 2.5,
@@ -168,12 +166,10 @@ struct EvaluatorTests {
     func picksCoverAndMatteFrames() {
         // Given
         let stinger = PinnedMedia(
-            source: .file(PinnedFile(path: "/abs/stinger.mov", sha256: String(repeating: "c", count: 64))),
-            frameTimes: [0, 0.5, 1, 1.5]
+            source: .file(PinnedFile(path: "/abs/stinger.mov", sha256: String(repeating: "c", count: 64)), frameTimes: [0, 0.5, 1, 1.5])
         )
         let wipe = PinnedMedia(
-            source: .file(PinnedFile(path: "/abs/wipe.mp4", sha256: String(repeating: "d", count: 64))),
-            frameTimes: (0..<8).map { Double($0) / 8 }
+            source: .file(PinnedFile(path: "/abs/wipe.mp4", sha256: String(repeating: "d", count: 64)), frameTimes: (0..<8).map { Double($0) / 8 })
         )
         let cover = ResolvedCover(
             source: .media(ResolvedTransitionMedia(media: stinger, duration: 2)),
@@ -314,7 +310,7 @@ struct EvaluatorTests {
     func showsStill() {
         // Given
         let file = PinnedFile(path: "/abs/still.png", sha256: String(repeating: "f", count: 64))
-        let still = PinnedMedia(source: .file(file))
+        let still = PinnedMedia(source: .file(file, frameTimes: nil))
         let sequence = sequence([storylineClip(.pinned(still), start: 0, end: 3)])
 
         // When
@@ -1402,7 +1398,6 @@ struct EvaluatorTests {
         parent: String? = nil,
         mask: [ResolvedMask]? = nil,
         box: ResolvedBox? = nil,
-        crop: FollowedValue<Crop>? = nil,
         track: ResolvedTrack? = nil,
         opacity: Double = 1,
         blend: String = "normal",
@@ -1413,19 +1408,16 @@ struct EvaluatorTests {
             id: id,
             content: .picture(
                 content,
-                ResolvedComposite(lane: lane, opacity: [Keyframe(at: 0, value: opacity)], blend: blend)
+                ResolvedComposite(lane: lane, opacity: [Keyframe(at: 0, value: opacity)], blend: blend, mask: mask)
             ),
             start: start,
             end: end,
             storyline: storyline,
             parent: parent,
-            box: box,
-            crop: crop,
-            mask: mask,
-            trackMatte: nil,
+            placement: box.map { box in
+                .transform(ResolvedTransform(box: box, scale: [Keyframe(at: 0, value: .identity)], rotation: [Keyframe(at: 0, value: 0)]))
+            } ?? .box(nil),
             track: track,
-            scale: box == nil ? nil : [Keyframe(at: 0, value: .identity)],
-            rotation: box == nil ? nil : [Keyframe(at: 0, value: 0)],
             animation: animation
         )
     }
@@ -1448,13 +1440,8 @@ struct EvaluatorTests {
             end: 4,
             storyline: 0,
             parent: parent,
-            box: nil,
-            crop: nil,
-            mask: nil,
-            trackMatte: nil,
+            placement: .transform(ResolvedTransform(box: nil, scale: [Keyframe(at: 0, value: .identity)], rotation: [Keyframe(at: 0, value: rotation)])),
             track: nil,
-            scale: [Keyframe(at: 0, value: .identity)],
-            rotation: [Keyframe(at: 0, value: rotation)],
             animation: .none
         )
     }
@@ -1468,7 +1455,13 @@ struct EvaluatorTests {
         blend: String = "normal",
         track: ResolvedTrack? = nil
     ) -> ResolvedClip {
-        let media = ResolvedMediaClip(media: .pinned(second), timing: timing, filter: .filter(filter), appearance: appearance)
+        let media = ResolvedMediaClip(
+            media: .pinned(second),
+            timing: timing,
+            filter: .filter(filter),
+            crop: .keyframes([Keyframe(at: 0, value: Crop(whole))]),
+            appearance: appearance
+        )
         let box = ResolvedBox(
             size: Size(width: 80, height: 40),
             position: [Keyframe(at: 0, value: Point(x: 50, y: 40))],
@@ -1479,7 +1472,6 @@ struct EvaluatorTests {
             .media(media),
             start: start,
             box: box,
-            crop: .keyframes([Keyframe(at: 0, value: Crop(whole))]),
             track: track,
             blend: blend
         )
