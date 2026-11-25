@@ -585,7 +585,6 @@ struct TitleGroupTests {
             end: clip.end,
             storyline: clip.storyline,
             parent: clip.parent,
-            placement: clip.placement,
             track: clip.track,
             animation: ResolvedAnimation(
                 entrance: entrance,
@@ -597,7 +596,7 @@ struct TitleGroupTests {
     }
 
     private func title(of clip: ResolvedClip) throws -> ResolvedText {
-        guard case let .picture(.title(text), _) = clip.content else {
+        guard case let .picture(.title(text), _, _) = clip.content else {
             Issue.record("the clip is a title")
             return ResolvedText(size: Size(width: 0, height: 0), background: nil, runs: [])
         }

@@ -21,17 +21,17 @@ extension ResolvedSequence {
         }
         let held = clips.map { clip -> [String: TitleSample] in
             switch clip.content {
-            case let .picture(.title(text), _):
+            case let .picture(.title(text), _, _):
                 [clip.place: TitleSample(text: text, time: SampleTime(time))]
 
-            case let .picture(.media(media), _):
+            case let .picture(.media(media), _, _):
                 if case let .nested(sequence) = media.media {
                     sequence.titles(at: media.mediaTime(at: time))
                 } else {
                     [:]
                 }
 
-            case .picture(.shape, _), .picture(.adjustment, _), .null:
+            case .picture(.shape, _, _), .adjustment, .null:
                 [:]
             }
         }

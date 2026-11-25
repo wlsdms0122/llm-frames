@@ -211,7 +211,7 @@ struct DocumentPlannerTests {
         // Then
         #expect(silent.sound.isEmpty)
         #expect(sounding.sound.map(\.place.description) == ["storyline[0]"])
-        #expect(sounding.sound.first?.nestedAudioFilter != .off)
+        #expect(try #require(sounding.sound.first?.nestedAudioFilter) != .off)
     }
 
     @Test("a resolve error inside a template instance continues the entry's place")

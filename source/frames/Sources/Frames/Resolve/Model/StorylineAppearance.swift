@@ -26,7 +26,7 @@ struct StorylineAppearance: Equatable, Sendable {
     // MARK: - Initializer
     init(
         box: ClipBox?,
-        cornerPin: ClipCornerPin? = nil,
+        cornerPin: ClipCornerPin?,
         opacity: PropertyValue<Double>,
         scale: PropertyValue<Scale>,
         rotation: PropertyValue<Double>,
@@ -47,5 +47,23 @@ struct StorylineAppearance: Equatable, Sendable {
     }
 
     // MARK: - Public
+    // The same appearance placed by `box` and `cornerPin`.
+    func with(
+        box: ClipBox?,
+        cornerPin: ClipCornerPin?
+    ) -> StorylineAppearance {
+        StorylineAppearance(
+            box: box,
+            cornerPin: cornerPin,
+            opacity: opacity,
+            scale: scale,
+            rotation: rotation,
+            blend: blend,
+            radius: radius,
+            border: border,
+            shadow: shadow
+        )
+    }
+
     // MARK: - Private
 }

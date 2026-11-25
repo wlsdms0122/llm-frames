@@ -294,7 +294,7 @@ package struct TimelineReporter: Sendable {
         let parent = clip.parent.flatMap { id in
             sequence.storyline.first { $0.id == id }?.place ?? sequence.clips.first { $0.id == id }?.place
         }
-        let media: ResolvedMediaClip? = if case let .picture(.media(media), _) = clip.content { media } else { nil }
+        let media: ResolvedMediaClip? = if case let .picture(.media(media), _, _) = clip.content { media } else { nil }
         let shown = time.map { time in
             TimelineClipTime(
                 mediaTime: media.map { shownTime(of: $0.media, at: $0.mediaTime(at: time)) },
@@ -357,27 +357,31 @@ package struct TimelineReporter: Sendable {
 
     // The lane a clip's picture is stacked in, nil for a null, which draws none.
     private func lane(of content: ResolvedClipContent) -> Int? {
-        guard case let .picture(_, composite) = content else { return nil }
+        switch content {
+        case let .picture(_, _, composite), let .adjustment(_, _, composite):
+            composite.lane
 
-        return composite.lane
+        case .null:
+            nil
+        }
     }
 
     // The kind a clip was written as, as far as what it draws tells it: a media clip without timing shows a still.
     private func kind(of content: ResolvedClipContent) -> String {
         switch content {
-        case .picture(.title, _):
+        case .picture(.title, _, _):
             ClipKind.title.label
 
-        case let .picture(.shape(shape), _):
+        case let .picture(.shape(shape), _, _):
             ClipKind.shape(shape.kind.rawValue).label
 
-        case .picture(.adjustment, _):
+        case .adjustment:
             ClipKind.adjust.label
 
         case .null:
             ClipKind.null.label
 
-        case let .picture(.media(clip), _):
+        case let .picture(.media(clip), _, _):
             switch clip.media {
             case .nested:
                 ClipKind.media(.sequence).label

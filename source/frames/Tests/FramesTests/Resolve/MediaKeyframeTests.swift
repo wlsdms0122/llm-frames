@@ -152,7 +152,7 @@ struct MediaKeyframeTests {
     private func resolvedLooks(_ keys: String) throws -> [ResolvedMediaAppearance] {
         let clip = try resolved(clip: keys).clips[0]
         let storyline = try resolved(storyline: keys).storyline[0]
-        guard case let .picture(.media(media), _) = clip.content else {
+        guard case let .picture(.media(media), _, _) = clip.content else {
             Issue.record("the clip is media")
             return []
         }

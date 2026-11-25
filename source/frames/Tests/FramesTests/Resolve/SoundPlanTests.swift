@@ -24,7 +24,10 @@ struct SoundPlanTests {
         let time = try Fixture.planner.plan(document: Fixture.json(#"""
             { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "in": 2, "out": 8 } ] }
             """#))
-        let media = try #require(time.storyline[0].source.media)
+        guard case let .file(file)? = time.storyline[0].source.media?.source else {
+            Issue.record("the storyline clip plays a file")
+            return
+        }
 
         // When
         let plan = try sut.plan(time)
@@ -33,7 +36,7 @@ struct SoundPlanTests {
         #expect(plan.sound == [
             SoundPlan(
                 place: time.storyline[0].place,
-                media: media,
+                source: .file(file),
                 played: PlayedRange(map: TimeMap(origin: 0, in: 2, speed: 1), out: 8, loop: false),
                 range: TimeRange(start: 0, end: 6),
                 audible: TimeRange(start: 0, end: 6),
@@ -42,8 +45,7 @@ struct SoundPlanTests {
                 fadeIn: nil,
                 fadeOut: nil,
                 incoming: nil,
-                outgoing: nil,
-                nested: []
+                outgoing: nil
             )
         ])
     }
@@ -244,12 +246,11 @@ struct SoundPlanTests {
 
         // Then
         #expect(plan.sound.map(\.place.description) == ["storyline[0].connected[0]", "storyline[1]"])
-        #expect(plan.sound.map(\.media.hasSound) == [true, true])
         #expect(plan.sound[0].range == TimeRange(start: 0, end: 1))
-        #expect(plan.sound[0].nested.map(\.range) == [TimeRange(start: 0, end: 1)])
+        #expect(plan.sound[0].nestedSounds?.map(\.range) == [TimeRange(start: 0, end: 1)])
         #expect(plan.sound[1].range == TimeRange(start: 4, end: 5))
         #expect(plan.sound[1].volume == .value(0.5))
-        #expect(plan.sound[1].nested.map(\.range) == [TimeRange(start: 0, end: 1)])
+        #expect(plan.sound[1].nestedSounds?.map(\.range) == [TimeRange(start: 0, end: 1)])
     }
 
     @Test("a compound clip whose handle runs past its nested sequence's end is heard only to where the nested sequence ends")

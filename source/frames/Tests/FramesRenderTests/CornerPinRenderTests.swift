@@ -180,7 +180,7 @@ struct CornerPinRenderTests {
         // Given
         let resolver = try DocumentResolver()
         let placeholder = try resolver.resolve(title(#""cornerPin": [[0, 0], [100, 0], [100, 100], [0, 100]]"#))
-        guard case let .picture(.title(text), _) = try #require(placeholder.clips.first).content else {
+        guard case let .picture(.title(text), _, _) = try #require(placeholder.clips.first).content else {
             Issue.record("the clip is not a title")
             return
         }
@@ -213,7 +213,11 @@ struct CornerPinRenderTests {
         try PageWriter().write(width: 100, height: 100, content: "0 g 20 20 60 60 re f", to: path)
         let resolver = try DocumentResolver()
         let placeholder = try resolver.resolve(page(at: path, #""cornerPin": [[0, 0], [100, 0], [100, 100], [0, 100]]"#))
-        let size = try #require(placeholder.clips.first?.cornerPin?.size)
+        guard case let .picture(_, .cornerPin(placed), _)? = placeholder.clips.first?.content else {
+            Issue.record("the page is not placed by its corner pin")
+            return
+        }
+        let size = placed.size
         let (width, height) = (size.width * 4, size.height * 4)
         let enlarged = Quad(Rectangle(x: 320 - width / 2, y: 320 - height / 2, width: width, height: height))
         let pinned = try resolver.resolve(page(at: path, #""cornerPin": \#(written(enlarged))"#))

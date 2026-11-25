@@ -53,8 +53,8 @@ struct TimelineGeometrySampler: Sendable {
         let sample = SampleInstant(frameTime: time)
         let valueTime = storyline.valueTime(ofEntry: index, in: sample)
         let motion = parents.motion(ofStoryline: index, at: sample)
-        let plane: CornerPinPlane? = if let size = entry.cornerPin?.size, let quad = entry.cornerPin(at: valueTime) {
-            CornerPinPlane(box: Rectangle(x: 0, y: 0, width: size.width, height: size.height), cornerPin: quad)
+        let plane: CornerPinPlane? = if case let .cornerPin(pin) = entry.placement, let quad = entry.cornerPin(at: valueTime) {
+            CornerPinPlane(box: Rectangle(x: 0, y: 0, width: pin.size.width, height: pin.size.height), cornerPin: quad)
         } else {
             nil
         }
@@ -76,8 +76,8 @@ struct TimelineGeometrySampler: Sendable {
     ) -> TimelineGeometry {
         let valueTime = clip.valueTime(in: SampleInstant(frameTime: time))
         let space = parents.space(of: clip, at: valueTime)
-        if clip.cornerPin != nil {
-            return pinnedGeometry(of: clip, in: space, at: valueTime)
+        if case let .picture(picture, .cornerPin(cornerPin), _) = clip.content {
+            return pinnedGeometry(of: clip, picture: picture, cornerPin: cornerPin, in: space, at: valueTime)
         }
 
         let transform = clipEvaluator.childTransform(of: clip, in: space, at: valueTime)
@@ -96,46 +96,20 @@ struct TimelineGeometrySampler: Sendable {
     }
 
     // A clip with a corner pin drawn flat in its box B and carried onto its corner pin, then by its tracked motion and
-    // its parent's map, as its group is drawn: a title's box is B and its text box lies inside it, a media clip's crop
-    // is stretched onto B, and a rect's or an ellipse's box is B. An adjustment takes no corner pin.
+    // its parent's map, as its group is drawn, B and the map of its own space into it being
+    // `ResolvedClip.pinnedBox(of:cornerPin:at:)`.
     private func pinnedGeometry(
         of clip: ResolvedClip,
+        picture: ResolvedPicture,
+        cornerPin pin: ResolvedCornerPin,
         in space: ClipSpace,
         at time: SampleTime
     ) -> TimelineGeometry {
-        guard
-            case let .picture(content, _) = clip.content,
-            let pin = clip.cornerPin,
-            let written = clip.writtenCornerPin(areas: space.areas, clock: space.clock, at: time)
-        else {
-            return .none
-        }
+        guard let flat = clip.pinnedBox(of: picture, cornerPin: pin, at: time) else { return .none }
 
-        let flat: (box: Rectangle, ownSpace: AffineTransform)
-        switch content {
-        case let .title(text):
-            let drawn = text.box(at: time)
-            flat = (Rectangle(x: 0, y: 0, width: drawn.width, height: drawn.height), text.textBoxInBox(at: time))
-
-        case .media:
-            let flatBox = Rectangle(x: 0, y: 0, width: pin.size.width, height: pin.size.height)
-            let shown = clip.crop(at: time) ?? flatBox
-            let crop = AffineTransform(translation: Point(x: -shown.x, y: -shown.y))
-                .concatenating(AffineTransform(mapping: Size(width: shown.width, height: shown.height), onto: flatBox))
-            flat = (flatBox, crop)
-
-        case let .shape(shape):
-            // A rect or an ellipse with a corner pin is placed by it and carries no box of its own.
-            guard case let .box(width, height, _) = shape.geometry else { return .none }
-
-            flat = (Rectangle(x: 0, y: 0, width: width.value(at: time), height: height.value(at: time)), .identity)
-
-        case .adjustment:
-            return .none
-        }
-
+        let written = clip.writtenCornerPin(pin, areas: space.areas, clock: space.clock, at: time)
         let size = Size(width: flat.box.width, height: flat.box.height)
-        let cornerPin = clip.drawnCornerPin(box: size, areas: space.areas, clock: space.clock, at: time) ?? written
+        let cornerPin = clip.drawnCornerPin(pin, box: size, areas: space.areas, clock: space.clock, at: time) ?? written
         let animation = ItemPresentation(area: flat.box, opacity: 1, motion: ClipSample(clip: clip, at: time).animation.motion)
             .transform
         let plane = CornerPinPlane(box: flat.box, cornerPin: cornerPin)
@@ -163,17 +137,20 @@ struct TimelineGeometrySampler: Sendable {
         at time: SampleTime
     ) -> (rect: Rectangle, ownSpace: AffineTransform)? {
         switch clip.content {
-        case let .picture(.title(text), _):
+        case let .picture(.title(text), _, _):
             return (text.boxInTextBox(at: time), text.textBoxInBox(at: time))
 
-        case .picture(.media, _):
-            // Without a crop `ClipEvaluator.childTransform` carries a media clip by its box, which stands for its media.
-            let size = clip.box?.size ?? clip.cornerPin?.size ?? Size(width: 0, height: 0)
-            return (clip.crop(at: time) ?? Rectangle(x: 0, y: 0, width: size.width, height: size.height), .identity)
+        case let .picture(.media(media), _, _):
+            return (clip.crop(of: media, at: time), .identity)
 
-        case let .picture(.shape(shape), _):
+        case let .picture(.shape(shape), .transform(placed), _):
             let sample = ClipSample(clip: clip, at: time)
-            return shapeEvaluator.box(of: shape, clip: clip, sample: sample, in: space, at: time).map { ($0, .identity) }
+            return shapeEvaluator.box(of: shape, clip: clip, placed: placed, sample: sample, in: space, at: time)
+                .map { ($0, .identity) }
+
+        case .picture(.shape, .cornerPin, _):
+            // A rect or an ellipse a corner pin places has no box in its parent's space.
+            return nil
 
         case let .null(null):
             switch null.geometry {
@@ -184,7 +161,7 @@ struct TimelineGeometrySampler: Sendable {
                 return (space.area(of: area, track: clip.parentTrack, at: time), .identity)
             }
 
-        case .picture(.adjustment, _):
+        case .adjustment:
             return nil
         }
     }

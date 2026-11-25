@@ -19,6 +19,7 @@ struct ShapeEvaluator: Sendable {
     func items(
         of shape: ResolvedShape,
         clip: ResolvedClip,
+        placed: ResolvedTransform,
         sample: ClipSample,
         composite: ResolvedComposite,
         in space: ClipSpace,
@@ -28,7 +29,7 @@ struct ShapeEvaluator: Sendable {
         // nothing. In a sample of a frame with motion blur its item is there all the same, every carried length 0, since
         // whether an item is there is decided at T (FRAMES-29).
         guard
-            let laid = laid(shape, clip: clip, sample: sample, in: space, at: time),
+            let laid = laid(shape, clip: clip, placed: placed, sample: sample, in: space, at: time),
             let carried = laid.carried ?? (time.sample.isSample ? 0 : nil)
         else { return [] }
 
@@ -47,25 +48,27 @@ struct ShapeEvaluator: Sendable {
     func transform(
         of shape: ResolvedShape,
         clip: ResolvedClip,
+        placed: ResolvedTransform,
         sample: ClipSample,
         in space: ClipSpace,
         at time: SampleTime
     ) -> AffineTransform {
-        laid(shape, clip: clip, sample: sample, in: space, at: time)?.transform
+        laid(shape, clip: clip, placed: placed, sample: sample, in: space, at: time)?.transform
             ?? space.tracked(by: clip.parentTrack, at: time).transform
     }
 
-    // The shape's box as written, before its outset, in the coordinates `transform(of:clip:sample:in:at:)` carries: a
+    // The shape's box as written, before its outset, in the coordinates `transform(of:clip:placed:sample:in:at:)` carries: a
     // rect's or an ellipse's `[0, 0, w, h]` by `width` and `height`, and for one placed by its geometry its area or its
-    // path's curve's box in the space it is written in. Nil for a box shape whose entry carries no box.
+    // path's curve's box in the space it is written in. Nil for a box shape whose transform carries no box.
     func box(
         of shape: ResolvedShape,
         clip: ResolvedClip,
+        placed: ResolvedTransform,
         sample: ClipSample,
         in space: ClipSpace,
         at time: SampleTime
     ) -> Rectangle? {
-        laid(shape, clip: clip, sample: sample, in: space, at: time)?.box
+        laid(shape, clip: clip, placed: placed, sample: sample, in: space, at: time)?.box
     }
 
     // A rect or an ellipse given by `width` and `height` drawn flat in its box B, `[0, 0, w, h]` at the time, for a clip
@@ -139,6 +142,7 @@ struct ShapeEvaluator: Sendable {
     private func laid(
         _ shape: ResolvedShape,
         clip: ResolvedClip,
+        placed: ResolvedTransform,
         sample: ClipSample,
         in space: ClipSpace,
         at time: SampleTime
@@ -149,8 +153,8 @@ struct ShapeEvaluator: Sendable {
         let placement: GeometryPlacement
         switch shape.geometry {
         case let .box(width, height, outset):
-            // A box shape's entry carries its box.
-            return clip.box.map { box in
+            // A box shape's transform carries its box.
+            return placed.box.map { box in
                 laid(
                     shape,
                     width: width,
@@ -158,6 +162,7 @@ struct ShapeEvaluator: Sendable {
                     outset: outset,
                     box: box,
                     clip: clip,
+                    placed: placed,
                     sample: sample,
                     in: space,
                     at: time
@@ -186,7 +191,7 @@ struct ShapeEvaluator: Sendable {
             anchor: placement.anchor,
             position: placement.position.map { space.point(of: $0, track: clip.parentTrack, at: time) },
             scale: sample.ownScale,
-            rotation: (clip.rotation.map { $0.value(at: time) } ?? 0) + motion.value(of: .rotation),
+            rotation: placed.rotation.value(at: time) + motion.value(of: .rotation),
             moved: Point(x: motion.value(of: .x) * bounds.width, y: motion.value(of: .y) * bounds.height)
         ).concatenating(tracked.transform)
         let carried = carried(by: transform, sample: sample)
@@ -202,6 +207,7 @@ struct ShapeEvaluator: Sendable {
         outset: TimedValue,
         box: ResolvedBox,
         clip: ResolvedClip,
+        placed: ResolvedTransform,
         sample: ClipSample,
         in space: ClipSpace,
         at time: SampleTime
@@ -215,8 +221,8 @@ struct ShapeEvaluator: Sendable {
         let point = tracked.transform.apply(to: space.anchor(of: box, track: clip.parentTrack, at: time))
         let values = KeyframedValues(
             position: Point(x: point.x - anchor.x, y: point.y - anchor.y),
-            scale: clip.scale.map { $0.value(at: time) } ?? .identity,
-            rotation: (clip.rotation.map { $0.value(at: time) } ?? 0) + tracked.transform.rotation
+            scale: placed.scale.value(at: time),
+            rotation: placed.rotation.value(at: time) + tracked.transform.rotation
         )
         let presentation = ItemPresentation(box: size, anchor: anchor, values: values, motion: sample.animation.motion)
         let carried = carried(by: presentation.transform, sample: sample)

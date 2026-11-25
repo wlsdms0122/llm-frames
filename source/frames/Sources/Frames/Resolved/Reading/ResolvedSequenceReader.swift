@@ -170,7 +170,7 @@ struct ResolvedSequenceReader: Sendable {
 
         let content: ResolvedMediaContent? = if let entry = storyline.first(where: { $0.id == id }) {
             if case let .media(media) = entry.content { media.media } else { nil }
-        } else if case let .picture(.media(media), _) = clips.first(where: { $0.id == id })?.content {
+        } else if case let .picture(.media(media), _, _) = clips.first(where: { $0.id == id })?.content {
             media.media
         } else {
             nil
@@ -338,17 +338,8 @@ struct ResolvedSequenceReader: Sendable {
             trackMatte: try entry.member("trackMatte").optional(trackMatte),
             track: try entry.member("track").optional(track),
             filter: try values.timed(entry.member("filter"), as: LookStructureTable.resolvedFilter),
-            box: cornerPin == nil
-                ? ResolvedBox(
-                    size: try values.size(entry.member("size")),
-                    position: .keyframes(try values.keyframes(entry.member("position")) { GeometryPoint.point(try values.point($0)) }),
-                    anchor: try values.point(entry.member("anchor"))
-                )
-                : nil,
-            cornerPin: cornerPin,
+            placement: try placement(of: entry, cornerPin: cornerPin),
             opacity: try values.numbers(entry.member("opacity")),
-            scale: cornerPin == nil ? try values.scales(entry.member("scale")) : nil,
-            rotation: cornerPin == nil ? try values.numbers(entry.member("rotation")) : nil,
             blend: try entry.member("blend").string(),
             isMotionBlurred: try entry.member("motionBlur").bool(),
             radius: try values.timed(entry.member("radius"), as: LookStructureTable.radius),
@@ -387,30 +378,38 @@ struct ResolvedSequenceReader: Sendable {
         } else {
             try box(size: size, position: position, anchor: anchor)
         }
-        let placement: ResolvedPlacement = if !isTransformed {
-            .box(box)
-        } else if let cornerPin {
-            .cornerPin(cornerPin)
-        } else {
-            .transform(ResolvedTransform(
-                box: box,
-                scale: try values.scales(clip.member("scale")),
-                rotation: try values.numbers(clip.member("rotation"))
-            ))
-        }
-        let content: ResolvedClipContent = if isNull {
-            .null(try null(clip, isPlacedByBox: box != nil))
-        } else {
-            .picture(
-                try picture(of: clip, kind: kind, shape: shape, isPlacedByBox: box != nil || cornerPin != nil),
-                ResolvedComposite(
-                    lane: try clip.member("lane").integer(),
-                    opacity: try values.numbers(clip.member("opacity")),
-                    blend: try clip.member("blend").string(),
-                    mask: try values.masks(clip.member("mask")),
-                    trackMatte: try clip.member("trackMatte").optional(trackMatte)
-                )
+        let composite = {
+            ResolvedComposite(
+                lane: try clip.member("lane").integer(),
+                opacity: try values.numbers(clip.member("opacity")),
+                blend: try clip.member("blend").string(),
+                mask: try values.masks(clip.member("mask")),
+                trackMatte: try clip.member("trackMatte").optional(trackMatte)
             )
+        }
+        let content: ResolvedClipContent
+        if isTransformed {
+            let transform = {
+                ResolvedTransform(
+                    box: box,
+                    scale: try values.scales(clip.member("scale")),
+                    rotation: try values.numbers(clip.member("rotation"))
+                )
+            }
+            if isNull {
+                content = .null(try null(clip, transform: try transform()))
+            } else {
+                let placement: ResolvedPicturePlacement = if let cornerPin {
+                    .cornerPin(cornerPin)
+                } else {
+                    .transform(try transform())
+                }
+                let picture = try picture(of: clip, kind: kind, shape: shape, isPlacedByBox: box != nil || cornerPin != nil)
+                content = .picture(picture, placement, try composite())
+            }
+        } else {
+            let filter = try values.timed(clip.member("adjust"), as: LookStructureTable.resolvedFilter)
+            content = .adjustment(filter, box, try composite())
         }
 
         if !isNull, kind != "media" {
@@ -432,10 +431,29 @@ struct ResolvedSequenceReader: Sendable {
             end: try clip.member("end").number(),
             storyline: try clip.member("storyline").optional { try $0.integer() },
             parent: try clip.member("parent").optional { try $0.string() },
-            placement: placement,
             track: try clip.member("track").optional(track),
             isMotionBlurred: try clip.member("motionBlur").bool(),
             animation: try values.animation(clip.member("animation"))
+        )
+    }
+
+    // A storyline entry without a corner pin is placed by its box, scale and rotation.
+    private func placement(
+        of entry: PlacedJSONObject,
+        cornerPin: ResolvedCornerPin?
+    ) throws -> ResolvedStorylinePlacement {
+        if let cornerPin {
+            return .cornerPin(cornerPin)
+        }
+
+        return .transform(
+            box: ResolvedBox(
+                size: try values.size(entry.member("size")),
+                position: .keyframes(try values.keyframes(entry.member("position")) { GeometryPoint.point(try values.point($0)) }),
+                anchor: try values.point(entry.member("anchor"))
+            ),
+            scale: try values.scales(entry.member("scale")),
+            rotation: try values.numbers(entry.member("rotation"))
         )
     }
 
@@ -501,9 +519,6 @@ struct ResolvedSequenceReader: Sendable {
         if kind == "title" {
             return .title(try values.text(clip.member("title")))
         }
-        if kind == "adjustment" {
-            return .adjustment(try values.timed(clip.member("adjust"), as: LookStructureTable.resolvedFilter))
-        }
 
         let timing = clip.contains("origin") ? try self.timing(of: clip) : nil
         let media = try self.media(clip.member("media"))
@@ -515,7 +530,7 @@ struct ResolvedSequenceReader: Sendable {
             isToneMapped: reading.isToneMapped,
             timing: timing,
             filter: try values.timed(clip.member("filter"), as: LookStructureTable.resolvedFilter),
-            crop: try clip.member("crop").optional(values.crops),
+            crop: try values.crops(clip.member("crop")),
             appearance: ResolvedMediaAppearance(
                 conform: try conform(clip.member("conform")),
                 radius: try values.timed(clip.member("radius"), as: LookStructureTable.radius),
@@ -529,9 +544,9 @@ struct ResolvedSequenceReader: Sendable {
     // which carries its position and its anchor point, without one.
     private func null(
         _ clip: PlacedJSONObject,
-        isPlacedByBox: Bool
+        transform: ResolvedTransform
     ) throws -> ResolvedNull {
-        let geometry: NullGeometry = if isPlacedByBox {
+        let geometry: NullGeometry = if transform.box != nil {
             .box(width: try values.numbers(clip.member("width")), height: try values.numbers(clip.member("height")))
         } else {
             .area(
@@ -540,7 +555,7 @@ struct ResolvedSequenceReader: Sendable {
             )
         }
 
-        return ResolvedNull(geometry: geometry)
+        return ResolvedNull(geometry: geometry, transform: transform)
     }
 
     // A shape's geometry, then how it is drawn: a path by its points, a rect or an ellipse with a box by its
@@ -622,21 +637,46 @@ struct ResolvedSequenceReader: Sendable {
         ))
     }
 
+    // A sound plays its media, with `nested` null, or a nested sequence's sounds, with `media` null.
+    private func source(of sound: PlacedJSONObject) throws -> ResolvedSoundSource {
+        let media = try sound.member("media")
+        let nested = try sound.member("nested")
+        if !media.isNull {
+            guard nested.isNull else {
+                throw ModelError.invalidValue(
+                    place: nested.place,
+                    kind: nested.kind,
+                    reason: "a sound of media plays no nested sequence, so it is null, found \(nested.value.written)"
+                )
+            }
+
+            return .pinned(try values.media(media))
+        }
+        guard !nested.isNull else {
+            throw ModelError.invalidValue(
+                place: media.place,
+                kind: media.kind,
+                reason: "a sound without a nested sequence plays media, found null"
+            )
+        }
+
+        let object = try nested.object(kind: "nested", keys: ["audio", "audioFilter"])
+        return .nested(
+            try object.member("audio").elements().map(self.sound),
+            audioFilter: try values.timed(object.member("audioFilter"), as: LookStructureTable.resolvedAudioFilter)
+        )
+    }
+
     private func sound(_ value: PlacedJSONValue) throws -> ResolvedSound {
         let sound = try value.object(kind: "audio", keys: [
             "place", "media", "nested", "in", "origin", "out", "speed", "loop", "start", "end", "audible", "volume",
             "pan", "fadeIn", "fadeOut", "incoming", "outgoing", "audioFilter"
         ])
         let range = { (key: String) in try sound.member(key).optional(values.range) }
-        let nested = try sound.member("nested").optional { try $0.object(kind: "nested", keys: ["audio", "audioFilter"]) }
 
         return ResolvedSound(
             place: try sound.member("place").string(),
-            media: try sound.member("media").optional(values.media),
-            nested: try nested?.member("audio").elements().map(self.sound) ?? [],
-            nestedAudioFilter: try nested.map { nested in
-                try values.timed(nested.member("audioFilter"), as: LookStructureTable.resolvedAudioFilter)
-            } ?? .off,
+            source: try source(of: sound),
             played: PlayedRange(
                 map: TimeMap(
                     origin: try sound.member("origin").number(),

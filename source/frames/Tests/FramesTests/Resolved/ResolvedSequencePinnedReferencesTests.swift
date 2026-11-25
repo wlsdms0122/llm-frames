@@ -52,6 +52,7 @@ struct ResolvedSequencePinnedReferencesTests {
                     media: .nested(nested),
                     timing: nil,
                     filter: .off,
+                    crop: .keyframes([Keyframe(at: 0, value: Crop(whole))]),
                     appearance: ResolvedMediaAppearance(conform: .fit, radius: .off, border: .off, shadow: .off)
                 )))
             ],
@@ -199,13 +200,13 @@ struct ResolvedSequencePinnedReferencesTests {
             id: nil,
             content: .picture(
                 content,
+                .transform(ResolvedTransform(box: nil, scale: [], rotation: [])),
                 ResolvedComposite(lane: 1, opacity: [Keyframe(at: 0, value: 1)], blend: "normal")
             ),
             start: 0,
             end: 2,
             storyline: nil,
             parent: nil,
-            placement: .box(nil),
             track: nil,
             animation: .none
         )
@@ -217,8 +218,7 @@ struct ResolvedSequencePinnedReferencesTests {
     ) -> ResolvedSound {
         ResolvedSound(
             place: place,
-            media: media,
-            nested: [],
+            source: .pinned(media),
             played: PlayedRange(
                 map: TimeMap(origin: 0, in: 0, speed: 1),
                 out: 2,

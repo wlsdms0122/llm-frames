@@ -77,49 +77,8 @@ struct ContentFitPlanner: Sendable {
     private func still(_ sequence: ResolvedSequence) -> ResolvedSequence {
         ResolvedSequence(
             format: sequence.format,
-            storyline: sequence.storyline.map { entry in
-                ResolvedStorylineClip(
-                    place: entry.place,
-                    id: entry.id,
-                    content: entry.content,
-                    in: entry.in,
-                    out: entry.out,
-                    speed: entry.speed,
-                    start: entry.start,
-                    end: entry.end,
-                    crop: entry.crop,
-                    mask: entry.mask,
-                    trackMatte: entry.trackMatte,
-                    track: entry.track,
-                    filter: entry.filter,
-                    box: entry.box,
-                    cornerPin: entry.cornerPin,
-                    opacity: entry.opacity,
-                    scale: entry.scale,
-                    rotation: entry.rotation,
-                    blend: entry.blend,
-                    isMotionBlurred: entry.isMotionBlurred,
-                    radius: entry.radius,
-                    border: entry.border,
-                    shadow: entry.shadow,
-                    transition: nil
-                )
-            },
-            clips: sequence.clips.map { clip in
-                ResolvedClip(
-                    place: clip.place,
-                    id: clip.id,
-                    content: clip.content,
-                    start: clip.start,
-                    end: clip.end,
-                    storyline: clip.storyline,
-                    parent: clip.parent,
-                    placement: clip.placement,
-                    track: clip.track,
-                    isMotionBlurred: clip.isMotionBlurred,
-                    animation: .none
-                )
-            },
+            storyline: sequence.storyline.map { $0.with(transition: nil) },
+            clips: sequence.clips.map { $0.with(animation: .none) },
             audio: sequence.audio,
             audioFilter: sequence.audioFilter
         )
@@ -166,13 +125,14 @@ struct ContentFitPlanner: Sendable {
         let storyline = sequence.storyline.compactMap { entry -> Rectangle? in
             guard case .media = entry.content else { return nil }
 
-            if let pin = entry.cornerPin {
+            switch entry.placement {
+            case let .cornerPin(pin):
                 return Rectangle(bounding: pin.points.mapValues { $0.sampled(\.fixed) }.value(at: SampleTime(0)).corners)
-            }
-            guard let box = entry.box else { return nil }
 
-            let rectangle = Rectangle(x: 0, y: 0, width: box.size.width, height: box.size.height)
-            return bounds(of: rectangle, by: entry.presentation(at: SampleTime(0)).transform)
+            case let .transform(box, _, _):
+                let rectangle = Rectangle(x: 0, y: 0, width: box.size.width, height: box.size.height)
+                return bounds(of: rectangle, by: entry.presentation(at: SampleTime(0)).transform)
+            }
         }
         let clips = sequence.clips.filter { !sequence.isMatte($0) && !placed.contains($0.place) }.compactMap { clip in
             extent(of: clip, in: parents.space(of: clip, at: SampleTime(0)))
@@ -186,7 +146,7 @@ struct ContentFitPlanner: Sendable {
         in space: ClipSpace
     ) -> Rectangle? {
         switch clip.content {
-        case let .picture(.title(text), _):
+        case let .picture(.title(text), _, _):
             // The child map places the title's box at the time, and its glyphs item lies in its text box inside it.
             let time = SampleTime(0)
             let transform = text.textBoxInBox(at: time)
@@ -195,19 +155,22 @@ struct ContentFitPlanner: Sendable {
                 .map { bounds(of: $0, by: transform) }
                 .reduce(nil) { union, extent in union?.union(extent) ?? extent }
 
-        case .picture(.media, _):
-            guard let box = clip.box else { return nil }
+        case let .picture(.media(media), placement, _):
+            guard case let .transform(placed) = placement, placed.box != nil else { return nil }
 
             // The child map carries the media's crop onto the box.
             let transform = clipEvaluator.childTransform(of: clip, in: space, at: SampleTime(0))
-            let drawn = clip.crop(at: SampleTime(0))
-                ?? Rectangle(x: 0, y: 0, width: box.size.width, height: box.size.height)
+            let drawn = clip.crop(of: media, at: SampleTime(0))
             return bounds(of: drawn, by: transform)
 
-        case let .picture(.shape(shape), composite):
-            return extent(of: shape, composite: composite, clip: clip, in: space)
+        case let .picture(.shape(shape), .transform(transform), composite):
+            return extent(of: shape, transform: transform, composite: composite, clip: clip, in: space)
 
-        case .picture(.adjustment, _), .null:
+        case .picture(.shape, .cornerPin, _):
+            // A shape its corner pin places is not measured, as a media clip one places is not.
+            return nil
+
+        case .adjustment, .null:
             return nil
         }
     }
@@ -216,6 +179,7 @@ struct ContentFitPlanner: Sendable {
     // measured.
     private func extent(
         of shape: ResolvedShape,
+        transform: ResolvedTransform,
         composite: ResolvedComposite,
         clip: ResolvedClip,
         in space: ClipSpace
@@ -224,6 +188,7 @@ struct ContentFitPlanner: Sendable {
         let items = shapeEvaluator.items(
             of: shape,
             clip: clip,
+            placed: transform,
             sample: sample,
             composite: composite,
             in: space,
@@ -264,25 +229,7 @@ struct ContentFitPlanner: Sendable {
             ClipCornerPin(size: pin.size, points: pin.points.map { $0.map { moved($0, by: offset) } })
         }
 
-        return StorylineGeometry(
-            crop: geometry.crop,
-            mask: geometry.mask,
-            track: geometry.track,
-            nested: geometry.nested,
-            filter: geometry.filter,
-            color: geometry.color,
-            appearance: StorylineAppearance(
-                box: box,
-                cornerPin: cornerPin,
-                opacity: appearance.opacity,
-                scale: appearance.scale,
-                rotation: appearance.rotation,
-                blend: appearance.blend,
-                radius: appearance.radius,
-                border: appearance.border,
-                shadow: appearance.shadow
-            )
-        )
+        return geometry.with(appearance: appearance.with(box: box, cornerPin: cornerPin))
     }
 
     // A mask moves with the content only where it is in the clip's parent's space: an adjustment's, or a shape's placed
@@ -295,7 +242,7 @@ struct ContentFitPlanner: Sendable {
         by offset: Point,
         onto frame: Rectangle
     ) -> ClipGeometry {
-        ClipGeometry(
+        geometry.with(
             area: geometry.area?.map { area in
                 area.map { moved($0, by: offset) }
             },
@@ -307,7 +254,6 @@ struct ContentFitPlanner: Sendable {
             cornerPin: geometry.cornerPin.map { pin in
                 ClipCornerPin(size: pin.size, points: pin.points.map { $0.map { moved($0, by: offset) } })
             },
-            crop: geometry.crop,
             mask: space == .parent
                 ? geometry.mask?.map { mask in
                     mask.carried(
@@ -317,12 +263,7 @@ struct ContentFitPlanner: Sendable {
                         scale: { _ in 1 }
                     )
                 }
-                : geometry.mask,
-            track: geometry.track,
-            isInOutputPixels: geometry.isInOutputPixels,
-            title: geometry.title,
-            nested: geometry.nested,
-            appearance: geometry.appearance
+                : geometry.mask
         )
     }
 

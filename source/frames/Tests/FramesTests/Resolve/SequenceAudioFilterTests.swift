@@ -98,10 +98,10 @@ struct SequenceAudioFilterTests {
             """#)
 
         // Then
-        let nested = try #require(limiter(of: plan.sound[1].nestedAudioFilter, at: 0))
+        let nested = try #require(limiter(of: plan.sound[1].nestedAudioFilter ?? .off, at: 0))
         #expect(nested["ceiling"]?.number == -6)
         #expect(limiter(of: plan.sound[1].audioFilter, at: 0) == nil)
-        #expect(plan.sound[0].nestedAudioFilter == .off)
+        #expect(plan.sound[0].nestedAudioFilter == nil)
     }
 
     @Test("sequence keyframes that all lie after its end stop, naming the sequence")

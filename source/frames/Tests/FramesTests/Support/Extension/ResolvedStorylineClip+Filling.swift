@@ -41,14 +41,16 @@ extension ResolvedStorylineClip {
             trackMatte: nil,
             track: track,
             filter: filter,
-            box: ResolvedBox(
-                size: size,
-                position: [Keyframe(at: start, value: Point(x: size.width / 2, y: size.height / 2))],
-                anchor: Point(x: size.width / 2, y: size.height / 2)
+            placement: .transform(
+                box: ResolvedBox(
+                    size: size,
+                    position: [Keyframe(at: start, value: Point(x: size.width / 2, y: size.height / 2))],
+                    anchor: Point(x: size.width / 2, y: size.height / 2)
+                ),
+                scale: [Keyframe(at: start, value: .identity)],
+                rotation: [Keyframe(at: start, value: 0)]
             ),
             opacity: [Keyframe(at: start, value: 1)],
-            scale: [Keyframe(at: start, value: .identity)],
-            rotation: [Keyframe(at: start, value: 0)],
             blend: "normal",
             isMotionBlurred: isMotionBlurred,
             radius: .off,

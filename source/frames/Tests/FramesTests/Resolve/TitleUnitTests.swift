@@ -113,7 +113,7 @@ struct TitleUnitTests {
     private func resolvedText(_ clip: String) throws -> ResolvedText {
         let plan = try Fixture.documentPlanner.plan(try Fixture.json(document(clip)))
         let clips = try ResolvedSequence(plan: plan, hashes: FileHashTable()).clips
-        guard case let .picture(.title(text), _) = clips.first?.content else {
+        guard case let .picture(.title(text), _, _) = clips.first?.content else {
             Issue.record("the clip is a title")
             return ResolvedText(size: Size(width: 0, height: 0), background: nil, runs: [])
         }

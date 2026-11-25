@@ -91,8 +91,8 @@ struct ClipAreaSampler: Sendable {
         }
 
         let held = named.valueTime(in: time.sample)
-        if named.cornerPin != nil {
-            return cornerPinBounds(of: named, at: held).grown(by: area.padding)
+        if case let .picture(_, .cornerPin(cornerPin), _) = named.content {
+            return cornerPinBounds(of: named, cornerPin: cornerPin, at: held).grown(by: area.padding)
         }
         if clip.parent == named.id {
             return childBox(of: named, at: held).grown(by: area.padding)
@@ -107,11 +107,12 @@ struct ClipAreaSampler: Sendable {
     // and a child alike, before its tracked motion (FRAMES-27 The key).
     private func cornerPinBounds(
         of named: ResolvedClip,
+        cornerPin: ResolvedCornerPin,
         at time: SampleTime
     ) -> Rectangle {
         let clock = named.parentTrack == nil ? nil : ParentEvaluator(sequence: sequence).space(of: named, at: time).clock
         let areas = ClipAreaSampler(sequence: sequence, clip: named)
-        return named.cornerPinBounds(areas: areas, clock: clock, at: time) ?? Rectangle(x: 0, y: 0, width: 0, height: 0)
+        return named.cornerPinBounds(cornerPin, areas: areas, clock: clock, at: time)
     }
 
     // A storyline clip's box at the instant held to its drawn range, its transitions included, before its own `scale`,
@@ -132,7 +133,9 @@ struct ClipAreaSampler: Sendable {
         if clip.parent == entry.id {
             return entry.crop(at: held)
         }
-        guard let box = entry.box else { return Rectangle(x: 0, y: 0, width: 0, height: 0) }
+        guard case .media = entry.content, case let .transform(box, _, _) = entry.placement else {
+            return Rectangle(x: 0, y: 0, width: 0, height: 0)
+        }
 
         let anchor = box.position.mapValues(\.fixed).value(at: held)
         return Rectangle(
@@ -152,7 +155,7 @@ struct ClipAreaSampler: Sendable {
         if let shape = geometry(of: named), let geometry = geometryBox(of: shape, writtenBy: named, at: time) {
             return geometry
         }
-        guard let box = named.box else { return Rectangle(x: 0, y: 0, width: 0, height: 0) }
+        guard let box = placedBox(of: named) else { return Rectangle(x: 0, y: 0, width: 0, height: 0) }
 
         let extent = self.extent(of: named, box: box, at: time)
         let carried = space.transform.apply(to: space.anchor(of: box, track: nil, at: time))
@@ -175,25 +178,44 @@ struct ClipAreaSampler: Sendable {
         if let shape = geometry(of: named), let geometry = geometryBox(of: shape, writtenBy: named, at: time) {
             return geometry
         }
-        guard let box = named.box else { return Rectangle(x: 0, y: 0, width: 0, height: 0) }
-        if case .picture(.media, _) = named.content, let crop = named.crop(at: time) {
-            return crop
+        guard let box = placedBox(of: named) else { return Rectangle(x: 0, y: 0, width: 0, height: 0) }
+        if case let .picture(.media(media), _, _) = named.content {
+            return named.crop(of: media, at: time)
         }
 
         let extent = self.extent(of: named, box: box, at: time)
         return Rectangle(x: 0, y: 0, width: extent.width, height: extent.height)
     }
 
+    // The box the named clip is placed by, which a title, a media clip, a shape and a null take from their transform and
+    // an adjustment holds alone. Nil for a shape or a null placed by its geometry, an adjustment over the whole frame, and
+    // a clip a corner pin places, whose corner pin bounds are taken before.
+    private func placedBox(of named: ResolvedClip) -> ResolvedBox? {
+        switch named.content {
+        case let .picture(_, .transform(transform), _):
+            transform.box
+
+        case .picture(_, .cornerPin, _):
+            nil
+
+        case let .adjustment(_, box, _):
+            box
+
+        case let .null(null):
+            null.transform.box
+        }
+    }
+
     // The geometry of a shape, or of a null, whose box is a rect's given the same way, nil for any other clip.
     private func geometry(of named: ResolvedClip) -> ShapeGeometry? {
         switch named.content {
-        case let .picture(.shape(shape), _):
+        case let .picture(.shape(shape), _, _):
             shape.geometry
 
         case let .null(null):
             null.geometry.shape
 
-        case .picture(.title, _), .picture(.media, _), .picture(.adjustment, _):
+        case .picture(.title, _, _), .picture(.media, _, _), .adjustment:
             nil
         }
     }
@@ -234,7 +256,7 @@ struct ClipAreaSampler: Sendable {
         at time: SampleTime
     ) -> Rectangle {
         switch named.content {
-        case .picture(.shape, _), .null:
+        case .picture(.shape, _, _), .null:
             guard case let .box(width, height, _) = geometry(of: named) else { return extent(of: box) }
 
             let size = Size(width: width.value(at: time), height: height.value(at: time))
@@ -245,7 +267,7 @@ struct ClipAreaSampler: Sendable {
                 height: size.height
             )
 
-        case let .picture(.title(text), _):
+        case let .picture(.title(text), _, _):
             let drawn = text.box(at: time)
             return Rectangle(
                 x: drawn.x - box.anchor.x,
@@ -254,7 +276,7 @@ struct ClipAreaSampler: Sendable {
                 height: drawn.height
             )
 
-        case .picture(.media, _), .picture(.adjustment, _):
+        case .picture(.media, _, _), .adjustment:
             return extent(of: box)
         }
     }

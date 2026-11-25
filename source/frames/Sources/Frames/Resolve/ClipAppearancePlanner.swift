@@ -322,6 +322,7 @@ struct ClipAppearancePlanner: Sendable {
         guard let box else {
             return StorylineAppearance(
                 box: nil,
+                cornerPin: nil,
                 opacity: .value(1),
                 scale: .value(.identity),
                 rotation: .value(0),
@@ -377,14 +378,13 @@ struct ClipAppearancePlanner: Sendable {
         )
     }
 
-    // A solid's colour, timed over its static value, which a keyframe's `null` points at.
+    // A solid's colour, timed over its static value, which a keyframe's `null` points at. A solid writes its colour,
+    // statically or in its keyframes, and a colour is never off, so its timed value is one keyframe list.
     func color(
         of written: StorylineClip,
         plan: StorylinePlan,
         theme: MergedTheme
-    ) throws -> [Keyframe<Color>]? {
-        guard let color = written.color else { return nil }
-
+    ) throws -> [Keyframe<Color>] {
         let looks = ClipLookPlanner(
             place: written.place,
             kind: .clip(.solid),
@@ -393,8 +393,9 @@ struct ClipAppearancePlanner: Sendable {
             scale: 1,
             theme: theme
         )
-        guard case let .track(keyframes) = try looks.timed(color, key: "color", as: LookStructureTable.solid) else {
-            return nil
+        let timed = try looks.timed(written.color, key: "color", as: LookStructureTable.solid)
+        guard case let .track(keyframes) = timed else {
+            throw ModelError.missingKey(place: written.place, kind: ClipKind.solid.label, keys: ["color"])
         }
 
         return keyframes.compactMap { keyframe in

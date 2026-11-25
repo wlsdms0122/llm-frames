@@ -375,7 +375,7 @@ struct ColorKeyTests {
     }
 
     private func mediaClip(_ clip: ResolvedClip?) -> ResolvedMediaClip? {
-        guard case let .picture(.media(media), _) = clip?.content else { return nil }
+        guard case let .picture(.media(media), _, _) = clip?.content else { return nil }
 
         return media
     }

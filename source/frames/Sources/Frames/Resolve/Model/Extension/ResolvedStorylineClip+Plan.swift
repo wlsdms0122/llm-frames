@@ -23,31 +23,60 @@ extension ResolvedStorylineClip {
         let appearance = geometry.appearance
         let clipBox = appearance.box
             ?? ClipBox(size: format.size, position: .value(.point(format.frame.center)), anchor: format.frame.center)
-        let cornerPin = appearance.cornerPin.map { pin in
-            ResolvedCornerPin(size: pin.size, points: .keyframes(pin.points.keyframes(at: plan.instant) { $0 }))
+        let placement: ResolvedStorylinePlacement = if let pin = appearance.cornerPin {
+            .cornerPin(ResolvedCornerPin(
+                size: pin.size,
+                points: .keyframes(pin.points.keyframes(at: plan.instant) { $0 })
+            ))
+        } else {
+            .transform(
+                box: ResolvedBox(
+                    size: clipBox.size,
+                    position: .keyframes(clipBox.position.keyframes(at: plan.instant) { $0 }),
+                    anchor: clipBox.anchor
+                ),
+                scale: appearance.scale.keyframes(at: plan.instant) { $0 },
+                rotation: appearance.rotation.keyframes(at: plan.instant) { $0 }
+            )
         }
-        let size = cornerPin?.size ?? clipBox.size
+        let size = placement.size
         let conformer = CropConformer()
         let box = Rectangle(x: 0, y: 0, width: size.width, height: size.height)
         let conform = { (rectangle: Rectangle) in
             Crop(conformer.conformed(rectangle, to: box, by: format.conform))
         }
-        let file: MediaFile? = if case let .file(file) = plan.source.media?.source { file } else { nil }
-        let whole = geometry.nested?.format.size ?? file?.size ?? format.size
-        let crop = geometry.crop?
-            .followed(at: plan.instant, isOnTrackFrame: geometry.isCropOnTrackFrame) { conform($0) }
-            ?? .keyframes([Keyframe(at: plan.instant, value: conform(Rectangle(x: 0, y: 0, width: whole.width, height: whole.height)))])
+        let file: MediaFile?
+        let whole: Size
         let content: ResolvedStorylineContent
-        if let media = try ResolvedMediaContent(media: plan.source.media, nested: geometry.nested, hashes: hashes) {
+        switch geometry.content {
+        case let .solid(color):
+            file = nil
+            whole = format.size
+            content = .solid(color)
+
+        case let .file(media):
+            file = media
+            whole = media.size ?? format.size
             content = .media(ResolvedStorylineMedia(
-                media: media,
+                media: .pinned(try PinnedMedia(file: media, hashes: hashes)),
                 colorSpace: plan.source.media?.colorSpace,
                 isToneMapped: plan.source.media?.isToneMapped,
                 timeRemap: plan.timeRemap
             ))
-        } else {
-            content = .solid(geometry.color ?? [])
+
+        case let .nested(nested):
+            file = nil
+            whole = nested.format.size
+            content = .media(ResolvedStorylineMedia(
+                media: .nested(try ResolvedSequence(plan: nested, hashes: hashes)),
+                colorSpace: plan.source.media?.colorSpace,
+                isToneMapped: plan.source.media?.isToneMapped,
+                timeRemap: plan.timeRemap
+            ))
         }
+        let crop = geometry.crop?
+            .followed(at: plan.instant, isOnTrackFrame: geometry.isCropOnTrackFrame) { conform($0) }
+            ?? .keyframes([Keyframe(at: plan.instant, value: conform(Rectangle(x: 0, y: 0, width: whole.width, height: whole.height)))])
 
         self.init(
             place: plan.place.description,
@@ -65,17 +94,8 @@ extension ResolvedStorylineClip {
                 try file.map { try ResolvedTrack(track: track, file: $0, hashes: hashes) }
             },
             filter: try geometry.filter.pinningFiles(hashes: hashes),
-            box: cornerPin == nil
-                ? ResolvedBox(
-                    size: clipBox.size,
-                    position: .keyframes(clipBox.position.keyframes(at: plan.instant) { $0 }),
-                    anchor: clipBox.anchor
-                )
-                : nil,
-            cornerPin: cornerPin,
+            placement: placement,
             opacity: appearance.opacity.keyframes(at: plan.instant) { $0 },
-            scale: cornerPin == nil ? (appearance.scale.keyframes(at: plan.instant) { $0 }) : nil,
-            rotation: cornerPin == nil ? (appearance.rotation.keyframes(at: plan.instant) { $0 }) : nil,
             blend: appearance.blend,
             isMotionBlurred: plan.isMotionBlurred,
             radius: appearance.radius,

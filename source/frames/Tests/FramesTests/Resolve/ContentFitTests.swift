@@ -53,7 +53,7 @@ struct ContentFitTests {
 
         // Then
         #expect(plan.format.size == Size(width: 400, height: 200))
-        #expect(resolved.storyline[0].box?.size == Size(width: 400, height: 200))
+        #expect(resolved.storyline[0].placement.size == Size(width: 400, height: 200))
         #expect(resolved.storyline[0].crop.values == [
             Crop(Rectangle(x: 0, y: 0, width: 400, height: 200)),
             Crop(Rectangle(x: -50, y: 0, width: 200, height: 100))
@@ -226,7 +226,11 @@ struct ContentFitTests {
         // Then
         #expect(plan.format.size == Size(width: 320, height: 220))
         #expect(plan.storyline[0].appearance.box == nil)
-        #expect(resolved.storyline[0].box == ResolvedBox(
+        guard case let .transform(box, _, _) = resolved.storyline[0].placement else {
+            Issue.record("the solid is placed by a corner pin")
+            return
+        }
+        #expect(box == ResolvedBox(
             size: Size(width: 320, height: 220),
             position: [Keyframe(at: 0, value: Point(x: 160, y: 110))],
             anchor: Point(x: 160, y: 110)
@@ -385,6 +389,38 @@ struct ContentFitTests {
         // When, Then
         let error = #expect(throws: ResolveError.self) { try plan(document) }
         #expect(error?.description == #"format.size (sequence): every storyline clip is a solid, so a frame measured from the content has nothing to measure and no length scale, and the format needs "size""#)
+    }
+
+    @Test("a tracked storyline crop written without keyframes stays true on the track's frame when the content moves")
+    func keepsStorylineCropOnTrackFrame() throws {
+        // Given
+        let track = Fixture.tracker.data(Quad(Rectangle(x: 0, y: 0, width: 300, height: 200)), in: "/abs/screen.mp4", atMediaTime: 1)
+        let document = #"""
+            { "storyline": [ { "kind": "media", "media": "/abs/screen.mp4", "in": 1, "out": 3, "crop": [0, 0, 300, 200], "track": \#(track) } ] }
+            """#
+
+        // When
+        let plan = try plan(document, margin: "10")
+
+        // Then
+        #expect(plan.storyline[0].isCropOnTrackFrame)
+    }
+
+    @Test("a tracked media clip's crop written without keyframes stays true on the track's frame when the content moves")
+    func keepsClipCropOnTrackFrame() throws {
+        // Given
+        let track = Fixture.tracker.data(Quad(Rectangle(x: 0, y: 0, width: 100, height: 50)), in: "/abs/screen.mp4", atMediaTime: 1)
+        let document = #"""
+            { "storyline": [ { "kind": "media", "media": "/abs/page.png", "duration": 2, "crop": [0, 0, 300, 200] } ],
+              "clips": [ { "kind": "media", "media": "/abs/screen.mp4", "in": 1, "out": 3, "at": [0, 2], "crop": [0, 0, 100, 50], "track": \#(track) } ] }
+            """#
+
+        // When
+        let plan = try plan(document, margin: "10")
+
+        // Then
+        #expect(plan.clips[0].isInOutputPixels)
+        #expect(plan.clips[0].onTrackFrame == [.crop])
     }
 
     @Test("a compound clip whose sequence fits its content has the measured size as its own frame size")

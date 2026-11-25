@@ -84,7 +84,7 @@ struct ClipAreaEndToEndTests {
         let middle = try drawn(at: 1, in: sut)
 
         // Then
-        let size = try #require(sut.clips[0].box?.size)
+        let size = try #require(transformBox(of: sut.clips[0])?.size)
         let padding = 10 * MergedTheme.base.lengthScale(at: 1920)
         let grown = { (x: Double) in
             Rectangle(x: x, y: 600, width: size.width * 2, height: size.height * 2).grown(by: padding * 2)
@@ -108,7 +108,7 @@ struct ClipAreaEndToEndTests {
         let item = try #require(evaluator.displayList(of: sut, at: 0.1).items.first { $0.origin?.id == "name" })
 
         // Then
-        let size = try #require(sut.clips[0].box?.size)
+        let size = try #require(transformBox(of: sut.clips[0])?.size)
         let padding = 10 * MergedTheme.base.lengthScale(at: 1920)
         let box = Rectangle(x: 0, y: 0, width: size.width, height: size.height).grown(by: padding)
         #expect(item.transform != evaluator.displayList(of: sut, at: 2).items.first { $0.origin?.id == "name" }?.transform)
@@ -130,7 +130,7 @@ struct ClipAreaEndToEndTests {
         let drawn = try drawn("bar", in: sut, at: 1)
 
         // Then
-        let size = try #require(sut.clips[1].box?.size)
+        let size = try #require(transformBox(of: sut.clips[1])?.size)
         let padding = 24 * MergedTheme.base.lengthScale(at: 1920)
         #expect(isClose(drawn, Rectangle(x: 200, y: 200, width: size.width, height: size.height).grown(by: padding)))
     }
@@ -220,7 +220,7 @@ struct ClipAreaEndToEndTests {
         let middle = try masked("cut", in: sut, at: 1)
 
         // Then
-        let size = try #require(sut.clips[0].box?.size)
+        let size = try #require(transformBox(of: sut.clips[0])?.size)
         let padding = 24 * MergedTheme.base.lengthScale(at: 1920)
         #expect(isClose(start, Rectangle(x: 100, y: 600, width: size.width, height: size.height).grown(by: padding)))
         #expect(isClose(middle, Rectangle(x: 200, y: 600, width: size.width, height: size.height).grown(by: padding)))
@@ -246,7 +246,7 @@ struct ClipAreaEndToEndTests {
         let triangle = try masked("path", in: sut, at: 1)
 
         // Then
-        let size = try #require(sut.clips[0].box?.size)
+        let size = try #require(transformBox(of: sut.clips[0])?.size)
         let named = Rectangle(x: 200, y: 600, width: size.width, height: size.height)
         #expect(isClose(ellipse, Rectangle(center: named.center, width: 40, height: 20)))
         #expect(isClose(triangle, named))
@@ -601,10 +601,18 @@ struct ClipAreaEndToEndTests {
         of id: String,
         in sequence: ResolvedSequence
     ) throws -> Rectangle {
-        let box = try #require(sequence.clips.first { $0.id == id }?.box)
+        let clip = try #require(sequence.clips.first { $0.id == id })
+        let box = try #require(transformBox(of: clip))
         let anchor = box.position.values[0].fixed
 
         return Rectangle(x: anchor.x - box.anchor.x, y: anchor.y - box.anchor.y, width: box.size.width, height: box.size.height)
+    }
+
+    // The box of a picture its transform places, nil for any other clip.
+    private func transformBox(of clip: ResolvedClip) -> ResolvedBox? {
+        guard case let .picture(_, .transform(transform), _) = clip.content else { return nil }
+
+        return transform.box
     }
 
     // An unparented title's box with its background at `time`, in output pixels before its transform: its text box at
@@ -615,9 +623,8 @@ struct ClipAreaEndToEndTests {
         at time: Double
     ) throws -> Rectangle {
         let clip = try #require(sequence.clips.first { $0.id == id })
-        let box = try #require(clip.box)
-        guard case let .picture(.title(text), _) = clip.content else {
-            Issue.record("the clip is a title")
+        guard case let .picture(.title(text), .transform(transform), _) = clip.content, let box = transform.box else {
+            Issue.record("the clip is a title placed by its box")
             return Rectangle(x: 0, y: 0, width: 0, height: 0)
         }
 

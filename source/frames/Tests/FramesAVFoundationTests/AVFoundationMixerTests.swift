@@ -1186,8 +1186,7 @@ struct AVFoundationMixerTests {
     ) -> ResolvedSound {
         ResolvedSound(
             place: "sound",
-            media: PinnedMedia(source: .file(PinnedFile(path: file, sha256: ""), frameTimes: nil)),
-            nested: [],
+            source: .pinned(PinnedMedia(source: .file(PinnedFile(path: file, sha256: ""), frameTimes: nil))),
             played: PlayedRange(map: TimeMap(origin: start, in: `in`, speed: 1), out: 100, loop: false),
             start: start,
             end: end,

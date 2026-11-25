@@ -63,7 +63,7 @@ extension ResolvedSequence {
             return media + transitionMedia(of: entry.transition, place: "\(entry.place).transition")
         }
         let clips = sequence.clips.flatMap { clip -> [NamedMedia] in
-            guard case let .picture(.media(media), _) = clip.content else { return [] }
+            guard case let .picture(.media(media), _, _) = clip.content else { return [] }
 
             return namedMedia(of: media.media, place: clip.place, colorSpace: media.colorSpace)
         }

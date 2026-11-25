@@ -17,7 +17,7 @@ struct ResolvedMediaClip: Equatable, Sendable {
     let isToneMapped: Bool?
     let timing: MediaTiming?
     let filter: TimedValue
-    let crop: FollowedValue<Crop>?
+    let crop: FollowedValue<Crop>
     let appearance: ResolvedMediaAppearance
 
     // The media time a timed clip shows, nil for a still.
@@ -32,7 +32,7 @@ struct ResolvedMediaClip: Equatable, Sendable {
         isToneMapped: Bool? = nil,
         timing: MediaTiming?,
         filter: TimedValue,
-        crop: FollowedValue<Crop>? = nil,
+        crop: FollowedValue<Crop>,
         appearance: ResolvedMediaAppearance
     ) {
         self.media = media

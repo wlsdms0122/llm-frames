@@ -19,12 +19,11 @@ extension ResolvedClip {
     // MARK: - Initializer
     // MARK: - Public
     func writtenCornerPin(
+        _ cornerPin: ResolvedCornerPin,
         areas: ClipAreaSampler?,
         clock: MediaClock?,
         at time: SampleTime
-    ) -> Quad? {
-        guard let cornerPin else { return nil }
-
+    ) -> Quad {
         let brought = cornerPin.points.carried(
             keyframe: { points, at in broughtBack(points, on: clock, at: at) },
             onTrackFrame: { $0 }
@@ -34,23 +33,25 @@ extension ResolvedClip {
     }
 
     func cornerPinBounds(
+        _ cornerPin: ResolvedCornerPin,
         areas: ClipAreaSampler?,
         clock: MediaClock?,
         at time: SampleTime
-    ) -> Rectangle? {
-        writtenCornerPin(areas: areas, clock: clock, at: time).map { Rectangle(bounding: $0.corners) }
+    ) -> Rectangle {
+        Rectangle(bounding: writtenCornerPin(cornerPin, areas: areas, clock: clock, at: time).corners)
     }
 
     // Nil where the corner pin draws nothing at the time, `box` being the size of the clip's box B there.
     func drawnCornerPin(
+        _ cornerPin: ResolvedCornerPin,
         box: Size,
         areas: ClipAreaSampler?,
         clock: MediaClock?,
         at time: SampleTime
     ) -> Quad? {
-        guard box.width > 0, box.height > 0, let written = writtenCornerPin(areas: areas, clock: clock, at: time) else {
-            return nil
-        }
+        guard box.width > 0, box.height > 0 else { return nil }
+
+        let written = writtenCornerPin(cornerPin, areas: areas, clock: clock, at: time)
         guard let track = parentTrack, let clock else { return written.isStrictlyConvex ? written : nil }
 
         let mediaTime = clock.mediaTime(atSequenceTime: time.frameTime)

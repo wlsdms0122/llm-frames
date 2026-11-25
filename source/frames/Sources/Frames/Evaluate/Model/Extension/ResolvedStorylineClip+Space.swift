@@ -15,14 +15,16 @@ extension ResolvedStorylineClip {
     // MARK: - Initializer
     // MARK: - Public
     func spaceTransform(at time: SampleTime) -> AffineTransform {
-        guard cornerPin == nil else { return .identity }
+        if case .cornerPin = placement { return .identity }
 
         return pictureTransform(at: time)
     }
 
     func pictureTransform(at time: SampleTime) -> AffineTransform {
         let own = presentation(at: time).transform
-        guard case .media = content, let size = box?.size ?? cornerPin?.size else { return own }
+        guard case .media = content else { return own }
+
+        let size = placement.size
 
         let crop = crop(at: time)
         let bounds = Rectangle(x: 0, y: 0, width: size.width, height: size.height)
@@ -32,7 +34,9 @@ extension ResolvedStorylineClip {
     }
 
     func cornerPin(at time: SampleTime) -> Quad? {
-        cornerPin.map { $0.points.mapValues { $0.sampled(\.fixed) }.value(at: time) }
+        guard case let .cornerPin(cornerPin) = placement else { return nil }
+
+        return cornerPin.points.mapValues { $0.sampled(\.fixed) }.value(at: time)
     }
 
     // MARK: - Private

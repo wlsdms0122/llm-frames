@@ -19,7 +19,7 @@ extension ResolvedSequence {
             return (clip.place, media.media)
         }
             + clips.map { clip in
-                guard case let .picture(.media(media), _) = clip.content else { return (clip.place, nil) }
+                guard case let .picture(.media(media), _, _) = clip.content else { return (clip.place, nil) }
 
                 return (clip.place, media.media)
             }

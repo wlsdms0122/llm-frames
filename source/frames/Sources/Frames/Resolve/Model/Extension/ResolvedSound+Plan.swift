@@ -14,17 +14,20 @@ extension ResolvedSound {
         plan: SoundPlan,
         hashes: any FileHashProvider
     ) throws {
-        let media: PinnedMedia? = if case let .file(file) = plan.media.source {
-            try PinnedMedia(file: file, hashes: hashes)
-        } else {
-            nil
+        let source: ResolvedSoundSource = switch plan.source {
+        case let .file(file):
+            .pinned(try PinnedMedia(file: file, hashes: hashes))
+
+        case let .nested(nested, audioFilter):
+            .nested(
+                try nested.map { try ResolvedSound(plan: $0, hashes: hashes) },
+                audioFilter: try audioFilter.pinningFiles(hashes: hashes)
+            )
         }
 
         self.init(
             place: plan.place.description,
-            media: media,
-            nested: try plan.nested.map { try ResolvedSound(plan: $0, hashes: hashes) },
-            nestedAudioFilter: try plan.nestedAudioFilter.pinningFiles(hashes: hashes),
+            source: source,
             played: plan.played,
             start: plan.range.start,
             end: plan.range.end,

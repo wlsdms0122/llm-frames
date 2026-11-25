@@ -40,8 +40,8 @@ struct NullClipEndToEndTests {
         }
         #expect(width.map(\.value) == [200])
         #expect(height.map(\.value) == [100])
-        #expect(clip.box?.size == Size(width: 200, height: 100))
-        #expect(clip.box?.position.values.map(\.fixed) == [Point(x: 600, y: 400)])
+        #expect(null.transform.box?.size == Size(width: 200, height: 100))
+        #expect(null.transform.box?.position.values.map(\.fixed) == [Point(x: 600, y: 400)])
     }
 
     @Test("a null given by an area resolves to a null entry placed by its area, and reads back equal")
@@ -58,7 +58,7 @@ struct NullClipEndToEndTests {
             Issue.record("the clip is a null placed by its area")
             return
         }
-        #expect(clip.box == nil)
+        #expect(null.transform.box == nil)
     }
 
     @Test(

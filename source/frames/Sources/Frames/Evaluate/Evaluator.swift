@@ -130,7 +130,7 @@ package struct Evaluator: Sendable {
         // A null is stacked in no lane, since it draws nothing.
         sequence.clips.enumerated()
             .compactMap { offset, clip -> (lane: Int, offset: Int, clip: ResolvedClip)? in
-                guard case let .picture(_, composite) = clip.content else { return nil }
+                guard let composite = clip.composite else { return nil }
 
                 return (composite.lane, offset, clip)
             }
@@ -215,7 +215,7 @@ package struct Evaluator: Sendable {
         at sample: SampleInstant,
         seed: Int
     ) -> PictureItemSource? {
-        guard case let .picture(.media(media), _) = clip.content else { return nil }
+        guard case let .picture(.media(media), _, _) = clip.content else { return nil }
 
         return source(
             of: media.media,
@@ -310,7 +310,7 @@ package struct Evaluator: Sendable {
         )
         let picture = PictureItem(source: .displayList(list), rectangle: frame, destination: frame, matte: matte)
         let motion = transitionSampler.motion(of: index, in: sequence.storyline, at: sample)
-        let opacity = entry.cornerPin == nil ? 1 : entry.opacity.opacity(at: time)
+        let opacity = if case .cornerPin = entry.placement { entry.opacity.opacity(at: time) } else { 1.0 }
         let presentation = ItemPresentation(area: frame, opacity: opacity, motion: motion.motion)
 
         return DisplayItem(
@@ -332,7 +332,10 @@ package struct Evaluator: Sendable {
         at time: SampleTime,
         seed: Int
     ) -> [DisplayItem] {
-        if let cornerPin = entry.cornerPin {
+        let size: Size
+        let scale: [Keyframe<Scale>]
+        switch entry.placement {
+        case let .cornerPin(cornerPin):
             let group = group(
                 of: entry,
                 cornerPin: cornerPin,
@@ -343,8 +346,11 @@ package struct Evaluator: Sendable {
                 seed: seed
             )
             return group.map { [$0] } ?? []
+
+        case let .transform(box, scales, _):
+            size = box.size
+            scale = scales
         }
-        guard let size = entry.box?.size, let scale = entry.scale else { return [] }
 
         let origin = ItemOrigin(entry: entry)
         let box = Rectangle(x: 0, y: 0, width: size.width, height: size.height)

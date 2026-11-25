@@ -15,7 +15,7 @@ extension ResolvedSequence {
             return entry.isMotionBlurred || hasMotionBlur(in: media.media)
         }
             || clips.contains { clip in
-                guard case let .picture(.media(media), _) = clip.content else { return clip.isMotionBlurred }
+                guard case let .picture(.media(media), _, _) = clip.content else { return clip.isMotionBlurred }
 
                 return clip.isMotionBlurred || hasMotionBlur(in: media.media)
             }
