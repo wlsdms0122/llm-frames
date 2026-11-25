@@ -5,12 +5,12 @@
   "storyline": [
     { "id": "before", "media": "/path/to/checkout-before.png", "duration": 1, "crop": [0, 130, 1206, 800], "border": true,
       "connected": [
-        { "shape": "rect", "style": "cover", "parent": "before", "area": { "tool": "find-text", "text": "jane@example.com", "padding": 12 } },
-        { "shape": "rect", "style": "outline", "parent": "before", "area": { "tool": "find-text", "from": "Total", "to": "38,000", "toNth": 1, "padding": 16 } },
+        { "shape": "rect", "style": "cover", "parent": "before", "area": { "tool": "frames/find-text", "text": "jane@example.com", "padding": 12 } },
+        { "shape": "rect", "style": "outline", "parent": "before", "area": { "tool": "frames/find-text", "from": "Total", "to": "38,000", "toNth": 1, "padding": 16 } },
         { "id": "after", "media": "/path/to/checkout.png", "crop": [0, 130, 1206, 800], "border": true,
           "anchor": "top-left", "position": [1246, 0] },
-        { "shape": "rect", "style": "cover", "parent": "after", "area": { "tool": "find-text", "text": "jane@example.com", "padding": 12 } },
-        { "shape": "rect", "style": "outline", "parent": "after", "area": { "tool": "find-text", "from": "Total", "to": "42,000", "toNth": 0, "padding": 16 } },
+        { "shape": "rect", "style": "cover", "parent": "after", "area": { "tool": "frames/find-text", "text": "jane@example.com", "padding": 12 } },
+        { "shape": "rect", "style": "outline", "parent": "after", "area": { "tool": "frames/find-text", "from": "Total", "to": "42,000", "toNth": 0, "padding": 16 } },
         { "title": "Before", "style": "lead", "width": 600, "anchor": "bottom-left", "position": [40, -16] },
         { "title": "After", "style": "lead", "width": 600, "anchor": "bottom-left", "position": [1286, -16] }
       ] }

@@ -1,6 +1,6 @@
 # Guide
 
-How an edit is made with frames, how to write a guide, a how-to and an extension, and how to change a document without changing what it shows. frames' engine turns a document written out in values, with its media, into a result, and finds no value itself: a pack gives values names, and an extension is a tool that reads media and frames' reports and writes values into the document before resolve ([FRAMES-25](../spec/FRAMES-25/SPEC.md#layers)). The rules are in the [specification](../spec/README.md), packs and templates in [PACK.md](PACK.md), presets in [PRESET.md](PRESET.md), and the commands and keys in the [README](../README.md).
+How an edit is made with frames, how to write a guide, a how-to and a tool, and how to change a document without changing what it shows. frames' engine turns a document written out in values, with its media, into a result, and finds no value itself: a pack gives values names and carries tools, programs that read media and frames' reports and write values into the document before resolve ([FRAMES-25](../spec/FRAMES-25/SPEC.md#layers)). The rules are in the [specification](../spec/README.md), packs and templates in [PACK.md](PACK.md), presets in [PRESET.md](PRESET.md), and the commands and keys in the [README](../README.md).
 
 ## How an edit is made
 
@@ -44,7 +44,7 @@ size 1280x720
 [158, 385, 180, 26]  Total $47.00
 ```
 
-`ocr` prints each recognised line with its rectangle in media pixels, which are the coordinates of a storyline or media clip's own `crop`, `mask` and `track` target and of a clip parented to it ([FRAMES-2](../spec/FRAMES-2/SPEC.md)): `[158, 385, 180, 26]` is the line `Total $47.00`, and `[150, 377, 196, 42]` the same line with 8 pixels of room on every side. A document can also hold a request for the line by its text, `{"tool": "find-text", "text": "Total", "padding": 8}`, and have the extension `frames find-text` fill it with the rectangle `ocr` finds, so it keeps working on a new take ([extensions/find-text](../extensions/find-text/README.md)). `ocr --from --to --step` reads a range and shows when a line appears, moves or leaves. `track` prints track data, the target's quadrilateral on every frame it followed, which a clip's `track` takes as it is ([FRAMES-12](../spec/FRAMES-12/SPEC.md)). A document can also hold a track request, `{"tool": "track-motion", "target": "area"}` that names the clip's own area, corner pin or crop, or an area, and have the extension `frames track-motion` fill it with the track data `track` prints, so `frames find-text /path/to/edit.json | frames track-motion - | frames render - -o /path/to/out/edit.mp4` follows a line named by its text ([extensions/track-motion](../extensions/track-motion/README.md)).
+`ocr` prints each recognised line with its rectangle in media pixels, which are the coordinates of a storyline or media clip's own `crop`, `mask` and `track` target and of a clip parented to it ([FRAMES-2](../spec/FRAMES-2/SPEC.md)): `[158, 385, 180, 26]` is the line `Total $47.00`, and `[150, 377, 196, 42]` the same line with 8 pixels of room on every side. A document can also hold a request for the line by its text, `{"tool": "frames/find-text", "text": "Total", "padding": 8}`, and have the tool `frames/find-text`, which ships with frames, fill it with the rectangle `ocr` finds, so it keeps working on a new take ([frames/find-text](../source/frames/Sources/FramesCommand/Resources/packs/frames/tools/find-text/README.md)). `ocr --from --to --step` reads a range and shows when a line appears, moves or leaves. `track` prints track data, the target's quadrilateral on every frame it followed, which a clip's `track` takes as it is ([FRAMES-12](../spec/FRAMES-12/SPEC.md)). A document can also hold a track request, `{"tool": "frames/track-motion", "target": "area"}` that names the clip's own area, corner pin or crop, or an area, and have the tool `frames/track-motion` fill it with the track data `track` prints, so `frames frames/find-text /path/to/edit.json | frames frames/track-motion - | frames render - -o /path/to/out/edit.mp4` follows a line named by its text ([frames/track-motion](../source/frames/Sources/FramesCommand/Resources/packs/frames/tools/track-motion/README.md)).
 
 ### 2. Edit the document
 
@@ -131,7 +131,7 @@ frames transcode /path/to/out/edit.mov -o /path/to/out/edit.m4a
 
 ### 6. Reuse a render as media
 
-A rendered master is media like any other file ([FRAMES-3](../spec/FRAMES-3/SPEC.md)). A piece rendered once (an intro, a background plate, an effect baked by an extension) comes into the next edit as a file, and is not drawn again:
+A rendered master is media like any other file ([FRAMES-3](../spec/FRAMES-3/SPEC.md)). A piece rendered once (an intro, a background plate, an effect baked by a tool) comes into the next edit as a file, and is not drawn again:
 
 ```json
 { "id": "intro", "media": "/path/to/out/intro.mov" }
@@ -169,38 +169,56 @@ A how-to is `document/howto/<name>.md`, or `howto/<name>.md` in a pack. It teach
 
 A how-to shows the steps with real commands, says what frames expects of the material (size, frame rate, alpha, how files are named), and shows the document fragment that brings it in. See [motion graphics](howto/motion-graphics.md), [effects](howto/effects.md) and [text on a path](howto/text-on-a-path.md).
 
-## Writing an extension
+## Writing a tool
 
-An extension is a program that takes a document and gives a document, a tool in the layers of [FRAMES-25](../spec/FRAMES-25/SPEC.md#layers): it decides values by reading media and what frames reports, and writes them into the document before resolve, so nothing of it runs while a result is made. It cuts silence out of an interview, cuts B-roll to the beats of a track, places captions from a transcript, translates titles, or bakes an effect frames has no op for. frames has no extension API: an extension reads what frames reports ([FRAMES-23](../spec/FRAMES-23/SPEC.md)) and writes JSON.
+A tool is a program a pack carries that takes a document and gives a document, the tools layer of [FRAMES-25](../spec/FRAMES-25/SPEC.md#layers): it decides values by reading media and what frames reports, and writes them into the document before resolve, so nothing of it runs while a result is made. It cuts silence out of an interview, cuts B-roll to the beats of a track, places captions from a transcript, translates titles, or bakes an effect frames has no op for. frames has no tool API: a tool reads what frames reports ([FRAMES-23](../spec/FRAMES-23/SPEC.md)) and writes JSON. How a pack carries a tool, its `tool.json` and its name, is in [PACK.md](PACK.md#a-tool).
 
-- `frames <name>` runs `frames-<name>` from `PATH`, with the global options frames was given first and then the arguments written after the name, unchanged. Standard input and output pass through. Installing an extension is putting it on `PATH`.
+- `frames <pack>/<name>` runs the tool `<name>` of the pack `<pack>`, with the global options frames was given first and then the arguments written after the name, unchanged. Standard input, output and error pass through, and frames exits with the tool's exit code.
+- frames sets `FRAMES_EXECUTABLE` to the path of the frames executable that runs the tool. The tool runs that executable for every frames command it needs, so the tool and the commands it runs are one frames.
 - It finds clips by `id` and with `timeline --json`, which also gives the sequence time a clip's values take effect at and the pixels they are written in, the frame a clip shows at any sequence time with `timeline --at`, where things are with `evaluate` and `locate`, and what is drawn with `still`, `extract` and `sheet`. All of these take the document itself, so what it sees is what frames draws from the same resolve.
-- It writes its document to standard output, and `timeline` checks the result like any other document. Extensions chain: `frames autocut /path/to/interview.json | frames captions - | frames render - -o /path/to/out/interview.mov`.
-- It keeps what it knows about a clip in the clip's `metadata`, which frames does not read: which extension added the clip and why.
-- It checks `frames --version` against the versions it is written for, as a pack does with `engine`.
-- It acts before resolve. What must act while frames renders is a role or a provider, so a resolved document stays enough to make the result again.
-- An extension that must be sure of what is drawn (one that keeps captions clear of other text on screen, or one that covers a region) resolves the document once with `frames resolve`, checks that resolved document with `evaluate`, `still` and `extract`, and passes it on to be rendered. It does not read or change the resolved document, whose form is frames' own. Only frames commands take a resolved document, so such an extension runs last in a chain, and a chain has one.
+- It writes its document to standard output, and `timeline` checks the result like any other document. Tools chain: `frames studio/autocut /path/to/interview.json | frames studio/captions - | frames render - -o /path/to/out/interview.mov`.
+- It keeps what it knows about a clip in the clip's `metadata`, which frames does not read: which tool added the clip and why.
+- Its version is its pack's `version`, and the frames it is written for is its pack's `engine`, which frames checks before it runs the tool.
+- It acts before resolve, and frames runs it only when a command names it. What must act while frames renders is a role or a provider, so a resolved document stays enough to make the result again.
+- A tool that fills requests fills those whose `tool` is its own name, `<pack>/<name>`, and leaves every other request as written, so tools chain in any order their arguments allow ([FRAMES-25](../spec/FRAMES-25/SPEC.md#requests)).
+- A tool that must be sure of what is drawn (one that keeps captions clear of other text on screen, or one that covers a region) resolves the document once with `frames resolve`, checks that resolved document with `evaluate`, `still` and `extract`, and passes it on to be rendered. It does not read or change the resolved document, whose form is frames' own. Only frames commands take a resolved document, so such a tool runs last in a chain, and a chain has one.
 
-### A minimal extension
+### A minimal tool
 
-`frames-number` puts `1/3`, `2/3`, ... in the top right corner over each storyline clip. It reads the edit ranges from `timeline --json` and adds one title per storyline clip to `clips`. It needs `jq`.
+`mine/number`, the tool `number` of the pack `mine`, puts `1/3`, `2/3`, ... in the top right corner over each storyline clip. It reads the edit ranges from `timeline --json` and adds one title per storyline clip to `clips`. It needs `jq`.
+
+```
+mine/
+  pack.json
+  tools/number/tool.json
+  tools/number/number
+```
+
+`tools/number/tool.json` gives what `frames packs mine` shows and the file that is run:
+
+```json
+{ "description": "Puts 1/3, 2/3, ... in the top right corner over each storyline clip", "run": "number" }
+```
+
+`tools/number/number`, an executable file:
 
 ```sh
 #!/bin/bash
-# frames-number: puts "1/3", "2/3", ... in the top right corner over each storyline clip of a sequence.
-# Usage: frames [global options] number <document.json | ->
+# number: puts "1/3", "2/3", ... in the top right corner over each storyline clip of a sequence.
+# Usage: frames [global options] mine/number <document.json | ->
 set -eo pipefail
 
 # frames passes its global options first, then the arguments written after the name.
 document=${!#}
 options=("${@:1:$#-1}")
+frames=${FRAMES_EXECUTABLE:?run it as frames mine/number}
 
 # The document is read twice, by frames and by jq, so keep it in a file.
 input=$(mktemp)
 trap 'rm -f "$input"' EXIT
 if [ "$document" = "-" ]; then cat > "$input"; else cat "$document" > "$input"; fi
 
-frames "${options[@]}" timeline - --json < "$input" |
+"$frames" "${options[@]}" timeline - --json < "$input" |
 jq --slurpfile document "$input" '
     (.storyline | length) as $count
     | $document[0] + { clips: (($document[0].clips // []) + [
@@ -211,35 +229,36 @@ jq --slurpfile document "$input" '
             placement: "top-right",
             animation: "none",
             lane: 9,
-            metadata: { by: "frames-number", clip: (.value.id // .value.place) }
+            metadata: { by: "mine/number", clip: (.value.id // .value.place) }
         } ]) }'
 ```
 
 ```sh
-install -m 755 /path/to/frames-number /usr/local/bin/
-frames number /path/to/work/edit.json > /path/to/work/numbered.json
+chmod +x /path/to/mine/tools/number/number
+cp -R /path/to/mine ~/.config/frames/packs/
+frames mine/number /path/to/work/edit.json > /path/to/work/numbered.json
 frames timeline /path/to/work/numbered.json
-frames number /path/to/work/edit.json | frames still - --at 0.5,1.5,3 -o /path/to/out/numbered.png
+frames mine/number /path/to/work/edit.json | frames still - --at 0.5,1.5,3 -o /path/to/out/numbered.png
 ```
 
 ```
 duration 4
-storyline[0]#intro  -  edit [0, 1)  drawn [0, 1.2)  clip [0, 1)  speed 1  transition none
+storyline[0]#intro  solid  -  edit [0, 1)  drawn [0, 1)  clip [0, 1)  sound -  speed 1  transition none
 ...
-clips[0]  title  visible [0, 1)  animation none
-clips[1]  title  visible [1, 2)  animation none
-clips[2]  title  visible [2, 4)  animation none
+clips[0]  title  -  visible [0, 1)  sound -  lane 9  parent -  animation none
+clips[1]  title  -  visible [1, 2)  sound -  lane 9  parent -  animation none
+clips[2]  title  -  visible [2, 4)  sound -  lane 9  parent -  animation none
 ```
 
 What it relies on:
 
 - `timeline --json` gives each storyline clip's `edit` range as `[start, end)` in sequence seconds, which is the clock of a sequence clip's `at`, so the range goes straight into the title.
-- The global options are passed on to the `frames` it calls, so `frames --theme <pack>/<name> number /path/to/work/edit.json` reads the timeline under that theme.
-- Each added title says in `metadata` which extension added it and for which clip, so a later run, or another extension, can find and replace them.
+- The global options are passed on to the frames it runs, so `frames --theme <pack>/<name> mine/number /path/to/work/edit.json` reads the timeline under that theme.
+- Each added title says in `metadata` which tool added it and for which clip, so a later run, or another tool, can find and replace them.
 
 ## Editing without changing what is shown
 
-An edit (a blade, a trim, a ripple delete, a move) is a document in and a document out, since frames keeps no state between commands for an edit to act on. You or an extension write it, and `timeline` checks the result like any other document. An edit that only restructures, such as a blade, leaves every frame as it was when it keeps these rules ([FRAMES-25](../spec/FRAMES-25/SPEC.md)).
+An edit (a blade, a trim, a ripple delete, a move) is a document in and a document out, since frames keeps no state between commands for an edit to act on. You or a tool write it, and `timeline` checks the result like any other document. An edit that only restructures, such as a blade, leaves every frame as it was when it keeps these rules ([FRAMES-25](../spec/FRAMES-25/SPEC.md)).
 
 A blade through a storyline clip:
 
@@ -305,7 +324,7 @@ After a blade at clip second 1 of `demo`, which is sequence second 2:
 - The ring is parented to `demo` and crosses the cut, so each part gets a copy parented to it, with its window cut at clip second 1: `ring` from sequence second 1.5 to 2, `ring-2` from 2 to 2.4. Its fade in stays on the first and its fade out on the second.
 - The note starts at clip second 1.2, inside `demo-2`, so it goes there with the same `at`, and its parent becomes `demo-2`.
 - The tag had no `at`, so it first takes `demo`'s edit range in clip time, `[0, 3]`, and stays on `demo`. Unparented, it plays its whole window across the edit point.
-- A document that holds requests is bladed after `frames find-text` and `frames track-motion` have filled them with rectangles and track data, since a static area request is searched on the frame its clip starts on and a track request follows its target from that frame, and `ring-2` starts at the edit point and not at clip second 0.5.
+- A document that holds requests is bladed after `frames/find-text` and `frames/track-motion` have filled them with rectangles and track data, since a static area request is searched on the frame its clip starts on and a track request follows its target from that frame, and `ring-2` starts at the edit point and not at clip second 0.5.
 
 Check that nothing moved: `timeline` gives the same duration and the same visible ranges, and `still` at the same instants draws the same frames.
 
@@ -337,10 +356,10 @@ The heading starts on `card` and stays there with its window unchanged. The subt
 
 These are not contract, but help whoever writes documents.
 
-- OCR confuses similar characters (`0` and `O`). Read the `ocr` output before writing a rectangle or a request for `frames find-text`, and name it by a part of the line that is less confusable, plus `nth`.
+- OCR confuses similar characters (`0` and `O`). Read the `ocr` output before writing a rectangle or a request for `frames/find-text`, and name it by a part of the line that is less confusable, plus `nth`.
 - A rectangle read on one frame while the screen is still moving lands where the text was on that frame. Read it after the screen settles, or follow the text with `track`.
 - A shape found on one screen stays where that text was. When the recording changes screens, end the shape at the change, or start another on the new screen.
-- A crop around text has the shape of the text, not of the frame. The default `conform` of `fit` grows it to the frame's shape, and where that reaches past the picture's edge the frame stays empty. A crop that zooms in on text near an edge takes `"conform": "fill"`, which cuts the crop to the frame's shape.
+- A crop around text has the shape of the text, not of the frame. The default `conform` of `fit` grows it to the frame's shape, and where that reaches past the picture's edge the frame stays empty. A crop that zooms in on text near an edge takes `"conform": "fill"`, which cuts the crop to the frame's shape. A `frames/find-text` request with `"aspectRatio"` set to the ratio of the clip's box writes a crop of that shape inside the picture, which fills the box under either conform.
 - `still` and `sheet` draw a time label over the top left of each frame. To see what lies under it, write that frame with `render --at`, which draws no label.
 - `evaluate` gives each item's `bounds` and `opacity` bottom first, so a clip that does not show because another covers it can be found from the items above it.
 - PNG is lossless and does not shrink when written again. Use JPEG or HEIC for smaller stills.
