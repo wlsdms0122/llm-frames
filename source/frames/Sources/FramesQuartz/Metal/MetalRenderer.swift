@@ -22,7 +22,7 @@ package final class MetalRenderer: Sendable {
     private let surfaces = SurfacePool<Void>()
 
     // MARK: - Initializer
-    // `budget` is the run's, which counts the media pictures the renderer keeps.
+    // `budget` is the run's, which counts the media pictures of pixels the renderer keeps.
     package init(
         decoder: any MediaDecoder,
         budget: MemoryBudget = MemoryBudget(limit: .unlimited)
@@ -72,8 +72,10 @@ package final class MetalRenderer: Sendable {
 
 extension MetalRenderer: Renderer {
     // MARK: - Lifecycle
+    // The pictures of pixels the list reads raise the budget's `pictures` floor.
     package func check(_ list: DisplayList) throws {
         try DisplayListChecker(tables: tables).check(list)
+        try pictures.reserve(for: list)
     }
 
     // Once the frame is drawn, the media pictures it did not use are let go of.

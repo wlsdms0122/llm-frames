@@ -62,6 +62,10 @@ struct PictureDecoder: MediaDecoder {
         try decoder.pageSize(of: file)
     }
 
+    func pictureSize(of file: MediaFile) throws -> Size {
+        Size(width: Double(pictures[0].width), height: Double(pictures[0].height))
+    }
+
     func colorReading(of file: MediaFile) throws -> ColorReading {
         try decoder.colorReading(of: file)
     }

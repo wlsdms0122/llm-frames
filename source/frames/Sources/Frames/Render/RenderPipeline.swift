@@ -14,7 +14,8 @@ import Foundation
 // mix plan, the renderer on every frame's display list, and the encoder on each target. A run's recorder times each
 // stage the pipeline runs and the time it spends in the encoder, and is told of every frame drawn (FRAMES-23 Runs). The
 // run's budget is given the floors of the frames in flight and of the mixed sound once the roles have checked
-// everything, and a limit under the run's floor is refused there, in `check` (FRAMES-30 The budget). It counts the
+// everything, the renderer's check of each list having given it the floor of the media pictures it keeps, and a limit
+// under the run's floor is refused there, in `check` (FRAMES-30 The budget). It counts the
 // frame being drawn while a video is written, and the write queue the frames it holds.
 package struct RenderPipeline: Sendable {
     // MARK: - Property

@@ -75,8 +75,8 @@ package final class MemoryBudget: Sendable {
         }
     }
 
-    // `holder` holds `bytes` more whatever the total, for memory the run cannot go on without, which the holders that
-    // give way then find no room in.
+    // `holder` holds `bytes` more whatever the total, for memory the run cannot go on without, which a holder that
+    // does not give way holds within the floor it is given before the first frame.
     package func hold(
         _ bytes: Int,
         for holder: MemoryHolder

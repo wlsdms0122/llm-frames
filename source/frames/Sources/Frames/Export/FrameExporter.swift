@@ -13,8 +13,8 @@ import Foundation
 // every pinned file's hash and the decoder on every pinned media (for a video, the decoder on it), and the renderer on
 // every list it draws. Every file is an analysis picture (FRAMES-26), an 8-bit sRGB PNG whatever the sequence's colour
 // space, and a label lies on the analysis picture of its frame. A sheet draws every cell in one frame, so the run's
-// budget is given its pictures and its frame as floors and a limit under them is refused before a cell is read
-// (FRAMES-30 The budget).
+// budget is given its cells' pictures as a floor and a limit under the run's floor is refused before a cell is read,
+// and again once the renderer has checked the sheet's list, before the sheet is drawn (FRAMES-30 The budget).
 package struct FrameExporter: Sendable {
     // MARK: - Property
     // The longest side of a sheet's cell, so a sheet of many frames stays a picture one can open and read.
@@ -209,6 +209,7 @@ package struct FrameExporter: Sendable {
             face: labelFace
         )
         try renderer.check(sheet)
+        try budget.checkFloor()
 
         try encoder.writeAnalysisPicture(of: try renderer.frame(of: sheet).bitmap, in: ColorConversion(space: .srgb), to: output)
     }

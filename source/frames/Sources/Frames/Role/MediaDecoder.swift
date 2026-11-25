@@ -40,6 +40,10 @@ package protocol MediaDecoder: Sendable {
     // covers at scale 1. A file that names no page, or a page the file does not hold, stops.
     func pageSize(of file: MediaFile) throws -> Size
 
+    // The size in pixels of the pictures of `file`, a video, a still or an image sequence directory, as displayed: the
+    // size of every picture `picture(of:atFrame:reading:)` gives of it. A page, a sound and a file it cannot read stop.
+    func pictureSize(of file: MediaFile) throws -> Size
+
     // How the pictures of `file`, a video, a still, an image sequence directory or a page, are taken to working values.
     func colorReading(of file: MediaFile) throws -> ColorReading
 
