@@ -18,7 +18,9 @@
     {
      "place": "storyline[0]#board",
      "id": "board",
+     "kind": "image",
      "media": "/media/board.png",
+     "page": null,
      "edit": [
       0,
       2
@@ -39,7 +41,9 @@
     {
      "place": "storyline[1]#zoom",
      "id": "zoom",
+     "kind": "image",
      "media": "/media/board.png",
+     "page": null,
      "edit": [
       2,
       4
@@ -63,6 +67,8 @@
      "place": "storyline[0]#board.connected[0]#sour",
      "id": "sour",
      "kind": "rect",
+     "media": null,
+     "page": null,
      "visible": [
       0,
       2
@@ -77,6 +83,8 @@
      "place": "storyline[0]#board.connected[1]#total",
      "id": "total",
      "kind": "rect",
+     "media": null,
+     "page": null,
      "visible": [
       0,
       2
@@ -91,6 +99,8 @@
      "place": "storyline[0]#board.connected[2]#range",
      "id": "range",
      "kind": "rect",
+     "media": null,
+     "page": null,
      "visible": [
       0,
       2
@@ -105,6 +115,8 @@
      "place": "storyline[0]#board.connected[3]#note",
      "id": "note",
      "kind": "title",
+     "media": null,
+     "page": null,
      "visible": [
       0,
       2
@@ -120,366 +132,138 @@
  },
  {
   "arguments": [
-   "evaluate",
+   "timeline",
    "<document>",
    "--at",
-   "0"
+   "0",
+   "--json"
   ],
   "output": {
-   "evaluate": "0.1.0",
+   "timeline": "0.1.0",
+   "duration": 4,
    "time": 0,
-   "size": [
-    1920,
-    1080
-   ],
-   "items": [
-    {
-     "place": null,
-     "id": null,
-     "kind": null,
-     "item": "background",
-     "bounds": [
-      0,
-      0,
-      1920,
-      1080
-     ],
-     "opacity": 1,
-     "transform": [
-      1,
-      0,
-      0,
-      1,
-      0,
-      0
-     ],
-     "rect": [
-      0,
-      0,
-      1920,
-      1080
-     ],
-     "cornerPins": null,
-     "characters": null
-    },
+   "storyline": [
     {
      "place": "storyline[0]#board",
      "id": "board",
      "kind": "image",
-     "item": "picture",
-     "bounds": [
+     "media": "/media/board.png",
+     "page": null,
+     "edit": [
       0,
-      0,
-      1920,
-      1080
+      2
      ],
-     "opacity": 1,
-     "transform": [
-      1,
+     "drawn": [
       0,
-      0,
-      1,
-      0,
-      0
+      2
      ],
-     "rect": [
+     "clip": [
       0,
-      0,
-      1920,
-      1080
+      2
      ],
-     "cornerPins": null,
-     "characters": null
+     "sound": null,
+     "speed": 1,
+     "timeRemap": false,
+     "transition": null,
+     "clipTime": 0,
+     "mediaTime": 0
     },
+    {
+     "place": "storyline[1]#zoom",
+     "id": "zoom",
+     "kind": "image",
+     "media": "/media/board.png",
+     "page": null,
+     "edit": [
+      2,
+      4
+     ],
+     "drawn": [
+      2,
+      4
+     ],
+     "clip": [
+      0,
+      2
+     ],
+     "sound": null,
+     "speed": 1,
+     "timeRemap": false,
+     "transition": null,
+     "clipTime": -2,
+     "mediaTime": 0
+    }
+   ],
+   "clips": [
     {
      "place": "storyline[0]#board.connected[0]#sour",
      "id": "sour",
      "kind": "rect",
-     "item": "path",
-     "bounds": [
+     "media": null,
+     "page": null,
+     "visible": [
       0,
-      0,
-      3.5,
-      3.5
+      2
      ],
-     "opacity": 1,
-     "transform": [
-      1.5,
-      0,
-      0,
-      1.5,
-      0,
-      0
-     ],
-     "rect": [
-      0,
-      0,
-      1,
-      1
-     ],
-     "cornerPins": null,
-     "characters": null
+     "sound": null,
+     "lane": 1,
+     "storyline": "storyline[0]#board",
+     "parent": "storyline[0]#board",
+     "animation": null,
+     "mediaTime": null
     },
     {
      "place": "storyline[0]#board.connected[1]#total",
      "id": "total",
      "kind": "rect",
-     "item": "path",
-     "bounds": [
+     "media": null,
+     "page": null,
+     "visible": [
       0,
-      0,
-      3.5,
-      3.5
+      2
      ],
-     "opacity": 1,
-     "transform": [
-      1.5,
-      0,
-      0,
-      1.5,
-      0,
-      0
-     ],
-     "rect": [
-      0,
-      0,
-      1,
-      1
-     ],
-     "cornerPins": null,
-     "characters": null
+     "sound": null,
+     "lane": 1,
+     "storyline": "storyline[0]#board",
+     "parent": "storyline[0]#board",
+     "animation": null,
+     "mediaTime": null
     },
     {
      "place": "storyline[0]#board.connected[2]#range",
      "id": "range",
      "kind": "rect",
-     "item": "path",
-     "bounds": [
+     "media": null,
+     "page": null,
+     "visible": [
       0,
-      0,
-      3.5,
-      3.5
+      2
      ],
-     "opacity": 1,
-     "transform": [
-      1.5,
-      0,
-      0,
-      1.5,
-      0,
-      0
-     ],
-     "rect": [
-      0,
-      0,
-      1,
-      1
-     ],
-     "cornerPins": null,
-     "characters": null
+     "sound": null,
+     "lane": 1,
+     "storyline": "storyline[0]#board",
+     "parent": "storyline[0]#board",
+     "animation": null,
+     "mediaTime": null
     },
     {
      "place": "storyline[0]#board.connected[3]#note",
      "id": "note",
      "kind": "title",
-     "item": "glyphs",
-     "bounds": [
+     "media": null,
+     "page": null,
+     "visible": [
       0,
-      0,
-      96.36,
-      30.209839
+      2
      ],
-     "opacity": 1,
-     "transform": [
-      1,
-      0,
-      0,
-      1,
-      1.5,
-      -27.209839
-     ],
-     "rect": [
-      0,
-      0,
-      93.36,
-      55.919678
-     ],
-     "cornerPins": null,
-     "characters": [
-      {
-       "text": "h",
-       "range": [
-        0,
-        1
-       ],
-       "level": 0,
-       "rect": [
-        0,
-        0,
-        26.688,
-        55.919678
-       ],
-       "baseline": 45.695801
-      },
-      {
-       "text": "e",
-       "range": [
-        1,
-        2
-       ],
-       "level": 0,
-       "rect": [
-        26.688,
-        0,
-        25.776,
-        55.919678
-       ],
-       "baseline": 45.695801
-      },
-      {
-       "text": "r",
-       "range": [
-        2,
-        3
-       ],
-       "level": 0,
-       "rect": [
-        52.464,
-        0,
-        15.12,
-        55.919678
-       ],
-       "baseline": 45.695801
-      },
-      {
-       "text": "e",
-       "range": [
-        3,
-        4
-       ],
-       "level": 0,
-       "rect": [
-        67.584,
-        0,
-        25.776,
-        55.919678
-       ],
-       "baseline": 45.695801
-      }
-     ]
-    }
-   ],
-   "texts": [
-    {
-     "place": "storyline[0]#board.connected[3]#note",
-     "id": "note",
-     "text": "here",
-     "writingMode": "horizontal-tb",
-     "direction": "ltr",
-     "size": [
-      93.36,
-      55.919678
-     ],
-     "box": [
-      0,
-      0,
-      93.36,
-      55.919678
-     ],
-     "transform": [
-      1,
-      0,
-      0,
-      1,
-      1.5,
-      -27.209839
-     ],
-     "cornerPins": null,
-     "lines": [
-      {
-       "text": "here",
-       "range": [
-        0,
-        4
-       ],
-       "baseline": 45.695801,
-       "ascent": 45.695801,
-       "descent": 10.223877
-      }
-     ],
-     "words": [
-      {
-       "text": "here",
-       "range": [
-        0,
-        4
-       ]
-      }
-     ]
+     "sound": null,
+     "lane": 1,
+     "storyline": "storyline[0]#board",
+     "parent": "storyline[0]#board",
+     "animation": null,
+     "mediaTime": null
     }
    ]
-  }
- },
- {
-  "arguments": [
-   "locate",
-   "<document>",
-   "--at",
-   "0",
-   "--point",
-   "960,540"
-  ],
-  "output": {
-   "locate": "0.1.0",
-   "hits": [
-    {
-     "place": "storyline[0]#board",
-     "id": "board",
-     "kind": "image",
-     "item": "picture",
-     "media": "/media/board.png",
-     "mediaTime": 0,
-     "point": [
-      640,
-      360
-     ],
-     "page": null
-    },
-    {
-     "place": null,
-     "id": null,
-     "kind": null,
-     "item": "background"
-    }
-   ]
-  }
- },
- {
-  "arguments": [
-   "probe",
-   "/media/board.png",
-   "--json"
-  ],
-  "output": {
-   "probe": "0.1.0",
-   "kind": "image",
-   "size": [
-    1280,
-    720
-   ],
-   "duration": null,
-   "fps": null,
-   "alpha": true,
-   "colorSpace": {
-    "name": "srgb",
-    "primaries": 1,
-    "transfer": 13,
-    "matrix": null,
-    "bitDepth": 16,
-    "hdr": false
-   },
-   "audio": null,
-   "pages": null
   }
  },
  {
@@ -502,17 +286,17 @@
       {
        "text": "Receipt",
        "rect": [
-        81.855733,
-        71,
-        158.254562,
-        38
+        83.274157,
+        87,
+        237.365555,
+        54
        ]
       },
       {
        "text": "Flat white 4.50",
        "rect": [
-        80,
-        208,
+        80.000001,
+        213,
         212,
         23
        ]
@@ -520,8 +304,8 @@
       {
        "text": "Sourdough 6.00",
        "rect": [
-        80.000001,
-        297,
+        80,
+        302,
         232,
         30
        ]
@@ -529,27 +313,27 @@
       {
        "text": "Total 10.50",
        "rect": [
-        77.810524,
-        388,
-        160.378952,
+        77.792892,
+        393,
+        162.414215,
         23
        ]
       },
       {
        "text": "Total saved 1.00",
        "rect": [
-        78,
-        479,
-        236,
-        22
+        77.795659,
+        483,
+        238.387482,
+        23
        ]
       },
       {
        "text": "Thank you",
        "rect": [
-        757.215165,
-        478,
-        155.339584,
+        759.113963,
+        483,
+        151.536728,
         29
        ]
       }
@@ -560,111 +344,136 @@
  },
  {
   "arguments": [
-   "evaluate",
-   "<document>",
-   "--at",
-   "2"
-  ],
-  "output": {
-   "evaluate": "0.1.0",
-   "time": 2,
-   "size": [
-    1920,
-    1080
-   ],
-   "items": [
-    {
-     "place": null,
-     "id": null,
-     "kind": null,
-     "item": "background",
-     "bounds": [
-      0,
-      0,
-      1920,
-      1080
-     ],
-     "opacity": 1,
-     "transform": [
-      1,
-      0,
-      0,
-      1,
-      0,
-      0
-     ],
-     "rect": [
-      0,
-      0,
-      1920,
-      1080
-     ],
-     "cornerPins": null,
-     "characters": null
-    },
-    {
-     "place": "storyline[1]#zoom",
-     "id": "zoom",
-     "kind": "image",
-     "item": "picture",
-     "bounds": [
-      0,
-      0,
-      1920,
-      1080
-     ],
-     "opacity": 1,
-     "transform": [
-      1,
-      0,
-      0,
-      1,
-      0,
-      0
-     ],
-     "rect": [
-      0,
-      0,
-      1920,
-      1080
-     ],
-     "cornerPins": null,
-     "characters": null
-    }
-   ],
-   "texts": []
-  }
- },
- {
-  "arguments": [
-   "locate",
+   "timeline",
    "<document>",
    "--at",
    "2",
-   "--point",
-   "960,540"
+   "--json"
   ],
   "output": {
-   "locate": "0.1.0",
-   "hits": [
+   "timeline": "0.1.0",
+   "duration": 4,
+   "time": 2,
+   "storyline": [
+    {
+     "place": "storyline[0]#board",
+     "id": "board",
+     "kind": "image",
+     "media": "/media/board.png",
+     "page": null,
+     "edit": [
+      0,
+      2
+     ],
+     "drawn": [
+      0,
+      2
+     ],
+     "clip": [
+      0,
+      2
+     ],
+     "sound": null,
+     "speed": 1,
+     "timeRemap": false,
+     "transition": null,
+     "clipTime": 2,
+     "mediaTime": 0
+    },
     {
      "place": "storyline[1]#zoom",
      "id": "zoom",
      "kind": "image",
-     "item": "picture",
      "media": "/media/board.png",
-     "mediaTime": 0,
-     "point": [
-      0.5,
-      0.5
+     "page": null,
+     "edit": [
+      2,
+      4
      ],
-     "page": null
+     "drawn": [
+      2,
+      4
+     ],
+     "clip": [
+      0,
+      2
+     ],
+     "sound": null,
+     "speed": 1,
+     "timeRemap": false,
+     "transition": null,
+     "clipTime": 0,
+     "mediaTime": 0
+    }
+   ],
+   "clips": [
+    {
+     "place": "storyline[0]#board.connected[0]#sour",
+     "id": "sour",
+     "kind": "rect",
+     "media": null,
+     "page": null,
+     "visible": [
+      0,
+      2
+     ],
+     "sound": null,
+     "lane": 1,
+     "storyline": "storyline[0]#board",
+     "parent": "storyline[0]#board",
+     "animation": null,
+     "mediaTime": null
     },
     {
-     "place": null,
-     "id": null,
-     "kind": null,
-     "item": "background"
+     "place": "storyline[0]#board.connected[1]#total",
+     "id": "total",
+     "kind": "rect",
+     "media": null,
+     "page": null,
+     "visible": [
+      0,
+      2
+     ],
+     "sound": null,
+     "lane": 1,
+     "storyline": "storyline[0]#board",
+     "parent": "storyline[0]#board",
+     "animation": null,
+     "mediaTime": null
+    },
+    {
+     "place": "storyline[0]#board.connected[2]#range",
+     "id": "range",
+     "kind": "rect",
+     "media": null,
+     "page": null,
+     "visible": [
+      0,
+      2
+     ],
+     "sound": null,
+     "lane": 1,
+     "storyline": "storyline[0]#board",
+     "parent": "storyline[0]#board",
+     "animation": null,
+     "mediaTime": null
+    },
+    {
+     "place": "storyline[0]#board.connected[3]#note",
+     "id": "note",
+     "kind": "title",
+     "media": null,
+     "page": null,
+     "visible": [
+      0,
+      2
+     ],
+     "sound": null,
+     "lane": 1,
+     "storyline": "storyline[0]#board",
+     "parent": "storyline[0]#board",
+     "animation": null,
+     "mediaTime": null
     }
    ]
   }

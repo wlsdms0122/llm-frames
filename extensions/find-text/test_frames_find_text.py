@@ -2,10 +2,11 @@
 
 Run from the repository root: python3 -m unittest discover -s extensions/find-text
 
-`fixtures/still.json` and `fixtures/video.json` name their media as `/media/board.png` and `/media/clip.mp4`, and each
-`*.calls.json` holds the frames commands the extension ran on them with what frames printed, the document it asks
-about written as `<document>`. `board.png` is a still of six lines of text, and `clip.mp4` a 4 second video that shows
-`Price 4.50` at the top left before 2 seconds and `Price 6.00` at the bottom right from 2 seconds.
+`fixtures/still.json` and `fixtures/video.json` name their media as `/media/board.png`, `/media/clip.mp4` and
+`/media/frames`, and each `*.calls.json` holds the frames commands the extension ran on them with what frames printed,
+the document it asks about written as `<document>`. `board.png` is a still of six lines of text, `clip.mp4` a 4 second
+video at 25 frames a second that shows `Price 4.50` at the top left before 2 seconds and `Price 6.00` at the bottom
+right from 2 seconds, and `frames` an image sequence of its frames every half second, read at 2 frames a second.
 """
 
 import copy
@@ -91,7 +92,8 @@ class Recorded(Case):
         self.assertEqual(len(self.commands("ocr")), 1)
 
     def test_video(self):
-        # Given a video under keyframed areas, a speed, a time remap, a picture in picture and track targets
+        # Given a video under keyframed areas, a speed, a time remap, a picture in picture, track targets and an image
+        # sequence
         document = fixture("video.json")
 
         # When the extension writes the rectangles
@@ -111,20 +113,37 @@ class Recorded(Case):
         keyframes = result["storyline"][0]["connected"][0]["keyframes"]
 
         # Then the first lies on the line shown before 2 seconds and the second on the line shown after
-        self.assertEqual(keyframes[0]["area"], [95.923614, 104, 186.152771, 39])
-        self.assertEqual(keyframes[1]["area"], [695.866547, 504, 186.266907, 39])
+        self.assertEqual(keyframes[0]["area"], [93.90329, 112, 158.19342, 35])
+        self.assertEqual(keyframes[1]["area"], [693.924263, 512, 160.151474, 35])
 
     def test_not_drawn(self):
-        # Given a keyframe of a child of a looped clip past the end of the sequence
+        # Given a keyframe of a child of a looped clip past the end of the sequence, and keyframes of a child of a clip
+        # at speed 2 and opacity 0, which draws nothing
         document = fixture("video.json")
-        document["clips"][2]["keyframes"][1]["at"] = 8.5
 
-        # When the extension runs
-        message = self.stop(document, fixture("video.calls.json"), "--languages", "en-US")
+        # When the extension writes the rectangles
+        result = self.run_document(document, fixture("video.calls.json"), "--languages", "en-US")
 
-        # Then it names the clip, the instant and why no report gives the frame
-        self.assertIn("clips[2]: keyframes[1].area", message)
-        self.assertIn("frames draws no picture of clips[0]#pip at sequence time 8.5", message)
+        # Then each is found on the frame the clip's time map shows there, which timeline --at gives
+        self.assertEqual(result["clips"][2]["keyframes"][2]["area"], [699.924263, 518, 148.151474, 23])
+        self.assertEqual([keyframe["area"] for keyframe in result["clips"][4]["keyframes"]], [
+            [99.90329, 118, 146.19342, 23], [699.924263, 518, 148.151474, 23]
+        ])
+        self.assertIn(["timeline", "<document>", "--at", "12", "--json"], Replay.log)
+        self.assertEqual(self.commands("evaluate") + self.commands("locate") + self.commands("probe"), [])
+
+    def test_image_sequence(self):
+        # Given an image sequence's crop and a track target at a media time on it
+        result = self.run_document(fixture("video.json"), fixture("video.calls.json"), "--languages", "en-US")
+
+        # When the image sequence is read
+        sequence = result["storyline"][3]
+
+        # Then its directory is read with ocr at the rate its media form writes, at the frame shown at its in and at
+        # the track's time
+        self.assertEqual(sequence["crop"], [89.90329, 108, 166.19342, 43])
+        self.assertEqual(sequence["connected"][0]["track"]["area"], [699.924263, 518, 148.151474, 23])
+        self.assertIn(["ocr", "/media/frames", "--json", "--fps", "2", "--at", "1", "--languages", "en-US"], Replay.log)
 
     def test_no_text_forms(self):
         # Given a document whose areas are rectangles
@@ -151,7 +170,7 @@ class Matching(unittest.TestCase):
         rect = self.find({"text": "Flatwhite"})
 
         # Then the line that holds it with spaces matches
-        self.assertEqual(rect, [80, 208, 212, 23])
+        self.assertEqual(rect, [80.000001, 213, 212, 23])
 
     def test_ambiguous(self):
         # Given text two lines contain
@@ -161,8 +180,8 @@ class Matching(unittest.TestCase):
 
         # Then it stops and lists both with their rectangles
         message = str(raised.exception)
-        self.assertIn("[77.810524, 388, 160.378952, 23]  Total 10.50", message)
-        self.assertIn("[78, 479, 236, 22]  Total saved 1.00", message)
+        self.assertIn("[77.792892, 393, 162.414215, 23]  Total 10.50", message)
+        self.assertIn("[77.795659, 483, 238.387482, 23]  Total saved 1.00", message)
 
     def test_nth(self):
         # Given text two lines contain
@@ -170,7 +189,7 @@ class Matching(unittest.TestCase):
         rect = self.find({"text": "Total", "nth": 1, "padding": 8})
 
         # Then it is the second in ocr's order, grown on every side
-        self.assertEqual(rect, [70, 471, 252, 38])
+        self.assertEqual(rect, [69.795659, 475, 254.387482, 39])
 
     def test_no_match(self):
         # Given text no line contains, and an nth past the matches
@@ -189,7 +208,7 @@ class Matching(unittest.TestCase):
         rect = self.find({"from": "Flat white", "to": "Total 10", "padding": 12})
 
         # Then it covers both and every line whose centre lies between them, grown by the padding
-        self.assertEqual(rect, [65.810524, 196, 258.189477, 227])
+        self.assertEqual(rect, [65.792892, 201, 258.207108, 227])
 
 
 class Places(Case):
@@ -271,8 +290,9 @@ class Reading(unittest.TestCase):
         frames.report = lambda arguments: asked.append(arguments) or {"frames": [{"time": 0, "lines": []}]}
 
         # When a page is read twice in a colour space with languages
-        frames.ocr("/media/deck.pdf", None, 3, "display-p3", "ko-KR,en-US")
-        frames.ocr("/media/deck.pdf", None, 3, "display-p3", "ko-KR,en-US")
+        page = extension.Picture("/media/deck.pdf", None, 3, None)
+        frames.ocr(page, "display-p3", "ko-KR,en-US")
+        frames.ocr(page, "display-p3", "ko-KR,en-US")
 
         # Then it is read once, with the page, the colour space and the languages
         self.assertEqual(asked, [[
