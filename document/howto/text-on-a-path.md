@@ -19,8 +19,8 @@ Write the text as one title, with an `id` the script can find, in a style of its
 { "kind": "sequence",
   "format": { "size": [1280, 720], "fps": 30 },
   "theme": { "styles": { "path": { "size": 96, "weight": "bold", "tracking": 60 } } },
-  "storyline": [ { "solid": "#111827", "duration": 1 } ],
-  "clips": [ { "id": "word", "title": "AVATAR on a path", "style": "path", "position": [640, 360], "animation": "none" } ] }
+  "storyline": [ { "kind": "solid", "color": "#111827", "duration": 1 } ],
+  "clips": [ { "id": "word", "kind": "title", "text": "AVATAR on a path", "style": "path", "position": [640, 360], "animation": "none" } ] }
 ```
 
 ## 2. Read where its characters lie
@@ -119,7 +119,7 @@ end = max(group["rect"][inline] + group["rect"][inline + 2] for group in groups)
 clips = []
 for number, group in enumerate(groups):
     clip = {key: value for key, value in title.items() if key not in ("placement", "width", "keyframes")}
-    clip.update({"id": f"{title_id}-{number}", "title": group["text"], "anchor": "top-left",
+    clip.update({"id": f"{title_id}-{number}", "text": group["text"], "anchor": "top-left",
                  "position": [0, 0], "rotation": 0})
     clips.append(clip)
 document["clips"][index:index + 1] = clips
@@ -145,7 +145,7 @@ for clip, group in zip(clips, groups):
     clip["rotation"] = round(rotation, 3)
 
 if "--guide" in sys.argv:
-    document["clips"].insert(index, {"id": f"{title_id}-path", "shape": "path", "points": GUIDES[path_name],
+    document["clips"].insert(index, {"id": f"{title_id}-path", "kind": "path", "points": GUIDES[path_name],
                                      "stroke": {"color": "#F59E0B", "width": 2}, "fill": False, "animation": "none"})
 json.dump(document, sys.stdout, ensure_ascii=False, indent=1)
 ```
@@ -161,7 +161,7 @@ The arc is the upper half of a circle of radius 300 about (640, 520), run from l
 Each character becomes a title like this one, the first `A` on the arc:
 
 ```json
-{ "id": "word-0", "title": "A", "style": "path", "position": [336.72, 320.552], "animation": "none",
+{ "id": "word-0", "kind": "title", "text": "A", "style": "path", "position": [336.72, 320.552], "animation": "none",
   "anchor": "top-left", "rotation": -53.415 }
 ```
 

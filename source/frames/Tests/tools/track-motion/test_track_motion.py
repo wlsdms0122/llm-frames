@@ -311,8 +311,8 @@ class Places(Case):
 class Arguments(Case):
     def test_no_request(self):
         # Given a document whose track is a boolean, and one whose only request is for another tool
-        document = {"kind": "sequence", "storyline": [{"media": "/media/moving.mp4", "track": True, "connected": [
-            {"shape": "rect", "area": {"tool": "frames/find-text", "text": "Total"}, "track": {"tool": "other", "target": "area"}}
+        document = {"kind": "sequence", "storyline": [{"kind": "media", "media": "/media/moving.mp4", "track": True, "connected": [
+            {"kind": "rect", "area": {"tool": "frames/find-text", "text": "Total"}, "track": {"tool": "other", "target": "area"}}
         ]}]}
 
         # When the tool runs
@@ -324,8 +324,8 @@ class Arguments(Case):
 
     def test_nested(self):
         # Given a request inside a compound clip
-        document = {"kind": "sequence", "storyline": [{"media": {"kind": "sequence", "storyline": [
-            {"media": "/media/moving.mp4", "track": {"tool": "frames/track-motion", "target": [0, 0, 10, 10]}}
+        document = {"kind": "sequence", "storyline": [{"kind": "media", "media": {"kind": "sequence", "storyline": [
+            {"kind": "media", "media": "/media/moving.mp4", "track": {"tool": "frames/track-motion", "target": [0, 0, 10, 10]}}
         ]}}]}
 
         # Then it stops, naming the place inside
@@ -333,8 +333,8 @@ class Arguments(Case):
 
     def test_misplaced(self):
         # Given a frames/track-motion request as a clip's area
-        document = {"kind": "sequence", "storyline": [{"media": "/media/moving.mp4", "connected": [
-            {"shape": "rect", "area": {"tool": "frames/track-motion", "target": [0, 0, 10, 10]}}
+        document = {"kind": "sequence", "storyline": [{"kind": "media", "media": "/media/moving.mp4", "connected": [
+            {"kind": "rect", "area": {"tool": "frames/track-motion", "target": [0, 0, 10, 10]}}
         ]}]}
 
         # Then it stops, since it stands as a clip's track

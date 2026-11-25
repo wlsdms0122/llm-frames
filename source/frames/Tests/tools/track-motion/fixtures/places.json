@@ -4,12 +4,13 @@
     "storyline": [
       {
         "id": "shot",
+        "kind": "media",
         "media": "/media/moving.mp4"
       }
     ],
     "clips": [
       {
-        "shape": "rect",
+        "kind": "rect",
         "fill": "#3DDC84",
         "area": [
           10,
@@ -33,11 +34,13 @@
     "storyline": [
       {
         "id": "shot",
+        "kind": "media",
         "media": "/media/moving.mp4",
         "connected": [
           {
             "parent": "shot",
-            "title": "Card",
+            "kind": "title",
+            "text": "Card",
             "style": "subtitle",
             "position": [
               188,
@@ -61,6 +64,7 @@
     "storyline": [
       {
         "id": "shot",
+        "kind": "media",
         "media": "/media/moving.mp4",
         "crop": [
           124,
@@ -89,6 +93,7 @@
     "storyline": [
       {
         "id": "shot",
+        "kind": "media",
         "media": "/media/moving.mp4",
         "mask": {
           "shape": "ellipse",
@@ -111,11 +116,12 @@
     "storyline": [
       {
         "id": "shot",
+        "kind": "media",
         "media": "/media/moving.mp4",
         "connected": [
           {
             "parent": "shot",
-            "shape": "rect",
+            "kind": "rect",
             "fill": "#3DDC84",
             "at": [
               0.4,
@@ -155,11 +161,12 @@
     "storyline": [
       {
         "id": "shot",
+        "kind": "media",
         "media": "/media/moving.mp4",
         "connected": [
           {
             "parent": "shot",
-            "shape": "rect",
+            "kind": "rect",
             "fill": "#3DDC84",
             "at": [
               0.4,
@@ -188,11 +195,12 @@
     "storyline": [
       {
         "id": "shot",
+        "kind": "media",
         "media": "/media/moving.mp4",
         "connected": [
           {
             "parent": "shot",
-            "shape": "rect",
+            "kind": "rect",
             "fill": "#3DDC84",
             "at": [
               0.4,
@@ -208,7 +216,7 @@
           },
           {
             "parent": "shot",
-            "shape": "rect",
+            "kind": "rect",
             "fill": "#3DDC84",
             "at": [
               0.4,
@@ -236,11 +244,12 @@
     "storyline": [
       {
         "id": "shot",
+        "kind": "media",
         "media": "/media/moving.mp4",
         "connected": [
           {
             "parent": "shot",
-            "shape": "rect",
+            "kind": "rect",
             "fill": "#3DDC84",
             "at": [
               0.4,
@@ -272,6 +281,7 @@
     "storyline": [
       {
         "id": "shot",
+        "kind": "media",
         "media": "/media/moving.mp4",
         "cornerPin": [
           [

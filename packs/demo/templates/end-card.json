@@ -8,9 +8,9 @@
     "length": { "type": "number", "default": 2, "description": "seconds on screen" }
   },
   "storyline": [
-    { "solid": "#000000", "duration": { "param": "length" },
+    { "kind": "solid", "color": "#000000", "duration": { "param": "length" },
       "connected": [
-        { "title": [ { "text": { "param": "headline" } }, { "text": "\n" }, { "text": { "param": "detail" }, "style": "kicker" } ],
+        { "kind": "title", "text": [ { "text": { "param": "headline" } }, { "text": "\n" }, { "text": { "param": "detail" }, "style": "kicker" } ],
           "style": "title", "placement": "center", "animation": "frames/fade" }
       ] }
   ]

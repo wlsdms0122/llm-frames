@@ -89,10 +89,10 @@ The folder probes as an image sequence. `alpha yes` says the transparency came t
 { "kind": "sequence",
   "format": { "size": [1280, 720], "fps": 30 },
   "storyline": [
-    { "media": "/path/to/recording.mp4", "in": 0, "out": 3 }
+    { "kind": "media", "media": "/path/to/recording.mp4", "in": 0, "out": 3 }
   ],
   "clips": [
-    { "at": [0.5, 3], "media": { "imageSequence": "/path/to/lower-third", "fps": 30 }, "lane": 2 }
+    { "at": [0.5, 3], "kind": "media", "media": { "imageSequence": "/path/to/lower-third", "fps": 30 }, "lane": 2 }
   ] }
 ```
 

@@ -4,11 +4,12 @@
     "storyline": [
       {
         "id": "b",
+        "kind": "media",
         "media": "/media/board.png",
         "duration": 2,
         "connected": [
           {
-            "shape": "rect",
+            "kind": "rect",
             "fill": "#FF0000",
             "area": {
               "tool": "frames/find-text",
@@ -24,11 +25,13 @@
     "storyline": [
       {
         "id": "b",
+        "kind": "media",
         "media": "/media/board.png",
         "duration": 2,
         "connected": [
           {
-            "title": "x",
+            "kind": "title",
+            "text": "x",
             "style": "title",
             "placement": "center",
             "mask": {
@@ -48,13 +51,15 @@
     "storyline": [
       {
         "id": "b",
+        "kind": "media",
         "media": "/media/board.png",
         "duration": 2,
         "connected": [
           {
             "id": "t",
             "parent": "b",
-            "title": "x",
+            "kind": "title",
+            "text": "x",
             "style": "title",
             "position": [
               10,
@@ -63,7 +68,7 @@
           },
           {
             "parent": "t",
-            "shape": "rect",
+            "kind": "rect",
             "fill": "#FF0000",
             "area": {
               "tool": "frames/find-text",
@@ -85,12 +90,13 @@
     "storyline": [
       {
         "id": "s",
-        "solid": "#000000",
+        "kind": "solid",
+        "color": "#000000",
         "duration": 2,
         "connected": [
           {
             "parent": "s",
-            "shape": "rect",
+            "kind": "rect",
             "fill": "#FF0000",
             "area": {
               "tool": "frames/find-text",
@@ -106,12 +112,14 @@
     "storyline": [
       {
         "id": "b",
+        "kind": "media",
         "media": "/media/board.png",
         "duration": 2,
         "connected": [
           {
             "id": "p",
             "parent": "b",
+            "kind": "media",
             "media": "/media/board.png",
             "cornerPin": [
               [
@@ -134,7 +142,7 @@
           },
           {
             "parent": "p",
-            "shape": "rect",
+            "kind": "rect",
             "fill": "#FF0000",
             "area": {
               "tool": "frames/find-text",

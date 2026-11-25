@@ -23,7 +23,7 @@ People who will use the feature watch it: users reading release notes or a chang
 **The title card.** The template `demo/title-card`, a storyline clip whose media is the template:
 
 ```json
-{ "id": "title-card", "media": { "template": "demo/title-card", "args": { "area": "Checkout", "feature": "Totals now include shipping" } } }
+{ "id": "title-card", "kind": "media", "media": { "template": "demo/title-card", "args": { "area": "Checkout", "feature": "Totals now include shipping" } } }
 ```
 
 | Param | Type | Default | What it is |
@@ -44,7 +44,7 @@ Each card is a black 1920 by 1080 solid with one centred title in the `title` st
 
 **Steps.** Each step is captioned by a title in the `subtitle` style connected to the clip it belongs to, with no placement, so the style sets it at the bottom, centred, on its dark box. It moves to the top (`"placement": "top"`) only when it would cover what its step points at.
 
-**Outlines.** A rect in the `outline` style connected to the step's clip and parented to it, its area in the clip's media pixels and a request for `frames/find-text`, which fills it with the rectangle `frames ocr` finds for the text (a tool of the pack `frames`, which ships with frames): `{ "shape": "rect", "style": "outline", "parent": "add", "area": { "tool": "frames/find-text", "text": "Add shipping", "padding": 22 } }`. On a recording where the line moves, the outline follows it with `"track": { "tool": "frames/track-motion", "target": "area" }`, a request for `frames/track-motion`, which fills it with the track data `frames track` prints for the outline's area.
+**Outlines.** A rect in the `outline` style connected to the step's clip and parented to it, its area in the clip's media pixels and a request for `frames/find-text`, which fills it with the rectangle `frames ocr` finds for the text (a tool of the pack `frames`, which ships with frames): `{ "kind": "rect", "style": "outline", "parent": "add", "area": { "tool": "frames/find-text", "text": "Add shipping", "padding": 22 } }`. On a recording where the line moves, the outline follows it with `"track": { "tool": "frames/track-motion", "target": "area" }`, a request for `frames/track-motion`, which fills it with the track data `frames track` prints for the outline's area.
 
 **Labels.** A title in the `label` style parented to its outline (`"parent": "<the outline's id>"`) and set at a point of the outline's box: `"position": { "area": { "clip": "<the outline's id>" }, "point": "bottom-right" }, "anchor": "top-right"`. It hangs below the outline's right end.
 

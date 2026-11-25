@@ -2,20 +2,20 @@
   "kind": "sequence",
   "format": { "size": [640, 360], "fps": 25 },
   "storyline": [
-    { "id": "shot", "media": "/media/moving.mp4",
+    { "id": "shot", "kind": "media", "media": "/media/moving.mp4",
       "connected": [
-        { "id": "box", "at": [0.4, 2.6], "parent": "shot", "shape": "rect", "area": [124, 202, 128, 88],
+        { "id": "box", "at": [0.4, 2.6], "parent": "shot", "kind": "rect", "area": [124, 202, 128, 88],
           "stroke": { "width": 4, "color": "#3DDC84" }, "track": { "tool": "frames/track-motion", "target": "area" } },
-        { "id": "label", "at": [0.4, 2.6], "parent": "shot", "title": "Card", "style": "subtitle", "position": [188, 190],
+        { "id": "label", "at": [0.4, 2.6], "parent": "shot", "kind": "title", "text": "Card", "style": "subtitle", "position": [188, 190],
           "track": { "tool": "frames/track-motion", "target": [124, 202, 128, 88] } },
-        { "id": "pin", "at": [1, 2.6], "parent": "shot", "media": "/media/board.png",
+        { "id": "pin", "at": [1, 2.6], "parent": "shot", "kind": "media", "media": "/media/board.png",
           "cornerPin": [[192, 192], [328, 194], [326, 288], [194, 286]], "track": { "tool": "frames/track-motion", "target": "cornerPin" } },
-        { "id": "total", "at": [2, 2.6], "parent": "shot", "shape": "rect", "area": [252, 106, 188, 46],
+        { "id": "total", "at": [2, 2.6], "parent": "shot", "kind": "rect", "area": [252, 106, 188, 46],
           "stroke": { "width": 4, "color": "#3DDC84" }, "track": { "tool": "frames/track-motion", "target": [252, 106, 188, 46] } },
-        { "id": "kept", "at": [0, 1], "parent": "shot", "shape": "rect", "area": { "tool": "frames/find-text", "text": "Total" }, "fill": "#FFFFFF",
+        { "id": "kept", "at": [0, 1], "parent": "shot", "kind": "rect", "area": { "tool": "frames/find-text", "text": "Total" }, "fill": "#FFFFFF",
           "track": { "time": 0, "frames": [ { "time": 0, "quad": [[0, 0], [10, 0], [10, 10], [0, 10]] } ] } }
       ] },
-    { "id": "seq", "media": { "imageSequence": "/media/frames", "fps": 25 }, "in": 0, "out": 2,
+    { "id": "seq", "kind": "media", "media": { "imageSequence": "/media/frames", "fps": 25 }, "in": 0, "out": 2,
       "keyframes": [ { "at": 0.4, "crop": [124, 202, 128, 88] } ], "track": { "tool": "frames/track-motion", "target": "crop" } }
   ]
 }

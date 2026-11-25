@@ -3,28 +3,28 @@
   "theme": "shorts/shorts",
   "format": { "size": [1080, 1920], "fps": 30, "background": "#000000" },
   "storyline": [
-    { "id": "summary", "media": "/path/to/checkout.png", "duration": 3.5,
+    { "id": "summary", "kind": "media", "media": "/path/to/checkout.png", "duration": 3.5,
       "connected": [
-        { "at": [0, 1.6], "title": "주문 요약을 열면", "style": "subtitle", "lane": 2 },
-        { "at": [1.6, 3.5], "title": [ { "text": "합계", "style": "subtitle-highlight" }, { "text": "에 배송비가 들어가요" } ], "style": "subtitle", "lane": 2 },
-        { "at": [1.8, 3.5], "shape": "rect", "style": "outline", "id": "total-box", "parent": "summary",
+        { "at": [0, 1.6], "kind": "title", "text": "주문 요약을 열면", "style": "subtitle", "lane": 2 },
+        { "at": [1.6, 3.5], "kind": "title", "text": [ { "text": "합계", "style": "subtitle-highlight" }, { "text": "에 배송비가 들어가요" } ], "style": "subtitle", "lane": 2 },
+        { "at": [1.8, 3.5], "kind": "rect", "style": "outline", "id": "total-box", "parent": "summary",
           "area": { "tool": "frames/find-text", "from": "Total", "to": "42,000", "toNth": 0, "padding": 16 },
           "keyframes": [ { "at": 1.8, "trim": [0, 0], "ease": "ease-out" }, { "at": 2.1, "trim": [0, 1] } ] },
-        { "at": [2.1, 3.5], "title": "배송비 포함", "style": "label", "lane": 2, "parent": "total-box",
+        { "at": [2.1, 3.5], "kind": "title", "text": "배송비 포함", "style": "label", "lane": 2, "parent": "total-box",
           "position": { "area": { "clip": "total-box" }, "point": "bottom-left" }, "anchor": "top-left" }
       ] },
-    { "id": "recording", "media": "/path/to/checkout.mov", "in": 0.4, "out": 2.8, "volume": 0,
+    { "id": "recording", "kind": "media", "media": "/path/to/checkout.mov", "in": 0.4, "out": 2.8, "volume": 0,
       "connected": [
-        { "at": [0.4, 1.1], "title": "버튼 하나로", "style": "subtitle", "lane": 2 },
-        { "at": [1.1, 2.8], "title": [ { "text": "이제 " }, { "text": "42,000원", "style": "subtitle-highlight" }, { "text": " 그대로 결제돼요" } ], "style": "subtitle", "lane": 2 },
-        { "at": [1.1, 2.8], "shape": "rect", "style": "outline", "parent": "recording",
+        { "at": [0.4, 1.1], "kind": "title", "text": "버튼 하나로", "style": "subtitle", "lane": 2 },
+        { "at": [1.1, 2.8], "kind": "title", "text": [ { "text": "이제 " }, { "text": "42,000원", "style": "subtitle-highlight" }, { "text": " 그대로 결제돼요" } ], "style": "subtitle", "lane": 2 },
+        { "at": [1.1, 2.8], "kind": "rect", "style": "outline", "parent": "recording",
           "area": { "tool": "frames/find-text", "from": "Total", "to": "42,000", "padding": 12 },
           "track": { "tool": "frames/track-motion", "target": "area" } }
       ] }
   ],
   "clips": [
-    { "shape": "rect", "style": "bar", "width": 1080, "height": 420, "anchor": "top-left", "position": [0, 0] },
-    { "shape": "rect", "style": "bar", "width": 1080, "height": 520, "anchor": "bottom-left", "position": [0, 1920] },
-    { "title": [ { "text": "결제 금액이\n" }, { "text": "한눈에", "style": "headline-highlight" }, { "text": " 보여요" } ], "style": "headline" }
+    { "kind": "rect", "style": "bar", "width": 1080, "height": 420, "anchor": "top-left", "position": [0, 0] },
+    { "kind": "rect", "style": "bar", "width": 1080, "height": 520, "anchor": "bottom-left", "position": [0, 1920] },
+    { "kind": "title", "text": [ { "text": "결제 금액이\n" }, { "text": "한눈에", "style": "headline-highlight" }, { "text": " 보여요" } ], "style": "headline" }
   ]
 }

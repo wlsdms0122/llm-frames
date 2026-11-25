@@ -20,13 +20,14 @@
   "storyline": [
     {
       "id": "board",
+      "kind": "media",
       "media": "/media/board.png",
       "duration": 2,
       "connected": [
         {
           "id": "sour",
           "parent": "board",
-          "shape": "rect",
+          "kind": "rect",
           "style": "box",
           "area": [
             80,
@@ -38,7 +39,7 @@
         {
           "id": "total",
           "parent": "board",
-          "shape": "rect",
+          "kind": "rect",
           "style": "box",
           "area": [
             69.795659,
@@ -50,7 +51,7 @@
         {
           "id": "range",
           "parent": "board",
-          "shape": "rect",
+          "kind": "rect",
           "style": "box",
           "area": [
             65.792892,
@@ -62,7 +63,8 @@
         {
           "id": "note",
           "parent": "board",
-          "title": "here",
+          "kind": "title",
+          "text": "here",
           "style": "subtitle",
           "anchor": "left",
           "position": {
@@ -79,6 +81,7 @@
     },
     {
       "id": "zoom",
+      "kind": "media",
       "media": "/media/board.png",
       "duration": 2,
       "crop": [

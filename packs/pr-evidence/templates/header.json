@@ -7,10 +7,10 @@
     "reason": { "type": "text", "default": "42,000 is the item total plus 4,000 shipping", "description": "the second line: what in the picture proves it" }
   },
   "storyline": [
-    { "solid": "#FFFFFF", "duration": 1,
+    { "kind": "solid", "color": "#FFFFFF", "duration": 1,
       "connected": [
-        { "title": { "param": "conclusion" }, "style": "lead", "anchor": "top-left", "position": [40, 40] },
-        { "title": { "param": "reason" }, "style": "body", "anchor": "top-left", "position": [40, 104] }
+        { "kind": "title", "text": { "param": "conclusion" }, "style": "lead", "anchor": "top-left", "position": [40, 40] },
+        { "kind": "title", "text": { "param": "reason" }, "style": "body", "anchor": "top-left", "position": [40, 104] }
       ] }
   ]
 }
