@@ -18,7 +18,7 @@ import FramesVision
 struct RoleFactory: Sendable {
     // MARK: - Property
     // The share of the machine's memory a run holds at most where `--memory` is not written (FRAMES-30 The option).
-    private static let defaultMemoryFraction = 0.5
+    private static let defaultMemoryFraction = 0.375
 
     private let decoders = RoleTable<@Sendable (MemoryBudget) -> any MediaDecoder & MediaFactProvider>(
         role: "decoder",

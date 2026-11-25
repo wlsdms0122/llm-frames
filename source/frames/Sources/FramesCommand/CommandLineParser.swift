@@ -21,7 +21,7 @@ struct CommandLineParser: Sendable {
         OptionRule(
             memory,
             value: "<size>",
-            help: "The most memory a run holds, as <n>MB or <n>GB of 2^20 and 2^30 bytes. Default: half of the machine's memory."
+            help: "The most memory a run holds, as <n>MB or <n>GB of 2^20 and 2^30 bytes. Default: three eighths of the machine's memory."
         )
     ]
 
