@@ -34,12 +34,15 @@ A request is a hole a tool fills ([FRAMES-25](../../spec/FRAMES-25/SPEC.md#reque
 | `{"tool": "find-text", "text": "Total", "nth": 0, "padding": 8}` | the recognised line that contains the text |
 | `{"tool": "find-text", "from": "Sourdough", "to": "Flat white", "fromNth": 0, "toNth": 0, "padding": 8}` | the rectangle around the `from` line, the `to` line and every recognised line whose vertical centre lies between the top of the higher one and the bottom of the lower one |
 
+Either takes `"aspectRatio": [w, h]`, below.
+
 - A request stands wherever an area does, as a `crop`, an `area` and a mask's `area`, on a clip and in a keyframe, and as the `area` of a point `{"area": <request>, "point": "right"}`, in the places below. Anywhere else it stops.
 - Text is compared with whitespace removed, and a line matches when it contains the text. Case counts.
 - `nth`, `fromNth` and `toNth` pick one match, counted from 0 in the order `frames ocr` lists lines: top to bottom by row and left to right within a row.
 - Without `nth`, text that more than one line contains stops, and the message lists every match with its rectangle and line. The same holds for each end of a `from`/`to` request.
 - Text that no line contains, or an `nth` past the last match, stops, naming the place, the text, the nth and the media read.
 - `padding` grows the rectangle found on every side, in the pixels of the media searched. It is optional, 0 or more, and 0 by default.
+- `aspectRatio` `[w, h]`, two numbers above 0, makes the rectangle written that ratio and keeps it inside the picture searched. The part of the padded rectangle inside the picture grows about its centre along one axis until its width to its height is w to h, then slides to lie inside the picture, whose size is the `size` `frames ocr --json` reports for it. So a `crop` that zooms on the text, given the ratio of the clip's box (the frame's `size` for a storyline clip), fills the box with no transparent band past the picture, which a `fit` conform of a rectangle of another ratio leaves ([FRAMES-9](../../spec/FRAMES-9/SPEC.md)). Where the picture holds no rectangle of that ratio around that part, it stops, naming the picture, its size and the ratio. It is optional, and without it the rectangle is the padded one. The ratio is two numbers, as `format`'s `size` is, so a frame's size is written as it stands and 16 by 9 is exact, which a number such as 1.7778 is not.
 - A request holds the keys of one of the two, and any other key stops.
 - A request for any other tool is left as written, so this extension and another chain in either order where neither needs a value the other finds. A target for `frames track-motion` named by its text is the clip's own `area` holding a `find-text` request, which the track request names with `"target": "area"` ([its README](../track-motion/README.md)), so this extension runs first: `frames find-text doc.json | frames track-motion - | frames render - -o out.mp4`.
 
