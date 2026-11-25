@@ -40,10 +40,10 @@ A still is edited as a sequence of still clips, with the keys a video uses:
   "kind": "sequence",
   "format": { "size": { "fit": "content", "margin": [48, 64] }, "background": "#F4F1EA" },
   "storyline": [
-    { "media": "/abs/harbour.jpg", "duration": 1, "crop": [0, 220, 3000, 2000],
+    { "kind": "media", "media": "/abs/harbour.jpg", "duration": 1, "crop": [0, 220, 3000, 2000],
       "connected": [
-        { "media": "/abs/logo.png", "width": 360, "anchor": "top-right", "position": [2952, 48] },
-        { "title": "Harbour at dawn", "style": "title", "width": 1800, "anchor": "bottom-left", "position": [96, 1904] } ] }
+        { "kind": "media", "media": "/abs/logo.png", "width": 360, "anchor": "top-right", "position": [2952, 48] },
+        { "kind": "title", "text": "Harbour at dawn", "style": "title", "width": 1800, "anchor": "bottom-left", "position": [96, 1904] } ] }
   ]
 }
 ```

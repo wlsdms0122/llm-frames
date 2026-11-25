@@ -87,9 +87,9 @@ A clip with a corner pin is placed by points written in its parent's space, so i
 - Where every quadrilateral of the track is a similarity image of the target, as the `point` tracker's data gives, H is M, the corner pin is drawn as Q'(t), and a tracked corner pin moves as a tracked shape placed by its area moves.
 
 ```json
-{ "id": "phone", "media": "/abs/broll/phone.mov", "in": 0, "out": 6,
+{ "id": "phone", "kind": "media", "media": "/abs/broll/phone.mov", "in": 0, "out": 6,
   "connected": [
-    { "id": "screen", "at": [0, 6], "parent": "phone", "media": "/abs/ui/app-demo.mov",
+    { "id": "screen", "at": [0, 6], "parent": "phone", "kind": "media", "media": "/abs/ui/app-demo.mov",
       "cornerPin": [ [812, 304], [1131, 352], [1102, 918], [779, 861] ],
       "track": { "time": 0,
                  "frames": [ { "time": 0, "quad": [ [812, 304], [1131, 352], [1102, 918], [779, 861] ] },

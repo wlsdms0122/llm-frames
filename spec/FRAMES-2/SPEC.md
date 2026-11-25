@@ -38,9 +38,9 @@ A clip area `{"clip": "<id>", "padding": p}` is the box of another clip, as the 
 - A clip whose box depends on itself through clip areas, its own included, stops and names the clips in the cycle: a rect whose area is a title's box, and a title whose `position` is a point of that rect's area.
 
 ```json
-{ "id": "name", "at": [2, 8], "lane": 2, "title": "Mina Park", "style": "name" },
-{ "at": [2, 8], "lane": 1, "shape": "rect", "area": { "clip": "name", "padding": 24 }, "fill": "#101418E6", "radius": 8 },
-{ "at": [2.4, 8], "lane": 2, "title": "Head baker", "style": "role",
+{ "id": "name", "at": [2, 8], "lane": 2, "kind": "title", "text": "Mina Park", "style": "name" },
+{ "at": [2, 8], "lane": 1, "kind": "rect", "area": { "clip": "name", "padding": 24 }, "fill": "#101418E6", "radius": 8 },
+{ "at": [2.4, 8], "lane": 2, "kind": "title", "text": "Head baker", "style": "role",
   "position": { "area": { "clip": "name", "padding": 24 }, "point": "right" }, "anchor": "left" }
 ```
 
