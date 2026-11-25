@@ -58,18 +58,18 @@ An interview shot with a lower third and a logo, a still of a menu board that zo
     }
   },
   "storyline": [
-    { "id": "interview", "media": "/path/to/interview.mov", "in": 2, "out": 8,
+    { "id": "interview", "kind": "media", "media": "/path/to/interview.mov", "in": 2, "out": 8,
       "connected": [
-        { "at": [3, 7.5], "title": [ { "text": "Mina Park\n" }, { "text": "Head baker", "style": "role" } ],
+        { "at": [3, 7.5], "kind": "title", "text": [ { "text": "Mina Park\n" }, { "text": "Head baker", "style": "role" } ],
           "style": "name", "animation": "frames/fade" },
-        { "media": "/path/to/logo.png", "width": 160, "placement": "top-right", "opacity": 0.9 } ] },
-    { "media": "/path/to/board.png", "duration": 4,
+        { "kind": "media", "media": "/path/to/logo.png", "width": 160, "placement": "top-right", "opacity": 0.9 } ] },
+    { "kind": "media", "media": "/path/to/board.png", "duration": 4,
       "transition": { "preset": "frames/fade", "seconds": 0.8 },
       "keyframes": [ { "at": 0, "crop": { "scale": 1 }, "ease": "ease-in-out" }, { "at": 4, "crop": { "scale": 1.3 } } ] },
-    { "media": "/path/to/broll.mov", "in": 0, "out": 4, "transition": "frames/push-left" }
+    { "kind": "media", "media": "/path/to/broll.mov", "in": 0, "out": 4, "transition": "frames/push-left" }
   ],
   "clips": [
-    { "media": "/path/to/music.m4a", "volume": 0.4, "fadeOut": 1.5 }
+    { "kind": "media", "media": "/path/to/music.m4a", "volume": 0.4, "fadeOut": 1.5 }
   ]
 }
 ```
@@ -306,14 +306,14 @@ Three clocks meet on a sequence: **clip time**, a storyline clip's own timeline;
 {
   "kind": "sequence",
   "storyline": [
-    { "media": "/path/to/interview.mov", "in": 0, "out": 4, "speed": 2 },
-    { "media": "/path/to/broll.mov", "in": 0, "out": 6,
+    { "kind": "media", "media": "/path/to/interview.mov", "in": 0, "out": 4, "speed": 2 },
+    { "kind": "media", "media": "/path/to/broll.mov", "in": 0, "out": 6,
       "keyframes": [ { "at": 0, "timeRemap": 4 }, { "at": 2, "timeRemap": 6 },
                      { "at": 3.5, "timeRemap": 6, "ease": "ease-in" }, { "at": 6, "timeRemap": 9 } ] }
   ],
   "clips": [
-    { "at": 2, "media": "/path/to/whoosh.wav", "pan": -0.5 },
-    { "media": "/path/to/music.m4a", "fadeIn": 1,
+    { "at": 2, "kind": "media", "media": "/path/to/whoosh.wav", "pan": -0.5 },
+    { "kind": "media", "media": "/path/to/music.m4a", "fadeIn": 1,
       "keyframes": [ { "at": 1, "volume": 0.6, "ease": "ease-in-out" }, { "at": 1.5, "volume": 0.15 } ] }
   ]
 }
@@ -347,7 +347,7 @@ Any keyframable property takes a static value or keyframes. A keyframe is `{at, 
 A `crop` keyframes its size in log space, so a zoom keeps one speed. In `mask`, `filter`, `adjust`, `fill`, `stroke`, `shadow`, `border`, `character`, `paragraph` and `audioFilter` a keyframe writes the numbers and colours that move, over the clip's static value merged over its style. Names, booleans, files and the form of a value (a mask's `shape`, `invert` and `mode`, a filter's presets and ops, a gradient's kind and number of stops, a stroke's or a border's `align`, a stroke's `join` and `cap`) are static on the clip, and a keyframe that writes one stops. A keyframe's `mask` is a list as long as the clip's, whose masks write only the geometry, `radius` and `feather` they move. A `radius` keyframe may write one number where the next writes four: the number is four equal radii, and each corner moves apart. A leaf written `null` in a keyframe is the merged value at that instant, so a keyframe can point back at the static value or the style's. A leaf whose keyframes all lie before or all after the range its clip is visible in (for the sequence's own keyframes, the sequence) stops, since only one value would ever show.
 
 ```json
-{ "at": [0, 3], "media": "/path/to/broll.mov", "width": 960, "position": [960, 540],
+{ "at": [0, 3], "kind": "media", "media": "/path/to/broll.mov", "width": 960, "position": [960, 540],
   "mask": { "shape": "ellipse", "position": [640, 360] },
   "filter": { "op": "blur", "radius": 12 },
   "keyframes": [ { "at": 0, "mask": [ { "width": 0, "height": 0, "feather": 0 } ], "filter": { "radius": 0 }, "ease": "ease-out" },
@@ -389,7 +389,7 @@ A title clip's `title` is a string or a list of runs `{text, style}`, and its `s
 - Without `width` a title is point text: it does not wrap, its lines break only at `\n`, and its box is as wide as its widest line, so a background hugs the text.
 - With `width` (output pixels) a title is paragraph text: it wraps at that width, its box is `width` wide, each line sits in it by the style's `align`, and a background fills it. Lines break by Unicode line breaking and keep words whole, so Korean breaks at spaces.
 - Text that needs more lines than its style's `lines` stops, with `width` or without, so a `lines: 1` title wider than its `width` stops rather than shrink or cut.
-- Right-to-left and mixed-direction text is laid out by the Unicode Bidirectional Algorithm. A style's `direction` is `auto` (from the text's first strong character, the default), `ltr` or `rtl`, and `align` names a side of the box, `left` by default for left-to-right text and `right` for right-to-left. Characters, words, lines and units stay in the order they are read, so a reveal by character starts an Arabic word at its first letter. Write the text as it is read: `{"title": "שלום עולם", "style": "title"}` is set right to left with no key, and a style with `"direction": "rtl"` sets a line that starts with a Latin name, such as `Frames 2.0 יצאה היום`, from the right.
+- Right-to-left and mixed-direction text is laid out by the Unicode Bidirectional Algorithm. A style's `direction` is `auto` (from the text's first strong character, the default), `ltr` or `rtl`, and `align` names a side of the box, `left` by default for left-to-right text and `right` for right-to-left. Characters, words, lines and units stay in the order they are read, so a reveal by character starts an Arabic word at its first letter. Write the text as it is read: `{"kind": "title", "text": "שלום עולם", "style": "title"}` is set right to left with no key, and a style with `"direction": "rtl"` sets a line that starts with a Latin name, such as `Frames 2.0 יצאה היום`, from the right.
 - Vertical text: a style's or a title's `paragraph` `writingMode` is `horizontal-tb` (the default), `vertical-rl` (vertical lines stacked right to left, for Chinese, Japanese and Korean) or `vertical-lr` (stacked left to right, for Mongolian). Ideographs, kana and Hangul stand upright in their vertical forms and Latin words and digits lie on their sides, as Unicode's Vertical_Orientation gives. A run's style sets `textOrientation` to `upright` to stand every character of the run, `NHK` letter under letter, or to `sideways` to lay every one on its side (`mixed`, the default, follows Vertical_Orientation), and `textCombineUpright: all` to set the run's text side by side in one square of the column, narrowed to 1 em where it is wider, as tate-chu-yoko sets the digits of a date, here with a `combined` style that sets it: `[{"text": "令和", "style": "title"}, {"text": "12", "style": "combined"}, {"text": "年", "style": "title"}]`. Every other key keeps its meaning on the line's axes: `width` is the length the columns wrap at, `align` `left` and `right` are the top and the bottom, `lineHeight` is the distance between columns and `baselineShift` moves to the right.
 - A style's or a `character`'s `font` is a list of families in the order they are tried, the theme `font` by default, and the first family the pack or the machine has is used. Text is laid out by resolve, so line breaks and boxes are the same on every renderer.
 - An animation choice on a title takes `by` (`character`, `word` or `line`), `stagger`, the seconds between one unit's start and the next, and `order`, in both object forms: `{"preset": "frames/rise", "by": "word"}` and `{"entrance": "frames/pop", "exit": "frames/fade", "by": "character", "stagger": 0.03, "order": "center"}`. Each unit plays the entrance and the exit about its own box, and the default `stagger` is 0.04 by character, 0.12 by word and 0.3 by line ([Presets and choices](#presets-and-choices)).
@@ -401,9 +401,9 @@ A title clip's `title` is a string or a list of runs `{text, style}`, and its `s
   "format": { "size": [1920, 1080] },
   "theme": { "styles": { "mark": { "size": 96, "weight": "bold", "color": "#101418",
                                    "highlight": { "color": "#F2B33D", "padding": [4, 16], "radius": 8 } } } },
-  "storyline": [ { "solid": "#101418", "duration": 4 } ],
+  "storyline": [ { "kind": "solid", "color": "#101418", "duration": 4 } ],
   "clips": [
-    { "title": [ { "text": "Baked " }, { "text": "this morning", "style": "mark" } ], "style": "title",
+    { "kind": "title", "text": [ { "text": "Baked " }, { "text": "this morning", "style": "mark" } ], "style": "title",
       "width": 900, "character": { "font": ["Avenir Next"], "tracking": 20 }, "paragraph": { "align": "left", "lineHeight": 110 },
       "animation": { "preset": "frames/rise", "by": "word", "stagger": 0.1 } }
   ]
@@ -442,13 +442,13 @@ A path's vertex `{vertex, inTangent, outTangent}` carries its tangents as offset
   "kind": "sequence",
   "format": { "size": [1920, 1080] },
   "theme": { "colors": { "accent": "#F2B33D" } },
-  "storyline": [ { "solid": "#101418", "duration": 4 } ],
+  "storyline": [ { "kind": "solid", "color": "#101418", "duration": 4 } ],
   "clips": [
-    { "shape": "rect", "width": 800, "height": 200, "position": [960, 300], "radius": 24,
+    { "kind": "rect", "width": 800, "height": 200, "position": [960, 300], "radius": 24,
       "fill": { "linear": { "from": [0, 0], "to": [1, 0], "stops": [ [0, "accent"], [1, "#F2B33D00"] ] } } },
-    { "shape": "ellipse", "width": 300, "height": 300, "position": [1600, 300],
+    { "kind": "ellipse", "width": 300, "height": 300, "position": [1600, 300],
       "fill": { "radial": { "center": [0.5, 0.5], "radius": 1, "stops": [ [0, "#FFFFFF"], [1, "#FFFFFF00"] ] } } },
-    { "shape": "path", "points": [ [400, 800], { "vertex": [1520, 800], "inTangent": [-300, -400] } ],
+    { "kind": "path", "points": [ [400, 800], { "vertex": [1520, 800], "inTangent": [-300, -400] } ],
       "stroke": { "width": 6, "dash": [24, 12], "cap": "round", "end": "frames/arrow" },
       "keyframes": [ { "at": 0, "stroke": { "dashOffset": 0 } }, { "at": 4, "stroke": { "dashOffset": 144 } } ] }
   ]
@@ -484,11 +484,11 @@ A mask is in the clip's own space: its media's pixels for a storyline or media c
   "kind": "sequence",
   "format": { "size": [1920, 1080], "background": "#101418" },
   "theme": { "styles": { "big": { "size": 360, "weight": "bold" } } },
-  "storyline": [ { "solid": "#101418", "duration": 4 } ],
+  "storyline": [ { "kind": "solid", "color": "#101418", "duration": 4 } ],
   "clips": [
-    { "id": "word", "title": "BAKE", "style": "big", "placement": "center" },
-    { "media": "/path/to/broll.mov", "trackMatte": { "clip": "word", "mode": "alpha" } },
-    { "media": "/path/to/logo.png", "width": 200, "position": [1700, 900],
+    { "id": "word", "kind": "title", "text": "BAKE", "style": "big", "placement": "center" },
+    { "kind": "media", "media": "/path/to/broll.mov", "trackMatte": { "clip": "word", "mode": "alpha" } },
+    { "kind": "media", "media": "/path/to/logo.png", "width": 200, "position": [1700, 900],
       "mask": { "shape": "ellipse", "width": 400, "height": 400, "position": [256, 256] }, "blend": "screen" }
   ]
 }
@@ -510,13 +510,13 @@ The B-roll plays inside the letters of the word, and the logo, cut to a circle i
     "shapes": { "outline": { "stroke": { "width": 6 }, "radius": 12, "outset": 10 } }
   },
   "storyline": [
-    { "id": "menu", "media": "/path/to/board.png", "duration": 4,
+    { "id": "menu", "kind": "media", "media": "/path/to/board.png", "duration": 4,
       "connected": [
-        { "parent": "menu", "shape": "rect", "area": [0, 0, 1600, 1000], "fill": "#000000A0",
+        { "parent": "menu", "kind": "rect", "area": [0, 0, 1600, 1000], "fill": "#000000A0",
           "mask": { "shape": "rect", "area": [212, 548, 486, 64], "invert": true, "feather": 4 } },
-        { "id": "box", "parent": "menu", "shape": "rect", "area": [212, 548, 486, 64], "style": "outline",
+        { "id": "box", "parent": "menu", "kind": "rect", "area": [212, 548, 486, 64], "style": "outline",
           "keyframes": [ { "at": 0.5, "trim": [0, 0], "ease": "ease-out" }, { "at": 1.2, "trim": [0, 1] } ] },
-        { "at": [1.2, 4], "parent": "box", "title": "New this week", "style": "note",
+        { "at": [1.2, 4], "parent": "box", "kind": "title", "text": "New this week", "style": "note",
           "anchor": "left", "position": { "area": { "clip": "box", "padding": 28 }, "point": "right" },
           "animation": "frames/fade" } ] }
   ]
@@ -548,7 +548,7 @@ A clip with `"motionBlur": true` shows the motion frames gives it during each fr
 - A fast move shows steps where the samples are far apart: raise `samplesPerFrame`. Each sample is a full drawing of the frame, so a frame with motion blur costs up to that many times as much to render.
 
 ```json
-{ "at": [1, 3], "title": "Fast", "style": "title", "motionBlur": true,
+{ "at": [1, 3], "kind": "title", "text": "Fast", "style": "title", "motionBlur": true,
   "keyframes": [ { "at": 1, "position": [-400, 540], "ease": "ease-out" }, { "at": 1.5, "position": [960, 540] } ] }
 ```
 
@@ -583,12 +583,12 @@ frames holds every colour from the decoder to the encoder as a working value: re
   "kind": "sequence",
   "format": { "size": [3840, 2160], "fps": 25, "colorSpace": "rec2100-pq", "compositing": "linear" },
   "storyline": [
-    { "media": "/path/to/drone-hlg.mov", "in": 0, "out": 6 },
-    { "media": "/path/to/phone.mov", "colorSpace": "rec709", "in": 0, "out": 4, "transition": "frames/fade" }
+    { "kind": "media", "media": "/path/to/drone-hlg.mov", "in": 0, "out": 6 },
+    { "kind": "media", "media": "/path/to/phone.mov", "colorSpace": "rec709", "in": 0, "out": 4, "transition": "frames/fade" }
   ],
   "clips": [
-    { "at": [1, 5], "title": "Above the bay", "style": "title", "placement": "bottom" },
-    { "at": [5, 7], "media": "/path/to/light-leak.mov", "blend": "add", "lane": 2 }
+    { "at": [1, 5], "kind": "title", "text": "Above the bay", "style": "title", "placement": "bottom" },
+    { "at": [5, 7], "kind": "media", "media": "/path/to/light-leak.mov", "blend": "add", "lane": 2 }
   ]
 }
 ```
@@ -609,9 +609,9 @@ From the bottom, a frame is the background, the clips on negative lanes, the sto
 {
   "kind": "sequence",
   "storyline": [
-    { "id": "phone", "media": "/path/to/phone.mov", "in": 0, "out": 3,
+    { "id": "phone", "kind": "media", "media": "/path/to/phone.mov", "in": 0, "out": 3,
       "connected": [
-        { "id": "screen", "parent": "phone", "media": "/path/to/app.png",
+        { "id": "screen", "parent": "phone", "kind": "media", "media": "/path/to/app.png",
           "cornerPin": [ [412, 204], [731, 252], [702, 518], [379, 461] ],
           "track": { "time": 0,
                      "frames": [ { "time": 0, "quad": [ [412, 204], [731, 252], [702, 518], [379, 461] ] },
@@ -633,10 +633,10 @@ A clip with sound plays it at `volume` (default 1), following its `speed` with t
 {
   "kind": "sequence",
   "storyline": [
-    { "media": "/path/to/question.mov", "in": 0, "out": 2.5 },
-    { "media": "/path/to/answer.mov", "in": 1, "out": 3.5, "split": { "before": 1 } }
+    { "kind": "media", "media": "/path/to/question.mov", "in": 0, "out": 2.5 },
+    { "kind": "media", "media": "/path/to/answer.mov", "in": 1, "out": 3.5, "split": { "before": 1 } }
   ],
-  "clips": [ { "at": [0, 5], "media": "/path/to/music-video.mov", "picture": false, "volume": 0.3, "loop": true } ]
+  "clips": [ { "at": [0, 5], "kind": "media", "media": "/path/to/music-video.mov", "picture": false, "volume": 0.3, "loop": true } ]
 }
 ```
 
@@ -666,13 +666,13 @@ The answer is heard a second before it is seen, over the end of the question, an
   "keyframes": [ { "at": 0, "audioFilter": [ { "bands": [ { "frequency": 400 } ] }, {} ], "ease": "ease-in" },
                  { "at": 2, "audioFilter": [ { "bands": [ { "frequency": null } ] }, {} ] } ],
   "storyline": [
-    { "media": "/path/to/interview.mov", "in": 0, "out": 3.5,
+    { "kind": "media", "media": "/path/to/interview.mov", "in": 0, "out": 3.5,
       "audioFilter": [ { "op": "eq", "bands": [ { "type": "highPass", "frequency": 80 }, { "type": "peak", "frequency": 3000, "gain": 3, "q": 1 } ] },
                        { "op": "compressor", "threshold": -18, "ratio": 3, "knee": 6 },
                        { "op": "gate", "threshold": -50 } ] }
   ],
   "clips": [
-    { "at": [0.5, 3.5], "media": "/path/to/tick.wav", "audioFilter": { "op": "convolve", "file": "/path/to/hall.wav", "mix": 0.4 } }
+    { "at": [0.5, 3.5], "kind": "media", "media": "/path/to/tick.wav", "audioFilter": { "op": "convolve", "file": "/path/to/hall.wav", "mix": 0.4 } }
   ]
 }
 ```
@@ -690,9 +690,9 @@ A still is a sequence rendered as one frame (`render -o out.png`, `still`). A st
   "kind": "sequence",
   "format": { "size": { "fit": "content", "margin": [48, 64] }, "background": "#F4F1EA" },
   "storyline": [
-    { "media": "/path/to/board.png", "duration": 1, "crop": [0, 300, 1600, 660],
+    { "kind": "media", "media": "/path/to/board.png", "duration": 1, "crop": [0, 300, 1600, 660],
       "connected": [
-        { "media": "/path/to/logo.png", "width": 120, "anchor": "top-right", "position": [1560, 40] } ] }
+        { "kind": "media", "media": "/path/to/logo.png", "width": 120, "anchor": "top-right", "position": [1560, 40] } ] }
   ]
 }
 ```
@@ -772,8 +772,8 @@ A template is a sequence document with `params`, published parameters as in a mo
                   "description": "how the headline comes in and goes" }
   },
   "storyline": [
-    { "solid": { "param": "color" }, "duration": 3,
-      "connected": [ { "title": { "param": "headline" }, "style": "title", "animation": { "param": "entrance" } } ] }
+    { "kind": "solid", "color": { "param": "color" }, "duration": 3,
+      "connected": [ { "kind": "title", "text": { "param": "headline" }, "style": "title", "animation": { "param": "entrance" } } ] }
   ]
 }
 ```
@@ -784,8 +784,8 @@ Saved as `templates/intro.json` in a pack `mine`, it is used as media with argum
 {
   "kind": "sequence",
   "storyline": [
-    { "media": { "template": "mine/intro", "args": { "headline": "Morning bake", "entrance": "frames/pop" } } },
-    { "media": "/path/to/interview.mov", "in": 2, "out": 6, "transition": "frames/dip-black" }
+    { "kind": "media", "media": { "template": "mine/intro", "args": { "headline": "Morning bake", "entrance": "frames/pop" } } },
+    { "kind": "media", "media": "/path/to/interview.mov", "in": 2, "out": 6, "transition": "frames/dip-black" }
   ]
 }
 ```

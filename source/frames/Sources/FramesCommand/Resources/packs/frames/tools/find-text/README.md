@@ -96,11 +96,11 @@ A board shown as a still, a box drawn around one of its lines, and a note at its
   "kind": "sequence",
   "format": { "size": [1920, 1080] },
   "storyline": [
-    { "id": "menu", "media": "/path/to/board.png", "duration": 4,
+    { "id": "menu", "kind": "media", "media": "/path/to/board.png", "duration": 4,
       "connected": [
-        { "id": "box", "parent": "menu", "shape": "rect", "area": { "tool": "frames/find-text", "text": "Cinnamon bun", "padding": 8 },
+        { "id": "box", "parent": "menu", "kind": "rect", "area": { "tool": "frames/find-text", "text": "Cinnamon bun", "padding": 8 },
           "stroke": { "width": 6, "color": "#F2B33D" } },
-        { "parent": "menu", "title": "New this week", "style": "subtitle", "anchor": "left",
+        { "parent": "menu", "kind": "title", "text": "New this week", "style": "subtitle", "anchor": "left",
           "position": { "area": { "tool": "frames/find-text", "text": "Cinnamon bun", "padding": 28 }, "point": "right" } } ] }
   ]
 }

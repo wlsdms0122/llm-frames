@@ -19,8 +19,8 @@ Write the text as one title, with an `id` the script can find, in a style of its
 { "kind": "sequence",
   "format": { "size": [1280, 720], "fps": 30 },
   "theme": { "styles": { "path": { "size": 96, "weight": "bold", "tracking": 60 } } },
-  "storyline": [ { "solid": "#111827", "duration": 1 } ],
-  "clips": [ { "id": "word", "title": "AVATAR on a path", "style": "path", "position": [640, 360], "animation": "none" } ] }
+  "storyline": [ { "kind": "solid", "color": "#111827", "duration": 1 } ],
+  "clips": [ { "id": "word", "kind": "title", "text": "AVATAR on a path", "style": "path", "position": [640, 360], "animation": "none" } ] }
 ```
 
 ## 2. Read where its characters lie
@@ -161,7 +161,7 @@ The arc is the upper half of a circle of radius 300 about (640, 520), run from l
 Each character becomes a title like this one, the first `A` on the arc:
 
 ```json
-{ "id": "word-0", "title": "A", "style": "path", "position": [336.72, 320.552], "animation": "none",
+{ "id": "word-0", "kind": "title", "text": "A", "style": "path", "position": [336.72, 320.552], "animation": "none",
   "anchor": "top-left", "rotation": -53.415 }
 ```
 

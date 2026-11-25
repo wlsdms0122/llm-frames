@@ -53,13 +53,13 @@ Write the storyline, connected clips, titles, shapes, masks and sound. The keys 
 - Cut the storyline with `in` and `out` from the sheets, and put transitions where the picture changes place or time.
 - Connect titles, shapes and B-roll to the storyline clip they belong to, so they move when it moves. Put what belongs to the whole sequence (music, a logo) in `clips`.
 - Give a shape or a title that sits on something in the picture `parent` set to that clip's `id`, and write its area in the clip's media pixels or by the text on screen. It then moves, scales and turns with the picture ([FRAMES-10](../spec/FRAMES-10/SPEC.md)).
-- Carry clips that move together with a null, `{"null": true, "width": 400, "height": 200, "position": [960, 540]}` or a null with an `area`, and give each of them `parent` set to its `id`. A null draws nothing: its `position`, `scale`, `rotation`, keyframes, animation and `track` move its children, and a clip area or a point can name its box. It takes no style, `opacity`, `lane`, `mask` or `trackMatte`, and a track matte cannot name it ([FRAMES-11](../spec/FRAMES-11/SPEC.md#null-clips)).
+- Carry clips that move together with a null, `{"kind": "null", "width": 400, "height": 200, "position": [960, 540]}` or a null with an `area`, and give each of them `parent` set to its `id`. A null draws nothing: its `position`, `scale`, `rotation`, keyframes, animation and `track` move its children, and a clip area or a point can name its box. It takes no style, `opacity`, `lane`, `mask` or `trackMatte`, and a track matte cannot name it ([FRAMES-11](../spec/FRAMES-11/SPEC.md#null-clips)).
 - Ring something on screen with a rect whose stroke has `"align": "outside"`: the stroke lies around the area and covers none of what it marks, its round joins rounding the corners by its width. `inside` keeps a stroke within the outline, and `center`, the default, straddles it. A media clip's `border` takes the same `align` as `{width, color, align}`, inside its box by default ([FRAMES-11](../spec/FRAMES-11/SPEC.md#shapes)).
 - Round each corner of a box by its own radius with `"radius": [topLeft, topRight, bottomRight, bottomLeft]`, as CSS `border-radius` writes them: `[16, 16, 0, 0]` is a tab sitting on what is below it, and `[24, 24, 24, 0]` a speech bubble pointing down left. It works on a rect, a media or storyline clip, a rect mask and a text background or highlight, and corners too large for their side all shrink together ([FRAMES-11](../spec/FRAMES-11/SPEC.md#shapes)).
 - Bend a `path` shape or a path mask by giving a vertex tangents: a vertex is a point, or `{"vertex": p, "inTangent": [dx, dy], "outTangent": [dx, dy]}`, each tangent an offset from the vertex to a control point, as After Effects writes a path. A segment whose two tangents are 0 is straight. Two tangents pointing in opposite directions make the vertex smooth, and any other pair a corner that takes the stroke's `join`. Trim, dashes and arrowheads follow the curve, and keyframes that write only tangents bend a straight path into a curve ([FRAMES-11](../spec/FRAMES-11/SPEC.md#shapes)). A curved arrow from (200, 600) to (1000, 300), leaving and arriving level:
 
   ```json
-  { "shape": "path", "at": [0, 3], "points": [ { "vertex": [200, 600], "outTangent": [400, 0] }, { "vertex": [1000, 300], "inTangent": [-400, 0] } ],
+  { "kind": "path", "at": [0, 3], "points": [ { "vertex": [200, 600], "outTangent": [400, 0] }, { "vertex": [1000, 300], "inTangent": [-400, 0] } ],
     "fill": false, "stroke": { "width": 8, "end": "frames/arrow" } }
   ```
 
@@ -135,7 +135,7 @@ frames transcode /path/to/out/edit.mov -o /path/to/out/edit.m4a
 A rendered master is media like any other file ([FRAMES-3](../spec/FRAMES-3/SPEC.md)). A piece rendered once (an intro, a background plate, an effect baked by a tool) comes into the next edit as a file, and is not drawn again:
 
 ```json
-{ "id": "intro", "media": "/path/to/out/intro.mov" }
+{ "id": "intro", "kind": "media", "media": "/path/to/out/intro.mov" }
 ```
 
 `render --at` writes one frame as a PNG, for a poster frame or a still to use elsewhere. A sequence document may also be named as media directly, where it plays as a compound clip and is drawn again with the edit.
@@ -281,16 +281,16 @@ Before: a recording after a title card. It comes in with a dissolve, pushes in s
 { "kind": "sequence",
   "format": { "size": [1280, 720], "fps": 30 },
   "storyline": [
-    { "id": "intro", "solid": "#111827", "duration": 1 },
-    { "id": "demo", "media": "/path/to/recording.mov", "in": 0, "out": 3,
+    { "id": "intro", "kind": "solid", "color": "#111827", "duration": 1 },
+    { "id": "demo", "kind": "media", "media": "/path/to/recording.mov", "in": 0, "out": 3,
       "transition": "frames/fade", "fadeOut": 0.5,
       "keyframes": [ { "at": 0, "scale": 1, "ease": "ease-in-out" }, { "at": 3, "scale": 1.1 } ],
       "connected": [
-        { "id": "ring", "at": [0.5, 1.4], "parent": "demo", "shape": "rect", "area": [150, 377, 196, 42],
+        { "id": "ring", "at": [0.5, 1.4], "parent": "demo", "kind": "rect", "area": [150, 377, 196, 42],
           "stroke": { "color": "#F59E0B", "width": 4 }, "radius": 6, "animation": "frames/fade" },
-        { "id": "note", "at": [1.2, 2.4], "parent": "demo", "title": "Shipping is added here", "style": "subtitle",
+        { "id": "note", "at": [1.2, 2.4], "parent": "demo", "kind": "title", "text": "Shipping is added here", "style": "subtitle",
           "anchor": "top-left", "position": [420, 380] },
-        { "id": "badge", "title": "DEMO", "style": "subtitle", "placement": "top-right" } ] }
+        { "id": "badge", "kind": "title", "text": "DEMO", "style": "subtitle", "placement": "top-right" } ] }
   ] }
 ```
 
@@ -300,23 +300,23 @@ After a blade at clip second 1 of `demo`, which is sequence second 2:
 { "kind": "sequence",
   "format": { "size": [1280, 720], "fps": 30 },
   "storyline": [
-    { "id": "intro", "solid": "#111827", "duration": 1 },
-    { "id": "demo", "media": "/path/to/recording.mov", "in": 0, "out": 1,
+    { "id": "intro", "kind": "solid", "color": "#111827", "duration": 1 },
+    { "id": "demo", "kind": "media", "media": "/path/to/recording.mov", "in": 0, "out": 1,
       "transition": "frames/fade",
       "keyframes": [ { "at": 0, "scale": 1, "ease": "ease-in-out" }, { "at": 3, "scale": 1.1 } ],
       "connected": [
-        { "id": "ring", "at": [0.5, 1], "parent": "demo", "shape": "rect", "area": [150, 377, 196, 42],
+        { "id": "ring", "at": [0.5, 1], "parent": "demo", "kind": "rect", "area": [150, 377, 196, 42],
           "stroke": { "color": "#F59E0B", "width": 4 }, "radius": 6,
           "animation": { "entrance": "frames/fade", "exit": "none" } },
-        { "id": "badge", "at": [0, 3], "title": "DEMO", "style": "subtitle", "placement": "top-right" } ] },
-    { "id": "demo-2", "media": "/path/to/recording.mov", "in": 1, "out": 3,
+        { "id": "badge", "at": [0, 3], "kind": "title", "text": "DEMO", "style": "subtitle", "placement": "top-right" } ] },
+    { "id": "demo-2", "kind": "media", "media": "/path/to/recording.mov", "in": 1, "out": 3,
       "transition": "cut", "fadeOut": 0.5,
       "keyframes": [ { "at": 0, "scale": 1, "ease": "ease-in-out" }, { "at": 3, "scale": 1.1 } ],
       "connected": [
-        { "id": "ring-2", "at": [1, 1.4], "parent": "demo-2", "shape": "rect", "area": [150, 377, 196, 42],
+        { "id": "ring-2", "at": [1, 1.4], "parent": "demo-2", "kind": "rect", "area": [150, 377, 196, 42],
           "stroke": { "color": "#F59E0B", "width": 4 }, "radius": 6,
           "animation": { "entrance": "none", "exit": "frames/fade" } },
-        { "id": "note", "at": [1.2, 2.4], "parent": "demo-2", "title": "Shipping is added here", "style": "subtitle",
+        { "id": "note", "at": [1.2, 2.4], "parent": "demo-2", "kind": "title", "text": "Shipping is added here", "style": "subtitle",
           "anchor": "top-left", "position": [420, 380] } ] }
   ] }
 ```
@@ -343,11 +343,11 @@ The instants cover the dissolve, the ring's entrance, the frames on each side of
 A blade through a solid works the same way, except that every later part moves its own keyframes, and the `at` and keyframes of its connected clips, back by where it starts. A 2 second title card bladed at 0.5, with a subtitle connected at `[1, 1.8]` that slides down:
 
 ```json
-{ "id": "card", "solid": "#111827", "duration": 0.5,
-  "connected": [ { "id": "head", "at": [0.2, 1.8], "title": "Checkout", "style": "title" } ] },
-{ "id": "card-2", "solid": "#111827", "duration": 1.5, "transition": "cut",
+{ "id": "card", "kind": "solid", "color": "#111827", "duration": 0.5,
+  "connected": [ { "id": "head", "at": [0.2, 1.8], "kind": "title", "text": "Checkout", "style": "title" } ] },
+{ "id": "card-2", "kind": "solid", "color": "#111827", "duration": 1.5, "transition": "cut",
   "connected": [
-    { "id": "sub", "at": [0.5, 1.3], "title": "now with shipping", "style": "subtitle",
+    { "id": "sub", "at": [0.5, 1.3], "kind": "title", "text": "now with shipping", "style": "subtitle",
       "keyframes": [ { "at": 0.5, "position": [640, 420] }, { "at": 1.3, "position": [640, 520] } ] } ] }
 ```
 

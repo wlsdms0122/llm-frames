@@ -9,11 +9,13 @@
   },
   "storyline": [
     {
-      "solid": "#1E2630",
+      "kind": "solid",
+      "color": "#1E2630",
       "duration": 0.5
     },
     {
       "id": "shot",
+      "kind": "media",
       "media": "/media/moving.mp4",
       "in": 0.2,
       "speed": 0.5,
@@ -25,7 +27,7 @@
             2.6
           ],
           "parent": "shot",
-          "shape": "rect",
+          "kind": "rect",
           "stroke": {
             "width": 4,
             "color": "#3DDC84"
@@ -1029,6 +1031,7 @@
             2.6
           ],
           "parent": "shot",
+          "kind": "media",
           "media": "/media/board.png",
           "keyframes": [
             {

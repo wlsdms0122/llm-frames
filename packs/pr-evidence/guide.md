@@ -26,7 +26,7 @@ The frame is measured from the content: `"size": { "fit": "content" }` with a wh
 **The header.** The template `pr-evidence/header` is a white strip 1206 by 208 with the conclusion in `lead` and the reason in `body` below it, both 40 from its left edge. It is a sequence clip in `clips`, as wide as the picture and set on its top edge:
 
 ```json
-{ "media": { "template": "pr-evidence/header",
+{ "kind": "media", "media": { "template": "pr-evidence/header",
              "args": { "conclusion": "Total includes shipping", "reason": "42,000 is the item total plus 4,000 shipping" } },
   "width": 1206, "anchor": "bottom-left", "position": [0, 0] }
 ```
@@ -35,14 +35,14 @@ Under content fit the frame grows to hold it, so the picture keeps every pixel o
 
 **The marks.** Every mark is a connected clip parented to the picture's clip, so its area is in the picture's media pixels and moves with it. A mark's area is a request for `frames/find-text` that names its line by text, and `frames frames/find-text` fills it with the rectangle `frames ocr` finds there (a tool of the pack `frames`, which ships with frames), so a new screenshot needs no measuring again:
 
-- An **outline** is a rect in the `outline` style on a reason line: `{ "shape": "rect", "style": "outline", "parent": "checkout", "area": { "tool": "frames/find-text", "from": "Item total", "to": "38,000", "padding": 16 } }`. `from` and `to` take the label at the left of a row and its value at the right, so the outline holds the whole row.
+- An **outline** is a rect in the `outline` style on a reason line: `{ "kind": "rect", "style": "outline", "parent": "checkout", "area": { "tool": "frames/find-text", "from": "Item total", "to": "38,000", "padding": 16 } }`. `from` and `to` take the label at the left of a row and its value at the right, so the outline holds the whole row.
 - A **label** is a title in the `label` style parented to its outline, set at a point of the outline's box: give the outline an `id` and the label `"position": { "area": { "clip": "<the outline's id>" }, "point": "bottom-right" }, "anchor": "top-right"`, without `width`, so its background hugs its text. Put it on the side where the picture has room, so it covers no line a reader needs.
-- A **cover** is a rect in the `cover` style over personal data: `{ "shape": "rect", "style": "cover", "parent": "checkout", "area": { "tool": "frames/find-text", "text": "jane@example.com", "padding": 12 } }`.
+- A **cover** is a rect in the `cover` style over personal data: `{ "kind": "rect", "style": "cover", "parent": "checkout", "area": { "tool": "frames/find-text", "text": "jane@example.com", "padding": 12 } }`.
 - A **dim** darkens everything but the reason lines: a rect in the `dim` style over the crop, with an inverted mask of the lines, `{ "shape": "rect", "style": "dim", "parent": "checkout", "area": [0, 130, 1206, 800], "mask": { "shape": "rect", "area": <the lines' area>, "radius": 18, "invert": true } }`. It comes before the outlines, so they draw over it.
 
 **Two states.** Before and after are two pictures side by side: the before picture as the storyline clip, and the after picture as a connected media clip with the same `crop` and `border`, `"anchor": "top-left"` and `"position": [W + 40, 0]`. Its marks are parented to it. Each takes a heading above it, a title in `lead` with `"width": 600`, `"anchor": "bottom-left"`, at `[40, -16]` and `[W + 80, -16]`. The header sits above the headings, at `"position": [0, -80]` and `"width": 1206`. Cover the personal data in both pictures. `examples/before-after.json` is this layout with its numbers written out: with `W` the picture's width, the after picture is at `[W + 40, 0]` and the headings at `[40, -16]` and `[W + 80, -16]`.
 
-**A caption.** A recording that needs a line of words on it takes a title in the `caption` style: white on a dark box, two lines at most, at the bottom of the frame. Its style places it, so it writes no `position`, and it does not change the measured frame: `{ "at": [1.2, 2.8], "title": "The total updates as shipping is added", "style": "caption" }`. It lies over the bottom of the recording, so use it where nothing that proves the claim is shown there, and keep the claim itself in the header.
+**A caption.** A recording that needs a line of words on it takes a title in the `caption` style: white on a dark box, two lines at most, at the bottom of the frame. Its style places it, so it writes no `position`, and it does not change the measured frame: `{ "at": [1.2, 2.8], "kind": "title", "text": "The total updates as shipping is added", "style": "caption" }`. It lies over the bottom of the recording, so use it where nothing that proves the claim is shown there, and keep the claim itself in the header.
 
 ## Rules
 

@@ -10,6 +10,7 @@
   "storyline": [
     {
       "id": "shot",
+      "kind": "media",
       "media": "/media/moving.mp4",
       "connected": [
         {
@@ -19,7 +20,7 @@
             2.6
           ],
           "parent": "shot",
-          "shape": "rect",
+          "kind": "rect",
           "area": [
             124,
             202,
@@ -1114,7 +1115,8 @@
             2.6
           ],
           "parent": "shot",
-          "title": "Card",
+          "kind": "title",
+          "text": "Card",
           "style": "subtitle",
           "position": [
             188,
@@ -2204,6 +2206,7 @@
             2.6
           ],
           "parent": "shot",
+          "kind": "media",
           "media": "/media/board.png",
           "cornerPin": [
             [
@@ -3181,7 +3184,7 @@
             2.6
           ],
           "parent": "shot",
-          "shape": "rect",
+          "kind": "rect",
           "area": [
             252,
             106,
@@ -4717,7 +4720,7 @@
             1
           ],
           "parent": "shot",
-          "shape": "rect",
+          "kind": "rect",
           "area": {
             "tool": "frames/find-text",
             "text": "Total"
@@ -4754,6 +4757,7 @@
     },
     {
       "id": "seq",
+      "kind": "media",
       "media": {
         "imageSequence": "/media/frames",
         "fps": 25

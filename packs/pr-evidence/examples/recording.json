@@ -3,21 +3,21 @@
   "theme": "pr-evidence/pr-evidence",
   "format": { "size": { "fit": "content" }, "fps": 30, "background": "#FFFFFF" },
   "storyline": [
-    { "id": "checkout", "media": "/path/to/checkout.mov", "in": 0.4, "out": 2.8, "volume": 0, "border": true,
+    { "id": "checkout", "kind": "media", "media": "/path/to/checkout.mov", "in": 0.4, "out": 2.8, "volume": 0, "border": true,
       "connected": [
-        { "null": true, "id": "list", "parent": "checkout",
+        { "kind": "null", "id": "list", "parent": "checkout",
           "area": { "tool": "frames/find-text", "text": "Total" }, "track": { "tool": "frames/track-motion", "target": "area" } },
-        { "shape": "rect", "style": "cover", "parent": "list", "animation": "none",
+        { "kind": "rect", "style": "cover", "parent": "list", "animation": "none",
           "area": { "tool": "frames/find-text", "text": "jane@example.com", "padding": 8 } },
-        { "at": [1.2, 2.8], "shape": "rect", "style": "outline", "id": "total", "parent": "checkout",
+        { "at": [1.2, 2.8], "kind": "rect", "style": "outline", "id": "total", "parent": "checkout",
           "area": { "tool": "frames/find-text", "from": "Total", "to": "42,000", "padding": 12 },
           "track": { "tool": "frames/track-motion", "target": "area" } },
-        { "at": [1.2, 2.8], "title": "38,000 + 4,000", "style": "label", "parent": "total",
+        { "at": [1.2, 2.8], "kind": "title", "text": "38,000 + 4,000", "style": "label", "parent": "total",
           "position": { "area": { "clip": "total" }, "point": "bottom-right" }, "anchor": "top-right" }
       ] }
   ],
   "clips": [
-    { "media": { "template": "pr-evidence/header",
+    { "kind": "media", "media": { "template": "pr-evidence/header",
                  "args": { "conclusion": "Adding shipping updates the total", "reason": "The total goes from 38,000 to 42,000 as shipping is added" } },
       "width": 1280, "anchor": "bottom-left", "position": [0, 0] }
   ]

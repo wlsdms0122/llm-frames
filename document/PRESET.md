@@ -298,15 +298,15 @@ Then try the preset in a document small enough to read at a glance:
 { "kind": "sequence",
   "format": { "size": [1920, 1080], "fps": 30 },
   "storyline": [
-    { "solid": "#1F2937", "duration": 3,
-      "connected": [ { "at": [0.5, 3], "title": "Before", "style": "title",
+    { "kind": "solid", "color": "#1F2937", "duration": 3,
+      "connected": [ { "at": [0.5, 3], "kind": "title", "text": "Before", "style": "title",
                        "animation": { "preset": "studio/lift", "args": { "bounce": 0.5 } } } ] },
-    { "solid": "#F59E0B", "duration": 3,
+    { "kind": "solid", "color": "#F59E0B", "duration": 3,
       "transition": { "preset": "studio/dip", "seconds": 1, "args": { "color": "#1B3A6B", "curve": "ease-in-out" } },
-      "connected": [ { "title": "After", "style": "title",
+      "connected": [ { "kind": "title", "text": "After", "style": "title",
                        "animation": { "entrance": { "preset": "studio/type-on", "args": { "seconds": 1.2 } }, "exit": "frames/fade" } } ] },
-    { "solid": "#0F766E", "duration": 3, "transition": "studio/iris",
-      "connected": [ { "adjust": [ "frames/warm", { "preset": "studio/film", "args": { "grain": 0.02 } } ] } ] }
+    { "kind": "solid", "color": "#0F766E", "duration": 3, "transition": "studio/iris",
+      "connected": [ { "kind": "adjustment", "adjust": [ "frames/warm", { "preset": "studio/film", "args": { "grain": 0.02 } } ] } ] }
   ] }
 ```
 

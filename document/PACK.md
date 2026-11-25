@@ -123,12 +123,12 @@ A template is a sequence document with published parameters, as an NLE's motion 
     "entrance": { "type": "choice", "options": ["frames/rise", "frames/slide-left", "frames/fade"], "default": "frames/rise", "description": "how the text comes in and goes" }
   },
   "storyline": [
-    { "solid": "#00000000", "duration": { "param": "length" },
+    { "kind": "solid", "color": "#00000000", "duration": { "param": "length" },
       "connected": [
-        { "shape": "rect", "width": 8, "height": 136, "anchor": "bottom-left", "position": [96, 960], "fill": { "param": "accent" },
+        { "kind": "rect", "width": 8, "height": 136, "anchor": "bottom-left", "position": [96, 960], "fill": { "param": "accent" },
           "animation": "frames/fade" },
-        { "title": { "param": "name" }, "style": "name", "anchor": "bottom-left", "position": [128, 904], "animation": { "param": "entrance" } },
-        { "title": { "param": "role" }, "style": "role", "anchor": "bottom-left", "position": [128, 960], "animation": { "param": "entrance" } } ] }
+        { "kind": "title", "text": { "param": "name" }, "style": "name", "anchor": "bottom-left", "position": [128, 904], "animation": { "param": "entrance" } },
+        { "kind": "title", "text": { "param": "role" }, "style": "role", "anchor": "bottom-left", "position": [128, 960], "animation": { "param": "entrance" } } ] }
   ]
 }
 ```
@@ -145,8 +145,8 @@ A template is a sequence document with published parameters, as an NLE's motion 
     "entrance":   { "type": "choice", "options": ["frames/rise", "frames/zoom", "none"], "default": "frames/rise", "description": "how the headline comes in" }
   },
   "storyline": [
-    { "solid": { "param": "background" }, "duration": 2,
-      "connected": [ { "title": { "param": "title" }, "style": "title", "width": 1600, "animation": { "param": "entrance" } } ] }
+    { "kind": "solid", "color": { "param": "background" }, "duration": 2,
+      "connected": [ { "kind": "title", "text": { "param": "title" }, "style": "title", "width": 1600, "animation": { "param": "entrance" } } ] }
   ] }
 ```
 
@@ -162,11 +162,11 @@ A template is a sequence document with published parameters, as an NLE's motion 
     "line": { "type": "text", "default": "Next time", "description": "the line above the clip" }
   },
   "storyline": [
-    { "solid": "#111827", "duration": 4,
+    { "kind": "solid", "color": "#111827", "duration": 4,
       "connected": [
-        { "media": { "param": "logo" }, "width": 240, "placement": "top-left" },
-        { "title": { "param": "line" }, "style": "title", "anchor": "bottom-left", "position": [960, 300], "scale": 0.6 },
-        { "media": { "param": "next" }, "width": 864, "height": 486, "anchor": "top-left", "position": [960, 340] } ] }
+        { "kind": "media", "media": { "param": "logo" }, "width": 240, "placement": "top-left" },
+        { "kind": "title", "text": { "param": "line" }, "style": "title", "anchor": "bottom-left", "position": [960, 300], "scale": 0.6 },
+        { "kind": "media", "media": { "param": "next" }, "width": 864, "height": 486, "anchor": "top-left", "position": [960, 340] } ] }
   ] }
 ```
 
@@ -207,11 +207,11 @@ A template is used as media, `{"template": "<pack>/<name>", "args": {...}}`, whe
 { "kind": "sequence",
   "format": { "size": [1920, 1080], "fps": 30 },
   "storyline": [
-    { "media": { "template": "mine/intro", "args": { "title": "Checkout, fixed", "entrance": "frames/zoom" } } },
-    { "media": "/path/to/interview.mov", "in": 0, "out": 3, "filter": "mine/warm-screen",
+    { "kind": "media", "media": { "template": "mine/intro", "args": { "title": "Checkout, fixed", "entrance": "frames/zoom" } } },
+    { "kind": "media", "media": "/path/to/interview.mov", "in": 0, "out": 3, "filter": "mine/warm-screen",
       "transition": { "preset": "mine/dip", "args": { "color": "#F59E0B" } },
-      "connected": [ { "at": [0.5, 3], "media": { "template": "mine/lower-third", "args": { "name": "Mina Park", "role": "Engineer", "length": 2.5 } } } ] },
-    { "media": { "template": "mine/end-card", "args": { "logo": "mine/logo.png", "next": "/path/to/next.mov" } },
+      "connected": [ { "at": [0.5, 3], "kind": "media", "media": { "template": "mine/lower-third", "args": { "name": "Mina Park", "role": "Engineer", "length": 2.5 } } } ] },
+    { "kind": "media", "media": { "template": "mine/end-card", "args": { "logo": "mine/logo.png", "next": "/path/to/next.mov" } },
       "transition": "frames/fade" }
   ] }
 ```

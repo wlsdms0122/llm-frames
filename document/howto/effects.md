@@ -10,7 +10,7 @@ A filter preset combines the filter ops frames has ([FRAMES-15](../../spec/FRAME
 Light leaks, film burns, sparks, dust and particles add light or shapes to whatever is below. Render them as a video with alpha (ProRes 4444, or HEVC with alpha) or as a PNG sequence, and put the result on a lane above the picture:
 
 ```json
-{ "at": [0.5, 2], "media": "/path/to/light-leak.mov", "blend": "screen", "lane": 3 }
+{ "at": [0.5, 2], "kind": "media", "media": "/path/to/light-leak.mov", "blend": "screen", "lane": 3 }
 ```
 
 - An effect that is light on black needs no alpha. `screen` and `plus-lighter` leave a picture unchanged where the layer is black and brighten it where the layer is lit, which is how light leaks and film burns are delivered.
@@ -49,10 +49,10 @@ python3 leak.py /path/to/leak 45
 { "kind": "sequence",
   "format": { "size": [1280, 720], "fps": 30 },
   "storyline": [
-    { "media": "/path/to/recording.mp4", "in": 0, "out": 3 }
+    { "kind": "media", "media": "/path/to/recording.mp4", "in": 0, "out": 3 }
   ],
   "clips": [
-    { "at": [0.5, 2], "media": { "imageSequence": "/path/to/leak", "fps": 30 }, "blend": "screen", "lane": 2 }
+    { "at": [0.5, 2], "kind": "media", "media": { "imageSequence": "/path/to/leak", "fps": 30 }, "blend": "screen", "lane": 2 }
   ] }
 ```
 
@@ -122,12 +122,12 @@ The processed range becomes its own storyline clip, a blade as [GUIDE.md](../GUI
 { "kind": "sequence",
   "format": { "size": [1280, 720], "fps": 30 },
   "storyline": [
-    { "id": "demo", "media": "/path/to/recording.mp4", "in": 0, "out": 1,
-      "connected": [ { "at": [0.4, 1], "parent": "demo", "shape": "rect", "area": { "tool": "frames/find-text", "text": "Total", "padding": 8 },
+    { "id": "demo", "kind": "media", "media": "/path/to/recording.mp4", "in": 0, "out": 1,
+      "connected": [ { "at": [0.4, 1], "parent": "demo", "kind": "rect", "area": { "tool": "frames/find-text", "text": "Total", "padding": 8 },
                        "stroke": { "color": "#F59E0B", "width": 4 } } ] },
-    { "id": "demo-glitch", "media": { "imageSequence": "/path/to/work/glitched", "fps": 30 }, "transition": "cut",
-      "connected": [ { "media": "/path/to/recording.mp4", "in": 1, "out": 2, "opacity": 0 } ] },
-    { "id": "demo-end", "media": "/path/to/recording.mp4", "in": 2, "out": 3, "transition": "cut" }
+    { "id": "demo-glitch", "kind": "media", "media": { "imageSequence": "/path/to/work/glitched", "fps": 30 }, "transition": "cut",
+      "connected": [ { "kind": "media", "media": "/path/to/recording.mp4", "in": 1, "out": 2, "opacity": 0 } ] },
+    { "id": "demo-end", "kind": "media", "media": "/path/to/recording.mp4", "in": 2, "out": 3, "transition": "cut" }
   ] }
 ```
 
