@@ -42,7 +42,8 @@ struct RunReportTests {
             machine: machine,
             roles: roles,
             recorder: recorder,
-            readings: decoder.readings()
+            readings: decoder.readings(),
+            memory: MemoryBudget(limit: .unlimited).usage
         )
 
         // Then
@@ -88,7 +89,8 @@ struct RunReportTests {
             machine: machine,
             roles: roles,
             recorder: recorder,
-            readings: decoder.readings()
+            readings: decoder.readings(),
+            memory: MemoryBudget(limit: .unlimited).usage
         )
 
         // Then
@@ -139,7 +141,18 @@ struct RunReportTests {
             machine: machine,
             roles: roles,
             recorder: recorder,
-            readings: MediaReadings(media: media, seconds: decoded, readAhead: ahead, waiting: 0.125)
+            readings: MediaReadings(media: media, seconds: decoded, readAhead: ahead, waiting: 0.125),
+            memory: MemoryUsage(
+                limit: 8_589_934_592,
+                floor: 1_000,
+                peak: 1_500,
+                holders: [
+                    MemoryHolderUsage(holder: .readers, floor: 600, peak: 900, refused: 2),
+                    MemoryHolderUsage(holder: .readAhead, floor: 0, peak: 200, refused: 1),
+                    MemoryHolderUsage(holder: .frames, floor: 300, peak: 300, refused: 0),
+                    MemoryHolderUsage(holder: .sound, floor: 100, peak: 100, refused: 0)
+                ]
+            )
         )
 
         // Then
@@ -157,7 +170,10 @@ struct RunReportTests {
             {"path": "/abs/hlg.mov", "page": null, "colorSpace": null, "conversion": "hlg", \#
             "device": "cpu", "pixelFormat": "16-bit float RGBA", "framesRead": 1, "framesDecoded": 1, "reopened": 0}], \#
             "files": [{"path": "/abs/out.mov", "codec": "ProRes 422 HQ", "hardware": true, "device": "cpu"}, \#
-            {"path": "/abs/out.mp4", "codec": "H.264", "hardware": true, "device": "gpu"}]}
+            {"path": "/abs/out.mp4", "codec": "H.264", "hardware": true, "device": "gpu"}], \#
+            "memory": {"limit": 8589934592, "floor": 1000, "peak": 1500, "holders": \#
+            {"readers": {"floor": 600, "peak": 900, "refused": 2}, "readAhead": {"floor": 0, "peak": 200, "refused": 1}, \#
+            "frames": {"floor": 300, "peak": 300, "refused": 0}, "sound": {"floor": 100, "peak": 100, "refused": 0}}}}
             """#
         #expect(sut.machineOutput.written == expected)
     }

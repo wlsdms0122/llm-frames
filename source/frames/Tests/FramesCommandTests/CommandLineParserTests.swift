@@ -42,6 +42,7 @@ struct CommandLineParserTests {
                         ocr: "vision",
                         shaper: nil,
                         tracker: nil,
+                        memory: nil,
                         written: ["--theme", "shorts/shorts", "--ocr", "vision"]
                     )
                 )
@@ -60,6 +61,7 @@ struct CommandLineParserTests {
                         ocr: nil,
                         shaper: nil,
                         tracker: "point",
+                        memory: nil,
                         written: ["--tracker", "point"]
                     )
                 )
@@ -82,13 +84,17 @@ struct CommandLineParserTests {
         arguments: [
             (
                 ["--fps", "30", "render"],
-                #"unknown option "--fps". Allowed: --theme, --decoder, --renderer, --mixer, --encoder, --shaper, --tracker, --ocr, --version, --help"#
+                #"unknown option "--fps". Allowed: --theme, --decoder, --renderer, --mixer, --encoder, --shaper, --tracker, --ocr, --memory, --version, --help"#
             ),
             (
                 ["--ocr-languages", "ko-KR", "probe"],
-                #"unknown option "--ocr-languages". Allowed: --theme, --decoder, --renderer, --mixer, --encoder, --shaper, --tracker, --ocr, --version, --help"#
+                #"unknown option "--ocr-languages". Allowed: --theme, --decoder, --renderer, --mixer, --encoder, --shaper, --tracker, --ocr, --memory, --version, --help"#
             ),
             (["--theme"], "--theme takes a value, <pack/name | /abs/theme.json>"),
+            (["--memory", "6gb", "probe"], #"--memory "6gb" is not a size of at least 1MB, <n>MB or <n>GB"#),
+            (["--memory", "6 GB", "probe"], #"--memory "6 GB" is not a size of at least 1MB, <n>MB or <n>GB"#),
+            (["--memory", "0.5MB", "probe"], #"--memory "0.5MB" is not a size of at least 1MB, <n>MB or <n>GB"#),
+            (["--memory", "6TB", "probe"], #"--memory "6TB" is not a size of at least 1MB, <n>MB or <n>GB"#),
             (["--ocr", "vision", "--ocr", "vision", "probe"], "--ocr is given more than once"),
             (["--version", "now"], #"--version takes no arguments, found "now""#),
             (["--help", "render"], #"--help takes no arguments, found "render". A command's help is frames <command> --help"#)
@@ -101,6 +107,20 @@ struct CommandLineParserTests {
         // Given, When, Then
         let error = #expect(throws: CommandError.self) { try sut.parse(arguments) }
         #expect(error?.description == message)
+    }
+
+    @Test("--memory takes a size in MB or GB of 2^20 and 2^30 bytes")
+    func parsesMemory() throws {
+        // Given, When
+        let sizes = try ["6GB", "1.5GB", "512MB", "1MB"].map { size in
+            guard case let .command(_, _, options) = try sut.parse(["--memory", size, "probe", "/abs/a.mov"]) else {
+                return nil as Int?
+            }
+            return options.memory?.bytes
+        }
+
+        // Then
+        #expect(sizes == [6 << 30, 3 << 29, 512 << 20, 1 << 20])
     }
 
     // MARK: - Private
