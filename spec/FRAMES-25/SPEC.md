@@ -1,18 +1,77 @@
-# FRAMES-25: Forms, guides and extensions
+# FRAMES-25: Layers, forms, guides and extensions
 
 Status: accepted
 
 ## Summary
 
-What sits outside the engine and uses only what frames has: forms, which are packs with a guide and examples that an edit may start from; how-tos; the iterative way an edit is made; and extensions, programs that take a document and give a document.
+The layers of frames: the engine, which turns an edit written out in values, with the media it names, into a result; vocabulary, the named values a document uses and resolve replaces; and tools, the programs that decide values and write them into a document before resolve. It gives what the engine takes and what it gives, the two rules that keep the flow between the layers whole, and the test for which layer a new feature is built in. Then what each layer above the engine holds: forms, which are packs with a guide and examples that an edit may start from; how-tos; the iterative way an edit is made; and extensions, programs that take a document and give a document.
 
 ## Motivation
 
-Purposes change faster than tools and differ between editors. A music video is cut to the beat, a lecture needs captions and chapter cards, an ad needs an end card and a cut for every placement, a tutorial needs zooms on the part being explained. Each of these is made from the same tools: clips on a storyline, titles, shapes, masks, transitions, sound. If frames carried each purpose as a feature, every new kind of work would wait on a change to frames, and the core would fill with rules that only one purpose keeps. Keeping purposes in packs and programs outside the engine lets a new one be added without changing frames, and keeps every rule in the core one that any result uses.
+Every rule of frames is either a rule of the engine or a rule of what is built on it, and without one definition of the engine's territory each new feature reopens the question. A place found by its text, a target followed through a shot, captions fitted to a box: each can be written as a value the engine reads, or as a request the engine answers while it runs, and the second puts rules into the engine that only that feature keeps. One definition of what the engine takes, what it gives and what lies above it decides each such feature by one test, and keeps a resolved document enough to make its result again.
+
+Purposes change faster than an editor's capabilities and differ between editors. A music video is cut to the beat, a lecture needs captions and chapter cards, an ad needs an end card and a cut for every placement, a tutorial needs zooms on the part being explained. Each of these is made from the same capabilities: clips on a storyline, titles, shapes, masks, transitions, sound. If frames carried each purpose as a feature, every new kind of work would wait on a change to frames, and the core would fill with rules that only one purpose keeps. Keeping purposes in packs and programs outside the engine lets a new one be added without changing frames, and keeps every rule in the core one that any result uses.
 
 ## Rules
 
-Guides, how-tos and extensions sit outside the engine. They only use what frames already has.
+### Layers
+
+**An edit is a value.** The engine is the function that turns an edit written out in values, with the media it names, into a result. Deciding a value is done above the engine. This is non-destructive editing: media is never changed, the document describes the edit, and render carries the description out. A tracker or a stabiliser in an NLE works this way: it writes what it finds into the timeline as keyframes, and render reads the keyframes.
+
+```mermaid
+flowchart TB
+    subgraph toolLayer["Tools"]
+        tools["programs that read media and reports and write values"]
+    end
+    subgraph vocabularyLayer["Vocabulary"]
+        vocabulary["presets, themes, templates, LUTs, fonts and media, in packs"]
+    end
+    media["media"]
+    document["document"]
+    subgraph engineLayer["Engine"]
+        resolve["resolve"]
+        evaluation["evaluation and the roles"]
+    end
+    results["results: video, stills, sound"]
+    reports["reports: probe, timeline, evaluate, locate"]
+
+    media -->|"before resolve: read"| tools
+    reports -->|"before resolve: read"| tools
+    tools -->|"before resolve: write values"| document
+    document -->|"names"| vocabulary
+    vocabulary -->|"at resolve: replaced by values"| resolve
+    document -->|"when a result is made"| resolve
+    media -->|"when a result is made"| resolve
+    resolve -->|"resolved document"| evaluation
+    evaluation --> results
+    resolve --> reports
+    evaluation --> reports
+```
+
+frames is three layers.
+
+| Layer | What it is | When it runs |
+| --- | --- | --- |
+| engine | time, placement, compositing, drawing, mixing, encoding, and reading the media and fonts those need | when a result is made, and when a report is asked for |
+| vocabulary | named values built from the engine's values, and the named files the engine reads | it is data, replaced by its values at resolve |
+| tools | programs that read media or the engine's reports and write values into a document | before resolve |
+
+- **The engine** is resolve ([FRAMES-19](../FRAMES-19/SPEC.md)), evaluation ([FRAMES-20](../FRAMES-20/SPEC.md)), the roles and the shaping provider ([FRAMES-21](../FRAMES-21/SPEC.md)). It reads no content to decide anything: every value it works from is in the document, in what the document names, or follows from them by calculation, as a content-fit frame, where a line breaks and a clip's box do. A formula that reads pixels or samples, a blur or a compressor's level, is such a calculation, since the document gives the formula and each of its parameters. Applying track data is the engine's: the motion fitted to its quads and the homography they give carry the clip ([FRAMES-12](../FRAMES-12/SPEC.md#track-data)).
+- **Vocabulary** is the named values a document uses, built from the engine's own values, and the named files the engine reads: presets of each kind, themes, templates, LUTs, fonts and media, carried in packs ([FRAMES-17](../FRAMES-17/SPEC.md)). Resolve replaces each name by what it names, a preset, a theme or a template by its values and a LUT, a font or a medium by its file pinned by hash, so the resolved document holds no name of the vocabulary and does not depend on what is installed later. A form's presets, themes and templates are vocabulary, and its guide and examples are read by whoever writes the document, never by frames.
+- **Tools** are programs that read media or the engine's reports and write values into a document. One finds a place by its text, follows a target, cuts silence, fits captions to a box, or brings in a format the engine does not read by converting it into media or into document values, as SVG is converted to a page of a PDF ([FRAMES-3](../FRAMES-3/SPEC.md)). Tools run before resolve, and nothing of a tool runs while a result is made. An extension is a tool that takes a document and gives a document ([Extensions](#extensions)). `ocr` and `track` are tools frames ships as commands: each reads media through its provider and gives values a document holds, the rect area of a line of text and the quads of track data ([FRAMES-21](../FRAMES-21/SPEC.md)).
+
+Two rules keep the flow between the layers whole.
+
+1. **What the engine takes is complete.** A value in a document is the value, never a request to find one. A value still to be found would make every later step answer what happens while it is not found yet: which frame it is searched on, what a cut does to it, how it meets a tracked parent. Those answers are rules the engine would carry for one feature. So a tool finds the value and writes it, and the engine reads it as written.
+2. **What the engine computes is readable.** Every fact resolve and evaluation compute about a document is given by a report: times and ranges, and when each clip is visible, by `timeline`, what is drawn at an instant and where by `evaluate`, what lies under a point and the media frame it shows by `locate`, and the facts of media by `probe` ([FRAMES-23](../FRAMES-23/SPEC.md)). So a tool never rebuilds the engine's arithmetic, and what it reads is what the engine draws from the same resolve. A fact a tool needs that no report gives is a defect of the reports, and is mended by a report.
+
+**The test for a new feature: can a tool or vocabulary build it from what the engine takes and gives, keeping each fact one value?** Then it is built there, and frames may ship it first-party when it is used often, as a preset of the pack `frames` ([FRAMES-16](../FRAMES-16/SPEC.md)) or an extension kept beside the tool. If it cannot, what belongs in the engine is the capability or the report that lets it be built, not the feature. A stroke's head is a capability: the engine lays any head outline on a stroke's end ([FRAMES-11](../FRAMES-11/SPEC.md#shapes)), and the heads, the arrow among them, are presets. Naming a place by its text is a tool: it reads `ocr` and writes the rectangle it finds, and the engine takes a rectangle ([FRAMES-2](../FRAMES-2/SPEC.md)).
+
+**A fact is one value.** What a tool or vocabulary would build only by spreading one editing fact over several clips or values, or by baking it into media, it cannot build, and the capability is the engine's. It is the test the split edit, keyframes, text by unit and gradients are in frames by: outside frames, a J cut would be an audio clip of the shot's sound beside it with the shot's `volume` keyed down to match ([FRAMES-13](../FRAMES-13/SPEC.md)), a colour that shifts would be two clips crossfaded or a clip for each frame ([FRAMES-4](../FRAMES-4/SPEC.md)), text that enters word by word would be a title for each word with its own window ([FRAMES-14](../FRAMES-14/SPEC.md)), and a gradient would be bands stacked or an image made outside ([FRAMES-11](../FRAMES-11/SPEC.md)). What a program makes by reading frames' reports and writing one value for each fact stays outside: text measured and fitted to a box, captions timed to a transcript, each caption one title. A template is the one place where no program runs, and there **a template draws its design for every parameter value it accepts on the fonts it is resolved with, and stops for a value it cannot draw** ([FRAMES-17](../FRAMES-17/SPEC.md)). Fonts are part of the environment, pinned by hash as media are, and a pack ships the fonts its templates are designed in. What that needs is a capability of the engine for that reason: a bar that does not fit its name does not draw the design, so a box that follows the size of a text argument is frames' ([FRAMES-2](../FRAMES-2/SPEC.md)). Text shrunk to fit is not needed, since a name longer than its title's `width` and `lines` allow is a value the template cannot draw, and it stops.
+
+A missing look becomes a preset or a pack. A missing capability goes into this specification and the model first, and into the roles only when it needs a new kind of pixel, sound or file work. A form-only feature, or one that serves a purpose rather than editing, is never hidden in either.
+
+The sections below give what the layers above the engine hold: forms and how-tos, the way an edit goes round the layers until it holds, and extensions.
 
 ### Forms and how-tos
 
@@ -26,10 +85,6 @@ A form is a kind of result (a music video, a lecture, an ad, a vertical short) a
 - an example
 
 A how-to (`howto/<name>.md`) teaches a technique that belongs to no form, so it has no theme and no example of its own. Making material outside frames is a how-to.
-
-A missing look becomes a preset or a pack. A missing capability goes into this specification and the model first, and into the roles only when it needs a new kind of pixel, sound or file work. A form-only feature, or one that serves a purpose rather than editing, is never hidden in either.
-
-**A tool belongs in frames when, outside it, one editing fact would have to be spread over several clips or values, or baked into media. What an extension builds while keeping each fact one value is the extension's.** Packs and extension programs both build outside frames, and the test counts both. It is the test the split edit, keyframes, text by unit and gradients are in frames by: outside frames, a J cut would be an audio clip of the shot's sound beside it with the shot's `volume` keyed down to match ([FRAMES-13](../FRAMES-13/SPEC.md)), a colour that shifts would be two clips crossfaded or a clip for each frame ([FRAMES-4](../FRAMES-4/SPEC.md)), text that enters word by word would be a title for each word with its own window ([FRAMES-14](../FRAMES-14/SPEC.md)), and a gradient would be bands stacked or an image made outside ([FRAMES-11](../FRAMES-11/SPEC.md)). What a program makes by reading frames' reports and writing one value for each fact stays outside: text measured and fitted to a box, captions timed to a transcript, each caption one title. A template is the one place where no program runs, and there **a template draws its design for every parameter value it accepts on the fonts it is resolved with, and stops for a value it cannot draw** ([FRAMES-17](../FRAMES-17/SPEC.md)). Fonts are part of the environment, pinned by hash as media are, and a pack ships the fonts its templates are designed in. What that needs is a tool of frames for that reason: a bar that does not fit its name does not draw the design, so a box that follows the size of a text argument is frames' ([FRAMES-2](../FRAMES-2/SPEC.md)). Text shrunk to fit is not needed, since a name longer than its title's `width` and `lines` allow is a value the template cannot draw, and it stops.
 
 ### How an edit is made
 
@@ -52,6 +107,8 @@ Three kinds of thing are added to frames without changing this specification.
 | implementations | a decoder, renderer, mixer or encoder, a shaping, tracker or OCR provider, built into frames under the name `--decoder` and the other options pick | [FRAMES-21](../FRAMES-21/SPEC.md) |
 | extensions | programs that take a document and give a document | here |
 
+Data is vocabulary, an implementation fills a role or a provider, and an extension is a tool ([Layers](#layers)).
+
 An extension reads what frames reports ([FRAMES-23](../FRAMES-23/SPEC.md)) and writes or changes documents. It cuts silence out of an interview (autocut), cuts B-roll to the beats of a track (beat cut), places captions from a transcript, translates titles, normalises a mix to a loudness target, covers a region in every frame that shows it, or bakes an effect frames has no op for. Its interface is documents and the machine output, so frames has no extension API.
 
 - It finds clips by `id` and `timeline`, where things are by `evaluate` and `locate`, and pictures by `still`, `extract` and `sheet`, which take the document itself, so what it sees is what frames draws from the same resolve. How a title's text splits into lines and words, where each line lies and what a title's box covers is `evaluate`'s `texts`, where each character lies is the `characters` of the item that draws it, and where any item lies is its `rect` carried by its `transform`, and under a corner pin then by its `cornerPins` ([FRAMES-23](../FRAMES-23/SPEC.md#item-transforms)), so an extension that measures text, fits it to a box or keeps it clear of other text works on the lines frames laid out and lays out none with fonts of its own. An extension that must be sure of what is drawn (one that keeps captions clear of other text on screen, or one that covers a region) resolves the document once, checks that resolved document with `evaluate`, `still` and `extract`, and has the same resolved document rendered. It passes the resolved document on and does not read it, since its form is frames' own ([FRAMES-19](../FRAMES-19/SPEC.md)). An extension that gives a resolved document ends the chain: only frames commands take it after that, so such an extension runs last, and a chain has one.
@@ -71,6 +128,8 @@ First how-tos:
 
 ## Interactions
 
+The engine is resolve ([FRAMES-19](../FRAMES-19/SPEC.md)), evaluation ([FRAMES-20](../FRAMES-20/SPEC.md)) and the roles and providers ([FRAMES-21](../FRAMES-21/SPEC.md)), and its reports are the machine output of [FRAMES-23](../FRAMES-23/SPEC.md). Vocabulary is packs and what they hold ([FRAMES-17](../FRAMES-17/SPEC.md)), the presets that ship among them ([FRAMES-16](../FRAMES-16/SPEC.md)). Track data is [FRAMES-12](../FRAMES-12/SPEC.md#track-data), and a rect area is [FRAMES-2](../FRAMES-2/SPEC.md).
+
 Forms are packs ([FRAMES-17](../FRAMES-17/SPEC.md)). Extensions read machine output ([FRAMES-23](../FRAMES-23/SPEC.md)) and pass on resolved documents ([FRAMES-19](../FRAMES-19/SPEC.md)). A rendered result comes back as media by [FRAMES-3](../FRAMES-3/SPEC.md).
 
 ## Alternatives considered
@@ -78,6 +137,8 @@ Forms are packs ([FRAMES-17](../FRAMES-17/SPEC.md)). Extensions read machine out
 Edit operations as frames commands: frames keeps no state between commands for an edit to act on.
 
 Render hooks for extensions: a resolved document would stop being enough to make the result again.
+
+Values the engine finds while it runs, a place named by its text or a target named for a tracker to follow, written in the document as requests: every step after the request (which frame it is searched on, a cut through the clip, a parent that is tracked or keyframed) would need a rule for a value not found yet, kept for that one feature, and the resolved document would depend on a search. A value written by a tool before resolve meets every later step as any written value does.
 
 Forms built into the engine: every new kind of work would need a change to frames, and a form is taught, not templated.
 

@@ -1,6 +1,6 @@
 # Guide
 
-How an edit is made with frames, how to write a guide, a how-to and an extension, and how to change a document without changing what it shows. The rules are in the [specification](../spec/README.md), packs and templates in [PACK.md](PACK.md), presets in [PRESET.md](PRESET.md), and the commands and keys in the [README](../README.md).
+How an edit is made with frames, how to write a guide, a how-to and an extension, and how to change a document without changing what it shows. frames' engine turns a document written out in values, with its media, into a result, and finds no value itself: a pack gives values names, and an extension is a tool that reads media and frames' reports and writes values into the document before resolve ([FRAMES-25](../spec/FRAMES-25/SPEC.md#layers)). The rules are in the [specification](../spec/README.md), packs and templates in [PACK.md](PACK.md), presets in [PRESET.md](PRESET.md), and the commands and keys in the [README](../README.md).
 
 ## How an edit is made
 
@@ -169,7 +169,7 @@ A how-to shows the steps with real commands, says what frames expects of the mat
 
 ## Writing an extension
 
-An extension is a program that takes a document and gives a document. It cuts silence out of an interview, cuts B-roll to the beats of a track, places captions from a transcript, translates titles, or bakes an effect frames has no op for. frames has no extension API: an extension reads what frames reports ([FRAMES-23](../spec/FRAMES-23/SPEC.md)) and writes JSON.
+An extension is a program that takes a document and gives a document, a tool in the layers of [FRAMES-25](../spec/FRAMES-25/SPEC.md#layers): it decides values by reading media and what frames reports, and writes them into the document before resolve, so nothing of it runs while a result is made. It cuts silence out of an interview, cuts B-roll to the beats of a track, places captions from a transcript, translates titles, or bakes an effect frames has no op for. frames has no extension API: an extension reads what frames reports ([FRAMES-23](../spec/FRAMES-23/SPEC.md)) and writes JSON.
 
 - `frames <name>` runs `frames-<name>` from `PATH`, with the global options frames was given first and then the arguments written after the name, unchanged. Standard input and output pass through. Installing an extension is putting it on `PATH`.
 - It finds clips by `id` and with `timeline --json`, where things are with `evaluate` and `locate`, and what is drawn with `still`, `extract` and `sheet`. All of these take the document itself, so what it sees is what frames draws from the same resolve.
