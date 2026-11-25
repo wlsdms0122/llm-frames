@@ -8,6 +8,7 @@
 import Testing
 
 @testable import Frames
+import FramesTestMedia
 
 // Shapes are sequence clips over `/abs/screen.mp4` in a 960 by 540 frame, so theme lengths are half their written
 // size, and each is checked by the key tables before it is planned. The theme holds the colour `brand` `#123456` and
@@ -202,8 +203,8 @@ struct ShapeKeyframeTests {
 
         // Then
         #expect(named.stroke.stroke(at: 0)?.start == StrokeEnd.none)
-        #expect(named.stroke.stroke(at: 0)?.end == StrokeEnd(shape: .circle, scale: 2))
-        #expect(bare.stroke.stroke(at: 0)?.start == StrokeEnd(shape: .bar, scale: 1))
+        #expect(named.stroke.stroke(at: 0)?.end == StrokeEnd(head: .circle, scale: 2))
+        #expect(bare.stroke.stroke(at: 0)?.start == StrokeEnd(head: .bar, scale: 1))
         #expect(bare.stroke.stroke(at: 0)?.end == StrokeEnd.none)
     }
 
@@ -216,9 +217,9 @@ struct ShapeKeyframeTests {
             """##)
 
         // Then
-        #expect(shape.stroke.stroke(at: 0)?.end == StrokeEnd(shape: .diamond, scale: 0))
-        #expect(shape.stroke.stroke(at: 0.5)?.end == StrokeEnd(shape: .diamond, scale: 1))
-        #expect(shape.stroke.stroke(at: 1)?.end == StrokeEnd(shape: .diamond, scale: 2))
+        #expect(shape.stroke.stroke(at: 0)?.end == StrokeEnd(head: .diamond, scale: 0))
+        #expect(shape.stroke.stroke(at: 0.5)?.end == StrokeEnd(head: .diamond, scale: 1))
+        #expect(shape.stroke.stroke(at: 1)?.end == StrokeEnd(head: .diamond, scale: 2))
     }
 
     @Test("a gradient's leaf written statically and in every keyframe stops, naming the leaf under its gradient")

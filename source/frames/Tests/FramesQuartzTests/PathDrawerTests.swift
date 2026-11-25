@@ -7,6 +7,7 @@
 
 import Foundation
 import Frames
+import FramesTestMedia
 import FramesAVFoundation
 @testable import FramesQuartz
 import Testing
@@ -33,7 +34,7 @@ struct PathDrawerTests {
     // inside and just outside a head's side near its base, 4u back, or u for a bar, and behind its base. A line
     // arrow's bands at scale 2 are 8 thick, and between them the line runs to their inner corner √5 u back, with blank
     // on each side of it.
-    private static let headsAtEnd: [(StrokeEndShape, Double, [(Int, Int)], [(Int, Int)])] = [
+    private static let headsAtEnd: [(StrokeHead, Double, [(Int, Int)], [(Int, Int)])] = [
         (.arrow, 1, [(87, 49), (87, 50), (20, 49), (75, 43)], [(75, 41), (72, 43)]),
         (.arrow, 2, [(87, 49), (87, 50), (20, 49), (59, 35)], [(59, 33), (56, 35)]),
         (.lineArrow, 1, [(87, 49), (87, 50), (20, 49), (75, 43), (75, 55)], [(75, 41), (72, 43)]),
@@ -412,14 +413,14 @@ struct PathDrawerTests {
         arguments: headsAtEnd
     )
     func drawsHeadAtEnd(
-        shape: StrokeEndShape,
+        shape: StrokeHead,
         scale: Double,
         inked: [(Int, Int)],
         blank: [(Int, Int)]
     ) throws {
         // Given
         let points = [Point(x: 10, y: 50), Point(x: 90, y: 50)]
-        let path = stroked(.polyline(points, isClosed: false), width: 4, end: StrokeEnd(shape: shape, scale: scale))
+        let path = stroked(.polyline(points, isClosed: false), width: 4, end: StrokeEnd(head: shape, scale: scale))
 
         // When
         let bitmap = try sut.frame(of: list([path]))
@@ -437,7 +438,7 @@ struct PathDrawerTests {
     @Test("a head on a curved end lies along the chord from its base on the curve to its tip, nothing of it past the end")
     func drawsHeadOnCurvedEnd() throws {
         // Given
-        let path = stroked(Self.bulge, width: 4, end: StrokeEnd(shape: .arrow, scale: 2))
+        let path = stroked(Self.bulge, width: 4, end: StrokeEnd(head: .arrow, scale: 2))
 
         // When
         let bitmap = try sut.frame(of: list([path]))
@@ -459,8 +460,8 @@ struct PathDrawerTests {
         let path = stroked(
             .polyline(points, isClosed: false),
             width: 4,
-            start: StrokeEnd(shape: .circle),
-            end: StrokeEnd(shape: .bar, scale: 2)
+            start: StrokeEnd(head: .circle),
+            end: StrokeEnd(head: .bar, scale: 2)
         )
 
         // When
@@ -483,8 +484,8 @@ struct PathDrawerTests {
             paint: .color(Self.black),
             join: .miter,
             cap: .butt,
-            start: StrokeEnd(shape: .circle),
-            end: StrokeEnd(shape: .lineArrow, scale: 2),
+            start: StrokeEnd(head: .circle),
+            end: StrokeEnd(head: .lineArrow, scale: 2),
             dash: [6, 10]
         )
         let path = PathItem(geometry: .polyline([Point(x: 10, y: 50), Point(x: 90, y: 50)], isClosed: false), fill: nil, stroke: stroke)

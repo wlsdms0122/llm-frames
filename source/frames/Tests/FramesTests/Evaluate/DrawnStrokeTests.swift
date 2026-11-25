@@ -8,6 +8,7 @@
 import Testing
 
 @testable import Frames
+import FramesTestMedia
 
 // A stroke 2 wide with an arrowhead at both ends, whose heads are 8 long, along an outline 100 long.
 @Suite("DrawnStroke Tests")
@@ -64,7 +65,7 @@ struct DrawnStrokeTests {
     @Test(
         "each head's line stops where the head stops it, in units of the stroke's width times its scale",
         arguments: [
-            (StrokeEndShape.arrow, 1.0, 8.0),
+            (StrokeHead.arrow, 1.0, 8.0),
             (.arrow, 2.0, 16.0),
             (.lineArrow, 1.0, 2 * 5.0.squareRoot()),
             (.lineArrow, 2.0, 4 * 5.0.squareRoot()),
@@ -78,7 +79,7 @@ struct DrawnStrokeTests {
         ]
     )
     func stopsLineAtHead(
-        shape: StrokeEndShape,
+        shape: StrokeHead,
         scale: Double,
         inset: Double
     ) {
@@ -89,7 +90,7 @@ struct DrawnStrokeTests {
             join: .round,
             cap: .butt,
             start: .none,
-            end: StrokeEnd(shape: shape, scale: scale)
+            end: StrokeEnd(head: shape, scale: scale)
         )
 
         // When
@@ -111,7 +112,7 @@ struct DrawnStrokeTests {
             paint: Self.stroke.paint,
             join: .round,
             cap: .butt,
-            start: StrokeEnd(shape: .bar, scale: 2),
+            start: StrokeEnd(head: .bar, scale: 2),
             end: .arrow
         )
 

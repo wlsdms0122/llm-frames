@@ -8,6 +8,7 @@
 import Testing
 
 @testable import Frames
+import FramesTestMedia
 
 // A rect and an ellipse in the box [10, 10, 40, 20], stroked 4 wide with miter joins.
 @Suite("PathItem Tests")
@@ -69,12 +70,12 @@ struct PathItemTests {
     @Test(
         "a line's drawn bounds hold each head as drawn, reaching as far across the line as its width and no further along it than its tip",
         arguments: [
-            (StrokeEnd.arrow, 4.0),
-            (StrokeEnd(shape: .lineArrow, scale: 2), 8.0),
-            (StrokeEnd(shape: .circle), 4.0),
-            (StrokeEnd(shape: .square, scale: 0.5), 2.0),
-            (StrokeEnd(shape: .diamond), 4.0),
-            (StrokeEnd(shape: .bar, scale: 2), 8.0)
+            (StrokeEnd(head: .arrow), 4.0),
+            (StrokeEnd(head: .lineArrow, scale: 2), 8.0),
+            (StrokeEnd(head: .circle), 4.0),
+            (StrokeEnd(head: .square, scale: 0.5), 2.0),
+            (StrokeEnd(head: .diamond), 4.0),
+            (StrokeEnd(head: .bar, scale: 2), 8.0)
         ]
     )
     func boundsHoldHeads(
@@ -96,7 +97,7 @@ struct PathItemTests {
     @Test("a circle head's drawn bounds are the circle's, not the square it is inscribed in, on a line at 45 degrees")
     func boundsHoldTurnedCircle() {
         // Given
-        let sut = line(from: Point(x: 0, y: 0), to: Point(x: 100, y: 100), end: StrokeEnd(shape: .circle))
+        let sut = line(from: Point(x: 0, y: 0), to: Point(x: 100, y: 100), end: StrokeEnd(head: .circle))
 
         // When
         let bounds = sut.drawnBounds(carriedBy: .identity)

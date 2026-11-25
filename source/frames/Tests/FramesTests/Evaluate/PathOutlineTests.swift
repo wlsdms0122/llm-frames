@@ -9,6 +9,7 @@ import Foundation
 import Testing
 
 @testable import Frames
+import FramesTestMedia
 
 // A path's outline, its corners and its arrowheads (FRAMES-20 Direction at a point, Arrowheads).
 @Suite("PathOutline Tests")
@@ -164,7 +165,7 @@ struct PathOutlineTests {
     @Test(
         "every head on a straight end reaches the end and no further, as long and as wide as its shape in units",
         arguments: [
-            (StrokeEndShape.arrow, 1.0, 8.0, 8.0),
+            (StrokeHead.arrow, 1.0, 8.0, 8.0),
             (.arrow, 2.0, 16.0, 16.0),
             (.lineArrow, 1.0, 8.0, 8.0),
             (.lineArrow, 2.0, 16.0, 16.0),
@@ -177,14 +178,14 @@ struct PathOutlineTests {
         ]
     )
     func laysEveryHead(
-        shape: StrokeEndShape,
+        shape: StrokeHead,
         scale: Double,
         length: Double,
         width: Double
     ) throws {
         // Given
         let sut = PathOutline(.polyline([Point(x: 0, y: 0), Point(x: 100, y: 0)], isClosed: false))
-        let end = StrokeEnd(shape: shape, scale: scale)
+        let end = StrokeEnd(head: shape, scale: scale)
 
         // When
         let head = try #require(sut.arrowheads(of: drawn(width: 2, trim: .whole, isClosed: false, end: end)).first)
@@ -203,7 +204,7 @@ struct PathOutlineTests {
     func laysLineArrow() throws {
         // Given
         let sut = PathOutline(.polyline([Point(x: 0, y: 0), Point(x: 100, y: 0)], isClosed: false))
-        let end = StrokeEnd(shape: .lineArrow)
+        let end = StrokeEnd(head: .lineArrow)
 
         // When
         let head = try #require(sut.arrowheads(of: drawn(width: 2, trim: .whole, isClosed: false, end: end)).first)

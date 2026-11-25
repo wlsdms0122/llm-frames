@@ -8,6 +8,7 @@
 import Testing
 
 @testable import Frames
+import FramesTestMedia
 
 @Suite("DisplayListReader Tests")
 struct DisplayListReaderTests {
@@ -1112,10 +1113,10 @@ struct DisplayListReaderTests {
     }
 
     @Test(
-        "a path's stroke ends are written as null for no head or as the head's shape and scale, and read back",
-        arguments: StrokeEndShape.allCases
+        "a path's stroke ends are written as null for no head or as the head's outline, length, inset and scale, and read back",
+        arguments: [nil] + ShippedHeads.names.map(ShippedHeads.head)
     )
-    func readsWrittenEnds(shape: StrokeEndShape) throws {
+    func readsWrittenEnds(head: StrokeHead?) throws {
         // Given
         let list = list(items: [
             DisplayItem(content: .path(PathItem(
@@ -1126,8 +1127,8 @@ struct DisplayListReaderTests {
                     paint: .color(Color(written: "#FF3B30")),
                     join: .miter,
                     cap: .butt,
-                    start: StrokeEnd(shape: shape, scale: 2.5),
-                    end: StrokeEnd(shape: shape)
+                    start: StrokeEnd(head: head, scale: 2.5),
+                    end: StrokeEnd(head: head)
                 )
             )))
         ])
@@ -1139,17 +1140,22 @@ struct DisplayListReaderTests {
         // Then
         let items = try #require(try Fixture.json(text).objectValue?["items"]?.arrayValue?.compactMap(\.objectValue))
         let stroke = try #require(items.first?["stroke"]?.objectValue)
+        let point = { (point: Point) in JSONValue.array([.number(point.x), .number(point.y)]) }
         let written = { (scale: Double) -> JSONValue in
-            shape == .none
-                ? .null
-                : .object(JSONObject(members: [
-                    JSONMember(key: "shape", value: .string(shape.rawValue)),
-                    JSONMember(key: "scale", value: .number(scale))
-                ]))
+            guard let head else { return .null }
+
+            return .object(JSONObject(members: [
+                JSONMember(key: "vertices", value: .array(head.outline.map { point($0.vertex) })),
+                JSONMember(key: "inTangents", value: .array(head.outline.map { point($0.inTangent) })),
+                JSONMember(key: "outTangents", value: .array(head.outline.map { point($0.outTangent) })),
+                JSONMember(key: "length", value: .number(head.length)),
+                JSONMember(key: "inset", value: .number(head.inset)),
+                JSONMember(key: "scale", value: .number(scale))
+            ]))
         }
         #expect(stroke["start"] == written(2.5))
         #expect(stroke["end"] == written(1))
-        if shape == .none {
+        if head == nil {
             #expect(read.items.first.map { item -> Bool in
                 guard case let .path(path) = item.content else { return false }
 
