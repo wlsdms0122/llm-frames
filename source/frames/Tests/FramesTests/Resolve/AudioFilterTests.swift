@@ -411,7 +411,7 @@ struct AudioFilterTests {
             """#)
 
         // Then
-        #expect(plan.sound[1].nested.count == 1)
+        #expect(plan.sound[1].nestedSounds?.count == 1)
         let limiter = try #require(sampledLimiter(of: plan.sound[1].audioFilter, at: 0.5))
         #expect(limiter["gain"]?.number == 3)
         #expect(limiter["ceiling"]?.number == -3)
@@ -690,7 +690,7 @@ struct AudioFilterTests {
 
         // Then
         #expect(file(of: plan.sound[1].audioFilter) == "/abs/ding.wav")
-        #expect(file(of: plan.sound[1].nestedAudioFilter) == "/abs/bgm.m4a")
+        #expect(file(of: try #require(plan.sound[1].nestedAudioFilter)) == "/abs/bgm.m4a")
     }
 
     @Test(

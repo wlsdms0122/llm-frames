@@ -14,14 +14,14 @@ extension ResolvedSound {
         plan: SoundPlan,
         hashes: any FileHashProvider
     ) throws {
-        let source: ResolvedSoundSource = switch plan.media.source {
+        let source: ResolvedSoundSource = switch plan.source {
         case let .file(file):
             .pinned(try PinnedMedia(file: file, hashes: hashes))
 
-        case .sequence:
+        case let .nested(nested, audioFilter):
             .nested(
-                try plan.nested.map { try ResolvedSound(plan: $0, hashes: hashes) },
-                audioFilter: try plan.nestedAudioFilter.pinningFiles(hashes: hashes)
+                try nested.map { try ResolvedSound(plan: $0, hashes: hashes) },
+                audioFilter: try audioFilter.pinningFiles(hashes: hashes)
             )
         }
 

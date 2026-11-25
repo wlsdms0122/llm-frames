@@ -86,7 +86,7 @@ struct SoundPlanner: Sendable {
         let outgoing = time.storyline.indices.contains(index + 1) ? time.storyline[index + 1].transition : nil
         return SoundPlan(
             place: plan.place,
-            media: media,
+            source: source(of: media, nested: nested),
             played: PlayedRange(map: map, out: plan.source.clipRange.end, loop: false),
             range: range,
             audible: audible,
@@ -96,8 +96,6 @@ struct SoundPlanner: Sendable {
             fadeOut: fadeOut(written?.fadeOut, over: range),
             incoming: plan.transition.map { Crossfade(plan: $0, movedBy: -split.before) },
             outgoing: outgoing.map { Crossfade(plan: $0, movedBy: split.after) },
-            nested: nested?.sound ?? [],
-            nestedAudioFilter: nested?.audioFilter ?? .off,
             audioFilter: try audioFilters.timed(
                 written?.audioFilter,
                 looks: looks(of: plan.place, kind: plan.source.kind, clock: map, instant: plan.instant, theme: time.theme)
@@ -136,7 +134,7 @@ struct SoundPlanner: Sendable {
 
         return SoundPlan(
             place: plan.place,
-            media: media,
+            source: source(of: media, nested: nested),
             played: played,
             range: range,
             audible: audible,
@@ -146,13 +144,24 @@ struct SoundPlanner: Sendable {
             fadeOut: fadeOut(clipMedia.fadeOut, over: range),
             incoming: nil,
             outgoing: nil,
-            nested: nested?.sound ?? [],
-            nestedAudioFilter: nested?.audioFilter ?? .off,
             audioFilter: try audioFilters.timed(
                 clipMedia.audioFilter,
                 looks: looks(of: plan.place, kind: plan.kind, clock: plan.clock, instant: plan.instant, theme: time.theme)
             )
         )
+    }
+
+    // A file plays itself, and a nested sequence the sounds of its plan, which `nested` is for media that is a sequence
+    // and nil only for a file.
+    private func source(
+        of media: MediaPlan,
+        nested: SequencePlan?
+    ) -> SoundPlanSource {
+        guard case let .file(file) = media.source else {
+            return .nested(nested?.sound ?? [], audioFilter: nested?.audioFilter ?? .off)
+        }
+
+        return .file(file)
     }
 
     // A clip that plays no sound takes no audio filter and no split. A remapped clip's stop earlier, where its time is
