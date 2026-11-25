@@ -46,7 +46,7 @@ A request is a hole a tool fills ([FRAMES-25](../../../../../../../../../spec/FR
 
 Either takes `"aspectRatio": [w, h]`, below.
 
-- A request stands wherever an area does, as a `crop`, an `area` and a mask's `area`, on a clip and in a keyframe, and as the `area` of a point `{"area": <request>, "point": "right"}`, in the places below. Anywhere else it stops.
+- A request stands wherever an area does, as a `crop`, an `area` and a mask's `area`, on a clip and in a keyframe, and as the `area` of a point `{"area": <request>, "point": "right"}`, which in a path's or a path mask's `points` stands as a vertex's point, `{"vertex": {"area": <request>, "point": "right"}}`, in the places below. Anywhere else it stops.
 - Text is compared with whitespace removed, and a line matches when it contains the text. Case counts.
 - `nth`, `fromNth` and `toNth` pick one match, counted from 0 in the order `frames ocr` lists lines: top to bottom by row and left to right within a row.
 - Without `nth`, text that more than one line contains stops, and the message lists every match with its rectangle and line. The same holds for each end of a `from`/`to` request.

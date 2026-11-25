@@ -281,15 +281,23 @@ def forms_in_point(holder, key, path, sink, role):
     point = holder[key] if isinstance(holder, (dict, list)) else None
     if isinstance(point, dict) and "area" in point:
         forms_in_area(point, "area", f"{path}.area", sink, role)
-    elif isinstance(point, dict) and "vertex" in point:
-        forms_in_point(point, "vertex", f"{path}.vertex", sink, role)
 
 
 def forms_in_points(holder, key, path, sink, role):
+    """A list of points, such as a `cornerPin`."""
     points = holder.get(key)
     if isinstance(points, list):
         for index in range(len(points)):
             forms_in_point(points, index, f"{path}[{index}]", sink, role)
+
+
+def forms_in_vertices(holder, key, path, sink, role):
+    """A path's `points`, where every object is a vertex whose `vertex` is its point."""
+    vertices = holder.get(key)
+    if isinstance(vertices, list):
+        for index, vertex in enumerate(vertices):
+            if isinstance(vertex, dict) and "vertex" in vertex:
+                forms_in_point(vertex, "vertex", f"{path}[{index}].vertex", sink, role)
 
 
 def forms_in_masks(holder, path, sink):
@@ -299,7 +307,7 @@ def forms_in_masks(holder, path, sink):
     ] if isinstance(masks, list) else []
     for mask, name in entries:
         forms_in_area(mask, "area", f"{path}{name}.area", sink, "mask")
-        forms_in_points(mask, "points", f"{path}{name}.points", sink, "mask")
+        forms_in_vertices(mask, "points", f"{path}{name}.points", sink, "mask")
         if "position" in mask:
             forms_in_point(mask, "position", f"{path}{name}.position", sink, "mask")
 
@@ -308,7 +316,7 @@ def forms_in_values(holder, path, sink):
     """Every request of this tool among the area and point keys of a clip or a keyframe."""
     forms_in_area(holder, "crop", f"{path}crop", sink, "crop")
     forms_in_area(holder, "area", f"{path}area", sink, "space")
-    forms_in_points(holder, "points", f"{path}points", sink, "space")
+    forms_in_vertices(holder, "points", f"{path}points", sink, "space")
     forms_in_points(holder, "cornerPin", f"{path}cornerPin", sink, "space")
     if "position" in holder:
         forms_in_point(holder, "position", f"{path}position", sink, "space")
