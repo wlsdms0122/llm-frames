@@ -214,3 +214,27 @@ Numbers:
 | An n × n kernel without a pyramid, n adapted to the local shrink | 0.025 on the grid | 0.002 | | up to 48 ms |
 
 The Metal kernel gave the same bytes over 20 renders and three processes. Its levels, transparent past the source's edge, darkened what lies just inside the edge under minification. Through the whole path, with the list that holds the still rastered at the stretch held to the pixel limit, below 1 under the mild corner pin and about 1.41 under the steep one, the result was 0.16 to 0.27 from the mean at worst, and on the grid 0.016 on average under the mild corner pin and 0.008 under the steep one. With the list at its own size, every case was within the bounds.
+
+## FRAMES-29
+
+### The cost of motion blur
+
+Supports: the Note in [Notes](../spec/FRAMES-29/SPEC.md#notes) that a frame's time and display list grow with N.
+
+On: `render` built for release on the reference machine with 16 GB, 25 frames of a zooming storyline image, a sliding title under `frames/rise`, a turning rect and a sliding picture in picture clip, all with `motionBlur`, timed from the start of the command to the written master.
+
+Numbers:
+
+| Size | Without motion blur | 16 samples | 64 samples |
+| --- | --- | --- | --- |
+| 1080p, time a frame | 54 ms | 440 ms | 1648 ms |
+| 4K, time a frame | 180 ms | 1652 ms | 6289 ms |
+| Display list of the frame at 0.5, either size | 4800 bytes | 80358 bytes | 321383 bytes |
+
+### The order of the sum
+
+Supports: [The mean](../spec/FRAMES-29/SPEC.md#the-mean), the samples summed in order, and the Note on why the order is fixed.
+
+On: pictures of 16-bit floats summed in 32-bit floats and rounded to nearest into 16-bit floats.
+
+Numbers: the same 64 pictures summed in another order differed in a few values in a million by one unit in the last place. The mean of N equal pictures came back exactly for N of 2, 3, 16, 64 and 256, and the mean of pictures that differ lay within one unit in the last place of the exact mean. A sum carried in 16-bit floats went wrong from N of 64.
