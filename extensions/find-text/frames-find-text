@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""frames-find-text: writes each place a document names by its text on screen as the rectangle `frames ocr` finds.
+"""frames-find-text: fills each `find-text` request of a document with the rectangle `frames ocr` finds for its text.
 
-It reads a document whose areas and points may name text, asks frames where and when each one is searched, reads
-the media with `frames ocr --json`, and prints the same document with every text form replaced by a rectangle in
-the media pixels it is written in. A text form that names the target of a `track` request becomes the request's
-rectangle, and the request is left for `frames track-motion`. It reads only frames' machine output and never a
-resolved document.
+A request is an object with the key `tool` that stands where a value is still to be found, and the requests this
+extension fills are those whose `tool` is `find-text`, standing where an area does. It asks frames where and when each
+one is searched, reads the media with `frames ocr --json`, and prints the same document with each of its requests
+replaced by a rectangle in the media pixels it is written in. A request for any other tool is left as written. It
+reads only frames' machine output and never a resolved document.
 """
 
 import json
@@ -16,13 +16,21 @@ import tempfile
 
 SUPPORTED_MAJOR = 0
 GLOBAL_OPTIONS = ("--theme", "--decoder", "--renderer", "--mixer", "--encoder", "--shaper", "--tracker", "--ocr")
-TEXT_KEYS = {"text", "nth", "padding"}
-RANGE_KEYS = {"from", "to", "fromNth", "toNth", "padding"}
+TOOL = "find-text"
+TEXT_KEYS = {"tool", "text", "nth", "padding"}
+RANGE_KEYS = {"tool", "from", "to", "fromNth", "toNth", "padding"}
+AREA_KEYS = ("area", "crop")
 PLACEHOLDER = [0, 0, 1, 1]
 USAGE = """frames find-text <document.json | -> [--languages <tag>[,<tag>...]]
 
-Prints the document with every area written as text ({"text", "nth", "padding"} or {"from", "to", "fromNth",
-"toNth", "padding"}) replaced by the rectangle `frames ocr` finds, in the media pixels the area is written in.
+Prints the document with every request for find-text, standing where an area does, replaced by the rectangle
+`frames ocr` finds, in the media pixels the area is written in:
+
+  {"tool": "find-text", "text": t, "nth": n, "padding": p}          the recognised line that contains t
+  {"tool": "find-text", "from": a, "to": b, "fromNth": n, "toNth": m, "padding": p}
+                                                                    the lines from the one with a to the one with b
+
+A request for any other tool is left as written.
 
   <document.json | ->           The document, as an absolute path, or - for standard input.
   --languages <tag>[,<tag>...]  The recognition languages passed to `frames ocr --languages`. Default: detected.
@@ -92,25 +100,31 @@ def major(version):
     return int(head) if head.isdigit() else None
 
 
-# MARK: - Text forms
+# MARK: - Requests
+
+def is_request(value):
+    """Whether a value is a request, an object with the key `tool`, for this tool or another."""
+    return isinstance(value, dict) and "tool" in value
+
+
+def is_own(value):
+    """Whether a value is a request this tool fills."""
+    return is_request(value) and value["tool"] == TOOL
+
 
 def text_form_kind(value):
-    """`text` or `range` for a text form, None for any other value."""
-    if not isinstance(value, dict):
-        return None
-    if "text" in value:
-        return "text"
-    if "from" in value or "to" in value:
-        return "range"
-    return None
+    """`text` for a request that names one text, `range` for one that names the lines from one text to another."""
+    return "text" if "text" in value else "range"
 
 
 def check_text_form(value, where):
+    if "text" not in value and "from" not in value and "to" not in value:
+        raise Stop(f"{where}: a find-text request names text, or the lines from one text to another with from and to")
     kind = text_form_kind(value)
     keys = TEXT_KEYS if kind == "text" else RANGE_KEYS
     unknown = sorted(set(value) - keys)
     if unknown:
-        raise Stop(f"{where}: unknown key {json.dumps(unknown[0])} in a text area. Allowed: {', '.join(sorted(keys))}")
+        raise Stop(f"{where}: unknown key {json.dumps(unknown[0])} in a find-text request. Allowed: {', '.join(sorted(keys))}")
     texts = ["text"] if kind == "text" else ["from", "to"]
     for key in texts:
         if not isinstance(value.get(key), str) or not squeeze(value[key]):
@@ -147,7 +161,7 @@ def pick(lines, text, nth, where, source):
 
 
 def find(form, lines, where, source):
-    """The rectangle a text form names among the lines of one picture, padding included."""
+    """The rectangle a request names among the lines of one picture, padding included."""
     if text_form_kind(form) == "text":
         rect = pick(lines, form["text"], form.get("nth"), where, source)["rect"]
     else:
@@ -182,16 +196,15 @@ class Clip:
 
 
 class Found:
-    """A text form in the document: where it is, the container that holds it and its key there."""
+    """A request of this tool in the document: where it is, the container that holds it and its key there."""
 
-    def __init__(self, clip, path, holder, key, keyframe, role, track_time):
+    def __init__(self, clip, path, holder, key, keyframe, role):
         self.clip = clip
         self.path = path
         self.holder = holder
         self.key = key
         self.keyframe = keyframe
         self.role = role
-        self.track_time = track_time
 
     @property
     def form(self):
@@ -223,9 +236,9 @@ def clips_of(document):
     return clips
 
 
-def forms_in_area(holder, key, path, sink, role, track_time=None):
-    if text_form_kind(holder.get(key) if isinstance(holder, dict) else None):
-        sink.append((path, holder, key, role, track_time))
+def forms_in_area(holder, key, path, sink, role):
+    if is_own(holder.get(key) if isinstance(holder, dict) else None):
+        sink.append((path, holder, key, role))
 
 
 def forms_in_point(holder, key, path, sink, role):
@@ -255,8 +268,8 @@ def forms_in_masks(holder, path, sink):
             forms_in_point(mask, "position", f"{path}{name}.position", sink, "mask")
 
 
-def forms_in_values(holder, path, sink, static):
-    """Every text form among the area and point keys of a clip or a keyframe."""
+def forms_in_values(holder, path, sink):
+    """Every request of this tool among the area and point keys of a clip or a keyframe."""
     forms_in_area(holder, "crop", f"{path}crop", sink, "crop")
     forms_in_area(holder, "area", f"{path}area", sink, "space")
     forms_in_points(holder, "points", f"{path}points", sink, "space")
@@ -264,31 +277,49 @@ def forms_in_values(holder, path, sink, static):
     if "position" in holder:
         forms_in_point(holder, "position", f"{path}position", sink, "space")
     forms_in_masks(holder, path, sink)
-    if static:
-        track = holder.get("track")
-        forms_in_area(holder, "track", f"{path}track", sink, "track")
-        if isinstance(track, dict) and "time" in track:
-            forms_in_area(track, "area", f"{path}track.area", sink, "track", track_time=track["time"])
 
 
 def text_forms(clip):
     sink = []
-    forms_in_values(clip.value, "", sink, static=True)
-    found = [Found(clip, path, holder, key, None, role, time) for path, holder, key, role, time in sink]
+    forms_in_values(clip.value, "", sink)
+    found = [Found(clip, path, holder, key, None, role) for path, holder, key, role in sink]
     for index, keyframe in enumerate(clip.value.get("keyframes") or []):
         if isinstance(keyframe, dict):
             sink = []
-            forms_in_values(keyframe, f"keyframes[{index}].", sink, static=False)
-            found += [Found(clip, path, holder, key, index, role, time) for path, holder, key, role, time in sink]
+            forms_in_values(keyframe, f"keyframes[{index}].", sink)
+            found += [Found(clip, path, holder, key, index, role) for path, holder, key, role in sink]
     return found
 
 
+def requests_in(value, path, sink):
+    """Every request among a clip's values, with the container that holds it, its key there and its path, past its
+    connected clips, its `metadata`, which frames does not read, and a nested document, which is checked on its own."""
+    entries = value.items() if isinstance(value, dict) else enumerate(value) if isinstance(value, list) else []
+    for key, inner in entries:
+        if isinstance(value, dict) and key in ("connected", "metadata"):
+            continue
+        name = f"{path}[{key}]" if isinstance(value, list) else f"{path}.{key}" if path else key
+        if is_request(inner):
+            sink.append((value, key, name))
+        elif not (isinstance(inner, dict) and inner.get("kind") == "sequence"):
+            requests_in(inner, name, sink)
+    return sink
+
+
+def check_placed(clip, found):
+    """Stops on a request of this tool that stands where no area does."""
+    placed = {id(entry.form) for entry in found}
+    for holder, key, path in requests_in(clip.value, "", []):
+        if is_own(holder[key]) and id(holder[key]) not in placed:
+            raise Stop(f"{clip.place}: {path}: a find-text request stands where an area does, as a crop, an area, a mask's area or the area of a point")
+
+
 def nested_text_forms(document, place):
-    """The place of the first text form inside a nested document, or None."""
+    """The place of the first request of this tool inside a nested document, or None."""
     for clip in clips_of(document):
-        found = text_forms(clip)
+        found = [path for holder, key, path in requests_in(clip.value, "", []) if is_own(holder[key])]
         if found:
-            return f"{place}.{clip.place}: {found[0].path}"
+            return f"{place}.{clip.place}: {found[0]}"
         media = clip.value.get("media")
         if isinstance(media, dict) and media.get("kind") == "sequence":
             inner = nested_text_forms(media, f"{place}.{clip.place}.media")
@@ -297,18 +328,16 @@ def nested_text_forms(document, place):
     return None
 
 
-# MARK: - Where a text form is searched
+# MARK: - Where a request is searched
 
 def refuse(found, reason):
     raise Stop(f"{found.where}: the place is not in a medium's pixels, so its text cannot be searched: {reason}")
 
 
 def searched_place(found, times):
-    """The place of the clip whose media a text form is searched in: the clip whose media pixels its entry reports as
+    """The place of the clip whose media a request is searched in: the clip whose media pixels its entry reports as
     the space the key is written in, `ownSpace` for a crop and a mask and `space` for every other key."""
     entry = times.entry(found.clip.place)
-    if found.role == "track":
-        return tracked_place(found, times)
     space = entry["ownSpace"] if found.role in ("crop", "mask") else entry["space"]
     if space is None:
         refuse(found, "an audio clip has no picture")
@@ -319,14 +348,6 @@ def searched_place(found, times):
     if times.entry(space["clip"])["kind"] == "compound":
         refuse(found, f"it is written in the media pixels of {space['clip']}, a compound clip or template instance, whose picture is drawn, not read")
     return space["clip"]
-
-
-def tracked_place(found, times):
-    """The place of the clip whose media a `track` request follows, as its entry reports it in `tracked`."""
-    tracked = times.entry(found.clip.place)["tracked"]
-    if tracked is None:
-        refuse(found, "timeline reports no video or image sequence for its track to follow")
-    return tracked["clip"]
 
 
 # MARK: - The frame searched
@@ -379,11 +400,8 @@ class Picture:
 
 
 def picture_of(found, searched, times):
-    """The picture a text form is searched in: the frame of the searched clip's media its time map shows at the
-    sequence time the form takes effect at, the clip's instant or a keyframe's `at` carried by the clip's clock, or for
-    a `track` object's `area` the frame shown at the media time its `time` names."""
-    if found.track_time is not None:
-        return picture(times.entry(searched), found.track_time)
+    """The picture a request is searched in: the frame of the searched clip's media its time map shows at the
+    sequence time the form takes effect at, the clip's instant or a keyframe's `at` carried by the clip's clock."""
     entry = times.entry(found.clip.place)
     if found.keyframe is None:
         instant = entry["instant"]
@@ -421,32 +439,22 @@ def rect_text(rect):
     return "[" + ", ".join(number_text(value) for value in rect) + "]"
 
 
-def probe_document(document, found):
-    """The document with every text form in a placeholder rectangle and every `track` removed, since a request is no
-    value frames takes, so frames resolves it and times its clips as it times the document before any is followed."""
+def probe_document(document):
+    """The document with a value in the place of every request, since frames takes none, so frames resolves it and
+    times its clips as it times the document once its requests are filled: a placeholder rectangle where an area
+    stands, and no `track` where a track request stands, since a clip's times and spaces do not depend on its track.
+    A request standing anywhere else has no value that keeps those facts, and stops."""
     copy = json.loads(json.dumps(document))
-    by_place = {clip.place: clip for clip in clips_of(copy)}
-    for entry in found:
-        clip = by_place[entry.clip.place]
-        holder = clip.value if entry.keyframe is None else clip.value["keyframes"][entry.keyframe]
-        set_at(holder, entry.path.split("].", 1)[1] if entry.keyframe is not None else entry.path, PLACEHOLDER)
-    for clip in by_place.values():
-        clip.value.pop("track", None)
+    for clip in clips_of(copy):
+        for holder, key, path in requests_in(clip.value, "", []):
+            if key == "track" and holder is clip.value:
+                del holder[key]
+            elif key in AREA_KEYS:
+                holder[key] = PLACEHOLDER
+            else:
+                tool = holder[key]["tool"]
+                raise Stop(f"{clip.place}: {path}: a request for {json.dumps(tool)} stands where frames-find-text has no value to time the document with, so it is filled first")
     return copy
-
-
-def set_at(holder, path, value):
-    """Sets the value at a path such as `mask[0].area` or `cornerPin[2].area`."""
-    steps = []
-    for part in path.split("."):
-        name, _, rest = part.partition("[")
-        if name:
-            steps.append(name)
-        for index in rest.split("[") if rest else []:
-            steps.append(int(index.rstrip("]")))
-    for step in steps[:-1]:
-        holder = holder[step]
-    holder[steps[-1]] = value
 
 
 def parse(arguments):
@@ -510,6 +518,8 @@ def run(arguments):
             inner = nested_text_forms(media, f"{clip.place}.media")
             if inner:
                 raise Stop(f"{inner}: its text cannot be searched: it is inside a compound clip or template instance, and timeline --at gives a nested document's clips at the outer sequence's times only")
+    for clip in clips:
+        check_placed(clip, [entry for entry in found if entry.clip is clip])
     for entry in found:
         check_text_form(entry.form, entry.where)
     if not found:
@@ -521,7 +531,7 @@ def run(arguments):
     with tempfile.TemporaryDirectory(prefix="frames-find-text-") as directory:
         probe_path = os.path.join(directory, "document.json")
         with open(probe_path, "w", encoding="utf-8") as file:
-            json.dump(probe_document(document, found), file)
+            json.dump(probe_document(document), file)
         times = Times(frames, probe_path, clips)
         searched = [searched_place(entry, times) for entry in found]
         rects = []
