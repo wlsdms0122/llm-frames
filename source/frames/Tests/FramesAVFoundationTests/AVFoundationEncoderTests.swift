@@ -629,7 +629,7 @@ struct AVFoundationEncoderTests {
     // MARK: - Private
     // The bitmap's pixels as a surface of half floats.
     private func surface(of bitmap: Bitmap) throws -> PictureSurface {
-        let (surface, picture) = try #require(SurfacePool().surface(width: bitmap.width, height: bitmap.height))
+        let (surface, _, picture) = try #require(SurfacePool<Void>().surface(width: bitmap.width, height: bitmap.height))
         IOSurfaceLock(surface, [], nil)
         defer { IOSurfaceUnlock(surface, [], nil) }
 

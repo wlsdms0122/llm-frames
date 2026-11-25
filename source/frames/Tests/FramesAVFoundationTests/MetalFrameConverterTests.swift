@@ -85,7 +85,7 @@ struct MetalFrameConverterTests {
     // each channel, at alphas of 0, 1/255, 0.25, 0.5, 0.9 and 1 down the rows, premultiplied and stored as half floats.
     private static func frame() throws -> PictureSurface {
         let alphas: [Float] = [0, 1 / 255, 0.25, 0.5, 0.9, 1]
-        let (surface, picture) = try #require(SurfacePool().surface(width: width, height: height))
+        let (surface, _, picture) = try #require(SurfacePool<Void>().surface(width: width, height: height))
         IOSurfaceLock(surface, [], nil)
         defer { IOSurfaceUnlock(surface, [], nil) }
 

@@ -100,7 +100,7 @@ struct AVFoundationDecoderTests {
             return file
         }
         let sut = AVFoundationDecoder()
-        let media = files.map { MediaFile(path: $0, size: size, frameTimes: [0, 1.0 / 30]) }
+        let media = files.map { MediaFile.video($0, frameTimes: [0, 1.0 / 30], size: size) }
 
         // When
         let pictures = try [0, 1].flatMap { index in
