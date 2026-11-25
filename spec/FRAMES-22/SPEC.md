@@ -55,7 +55,7 @@ The base theme is the floor every theme merges over, not the look of a kind of r
   "border": { "width": 4, "color": "accent", "align": "inside" },
   "shadow": { "radius": 32, "offset": [0, 12], "color": "shadow" },
   "defaults": { "transition": "cut", "filter": "none",
-                "animation": { "title": {}, "shape": "none", "media": "none", "adjust": "none" } }
+                "animation": { "title": {}, "shape": "none", "media": "none", "adjustment": "none" } }
 }
 ```
 
@@ -126,9 +126,11 @@ What each property draws, and its defaults, are [FRAMES-11](../FRAMES-11/SPEC.md
 | `transition` | every storyline clip after the first ([FRAMES-8](../FRAMES-8/SPEC.md)) | `"cut"` |
 | `filter` | storyline clips other than solids, and media clips with a picture | `"none"` |
 | `animation.title` | a title, by the name of its clip `style` | `{}` |
-| `animation.shape` | shape clips | `"none"` |
+| `animation.shape` | shape clips, of kind `rect`, `ellipse` or `path` | `"none"` |
 | `animation.media` | media clips with a picture | `"none"` |
-| `animation.adjust` | adjustment clips | `"none"` |
+| `animation.adjustment` | adjustment clips | `"none"` |
+
+`defaults.animation` names the clips it is taken by with their kind ([FRAMES-7](../FRAMES-7/SPEC.md)): `title`, `media` and `adjustment` each the clips of that kind, and `shape` the shapes, the clips of kind `rect`, `ellipse` and `path` together. No entry names a null ([FRAMES-11](../FRAMES-11/SPEC.md#null-clips)).
 
 A title whose style is not in `animation.title` takes `"none"`. A clip whose media is a compound clip or a template instance takes no default filter, since the clips inside it already took theirs.
 
