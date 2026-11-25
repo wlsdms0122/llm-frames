@@ -262,6 +262,9 @@ struct DisplayListReaderTests {
         )))
     ]
 
+    // A nested list of the size of the lists the source tests write, holding no item.
+    private static let emptyList = #"{ "size": [10, 10], "background": "color(srgb 0 0 0 / 0)", "compositing": "encoded", "items": [] }"#
+
     // A path in the written list with samples, what is put there or nil to remove it, and the message of the stop.
     private static let samplesForms: [([String], JSONValue?, String)] = [
         (["items"], JSONValue.array([]), #"top level (display list): takes only one of "items", "samples""#),
@@ -291,8 +294,8 @@ struct DisplayListReaderTests {
         (["1", "1", "reveal"], "[0, 0, 10, 10]", "samples[1][1].reveal (picture)"),
         (
             ["1", "0", "filter", "0", "ops"],
-            #"[{ "op": "blur", "radius": 2 }, { "op": "exposure", "ev": 0.5 }]"#,
-            "samples[1][0].filter[0].ops[0].op (picture)"
+            #"[{ "kind": "blur", "radius": 2 }, { "kind": "exposure", "ev": 0.5 }]"#,
+            "samples[1][0].filter[0].ops[0].kind (picture)"
         ),
         (["1", "4", "stroke", "join"], #""round""#, "samples[1][4].stroke.join (path)"),
         (["1", "4", "stroke", "cap"], #""round""#, "samples[1][4].stroke.cap (path)"),
@@ -342,7 +345,7 @@ struct DisplayListReaderTests {
         (["0", "transform"], "[1, 0, 0, 1, 5, 5]"),
         (["0", "opacity"], "0.25"),
         (["0", "reveal"], "[0, 0, 270, 1920]"),
-        (["0", "mask", "1", "geometry"], #"{ "ellipse": { "rect": [1, 2, 3, 4] } }"#),
+        (["0", "mask", "1", "geometry"], #"{ "kind": "ellipse", "rect": [1, 2, 3, 4] }"#),
         (["0", "mask", "1", "transform"], "[1, 0, 0, 1, 0, 0]"),
         (["0", "mask", "1", "feather"], "2"),
         (["0", "rect"], "[0, 0, 100, 100]"),
@@ -356,7 +359,7 @@ struct DisplayListReaderTests {
         (["0", "shadow"], "null"),
         (["2", "fill"], #""color(srgb 1 1 1 / 1)""#),
         (["2", "shadow"], "null"),
-        (["4", "geometry"], #"{ "rect": { "rect": [0, 0, 10, 10], "radius": [2, 2, 2, 2] } }"#),
+        (["4", "geometry"], #"{ "kind": "rect", "rect": [0, 0, 10, 10], "radius": [2, 2, 2, 2] }"#),
         (["4", "stroke", "width"], "3"),
         (["4", "stroke", "paint"], #""color(srgb 1 1 1 / 1)""#),
         (["4", "stroke", "dashOffset"], "1"),
@@ -522,7 +525,7 @@ struct DisplayListReaderTests {
         let items = writer.document(list).objectValue?["items"]?.arrayValue?.compactMap(\.objectValue)
 
         // Then
-        #expect(items?.first?.keys.prefix(8) == ["item", "origin", "transform", "opacity", "blend", "mask", "trackMatte", "reveal"])
+        #expect(items?.first?.keys.prefix(8) == ["kind", "origin", "transform", "opacity", "blend", "mask", "trackMatte", "reveal"])
         #expect(items?.first?["trackMatte"] == (try Fixture.json(#"""
             { "source": { "list": { "size": [1080, 1920], "background": "color(srgb 0 0 0 / 1)", "compositing": "encoded", "items": [] } },
               "mode": "alpha", "invert": false }
@@ -654,10 +657,51 @@ struct DisplayListReaderTests {
         let text = #"""
             { "displayList": "\#(FramesVersion.current)", "size": [10, 10], "background": "color(srgb 0 0 0 / 1)", "colorSpace": "srgb",
               "peak": null, "compositing": "encoded", "items": [
-              { "item": "picture", "origin": null, "transform": [1, 0, 0, 1, 0, 0], "opacity": 1, "blend": "normal", "mask": null,
-                "trackMatte": null, "reveal": null, "source": { "list": { "size": [10, 10], "background": "color(srgb 0 0 0 / 0)",
+              { "kind": "picture", "origin": null, "transform": [1, 0, 0, 1, 0, 0], "opacity": 1, "blend": "normal", "mask": null,
+                "trackMatte": null, "reveal": null, "source": { "kind": "list", "list": { "size": [10, 10], "background": "color(srgb 0 0 0 / 0)",
                 "compositing": "encoded", "items": [] } }, "rect": null, "dest": [0, 0, 10, 10], "filter": [], "matte": null,
                 "radius": [0, 0, 0, 0], "border": null, "shadow": null, "cornerPin": \#(written) } ] }
+            """#
+
+        // When
+        let error = #expect(throws: ModelError.self) { try sut.read(text) }
+
+        // Then
+        #expect(error?.description == message)
+    }
+
+    @Test(
+        "a picture's source without its kind or with a key of the other kind, and a track matte's source with a kind, stop",
+        arguments: [
+            (
+                #"{ "list": \#(Self.emptyList) }"#,
+                "null",
+                #"items[0].source (picture): missing key "kind""#
+            ),
+            (
+                #"{ "kind": "media", "list": \#(Self.emptyList) }"#,
+                "null",
+                #"items[0].source (picture): unknown key "list". Allowed: kind, media, frame, colorSpace, targetPeak"#
+            ),
+            (
+                #"{ "kind": "list", "list": \#(Self.emptyList) }"#,
+                #"{ "source": { "kind": "list", "list": \#(Self.emptyList) }, "mode": "alpha", "invert": false }"#,
+                #"items[0].trackMatte.source (picture): unknown key "kind". Allowed: list"#
+            )
+        ]
+    )
+    func refusesSourceKind(
+        source: String,
+        trackMatte: String,
+        message: String
+    ) throws {
+        // Given
+        let text = #"""
+            { "displayList": "\#(FramesVersion.current)", "size": [10, 10], "background": "color(srgb 0 0 0 / 1)", "colorSpace": "srgb",
+              "peak": null, "compositing": "encoded", "items": [
+              { "kind": "picture", "origin": null, "transform": [1, 0, 0, 1, 0, 0], "opacity": 1, "blend": "normal", "mask": null,
+                "trackMatte": \#(trackMatte), "reveal": null, "source": \#(source), "rect": null, "dest": [0, 0, 10, 10],
+                "filter": [], "matte": null, "radius": [0, 0, 0, 0], "border": null, "shadow": null, "cornerPin": null } ] }
             """#
 
         // When
@@ -699,7 +743,7 @@ struct DisplayListReaderTests {
         #expect(masks?.count == 3)
         #expect(masks?.first?.objectValue?.keys == ["geometry", "transform", "feather", "invert", "mode"])
         #expect(masks?.first == (try Fixture.json(#"""
-            { "geometry": { "rect": { "rect": [0, 0, 1080, 1500], "radius": [24, 24, 24, 24] } }, "transform": [0, 1, -1, 0, 1080, 0],
+            { "geometry": { "kind": "rect", "rect": [0, 0, 1080, 1500], "radius": [24, 24, 24, 24] }, "transform": [0, 1, -1, 0, 1080, 0],
               "feather": 0, "invert": false, "mode": "add" }
             """#)))
     }
@@ -709,23 +753,23 @@ struct DisplayListReaderTests {
         arguments: [
             ("[]", "items[0].mask (path): a mask list holds at least one mask, and an item without one has null"),
             (
-                #"[{ "geometry": { "path": { "vertices": [[0, 0], [4, 0], [2, 4]], "inTangents": [[0, 0], [0, 0], [0, 0]], "outTangents": [[0, 0], [0, 0], [0, 0]], "closed": false } }, "transform": [1, 0, 0, 1, 0, 0], "feather": 0, "invert": false, "mode": "add" }]"#,
+                #"[{ "geometry": { "kind": "path", "vertices": [[0, 0], [4, 0], [2, 4]], "inTangents": [[0, 0], [0, 0], [0, 0]], "outTangents": [[0, 0], [0, 0], [0, 0]], "closed": false }, "transform": [1, 0, 0, 1, 0, 0], "feather": 0, "invert": false, "mode": "add" }]"#,
                 "items[0].mask[0].geometry (path): a path mask is a closed path"
             ),
             (
-                #"[{ "geometry": { "ellipse": { "rect": [0, 0, 4, 4] } }, "transform": [1, 0, 0, 1, 0, 0], "feather": 0, "invert": false }]"#,
+                #"[{ "geometry": { "kind": "ellipse", "rect": [0, 0, 4, 4] }, "transform": [1, 0, 0, 1, 0, 0], "feather": 0, "invert": false }]"#,
                 #"items[0].mask[0] (path): missing key "mode""#
             ),
             (
-                #"[{ "geometry": { "ellipse": { "rect": [0, 0, 4, 4] } }, "transform": [1, 0, 0, 1, 0, 0], "feather": -2, "invert": false, "mode": "add" }]"#,
+                #"[{ "geometry": { "kind": "ellipse", "rect": [0, 0, 4, 4] }, "transform": [1, 0, 0, 1, 0, 0], "feather": -2, "invert": false, "mode": "add" }]"#,
                 "items[0].mask[0].feather (path): a feather is 0 or more, found -2"
             ),
             (
-                #"[{ "geometry": { "ellipse": { "rect": [0, 0, 4, 4] } }, "transform": [1, 0, 0, 1, 0, 0], "feather": 0, "invert": false, "mode": "multiply" }]"#,
+                #"[{ "geometry": { "kind": "ellipse", "rect": [0, 0, 4, 4] }, "transform": [1, 0, 0, 1, 0, 0], "feather": 0, "invert": false, "mode": "multiply" }]"#,
                 #"items[0].mask[0].mode (path): unknown value "multiply". Allowed: add, subtract, intersect"#
             ),
             (
-                #"[{ "geometry": { "ellipse": { "rect": [0, 0, 4, 4] } }, "transform": [1, 0, 0, 1, 0, 0], "feather": 0, "invert": false, "mode": "add", "expansion": 2 }]"#,
+                #"[{ "geometry": { "kind": "ellipse", "rect": [0, 0, 4, 4] }, "transform": [1, 0, 0, 1, 0, 0], "feather": 0, "invert": false, "mode": "add", "expansion": 2 }]"#,
                 #"items[0].mask[0] (path): unknown key "expansion". Allowed: geometry, transform, feather, invert, mode"#
             )
         ]
@@ -738,8 +782,8 @@ struct DisplayListReaderTests {
         let text = #"""
             { "displayList": "\#(FramesVersion.current)", "size": [10, 10], "background": "color(srgb 0 0 0 / 1)", "colorSpace": "srgb",
               "peak": null, "compositing": "encoded", "items": [
-              { "item": "path", "origin": null, "transform": [1, 0, 0, 1, 0, 0], "opacity": 1, "blend": "normal",
-                "mask": \#(written), "trackMatte": null, "reveal": null, "geometry": { "rect": { "rect": [0, 0, 1, 1], "radius": [0, 0, 0, 0] } },
+              { "kind": "path", "origin": null, "transform": [1, 0, 0, 1, 0, 0], "opacity": 1, "blend": "normal",
+                "mask": \#(written), "trackMatte": null, "reveal": null, "geometry": { "kind": "rect", "rect": [0, 0, 1, 1], "radius": [0, 0, 0, 0] },
                 "fill": "color(srgb 1 1 1 / 1)", "stroke": null, "trim": [0, 1], "shadow": null } ] }
             """#
 
@@ -802,10 +846,10 @@ struct DisplayListReaderTests {
         "a member that is missing, of another type, or never written there stops, naming its place",
         arguments: [
             (#""displayList": "0.1.0","#, "", #"top level (display list): missing key "displayList""#),
-            (#""trim": [0.125, 0.625]"#, #""trimmed": [0.125, 0.625]"#, #"items[4] (path): unknown key "trimmed". Allowed: item, origin, transform, opacity, blend, mask, trackMatte, reveal, geometry, fill, stroke, trim, shadow"#),
-            (#""rect": [0, 0, 1080, 1920],"#, "", #"items[2].geometry.rect (path): missing key "rect""#),
+            (#""trim": [0.125, 0.625]"#, #""trimmed": [0.125, 0.625]"#, #"items[4] (path): unknown key "trimmed". Allowed: kind, origin, transform, opacity, blend, mask, trackMatte, reveal, geometry, fill, stroke, trim, shadow"#),
+            (#""rect": [0, 0, 1080, 1920],"#, "", #"items[2].geometry (path): missing key "rect""#),
             (#""blend": "multiply""#, #""blend": "linear-dodge""#, #"items[0].blend (picture): unknown value "linear-dodge". Allowed: normal, multiply, screen, overlay, darken, lighten, color-dodge, color-burn, hard-light, soft-light, difference, exclusion, plus-lighter, hue, saturation, color, luminosity, add"#),
-            (#""item": "path""#, #""item": "line""#, #"items[2].item (display item): unknown value "line". Allowed: picture, path, glyphs, adjust"#),
+            (#""kind": "picture""#, #""kind": "line""#, #"items[0].kind (display item): unknown value "line". Allowed: picture, path, glyphs, adjust"#),
             (#""frame": 2"#, #""frame": 3"#, "items[0].source.frame (picture): frame 3 is not a frame of the media, whose frames are 0 to 2"),
             (#""opacity": 0.75"#, #""opacity": "0.75""#, #"items[6].opacity (glyphs): expected a number, found "0.75""#),
             (#""layer": "strokes""#, #""layer": "glow""#, #"items[11].layer (glyphs): unknown value "glow". Allowed: highlights, underlines, strokes, fills"#),
@@ -842,17 +886,17 @@ struct DisplayListReaderTests {
 
         // Then
         #expect(item.keys == [
-            "item", "origin", "transform", "opacity", "blend", "mask", "trackMatte", "reveal", "geometry", "fill", "stroke",
+            "kind", "origin", "transform", "opacity", "blend", "mask", "trackMatte", "reveal", "geometry", "fill", "stroke",
             "trim", "shadow"
         ])
-        #expect(item["item"] == .string("path"))
+        #expect(item["kind"] == .string("path"))
         #expect(item["fill"] == .null)
         #expect(item["shadow"] == .null)
         #expect(item["trim"] == .array([.number(0), .number(0.6)]))
         #expect(item["stroke"]?.objectValue?.keys == ["width", "paint", "align", "join", "cap", "start", "end", "dash", "dashOffset"])
         #expect(item["geometry"] == (try Fixture.json(#"""
-            { "path": { "vertices": [[240, 175], [300, 175]], "inTangents": [[0, 0], [-10, -15.5]],
-                        "outTangents": [[20, -30], [0, 0]], "closed": false } }
+            { "kind": "path", "vertices": [[240, 175], [300, 175]], "inTangents": [[0, 0], [-10, -15.5]],
+                        "outTangents": [[20, -30], [0, 0]], "closed": false }
             """#)))
     }
 
@@ -867,7 +911,7 @@ struct DisplayListReaderTests {
 
         // Then
         #expect(items.map(\.keys) == Array(repeating: [
-            "item", "origin", "transform", "opacity", "blend", "mask", "trackMatte", "reveal", "size", "writingMode", "runs",
+            "kind", "origin", "transform", "opacity", "blend", "mask", "trackMatte", "reveal", "size", "writingMode", "runs",
             "layer", "unit", "unitBox", "extent", "background"
         ], count: 2))
         #expect(items.map { $0["unit"] } == [.null, .number(3)])
@@ -965,10 +1009,10 @@ struct DisplayListReaderTests {
 
         // Then
         #expect(item["fill"] == (try Fixture.json(##"""
-            { "linear": { "from": [10, 20], "to": [210, 20], "stops": [[0, "color(srgb 1 0 0 / 0)"], [1, "color(srgb 0 0 1 / 1)"]] } }
+            { "kind": "linear", "from": [10, 20], "to": [210, 20], "stops": [[0, "color(srgb 1 0 0 / 0)"], [1, "color(srgb 0 0 1 / 1)"]] }
             """##)))
         #expect(item["stroke"]?.objectValue?["paint"] == (try Fixture.json(##"""
-            { "radial": { "center": [110, 70], "radius": 111.8, "stops": [[0, "color(srgb 1 1 1 / 1)"], [0.5, "color(srgb 1 1 1 / 1)"], [0.5, "color(srgb 0 0 0 / 0.5019607843137255)"]] } }
+            { "kind": "radial", "center": [110, 70], "radius": 111.8, "stops": [[0, "color(srgb 1 1 1 / 1)"], [0.5, "color(srgb 1 1 1 / 1)"], [0.5, "color(srgb 0 0 0 / 0.5019607843137255)"]] }
             """##)))
         let colored = try #require(writer.document(self.list(items: [Self.items[5]])).objectValue?["items"]?.arrayValue?.first?.objectValue)
         #expect(colored["stroke"]?.objectValue?["paint"] == .string("color(srgb 1 0.23137254901960785 0.18823529411764706 / 1)"))
@@ -978,30 +1022,30 @@ struct DisplayListReaderTests {
         "a path whose geometry, stroke literal or trim is not of the JSON form stops, naming its place",
         arguments: [
             (
-                #"{ "path": { "vertices": [[1, 2]], "inTangents": [[0, 0]], "outTangents": [[0, 0]], "closed": false } }"#,
+                #"{ "kind": "path", "vertices": [[1, 2]], "inTangents": [[0, 0]], "outTangents": [[0, 0]], "closed": false }"#,
                 "geometry",
-                "items[0].geometry.path.vertices (path): a path runs through at least two vertices, found 1"
+                "items[0].geometry.vertices (path): a path runs through at least two vertices, found 1"
             ),
             (
-                #"{ "path": { "vertices": [[1, 2], [3, 4]], "inTangents": [[0, 0], [0, 0]], "outTangents": [[0, 0]], "closed": false } }"#,
+                #"{ "kind": "path", "vertices": [[1, 2], [3, 4]], "inTangents": [[0, 0], [0, 0]], "outTangents": [[0, 0]], "closed": false }"#,
                 "geometry",
-                "items[0].geometry.path.outTangents (path): a path has a tangent for each of its 2 vertices, found 1"
+                "items[0].geometry.outTangents (path): a path has a tangent for each of its 2 vertices, found 1"
             ),
             (
-                #"{ "rect": { "rect": [0, 0, 1, 1], "radius": [0, 0, 0, 0] }, "ellipse": { "rect": [0, 0, 1, 1] } }"#,
+                #"{ "kind": "rect", "rect": [0, 0, 1, 1], "radius": [0, 0, 0, 0], "closed": true }"#,
                 "geometry",
-                #"items[0].geometry (path): takes only one of "rect", "ellipse""#
+                #"items[0].geometry (path): unknown key "closed". Allowed: kind, rect, radius"#
             ),
-            ("{}", "geometry", "items[0].geometry (path): needs one of rect, ellipse, path"),
+            ("{}", "geometry", #"items[0].geometry (path): missing key "kind""#),
             (
-                #"{ "spline": { "points": [[0, 0], [1, 1]] } }"#,
+                #"{ "kind": "spline", "points": [[0, 0], [1, 1]] }"#,
                 "geometry",
-                #"items[0].geometry (path): unknown key "spline". Allowed: rect, ellipse, path"#
+                #"items[0].geometry.kind (path): unknown value "spline". Allowed: rect, ellipse, path"#
             ),
             (
-                #"{ "ellipse": { "rect": [0, 0, 1, 1], "radius": 2 } }"#,
+                #"{ "kind": "ellipse", "rect": [0, 0, 1, 1], "radius": 2 }"#,
                 "geometry",
-                #"items[0].geometry.ellipse (path): unknown key "radius". Allowed: rect"#
+                #"items[0].geometry (path): unknown key "radius". Allowed: kind, rect"#
             ),
             (
                 ##"{ "width": 2, "paint": "color(srgb 1 1 1 / 1)", "align": "center", "join": "sharp", "cap": "butt", "start": null, "end": null }"##,
@@ -1049,14 +1093,14 @@ struct DisplayListReaderTests {
                 #"items[0].stroke.end (path): unknown key "size". Allowed: vertices, inTangents, outTangents, length, inset, scale"#
             ),
             (
-                ##"{ "width": 2, "paint": { "linear": { "from": [0, 0], "to": [1, 0], "stops": [[0, "color(srgb 1 1 1 / 1)"]] } }, "join": "round", "cap": "butt", "start": null, "end": null }"##,
+                ##"{ "width": 2, "paint": { "kind": "linear", "from": [0, 0], "to": [1, 0], "stops": [[0, "color(srgb 1 1 1 / 1)"]] }, "join": "round", "cap": "butt", "start": null, "end": null }"##,
                 "stroke",
-                "items[0].stroke.paint.linear.stops (path): a gradient has at least two stops, their offsets from 0 to 1 and in order"
+                "items[0].stroke.paint.stops (path): a gradient has at least two stops, their offsets from 0 to 1 and in order"
             ),
             (
-                ##"{ "width": 2, "paint": { "radial": { "center": [0, 0], "radius": 1, "stops": [[0.5, "color(srgb 1 1 1 / 1)"], [0.2, "color(srgb 0 0 0 / 1)"]] } }, "join": "round", "cap": "butt", "start": null, "end": null }"##,
+                ##"{ "width": 2, "paint": { "kind": "radial", "center": [0, 0], "radius": 1, "stops": [[0.5, "color(srgb 1 1 1 / 1)"], [0.2, "color(srgb 0 0 0 / 1)"]] }, "join": "round", "cap": "butt", "start": null, "end": null }"##,
                 "stroke",
-                "items[0].stroke.paint.radial.stops (path): a gradient has at least two stops, their offsets from 0 to 1 and in order"
+                "items[0].stroke.paint.stops (path): a gradient has at least two stops, their offsets from 0 to 1 and in order"
             ),
             (
                 ##"{ "width": 2, "paint": "color(srgb 1 1 1 / 1)", "align": "middle", "join": "round", "cap": "butt", "start": null, "end": null }"##,
@@ -1075,7 +1119,7 @@ struct DisplayListReaderTests {
     ) throws {
         // Given
         var members = [
-            "geometry": #"{ "rect": { "rect": [0, 0, 1, 1], "radius": [0, 0, 0, 0] } }"#,
+            "geometry": #"{ "kind": "rect", "rect": [0, 0, 1, 1], "radius": [0, 0, 0, 0] }"#,
             "stroke": "null",
             "trim": "[0, 1]"
         ]
@@ -1083,7 +1127,7 @@ struct DisplayListReaderTests {
         let text = #"""
             { "displayList": "\#(FramesVersion.current)", "size": [10, 10], "background": "color(srgb 0 0 0 / 1)", "colorSpace": "srgb",
               "peak": null, "compositing": "encoded", "items": [
-              { "item": "path", "origin": null, "transform": [1, 0, 0, 1, 0, 0], "opacity": 1, "blend": "normal",
+              { "kind": "path", "origin": null, "transform": [1, 0, 0, 1, 0, 0], "opacity": 1, "blend": "normal",
                 "mask": null, "trackMatte": null, "reveal": null, "geometry": \#(members["geometry"] ?? ""),
                 "fill": "color(srgb 1 1 1 / 1)",
                 "stroke": \#(members["stroke"] ?? ""), "trim": \#(members["trim"] ?? ""), "shadow": null } ] }
@@ -1180,8 +1224,8 @@ struct DisplayListReaderTests {
     @Test(
         "a stroke inside or outside its outline on an open path or with an arrowhead stops, naming its stroke",
         arguments: [
-            (#"{ "path": { "vertices": [[0, 0], [5, 5], [10, 0]], "inTangents": [[0, 0], [0, 0], [0, 0]], "outTangents": [[0, 0], [0, 0], [0, 0]], "closed": false } }"#, "inside", "null"),
-            (#"{ "rect": { "rect": [0, 0, 1, 1], "radius": [0, 0, 0, 0] } }"#, "outside", #"{ "vertices": [[-4, 2], [0, 0], [-4, -2]], "inTangents": [[0, 0], [0, 0], [0, 0]], "outTangents": [[0, 0], [0, 0], [0, 0]], "length": 4, "inset": 4, "scale": 1 }"#)
+            (#"{ "kind": "path", "vertices": [[0, 0], [5, 5], [10, 0]], "inTangents": [[0, 0], [0, 0], [0, 0]], "outTangents": [[0, 0], [0, 0], [0, 0]], "closed": false }"#, "inside", "null"),
+            (#"{ "kind": "rect", "rect": [0, 0, 1, 1], "radius": [0, 0, 0, 0] }"#, "outside", #"{ "vertices": [[-4, 2], [0, 0], [-4, -2]], "inTangents": [[0, 0], [0, 0], [0, 0]], "outTangents": [[0, 0], [0, 0], [0, 0]], "length": 4, "inset": 4, "scale": 1 }"#)
         ]
     )
     func refusesAlignedStrokeOffClosedOutline(
@@ -1193,7 +1237,7 @@ struct DisplayListReaderTests {
         let text = #"""
             { "displayList": "\#(FramesVersion.current)", "size": [10, 10], "background": "color(srgb 0 0 0 / 1)", "colorSpace": "srgb",
               "peak": null, "compositing": "encoded", "items": [
-              { "item": "path", "origin": null, "transform": [1, 0, 0, 1, 0, 0], "opacity": 1, "blend": "normal",
+              { "kind": "path", "origin": null, "transform": [1, 0, 0, 1, 0, 0], "opacity": 1, "blend": "normal",
                 "mask": null, "trackMatte": null, "reveal": null, "geometry": \#(geometry), "fill": null,
                 "stroke": { "width": 2, "paint": "color(srgb 1 1 1 / 1)", "align": "\#(align)", "join": "round", "cap": "butt",
                             "start": null, "end": \#(end), "dash": null, "dashOffset": 0 },

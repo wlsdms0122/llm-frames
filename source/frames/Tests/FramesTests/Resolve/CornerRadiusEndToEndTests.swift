@@ -128,12 +128,10 @@ struct CornerRadiusEndToEndTests {
         let written = try JSONReader().read(listWriter.write(evaluator.displayList(of: sequence, at: 1)))
         let root = try #require(written.objectValue)
         let items = try #require(root["items"]?.arrayValue)
-        let index = try #require(items.lastIndex { $0.objectValue?["geometry"]?.objectValue?["rect"] != nil })
+        let index = try #require(items.lastIndex { $0.objectValue?["geometry"]?.objectValue?["kind"] == .string("rect") })
         let item = try #require(items[index].objectValue)
-        let rect = try #require(item["geometry"]?.objectValue?["rect"]?.objectValue)
-        let geometry = JSONValue.object(JSONObject(members: [
-            JSONMember(key: "rect", value: .object(rect.setting("radius", to: .array([.number(0), .number(20), .number(60)]))))
-        ]))
+        let rect = try #require(item["geometry"]?.objectValue)
+        let geometry = JSONValue.object(rect.setting("radius", to: .array([.number(0), .number(20), .number(60)])))
         var changed = items
         changed[index] = .object(item.setting("geometry", to: geometry))
 
@@ -142,7 +140,7 @@ struct CornerRadiusEndToEndTests {
             try listReader.read(JSONWriter().write(.object(root.setting("items", to: .array(changed)))))
         }
         #expect(error?.description.hasSuffix("expected a list of 4 numbers, found a list of 3") == true, "\(error?.description ?? "no error")")
-        #expect(error?.description.hasPrefix("items[\(index)].geometry.rect.radius") == true, "\(error?.description ?? "no error")")
+        #expect(error?.description.hasPrefix("items[\(index)].geometry.radius") == true, "\(error?.description ?? "no error")")
     }
 
     // MARK: - Private
