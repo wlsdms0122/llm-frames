@@ -28,8 +28,9 @@ struct MovesTable: Sendable {
         "ev", "amount", "kelvin", "degrees", "input", "output", "radius", "color", "offset", "size"
     ]
     // A source is a media frame or a page of a PDF, its media (a page's `page` included), `frame`, `colorSpace` and
-    // `targetPeak` equal in every sample, or `{list}`, whose items take their marks and whose own `size`, `background`
-    // and `compositing` are equal in every sample. A matte's `source` and `frame` are equal in every sample too.
+    // `targetPeak` equal in every sample, or a nested `list`, whose items take their marks and whose own `size`,
+    // `background` and `compositing` are equal in every sample. A source's `kind` and a matte's `source` and `frame` are
+    // equal in every sample too.
     private static let source = MovesMark.members(["list": .members(["items": .items], other: .fixed)], other: .fixed)
     // A stroke's end moves in its head's `scale`, and its outline, `length` and `inset`, or `null` for no head, are
     // equal in every sample.
@@ -145,7 +146,7 @@ struct MovesTable: Sendable {
             guard elements.count == firstElements.count else { return sample }
 
             for (index, (element, firstElement)) in zip(elements, firstElements).enumerated() {
-                let name = element.objectValue?["item"]?.stringValue ?? sample.kind
+                let name = element.objectValue?["kind"]?.stringValue ?? sample.kind
                 let item = PlacedJSONValue(element, place: sample.place.appending(index: index), kind: name)
                 let marks = Self.common.merging(Self.kinds[name] ?? [:]) { common, _ in common }
                 if let difference = difference(of: item, from: firstElement, by: .members(marks, other: .fixed)) {

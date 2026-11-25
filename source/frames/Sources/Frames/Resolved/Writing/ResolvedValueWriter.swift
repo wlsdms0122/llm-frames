@@ -89,8 +89,7 @@ struct ResolvedValueWriter: Sendable {
         .array(quad.corners.map(point))
     }
 
-    // A path item's fill or stroke paint: a colour, or a gradient as one member named by its kind, its stops
-    // `[offset, colour]`.
+    // A path item's fill or stroke paint: a colour, or a gradient its `kind` names, its stops `[offset, colour]`.
     func paint(_ paint: Paint) -> JSONValue {
         switch paint {
         case let .color(color):
@@ -111,14 +110,14 @@ struct ResolvedValueWriter: Sendable {
                 )
             }
 
-            return .object(JSONObject(members: [JSONMember(key: name, value: .object(JSONObject(members: members)))]))
+            return .object(JSONObject(members: [JSONMember(key: "kind", value: .string(name))] + members))
         }
     }
 
-    // A path item's or a mask's geometry, one member named by its form.
+    // A path item's or a mask's geometry, its form named by its `kind`.
     func geometry(_ geometry: PathGeometry) -> JSONValue {
-        let form = { (name: String, members: [JSONMember]) in
-            JSONValue.object(JSONObject(members: [JSONMember(key: name, value: .object(JSONObject(members: members)))]))
+        let form = { (kind: String, members: [JSONMember]) in
+            JSONValue.object(JSONObject(members: [JSONMember(key: "kind", value: .string(kind))] + members))
         }
 
         switch geometry {
@@ -310,7 +309,7 @@ struct ResolvedValueWriter: Sendable {
         }
     }
 
-    // A display list's filter: each entry its ops, each `op` followed by its values with a LUT's file pinned and a
+    // A display list's filter: each entry its ops, each `kind` followed by its values with a LUT's file pinned and a
     // `grain`'s `seed`, the number of the output frame it is drawn in, then its `mix`.
     func filter(
         _ entries: [FilterEntry],
@@ -572,7 +571,7 @@ struct ResolvedValueWriter: Sendable {
     }
 
     private func members(of operation: ResolvedFilterOperation) -> [JSONMember] {
-        let kind = { (name: String) in JSONMember(key: "op", value: .string(name)) }
+        let kind = { (name: String) in JSONMember(key: "kind", value: .string(name)) }
         let value = { (key: String, number: Double) in JSONMember(key: key, value: .number(number)) }
 
         switch operation {
