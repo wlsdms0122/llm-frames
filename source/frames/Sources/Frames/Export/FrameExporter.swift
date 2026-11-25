@@ -209,12 +209,12 @@ package struct FrameExporter: Sendable {
             guard let probed = try mediaFacts.probedImageSequence(at: directory) else {
                 throw ExportError.missingMedia(path: directory)
             }
-            let file = MediaFile(imageSequence: probed, in: directory, fps: fps)
+            let sequence = ImageSequence(probed: probed, directory: directory, fps: fps)
 
             return try frames(
-                of: file,
+                of: sequence.file,
                 size: probed.size,
-                times: try range.times(end: file.imageSequenceDuration, kind: "image sequence")
+                times: try range.times(end: sequence.duration, kind: "image sequence")
             )
 
         case let .document(sequence):

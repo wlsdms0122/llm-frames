@@ -72,12 +72,12 @@ struct MediaResolver: Sendable {
             else {
                 throw ResolveError.missingMedia(place: place, kind: kind, reference: reference)
             }
-            let file = MediaFile(imageSequence: probed, in: directory, fps: fps)
+            let sequence = ImageSequence(probed: probed, directory: directory, fps: fps)
             return MediaPlan(
                 kind: .video,
                 reference: reference,
-                source: .file(file),
-                duration: file.imageSequenceDuration
+                source: .file(sequence.file),
+                duration: sequence.duration
             )
 
         case let .page(reference, page):

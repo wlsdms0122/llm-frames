@@ -63,10 +63,10 @@ package struct OCRReporter: Sendable {
             guard let probed = try mediaFacts.probedImageSequence(at: directory) else {
                 throw AnalysisError.missingMedia(file: directory)
             }
-            let file = MediaFile(imageSequence: probed, in: directory, fps: fps)
-            let times = try times(selection, isStill: false, end: file.imageSequenceDuration, file: directory)
+            let sequence = ImageSequence(probed: probed, directory: directory, fps: fps)
+            let times = try times(selection, isStill: false, end: sequence.duration, file: directory)
 
-            return (file, probed.size, times)
+            return (sequence.file, probed.size, times)
 
         case let .file(file):
             path = file
