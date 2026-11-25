@@ -147,7 +147,7 @@ struct ResolvedMotionBlurTests {
         let sequence = try sut.read(written(document))
 
         // Then
-        guard case let .nested(nested) = sequence.storyline.first?.media else {
+        guard case let .media(shown)? = sequence.storyline.first?.content, case let .nested(nested) = shown.media else {
             Issue.record("the storyline clip is not a nested sequence")
             return
         }

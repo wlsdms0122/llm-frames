@@ -129,7 +129,7 @@ struct ResolvedSequenceReader: Sendable {
     ) throws {
         for (entry, place) in zip(storyline, storylinePlaces) {
             guard let track = entry.track else { continue }
-            guard case let .pinned(media) = entry.media, track.media == media else {
+            guard case let .media(shown) = entry.content, case let .pinned(media) = shown.media, track.media == media else {
                 throw trackedMediaMismatch(at: place, followsParent: false)
             }
         }
@@ -169,7 +169,7 @@ struct ResolvedSequenceReader: Sendable {
         guard let id else { return nil }
 
         let content: ResolvedMediaContent? = if let entry = storyline.first(where: { $0.id == id }) {
-            entry.media
+            if case let .media(media) = entry.content { media.media } else { nil }
         } else if case let .picture(.media(media), _) = clips.first(where: { $0.id == id })?.content {
             media.media
         } else {
@@ -285,8 +285,9 @@ struct ResolvedSequenceReader: Sendable {
         return duration
     }
 
-    // An entry is of kind `media` or `solid`. An entry with media has a corner pin, and a solid has none. An entry with
-    // a corner pin has `size`, and its `position`, `anchor`, `scale` and `rotation` are null.
+    // An entry is of kind `media` or `solid`. An entry with media has a corner pin, and a solid has none. A solid's
+    // `media`, `colorSpace`, `toneMap` and `timeRemap` are null, and an entry with media has `color` null. An entry
+    // with a corner pin has `size`, and its `position`, `anchor`, `scale` and `rotation` are null.
     private func storyline(_ value: PlacedJSONValue) throws -> ResolvedStorylineClip {
         let keys = [
             "place", "id", "kind", "media", "color", "colorSpace", "toneMap", "in", "out", "speed", "timeRemap", "start",
@@ -297,31 +298,39 @@ struct ResolvedSequenceReader: Sendable {
             .name(among: Self.storylineKinds) { Self.storylineKinds.contains($0) ? $0 : nil }
         let isMedia = kind == "media"
         let entry = try value.object(kind: "storyline clip", keys: keys.filter { isMedia || $0 != "cornerPin" })
-        let otherKey = isMedia ? "color" : "media"
-        let other = try entry.member(otherKey)
-        guard other.isNull else {
-            throw ModelError.invalidValue(
-                place: other.place,
-                kind: other.kind,
-                reason: "an entry of kind \(kind) has no \(otherKey), so it is null, found \(other.value.written)"
-            )
+        for otherKey in isMedia ? ["color"] : ["media", "timeRemap"] {
+            let other = try entry.member(otherKey)
+            guard other.isNull else {
+                throw ModelError.invalidValue(
+                    place: other.place,
+                    kind: other.kind,
+                    reason: "an entry of kind \(kind) has no \(otherKey), so it is null, found \(other.value.written)"
+                )
+            }
         }
-        let media = isMedia ? try self.media(entry.member("media")) : nil
-        let color = isMedia ? nil : try values.keyframes(entry.member("color"), read: values.color)
-        let reading = try reading(of: entry, media: media)
+        let content: ResolvedStorylineContent
+        if isMedia {
+            let media = try self.media(entry.member("media"))
+            let reading = try reading(of: entry, media: media)
+            content = .media(ResolvedStorylineMedia(
+                media: media,
+                colorSpace: reading.colorSpace,
+                isToneMapped: reading.isToneMapped,
+                timeRemap: try entry.member("timeRemap").optional(values.numbers)
+            ))
+        } else {
+            try checkNoReading(of: entry)
+            content = .solid(try values.keyframes(entry.member("color"), read: values.color))
+        }
         let cornerPin = isMedia ? try self.cornerPin(of: entry) : nil
 
         return ResolvedStorylineClip(
             place: try entry.member("place").string(),
             id: try entry.member("id").optional { try $0.string() },
-            media: media,
-            color: color,
-            colorSpace: reading.colorSpace,
-            isToneMapped: reading.isToneMapped,
+            content: content,
             in: try entry.member("in").number(),
             out: try entry.member("out").number(),
             speed: try entry.member("speed").number(),
-            timeRemap: try entry.member("timeRemap").optional(values.numbers),
             start: try entry.member("start").number(),
             end: try entry.member("end").number(),
             crop: try values.crops(entry.member("crop")),
@@ -781,25 +790,19 @@ struct ResolvedSequenceReader: Sendable {
 
     // How an entry's pictures are read: media of a file in its `colorSpace`, null where the file's tags apply, and by its
     // `toneMap`, true or false, null for a page, which takes none. A nested sequence's pictures are working values
-    // already and a solid shows no media, so both are null there.
+    // already, so both are null there.
     private func reading(
         of entry: PlacedJSONObject,
-        media: ResolvedMediaContent?
+        media: ResolvedMediaContent
     ) throws -> (colorSpace: ColorSpace?, isToneMapped: Bool?) {
-        let colorSpace = try entry.member("colorSpace")
-        let toneMap = try entry.member("toneMap")
         guard case let .pinned(pinned) = media else {
-            for value in [colorSpace, toneMap] where !value.isNull {
-                throw ModelError.invalidValue(
-                    place: value.place,
-                    kind: value.kind,
-                    reason: "only media of a file is read in a colour space and tone mapped, so it is null here, "
-                        + "found \(value.value.written)"
-                )
-            }
+            try checkNoReading(of: entry)
 
             return (nil, nil)
         }
+
+        let colorSpace = try entry.member("colorSpace")
+        let toneMap = try entry.member("toneMap")
 
         let file = MediaFile(media: pinned)
         let read = try colorSpace.optional { try $0.name(among: VocabularyTable.colorSpaces, ColorSpace.init) }
@@ -817,6 +820,22 @@ struct ResolvedSequenceReader: Sendable {
 
         case nil:
             return (read, isToneMapped)
+        }
+    }
+
+    // An entry that shows no media of a file, a solid or a nested sequence, is read in no colour space and tone mapped
+    // by nothing, so its `colorSpace` and `toneMap` are null.
+    private func checkNoReading(of entry: PlacedJSONObject) throws {
+        for key in ["colorSpace", "toneMap"] {
+            let value = try entry.member(key)
+            guard value.isNull else {
+                throw ModelError.invalidValue(
+                    place: value.place,
+                    kind: value.kind,
+                    reason: "only media of a file is read in a colour space and tone mapped, so it is null here, "
+                        + "found \(value.value.written)"
+                )
+            }
         }
     }
 

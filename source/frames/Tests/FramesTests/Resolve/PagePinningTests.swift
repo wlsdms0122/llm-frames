@@ -32,9 +32,9 @@ struct PagePinningTests {
         let resolved = try resolved(document)
 
         // Then
-        #expect(resolved.storyline[0].media == .pinned(PinnedMedia(
+        #expect(resolved.storyline[0].content == .media(ResolvedStorylineMedia(media: .pinned(PinnedMedia(
             source: .page(PinnedFile(path: "/abs/deck.pdf", sha256: "sha256-of-/abs/deck.pdf"), page: 3)
-        )))
+        )))))
         #expect(resolved.storyline[0].end == 2)
     }
 
@@ -226,7 +226,7 @@ struct PagePinningTests {
     }
 
     private func writtenMedia(of resolved: ResolvedSequence) throws -> JSONValue {
-        guard case let .pinned(media)? = resolved.storyline.first?.media else {
+        guard case let .media(shown)? = resolved.storyline.first?.content, case let .pinned(media) = shown.media else {
             Issue.record("no pinned media")
             return .null
         }

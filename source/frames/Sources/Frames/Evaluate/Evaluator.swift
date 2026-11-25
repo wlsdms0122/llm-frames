@@ -352,12 +352,13 @@ package struct Evaluator: Sendable {
         // A box's own pixels are carried at the entry's scale, so a carried length is written as it is.
         let factor = scale.value(at: time).factor
         let content: DisplayContent
-        if let media = entry.media {
+        switch entry.content {
+        case let .media(media):
             content = .picture(PictureItem(
                 source: source(
-                    of: media,
-                    colorSpace: entry.colorSpace,
-                    isToneMapped: entry.isToneMapped,
+                    of: media.media,
+                    colorSpace: media.colorSpace,
+                    isToneMapped: media.isToneMapped,
                     clock: entry.clock,
                     in: window,
                     at: time.sample,
@@ -378,10 +379,9 @@ package struct Evaluator: Sendable {
                     carried: 1
                 )
             ))
-        } else if let color = entry.color {
+
+        case let .solid(color):
             content = .path(PathItem(filling: box, color: color.value(at: time)))
-        } else {
-            return []
         }
 
         let item = DisplayItem(
@@ -412,14 +412,14 @@ package struct Evaluator: Sendable {
     ) -> DisplayItem? {
         let quad = cornerPin.points.mapValues { $0.sampled(\.fixed) }.value(at: time)
         let isDrawn = cornerPin.size.width > 0 && cornerPin.size.height > 0 && quad.isStrictlyConvex
-        guard let media = entry.media, isDrawn || time.sample.isSample else { return nil }
+        guard case let .media(media) = entry.content, isDrawn || time.sample.isSample else { return nil }
 
         let box = Rectangle(x: 0, y: 0, width: cornerPin.size.width, height: cornerPin.size.height)
         let item = PictureItem(
             source: source(
-                of: media,
-                colorSpace: entry.colorSpace,
-                isToneMapped: entry.isToneMapped,
+                of: media.media,
+                colorSpace: media.colorSpace,
+                isToneMapped: media.isToneMapped,
                 clock: entry.clock,
                 in: window,
                 at: time.sample,

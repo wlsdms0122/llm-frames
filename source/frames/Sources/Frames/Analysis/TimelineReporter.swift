@@ -221,19 +221,20 @@ package struct TimelineReporter: Sendable {
             start: clip.transition?.start ?? clip.start,
             end: outgoing?.transition?.end ?? clip.end
         )
+        let media: ResolvedStorylineMedia? = if case let .media(media) = clip.content { media } else { nil }
         let shown = time.map { time in
             TimelineStorylineTime(
                 clipTime: clip.map.clipTime(atSequenceTime: time),
-                mediaTime: clip.media.map { shownTime(of: $0, at: clip.mediaTime(at: time)) }
+                mediaTime: media.map { shownTime(of: $0.media, at: clip.mediaTime(at: time)) }
             )
         }
 
         return TimelineStorylineEntry(
             place: clip.place,
             id: clip.id,
-            kind: (clip.media.map { ClipKind.media(kind(of: $0)) } ?? .solid).label,
-            media: clip.media.flatMap(file(of:)),
-            page: clip.media.flatMap(page(of:)),
+            kind: (media.map { ClipKind.media(kind(of: $0.media)) } ?? .solid).label,
+            media: media.flatMap { file(of: $0.media) },
+            page: media.flatMap { page(of: $0.media) },
             fps: nil,
             instant: nil,
             clock: .sequence,
@@ -245,10 +246,10 @@ package struct TimelineReporter: Sendable {
             clip: TimeRange(start: clip.in, end: clip.out),
             sound: sound,
             speed: clip.speed,
-            isTimeRemapped: clip.timeRemap != nil,
+            isTimeRemapped: media?.timeRemap != nil,
             transition: clip.transition.map { TimelineTransition(preset: nil, seconds: $0.end - $0.start) },
             time: shown,
-            nested: clip.media.flatMap { nestedReport(of: $0, at: shown?.mediaTime) }
+            nested: media.flatMap { nestedReport(of: $0.media, at: shown?.mediaTime) }
         )
     }
 

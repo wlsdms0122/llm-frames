@@ -86,7 +86,7 @@ struct ColorKeyTests {
             """#)
 
         // Then
-        let entry = try #require(resolved.storyline.first)
+        let entry = try #require(storylineMedia(resolved.storyline.first))
         #expect(entry.colorSpace == nil)
         #expect(entry.isToneMapped == true)
         let clip = try #require(mediaClip(resolved.clips.first))
@@ -109,7 +109,7 @@ struct ColorKeyTests {
         let written = try written(resolved)
 
         // Then
-        let entry = try #require(resolved.storyline.first)
+        let entry = try #require(storylineMedia(resolved.storyline.first))
         #expect(entry.colorSpace == .rec709)
         #expect(entry.isToneMapped == false)
         #expect(resolved.clips.compactMap(mediaClip).map(\.colorSpace) == [.rec2100HLG, .displayP3])
@@ -146,12 +146,16 @@ struct ColorKeyTests {
             #expect(entry.objectValue?["colorSpace"] == .null)
             #expect(entry.objectValue?["toneMap"] == .null)
         }
-        guard case let .nested(nested) = resolved.storyline.last?.media else {
+        guard case let .media(compound)? = resolved.storyline.last?.content, case let .nested(nested) = compound.media else {
             Issue.record("the compound clip is not nested")
             return
         }
-        #expect(nested.storyline.first?.colorSpace == .rec709)
-        #expect(nested.storyline.first?.isToneMapped == true)
+        guard case let .media(inner)? = nested.storyline.first?.content else {
+            Issue.record("the nested entry shows no media")
+            return
+        }
+        #expect(inner.colorSpace == .rec709)
+        #expect(inner.isToneMapped == true)
         #expect(try reader.read(writer.write(resolved)) == resolved)
     }
 
@@ -345,7 +349,7 @@ struct ColorKeyTests {
 
         // Then
         #expect(throws: Never.self) { try checkMediaColorSpaces(of: document) }
-        guard case let .pinned(card)? = resolved.storyline.first?.media else {
+        guard case let .media(shown)? = resolved.storyline.first?.content, case let .pinned(card) = shown.media else {
             Issue.record("the storyline entry pins no media")
             return
         }
@@ -372,6 +376,12 @@ struct ColorKeyTests {
 
     private func mediaClip(_ clip: ResolvedClip?) -> ResolvedMediaClip? {
         guard case let .picture(.media(media), _) = clip?.content else { return nil }
+
+        return media
+    }
+
+    private func storylineMedia(_ entry: ResolvedStorylineClip?) -> ResolvedStorylineMedia? {
+        guard case let .media(media) = entry?.content else { return nil }
 
         return media
     }

@@ -37,18 +37,25 @@ extension ResolvedStorylineClip {
         let crop = geometry.crop?
             .followed(at: plan.instant, isOnTrackFrame: geometry.isCropOnTrackFrame) { conform($0) }
             ?? .keyframes([Keyframe(at: plan.instant, value: conform(Rectangle(x: 0, y: 0, width: whole.width, height: whole.height)))])
+        let content: ResolvedStorylineContent
+        if let media = try ResolvedMediaContent(media: plan.source.media, nested: geometry.nested, hashes: hashes) {
+            content = .media(ResolvedStorylineMedia(
+                media: media,
+                colorSpace: plan.source.media?.colorSpace,
+                isToneMapped: plan.source.media?.isToneMapped,
+                timeRemap: plan.timeRemap
+            ))
+        } else {
+            content = .solid(geometry.color ?? [])
+        }
 
         self.init(
             place: plan.place.description,
             id: plan.id,
-            media: try ResolvedMediaContent(media: plan.source.media, nested: geometry.nested, hashes: hashes),
-            color: geometry.color,
-            colorSpace: plan.source.media?.colorSpace,
-            isToneMapped: plan.source.media?.isToneMapped,
+            content: content,
             in: plan.source.clipRange.start,
             out: plan.source.clipRange.end,
             speed: plan.source.speed,
-            timeRemap: plan.timeRemap,
             start: plan.edit.start,
             end: plan.edit.end,
             crop: crop,

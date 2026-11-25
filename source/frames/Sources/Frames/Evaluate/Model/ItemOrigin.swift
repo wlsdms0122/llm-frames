@@ -46,7 +46,13 @@ package struct ItemOrigin: Equatable, Sendable {
     }
 
     init(entry: ResolvedStorylineClip) {
-        let kind: ClipKind = entry.media.map { .media(Self.kind(of: $0)) } ?? .solid
+        let kind: ClipKind = switch entry.content {
+        case .solid:
+            .solid
+
+        case let .media(media):
+            .media(Self.kind(of: media.media))
+        }
 
         self.init(place: entry.place, id: entry.id, kind: kind.label)
     }

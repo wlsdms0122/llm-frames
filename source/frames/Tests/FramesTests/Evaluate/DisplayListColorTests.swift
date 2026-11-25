@@ -105,7 +105,12 @@ struct DisplayListColorTests {
         let frames = frames(in: sut.displayList(of: resolved, at: 0.5))
 
         // Then
-        #expect(resolved.storyline.map(\.isToneMapped) == [true])
+        let toneMapping = resolved.storyline.map { entry -> Bool? in
+            guard case let .media(media) = entry.content else { return nil }
+
+            return media.isToneMapped
+        }
+        #expect(toneMapping == [true])
         #expect(frames.map(\.reading) == [
             .working(colorSpace: nil, targetPeak: 1000),
             .working(colorSpace: nil, targetPeak: 1000)

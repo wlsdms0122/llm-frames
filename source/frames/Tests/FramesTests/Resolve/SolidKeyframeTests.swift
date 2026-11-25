@@ -29,7 +29,7 @@ struct SolidKeyframeTests {
         let list = sut.displayList(of: sequence, at: 1)
 
         // Then
-        #expect(sequence.storyline[0].color?.value(at: 0) == Color(written: "#FF0000"))
+        #expect(color(of: sequence.storyline[0])?.value(at: 0) == Color(written: "#FF0000"))
         #expect(fill(of: list) == Color(written: "color(srgb 0.5 0 0.5)"))
     }
 
@@ -59,7 +59,7 @@ struct SolidKeyframeTests {
         // Then
         #expect(colours.first == Color(written: "#000000"))
         #expect(colours[4] == Color(written: "color(srgb 0.5 0.5 0.5)"))
-        #expect(sequence.storyline[0].color?.map(\.value) == [Color(written: "#000000"), Color(written: "#FFFFFF")])
+        #expect(color(of: sequence.storyline[0])?.map(\.value) == [Color(written: "#000000"), Color(written: "#FFFFFF")])
     }
 
     @Test("a solid whose static colour every keyframe replaces stops, since the static colour never shows")
@@ -87,8 +87,26 @@ struct SolidKeyframeTests {
         let read = try ResolvedDocumentReader().read(ResolvedDocumentWriter().write(sequence))
 
         // Then
-        #expect(read.storyline[0].color == sequence.storyline[0].color)
-        #expect(sequence.storyline[0].color?.count == 2)
+        #expect(read.storyline[0].content == sequence.storyline[0].content)
+        #expect(color(of: sequence.storyline[0])?.count == 2)
+    }
+
+    @Test("a resolved solid entry with a time remap stops, since a solid shows no media")
+    func refusesSolidTimeRemap() throws {
+        // Given
+        let sequence = try resolved(##""kind": "solid", "color": "#FF0000""##)
+        let root = try #require(try JSONReader().read(ResolvedDocumentWriter().write(sequence)).objectValue)
+        var storyline = try #require(root["storyline"]?.arrayValue)
+        let entry = try #require(storyline[0].objectValue)
+        storyline[0] = .object(entry.setting("timeRemap", to: try JSONReader().read(#"[{ "at": 0, "value": 0, "ease": "linear" }]"#)))
+
+        // When
+        let error = #expect(throws: ModelError.self) {
+            try ResolvedDocumentReader().read(.object(root.setting("storyline", to: .array(storyline))))
+        }
+
+        // Then
+        #expect(error?.description.hasPrefix("storyline[0].timeRemap (storyline clip): an entry of kind solid has no timeRemap, so it is null") == true)
     }
 
     // MARK: - Private
@@ -111,6 +129,13 @@ struct SolidKeyframeTests {
         else {
             return nil
         }
+
+        return color
+    }
+
+    // A solid entry's colour keyframes, nil for an entry with media.
+    private func color(of entry: ResolvedStorylineClip) -> [Keyframe<Color>]? {
+        guard case let .solid(color) = entry.content else { return nil }
 
         return color
     }
