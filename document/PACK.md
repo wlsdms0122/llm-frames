@@ -190,7 +190,7 @@ A parameter is a value left open for whoever uses a preset or a template, as an 
 | `audio` | an audio file | no | yes |
 
 - `{"param": "<name>"}` stands for a value of the parameter's type, never for a key. In a template it stands anywhere a value of that type is accepted. Where it may stand in a preset is in [PRESET.md](PRESET.md).
-- A `text` stands for text on screen: a title, given as a string or as a run's `text`, or the text an area's text form searches for (`text`, `from`, `to`).
+- A `text` stands for text on screen: a title, given as a string or as a run's `text`.
 - A `choice` stands where one of its options is accepted. Names (presets, styles, shape styles, themes, templates) are taken only by a choice, so a template lists what its user may pick. In a template, a choice of animation presets may include `"none"`, as `intro` does.
 - A media argument (`video`, `sequence`, `image`, `audio`) is any media form: an absolute path, a pack file such as `mine/logo.png`, `{"imageSequence": ...}`, a sequence document, or `{"template": ..., "args": ...}`. An argument object is media only when it holds `kind`, `imageSequence` or `template`.
 - A parameter is the preset's or template's own. A template's arguments reach a preset only where the template passes them on in a choice's `args`.

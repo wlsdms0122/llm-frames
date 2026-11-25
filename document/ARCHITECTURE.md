@@ -10,8 +10,8 @@ This is not part of the specification. It is the structure of the implementation
               media facts (probe), then the media rows of the key tables
 3. plan time  storyline clips end to end, transitions, edit and drawn ranges, clip time maps and timeRemap,
               the window of every other clip, lanes
-4. plan       nested documents and template instances, the format and content fit, areas and points found
-              (OCR provider), crops conformed, tracks (tracker provider), parents and track mattes, titles set
+4. plan       nested documents and template instances, the format and content fit, clip areas and points,
+              crops conformed, tracks (tracker provider), parents and track mattes, titles set
               (shaping provider), where each clip is placed and how it is drawn, theme lengths scaled, the sound.
               timeline reports here, resolve writes the resolved document with every file pinned by hash
 5. evaluate   the display list at a time, the mix plan
@@ -111,6 +111,8 @@ frames/
     PACK.md                how to make a pack, a form and a template
     howto/<name>.md
   packs/<name>/            packs kept beside the tool and installed by copying, not part of it
+  extensions/<name>/       first-party extensions, frames-<name> with its README and check, installed by putting
+                           frames-<name> on PATH, not part of the tool
   source/frames/           the Swift package
     Package.swift
     Sources/Frames/                the engine
