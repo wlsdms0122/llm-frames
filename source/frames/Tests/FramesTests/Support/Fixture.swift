@@ -120,6 +120,16 @@ enum Fixture {
             "frames/push-up": transition(seconds: 0.5),
             "frames/wipe-right": transition(seconds: 1),
             "mine/long": transition(seconds: 4),
+            "mine/push-up": TransitionPreset(
+                description: "",
+                seconds: 0.5,
+                over: .incoming,
+                audio: .constantPower,
+                incoming: push(from: 1, to: 0),
+                outgoing: push(from: 0, to: -1),
+                cover: nil,
+                matte: nil
+            ),
             "mine/same-take": transition(seconds: 1, audio: .constantGain),
             "mine/wipe-in": TransitionPreset(
                 description: "",
@@ -226,6 +236,14 @@ enum Fixture {
             cover: nil,
             matte: nil
         )
+    }
+
+    // A move up by frame heights at an even pace, from `start` to `end`.
+    private static func push(
+        from start: Double,
+        to end: Double
+    ) -> Span {
+        Span(ease: .linear, keys: [SpanKey(t: 0, values: [.y: start]), SpanKey(t: 1, values: [.y: end])])
     }
 
     // A wipe from the left at an even pace.

@@ -5,11 +5,12 @@
 //  Created by JSilver on 11/19/26.
 //
 
-// Checks the clip each clip area names in the same document: a connected or sequence media clip, title or shape, the
-// clips a track matte may name, drawn in the space of the clip that writes the area (both with one parent or none) or
-// that clip's own parent. A clip whose box depends on itself through clip areas stops, naming the clips in the cycle;
-// a mask is checked as an area is and takes no part in a cycle, since no clip's box depends on a mask's area. A
-// storyline clip is placed in output pixels by the storyline, so it takes no clip area.
+// Checks the clip each clip area names in the same document: a storyline clip with media, or a connected or sequence
+// media clip, title, shape or null, drawn in the space of the clip that writes the area (both with one parent or none)
+// or that clip's own parent. A storyline clip has no parent, so an unparented clip and a child of it may name it. A
+// clip whose box depends on itself through clip areas stops, naming the clips in the cycle; a mask is checked as an
+// area is and takes no part in a cycle, since no clip's box depends on a mask's area. A storyline clip is placed in
+// output pixels by the storyline, so it takes no clip area, and its box takes part in no cycle.
 struct ClipAreaFinder: Sendable {
     // MARK: - Property
     // MARK: - Initializer
@@ -68,22 +69,37 @@ struct ClipAreaFinder: Sendable {
     }
 
     // MARK: - Private
-    // The index of the clip a reference names, checked.
+    // The index of the connected or sequence clip a reference names, checked, nil for a storyline clip, whose box
+    // depends on no clip area.
     private func named(
         _ reference: ClipAreaReference,
         by index: Int,
         clips: [ClipPlan],
         links: [TrackMatteLink],
         storylineLinks: [TrackMatteLink]
-    ) throws -> Int {
+    ) throws -> Int? {
         let link = links[index]
+        let parent = clips[index].parent?.id
         if let storyline = storylineLinks.first(where: { $0.id == reference.clip }) {
-            throw ResolveError.clipAreaKind(
-                place: reference.place,
-                kind: link.kind,
-                id: reference.clip,
-                named: storyline.areaRefusal ?? .storyline
-            )
+            if let refusal = storyline.areaRefusal {
+                throw ResolveError.clipAreaKind(
+                    place: reference.place,
+                    kind: link.kind,
+                    id: reference.clip,
+                    named: refusal
+                )
+            }
+            guard parent == nil || parent == reference.clip else {
+                throw ResolveError.clipAreaAcrossSpaces(
+                    place: reference.place,
+                    kind: link.kind,
+                    id: reference.clip,
+                    parent: parent,
+                    namedParent: nil
+                )
+            }
+
+            return nil
         }
         guard let named = links.firstIndex(where: { $0.id == reference.clip }) else {
             throw ResolveError.unknownClipArea(place: reference.place, kind: link.kind, id: reference.clip)
@@ -92,7 +108,6 @@ struct ClipAreaFinder: Sendable {
             throw ResolveError.clipAreaKind(place: reference.place, kind: link.kind, id: reference.clip, named: refusal)
         }
 
-        let parent = clips[index].parent?.id
         let namedParent = clips[named].parent?.id
         guard parent == namedParent || parent == reference.clip else {
             throw ResolveError.clipAreaAcrossSpaces(
@@ -110,7 +125,7 @@ struct ClipAreaFinder: Sendable {
     // The cycle a walk from `index` comes back into, depth first; `finished` holds the clips whose every walk ends.
     private func cycle(
         from index: Int,
-        named: [[Int]],
+        named: [[Int?]],
         path: inout [Int],
         finished: inout Set<Int>
     ) -> [Int]? {
@@ -120,7 +135,7 @@ struct ClipAreaFinder: Sendable {
         guard !finished.contains(index) else { return nil }
 
         path.append(index)
-        for next in named[index] {
+        for next in named[index].compactMap({ $0 }) {
             if let cycle = cycle(from: next, named: named, path: &path, finished: &finished) {
                 return cycle
             }

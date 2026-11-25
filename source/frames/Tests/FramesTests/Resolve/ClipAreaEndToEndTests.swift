@@ -390,6 +390,166 @@ struct ClipAreaEndToEndTests {
         #expect(description.hasPrefix(place), "\(description)")
     }
 
+    // `/abs/card.png` is 1080 by 1350. Under the default `fit` its crop is grown about its centre to the frame's 16:9,
+    // `[-660, 0, 2400, 1350]`, and fills the storyline clip's box, the 1920 by 1080 frame (FRAMES-9).
+    @Test(
+        "an unparented clip naming a storyline clip takes the frame its conformed crop fills, at its position and grown by the padding, without its scale and rotation",
+        arguments: ["", #", "scale": 2, "rotation": 30"#]
+    )
+    func fitsStorylineBox(transform: String) throws {
+        // Given
+        let sut = try resolved(#"""
+            { "kind": "sequence", "format": { "size": [1920, 1080] },
+              "storyline": [ { "id": "shot", "kind": "media", "media": "/abs/card.png", "duration": 4, "position": [1160, 540]\#(transform) } ],
+              "clips": [ { "id": "outline", "kind": "rect", "fill": "#000000", "at": [0, 4], "area": { "clip": "shot", "padding": 24 } } ] }
+            """#)
+
+        // When
+        let drawn = try drawn("outline", in: sut, at: 1)
+
+        // Then
+        #expect(isClose(drawn, Rectangle(x: 176, y: -24, width: 1968, height: 1128)))
+    }
+
+    @Test("a child naming its storyline parent takes its conformed crop in media pixels, the rect timeline --at reports for its box, and covers its box")
+    func fitsStorylineCrop() throws {
+        // Given
+        let sut = try resolved(#"""
+            { "kind": "sequence", "format": { "size": [1920, 1080] },
+              "storyline": [ { "id": "shot", "kind": "media", "media": "/abs/card.png", "duration": 4, "crop": [100, 100, 500, 500] } ],
+              "clips": [ { "id": "outline", "kind": "rect", "fill": "#000000", "at": [0, 4], "parent": "shot", "area": { "clip": "shot" } } ] }
+            """#)
+
+        // When
+        let drawn = try drawn("outline", in: sut, at: 1)
+        let reported = try #require(TimelineGeometrySampler(sequence: sut).geometry(at: "storyline[0]#shot", time: 1).box)
+
+        // Then
+        let crop = Rectangle(x: 350 - 4000.0 / 9, y: 100, width: 8000.0 / 9, height: 500)
+        #expect(isClose(drawn, Rectangle(x: 0, y: 0, width: 1920, height: 1080)))
+        #expect(isClose(reported.rect, crop))
+    }
+
+    @Test("a child naming its storyline parent is carried by the parent's scale and rotation onto the quad timeline --at reports for the parent's box")
+    func followsStorylineTransform() throws {
+        // Given
+        let sut = try resolved(#"""
+            { "kind": "sequence", "format": { "size": [1920, 1080] },
+              "storyline": [ { "id": "shot", "kind": "media", "media": "/abs/card.png", "duration": 4, "scale": 0.5, "rotation": 90 } ],
+              "clips": [ { "id": "outline", "kind": "rect", "fill": "#000000", "at": [0, 4], "parent": "shot", "area": { "clip": "shot" } } ] }
+            """#)
+
+        // When
+        let drawn = try drawn("outline", in: sut, at: 1)
+        let reported = try #require(TimelineGeometrySampler(sequence: sut).geometry(at: "storyline[0]#shot", time: 1).box)
+
+        // Then
+        let turned = Rectangle(x: 690, y: 60, width: 540, height: 960)
+        #expect(isClose(drawn, turned))
+        #expect(isClose(Rectangle(bounding: reported.quad.corners), turned))
+    }
+
+    @Test("during a push the area naming the storyline clip keeps its box, and a child naming it moves with the push")
+    func keepsStorylineBoxThroughTransition() throws {
+        // Given
+        let sut = try resolved(#"""
+            { "kind": "sequence", "format": { "size": [1920, 1080] },
+              "storyline": [
+                { "id": "a", "kind": "media", "media": "/abs/card.png", "duration": 2 },
+                { "kind": "media", "media": "/abs/card.png", "duration": 2, "transition": "mine/push-up" } ],
+              "clips": [
+                { "id": "caption", "kind": "rect", "fill": "#000000", "at": [0, 4], "area": { "clip": "a" } },
+                { "id": "outline", "kind": "rect", "fill": "#000000", "at": [0, 4], "parent": "a", "area": { "clip": "a" } } ] }
+            """#)
+        let transition = try #require(sut.storyline[1].transition)
+        let middle = (transition.start + transition.end) / 2
+
+        // When
+        let caption = try drawn("caption", in: sut, at: middle)
+        let outline = try drawn("outline", in: sut, at: middle)
+
+        // Then
+        #expect(isClose(caption, Rectangle(x: 0, y: 0, width: 1920, height: 1080)))
+        #expect(isClose(outline, Rectangle(x: 0, y: -540, width: 1920, height: 1080)))
+    }
+
+    @Test("outside the storyline clip's drawn range the area holds the box it has at the range's edge")
+    func holdsStorylineBoxOutsideRange() throws {
+        // Given
+        let sut = try resolved(#"""
+            { "kind": "sequence", "format": { "size": [1920, 1080] },
+              "storyline": [
+                { "kind": "solid", "color": "#202020", "duration": 1 },
+                { "id": "a", "kind": "media", "media": "/abs/card.png", "duration": 2,
+                  "keyframes": [ { "at": 0, "position": [760, 540] }, { "at": 2, "position": [1160, 540] } ] },
+                { "kind": "solid", "color": "#202020", "duration": 1 } ],
+              "clips": [ { "id": "caption", "kind": "rect", "fill": "#000000", "at": [0, 4], "area": { "clip": "a" } } ] }
+            """#)
+
+        // When
+        let before = try drawn("caption", in: sut, at: 0.5)
+        let middle = try drawn("caption", in: sut, at: 2)
+        let after = try drawn("caption", in: sut, at: 3.5)
+
+        // Then
+        // The range ends before 3, so its last instant is one time resolution earlier, where `a` moves 200 a second.
+        #expect(isClose(before, Rectangle(x: -200, y: 0, width: 1920, height: 1080)))
+        #expect(isClose(middle, Rectangle(x: 0, y: 0, width: 1920, height: 1080)))
+        #expect(isClose(after, Rectangle(x: 200 - 200 * .timeResolution, y: 0, width: 1920, height: 1080)))
+    }
+
+    @Test(
+        "a clip area naming a corner-pinned storyline clip takes its corner pin bounds in output pixels, from an unparented clip and a child alike",
+        arguments: [#""#, #", "parent": "shot""#]
+    )
+    func fitsStorylineCornerPin(parent: String) throws {
+        // Given
+        let sut = try resolved(#"""
+            { "kind": "sequence", "format": { "size": [1920, 1080] },
+              "storyline": [ { "id": "shot", "kind": "media", "media": "/abs/card.png", "duration": 4,
+                               "cornerPin": [[200, 100], [1700, 150], [1600, 950], [300, 1000]] } ],
+              "clips": [ { "id": "outline", "kind": "rect", "fill": "#000000", "at": [0, 4]\#(parent), "area": { "clip": "shot" } } ] }
+            """#)
+
+        // When
+        let drawn = try drawn("outline", in: sut, at: 1)
+
+        // Then
+        #expect(isClose(drawn, Rectangle(x: 200, y: 100, width: 1500, height: 900)))
+    }
+
+    @Test(
+        "a clip area naming a storyline solid, or a storyline clip from a clip with another parent, stops",
+        arguments: [
+            (
+                ##"{ "kind": "rect", "fill": "#000000", "at": [0, 4], "area": { "clip": "back" } }"##,
+                #"clips[0].area (rect): "back" is a solid, and a clip area names a storyline clip with media, or a connected or sequence media clip, title, shape or null"#
+            ),
+            (
+                ##"{ "kind": "rect", "fill": "#000000", "at": [0, 4], "parent": "card", "area": { "clip": "shot" } }"##,
+                #"clips[0].area (rect): this clip's parent is "card" and the parent of "shot" is none"#
+            )
+        ]
+    )
+    func stopsClipAreaOnStorylineClip(
+        clip: String,
+        message: String
+    ) throws {
+        // Given
+        let document = #"""
+            { "kind": "sequence", "format": { "size": [1920, 1080] },
+              "storyline": [
+                { "id": "back", "kind": "solid", "color": "#202020", "duration": 2 },
+                { "id": "shot", "kind": "media", "media": "/abs/card.png", "duration": 2 } ],
+              "clips": [ \#(clip), { "id": "card", "kind": "media", "media": "/abs/card.png", "at": [0, 4] } ] }
+            """#
+
+        // When, Then
+        let error = #expect(throws: (any Error).self) { try resolved(document) }
+        let description = (error as? CustomStringConvertible)?.description ?? ""
+        #expect(description.hasPrefix(message), "\(description)")
+    }
+
     @Test("a storyline clip's position takes no clip area")
     func stopsClipAreaOnStoryline() throws {
         // Given

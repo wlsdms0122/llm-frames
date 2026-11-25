@@ -33,7 +33,9 @@ extension TimelineReport {
                 "sound \(entry.sound.map(written) ?? "-")",
                 entry.isTimeRemapped ? "time-remapped" : "speed \(number(entry.speed))",
                 "transition \(transition)"
-            ] + (entry.time.map { ["clip time \(seconds($0.clipTime))", "media time \(media(time: $0.mediaTime))"] } ?? [])
+            ] + (entry.time.map { time in
+                ["clip time \(seconds(time.clipTime))", "media time \(media(time: time.mediaTime))"] + written(time.geometry)
+            } ?? [])
             let joined = line.joined(separator: "  ")
 
             return [joined] + (entry.nested?.lines(indent: indent + "  ") ?? [])
@@ -51,7 +53,7 @@ extension TimelineReport {
                 "lane \(entry.lane.map(String.init) ?? "-")",
                 "parent \(entry.parent ?? "-")",
                 "animation \(animation)"
-            ] + (entry.time.map { ["media time \(media(time: $0.mediaTime))"] } ?? [])
+            ] + (entry.time.map { ["media time \(media(time: $0.mediaTime))"] + written($0.geometry) } ?? [])
 
             return [line.joined(separator: "  ")] + (entry.nested?.lines(indent: indent + "  ") ?? [])
         }
@@ -75,6 +77,28 @@ extension TimelineReport {
 
     private func media(time: Double?) -> String {
         time.map(seconds) ?? "-"
+    }
+
+    // A box as its rect and the quad it lies on, and each mask as its quad.
+    private func written(_ geometry: TimelineGeometry) -> [String] {
+        let box = geometry.box.map { "box \(written(rect: $0.rect)) on \(written($0.quad))" } ?? "box -"
+        let masks = geometry.masks.map { masks in
+            masks.isEmpty ? "masks none" : "masks " + masks.map(written).joined(separator: " ")
+        } ?? "masks -"
+
+        return [box, masks]
+    }
+
+    private func written(rect: Rectangle) -> String {
+        "[" + [rect.x, rect.y, rect.width, rect.height].map(measure).joined(separator: ", ") + "]"
+    }
+
+    private func written(_ quad: Quad) -> String {
+        "[" + quad.corners.map { "[\(measure($0.x)), \(measure($0.y))]" }.joined(separator: ", ") + "]"
+    }
+
+    private func measure(_ value: Double) -> String {
+        JSONValue.measure(value).written
     }
 
     private func written(_ range: TimeRange) -> String {

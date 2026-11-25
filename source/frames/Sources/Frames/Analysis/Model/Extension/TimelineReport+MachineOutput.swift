@@ -6,7 +6,8 @@
 //
 
 // `{"timeline": "0.1.0", duration, storyline, clips}`, the object `timeline --json` prints, with `time` after
-// `duration` when it is asked at a time, where a storyline entry also has `clipTime` and every entry `mediaTime`.
+// `duration` when it is asked at a time, where a storyline entry also has `clipTime` and every entry `mediaTime`, `box`
+// and `masks`.
 // Every entry has `kind`, `media`, its pinned path or `null`, and `page`, and after its own keys `fps`, `instant`,
 // `clock`, `space`, `ownSpace` and `tracked`. A nested document's object has the same form.
 extension TimelineReport {
@@ -49,7 +50,7 @@ extension TimelineReport {
             [
                 JSONMember(key: "clipTime", value: .time(time.clipTime)),
                 JSONMember(key: "mediaTime", value: mediaTime(time.mediaTime))
-            ]
+            ] + output(time.geometry)
         }
 
         return .object(JSONObject(members: members + (time ?? []) + nested(entry.nested)))
@@ -79,7 +80,7 @@ extension TimelineReport {
             JSONMember(key: "parent", value: text(entry.parent)),
             JSONMember(key: "animation", value: animation ?? .null)
         ] + written(entry.fps, entry.instant, entry.clock, entry.space, entry.ownSpace, entry.tracked)
-        let time = entry.time.map { [JSONMember(key: "mediaTime", value: mediaTime($0.mediaTime))] }
+        let time = entry.time.map { [JSONMember(key: "mediaTime", value: mediaTime($0.mediaTime))] + output($0.geometry) }
 
         return .object(JSONObject(members: members + (time ?? []) + nested(entry.nested)))
     }
@@ -107,6 +108,27 @@ extension TimelineReport {
         ]
     }
 
+    // `box` is `{rect, quad}` or `null`, and `masks` a quad for each mask or `null`, positions rounded as positions are.
+    private func output(_ geometry: TimelineGeometry) -> [JSONMember] {
+        let box = geometry.box.map { box in
+            JSONValue.object(JSONObject(members: [
+                JSONMember(key: "rect", value: .array(
+                    [box.rect.x, box.rect.y, box.rect.width, box.rect.height].map(JSONValue.measure)
+                )),
+                JSONMember(key: "quad", value: output(box.quad))
+            ]))
+        }
+
+        return [
+            JSONMember(key: "box", value: box ?? .null),
+            JSONMember(key: "masks", value: geometry.masks.map { .array($0.map(output)) } ?? .null)
+        ]
+    }
+
+    private func output(_ quad: Quad) -> JSONValue {
+        .array(quad.corners.map { .array([.measure($0.x), .measure($0.y)]) })
+    }
+
     private func output(_ tracked: TimelineTrack) -> JSONValue {
         .object(JSONObject(members: [
             JSONMember(key: "clip", value: .string(tracked.clip)),
@@ -125,6 +147,9 @@ extension TimelineReport {
 
         case let .box(place):
             ("box", place)
+
+        case let .text(place):
+            ("text", place)
         }
 
         return .object(JSONObject(members: [

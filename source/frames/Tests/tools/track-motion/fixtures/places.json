@@ -88,29 +88,6 @@
       }
     ]
   },
-  "mask_target": {
-    "kind": "sequence",
-    "storyline": [
-      {
-        "id": "shot",
-        "kind": "media",
-        "media": "/media/moving.mp4",
-        "mask": {
-          "kind": "ellipse",
-          "area": [
-            124,
-            202,
-            128,
-            88
-          ]
-        },
-        "track": {
-          "tool": "frames/track-motion",
-          "target": "mask"
-        }
-      }
-    ]
-  },
   "keyframed": {
     "kind": "sequence",
     "storyline": [
