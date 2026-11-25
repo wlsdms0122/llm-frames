@@ -1,0 +1,11 @@
+{
+  "description": "A filled square 4 widths on a side, its front side across the end.",
+  "points": [
+    [0, 2],
+    [0, -2],
+    [-4, -2],
+    [-4, 2]
+  ],
+  "length": 4,
+  "inset": 2
+}

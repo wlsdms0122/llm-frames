@@ -1,0 +1,11 @@
+{
+  "description": "A filled circle 4 widths across, touching the end.",
+  "points": [
+    { "vertex": [0, 0], "inTangent": [0, -1.104569499661587], "outTangent": [0, 1.104569499661587] },
+    { "vertex": [-2, 2], "inTangent": [1.104569499661587, 0], "outTangent": [-1.104569499661587, 0] },
+    { "vertex": [-4, 0], "inTangent": [0, 1.104569499661587], "outTangent": [0, -1.104569499661587] },
+    { "vertex": [-2, -2], "inTangent": [-1.104569499661587, 0], "outTangent": [1.104569499661587, 0] }
+  ],
+  "length": 4,
+  "inset": 2
+}

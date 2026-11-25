@@ -1,0 +1,13 @@
+{
+  "description": "An open arrow: the two sides of the arrow's triangle as bands 1 width thick, meeting at the tip.",
+  "points": [
+    [0, 0],
+    [-4, 2],
+    [-4, 0.8819660112501051],
+    [-2.23606797749979, 0],
+    [-4, -0.8819660112501051],
+    [-4, -2]
+  ],
+  "length": 4,
+  "inset": 2.23606797749979
+}

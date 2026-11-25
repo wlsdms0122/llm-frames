@@ -1,0 +1,10 @@
+{
+  "description": "A filled triangle 4 widths wide at its base, its tip at the end.",
+  "points": [
+    [-4, 2],
+    [0, 0],
+    [-4, -2]
+  ],
+  "length": 4,
+  "inset": 4
+}
