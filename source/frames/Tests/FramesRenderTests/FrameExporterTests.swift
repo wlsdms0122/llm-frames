@@ -16,7 +16,7 @@ import Testing
 
 // Stills, sheets and extracted frames written by `FrameExporter` on the real decoder, renderer, encoder and shaper,
 // read back through the decoder. Serialized, since AVAssetReader needs a free thread of the shared pool.
-@Suite("FrameExporter Tests", .serialized)
+@Suite("FrameExporter Tests", .serialized, .blockingLimit)
 struct FrameExporterTests {
     // MARK: - Property
     // H.264 subsamples and compresses colour, so a flat colour comes back to within a few steps.

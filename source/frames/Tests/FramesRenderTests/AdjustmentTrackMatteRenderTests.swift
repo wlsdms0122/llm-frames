@@ -16,7 +16,7 @@ import Testing
 
 // Adjustment clips cut by a track matte (FRAMES-11 Adjustment clips), resolved on the real providers and drawn by the
 // real decoder and renderer.
-@Suite("Adjustment Track Matte Render Tests", .serialized)
+@Suite("Adjustment Track Matte Render Tests", .serialized, .blockingLimit)
 struct AdjustmentTrackMatteRenderTests {
     // MARK: - Property
     private static let grey = #"{ "description": "every colour turned to its grey", "ops": [ { "kind": "saturation", "amount": 0 } ] }"#

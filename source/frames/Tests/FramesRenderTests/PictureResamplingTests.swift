@@ -16,7 +16,7 @@ import Testing
 
 // Each renderer against the definition of resampling on the named set of FRAMES-24: a detailed still scaled, moved by
 // part of a pixel and turned, every pixel within 2^-9 x max(1, |v|) of the definition and 2^-12 of it on average.
-@Suite("Picture Resampling Tests", .serialized)
+@Suite("Picture Resampling Tests", .serialized, .blockingLimit)
 struct PictureResamplingTests {
     // MARK: - Property
     private static let origin = CGPoint(x: 5.375, y: 3.625)

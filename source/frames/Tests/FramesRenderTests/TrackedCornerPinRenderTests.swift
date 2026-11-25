@@ -18,7 +18,7 @@ import Testing
 // `track` command does, resolved on the real providers, and evaluated or drawn by the real renderer (FRAMES-12,
 // FRAMES-27). Serialized, since AVAssetReader needs a free thread
 // of the shared pool.
-@Suite("Tracked Corner Pin Render Tests", .serialized)
+@Suite("Tracked Corner Pin Render Tests", .serialized, .blockingLimit)
 struct TrackedCornerPinRenderTests {
     // MARK: - Property
     private static let frameCount = 10

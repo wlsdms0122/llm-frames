@@ -15,7 +15,7 @@ import Testing
 // Path shapes and path masks with tangents, resolved, evaluated and drawn: white on a black 320 x 240 frame whose
 // theme lengths are output pixels. A pixel is white when its red is above 0.99 and black when below 0.01, each probe
 // wholly inside or outside what it tests. Serialized, since AVAssetReader needs a free thread of the shared pool.
-@Suite("Curved Path Render Tests", .serialized)
+@Suite("Curved Path Render Tests", .serialized, .blockingLimit)
 struct CurvedPathRenderTests {
     // MARK: - Property
     private let sut = QuartzRenderer(decoder: AVFoundationDecoder())

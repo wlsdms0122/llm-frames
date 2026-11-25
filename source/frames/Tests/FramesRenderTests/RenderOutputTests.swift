@@ -16,7 +16,7 @@ import Testing
 
 // Masters and deliveries written by `RenderPipeline` on the real roles, read back through AVFoundation and the
 // decoder. Serialized, since AVAssetReader needs a free thread of the shared pool and each test encodes.
-@Suite("Render Output Tests", .serialized, .timeLimit(.minutes(5)))
+@Suite("Render Output Tests", .serialized, .blockingLimit, .timeLimit(.minutes(5)))
 struct RenderOutputTests {
     // MARK: - Property
     // These tests read the files a render leaves and none of them is about how long a writer takes, so the encoder

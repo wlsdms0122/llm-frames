@@ -15,7 +15,7 @@ import Testing
 
 // Storyline pictures drawn by the real decoder and renderer from documents resolved on the real providers, read as
 // frames before encoding. Serialized, since AVAssetReader needs a free thread of the shared pool.
-@Suite("Storyline Render Tests", .serialized)
+@Suite("Storyline Render Tests", .serialized, .blockingLimit)
 struct StorylineRenderTests {
     // MARK: - Property
     // A half float has 11 significant bits, so a value from 0.5 to 1 lies 2^-11 from the next one, the widest step

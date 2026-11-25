@@ -16,7 +16,7 @@ import Testing
 // A `displace` filter op (FRAMES-15 Displacement) on a clip's picture and on an adjustment clip, its map a PNG file,
 // resolved on the real providers and drawn by the real decoder and renderer. Serialized, since AVAssetReader needs a
 // free thread of the shared pool.
-@Suite("Displacement Render Tests", .serialized)
+@Suite("Displacement Render Tests", .serialized, .blockingLimit)
 struct DisplacementRenderTests {
     // MARK: - Property
     // A half float lies within 2^-11 of a value from 0.5 to 1, and Core Graphics takes an eight bit colour into it to

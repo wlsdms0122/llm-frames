@@ -16,7 +16,7 @@ import Testing
 
 // Track mattes read from their matte clip as it is drawn (FRAMES-11 Masks and track mattes), resolved on the real
 // providers and drawn by the real decoder and renderer.
-@Suite("Track Matte Render Tests", .serialized)
+@Suite("Track Matte Render Tests", .serialized, .blockingLimit)
 struct TrackMatteRenderTests {
     // MARK: - Property
     private static let white = #"{ "description": "mid grey pushed to white", "ops": [ { "kind": "levels", "input": [0, 0.5], "output": [0, 1] } ] }"#

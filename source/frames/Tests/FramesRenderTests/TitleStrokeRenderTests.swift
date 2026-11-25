@@ -15,7 +15,7 @@ import Testing
 // A run's stroke width is written in output pixels at the title's scale factor and its unit's, and not its parent's: an
 // "I", white with a red stroke 10 wide on black, shows half the stroke drawn of red on each side of its stem across
 // and on each end of it down. Serialized, since AVAssetReader needs a free thread of the shared pool.
-@Suite("Title Stroke Render Tests", .serialized)
+@Suite("Title Stroke Render Tests", .serialized, .blockingLimit)
 struct TitleStrokeRenderTests {
     // MARK: - Property
     private let presets = [

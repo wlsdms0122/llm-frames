@@ -14,7 +14,7 @@ import Testing
 @testable import Frames
 
 // Frames with motion blur evaluated from resolved documents and drawn by the real renderer (FRAMES-24, FRAMES-29).
-@Suite("Motion Blur Render Tests", .serialized)
+@Suite("Motion Blur Render Tests", .serialized, .blockingLimit)
 struct MotionBlurRenderTests {
     // MARK: - Property
     private let presets = [

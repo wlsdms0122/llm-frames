@@ -15,7 +15,7 @@ import Testing
 
 // The loudness of a document against that of the master it renders to, on the real roles. Serialized, since
 // AVAssetReader needs a free thread of the shared pool and each test encodes.
-@Suite("Loudness Render Tests", .serialized)
+@Suite("Loudness Render Tests", .serialized, .blockingLimit)
 struct LoudnessRenderTests {
     // MARK: - Property
     // MARK: - Initializer
