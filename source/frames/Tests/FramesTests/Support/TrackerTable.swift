@@ -42,9 +42,29 @@ struct TrackerTable: TrackerProvider {
         over range: ClosedRange<Double>,
         colorSpace: ColorSpace?
     ) throws -> [TrackedFrame] {
-        let times = frameTimes[file.path] ?? []
+        frames(of: target, in: file.path, atMediaTime: time, over: range)
+    }
+
+    // The track data a document writes for what this tracker follows from the frame at `time`, whose `time` it names.
+    func data(
+        _ target: Quad,
+        in path: String,
+        atMediaTime time: Double,
+        over range: ClosedRange<Double> = -Double.infinity...Double.infinity
+    ) -> String {
+        frames(of: target, in: path, atMediaTime: time, over: range).trackData(time: time)
+    }
+
+    // MARK: - Private
+    private func frames(
+        of target: Quad,
+        in path: String,
+        atMediaTime time: Double,
+        over range: ClosedRange<Double>
+    ) -> [TrackedFrame] {
+        let times = frameTimes[path] ?? []
         let shown = times.last { $0 <= time } ?? times.first ?? time
-        let followed = followed[file.path] ?? -Double.infinity...Double.infinity
+        let followed = followed[path] ?? -Double.infinity...Double.infinity
         guard followed.contains(shown) else { return [] }
 
         // From the frame shown at `time`, out to the first frame lost in each direction.
@@ -62,6 +82,4 @@ struct TrackerTable: TrackerProvider {
             return TrackedFrame(time: frameTime, quad: target.applying(motion))
         }
     }
-
-    // MARK: - Private
 }

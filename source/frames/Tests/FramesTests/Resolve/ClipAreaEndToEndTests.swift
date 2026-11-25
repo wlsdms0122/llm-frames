@@ -367,13 +367,6 @@ struct ClipAreaEndToEndTests {
             (
                 [
                     #"{ "id": "name", "title": "a", "style": "title", "at": [0, 4] }"#,
-                    ##"{ "shape": "rect", "fill": "#000000", "at": [0, 4], "area": { "clip": "name" }, "track": true }"##
-                ],
-                "clips[1]"
-            ),
-            (
-                [
-                    #"{ "id": "name", "title": "a", "style": "title", "at": [0, 4] }"#,
                     ##"{ "shape": "rect", "fill": "#000000", "at": [0, 4], "area": { "clip": "name", "text": "a" } }"##
                 ],
                 "clips[1].area"

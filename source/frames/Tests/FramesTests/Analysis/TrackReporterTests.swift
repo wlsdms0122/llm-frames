@@ -47,16 +47,16 @@ struct TrackReporterTests {
 
         // Then
         let expected = #"""
-            {"track": "0.1.0", "time": 0.25, "target": [[10, 20], [110, 20], [110, 70], [10, 70]], "frames": [\#
-            {"time": 0, "quad": [[10, 30], [110, 30], [110, 80], [10, 80]], "motion": [1, 0, 0, 1, 0, 10]}, \#
-            {"time": 0.25, "quad": [[10, 20], [110, 20], [110, 70], [10, 70]], "motion": [1, 0, 0, 1, 0, 0]}, \#
-            {"time": 0.5, "quad": [[10, 10], [110, 10], [110, 60], [10, 60]], "motion": [1, 0, 0, 1, 0, -10]}, \#
-            {"time": 0.75, "quad": [[10, 0], [110, 0], [110, 50], [10, 50]], "motion": [1, 0, 0, 1, 0, -20]}]}
+            {"track": "0.1.0", "time": 0.25, "frames": [\#
+            {"time": 0, "quad": [[10, 30], [110, 30], [110, 80], [10, 80]]}, \#
+            {"time": 0.25, "quad": [[10, 20], [110, 20], [110, 70], [10, 70]]}, \#
+            {"time": 0.5, "quad": [[10, 10], [110, 10], [110, 60], [10, 60]]}, \#
+            {"time": 0.75, "quad": [[10, 0], [110, 0], [110, 50], [10, 50]]}]}
             """#
         #expect(report.machineOutput.written == expected)
     }
 
-    @Test("a target turning a quarter turn clockwise reports its quad turned and the motion's matrix of that turn")
+    @Test("a target turning a quarter turn clockwise reports its quad turned a quarter turn on the next frame")
     func writesQuarterTurn() throws {
         // Given
         let sut = TrackReporter(
@@ -69,9 +69,9 @@ struct TrackReporterTests {
 
         // Then
         let expected = #"""
-            {"track": "0.1.0", "time": 0, "target": [[0, 0], [100, 0], [100, 50], [0, 50]], "frames": [\#
-            {"time": 0, "quad": [[0, 0], [100, 0], [100, 50], [0, 50]], "motion": [1, 0, 0, 1, 0, 0]}, \#
-            {"time": 0.25, "quad": [[75, -25], [75, 75], [25, 75], [25, -25]], "motion": [0, 1, -1, 0, 75, -25]}]}
+            {"track": "0.1.0", "time": 0, "frames": [\#
+            {"time": 0, "quad": [[0, 0], [100, 0], [100, 50], [0, 50]]}, \#
+            {"time": 0.25, "quad": [[75, -25], [75, 75], [25, 75], [25, -25]]}]}
             """#
         #expect(report.machineOutput.written == expected)
     }
@@ -95,8 +95,8 @@ struct TrackReporterTests {
 
         // Then
         let expected = #"""
-            {"track": "0.1.0", "time": 0, "target": [[94, 100], [294, 100], [294, 142], [94, 142]], "frames": [\#
-            {"time": 0, "quad": [[94, 100], [294, 100], [294, 142], [94, 142]], "motion": [1, 0, 0, 1, 0, 0]}]}
+            {"track": "0.1.0", "time": 0, "frames": [\#
+            {"time": 0, "quad": [[94, 100], [294, 100], [294, 142], [94, 142]]}]}
             """#
         #expect(report.machineOutput.written == expected)
     }
@@ -115,7 +115,7 @@ struct TrackReporterTests {
         let report = try sut.report(of: "/abs/clip.mov", area: "[100, 100, 200, 40]", at: at, to: to)
 
         // Then
-        #expect(report.track.samples.map(\.time) == followed)
+        #expect(report.frames.map(\.time) == followed)
     }
 
     @Test("a bad area or a clip area stops, naming `--area`, and so do an image, a page and times outside the video", arguments: [
@@ -146,6 +146,22 @@ struct TrackReporterTests {
         // Then
         let description = error.map { String(describing: $0) } ?? ""
         #expect(description.hasPrefix(message), "\(description)")
+    }
+
+    @Test("an area the tracker follows on no frame stops, naming the video and the media time of `--at`", arguments: [
+        ("[500, 400, 50, 50]", [0, 0.75]),
+        ("[100, 100, 200, 40]", [0.75, 0.75])
+    ] as [(String, [Double])])
+    func refusesAreaNotFollowed(area: String, followed: [Double]) {
+        // Given
+        let tracker = TrackerTable(frameTimes: ["/abs/clip.mov": times], followed: ["/abs/clip.mov": followed[0]...followed[1]])
+        let sut = TrackReporter(mediaFacts: facts, tracker: tracker)
+
+        // When
+        let error = #expect(throws: AnalysisError.self) { try sut.report(of: "/abs/clip.mov", area: area, at: 0.5) }
+
+        // Then
+        #expect(error == .areaNotFollowed(time: 0.5, file: "/abs/clip.mov"))
     }
 
     @Test("a failing tracker stops, naming `--area`, the video and the media time of `--at`")
@@ -183,9 +199,9 @@ struct TrackReporterTests {
         let report = try sut.report(of: video, area: "[\(line.x), \(line.y), \(line.width), \(line.height)]", at: 0.5)
 
         // Then
-        #expect(report.track.samples.map(\.time) == ScreenRecording.frameTimes)
-        let start = try #require(report.track.samples.first { $0.time == 0.5 })
-        for (index, frame) in report.track.samples.enumerated() {
+        #expect(report.frames.map(\.time) == ScreenRecording.frameTimes)
+        let start = try #require(report.frames.first { $0.time == 0.5 })
+        for (index, frame) in report.frames.enumerated() {
             let moved = frame.quad.centroid.y - start.quad.centroid.y
             let drift = drawn[index].center.y - drawn[15].center.y
             #expect(abs(moved - drift) <= 1.5, "frame \(index) moved \(moved), drawn \(drift)")

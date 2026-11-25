@@ -31,7 +31,8 @@ struct SequenceCheckTests {
                 { "media": "/abs/run.mp4", "in": 17.5, "out": 23, "transition": "frames/flash", "volume": 0,
                   "keyframes": [ { "at": 18, "crop": { "scale": 1 }, "ease": "ease-in-out" }, { "at": 19, "crop": [40, 300, 1000, 400] } ],
                   "connected": [ { "at": [19, 22], "shape": "rect", "stroke": { "width": 8 }, "area": [380, 900, 320, 120], "animation": "frames/stamp" },
-                                 { "shape": "rect", "stroke": { "width": 8 }, "area": [120, 1200, 840, 100], "track": true } ] },
+                                 { "shape": "rect", "stroke": { "width": 8 }, "area": [120, 1200, 840, 100],
+                                   "track": { "time": 17.5, "frames": [ { "time": 17.5, "quad": [[120, 1200], [960, 1200], [960, 1300], [120, 1300]] } ] } } ] },
                 { "media": "/abs/card.png", "duration": 2.5,
                   "transition": { "preset": "frames/wipe-right", "seconds": 0.5 },
                   "connected": [ { "shape": "rect", "stroke": { "width": 8 },
@@ -722,10 +723,6 @@ struct SequenceCheckTests {
                 "clips[0].keyframes[0].area[3] (keyframe): -1 is not above 0"
             ),
             (
-                #"{ "storyline": [ { "media": "/abs/run.mp4", "track": { "clip": "a", "padding": -1 } } ] }"#,
-                "storyline[0].track.padding (clip area): -1 is not 0 or more"
-            ),
-            (
                 #"{ "clips": [ { "title": "a", "style": "s", "position": { "area": "Send", "point": "left" } } ] }"#,
                 #"clips[0].position.area (area point): expected an area, found "Send""#
             )
@@ -791,7 +788,7 @@ struct SequenceCheckTests {
             #"{ "storyline": [ { "id": "run", "media": "/abs/run.mp4", "connected": [ { "title": "a", "style": "s", "parent": "run", "position": { "area": [400, 1200, 200, 60], "point": "left" }, "anchor": "right" } ] } ] }"#,
             #"{ "clips": [ { "title": "a", "style": "s", "parent": "run", "position": { "area": [400, 1200, 200, 60], "point": "left" } }, { "shape": "rect", "stroke": { "width": 8 }, "parent": "run", "area": [400, 1200, 200, 60] } ] }"#,
             #"{ "clips": [ { "id": "box", "shape": "rect", "stroke": { "width": 8 }, "area": [0, 0, 10, 10] }, { "shape": "rect", "stroke": { "width": 8 }, "area": { "clip": "box", "padding": 40 } } ] }"#,
-            #"{ "storyline": [ { "media": "/abs/run.mp4", "crop": [0, 0, 540, 960], "track": [0, 0, 0.5, 0.5] } ] }"#,
+            #"{ "storyline": [ { "media": "/abs/run.mp4", "crop": [0, 0, 540, 960], "track": { "time": 0, "frames": [ { "time": 0, "quad": [[0, 0], [0.5, 0], [0.5, 0.5], [0, 0.5]] } ] } } ] }"#,
             #"{ "storyline": [ { "media": { "imageSequence": "/abs/frames", "fps": 30 }, "in": 0, "out": 2 } ] }"#,
             #"{ "storyline": [ { "media": "/abs/run.mp4", "filter": ["frames/vivid", "pack/warm", "/abs/f.json"], "transition": "cut" } ] }"#,
             #"{ "clips": [ { "shape": "rect", "stroke": { "width": 8 }, "keyframes": [ { "at": 0, "opacity": 1, "ease": [0.25, 0.1, 0.25, 1] }, { "at": 1, "opacity": 0 } ] } ] }"#,
@@ -1158,7 +1155,7 @@ struct SequenceCheckTests {
                                { "id": "grade", "metadata": { "by": "x" }, "adjust": "frames/vivid", "at": [0, 2],
                                  "lane": 2, "parent": "shot", "blend": "screen",
                                  "mask": { "shape": "rect", "area": [0, 0, 10, 10] },
-                                 "trackMatte": { "clip": "matte", "mode": "alpha" }, "track": true,
+                                 "trackMatte": { "clip": "matte", "mode": "alpha" }, "track": { "time": 0, "frames": [] },
                                  "animation": "frames/fade", "keyframes": [ { "at": 0, "opacity": 1 } ] },
                                { "adjust": "frames/vivid", "at": [0, 2], "opacity": 0.5 } ] } ] }
             """#)

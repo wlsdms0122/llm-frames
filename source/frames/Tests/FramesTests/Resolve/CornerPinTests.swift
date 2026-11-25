@@ -15,12 +15,13 @@ struct CornerPinTests {
     // MARK: - Property
     private let sut = Fixture.sequencePlanner
     private static let pin = "[[100, 100], [500, 120], [480, 400], [120, 380]]"
-    private static let points = GeometryQuad(Quad(
+    private static let quad = Quad(
         topLeft: Point(x: 100, y: 100),
         topRight: Point(x: 500, y: 120),
         bottomRight: Point(x: 480, y: 400),
         bottomLeft: Point(x: 120, y: 380)
-    ))
+    )
+    private static let points = GeometryQuad(quad)
 
     // MARK: - Initializer
     // MARK: - Test
@@ -240,20 +241,22 @@ struct CornerPinTests {
     @Test("a storyline clip with a corner pin has no parent's media to follow, so track stops, naming the corner pin")
     func refusesTrackOnStorylineCornerPin() throws {
         // Given
-        let document = #"{ "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4", "cornerPin": \#(Self.pin), "track": [100, 100, 200, 40] } ] }"#
+        let track = Fixture.tracker.data(Self.quad, in: "/abs/screen.mp4", atMediaTime: 0)
+        let document = #"{ "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4", "cornerPin": \#(Self.pin), "track": \#(track) } ] }"#
 
         // When, Then
         let error = #expect(throws: ResolveError.self) { try plan(document) }
         #expect(error?.description == #"storyline[0].cornerPin (video): a storyline clip with a corner pin is placed in the frame, which has no media to follow, so it takes no "track""#)
     }
 
-    @Test("true on a clip with a corner pin follows its corner pin in its parent's media, its own video included")
+    @Test("a clip with a corner pin follows its track data in its parent's media, its own video included")
     func followsCornerPinInParent() throws {
         // Given
+        let trackData = Fixture.tracker.data(Self.quad, in: "/abs/screen.mp4", atMediaTime: 0)
         let document = #"""
             { "kind": "sequence", "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "connected": [
                 { "media": "/abs/short.mp4", "parent": "screen", "at": [0, 3], "width": 300, "cornerPin": \#(Self.pin),
-                  "mask": { "shape": "rect", "area": [0, 0, 10, 10] }, "track": true } ] } ] }
+                  "track": \#(trackData) } ] } ] }
             """#
 
         // When
@@ -262,32 +265,18 @@ struct CornerPinTests {
         // Then
         let track = try #require(plan.clips[0].track)
         #expect(track.file.path == "/abs/screen.mp4")
-        #expect(track.track.target == Quad(topLeft: Point(x: 100, y: 100), topRight: Point(x: 500, y: 120), bottomRight: Point(x: 480, y: 400), bottomLeft: Point(x: 120, y: 380)))
+        #expect(track.track.target == Self.quad)
         #expect(track.track.mediaTime == 0)
-    }
-
-    @Test("a title with a corner pin takes true, since its corner pin is its geometry in its parent's media")
-    func followsTitleCornerPin() throws {
-        // Given
-        let document = #"""
-            { "kind": "sequence", "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "connected": [
-                { "title": "a", "style": "title", "parent": "screen", "at": [0, 3], "cornerPin": \#(Self.pin), "track": { "time": 1 } } ] } ] }
-            """#
-
-        // When
-        let plan = try plan(document)
-
-        // Then
-        #expect(plan.clips[0].track?.track.mediaTime == 1)
     }
 
     @Test("a clip parented to a clip with a corner pin has no media to follow, since its parent gives the space its corner pin is written in")
     func refusesTrackUnderPinnedParent() throws {
         // Given
+        let track = Fixture.tracker.data(Quad(Rectangle(x: 0, y: 0, width: 100, height: 100)), in: "/abs/short.mp4", atMediaTime: 0)
         let document = #"""
             { "kind": "sequence", "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "connected": [
                 { "id": "card", "media": "/abs/short.mp4", "parent": "screen", "at": [0, 3], "width": 300, "cornerPin": \#(Self.pin) },
-                { "shape": "rect", "stroke": { "width": 8 }, "parent": "card", "area": [0, 0, 10, 10], "at": [0, 3], "track": [0, 0, 100, 100] } ] } ] }
+                { "shape": "rect", "stroke": { "width": 8 }, "parent": "card", "area": [0, 0, 10, 10], "at": [0, 3], "track": \#(track) } ] } ] }
             """#
 
         // When, Then
@@ -303,10 +292,10 @@ struct CornerPinTests {
         let target = Quad(Rectangle(x: 0, y: 0, width: 100, height: 100))
         let far = Quad(topLeft: Point(x: 0, y: 0), topRight: Point(x: 100, y: 0), bottomRight: Point(x: 60, y: 50), bottomLeft: Point(x: 40, y: 50))
         let quads = [(0.0, target)] + (1...10).map { (Double($0) / 10, far) }
-        let sut = planner(tracker: QuadTrackerTable(base: target, quads: quads))
+        let track = QuadTrackerTable(base: target, quads: quads).data(atMediaTime: 0)
         let document = { (far: String) in #"""
             { "kind": "sequence", "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "out": 1, "connected": [
-                { "media": "/abs/card.png", "parent": "screen", "at": [0, 1], "width": 300, "track": { "time": 0, "area": [0, 0, 100, 100] },
+                { "media": "/abs/card.png", "parent": "screen", "at": [0, 1], "width": 300, "track": \#(track),
                   "keyframes": [ { "at": 0, "cornerPin": [[0, 0], [100, 0], [100, 100], [0, 100]] },
                                  { "at": 0.5, "cornerPin": \#(far) } ] } ] } ] }
             """# }
@@ -330,10 +319,10 @@ struct CornerPinTests {
         let target = Quad(Rectangle(x: 0, y: 0, width: 100, height: 100))
         let far = Quad(topLeft: Point(x: 0, y: 0), topRight: Point(x: 100, y: 0), bottomRight: Point(x: 60, y: 50), bottomLeft: Point(x: 40, y: 50))
         let quads = [(0.0, target)] + (1...10).map { (Double($0) / 10, far) }
-        let sut = planner(tracker: QuadTrackerTable(base: target, quads: quads))
+        let track = QuadTrackerTable(base: target, quads: quads).data(atMediaTime: 0)
         let document = { (bottom: Double) in #"""
             { "kind": "sequence", "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "out": 1, "connected": [
-                { "media": "/abs/card.png", "parent": "screen", "at": [0, 1], "width": 300, "track": { "time": 0, "area": [0, 0, 100, 100] },
+                { "media": "/abs/card.png", "parent": "screen", "at": [0, 1], "width": 300, "track": \#(track),
                   "keyframes": [ { "at": 0, "cornerPin": [[0, 0], [100, 0], [100, 100], [0, 100]] },
                                  { "at": 0.5, "cornerPin": [[10, 10], [90, 10], { "area": { "clip": "bar" }, "point": "bottom-right" }, [10, \#(bottom)]] } ] },
                 { "id": "bar", "shape": "rect", "fill": "accent", "area": [20, 20, 60, 30], "parent": "screen", "at": [0, 1] } ] } ] }
@@ -358,10 +347,10 @@ struct CornerPinTests {
         let target = Quad(Rectangle(x: 0, y: 0, width: 100, height: 100))
         let far = Quad(topLeft: Point(x: 0, y: 0), topRight: Point(x: 100, y: 0), bottomRight: Point(x: 60, y: 50), bottomLeft: Point(x: 40, y: 50))
         let quads = [(0.0, target)] + (1...5).map { (Double($0) / 10, far) }
-        let sut = planner(tracker: QuadTrackerTable(base: target, quads: quads))
+        let track = QuadTrackerTable(base: target, quads: quads).data(atMediaTime: 0)
         let document = { (bottom: Double) in #"""
             { "kind": "sequence", "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "out": 1, "connected": [
-                { "media": "/abs/card.png", "parent": "screen", "at": [0, 1], "width": 300, "track": { "time": 0, "area": [0, 0, 100, 100] },
+                { "media": "/abs/card.png", "parent": "screen", "at": [0, 1], "width": 300, "track": \#(track),
                   "keyframes": [ { "at": 0, "cornerPin": [[0, 0], [100, 0], [100, 100], [0, 100]] },
                                  { "at": 0.8, "cornerPin": [[10, 10], [90, 10], [90, \#(bottom)], [10, \#(bottom)]] } ] } ] } ] }
             """# }
@@ -378,15 +367,6 @@ struct CornerPinTests {
     }
 
     // MARK: - Private
-    private func planner(tracker: any TrackerProvider) -> SequencePlanner {
-        SequencePlanner(
-            tracker: tracker,
-            shaper: Fixture.shaper,
-            presets: Fixture.presets,
-            library: Fixture.library
-        )
-    }
-
     private func geometry(of clip: String) throws -> ClipGeometry {
         try plan(#"{ "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4" } ], "clips": [ \#(clip) ] }"#).clips[0]
     }

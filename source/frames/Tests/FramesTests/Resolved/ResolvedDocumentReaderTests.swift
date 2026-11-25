@@ -81,18 +81,7 @@ struct ResolvedDocumentReaderTests {
             { "media": { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "in": 0, "out": 2 } ] }, "transition": "dip" } ] }
         """#,
         // Shapes, tracked areas, an adjustment, a timed media clip, a title parented to a shape and sound with fades.
-        #"""
-        { "kind": "sequence", "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "in": 1, "out": 3, "fadeIn": 0.5, "connected": [
-            { "shape": "rect", "stroke": { "width": 8 }, "area": [100, 100, 200, 40], "parent": "screen", "track": [100, 100, 200, 40] },
-            { "shape": "rect", "fill": "#FFD43B80", "area": [86, 86, 228, 68], "parent": "screen", "track": true },
-            { "shape": "path", "points": [[500, 500], [600, 550]], "stroke": { "width": 10, "end": "frames/arrow" }, "at": [1, 2], "lane": -1 },
-            { "shape": "rect", "area": [0, 0, 100, 100], "fill": "#0000008C", "at": [1, 2], "id": "dim" },
-            { "adjust": "mine/grade", "mask": { "shape": "rect", "area": [0, 0, 10, 10] }, "at": [1, 2] },
-            { "media": "/abs/short.mp4", "in": 1, "out": 3, "speed": 2, "at": 1, "width": 300, "conform": "fill",
-              "keyframes": [ { "at": 1, "opacity": 0, "ease": { "spring": { "bounce": 0.3 } } }, { "at": 1.5, "opacity": 1 } ] },
-            { "title": "Hi", "style": "title", "at": [1, 2], "parent": "dim", "position": [50, 50] },
-            { "media": "/abs/ding.wav", "at": 1.5, "fadeIn": 0.25, "fadeOut": 0.5 } ] } ] }
-        """#,
+        shapes(trackedBy: Fixture.tracker),
         // Each shape kind and form: a rect by its area with a style, outset, a shadow object and a stroke inside its
         // outline, a rect by its width and height keyframed, an ellipse by its box at a position stroked outside, an
         // ellipse by its area with a named anchor, an open path with keyframed points and trim, a closed path, scaled
@@ -239,12 +228,17 @@ struct ResolvedDocumentReaderTests {
         """#
 
     // A tracked screen, a shape that follows the screen it is parented to, and a media clip of video under it that
-    // follows its own media.
-    private static let trackedDocument = #"""
-        { "kind": "sequence", "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "in": 0, "out": 3, "track": [100, 100, 200, 40], "connected": [
-            { "shape": "rect", "stroke": { "width": 8 }, "area": [100, 100, 200, 40], "parent": "screen", "track": true },
-            { "media": "/abs/short.mp4", "parent": "screen", "position": [0, 0], "at": [0, 2], "track": [400, 1200, 200, 60] } ] } ] }
-        """#
+    // follows its own media, each from the frame its instant shows.
+    private static let trackedDocument = {
+        let total = Quad(Fixture.total)
+        let screen = Fixture.tracker.data(total, in: "/abs/screen.mp4", atMediaTime: 0, over: 0...3)
+        let short = Fixture.tracker.data(Quad(Fixture.send), in: "/abs/short.mp4", atMediaTime: 0, over: 0...2)
+        return #"""
+            { "kind": "sequence", "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "in": 0, "out": 3, "track": \#(screen), "connected": [
+                { "shape": "rect", "stroke": { "width": 8 }, "area": [100, 100, 200, 40], "parent": "screen", "track": \#(screen) },
+                { "media": "/abs/short.mp4", "parent": "screen", "position": [0, 0], "at": [0, 2], "track": \#(short) } ] } ] }
+            """#
+    }()
 
     // A vertical title whose combined run "12" is set as a composition, "2" falling back to another face where the
     // shaper is told it is missing, animated by character over a tracking keyframed from 0 to 100.
@@ -367,10 +361,17 @@ struct ResolvedDocumentReaderTests {
     @Test("a tracked media clip of video with a corner pin reads back with the track of its parent's media")
     func readsPinnedTrack() throws {
         // Given
+        let pin = Quad(
+            topLeft: Point(x: 100, y: 100),
+            topRight: Point(x: 500, y: 120),
+            bottomRight: Point(x: 480, y: 400),
+            bottomLeft: Point(x: 120, y: 380)
+        )
+        let track = Fixture.tracker.data(pin, in: "/abs/screen.mp4", atMediaTime: 1)
         let document = try resolved(#"""
             { "kind": "sequence", "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "in": 0, "out": 3, "connected": [
                 { "media": "/abs/short.mp4", "parent": "screen", "at": [0, 2], "width": 300,
-                  "cornerPin": [[100, 100], [500, 120], [480, 400], [120, 380]], "track": { "time": 1 } } ] } ] }
+                  "cornerPin": [[100, 100], [500, 120], [480, 400], [120, 380]], "track": \#(track) } ] } ] }
             """#)
         let text = writer.write(document)
 
@@ -787,7 +788,7 @@ struct ResolvedDocumentReaderTests {
     func readsTurningTrack() throws {
         // Given
         let tracker = TrackerTable(frameTimes: Fixture.tracker.frameTimes, drift: Point(x: 3, y: -2), growth: 0.1, turn: 30)
-        let document = try resolved(Self.documents[2], tracker: tracker)
+        let document = try resolved(Self.shapes(trackedBy: tracker))
         let text = writer.write(document)
 
         // When
@@ -1569,15 +1570,34 @@ struct ResolvedDocumentReaderTests {
     }
 
     // MARK: - Private
+    // Shapes, two of them tracked from the frame their instant shows by what `tracker` follows, an adjustment, a timed
+    // media clip, a title parented to a shape and sound with fades.
+    private static func shapes(trackedBy tracker: TrackerTable) -> String {
+        let total = Quad(Fixture.total)
+        let box = Quad(Rectangle(x: 86, y: 86, width: 228, height: 68))
+        let totalTrack = tracker.data(total, in: "/abs/screen.mp4", atMediaTime: 1, over: 1...3)
+        let boxTrack = tracker.data(box, in: "/abs/screen.mp4", atMediaTime: 1, over: 1...3)
+        return #"""
+            { "kind": "sequence", "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "in": 1, "out": 3, "fadeIn": 0.5, "connected": [
+                { "shape": "rect", "stroke": { "width": 8 }, "area": [100, 100, 200, 40], "parent": "screen", "track": \#(totalTrack) },
+                { "shape": "rect", "fill": "#FFD43B80", "area": [86, 86, 228, 68], "parent": "screen", "track": \#(boxTrack) },
+                { "shape": "path", "points": [[500, 500], [600, 550]], "stroke": { "width": 10, "end": "frames/arrow" }, "at": [1, 2], "lane": -1 },
+                { "shape": "rect", "area": [0, 0, 100, 100], "fill": "#0000008C", "at": [1, 2], "id": "dim" },
+                { "adjust": "mine/grade", "mask": { "shape": "rect", "area": [0, 0, 10, 10] }, "at": [1, 2] },
+                { "media": "/abs/short.mp4", "in": 1, "out": 3, "speed": 2, "at": 1, "width": 300, "conform": "fill",
+                  "keyframes": [ { "at": 1, "opacity": 0, "ease": { "spring": { "bounce": 0.3 } } }, { "at": 1.5, "opacity": 1 } ] },
+                { "title": "Hi", "style": "title", "at": [1, 2], "parent": "dim", "position": [50, 50] },
+                { "media": "/abs/ding.wav", "at": 1.5, "fadeIn": 0.25, "fadeOut": 0.5 } ] } ] }
+            """#
+    }
+
     private func resolved(
         _ document: String,
-        tracker: TrackerTable = Fixture.tracker,
         shaper: ShaperTable = Fixture.shaper
     ) throws -> ResolvedSequence {
         let planner = DocumentPlanner(
             mediaFacts: Fixture.mediaFacts,
             presets: Self.presets,
-            tracker: tracker,
             shaper: shaper,
             library: Fixture.library
         )

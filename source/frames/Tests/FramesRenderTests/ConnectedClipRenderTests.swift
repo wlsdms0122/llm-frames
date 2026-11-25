@@ -9,6 +9,7 @@ import Foundation
 import FramesAVFoundation
 import FramesQuartz
 import FramesTestMedia
+import FramesTracker
 import Testing
 
 @testable import Frames
@@ -180,11 +181,13 @@ struct ConnectedClipRenderTests {
         let drawn = try await ScreenRecording(scale: 0.5).write(to: file)
         let target = drawn[0].grown(by: 4)
         let area = "[\(target.x), \(target.y), \(target.width), \(target.height)]"
+        let decoder = AVFoundationDecoder()
+        let report = try TrackReporter(mediaFacts: decoder, tracker: PointTracker(decoder: decoder)).report(of: file, area: area, at: 0)
         let document = try DocumentResolver().resolve(#"""
             { "kind": "sequence", "format": { "size": [180, 320] },
               "storyline": [ { "id": "screen", "media": "\#(file)",
                                "keyframes": [ { "at": 0, "crop": { "scale": 1 } }, { "at": 0.9, "crop": { "scale": 1.25 } } ],
-                               "connected": [ { "shape": "rect", "stroke": { "width": 40, "color": "#ED2929" }, "area": \#(area), "parent": "screen", "track": true } ] } ] }
+                               "connected": [ { "shape": "rect", "stroke": { "width": 40, "color": "#ED2929" }, "area": \#(area), "parent": "screen", "track": \#(report.trackData) } ] } ] }
             """#)
         let sut = QuartzRenderer(decoder: AVFoundationDecoder())
 

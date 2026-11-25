@@ -28,17 +28,9 @@ struct TimelineReporterTests {
 
     // The target is followed in `/abs/screen.mp4` up to media second 1.9, so a box on it from clip second 1.5 is visible
     // until the frame shown then ends.
-    private let trackingReporter = TimelineReporter(
-        planner: DocumentPlanner(
-            mediaFacts: Fixture.mediaFacts,
-            presets: Fixture.presets,
-            tracker: TrackerTable(
-                frameTimes: ["/abs/screen.mp4": Fixture.screenFrameTimes],
-                followed: ["/abs/screen.mp4": 0...1.9]
-            ),
-            shaper: Fixture.shaper,
-            library: Fixture.library
-        )
+    private let tracker = TrackerTable(
+        frameTimes: ["/abs/screen.mp4": Fixture.screenFrameTimes],
+        followed: ["/abs/screen.mp4": 0...1.9]
     )
 
     // MARK: - Initializer
@@ -206,7 +198,6 @@ struct TimelineReporterTests {
             planner: DocumentPlanner(
                 mediaFacts: mediaFacts,
                 presets: Fixture.presets,
-                tracker: Fixture.tracker,
                 shaper: Fixture.shaper,
                 library: directory.library(mediaFacts: mediaFacts)
             )
@@ -258,7 +249,6 @@ struct TimelineReporterTests {
             planner: DocumentPlanner(
                 mediaFacts: Fixture.mediaFacts,
                 presets: Fixture.presets,
-                tracker: Fixture.tracker,
                 shaper: Fixture.shaper,
                 library: directory.library()
             )
@@ -307,7 +297,6 @@ struct TimelineReporterTests {
             planner: DocumentPlanner(
                 mediaFacts: Fixture.mediaFacts,
                 presets: Fixture.presets,
-                tracker: Fixture.tracker,
                 shaper: Fixture.shaper,
                 library: directory.library()
             )
@@ -431,7 +420,7 @@ struct TimelineReporterTests {
         let value = try Fixture.json(tracked)
 
         // When
-        let report = try trackingReporter.report(of: value)
+        let report = try sut.report(of: value)
 
         // Then
         let expected = #"""
@@ -476,13 +465,14 @@ struct TimelineReporterTests {
     }
 
     // MARK: - Private
-    // A box on [100, 100, 200, 40], tracked, and a title over the whole sequence.
+    // A box on [100, 100, 200, 40], tracked from the frame its instant shows, and a title over the whole sequence.
     private var tracked: String {
-        #"""
-        { "kind": "sequence", "theme": { "baseWidth": 1206 },
-          "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "in": 1, "out": 3,
-            "connected": [ { "shape": "rect", "stroke": { "width": 8 }, "area": [100, 100, 200, 40], "parent": "screen", "at": [1.5, 3], "track": [100, 100, 200, 40] } ] } ],
-          "clips": [ { "at": [0, 2], "title": "Pay now", "style": "title" } ] }
-        """#
+        let track = tracker.data(Quad(Rectangle(x: 100, y: 100, width: 200, height: 40)), in: "/abs/screen.mp4", atMediaTime: 1.5)
+        return #"""
+            { "kind": "sequence", "theme": { "baseWidth": 1206 },
+              "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "in": 1, "out": 3,
+                "connected": [ { "shape": "rect", "stroke": { "width": 8 }, "area": [100, 100, 200, 40], "parent": "screen", "at": [1.5, 3], "track": \#(track) } ] } ],
+              "clips": [ { "at": [0, 2], "title": "Pay now", "style": "title" } ] }
+            """#
     }
 }

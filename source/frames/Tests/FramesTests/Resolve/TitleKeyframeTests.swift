@@ -807,7 +807,6 @@ struct TitleKeyframeTests {
         let planner = DocumentPlanner(
             mediaFacts: Fixture.mediaFacts,
             presets: Fixture.presets,
-            tracker: Fixture.tracker,
             shaper: shaper,
             library: Fixture.library
         )
