@@ -297,7 +297,8 @@ struct PictureDrawer {
             return
         }
 
-        let image = try resampler.resample(CIImage(cgImage: source.image), through: map, covering: covered, within: area)
+        // A surface the decoder gave is read on the GPU where it lies.
+        let image = try resampler.resample(source.picture, through: map, covering: covered, within: area)
         try draw(image, through: device, compositing: compositing, in: context)
     }
 
