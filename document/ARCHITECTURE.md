@@ -2,6 +2,40 @@
 
 This is not part of the specification. It is the structure of the implementation in `source/frames`, which makes the specification easier to keep, and another implementation may ignore it.
 
+## Layers
+
+```mermaid
+flowchart TB
+    subgraph toolLayer["Tools"]
+        tools["programs that read media and reports and write values"]
+    end
+    subgraph vocabularyLayer["Vocabulary"]
+        vocabulary["presets, themes, templates, LUTs, fonts and media, in packs"]
+    end
+    media["media"]
+    document["document"]
+    subgraph engineLayer["Engine"]
+        resolve["resolve"]
+        evaluation["evaluation and the roles"]
+    end
+    results["results: video, stills, sound"]
+    reports["reports: probe, timeline, evaluate, locate"]
+
+    media -->|"before resolve: read"| tools
+    reports -->|"before resolve: read"| tools
+    tools -->|"before resolve: write values"| document
+    document -->|"names"| vocabulary
+    vocabulary -->|"at resolve: replaced by values"| resolve
+    document -->|"when a result is made"| resolve
+    media -->|"when a result is made"| resolve
+    resolve -->|"resolved document"| evaluation
+    evaluation --> results
+    resolve --> reports
+    evaluation --> reports
+```
+
+The layers are those of [FRAMES-25](../spec/FRAMES-25/SPEC.md#layers). The engine is the target `Frames` with the backends of its roles and of the shaping provider: resolve is stages 1 to 4 below, and evaluation and the roles are stages 5 and 6. Vocabulary is data: packs found by the `Pack` folder, and the pack `frames` in `FramesCommand`. Tools sit outside the engine: the extensions in `extensions/`, and the `ocr` and `track` commands with their providers, which give values a document holds. `timeline`, `evaluate` and `locate` report what stages 3 to 5 compute, and `probe` the media facts stage 2 reads.
+
 ## Stages
 
 ```
