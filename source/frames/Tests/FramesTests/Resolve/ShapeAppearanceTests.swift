@@ -8,6 +8,7 @@
 import Testing
 
 @testable import Frames
+import FramesTestMedia
 
 // Shapes are sequence clips over `/abs/screen.mp4` in a 960 by 540 frame, so theme lengths are half their written
 // size. The theme holds the shape styles `outline` and `pointer`.
@@ -18,7 +19,7 @@ struct ShapeAppearanceTests {
         { "colors": { "brand": "#123456" },
           "shadow": { "radius": 20, "offset": [0, 8], "color": "#00000080" },
           "shapes": {
-            "outline": { "fill": "brand", "stroke": { "width": 8, "color": "#ED2929", "end": "arrow" }, "radius": 18,
+            "outline": { "fill": "brand", "stroke": { "width": 8, "color": "#ED2929", "end": "frames/arrow" }, "radius": 18,
                          "outset": 6, "shadow": true },
             "pointer": { "stroke": { "width": 10 } } } }
         """##
@@ -76,15 +77,27 @@ struct ShapeAppearanceTests {
             ),
             (
                 #"{ "shape": "rect", "area": [0, 0, 10, 10], "style": "outline", "stroke": { "align": "outside" } }"#,
-                #"clips[0].stroke (rect): a stroke "outside" its outline takes no arrowhead, which is centred on the end of the stroke"#
+                #"clips[0].stroke (rect): a stroke "outside" its outline takes no arrowhead, which lies across the outline with its tip at the end while the stroke lies on one side of it"#
             ),
             (
-                #"{ "shape": "rect", "area": [0, 0, 10, 10], "stroke": { "width": 2, "align": "inside", "start": { "shape": "bar", "scale": 2 } } }"#,
-                #"clips[0].stroke (rect): a stroke "inside" its outline takes no arrowhead, which is centred on the end of the stroke"#
+                #"{ "shape": "rect", "area": [0, 0, 10, 10], "stroke": { "width": 2, "align": "inside", "start": { "preset": "frames/bar", "scale": 2 } } }"#,
+                #"clips[0].stroke (rect): a stroke "inside" its outline takes no arrowhead, which lies across the outline with its tip at the end while the stroke lies on one side of it"#
             ),
             (
-                #"{ "shape": "ellipse", "area": [0, 0, 10, 10], "stroke": { "width": 2, "align": "outside", "end": "circle" } }"#,
-                #"clips[0].stroke (ellipse): a stroke "outside" its outline takes no arrowhead, which is centred on the end of the stroke"#
+                #"{ "shape": "ellipse", "area": [0, 0, 10, 10], "stroke": { "width": 2, "align": "outside", "end": "frames/circle" } }"#,
+                #"clips[0].stroke (ellipse): a stroke "outside" its outline takes no arrowhead, which lies across the outline with its tip at the end while the stroke lies on one side of it"#
+            ),
+            (
+                #"{ "shape": "path", "points": [[0, 0], [10, 0]], "stroke": { "width": 2, "end": "arrow" } }"#,
+                #"clips[0].stroke.end (path): unknown head preset "arrow". A preset is named <pack>/<name>, and the ones frames ships are frames/<name>"#
+            ),
+            (
+                #"{ "shape": "path", "points": [[0, 0], [10, 0]], "stroke": { "width": 2, "start": { "preset": "mine/hook", "scale": 2 } } }"#,
+                #"clips[0].stroke.start (path): unknown head preset "mine/hook". A preset is named <pack>/<name>, and the ones frames ships are frames/<name>"#
+            ),
+            (
+                #"{ "shape": "path", "points": [[0, 0], [10, 0]], "style": "pointer", "stroke": { "end": "frames/dot" } }"#,
+                #"clips[0].stroke.end (path): unknown head preset "frames/dot". A preset is named <pack>/<name>, and the ones frames ships are frames/<name>"#
             ),
             (
                 #"{ "shape": "rect", "area": [0, 0, 10, 10], "style": "box" }"#,
@@ -337,7 +350,7 @@ struct ShapeAppearanceTests {
             { "kind": "sequence", "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "connected": [
                 { "shape": "rect", "area": { "text": "Total" }, "parent": "screen", "fill": "accent" },
                 { "shape": "path", "parent": "screen", "points": [[10, 20], { "area": { "text": "Total" }, "point": "left" }],
-                  "closed": true, "stroke": { "width": 4, "end": "arrow" } } ] } ] }
+                  "closed": true, "stroke": { "width": 4, "end": "frames/arrow" } } ] } ] }
             """#
 
         // When

@@ -122,6 +122,7 @@ frames/
         presets/transition/*.json
         presets/animation/*.json
         presets/filter/*.json
+        presets/head/*.json
     Sources/FramesTool/            the `frames` executable
     Tests/
 ```

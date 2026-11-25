@@ -123,29 +123,33 @@ package struct PathOutline: Equatable, Sendable {
 
     // The heads of a stroke drawn along the outline, the start's first (FRAMES-20 Arrowheads). Each has its tip at its
     // end of the stroke and the middle of its base on the stroke its length back along it, its axis the chord between
-    // them, or where they are one point the direction at the tip, back along the outline for the start's.
+    // them and its size that chord over its length.
     package func arrowheads(of drawn: DrawnStroke) -> [Arrowhead] {
-        guard length > 0 else { return [] }
-
-        let start = head(drawn.startHead, of: drawn, at: drawn.start(along: length), isStart: true)
-        let end = head(drawn.endHead, of: drawn, at: drawn.end(along: length), isStart: false)
-        return [start, end].compactMap { $0 }
+        [startHead(of: drawn), endHead(of: drawn)].compactMap { $0 }
     }
 
-    // The convex parts of what a stroke draws along the outline that lie past the outline grown by half the stroke's
-    // width, each by its corners in order: its heads other than circles, which are no polygons, the points of its miter
-    // joins and the ends of its square caps. A round or bevelled join and a round or butt cap lie within that grown
-    // outline.
+    // Where the line between the heads starts and ends along the outline: each head stops it its inset back from its
+    // tip, at the size the head is drawn.
+    package func lineStart(of drawn: DrawnStroke) -> Double {
+        drawn.start(along: length) + (startHead(of: drawn)?.inset ?? 0)
+    }
+
+    package func lineEnd(of drawn: DrawnStroke) -> Double {
+        drawn.end(along: length) - (endHead(of: drawn)?.inset ?? 0)
+    }
+
+    // The convex parts of what a stroke's line draws along the outline that lie past the outline grown by half the
+    // stroke's width, each by its corners in order: the points of its miter joins and the ends of its square caps. A
+    // round or bevelled join and a round or butt cap lie within that grown outline. Its heads are `arrowheads(of:)`.
     package func overhangs(
         of stroke: PathStroke,
         drawn: DrawnStroke
     ) -> [[Point]] {
         guard drawn.isDrawn, length > 0 else { return [] }
 
-        let heads = arrowheads(of: drawn).filter { $0.circle == nil }.flatMap(\.parts)
-        let lineStart = drawn.lineStart(along: length)
-        let lineEnd = drawn.lineEnd(along: length)
-        guard drawn.isWhole || lineEnd > lineStart else { return heads }
+        let lineStart = lineStart(of: drawn)
+        let lineEnd = lineEnd(of: drawn)
+        guard drawn.isWhole || lineEnd > lineStart else { return [] }
 
         let half = stroke.width / 2
         // A cusp turns back by half a circle, past the miter limit, so it is bevelled and adds nothing here.
@@ -160,7 +164,7 @@ package struct PathOutline: Equatable, Sendable {
             ]
             : []
 
-        return heads + joins + caps
+        return joins + caps
     }
 
     // The corners the drawn line turns at (FRAMES-20 Direction at a point), in order along it, each with the directions
@@ -168,8 +172,8 @@ package struct PathOutline: Equatable, Sendable {
     // segments. A whole closed outline has every one, the joint at its start included, and a drawn piece those strictly
     // between its line's ends.
     package func corners(drawnBy drawn: DrawnStroke) -> [(point: Point, arriving: Point, leaving: Point)] {
-        let lineStart = drawn.lineStart(along: length)
-        let lineEnd = drawn.lineEnd(along: length)
+        let lineStart = lineStart(of: drawn)
+        let lineEnd = lineEnd(of: drawn)
         var corners: [(distance: Double, point: Point, arriving: Point, leaving: Point)] = []
         for (index, segment) in segments.enumerated() {
             for cusp in segment.cusps {
@@ -300,7 +304,17 @@ package struct PathOutline: Equatable, Sendable {
         ]
     }
 
-    // The head `end` draws at a distance along the outline, nil where it draws none.
+    private func startHead(of drawn: DrawnStroke) -> Arrowhead? {
+        head(drawn.startHead, of: drawn, at: drawn.start(along: length), isStart: true)
+    }
+
+    private func endHead(of drawn: DrawnStroke) -> Arrowhead? {
+        head(drawn.endHead, of: drawn, at: drawn.end(along: length), isStart: false)
+    }
+
+    // The head `end` draws at a distance along the outline, nil where it draws none: the head whose tip is that point
+    // and whose base is the point its length back along the outline, nil too where the two are one, since its size is
+    // the chord between them over its length.
     private func head(
         _ end: StrokeEnd,
         of drawn: DrawnStroke,
@@ -308,22 +322,20 @@ package struct PathOutline: Equatable, Sendable {
         isStart: Bool
     ) -> Arrowhead? {
         let unit = drawn.unit(of: end, along: length)
-        guard unit > 0 else { return nil }
+        guard let head = end.head, length > 0, unit > 0 else { return nil }
 
-        let along = end.shape.length * unit
+        let along = head.length * unit
         let tip = point(at: distance)
         let base = point(at: isStart ? distance + along : distance - along)
         let chord = Point(x: tip.x - base.x, y: tip.y - base.y)
         let size = hypot(chord.x, chord.y)
-        let axis: Point
-        if size > 0 {
-            axis = Point(x: chord.x / size, y: chord.y / size)
-        } else {
-            let direction = direction(at: distance, leaving: isStart)
-            let sign = isStart ? -1.0 : 1.0
-            axis = Point(x: direction.x * sign, y: direction.y * sign)
-        }
+        guard size > 0 else { return nil }
 
-        return Arrowhead(shape: end.shape, tip: tip, axis: axis, length: size, width: end.shape.width * unit, unit: unit)
+        return Arrowhead(
+            head: head,
+            tip: tip,
+            axis: Point(x: chord.x / size, y: chord.y / size),
+            scale: size / head.length
+        )
     }
 }

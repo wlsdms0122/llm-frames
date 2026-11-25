@@ -46,6 +46,14 @@ struct ThemeValidatorTests {
             (
                 #"{ "defaults": { "animation": { "title": { "subtitle": "mine/spin" } } } }"#,
                 #"defaults.animation.title.subtitle (title animations): unknown animation preset "mine/spin". A preset is named <pack>/<name>, and the ones frames ships are frames/<name>"#
+            ),
+            (
+                #"{ "shapes": { "pointer": { "stroke": { "width": 4, "end": "arrow" } } } }"#,
+                #"shapes.pointer.stroke.end (shape style): unknown head preset "arrow". A preset is named <pack>/<name>, and the ones frames ships are frames/<name>"#
+            ),
+            (
+                #"{ "shapes": { "pointer": { "stroke": { "width": 4, "start": { "preset": "mine/hook", "scale": 2 } } } } }"#,
+                #"shapes.pointer.stroke.start (shape style): unknown head preset "mine/hook". A preset is named <pack>/<name>, and the ones frames ships are frames/<name>"#
             )
         ]
     )

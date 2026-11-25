@@ -8,6 +8,7 @@
 import Testing
 
 @testable import Frames
+import FramesTestMedia
 
 @Suite("DisplayListReader Tests")
 struct DisplayListReaderTests {
@@ -295,8 +296,9 @@ struct DisplayListReaderTests {
         ),
         (["1", "4", "stroke", "join"], #""round""#, "samples[1][4].stroke.join (path)"),
         (["1", "4", "stroke", "cap"], #""round""#, "samples[1][4].stroke.cap (path)"),
-        (["1", "4", "stroke", "end"], #"{ "shape": "arrow", "scale": 1 }"#, "samples[1][4].stroke.end (path)"),
-        (["1", "5", "stroke", "end", "shape"], #""circle""#, "samples[1][5].stroke.end.shape (path)"),
+        (["1", "4", "stroke", "end"], #"{ "vertices": [[-4, 2], [0, 0], [-4, -2]], "inTangents": [[0, 0], [0, 0], [0, 0]], "outTangents": [[0, 0], [0, 0], [0, 0]], "length": 4, "inset": 4, "scale": 1 }"#, "samples[1][4].stroke.end (path)"),
+        (["1", "5", "stroke", "end", "inset"], "2", "samples[1][5].stroke.end.inset (path)"),
+        (["1", "5", "stroke", "end", "vertices", "0"], "[-4, 1]", "samples[1][5].stroke.end.vertices[0][1] (path)"),
         (["1", "4", "stroke", "dash"], "[2, 2]", "samples[1][4].stroke.dash (path)"),
         (["1", "6", "runs", "0", "file"], #""/abs/Other.ttf""#, "samples[1][6].runs[0].file (glyphs)"),
         (["1", "6", "runs", "0", "face"], #""Inter-Regular""#, "samples[1][6].runs[0].face (glyphs)"),
@@ -1012,9 +1014,9 @@ struct DisplayListReaderTests {
                 #"items[0].stroke.cap (path): unknown value "flat". Allowed: butt, round, square"#
             ),
             (
-                ##"{ "width": 2, "paint": "color(srgb 1 1 1 / 1)", "align": "center", "join": "round", "cap": "butt", "start": null, "end": { "shape": "dot", "scale": 1 } }"##,
+                ##"{ "width": 2, "paint": "color(srgb 1 1 1 / 1)", "align": "center", "join": "round", "cap": "butt", "start": null, "end": { "shape": "arrow", "scale": 1 } }"##,
                 "stroke",
-                #"items[0].stroke.end.shape (path): unknown value "dot". Allowed: arrow, line-arrow, circle, square, diamond, bar"#
+                #"items[0].stroke.end (path): unknown key "shape". Allowed: vertices, inTangents, outTangents, length, inset, scale"#
             ),
             (
                 ##"{ "width": 2, "paint": "color(srgb 1 1 1 / 1)", "align": "center", "join": "round", "cap": "butt", "start": null, "end": "arrow" }"##,
@@ -1027,14 +1029,24 @@ struct DisplayListReaderTests {
                 #"items[0].stroke.start (path): expected an object, found "none""#
             ),
             (
-                ##"{ "width": 2, "paint": "color(srgb 1 1 1 / 1)", "align": "center", "join": "round", "cap": "butt", "start": { "shape": "none", "scale": 1 }, "end": null }"##,
+                ##"{ "width": 2, "paint": "color(srgb 1 1 1 / 1)", "align": "center", "join": "round", "cap": "butt", "start": { "vertices": [[-4, 2], [1, 0], [-4, -2]], "inTangents": [[0, 0], [0, 0], [0, 0]], "outTangents": [[0, 0], [0, 0], [0, 0]], "length": 4, "inset": 4, "scale": 1 }, "end": null }"##,
                 "stroke",
-                #"items[0].stroke.start.shape (path): unknown value "none". Allowed: arrow, line-arrow, circle, square, diamond, bar"#
+                "items[0].stroke.start (path): nothing of a head lies past its tip at x = 0, its control points included"
             ),
             (
-                ##"{ "width": 2, "paint": "color(srgb 1 1 1 / 1)", "align": "center", "join": "round", "cap": "butt", "start": null, "end": { "shape": "arrow", "size": 1 } }"##,
+                ##"{ "width": 2, "paint": "color(srgb 1 1 1 / 1)", "align": "center", "join": "round", "cap": "butt", "start": { "vertices": [[-4, 2], [0, 0], [-4, -2]], "inTangents": [[0, 0], [0, 0], [0, 0]], "outTangents": [[0, 0], [0, 0], [0, 0]], "length": 4, "inset": 5, "scale": 1 }, "end": null }"##,
                 "stroke",
-                #"items[0].stroke.end (path): unknown key "size". Allowed: shape, scale"#
+                "items[0].stroke.start (path): a head's inset is from 0 to its length 4, found 5"
+            ),
+            (
+                ##"{ "width": 2, "paint": "color(srgb 1 1 1 / 1)", "align": "center", "join": "round", "cap": "butt", "start": null, "end": { "vertices": [[-4, 2], [0, 0], [-4, -2]], "inTangents": [[0, 0], [0, 0]], "outTangents": [[0, 0], [0, 0], [0, 0]], "length": 4, "inset": 4, "scale": 1 } }"##,
+                "stroke",
+                "items[0].stroke.end.inTangents (path): a head has a tangent for each of its 3 vertices, found 2"
+            ),
+            (
+                ##"{ "width": 2, "paint": "color(srgb 1 1 1 / 1)", "align": "center", "join": "round", "cap": "butt", "start": null, "end": { "vertices": [[-4, 2], [0, 0], [-4, -2]], "inTangents": [[0, 0], [0, 0], [0, 0]], "outTangents": [[0, 0], [0, 0], [0, 0]], "length": 4, "inset": 4, "size": 1 } }"##,
+                "stroke",
+                #"items[0].stroke.end (path): unknown key "size". Allowed: vertices, inTangents, outTangents, length, inset, scale"#
             ),
             (
                 ##"{ "width": 2, "paint": { "linear": { "from": [0, 0], "to": [1, 0], "stops": [[0, "color(srgb 1 1 1 / 1)"]] } }, "join": "round", "cap": "butt", "start": null, "end": null }"##,
@@ -1112,10 +1124,10 @@ struct DisplayListReaderTests {
     }
 
     @Test(
-        "a path's stroke ends are written as null for no head or as the head's shape and scale, and read back",
-        arguments: StrokeEndShape.allCases
+        "a path's stroke ends are written as null for no head or as the head's outline, length, inset and scale, and read back",
+        arguments: [nil] + ShippedHeads.names.map(ShippedHeads.head)
     )
-    func readsWrittenEnds(shape: StrokeEndShape) throws {
+    func readsWrittenEnds(head: StrokeHead?) throws {
         // Given
         let list = list(items: [
             DisplayItem(content: .path(PathItem(
@@ -1126,8 +1138,8 @@ struct DisplayListReaderTests {
                     paint: .color(Color(written: "#FF3B30")),
                     join: .miter,
                     cap: .butt,
-                    start: StrokeEnd(shape: shape, scale: 2.5),
-                    end: StrokeEnd(shape: shape)
+                    start: StrokeEnd(head: head, scale: 2.5),
+                    end: StrokeEnd(head: head)
                 )
             )))
         ])
@@ -1139,17 +1151,22 @@ struct DisplayListReaderTests {
         // Then
         let items = try #require(try Fixture.json(text).objectValue?["items"]?.arrayValue?.compactMap(\.objectValue))
         let stroke = try #require(items.first?["stroke"]?.objectValue)
+        let point = { (point: Point) in JSONValue.array([.number(point.x), .number(point.y)]) }
         let written = { (scale: Double) -> JSONValue in
-            shape == .none
-                ? .null
-                : .object(JSONObject(members: [
-                    JSONMember(key: "shape", value: .string(shape.rawValue)),
-                    JSONMember(key: "scale", value: .number(scale))
-                ]))
+            guard let head else { return .null }
+
+            return .object(JSONObject(members: [
+                JSONMember(key: "vertices", value: .array(head.outline.map { point($0.vertex) })),
+                JSONMember(key: "inTangents", value: .array(head.outline.map { point($0.inTangent) })),
+                JSONMember(key: "outTangents", value: .array(head.outline.map { point($0.outTangent) })),
+                JSONMember(key: "length", value: .number(head.length)),
+                JSONMember(key: "inset", value: .number(head.inset)),
+                JSONMember(key: "scale", value: .number(scale))
+            ]))
         }
         #expect(stroke["start"] == written(2.5))
         #expect(stroke["end"] == written(1))
-        if shape == .none {
+        if head == nil {
             #expect(read.items.first.map { item -> Bool in
                 guard case let .path(path) = item.content else { return false }
 
@@ -1164,7 +1181,7 @@ struct DisplayListReaderTests {
         "a stroke inside or outside its outline on an open path or with an arrowhead stops, naming its stroke",
         arguments: [
             (#"{ "path": { "vertices": [[0, 0], [5, 5], [10, 0]], "inTangents": [[0, 0], [0, 0], [0, 0]], "outTangents": [[0, 0], [0, 0], [0, 0]], "closed": false } }"#, "inside", "null"),
-            (#"{ "rect": { "rect": [0, 0, 1, 1], "radius": [0, 0, 0, 0] } }"#, "outside", #"{ "shape": "circle", "scale": 1 }"#)
+            (#"{ "rect": { "rect": [0, 0, 1, 1], "radius": [0, 0, 0, 0] } }"#, "outside", #"{ "vertices": [[-4, 2], [0, 0], [-4, -2]], "inTangents": [[0, 0], [0, 0], [0, 0]], "outTangents": [[0, 0], [0, 0], [0, 0]], "length": 4, "inset": 4, "scale": 1 }"#)
         ]
     )
     func refusesAlignedStrokeOffClosedOutline(

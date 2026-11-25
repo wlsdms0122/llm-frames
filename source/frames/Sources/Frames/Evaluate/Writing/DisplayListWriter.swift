@@ -190,12 +190,17 @@ package struct DisplayListWriter: Sendable {
         ]
     }
 
-    // A stroke's end, `null` where it draws no head.
+    // A stroke's end, `null` where it draws no head, and otherwise its head's outline as a closed path in its own
+    // units beside its `length`, `inset` and `scale`.
     private func end(_ end: StrokeEnd) -> JSONValue {
-        guard end.shape != .none else { return .null }
+        guard let head = end.head else { return .null }
 
         return .object(JSONObject(members: [
-            JSONMember(key: "shape", value: .string(end.shape.rawValue)),
+            JSONMember(key: "vertices", value: .array(head.outline.map { values.point($0.vertex) })),
+            JSONMember(key: "inTangents", value: .array(head.outline.map { values.point($0.inTangent) })),
+            JSONMember(key: "outTangents", value: .array(head.outline.map { values.point($0.outTangent) })),
+            JSONMember(key: "length", value: .number(head.length)),
+            JSONMember(key: "inset", value: .number(head.inset)),
             JSONMember(key: "scale", value: .number(end.scale))
         ]))
     }

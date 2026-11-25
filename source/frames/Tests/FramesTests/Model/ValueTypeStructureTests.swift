@@ -8,6 +8,7 @@
 import Testing
 
 @testable import Frames
+import FramesTestMedia
 
 // The key tables of the look objects are read from their look structures. Each expectation is the table the key check
 // gives that value, key by key.
@@ -17,7 +18,6 @@ struct ValueTypeStructureTests {
     private static let aligns = StrokeAlign.allCases.map(\.rawValue)
     private static let joins = StrokeJoin.allCases.map(\.rawValue)
     private static let caps = StrokeCap.allCases.map(\.rawValue)
-    private static let ends = StrokeEndShape.allCases.map(\.rawValue)
 
     // MARK: - Initializer
     // MARK: - Test
@@ -336,13 +336,13 @@ struct ValueTypeStructureTests {
     }
 
     // MARK: - Private
-    // A stroke's end: its head's name, or its shape and its scale.
+    // A stroke's end: its head preset's name, or the name as `preset` and its scale.
     private static func end(_ kind: String) -> ValueType {
         .oneOf([
-            .literal(ends),
+            .name,
             .object(ObjectTable(
                 kind: kind,
-                rules: [KeyRule("shape", .literal(ends)), KeyRule("scale", .number(.positive))]
+                rules: [KeyRule("preset", .name), KeyRule("scale", .number(.positive))]
             ))
         ])
     }

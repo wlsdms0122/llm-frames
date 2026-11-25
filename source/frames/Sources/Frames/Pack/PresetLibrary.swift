@@ -17,6 +17,7 @@ package struct PresetLibrary: PresetProvider {
     private let animations = PresetCache<AnimationPreset>()
     private let filters = PresetCache<FilterPreset>()
     private let audios = PresetCache<AudioPreset>()
+    private let heads = PresetCache<HeadPreset>()
 
     // MARK: - Initializer
     package init(packs: PackLibrary) {
@@ -54,6 +55,10 @@ package struct PresetLibrary: PresetProvider {
                 try reader.publishedAudio(from: value, place: Place(file: name, components: []))
             }
         }
+    }
+
+    func head(named name: String) throws -> StrokeHead? {
+        try publishedHead(named: name)?.defaults.head
     }
 
     // MARK: - Public
@@ -115,6 +120,19 @@ package struct PresetLibrary: PresetProvider {
         case .audio:
             try publishedAudio(named: name).map { preset in
                 PresetEntry(kind: kind, name: name, description: preset.defaults.description, parameters: preset.parameters)
+            }
+
+        case .head:
+            try publishedHead(named: name).map { preset in
+                PresetEntry(kind: kind, name: name, description: preset.defaults.description, parameters: preset.parameters)
+            }
+        }
+    }
+
+    private func publishedHead(named name: String) throws -> PublishedPreset<HeadPreset>? {
+        try heads.preset(named: name) {
+            try value(named: name, kind: PresetKind.head.rawValue).map { value in
+                try reader.publishedHead(from: value, place: Place(file: name, components: []))
             }
         }
     }

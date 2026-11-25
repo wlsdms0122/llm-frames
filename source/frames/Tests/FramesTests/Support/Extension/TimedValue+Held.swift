@@ -6,6 +6,7 @@
 //
 
 @testable import Frames
+import FramesTestMedia
 
 // Timed values that hold one value at every time, as resolve gives a value no keyframe moves at an instant of 0, in
 // the order resolve writes their leaves, and the typed values a timed value draws at a time.
@@ -60,10 +61,12 @@ extension TimedValue: ExpressibleByIntegerLiteral, ExpressibleByFloatLiteral {
         ] + [dash].compactMap { $0 } + [TimedMember(key: "dashOffset", value: .held(.number(stroke.dashOffset)))])
     }
 
-    // A stroke's end as resolve writes it, its static `shape` and its timed `scale`.
+    // A stroke's end as resolve writes it: off for no head, and otherwise its head's static values and its timed
+    // `scale`.
     static func end(_ end: StrokeEnd) -> TimedValue {
-        .object([
-            TimedMember(key: "shape", value: .fixed(.string(end.shape.rawValue))),
+        guard let head = end.head else { return .off }
+
+        return .object(head.members.map { TimedMember(key: $0.key, value: .fixed($0.value)) } + [
             TimedMember(key: "scale", value: .held(.number(end.scale)))
         ])
     }

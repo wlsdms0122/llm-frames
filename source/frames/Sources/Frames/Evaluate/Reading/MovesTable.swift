@@ -31,7 +31,8 @@ struct MovesTable: Sendable {
     // `targetPeak` equal in every sample, or `{list}`, whose items take their marks and whose own `size`, `background`
     // and `compositing` are equal in every sample. A matte's `source` and `frame` are equal in every sample too.
     private static let source = MovesMark.members(["list": .members(["items": .items], other: .fixed)], other: .fixed)
-    // A stroke's end moves in its head's `scale`, and its `shape`, or `null` for no head, is equal in every sample.
+    // A stroke's end moves in its head's `scale`, and its outline, `length` and `inset`, or `null` for no head, are
+    // equal in every sample.
     private static let end = MovesMark.members(["scale": .moves], other: .fixed)
     private static let common: [String: MovesMark] = [
         "transform": .moves,

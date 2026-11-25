@@ -12,6 +12,6 @@ enum ObjectShorthand: Equatable, Sendable {
     case color(key: String)
     // A point for the object that names it under `key`, as a path's vertex written as a point.
     case point(key: String)
-    // A name for the object that names it under `key`, as a stroke's end written as its head's shape.
+    // A name for the object that names it under `key`, as a stroke's end written as its head preset's name.
     case name(key: String)
 }

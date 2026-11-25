@@ -8,6 +8,7 @@
 import Testing
 
 @testable import Frames
+import FramesTestMedia
 
 // Shapes are sequence clips over `/abs/screen.mp4` in a 960 by 540 frame, so theme lengths are half their written
 // size, and each is checked by the key tables before it is planned. The theme holds the colour `brand` `#123456` and
@@ -146,8 +147,8 @@ struct ShapeKeyframeTests {
                 #"clips[0].keyframes[0].stroke.cap (keyframe): a name, a boolean, a form or a static number is static and is written on the clip or the sequence, not in a keyframe"#
             ),
             (
-                #"{ "at": 0, "stroke": { "end": "circle" } }, { "at": 0.5, "stroke": { "width": 2 } }"#,
-                #"clips[0].keyframes[0].stroke.end.shape (keyframe): a name, a boolean, a form or a static number is static and is written on the clip or the sequence, not in a keyframe"#
+                #"{ "at": 0, "stroke": { "end": "frames/circle" } }, { "at": 0.5, "stroke": { "width": 2 } }"#,
+                #"clips[0].keyframes[0].stroke.end.preset (keyframe): a name, a boolean, a form or a static number is static and is written on the clip or the sequence, not in a keyframe"#
             ),
             (
                 #"{ "at": 0, "stroke": { "end": { "scale": 0 } } }"#,
@@ -194,20 +195,20 @@ struct ShapeKeyframeTests {
         #expect(error.map { "\($0)" } == message)
     }
 
-    @Test("an end written as a name names its shape alone, keeping its style's scale, and a bare stroke's end is scale 1")
-    func namesEndShape() throws {
+    @Test("an end written as a name names its preset alone, keeping its style's scale, and a bare stroke's end is scale 1")
+    func namesEndPreset() throws {
         // When
-        let named = try resolvedShape(#"{ "shape": "path", "points": [[0, 0], [100, 0]], "style": "pointer", "stroke": { "end": "circle" } }"#)
-        let bare = try resolvedShape(#"{ "shape": "path", "points": [[0, 0], [100, 0]], "stroke": { "width": 4, "start": "bar" } }"#)
+        let named = try resolvedShape(#"{ "shape": "path", "points": [[0, 0], [100, 0]], "style": "pointer", "stroke": { "end": "frames/circle" } }"#)
+        let bare = try resolvedShape(#"{ "shape": "path", "points": [[0, 0], [100, 0]], "stroke": { "width": 4, "start": "frames/bar" } }"#)
 
         // Then
         #expect(named.stroke.stroke(at: 0)?.start == StrokeEnd.none)
-        #expect(named.stroke.stroke(at: 0)?.end == StrokeEnd(shape: .circle, scale: 2))
-        #expect(bare.stroke.stroke(at: 0)?.start == StrokeEnd(shape: .bar, scale: 1))
+        #expect(named.stroke.stroke(at: 0)?.end == StrokeEnd(head: .circle, scale: 2))
+        #expect(bare.stroke.stroke(at: 0)?.start == StrokeEnd(head: .bar, scale: 1))
         #expect(bare.stroke.stroke(at: 0)?.end == StrokeEnd.none)
     }
 
-    @Test("an end's scale moves between keyframes from 0, as a stroke's width does, its shape the style's")
+    @Test("an end's scale moves between keyframes from 0, as a stroke's width does, its preset the style's")
     func movesEndScale() throws {
         // When
         let shape = try resolvedShape(##"""
@@ -216,9 +217,24 @@ struct ShapeKeyframeTests {
             """##)
 
         // Then
-        #expect(shape.stroke.stroke(at: 0)?.end == StrokeEnd(shape: .diamond, scale: 0))
-        #expect(shape.stroke.stroke(at: 0.5)?.end == StrokeEnd(shape: .diamond, scale: 1))
-        #expect(shape.stroke.stroke(at: 1)?.end == StrokeEnd(shape: .diamond, scale: 2))
+        #expect(shape.stroke.stroke(at: 0)?.end == StrokeEnd(head: .diamond, scale: 0))
+        #expect(shape.stroke.stroke(at: 0.5)?.end == StrokeEnd(head: .diamond, scale: 1))
+        #expect(shape.stroke.stroke(at: 1)?.end == StrokeEnd(head: .diamond, scale: 2))
+    }
+
+    @Test("an end the clip names by a preset alone grows by its keyframed scale, the head the named preset's throughout")
+    func movesNamedEndScale() throws {
+        // When
+        let shape = try resolvedShape(##"""
+            { "shape": "path", "points": [[0, 0], [100, 0]], "stroke": { "width": 4, "end": "frames/arrow" },
+              "keyframes": [ { "at": 0, "stroke": { "end": { "scale": 0 } } }, { "at": 1, "stroke": { "end": { "scale": 3 } } } ] }
+            """##)
+
+        // Then
+        #expect(shape.stroke.stroke(at: 0)?.end == StrokeEnd(head: .arrow, scale: 0))
+        #expect(shape.stroke.stroke(at: 0.5)?.end == StrokeEnd(head: .arrow, scale: 1.5))
+        #expect(shape.stroke.stroke(at: 1)?.end == StrokeEnd(head: .arrow, scale: 3))
+        #expect(shape.stroke.stroke(at: 1)?.start == StrokeEnd.none)
     }
 
     @Test("a gradient's leaf written statically and in every keyframe stops, naming the leaf under its gradient")
@@ -530,7 +546,7 @@ struct ShapeKeyframeTests {
                          "shadow": { "radius": 20, "offset": [0, 8], "color": "#00000080" },
                          "shapes": { "bar": { "stroke": { "width": \#(width), "color": "#ED2929" }, "radius": 12, "shadow": { "radius": 10 } },
                                      "dashed": { "stroke": { "width": 4, "dash": [10, 5] } },
-                                     "pointer": { "stroke": { "width": 4, "end": { "shape": "diamond", "scale": 2 } } },
+                                     "pointer": { "stroke": { "width": 4, "end": { "preset": "frames/diamond", "scale": 2 } } },
                                      "glow": { "fill": { "radial": { "center": [0.25, 0.5], "stops": [[0, "brand"], [1, "#00000000"]] } },
                                                "stroke": { "width": 2, "gradient": { "linear": { "from": [0.25, 0], "to": [1, 0.5],
                                                            "stops": [[0, "#FF0000"], [1, "#0000FF"]] } } } },

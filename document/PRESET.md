@@ -1,10 +1,10 @@
 # Writing a preset
 
-A preset is one JSON file: a transition, an animation or a filter. frames reads it as data, so a new one needs no rebuild. The format is [FRAMES-14](../spec/FRAMES-14/SPEC.md) for transitions and animations and [FRAMES-15](../spec/FRAMES-15/SPEC.md) for filters. This page shows how to write each kind, how to publish parameters, how a document passes arguments, and how to look at the result.
+A preset is one JSON file: a transition, an animation, a filter or a stroke's head. frames reads it as data, so a new one needs no rebuild. The format is [FRAMES-14](../spec/FRAMES-14/SPEC.md) for transitions and animations, [FRAMES-15](../spec/FRAMES-15/SPEC.md) for filters and [FRAMES-11](../spec/FRAMES-11/SPEC.md#shapes) for heads. This page shows how to write each kind, how to publish parameters, how a document passes arguments, and how to look at the result.
 
 ## Where a preset lives
 
-A preset lives in a pack, in `presets/<kind>/<name>.json`, where the kind is `transition`, `animation` or `filter`. A document names it `<pack>/<name>`. The examples on this page are the presets of a pack called `studio`:
+A preset lives in a pack, in `presets/<kind>/<name>.json`, where the kind is `transition`, `animation`, `filter` or `head`. A document names it `<pack>/<name>`. The examples on this page are the presets of a pack called `studio`:
 
 ```
 $FRAMES_HOME/packs/studio/
@@ -17,6 +17,7 @@ $FRAMES_HOME/packs/studio/
     animation/lift.json             studio/lift
     animation/type-on.json          studio/type-on
     filter/film.json                studio/film
+    head/hook.json                  studio/hook
   media/iris.png                    studio/iris.png
 ```
 
@@ -214,6 +215,29 @@ A filter is a chain of operations from a fixed table, applied in order. Each ope
 - A look made of colour alone is usually one `lut` op. Put the `.cube` file in the pack's `luts/`, and give `space` when the LUT was not built for sRGB: `srgb-linear` for one built on linear sRGB, or the HDR or wide gamut space it was made in ([FRAMES-26](../spec/FRAMES-26/SPEC.md#colour-spaces)).
 
 A filter goes on a storyline clip or a media clip as `filter`, and on everything below an adjustment clip as `adjust`.
+
+## A head
+
+A head is what a stroke draws at its `start` or `end`: a closed outline filled in the stroke's paint. frames ships six in the pack `frames`: `frames/arrow`, `frames/line-arrow`, `frames/circle`, `frames/square`, `frames/diamond` and `frames/bar` ([FRAMES-16](../spec/FRAMES-16/SPEC.md)). A head is written in units of its stroke's width, with its tip at the origin, pointing along +x, y running to the right of the direction it points.
+
+`studio/hook`, a filled arrow with a notch cut into its base:
+
+```json
+{ "description": "A filled arrow 5 widths long and wide, its base notched 1.5 widths deep.",
+  "points": [[0, 0], [-5, 2.5], [-3.5, 0], [-5, -2.5]],
+  "length": 5,
+  "inset": 3.5 }
+```
+
+| Key | Meaning |
+| --- | --- |
+| `points` | the outline, at least two vertices, each `[x, y]` or `{vertex, inTangent, outTangent}` as a path's vertex is written. Nothing of it, its tangents included, lies past the tip at x = 0 |
+| `length` | how much of the stroke the head takes, the distance back from the tip to its base, above 0 |
+| `inset` | how far back from the tip the stroke's line stops, from 0 to `length`. Put it where the line's end is hidden inside the head, here the notch |
+
+- A document names it as `"end": "studio/hook"` or `"end": { "preset": "studio/hook", "scale": 1.5 }`. Its size is the stroke's width times `scale`, so a head takes no `params`.
+- On a curved end the head keeps its shape: its tip sits on the end, its base on the stroke `length` back along it, and it is smaller by the chord between them over its length.
+- A point past the tip, a `length` of 0 or less, an `inset` outside 0 to `length` or fewer than two vertices stops when the preset is read.
 
 ## Parameters
 

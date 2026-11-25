@@ -8,6 +8,7 @@
 import Testing
 
 @testable import Frames
+import FramesTestMedia
 
 @Suite("ResolvedSequenceWriter Tests")
 struct ResolvedSequenceWriterTests {
@@ -518,7 +519,7 @@ struct ResolvedSequenceWriterTests {
               "theme": { "shapes": { "outline": { "stroke": { "width": 8, "color": "#ED2929" }, "radius": 18 } } },
               "storyline": [ { "media": "/abs/run.mp4" } ], "clips": [
                 { "shape": "rect", "style": "outline", "area": [0, 0, 100, 100], "at": [0, 1] },
-                { "shape": "path", "points": [[500, 500], [600, 500]], "stroke": { "width": 10, "end": "arrow" }, "at": [0, 1] },
+                { "shape": "path", "points": [[500, 500], [600, 500]], "stroke": { "width": 10, "end": "frames/arrow" }, "at": [0, 1] },
                 { "shape": "ellipse", "width": 200, "height": 100, "outset": 10, "fill": "#00000080", "at": [0, 1] },
                 { "shape": "rect", "area": [100, 100, 200, 100], "outset": 20, "anchor": "bottom-right", "fill": "accent", "at": [0, 1] } ] }
             """##
@@ -726,9 +727,11 @@ struct ResolvedSequenceWriterTests {
 
     // A timed leaf no keyframe moves: one keyframe at the clip's instant.
     // A stroke's end of a head's shape at the scale no layer writes, 1.
-    private func end(_ shape: String) -> JSONValue {
-        .object(JSONObject(members: [
-            JSONMember(key: "shape", value: .string(shape)),
+    // An end as resolve writes it: null for none, and otherwise the shipped head's values beside a scale of 1.
+    private func end(_ name: String) -> JSONValue {
+        guard name != "none" else { return .null }
+
+        return .object(JSONObject(members: ShippedHeads.head(name).members + [
             JSONMember(key: "scale", value: held(.number(1)))
         ]))
     }

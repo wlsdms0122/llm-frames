@@ -90,8 +90,8 @@ struct PathDrawer {
         let line = line(
             of: stroke,
             from: drawn.start(along: outline.length),
-            between: drawn.lineStart(along: outline.length),
-            and: drawn.lineEnd(along: outline.length),
+            between: outline.lineStart(of: drawn),
+            and: outline.lineEnd(of: drawn),
             along: outline,
             own: own
         )
@@ -189,27 +189,9 @@ struct PathDrawer {
         )
     }
 
-    // A head as one shape: a circle, or the union of its convex parts.
+    // A head as one shape, the fill of its outline.
     private func path(of head: Arrowhead) -> CGPath {
-        if let circle = head.circle {
-            let rectangle = CGRect(
-                x: circle.center.x - circle.radius,
-                y: circle.center.y - circle.radius,
-                width: 2 * circle.radius,
-                height: 2 * circle.radius
-            )
-            return CGPath(ellipseIn: rectangle, transform: nil)
-        }
-
-        let parts = head.parts.map { corners in
-            let path = CGMutablePath()
-            path.addLines(between: corners.map { CGPoint(x: $0.x, y: $0.y) })
-            path.closeSubpath()
-            return path as CGPath
-        }
-        guard let first = parts.first else { return CGMutablePath() }
-
-        return parts.dropFirst().reduce(first) { shape, part in shape.union(part, using: .winding) }
+        PathOutline(head.geometry()).fillPath
     }
 
     private func lineCap(of cap: StrokeCap) -> CGLineCap {

@@ -86,7 +86,7 @@ struct ResolvedDocumentReaderTests {
         { "kind": "sequence", "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "in": 1, "out": 3, "fadeIn": 0.5, "connected": [
             { "shape": "rect", "stroke": { "width": 8 }, "area": { "text": "Total" }, "parent": "screen", "track": { "text": "Total" } },
             { "shape": "rect", "fill": "#FFD43B80", "area": { "text": "Total", "padding": 14 }, "parent": "screen", "track": true },
-            { "shape": "path", "points": [[500, 500], [600, 550]], "stroke": { "width": 10, "end": "arrow" }, "at": [1, 2], "lane": -1 },
+            { "shape": "path", "points": [[500, 500], [600, 550]], "stroke": { "width": 10, "end": "frames/arrow" }, "at": [1, 2], "lane": -1 },
             { "shape": "rect", "area": [0, 0, 100, 100], "fill": "#0000008C", "at": [1, 2], "id": "dim" },
             { "adjust": "mine/grade", "mask": { "shape": "rect", "area": [0, 0, 10, 10] }, "at": [1, 2] },
             { "media": "/abs/short.mp4", "in": 1, "out": 3, "speed": 2, "at": 1, "width": 300, "conform": "fill",
@@ -112,7 +112,7 @@ struct ResolvedDocumentReaderTests {
               "stroke": { "width": 3, "align": "outside", "join": "bevel", "cap": "square" }, "rotation": 30, "at": [0, 4] },
             { "shape": "ellipse", "area": [100, 100, 80, 40], "anchor": "bottom-right", "position": [400, 300], "fill": "#FFFFFF80",
               "shadow": true, "scale": 2, "at": [0, 4] },
-            { "shape": "path", "stroke": { "width": 6, "start": { "shape": "circle", "scale": 2 }, "end": "line-arrow", "color": "#00FF00" }, "at": [0, 4],
+            { "shape": "path", "stroke": { "width": 6, "start": { "preset": "frames/circle", "scale": 2 }, "end": "frames/line-arrow", "color": "#00FF00" }, "at": [0, 4],
               "keyframes": [ { "at": 0, "points": [[0, 0], [100, 50], [200, 0]], "trim": [0, 0] },
                              { "at": 1, "points": [[0, 100], [100, 150], [200, 100]], "trim": [0.2, 1], "rotation": 45 } ] },
             { "shape": "path", "points": [[300, 300], [400, 300], [350, 380]], "closed": true, "fill": "accent", "stroke": false,
@@ -551,7 +551,8 @@ struct ResolvedDocumentReaderTests {
         arguments: [
             (#""shape": "rect""#, #""shape": "box""#, #"clips[0].shape (clip): unknown value "box". Allowed: rect, ellipse, path"#),
             (#""join": "round""#, #""join": "square""#, #"clips[0].stroke.join (stroke): unknown value "square". Allowed: miter, round, bevel"#),
-            (#""shape": "none""#, #""shape": "dot""#, #"clips[0].stroke.start.shape (stroke): unknown value "dot". Allowed: none, arrow, line-arrow, circle, square, diamond, bar"#),
+            (#""inset": 2"#, #""inset": 9"#, "clips[4].stroke.start (stroke): a head's inset is from 0 to its length 4, found 9"),
+            (#""inset": 2"#, #""inset": 2, "shape": "circle""#, #"clips[4].stroke.start (stroke): unknown key "shape". Allowed: points, length, inset, scale"#),
             (#""cap": "butt""#, #""cap": "butt", "head": 8"#, #"clips[0].stroke (stroke): unknown key "head". Allowed: color, gradient, width, align, join, cap, start, end, dash, dashOffset"#)
         ]
     )
@@ -571,7 +572,7 @@ struct ResolvedDocumentReaderTests {
     }
 
     @Test(
-        "a stroke's end written as a bare name, the form only a clip writes, stops, since a resolved end is its shape and scale",
+        "a stroke's end written as a bare name, the form only a clip writes, stops, since a resolved end is null or its head's values and scale",
         arguments: [("start", "none"), ("end", "arrow")]
     )
     func refusesNamedEnd(

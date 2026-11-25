@@ -8,8 +8,7 @@
 // The part of an outline a stroke draws, as fractions of the outline's length. Heads sit on the ends of the stroke as
 // drawn, so a closed outline drawn whole takes none. Each head is drawn in a unit, the stroke's width times its scale,
 // and heads that together are longer than the drawn stroke shrink by one factor to share its length, keeping their
-// shapes. The line runs between the points its heads stop it at. Where a head lies is `PathOutline.arrowheads(of:)`'s
-// to say.
+// shapes. Where a head lies, and so where it stops the line, is `PathOutline`'s to say.
 package struct DrawnStroke: Equatable, Sendable {
     // MARK: - Property
     package let isDrawn: Bool
@@ -21,7 +20,7 @@ package struct DrawnStroke: Equatable, Sendable {
     private let high: Double
     private let width: Double
 
-    package var hasArrowhead: Bool { startHead.shape != .none || endHead.shape != .none }
+    package var hasArrowhead: Bool { startHead.head != nil || endHead.head != nil }
 
     // MARK: - Initializer
     package init(
@@ -63,20 +62,11 @@ package struct DrawnStroke: Equatable, Sendable {
         head.unit(width: width) * shrink(along: length)
     }
 
-    // Where the line between the heads starts and ends along an outline `length` long.
-    package func lineStart(along length: Double) -> Double {
-        start(along: length) + startHead.shape.inset * unit(of: startHead, along: length)
-    }
-
-    package func lineEnd(along length: Double) -> Double {
-        end(along: length) - endHead.shape.inset * unit(of: endHead, along: length)
-    }
-
     // MARK: - Private
     // The factor the heads shrink by along an outline `length` long: 1, or less where together they are longer than
     // the drawn stroke.
     private func shrink(along length: Double) -> Double {
-        let total = [startHead, endHead].map { $0.shape.length * $0.unit(width: width) }.reduce(0, +)
+        let total = [startHead, endHead].map { $0.length * $0.unit(width: width) }.reduce(0, +)
         guard total > 0 else { return 1 }
 
         return min(1, (high - low) * length / total)

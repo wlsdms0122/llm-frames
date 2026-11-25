@@ -123,6 +123,14 @@ struct PresetReader: Sendable {
         }
     }
 
+    // A head preset (FRAMES-11 Heads), which takes no `params`.
+    func publishedHead(
+        from value: JSONValue,
+        place: Place
+    ) throws -> PublishedPreset<HeadPreset> {
+        try published(value, as: PresetKeyTable.head, place: place) { try plainHead(from: $0, place: place) }
+    }
+
     // An op's parameters in their ranges, a preset's and one written in place alike. A parameter named in `sampled`
     // is one keyframe's value of a parameter two keyframes or more write, so a length or size may be 0 there.
     func checkRanges(
@@ -241,6 +249,23 @@ struct PresetReader: Sendable {
             cover: try object["cover"].map { try cover($0, place: place.appending(key: "cover"), ease: ease) },
             matte: object["matte"].map { matte($0, ease: ease) }
         )
+    }
+
+    private func plainHead(
+        from value: JSONValue,
+        place: Place
+    ) throws -> HeadPreset {
+        try checker.check(value, as: PresetKeyTable.head, place: place)
+
+        let object = value.objectValue ?? JSONObject()
+        guard let head = StrokeHead(written: value) else {
+            throw PresetError.invalidHead(place: place, reason: "a head writes its points, length and inset")
+        }
+        if let refusal = head.refusal {
+            throw PresetError.invalidHead(place: place, reason: refusal)
+        }
+
+        return HeadPreset(description: object["description"]?.stringValue ?? "", head: head)
     }
 
     // `sampled` holds the places of the op parameters that sampled arguments fill.

@@ -438,6 +438,32 @@ struct ResolvedValueReader: Sendable {
         }
     }
 
+    // A shape's stroke as a timed value, each end `null` or its head's values beside its `scale`, the head keeping every
+    // rule of a head preset (FRAMES-11 Heads).
+    func stroke(_ value: PlacedJSONValue) throws -> TimedValue {
+        let stroke = try timed(value, as: LookStructureTable.resolvedStroke, kind: "stroke")
+        guard !value.isNull else { return stroke }
+
+        let keys = ["color", "gradient", "width", "align", "join", "cap", "start", "end", "dash", "dashOffset"]
+        let members = try value.object(kind: "stroke", keys: keys)
+        for key in ["start", "end"] {
+            guard let end = members.optionalMember(key), !end.isNull else { continue }
+
+            guard let head = StrokeHead(written: end.value) else {
+                throw ModelError.invalidValue(
+                    place: end.place,
+                    kind: end.kind,
+                    reason: "a stroke's end is null or its head's points, length and inset beside its scale"
+                )
+            }
+            if let refusal = head.refusal {
+                throw ModelError.invalidValue(place: end.place, kind: end.kind, reason: refusal)
+            }
+        }
+
+        return stroke
+    }
+
     // A form of a choice as the writer writes it: its form key naming it, beside the keys of its body.
     private func choice(
         _ value: PlacedJSONValue,

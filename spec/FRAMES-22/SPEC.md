@@ -110,7 +110,7 @@ A shape style is a named set of defaults for a shape clip, as a text style is fo
 | Property | Form |
 | --- | --- |
 | `fill` | a colour, a gradient ([FRAMES-11](../FRAMES-11/SPEC.md)), or `false` for none |
-| `stroke` | `{color, gradient, width, align, join, cap, start, end, dash, dashOffset}`, its `color` a colour and its `gradient` a gradient, at most one of the two, and its `start` and `end` each an arrowhead's name or `{shape, scale}`, or `false` for none |
+| `stroke` | `{color, gradient, width, align, join, cap, start, end, dash, dashOffset}`, its `color` a colour and its `gradient` a gradient, at most one of the two, and its `start` and `end` each `none`, a head preset's name or `{preset, scale}` ([FRAMES-11](../FRAMES-11/SPEC.md#shapes)), or `false` for none |
 | `radius` | a theme length, or a list of four `[topLeft, topRight, bottomRight, bottomLeft]`: the corner radii of a `rect` ([FRAMES-11](../FRAMES-11/SPEC.md#shapes)) |
 | `outset` | a theme length: how far the outline a `rect` or `ellipse` draws grows on every side, its box staying as written |
 | `shadow` | `true` for on, with a weaker theme's shadow for this style or else the theme `shadow`, `false` for none, or `{radius, offset, color}`, whose missing keys come from the theme `shadow` |
@@ -149,7 +149,7 @@ A pack's theme lives in its `themes/` ([FRAMES-17](../FRAMES-17/SPEC.md)) and ho
   "shapes": {
     "bar":     { "fill": "accent", "radius": 4 },
     "outline": { "stroke": { "width": 6, "color": "accent" }, "radius": 12, "outset": 8 },
-    "pointer": { "stroke": { "width": 6, "color": "accent", "cap": "round", "end": { "shape": "line-arrow", "scale": 1.5 } } } },
+    "pointer": { "stroke": { "width": 6, "color": "accent", "cap": "round", "end": { "preset": "frames/line-arrow", "scale": 1.5 } } } },
   "border": { "width": 6, "color": "ink" },
   "defaults": { "transition": { "preset": "frames/fade", "seconds": 0.5 }, "filter": "frames/warm",
                 "animation": { "title": { "subtitle": "frames/fade", "name": "frames/slide-left" }, "media": "frames/fade" } } }

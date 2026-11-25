@@ -9,6 +9,7 @@ import Foundation
 import Testing
 
 @testable import Frames
+import FramesTestMedia
 
 // A path's outline, its corners and its arrowheads (FRAMES-20 Direction at a point, Arrowheads).
 @Suite("PathOutline Tests")
@@ -120,51 +121,89 @@ struct PathOutlineTests {
         #expect(abs(corner.leaving.y + 1) < 1e-6)
     }
 
-    @Test("a straight end's arrowhead lies along the outline, its base 4 widths back, as long as it is wide")
+    @Test("a straight end's arrowhead lies along the outline at its unit, its base 4 units back")
     func laysStraightArrowhead() throws {
         // Given
         let sut = PathOutline(.polyline([Point(x: 0, y: 0), Point(x: 100, y: 0)], isClosed: false))
+        let drawn = drawn(width: 2, trim: .whole, isClosed: false, end: .arrow)
 
         // When
-        let head = try #require(sut.arrowheads(of: drawn(width: 2, trim: .whole, isClosed: false, end: .arrow)).first)
+        let head = try #require(sut.arrowheads(of: drawn).first)
 
         // Then
+        let base = head.transform.apply(to: Point(x: -4, y: 0))
         #expect(head.tip == Point(x: 100, y: 0))
-        #expect(abs(head.base.x - 92) < 1e-9 && head.base.y == 0)
+        #expect(abs(base.x - 92) < 1e-9 && base.y == 0)
         #expect(head.axis == Point(x: 1, y: 0))
-        #expect(abs(head.length - 8) < 1e-9)
-        #expect(head.width == 8)
+        #expect(abs(head.scale - 2) < 1e-9)
+        #expect(abs(sut.lineEnd(of: drawn) - 92) < 1e-9)
     }
 
-    @Test("a curved end's arrowhead runs along the chord from its base on the stroke to its tip")
+    @Test("a curved end's arrowhead runs along the chord from its base on the stroke to its tip, grown to that chord")
     func laysCurvedArrowhead() throws {
         // Given
         // A circle of radius 100 about (100, 100) trimmed to its first quarter ends at (200, 100). A stroke 100π/24 wide
         // puts the base 100π/6 back along it, at 60 degrees from the top, (100 + 50√3, 50).
         let sut = PathOutline(.ellipse(Rectangle(x: 0, y: 0, width: 200, height: 200)))
         let width = 100 * Double.pi / 24
+        let drawn = drawn(width: width, trim: Trim(start: 0, end: 0.25), isClosed: true, end: .arrow)
 
         // When
-        let head = try #require(
-            sut.arrowheads(of: drawn(width: width, trim: Trim(start: 0, end: 0.25), isClosed: true, end: .arrow)).first
-        )
+        let head = try #require(sut.arrowheads(of: drawn).first)
 
         // Then
-        // The chord spans 30 degrees, 200 sin 15° long.
+        // The chord spans 30 degrees, 200 sin 15° long, and the head is that chord over its length 4 to a unit. The line
+        // stops at the same size, the arrow's inset 4 of those units back along the stroke, the whole chord's length.
         let base = Point(x: 100 + 50 * 3.0.squareRoot(), y: 50)
         let chord = 200 * sin(Double.pi / 12)
+        let laid = head.transform.apply(to: Point(x: -4, y: 0))
         #expect(abs(head.tip.x - 200) < 1e-9 && abs(head.tip.y - 100) < 1e-9)
-        #expect(abs(head.base.x - base.x) < 1e-9 && abs(head.base.y - base.y) < 1e-9)
-        #expect(abs(head.length - chord) < 1e-9)
-        #expect(abs(head.width - 4 * width) < 1e-9)
+        #expect(abs(laid.x - base.x) < 1e-9 && abs(laid.y - base.y) < 1e-9)
+        #expect(abs(head.scale - chord / 4) < 1e-9)
         #expect(abs(head.axis.x - (200 - base.x) / chord) < 1e-9)
         #expect(abs(head.axis.y - 50 / chord) < 1e-9)
+        #expect(abs(sut.lineEnd(of: drawn) - (sut.length / 4 - chord)) < 1e-9)
+    }
+
+    @Test("a circle head on a curved end stays a circle, only smaller, its diameter the chord from its base to its tip")
+    func keepsCircleOnCurve() throws {
+        // Given
+        // The quarter circle of `laysCurvedArrowhead`, whose last 100π/6 has a chord 200 sin 15° long.
+        let sut = PathOutline(.ellipse(Rectangle(x: 0, y: 0, width: 200, height: 200)))
+        let width = 100 * Double.pi / 24
+        let drawn = drawn(width: width, trim: Trim(start: 0, end: 0.25), isClosed: true, end: StrokeEnd(head: .circle))
+
+        // When
+        let head = try #require(sut.arrowheads(of: drawn).first)
+
+        // Then
+        // Every vertex lies a radius from the centre, each a quarter turn from the next, and each tangent is the circle's
+        // k long, square to its radius.
+        guard case let .path(vertices, isClosed) = head.geometry() else {
+            Issue.record("a head's geometry is a path")
+            return
+        }
+        let chord = 200 * sin(Double.pi / 12)
+        let radius = chord / 2
+        let center = head.transform.apply(to: Point(x: -2, y: 0))
+        let tangent = 4.0 / 3 * (2.0.squareRoot() - 1) * radius
+        let offsets = vertices.map { Point(x: $0.vertex.x - center.x, y: $0.vertex.y - center.y) }
+        #expect(isClosed && vertices.count == 4)
+        for (index, offset) in offsets.enumerated() {
+            let next = offsets[(index + 1) % offsets.count]
+            let outTangent = vertices[index].outTangent
+            #expect(abs(hypot(offset.x, offset.y) - radius) < 1e-9)
+            #expect(abs(offset.x * next.x + offset.y * next.y) < 1e-9)
+            #expect(abs(hypot(outTangent.x, outTangent.y) - tangent) < 1e-9)
+            #expect(abs(outTangent.x * offset.x + outTangent.y * offset.y) < 1e-9)
+        }
+        #expect(abs(hypot(head.tip.x - center.x, head.tip.y - center.y) - radius) < 1e-9)
     }
 
     @Test(
-        "every head on a straight end reaches the end and no further, as long and as wide as its shape in units",
+        "every head on a straight end reaches the end and no further, as long and as wide as its outline in units",
         arguments: [
-            (StrokeEndShape.arrow, 1.0, 8.0, 8.0),
+            (StrokeHead.arrow, 1.0, 8.0, 8.0),
             (.arrow, 2.0, 16.0, 16.0),
             (.lineArrow, 1.0, 8.0, 8.0),
             (.lineArrow, 2.0, 16.0, 16.0),
@@ -177,49 +216,53 @@ struct PathOutlineTests {
         ]
     )
     func laysEveryHead(
-        shape: StrokeEndShape,
+        head: StrokeHead,
         scale: Double,
         length: Double,
         width: Double
     ) throws {
         // Given
         let sut = PathOutline(.polyline([Point(x: 0, y: 0), Point(x: 100, y: 0)], isClosed: false))
-        let end = StrokeEnd(shape: shape, scale: scale)
+        let end = StrokeEnd(head: head, scale: scale)
 
         // When
-        let head = try #require(sut.arrowheads(of: drawn(width: 2, trim: .whole, isClosed: false, end: end)).first)
+        let laid = try #require(sut.arrowheads(of: drawn(width: 2, trim: .whole, isClosed: false, end: end)).first)
 
         // Then
-        let points = head.parts.flatMap { $0 }
-        let xs = head.circle.map { [$0.center.x - $0.radius, $0.center.x + $0.radius] } ?? points.map(\.x)
-        let ys = head.circle.map { [$0.center.y - $0.radius, $0.center.y + $0.radius] } ?? points.map(\.y)
-        #expect(head.tip == Point(x: 100, y: 0))
-        #expect(abs((xs.max() ?? 0) - 100) < 1e-9)
-        #expect(abs((xs.min() ?? 0) - (100 - length)) < 1e-9)
-        #expect(abs((ys.max() ?? 0) - (ys.min() ?? 0) - width) < 1e-9)
+        let box = laid.geometry().bounds()
+        #expect(laid.tip == Point(x: 100, y: 0))
+        #expect(abs(box.x + box.width - 100) < 1e-9)
+        #expect(abs(box.x - (100 - length)) < 1e-9)
+        #expect(abs(box.height - width) < 1e-9)
     }
 
     @Test("a line arrow is two bands one unit thick inside the arrow's triangle, meeting at its tip")
     func laysLineArrow() throws {
         // Given
         let sut = PathOutline(.polyline([Point(x: 0, y: 0), Point(x: 100, y: 0)], isClosed: false))
-        let end = StrokeEnd(shape: .lineArrow)
+        let end = StrokeEnd(head: .lineArrow)
 
         // When
         let head = try #require(sut.arrowheads(of: drawn(width: 2, trim: .whole, isClosed: false, end: end)).first)
 
         // Then
         // The inner edges meet 2√5 back from the tip and reach the base 8 back, 4 - (8 - 2√5) / 2 inside its corners.
+        guard case let .path(vertices, _) = head.geometry() else {
+            Issue.record("a head's geometry is a path")
+            return
+        }
         let inner = 100 - 2 * 5.0.squareRoot()
         let reach = (8 - 2 * 5.0.squareRoot()) / 2
         let expected = [
-            [Point(x: 100, y: 0), Point(x: 92, y: 4), Point(x: 92, y: reach), Point(x: inner, y: 0)],
-            [Point(x: 100, y: 0), Point(x: inner, y: 0), Point(x: 92, y: -reach), Point(x: 92, y: -4)]
+            Point(x: 100, y: 0),
+            Point(x: 92, y: 4),
+            Point(x: 92, y: reach),
+            Point(x: inner, y: 0),
+            Point(x: 92, y: -reach),
+            Point(x: 92, y: -4)
         ]
-        #expect(head.parts.count == 2)
-        for (part, corners) in zip(head.parts, expected) {
-            #expect(zip(part, corners).allSatisfy { abs($0.x - $1.x) < 1e-9 && abs($0.y - $1.y) < 1e-9 })
-        }
+        #expect(vertices.count == expected.count)
+        #expect(zip(vertices, expected).allSatisfy { abs($0.vertex.x - $1.x) < 1e-9 && abs($0.vertex.y - $1.y) < 1e-9 })
     }
 
     @Test("a path's box is its curve's, carried with its tangents by a map's linear part")

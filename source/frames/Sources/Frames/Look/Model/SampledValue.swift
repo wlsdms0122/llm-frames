@@ -44,6 +44,13 @@ indirect enum SampledValue: Equatable, Sendable {
         return value.stringValue
     }
 
+    // A static leaf's value, as resolve wrote it.
+    var fixedValue: JSONValue? {
+        guard case let .fixed(value) = self else { return nil }
+
+        return value
+    }
+
     // MARK: - Initializer
     // MARK: - Public
     subscript(key: String) -> SampledValue? {

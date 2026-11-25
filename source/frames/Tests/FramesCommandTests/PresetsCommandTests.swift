@@ -15,6 +15,7 @@ struct PresetsCommandTests {
     // MARK: - Property
     private let sut: TestShell
     private let flash = "{\n  \"description\": \"a white flash\",   \"seconds\": 0.4\n}\n"
+    private let tick = #"{ "description": "a tick across the end", "points": [[0, 2], [0, -2], [-1, 0]], "length": 1, "inset": 0.5 }"# + "\n"
 
     // MARK: - Initializer
     init() throws {
@@ -30,6 +31,11 @@ struct PresetsCommandTests {
         try sut.write(
             #"{ "description": "warms the picture", "ops": [] }"#,
             to: sut.installed.appendingPathComponent("demo/presets/filter/warm.json")
+        )
+        try sut.write(tick, to: sut.installed.appendingPathComponent("demo/presets/head/tick.json"))
+        try sut.write(
+            #"{ "description": "a filled triangle", "points": [[-4, 2], [0, 0], [-4, -2]], "length": 4, "inset": 4 }"#,
+            to: sut.framesPresets.appendingPathComponent("head/arrow.json")
         )
     }
 
@@ -50,6 +56,9 @@ struct PresetsCommandTests {
             filter
               demo/warm  warms the picture
             audio
+            head
+              demo/tick  a tick across the end
+              frames/arrow  a filled triangle
 
             """)
     }
@@ -62,6 +71,20 @@ struct PresetsCommandTests {
         // Then
         #expect(code == 0)
         #expect(sut.standardOutput == "filter\n  demo/warm  warms the picture\n")
+    }
+
+    @Test("presets head lists the heads of every pack, and presets head <name> prints one as its file is written")
+    func listsHeads() {
+        // Given, When
+        let listCode = sut.run(["presets", "head"])
+        let list = sut.standardOutput
+        let printCode = sut.run(["presets", "head", "demo/tick"])
+
+        // Then
+        #expect(listCode == 0)
+        #expect(list == "head\n  demo/tick  a tick across the end\n  frames/arrow  a filled triangle\n")
+        #expect(printCode == 0)
+        #expect(sut.standardOutput == tick)
     }
 
     @Test("presets <kind> <name> prints the preset's JSON as its file is written, by any name a document gives it", arguments: ["frames/flash", "shorts/push-up"])
@@ -102,7 +125,7 @@ struct PresetsCommandTests {
     @Test(
         "an unknown kind or preset stops",
         arguments: [
-            (["presets", "wipe"], #"presets: unknown kind "wipe". Known: transition, animation, filter, audio"#),
+            (["presets", "wipe"], #"presets: unknown kind "wipe". Known: transition, animation, filter, audio, head"#),
             (["presets", "transition", "frames/dissolve"], #"presets: unknown transition preset "frames/dissolve". A preset is named <pack>/<name>, and the ones frames ships are frames/<name>"#),
             (["presets", "transition", "flash"], #"presets: unknown transition preset "flash". A preset is named <pack>/<name>, and the ones frames ships are frames/<name>"#),
             (["presets", "animation", "frames/flash"], #"presets: unknown animation preset "frames/flash". A preset is named <pack>/<name>, and the ones frames ships are frames/<name>"#),

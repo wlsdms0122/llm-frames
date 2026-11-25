@@ -221,6 +221,84 @@ struct PresetLibraryTests {
         #expect(missing == nil)
     }
 
+    @Test("a head is read from <pack>/<name> in its pack's presets/head, or from the file an absolute path names, its vertices a point or a vertex with tangents")
+    func findsHead() throws {
+        // Given
+        let text = #"""
+            { "description": "a hook", "points": [[0, 0], { "vertex": [-3, 2], "inTangent": [1, 0] }, [-3, -2]], "length": 3, "inset": 1.5 }
+            """#
+        try directory.addPack("shorts")
+        try directory.write(text, in: "shorts", at: "presets/head/hook.json")
+        let file = try directory.write(text, in: "loose", at: "hook.json")
+        let zero = Point(x: 0, y: 0)
+        let expected = StrokeHead(
+            outline: [
+                PathVertex(vertex: Point(x: 0, y: 0), inTangent: zero, outTangent: zero),
+                PathVertex(vertex: Point(x: -3, y: 2), inTangent: Point(x: 1, y: 0), outTangent: zero),
+                PathVertex(vertex: Point(x: -3, y: -2), inTangent: zero, outTangent: zero)
+            ],
+            length: 3,
+            inset: 1.5
+        )
+
+        // When
+        let packed = try sut.head(named: "shorts/hook")
+        let path = try sut.head(named: file.path)
+        let missing = try sut.head(named: "shorts/dot")
+
+        // Then
+        #expect(packed == expected)
+        #expect(path == expected)
+        #expect(missing == nil)
+    }
+
+    @Test(
+        "a head with a point past its tip, a length not above 0, an inset outside 0 to its length or fewer than two vertices stops where it is read",
+        arguments: [
+            (
+                #""points": [[0.5, 0], [-4, 2], [-4, -2]], "length": 4, "inset": 4"#,
+                "nothing of a head lies past its tip at x = 0, its control points included"
+            ),
+            (
+                #""points": [{ "vertex": [0, 0], "outTangent": [1, 1] }, [-4, 2], [-4, -2]], "length": 4, "inset": 4"#,
+                "nothing of a head lies past its tip at x = 0, its control points included"
+            ),
+            (#""points": [[0, 0], [-4, 2], [-4, -2]], "length": 0, "inset": 0"#, "a head's length is above 0, found 0"),
+            (#""points": [[0, 0], [-4, 2], [-4, -2]], "length": -4, "inset": 0"#, "a head's length is above 0, found -4"),
+            (#""points": [[0, 0], [-4, 2], [-4, -2]], "length": 4, "inset": 4.5"#, "a head's inset is from 0 to its length 4, found 4.5"),
+            (#""points": [[0, 0], [-4, 2], [-4, -2]], "length": 4, "inset": -1"#, "a head's inset is from 0 to its length 4, found -1"),
+            (#""points": [[0, 0]], "length": 4, "inset": 4"#, "a head's outline runs through at least two vertices, found 1"),
+            (#""points": [], "length": 4, "inset": 4"#, "a head's outline runs through at least two vertices, found 0")
+        ]
+    )
+    func refusesBrokenHead(
+        body: String,
+        reason: String
+    ) throws {
+        // Given
+        try directory.addPack("shorts")
+        try directory.write(#"{ "description": "a hook", \#(body) }"#, in: "shorts", at: "presets/head/hook.json")
+
+        // When, Then
+        let error = #expect(throws: (any Error).self) { try sut.head(named: "shorts/hook") }
+        #expect(error.map { "\($0)" } == "shorts/hook: top level (head): \(reason)")
+    }
+
+    @Test("a head takes no params, since its size is its stroke's width and its scale")
+    func refusesHeadParameters() throws {
+        // Given
+        try directory.addPack("shorts")
+        try directory.write(
+            #"{ "description": "a hook", "params": {}, "points": [[0, 0], [-4, 2], [-4, -2]], "length": 4, "inset": 4 }"#,
+            in: "shorts",
+            at: "presets/head/hook.json"
+        )
+
+        // When, Then
+        let error = #expect(throws: (any Error).self) { try sut.head(named: "shorts/hook") }
+        #expect(error.map { "\($0)" } == #"shorts/hook: top level (head): unknown key "params". Allowed: description, points, length, inset"#)
+    }
+
     // MARK: - Private
     // A dip to a colour with a parameter of each kind a transition publishes.
     @discardableResult

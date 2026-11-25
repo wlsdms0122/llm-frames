@@ -9,15 +9,17 @@
 // stroke reaches past it, less the rectangle shrunk by as far as the stroke lies inside it when it is not filled. A
 // filled path covers the convex hull of the control points of its outline's segments, which holds its curve and the
 // straight segment its fill closes an open path with, and leaves out the tangents of an open path's ends, which shape
-// nothing it draws. Its stroke as drawn after `trim` covers, the line stopping where its arrowheads stop it, a band the
-// centred stroke it is cut from wide along each straight segment, and along each curved one, cut into pieces of equal
-// length, the hull of each piece's control points grown by half that stroke along both axes, which holds the stroke
-// since a cubic lies in the hull of its control points. Each adds what its stroke draws past its outline grown by its
-// reach (`PathItem.overhangs`): its arrowheads, miter joins and square caps. The half of the band an inside or outside
-// stroke is cut from, the side it does not lie on, is left in. Bevels, round joins and caps, rounded corners, the curve
-// of an ellipse and the trim of a rect or an ellipse are left out. The stroke is drawn in output pixels on the outline
-// `transform` carries, so its band is taken at its width over the transform's length factor, exact where the transform
-// scales both axes alike.
+// nothing it draws. A coverage is a union of convex pieces, so a concave fill covers its hull. Its stroke as drawn
+// after `trim` covers, the line stopping where its arrowheads stop it, a band the centred stroke it is cut from wide
+// along each straight segment, and along each curved one, cut into pieces of equal length, the hull of each piece's
+// control points grown by half that stroke along both axes, which holds the stroke since a cubic lies in the hull of
+// its control points. Each arrowhead is a filled closed path and covers what a filled path's outline covers. Each adds
+// what its stroke's line draws past its outline grown by its reach (`PathItem.overhangs`): its miter joins and square
+// caps. The half of the band an inside or outside stroke is cut from, the side it does not lie on, is left in. Bevels,
+// round joins and caps, rounded corners, the curve of an ellipse and the trim of a rect or an ellipse are left out.
+// The stroke is drawn in output pixels on the outline `transform` carries, and its line's ends and heads are laid
+// there, so its band is taken at its width over the transform's length factor, exact where the transform scales both
+// axes alike.
 extension ItemCoverage {
     // MARK: - Property
     // The pieces a curved segment is cut into, whose control points lie closer to the curve the more there are.
@@ -30,6 +32,7 @@ extension ItemCoverage {
     ) {
         let stroke = path.drawnStroke?.isDrawn == true ? path.stroke : nil
         let overhangs = path.overhangs(carriedBy: transform).map(ConvexPolygon.init(corners:))
+            + path.heads(carriedBy: transform).map(Self.filled)
         let factor = transform.lengthFactor
         let width = factor > 0 ? (stroke?.width ?? 0) / factor : 0
         let reach = stroke?.align.reach ?? 0
@@ -46,8 +49,13 @@ extension ItemCoverage {
 
         case .path:
             let outline = PathOutline(path.geometry)
-            let fill = path.fill == nil ? [] : [ConvexPolygon(hullOf: outline.segments.flatMap(\.hullPoints))]
-            let line = Self.pieces(of: outline, path: path, width: stroke.map { $0.align.tracedWidth(of: width) } ?? 0)
+            let fill = path.fill == nil ? [] : [Self.filled(path.geometry)]
+            let line = Self.pieces(
+                of: outline,
+                path: path,
+                carriedBy: transform,
+                width: stroke.map { $0.align.tracedWidth(of: width) } ?? 0
+            )
             self.init(pieces: fill + line + overhangs)
         }
     }
@@ -66,16 +74,23 @@ extension ItemCoverage {
         )
     }
 
-    // The stroke's segments between its arrowheads, as `DrawnStroke` lays them along the outline.
+    // What a path's fill covers: the convex hull of the control points of its outline's segments.
+    private static func filled(_ geometry: PathGeometry) -> ConvexPolygon {
+        ConvexPolygon(hullOf: PathOutline(geometry).segments.flatMap(\.hullPoints))
+    }
+
+    // The stroke's segments between its arrowheads along `outline`, the item's own, its line's ends laid on the
+    // outline `transform` carries and brought back.
     private static func pieces(
         of outline: PathOutline,
         path: PathItem,
+        carriedBy transform: AffineTransform,
         width: Double
     ) -> [ConvexPolygon] {
-        guard let drawn = path.drawnStroke, drawn.isDrawn, outline.length > 0 else { return [] }
+        guard case let (carried, drawn)? = path.carriedStroke(by: transform), drawn.isDrawn else { return [] }
 
-        let lineStart = drawn.lineStart(along: outline.length)
-        let lineEnd = drawn.lineEnd(along: outline.length)
+        let lineStart = carried.distance(carried.lineStart(of: drawn), onto: outline)
+        let lineEnd = carried.distance(carried.lineEnd(of: drawn), onto: outline)
         guard lineEnd > lineStart else { return [] }
 
         var parts: [ConvexPolygon] = []
