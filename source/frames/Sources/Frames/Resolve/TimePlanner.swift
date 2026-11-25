@@ -106,7 +106,7 @@ struct TimePlanner: Sendable {
     ) throws -> StorylineSource {
         guard let clipMedia = clip.media else {
             let duration = try stillDuration(of: clip, kind: .solid)
-            return StorylineSource(kind: .solid, media: nil, clipRange: TimeRange(start: 0, end: duration), speed: 1)
+            return StorylineSource(media: nil, clipRange: TimeRange(start: 0, end: duration), speed: 1)
         }
 
         let place = clip.place.appending(key: "media")
@@ -116,12 +116,11 @@ struct TimePlanner: Sendable {
         let kind = ClipKind.media(media.kind)
         guard !media.kind.isStill else {
             let duration = try stillDuration(of: clip, kind: kind)
-            return StorylineSource(kind: kind, media: media, clipRange: TimeRange(start: 0, end: duration), speed: 1)
+            return StorylineSource(media: media, clipRange: TimeRange(start: 0, end: duration), speed: 1)
         }
 
         guard clipMedia.timeRemap != nil else {
             return StorylineSource(
-                kind: kind,
                 media: media,
                 clipRange: try clipRange(of: clipMedia, media: media, place: clip.place, kind: kind),
                 speed: try speed(of: clipMedia, place: clip.place, kind: kind)
@@ -130,7 +129,6 @@ struct TimePlanner: Sendable {
 
         try checkRemapped(clipMedia, place: clip.place, kind: kind)
         return StorylineSource(
-            kind: kind,
             media: media,
             clipRange: try remappedClipRange(of: clipMedia, media: media, place: clip.place, kind: kind),
             speed: 1
