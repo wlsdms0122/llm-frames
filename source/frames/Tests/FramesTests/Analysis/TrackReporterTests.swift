@@ -31,6 +31,7 @@ struct TrackReporterTests {
         ),
         "/abs/card.png": ProbedMedia(kind: .image, size: Size(width: 400, height: 300))
     ], pages: ["/abs/deck.pdf": [Size(width: 612, height: 792)]])
+    private let total = Rectangle(x: 100, y: 100, width: 200, height: 40)
     private var tracker: TrackerTable {
         TrackerTable(frameTimes: ["/abs/clip.mov": times], drift: Point(x: 0, y: -40))
     }
@@ -43,7 +44,7 @@ struct TrackReporterTests {
         let sut = TrackReporter(mediaFacts: facts, tracker: tracker)
 
         // When
-        let report = try sut.report(of: "/abs/clip.mov", area: "[10, 20, 100, 50]", at: 0.25)
+        let report = try sut.report(of: "/abs/clip.mov", target: .area("[10, 20, 100, 50]"), at: 0.25)
 
         // Then
         let expected = #"""
@@ -65,7 +66,7 @@ struct TrackReporterTests {
         )
 
         // When
-        let report = try sut.report(of: "/abs/clip.mov", area: "[0, 0, 100, 50]", at: 0)
+        let report = try sut.report(of: "/abs/clip.mov", target: .area("[0, 0, 100, 50]"), at: 0)
 
         // Then
         let expected = #"""
@@ -88,7 +89,7 @@ struct TrackReporterTests {
         // When
         let report = try sut.report(
             of: "/abs/clip.mov",
-            area: "[\(noisy.x), \(noisy.y), \(noisy.width), \(noisy.height)]",
+            target: .area("[\(noisy.x), \(noisy.y), \(noisy.width), \(noisy.height)]"),
             at: 0,
             to: 0
         )
@@ -112,7 +113,7 @@ struct TrackReporterTests {
         let sut = TrackReporter(mediaFacts: facts, tracker: tracker)
 
         // When
-        let report = try sut.report(of: "/abs/clip.mov", area: "[100, 100, 200, 40]", at: at, to: to)
+        let report = try sut.report(of: "/abs/clip.mov", target: .area("[100, 100, 200, 40]"), at: at, to: to)
 
         // Then
         #expect(report.frames.map(\.time) == followed)
@@ -141,7 +142,7 @@ struct TrackReporterTests {
         let sut = TrackReporter(mediaFacts: facts, tracker: tracker)
 
         // When
-        let error = #expect(throws: (any Error).self) { try sut.report(of: file, area: area, at: at, to: to) }
+        let error = #expect(throws: (any Error).self) { try sut.report(of: file, target: .area(area), at: at, to: to) }
 
         // Then
         let description = error.map { String(describing: $0) } ?? ""
@@ -158,10 +159,10 @@ struct TrackReporterTests {
         let sut = TrackReporter(mediaFacts: facts, tracker: tracker)
 
         // When
-        let error = #expect(throws: AnalysisError.self) { try sut.report(of: "/abs/clip.mov", area: area, at: 0.5) }
+        let error = #expect(throws: AnalysisError.self) { try sut.report(of: "/abs/clip.mov", target: .area(area), at: 0.5) }
 
         // Then
-        #expect(error == .areaNotFollowed(time: 0.5, file: "/abs/clip.mov"))
+        #expect(error == .targetNotFollowed(option: "--area", time: 0.5, file: "/abs/clip.mov"))
     }
 
     @Test("a failing tracker stops, naming `--area`, the video and the media time of `--at`")
@@ -171,13 +172,126 @@ struct TrackReporterTests {
 
         // When
         let error = #expect(throws: ProviderError.self) {
-            try sut.report(of: "/abs/clip.mov", area: "[100, 100, 200, 40]", at: 0.5)
+            try sut.report(of: "/abs/clip.mov", target: .area("[100, 100, 200, 40]"), at: 0.5)
         }
 
         // Then
         #expect(
             error?.description
                 == #"--area (area): the tracker failed on "/abs/clip.mov" at media second 0.5: no model"#
+        )
+    }
+
+    @Test("a quadrilateral followed by a perspective tracker prints its quad in perspective on every frame followed")
+    func followsQuadInPerspective() throws {
+        // Given
+        let given = Quad(
+            topLeft: Point(x: 100, y: 100),
+            topRight: Point(x: 300, y: 120),
+            bottomRight: Point(x: 290, y: 220),
+            bottomLeft: Point(x: 110, y: 200)
+        )
+        let turned = Quad(
+            topLeft: Point(x: 110, y: 90),
+            topRight: Point(x: 280, y: 130),
+            bottomRight: Point(x: 285, y: 210),
+            bottomLeft: Point(x: 105, y: 215)
+        )
+        let tracker = QuadTrackerTable(base: given, quads: [(time: 0.25, quad: given), (time: 0.5, quad: turned)])
+        let sut = TrackReporter(mediaFacts: facts, tracker: tracker)
+
+        // When
+        let report = try sut.report(
+            of: "/abs/clip.mov",
+            target: .quad("[[100, 100], [300, 120], [290, 220], [110, 200]]"),
+            at: 0.25
+        )
+
+        // Then
+        let expected = #"""
+            {"track": "0.1.0", "time": 0.25, "frames": [\#
+            {"time": 0.25, "quad": [[100, 100], [300, 120], [290, 220], [110, 200]]}, \#
+            {"time": 0.5, "quad": [[110, 90], [280, 130], [285, 210], [105, 215]]}]}
+            """#
+        #expect(report.machineOutput.written == expected)
+    }
+
+    @Test("a quadrilateral reaching past the picture is carried from what the tracker follows of it to its whole plane")
+    func carriesQuadPastPicture() throws {
+        // Given
+        // The tracker is given the rectangle bounding the part inside the 400 by 300 picture, which moves 10 pixels
+        // right on the next frame, so the whole quadrilateral moves with it.
+        let inside = Quad(Rectangle(x: 300, y: 100, width: 100, height: 100))
+        let moved = Quad(Rectangle(x: 310, y: 100, width: 100, height: 100))
+        let tracker = QuadTrackerTable(base: inside, quads: [(time: 0, quad: inside), (time: 0.25, quad: moved)])
+        let sut = TrackReporter(mediaFacts: facts, tracker: tracker)
+
+        // When
+        let report = try sut.report(
+            of: "/abs/clip.mov",
+            target: .quad("[[300, 100], [500, 100], [500, 200], [300, 200]]"),
+            at: 0
+        )
+
+        // Then
+        let expected = #"""
+            {"track": "0.1.0", "time": 0, "frames": [\#
+            {"time": 0, "quad": [[300, 100], [500, 100], [500, 200], [300, 200]]}, \#
+            {"time": 0.25, "quad": [[310, 100], [510, 100], [510, 200], [310, 200]]}]}
+            """#
+        #expect(report.machineOutput.written == expected)
+    }
+
+    @Test("a quadrilateral that is not four points of two numbers, or not strictly convex, stops, naming `--quad`", arguments: [
+        ("[[0, 0], [10, 0], [10, 10]]", "--quad: a quadrilateral is four points [x, y] of numbers"),
+        ("[[0, 0], [10, 0], [10, 10], [0]]", "--quad: a quadrilateral is four points [x, y] of numbers"),
+        (#"[[0, 0], [10, 0], [10, 10], [0, "10"]]"#, "--quad: a quadrilateral is four points [x, y] of numbers"),
+        ("[0, 0, 10, 10]", "--quad: a quadrilateral is four points [x, y] of numbers"),
+        ("quad", "--quad: line 1, column 1: "),
+        ("[[0, 0], [10, 10], [10, 0], [0, 10]]", "--quad: the quadrilateral is not strictly convex, so it is no plane to follow"),
+        ("[[0, 0], [10, 0], [20, 0], [0, 10]]", "--quad: the quadrilateral is not strictly convex, so it is no plane to follow")
+    ])
+    func refusesBadQuad(quad: String, message: String) {
+        // Given
+        let sut = TrackReporter(mediaFacts: facts, tracker: tracker)
+
+        // When
+        let error = #expect(throws: (any Error).self) { try sut.report(of: "/abs/clip.mov", target: .quad(quad), at: 0.5) }
+
+        // Then
+        let description = error.map { String(describing: $0) } ?? ""
+        #expect(description.hasPrefix(message), "\(description)")
+    }
+
+    @Test("a quadrilateral the tracker follows on no frame stops, naming `--quad`")
+    func refusesQuadNotFollowed() {
+        // Given
+        let sut = TrackReporter(mediaFacts: facts, tracker: QuadTrackerTable(base: Quad(total), quads: []))
+
+        // When
+        let error = #expect(throws: AnalysisError.self) {
+            try sut.report(of: "/abs/clip.mov", target: .quad("[[100, 100], [300, 100], [300, 140], [100, 140]]"), at: 0.5)
+        }
+
+        // Then
+        #expect(error == .targetNotFollowed(option: "--quad", time: 0.5, file: "/abs/clip.mov"))
+        #expect(error?.description.hasPrefix(#"--quad: the tracker follows the target on no frame of "/abs/clip.mov""#) == true)
+    }
+
+    @Test("a failing tracker given a quadrilateral stops, naming `--quad`")
+    func namesFailingProviderOfQuad() {
+        // Given
+        let sut = TrackReporter(mediaFacts: facts, tracker: FailingTracker(ProviderFailure("no model")))
+
+        // When
+        let error = #expect(throws: ProviderError.self) {
+            try sut.report(of: "/abs/clip.mov", target: .quad("[[100, 100], [300, 100], [300, 140], [100, 140]]"), at: 0.5)
+        }
+
+        // Then
+        #expect(
+            error?.description
+                == #"--quad (quad): the tracker failed on "/abs/clip.mov" at media second 0.5: no model"#
         )
     }
 
@@ -196,7 +310,7 @@ struct TrackReporterTests {
         let line = drawn[15]
 
         // When
-        let report = try sut.report(of: video, area: "[\(line.x), \(line.y), \(line.width), \(line.height)]", at: 0.5)
+        let report = try sut.report(of: video, target: .area("[\(line.x), \(line.y), \(line.width), \(line.height)]"), at: 0.5)
 
         // Then
         #expect(report.frames.map(\.time) == ScreenRecording.frameTimes)

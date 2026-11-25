@@ -182,7 +182,7 @@ struct ConnectedClipRenderTests {
         let target = drawn[0].grown(by: 4)
         let area = "[\(target.x), \(target.y), \(target.width), \(target.height)]"
         let decoder = AVFoundationDecoder()
-        let report = try TrackReporter(mediaFacts: decoder, tracker: PointTracker(decoder: decoder)).report(of: file, area: area, at: 0)
+        let report = try TrackReporter(mediaFacts: decoder, tracker: PointTracker(decoder: decoder)).report(of: file, target: .area(area), at: 0)
         let document = try DocumentResolver().resolve(#"""
             { "kind": "sequence", "format": { "size": [180, 320] },
               "storyline": [ { "id": "screen", "media": "\#(file)",

@@ -121,6 +121,27 @@ struct AnalysisCommandTests {
         #expect(try frameCount(in: sut.standardOutput) == 3)
     }
 
+    @Test("track --quad follows a quadrilateral in a corner pin's order and prints it as given on the frame at --at")
+    func printsQuadTrack() async throws {
+        // Given
+        let video = sut.directory.file("square.mov")
+        let writer = MovieWriter(size: Size(width: 64, height: 48), frameTimes: [0, 0.1, 0.2], end: 0.3)
+        try await writer.write(to: video) { canvas, _ in
+            canvas.fill(red: 0, green: 0, blue: 0)
+            canvas.fill(Rectangle(x: 24, y: 16, width: 16, height: 16), red: 255, green: 255, blue: 255)
+        }
+
+        // When
+        let code = sut.run(["track", video, "--at", "0", "--quad", "[[24, 16], [40, 16], [40, 32], [24, 32]]"])
+
+        // Then
+        #expect(code == 0, "\(sut.standardError)")
+        let printed = try #require(try JSONReader().read(Data(sut.standardOutput.utf8)).objectValue)
+        let first = try #require(printed["frames"]?.arrayValue?.first?.objectValue)
+        #expect(first["quad"]?.written == "[[24, 16], [40, 16], [40, 32], [24, 32]]")
+        #expect(try frameCount(in: sut.standardOutput) == 3)
+    }
+
     @Test("the track object without its first key is the track data a clip's track takes, so a document written with it resolves")
     func resolvesPrintedTrack() async throws {
         // Given

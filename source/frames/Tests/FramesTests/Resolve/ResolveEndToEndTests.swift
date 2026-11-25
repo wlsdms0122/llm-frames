@@ -161,7 +161,7 @@ struct ResolveEndToEndTests {
         // homography of the poster's plane its quads give carries the corner pin.
         let area = inscribed(in: placement(0), margin: 4)
         let report = try TrackReporter(mediaFacts: decoder, tracker: PlanarTracker(decoder: decoder))
-            .report(of: file, area: "[\(area.x), \(area.y), \(area.width), \(area.height)]", at: 0)
+            .report(of: file, target: .area("[\(area.x), \(area.y), \(area.width), \(area.height)]"), at: 0)
         let document = try Fixture.json(#"""
             { "kind": "sequence", "format": { "size": [640, 360], "fps": 30 },
               "storyline": [ { "id": "poster", "media": "\#(file)", "connected": [
@@ -198,7 +198,7 @@ struct ResolveEndToEndTests {
         let drawn = try await ScreenRecording(scale: 0.5).write(to: file)
         let line = "[\(drawn[0].x), \(drawn[0].y), \(drawn[0].width), \(drawn[0].height)]"
         let report = try TrackReporter(mediaFacts: decoder, tracker: PointTracker(decoder: decoder))
-            .report(of: file, area: line, at: 0)
+            .report(of: file, target: .area(line), at: 0)
         let document = try Fixture.json(#"""
             { "kind": "sequence",
               "storyline": [ { "id": "screen", "media": "\#(file)", "connected": [ { "shape": "rect", "stroke": { "width": 8 }, "area": \#(line), "parent": "screen", "track": \#(report.frames.trackData(time: report.time)) } ] } ],

@@ -71,7 +71,7 @@ struct TrackedCornerPinRenderTests {
         let patch = Quad(Self.patch)
         let decoder = AVFoundationDecoder()
         let report = try TrackReporter(mediaFacts: decoder, tracker: PointTracker(decoder: decoder))
-            .report(of: path, area: "[60, 80, 96, 48]", at: 0)
+            .report(of: path, target: .area("[60, 80, 96, 48]"), at: 0)
         let document = try DocumentResolver().resolve(##"""
             { "kind": "sequence", "format": { "size": [320, 240], "fps": 10 },
               "storyline": [ { "id": "shot", "media": "\##(path)", "in": 0, "out": 1, "connected": [
