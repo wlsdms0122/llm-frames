@@ -47,3 +47,106 @@ Supports: [Tolerances](../spec/FRAMES-24/SPEC.md#tolerances), the `avfoundation`
 On: the reference machine with the `avfoundation` encoder, a 512 by 96 frame of half floats whose unpremultiplied colours run from -0.25 to 1.25 at alphas from 0 to 1, in `srgb`, `display-p3`, `rec2020` and `rec709`, at eight bits, as a delivery is written, and at sixteen, as a master is, with alpha kept and dropped.
 
 Numbers: a code value converted on the GPU differed from the CPU's by at most 1, in at most 1.9 percent of the values, in `display-p3`, and in none at eight bits in `srgb`, `rec2020` and `rec709`. Two conversions of the frame on the GPU gave the same bytes.
+
+## FRAMES-21
+
+### A render's file bytes
+
+Supports: [Rules](../spec/FRAMES-21/SPEC.md#rules), "File bytes are not promised, since hardware encoders differ", and the Note on a file's bytes.
+
+On: the reference machine, two renders of one document to an `.mp4` by the same decoder, renderer and conversion.
+
+Numbers: the two files had the same length and differed in the creation and modification times of the movie, track and media headers and in two bytes of the user data message the hardware H.264 encoder writes into the first frame.
+
+### Regions of a page drawn apart
+
+Supports: [Rules](../spec/FRAMES-21/SPEC.md#rules), "two draws of different regions need not agree to the last value where they overlap", and "The same page, scale and region give the same picture".
+
+On: the reference machine with the `avfoundation` decoder, a page of 400 by 300 points drawn at scale 3.3 as four tiles at whole pixel origins of the same grid, against one draw of the whole page.
+
+Numbers: text set from an embedded font gave the same pixels. An axial gradient differed by up to 3.2e-3 and filled curves by up to 3.9e-3 (1/255). Strokes 0.1 and 0.35 points wide differed by up to 0.208, on 7 % of the pixels and mostly away from the seams (965 of 94740 within 1 pixel of one). A region whose origin is half a pixel off the grid differed by up to 0.996, since it is resampled. Three processes drawing the same page, scale and region gave the same hash.
+
+### The cost of drawing a dense page
+
+Supports: the Note on what a dense page costs and that a decoder may draw pictures of one document in parallel.
+
+On: the reference machine (10 processors) with the `avfoundation` decoder, a page of 1920 by 1080 points holding 50,000 paths about 30 points across and 2,000 runs of text in 4 fonts.
+
+Numbers: 1.9 s for the whole page at scale 2 (3840 by 2160 pixels), 1.1 s for a region at a 10 times zoom and 1.0 s at scale 1, most of it a fixed cost of about 20 microseconds per object. Paths that span the page cost up to 58 s. 16 draws in parallel from one shared document gave the serial draw's pixels, at about 4 times its throughput on 10 cores.
+
+### The `planar` tracker losing a target
+
+Supports: the Note on when the `planar` tracker reports its target lost.
+
+On: 640 by 360 H.264 video of a textured poster in perspective with a bar growing over the target from its left or its top edge, and a target of one flat grey.
+
+Numbers: the poster was followed to 30 % covered and lost at 32 %, within 0.3 pixels on every frame followed. The flat grey target was lost on the first frame after its own.
+
+### AVFoundation's reads and the threads they need
+
+Supports: [Rules](../spec/FRAMES-21/SPEC.md#rules), the decoder paragraph's "waits on threads of either pool, or near 64 reads at once on any threads, hold every thread that work needs, and no read ends", and the Note that AVFoundation's reads stop finishing at 64 at once.
+
+On: the reference machine (10 processors, macOS 27.2).
+
+Numbers: with every thread of Swift's shared pool blocked on a semaphore, one AVAssetReader read of a small video on a thread of its own did not finish in six minutes, and with one of the ten free it finished in 0.02 s. Sixty reads at once on a concurrent Dispatch queue held 60 of its 64 threads, AVFoundation's waits to make sample data ready held the other four, and none finished. With 64 threads of such a queue blocked, one read on a thread of its own waited until they were freed. Eighty reads on eighty serial queues finished in 0.3 s. A hundred reads on threads of their own finished in 0.5 s once, and once held 64 threads in those waits and none finished. VideoToolbox made forty H.264 or HEVC compression sessions of 1920 by 1080 at once and encoded a frame with each, 31 of them on a hardware encoder.
+
+### Readers, memory and swap
+
+Supports: [Rules](../spec/FRAMES-21/SPEC.md#rules), the decoder paragraph's bound of 48 readers and of a quarter of the machine's memory, and the Note on a reader opened while 64 decode.
+
+On: the reference machine (10 processors, 16 GB of memory, macOS 27.2), H.264 videos of 1206 by 2622 pixels and 258 MB each, High 4:4:4 Predictive profile streams of 8-bit 4:2:0, 180 frames by `quartz`.
+
+Numbers, read as `16-bit float RGBA`: while 64 AVAssetReaders decoded in one process, a 65th failed its first frame with AVFoundation's error -11821, Cannot Decode. Each reader decoding held about 35 MB in the process and about 335 MB in VideoToolbox's decoding service, which held about 127 MB for a reader of the same video read as 8-bit 4:2:0 Y'CbCr.
+
+Numbers, hashing: a resolve that hashed its media in chunks through FileHandle on a thread that drained no pool held every file whole: renders of 8, 16, 24 and 32 such videos shown at once peaked at 5.8, 11.3, 16.7 and 22.2 GB of memory that way, and at 1.6, 3.0, 4.3 and 5.6 GB with each chunk's pool drained.
+
+Numbers, textures and kept pictures: with each chunk's pool drained, a texture kept with each surface and only the pictures of the frame drawn last kept, renders of 8 and 16 such videos shown at once took 19.7 and 31.3 s and peaked at 1.2 and 2.2 GB, against 19.7 and 49 s and 1.6 and 3.0 GB with a texture made for each conversion and four pictures kept for each file. The GPU ran each frame's conversion in 2.7 ms however many videos were shown, and the rest of a conversion's time was its command buffer's wait to be submitted. With 24 such videos the decoding service held 8.6 GB, the machine's free memory stayed under 100 MB and about 9 GB was swapped out during each render, which took 60 to 70 s with 3.0 GB peak in the process.
+
+Numbers, read as `8-bit integer Y'CbCr 4:2:0`: renders of 8, 16 and 24 such videos shown at once took 14.9, 28.7 and 44.3 s, the process's footprint peaked at 1.1, 2.0 and 2.8 GB, the decoding service's at 1.06, 1.91 and 2.78 GB, wired memory at 4.0, 5.4 and 6.7 GB, and no page was swapped out, against 15.5, 29.0 and 59.9 s, 2.9, 6.0 and 8.7 GB in the service and 8.9 GB swapped out during the render of 24 read as `16-bit float RGBA`. A render of 32 such videos took 39.4 s, the service peaked at 3.19 GB, the process at 3.76 GB and wired memory at 7.7 GB, no page was swapped out and no reader was closed: 32 readers of 133 MB each by the decoder's cost hold 4.25 GB, within a quarter of 16 GB, so the memory bound first closes a reader at 33 such videos, and the service held three quarters of what the cost gives.
+
+### Frames a reader holds in the decoding service
+
+Supports: [Rules](../spec/FRAMES-21/SPEC.md#rules), the decoder paragraph's cost of a reader, 28 frames given as Y'CbCr and 19 given as `16-bit float RGBA`.
+
+On: the reference machine (10 processors, 16 GB of memory, macOS 27.2), each reader decoding a video with 30 frames read and the last kept, counted in frames of the stored size in the form the reader gives.
+
+Numbers:
+
+| Video | Given as Y'CbCr | Given as `16-bit float RGBA` |
+| --- | --- | --- |
+| H.264, 1206 by 2622 | 26.8 (`420v`) | 13.2 |
+| H.264, 1920 by 1080 | 17.5 (`420v`) | 12.5 |
+| HEVC of 10 bits, 1920 by 1080 | 13.1 (`x420`) | 13.0 |
+| ProRes 422, 1920 by 1080 | 6.4 (`x422`) | 15.0 |
+| ProRes 4444, 1920 by 1080 | | 18.4 |
+
+A render of 8 videos of 1206 by 2622 pixels read as `8-bit integer Y'CbCr 4:2:0` held 132 MB a reader in the service, 27.8 such frames.
+
+### A surface read by `quartz`
+
+Supports: [Pictures](../spec/FRAMES-21/SPEC.md#pictures), "a role that reads pixels reads a surface's where they lie, with no copy and no conversion", and the Note on drawing a surface through a Core Graphics image.
+
+On: the reference machine, 180 frames of a 1206 by 2622 Display P3 recording conformed to fill 1080 by 1920 under a title.
+
+Numbers: `quartz` resampling the decoder's surface from a Core Graphics image of its memory had Core Image copy it into a surface of its own on every frame, a fifth of the time it drew, and keep those copies, so the render peaked at 4.6 GB. Reading the surface where it lies took the render from 3.47 to 3.04 s, its drawing from 2.86 to 2.42 s, and its peak to 0.3 GB.
+
+### VideoToolbox's conversion of Y'CbCr against the formulas
+
+Supports: [Rules](../spec/FRAMES-21/SPEC.md#rules), the decoder taking a video's Y'CbCr to R'G'B' itself, and the Note on VideoToolbox's gain.
+
+On: the reference machine, 8-bit narrow range Y'CbCr converted by VideoToolbox to `16-bit float RGBA`, and H.264 videos of 1206 by 2622 pixels.
+
+Numbers: 100% white, Y' 235, came out 1.0039, and the 75% colour bars of BT.709 and of BT.601 up to 0.0039 from the formulas' values for their code values, mostly above them by a gain of about 1.0042, and black as 0. On the H.264 videos the decoder's conversion and VideoToolbox's differ by 0.0032 to 0.0040 in the mean and at most 0.0106 at the edges of colours, where the chroma filters differ as well.
+
+### Alternatives considered
+
+Supports: the reasons [Alternatives considered](../spec/FRAMES-21/SPEC.md#alternatives-considered) gives.
+
+- Every picture converted on the CPU: 84 % of a render's time on a Display P3 screen recording.
+- Core Graphics at `medium` interpolation: where a picture's antialiased edge and its cut to `dest` met, a pixel covered 0.624 came out 0.388 and the edge lay a quarter of a pixel inward. Core Image's bilinear sampling differed from it by up to 0.44 in a component on a detailed still scaled by 0.625 and 1.375.
+- The corner pin's definition for every picture: its warp cost 17 to 23 ms a frame at 1024 by 1024.
+- A picture converted on the GPU copied out as a bitmap: the copy cost a 1206 by 2622 frame 2.3 ms against 0.7 ms for its conversion.
+- Every video's frames as `16-bit float RGBA`: about 335 MB in the decoding service for each reader decoding a video of 1206 by 2622 pixels, against about 127 MB for the same reader given 8-bit 4:2:0.
+- Closing the reader read longest ago with no turns: a render of 64 videos of 320 by 180 pixels shown at once, 240 frames, took 73.1 s that way, 31 s with a reader open on each and 25.0 s with turns, which opened 515 readers again and decoded each of the 15360 frames it read once.
+- Reading ahead up to 32 frames: renders of 16 and 24 videos of 1206 by 2622 pixels shown at once took 31.3 and 70.7 s reading up to 10 frames ahead and 30.8 and 70.0 s reading up to 32, and with up to 32 a render of 64 small videos shown at once had a reader give no frame.
+- Several Metal command queues: a render of 24 videos of 1206 by 2622 pixels took 131 s with four queues against 121 s with one, and 129 s of system time against 90 s.
