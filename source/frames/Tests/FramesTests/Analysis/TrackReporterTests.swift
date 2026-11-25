@@ -125,8 +125,8 @@ struct TrackReporterTests {
         ("/abs/clip.mov", #""Total""#, 0.5, nil, #"--area (area): expected an area, found "Total""#),
         ("/abs/clip.mov", #"{"padding": 4}"#, 0.5, nil, #"--area (clip area): missing key "clip""#),
         ("/abs/clip.mov", #"{"clip": "card"}"#, 0.5, nil, "--area (area): a clip area is the box of another clip"),
-        ("/abs/card.png", "[100, 100, 200, 40]", 0, nil, #"media "/abs/card.png" is a still, and only a video has frames"#),
-        ("/abs/deck.pdf", "[100, 100, 200, 40]", 0, nil, #"media "/abs/deck.pdf" is a still, and only a video has frames"#),
+        ("/abs/card.png", "[100, 100, 200, 40]", 0, nil, #"media "/abs/card.png" is a still, and only a video or an image sequence has frames"#),
+        ("/abs/deck.pdf", "[100, 100, 200, 40]", 0, nil, #"media "/abs/deck.pdf" is a still, and only a video or an image sequence has frames"#),
         ("/abs/clip.mov", "[100, 100, 200, 40]", 1, nil, #"--at: media second 1 is at or after the end of "/abs/clip.mov" at 1"#),
         ("/abs/clip.mov", "[100, 100, 200, 40]", 0.5, 1.5, #"--to: media second 1.5 is after the end of "/abs/clip.mov" at 1"#),
         ("/abs/absent.mov", "[100, 100, 200, 40]", 0, nil, #"media "/abs/absent.mov" is not there"#)
@@ -293,6 +293,54 @@ struct TrackReporterTests {
             error?.description
                 == #"--quad (quad): the tracker failed on "/abs/clip.mov" at media second 0.5: no model"#
         )
+    }
+
+    @Test("an image sequence is followed over its frames at their media times, frame index / fps")
+    func followsImageSequence() throws {
+        // Given
+        let directory = try TemporaryDirectory()
+        let facts = MediaFactTable(files: [:], imageSequences: [directory.path: ["0001.png", "0002.png", "0003.png"]])
+        let tracker = TrackerTable(frameTimes: [directory.path: [0, 0.5, 1]], drift: Point(x: 0, y: -40))
+        let sut = TrackReporter(mediaFacts: facts, tracker: tracker)
+
+        // When
+        let report = try sut.report(of: directory.path, fps: 2, target: .area("[10, 100, 100, 50]"), at: 0.5)
+
+        // Then
+        let expected = #"""
+            {"track": "0.1.0", "time": 0.5, "frames": [\#
+            {"time": 0, "quad": [[10, 120], [110, 120], [110, 170], [10, 170]]}, \#
+            {"time": 0.5, "quad": [[10, 100], [110, 100], [110, 150], [10, 150]]}, \#
+            {"time": 1, "quad": [[10, 80], [110, 80], [110, 130], [10, 130]]}]}
+            """#
+        #expect(report.machineOutput.written == expected)
+    }
+
+    @Test("an image sequence without a rate, a rate on a file and a time past an image sequence's end stop")
+    func refusesImageSequenceRate() throws {
+        // Given
+        let directory = try TemporaryDirectory()
+        let facts = MediaFactTable(
+            files: self.facts.files,
+            imageSequences: [directory.path: ["0001.png", "0002.png", "0003.png"]]
+        )
+        let sut = TrackReporter(mediaFacts: facts, tracker: tracker)
+
+        // When
+        let withoutRate = #expect(throws: AnalysisError.self) {
+            try sut.report(of: directory.path, target: .area("[10, 100, 100, 50]"), at: 0)
+        }
+        let rateOfFile = #expect(throws: AnalysisError.self) {
+            try sut.report(of: "/abs/clip.mov", fps: 2, target: .area("[10, 100, 100, 50]"), at: 0)
+        }
+        let pastEnd = #expect(throws: AnalysisError.self) {
+            try sut.report(of: directory.path, fps: 2, target: .area("[10, 100, 100, 50]"), at: 1.5)
+        }
+
+        // Then
+        #expect(withoutRate == .imageSequenceWithoutRate(directory: directory.path))
+        #expect(rateOfFile == .rateOfFile(file: "/abs/clip.mov"))
+        #expect(pastEnd == .atOrAfterMediaEnd(option: "--at", time: 1.5, file: directory.path, end: 1.5))
     }
 
     @Test("a real scrolling line is followed by the point tracker over every frame")

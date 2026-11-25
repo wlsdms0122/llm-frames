@@ -12,7 +12,7 @@ import Testing
 @testable import Frames
 @testable import FramesCommand
 
-// `ocr`, `extract` and `sheet` read an image sequence's directory at the rate `--fps` gives it, end to end on the real
+// `ocr`, `track`, `extract` and `sheet` read an image sequence's directory at the rate `--fps` gives it, end to end on the real
 // roles and providers. Serialized, as the other end to end suites are.
 @Suite("ImageSequenceCommand Tests", .serialized)
 struct ImageSequenceCommandTests {
@@ -82,6 +82,35 @@ struct ImageSequenceCommandTests {
         #expect(FileManager.default.fileExists(atPath: sheet))
     }
 
+    @Test("track follows a target over an image sequence's frames at their media times, frame index / --fps")
+    func tracksImageSequence() throws {
+        // Given
+        // A white square moves 2 pixels right on each frame of a black picture.
+        let directory = sut.directory.file("square")
+        try FileManager.default.createDirectory(atPath: directory, withIntermediateDirectories: true)
+        for index in 0..<3 {
+            let file = (directory as NSString).appendingPathComponent("frame-\(index + 1).png")
+            try ImageWriter(size: Size(width: 64, height: 48)).write(to: file) { canvas in
+                canvas.fill(red: 0, green: 0, blue: 0)
+                canvas.fill(Rectangle(x: 20 + 2 * Double(index), y: 16, width: 16, height: 16), red: 255, green: 255, blue: 255)
+            }
+        }
+
+        // When
+        let code = sut.run(["track", directory, "--fps", "4", "--at", "0.25", "--area", "[22, 16, 16, 16]"])
+
+        // Then
+        #expect(code == 0, "\(sut.standardError)")
+        let printed = try JSONReader().read(sut.standardOutput).objectValue
+        let frames = printed?["frames"]?.arrayValue?.compactMap(\.objectValue) ?? []
+        #expect(printed?["time"]?.numberValue == 0.25)
+        #expect(frames.map { $0["time"]?.numberValue ?? -1 } == [0, 0.25, 0.5])
+        let lefts = frames.map { $0["quad"]?.arrayValue?.first?.arrayValue?.first?.numberValue ?? -1 }
+        for (left, expected) in zip(lefts, [20.0, 22, 24]) {
+            #expect(abs(left - expected) <= 0.5, "\(lefts)")
+        }
+    }
+
     @Test("a time past an image sequence's frame count / --fps stops as one past a video's end does")
     func stopsPastEnd() throws {
         // Given
@@ -95,13 +124,14 @@ struct ImageSequenceCommandTests {
         #expect(sut.standardError == "frames: --to 2: past the end of the image sequence at 1.5\n")
     }
 
-    @Test("a directory without --fps stops, naming --fps, in each command that reads it", arguments: ["ocr", "extract", "sheet"])
+    @Test("a directory without --fps stops, naming --fps, in each command that reads it", arguments: ["ocr", "track", "extract", "sheet"])
     func stopsWithoutRate(command: String) throws {
         // Given
         let directory = try imageSequence()
         let options = switch command {
         case "extract": [sut.directory.file("out")]
         case "sheet": ["-o", sut.directory.file("sheet.png")]
+        case "track": ["--at", "0", "--area", "[0, 0, 10, 10]"]
         default: [String]()
         }
 

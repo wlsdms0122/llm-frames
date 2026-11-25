@@ -35,7 +35,7 @@ struct CommandUsageTests {
             probe     <media> [--page <n>] [--json]
             loudness  <media | document.json> [--from <t>] [--to <t>] [--args <args.json>] [--json]
             ocr       <still | video | image sequence> [--fps <rate>] [--page <n>] [--at <t> | --from <t> --to <t> --step <s>] [--languages <tag>[,<tag>...]] [--color-space <name>] [--json]
-            track     <video> --at <t> (--area <area> | --quad <quad>) [--to <t>] [--color-space <name>]
+            track     <video | image sequence> [--fps <rate>] --at <t> (--area <area> | --quad <quad>) [--to <t>] [--color-space <name>]
             extract   <video | image sequence | document.json> <outdir> [--fps <rate>] [--from <t>] [--to <t>] [--step 1]
             sheet     <video | image sequence | document.json> -o <out.png> [--fps <rate>] [--from <t>] [--to <t>] [--step 1] [--cols 6]
             transcode <in> [--page <n>] -o <out> [--quality high|medium|low] [--max <px> | --scale <s>] [--codec h264|hevc] [--color-space <name>]
