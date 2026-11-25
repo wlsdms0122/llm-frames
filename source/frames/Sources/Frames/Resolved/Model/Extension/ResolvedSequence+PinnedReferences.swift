@@ -24,7 +24,11 @@ extension ResolvedSequence {
     }
 
     private func references(of entry: ResolvedStorylineClip) -> [PinnedReference] {
-        let media = entry.media.map { references(of: $0, place: entry.place, colorSpace: entry.colorSpace) } ?? []
+        let media = if case let .media(media) = entry.content {
+            references(of: media.media, place: entry.place, colorSpace: media.colorSpace)
+        } else {
+            [PinnedReference]()
+        }
         let transition = entry.transition.map { references(of: $0, place: entry.place) } ?? []
 
         return media + references(of: entry.filter, place: entry.place) + transition

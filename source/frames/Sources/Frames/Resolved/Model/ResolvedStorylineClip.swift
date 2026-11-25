@@ -5,12 +5,9 @@
 //  Created by JSilver on 11/16/26.
 //
 
-// A storyline entry. `place` is its place in the document as written, and `media` is nil for a solid, which carries its
-// colour as `color`, keyframes in sequence time. `colorSpace` is the space that overrides its file's tags, nil where they apply, and `isToneMapped`
-// its `toneMap`, nil for a solid, for a page, which takes none, and for a nested sequence, whose pictures are working
-// values already. `in` and `out` are its clip time, `speed` as written, `timeRemap` keyframes in sequence time whose
-// values are media seconds (nil for none, when clip time is media time), and `start` and `end` its edit range in
-// sequence time. `crop` is every crop conformed to the frame, the whole picture when none was written, with keyframes
+// A storyline entry. `place` is its place in the document as written, and `content` the solid's colour or the media
+// it shows. `in` and `out` are its clip time, `speed` as written, and `start` and `end` its edit range in sequence
+// time. `crop` is every crop conformed to the frame, the whole picture when none was written, with keyframes
 // in sequence time. `mask` is its masks in the media pixels of its media, nil for none, a keyframe's where it lies at
 // its own time when tracked, and `trackMatte` its track matte, nil for none. `box` is the frame the crop fills, placed
 // by its position and anchor, and `opacity`, `scale` and `rotation` are keyframes in sequence time. A clip with a
@@ -22,14 +19,10 @@ struct ResolvedStorylineClip: Equatable, Sendable {
     // MARK: - Property
     let place: String
     let id: String?
-    let media: ResolvedMediaContent?
-    let color: [Keyframe<Color>]?
-    let colorSpace: ColorSpace?
-    let isToneMapped: Bool?
+    let content: ResolvedStorylineContent
     let `in`: Double
     let out: Double
     let speed: Double
-    let timeRemap: [Keyframe<Double>]?
     let start: Double
     let end: Double
     let crop: FollowedValue<Crop>
@@ -57,23 +50,19 @@ struct ResolvedStorylineClip: Equatable, Sendable {
     // The media time it shows at a sequence time, nil for a solid: its line, or its `timeRemap`, held to its media's
     // first and last frame.
     var clock: MediaClock? {
-        guard let media else { return nil }
+        guard case let .media(media) = content else { return nil }
 
-        return MediaClock(line: map, timeRemap: timeRemap, frames: media.frames)
+        return MediaClock(line: map, timeRemap: media.timeRemap, frames: media.media.frames)
     }
 
     // MARK: - Initializer
     init(
         place: String,
         id: String?,
-        media: ResolvedMediaContent?,
-        color: [Keyframe<Color>]?,
-        colorSpace: ColorSpace? = nil,
-        isToneMapped: Bool? = nil,
+        content: ResolvedStorylineContent,
         in: Double,
         out: Double,
         speed: Double,
-        timeRemap: [Keyframe<Double>]?,
         start: Double,
         end: Double,
         crop: FollowedValue<Crop>,
@@ -95,14 +84,10 @@ struct ResolvedStorylineClip: Equatable, Sendable {
     ) {
         self.place = place
         self.id = id
-        self.media = media
-        self.color = color
-        self.colorSpace = colorSpace
-        self.isToneMapped = isToneMapped
+        self.content = content
         self.in = `in`
         self.out = out
         self.speed = speed
-        self.timeRemap = timeRemap
         self.start = start
         self.end = end
         self.crop = crop

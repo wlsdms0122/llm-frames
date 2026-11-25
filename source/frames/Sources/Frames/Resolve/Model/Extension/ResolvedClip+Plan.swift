@@ -24,12 +24,10 @@ extension ResolvedClip {
         let content: ResolvedClipContent
         switch appearance.drawing {
         case let .picture(composite):
-            guard let lane = plan.lane else { return nil }
-
             content = .picture(
                 try Self.picture(of: plan, geometry: geometry, hashes: hashes),
                 ResolvedComposite(
-                    lane: lane,
+                    lane: composite.lane,
                     opacity: composite.opacity.keyframes(at: instant) { $0 },
                     blend: composite.blend,
                     mask: geometry.mask,

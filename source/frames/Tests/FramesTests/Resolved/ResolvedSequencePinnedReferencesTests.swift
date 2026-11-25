@@ -157,9 +157,7 @@ struct ResolvedSequencePinnedReferencesTests {
         ResolvedStorylineClip(
             place: place,
             id: nil,
-            media: media,
-            color: nil,
-            colorSpace: colorSpace,
+            content: .media(ResolvedStorylineMedia(media: media, colorSpace: colorSpace)),
             in: 0,
             out: 1,
             speed: 1,

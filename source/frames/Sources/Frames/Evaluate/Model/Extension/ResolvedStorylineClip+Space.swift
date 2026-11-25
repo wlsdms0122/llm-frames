@@ -22,7 +22,7 @@ extension ResolvedStorylineClip {
 
     func pictureTransform(at time: SampleTime) -> AffineTransform {
         let own = presentation(at: time).transform
-        guard media != nil, let size = box?.size ?? cornerPin?.size else { return own }
+        guard case .media = content, let size = box?.size ?? cornerPin?.size else { return own }
 
         let crop = crop(at: time)
         let bounds = Rectangle(x: 0, y: 0, width: size.width, height: size.height)

@@ -55,8 +55,12 @@ extension ResolvedSequence {
     // with its place and the colour space it is read in.
     private func namedMedia(of sequence: ResolvedSequence) -> [NamedMedia] {
         let storyline = sequence.storyline.flatMap { entry in
-            namedMedia(of: entry.media, place: entry.place, colorSpace: entry.colorSpace)
-                + transitionMedia(of: entry.transition, place: "\(entry.place).transition")
+            let media: [NamedMedia] = if case let .media(media) = entry.content {
+                namedMedia(of: media.media, place: entry.place, colorSpace: media.colorSpace)
+            } else {
+                []
+            }
+            return media + transitionMedia(of: entry.transition, place: "\(entry.place).transition")
         }
         let clips = sequence.clips.flatMap { clip -> [NamedMedia] in
             guard case let .picture(.media(media), _) = clip.content else { return [] }
@@ -68,7 +72,7 @@ extension ResolvedSequence {
     }
 
     private func namedMedia(
-        of content: ResolvedMediaContent?,
+        of content: ResolvedMediaContent,
         place: String,
         colorSpace: ColorSpace?
     ) -> [NamedMedia] {
@@ -78,9 +82,6 @@ extension ResolvedSequence {
 
         case let .nested(sequence):
             namedMedia(of: sequence)
-
-        case nil:
-            []
         }
     }
 

@@ -442,6 +442,7 @@ struct TimePlanner: Sendable {
         let keyframes = clip.keyframes.map { keyframe in
             keyframe.moved(to: clock.sequenceTime(ofClipTime: keyframe.at))
         }
+        try checkLane(of: clip, kind: kind)
 
         return ClipPlan(
             place: clip.place,
@@ -452,7 +453,6 @@ struct TimePlanner: Sendable {
             storyline: owner,
             trackMatte: clip.trackMatte,
             isMotionBlurred: clip.isMotionBlurred,
-            lane: try lane(of: clip, kind: kind),
             clock: clock,
             window: window,
             visible: visible,
@@ -662,19 +662,15 @@ struct TimePlanner: Sendable {
         return visible
     }
 
-    private func lane(
+    // Lane 0 is the storyline, so a clip written in it stops. Only a clip with a picture takes `lane`, as the key
+    // checker says: an audio clip and a null draw no picture and are stacked in no lane.
+    private func checkLane(
         of clip: Clip,
         kind: ClipKind
-    ) throws -> Int? {
-        // An audio clip and a null draw no picture, so they are stacked in no lane.
-        guard kind != .media(.audio), kind != .null else { return nil }
+    ) throws {
+        guard clip.lane == 0 else { return }
 
-        let lane = clip.lane ?? 1
-        guard lane != 0 else {
-            throw ResolveError.zeroLane(place: clip.place.appending(key: "lane"), kind: .clip(kind))
-        }
-
-        return lane
+        throw ResolveError.zeroLane(place: clip.place.appending(key: "lane"), kind: .clip(kind))
     }
 
     // A clip that names no animation takes the theme's default for its kind, or for a title its style's, and one that

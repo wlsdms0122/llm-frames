@@ -81,14 +81,10 @@ struct ContentFitPlanner: Sendable {
                 ResolvedStorylineClip(
                     place: entry.place,
                     id: entry.id,
-                    media: entry.media,
-                    color: entry.color,
-                    colorSpace: entry.colorSpace,
-                    isToneMapped: entry.isToneMapped,
+                    content: entry.content,
                     in: entry.in,
                     out: entry.out,
                     speed: entry.speed,
-                    timeRemap: entry.timeRemap,
                     start: entry.start,
                     end: entry.end,
                     crop: entry.crop,
@@ -167,7 +163,9 @@ struct ContentFitPlanner: Sendable {
         without placed: Set<String>
     ) -> [Rectangle] {
         let parents = ParentEvaluator(sequence: sequence)
-        let storyline = sequence.storyline.filter { $0.media != nil }.compactMap { entry -> Rectangle? in
+        let storyline = sequence.storyline.compactMap { entry -> Rectangle? in
+            guard case .media = entry.content else { return nil }
+
             if let pin = entry.cornerPin {
                 return Rectangle(bounding: pin.points.mapValues { $0.sampled(\.fixed) }.value(at: SampleTime(0)).corners)
             }

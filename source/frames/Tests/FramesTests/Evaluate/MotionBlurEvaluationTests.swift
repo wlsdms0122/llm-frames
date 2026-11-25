@@ -938,8 +938,7 @@ struct MotionBlurEvaluationTests {
             ResolvedStorylineClip(
                 place: place,
                 id: nil,
-                media: nil,
-                color: [Keyframe(at: start, value: Color(written: "#000000"))],
+                content: .solid([Keyframe(at: start, value: Color(written: "#000000"))]),
                 in: 0,
                 out: end - start,
                 speed: 1,

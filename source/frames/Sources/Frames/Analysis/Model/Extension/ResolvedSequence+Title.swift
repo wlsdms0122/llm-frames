@@ -15,7 +15,7 @@ extension ResolvedSequence {
     // MARK: - Public
     func titles(at time: Double) -> [String: TitleSample] {
         let nested = storyline.compactMap { entry -> [String: TitleSample]? in
-            guard case let .nested(sequence) = entry.media else { return nil }
+            guard case let .media(media) = entry.content, case let .nested(sequence) = media.media else { return nil }
 
             return sequence.titles(at: entry.mediaTime(at: time))
         }

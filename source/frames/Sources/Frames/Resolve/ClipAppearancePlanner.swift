@@ -462,7 +462,8 @@ struct ClipAppearancePlanner: Sendable {
 
     // MARK: - Private
     // A null is placed by its box, a rect's: `area`, or both of `width` and `height`. An audio clip draws nothing. Any
-    // other clip's picture composites by its `opacity`, 1 when not written, and its `blend`, `normal` when not written.
+    // other clip's picture composites in its `lane`, 1 when not written, by its `opacity`, 1 when not written, and its
+    // `blend`, `normal` when not written.
     private func drawing(
         of plan: ClipPlan,
         written: Clip
@@ -477,6 +478,7 @@ struct ClipAppearancePlanner: Sendable {
 
         case .media, .title, .shape, .adjust:
             return .picture(ClipComposite(
+                lane: written.lane ?? 1,
                 opacity: property(written.opacity, plain: 1, clock: plan.clock),
                 blend: written.blend ?? "normal"
             ))

@@ -13,7 +13,11 @@ extension ResolvedSequence {
     // MARK: - Initializer
     // MARK: - Public
     func nestedSequence(at place: String) -> ResolvedSequence? {
-        let held: [(place: String, media: ResolvedMediaContent?)] = storyline.map { ($0.place, $0.media) }
+        let held: [(place: String, media: ResolvedMediaContent?)] = storyline.map { clip in
+            guard case let .media(media) = clip.content else { return (clip.place, nil) }
+
+            return (clip.place, media.media)
+        }
             + clips.map { clip in
                 guard case let .picture(.media(media), _) = clip.content else { return (clip.place, nil) }
 

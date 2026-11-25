@@ -48,7 +48,7 @@ struct TimelineGeometrySampler: Sendable {
     ) -> TimelineGeometry {
         let storyline = sequence.storyline
         let entry = storyline[index]
-        guard entry.media != nil else { return .none }
+        guard case .media = entry.content else { return .none }
 
         let sample = SampleInstant(frameTime: time)
         let valueTime = storyline.valueTime(ofEntry: index, in: sample)
