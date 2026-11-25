@@ -13,6 +13,7 @@ struct SheetOptions: CommandOptions, Equatable {
 
     static let rules = [
         OptionRule("-o", value: "<out.png>", help: "The PNG written, as an absolute path."),
+        OptionRule.fps,
         OptionRule.from,
         OptionRule.to,
         OptionRule.step,
@@ -25,6 +26,7 @@ struct SheetOptions: CommandOptions, Equatable {
     static let positionals = [PositionalRule.frameSource]
 
     let source: String
+    let fps: Double?
     let output: String
     let range: FrameRange
     let columns: Int
@@ -32,6 +34,7 @@ struct SheetOptions: CommandOptions, Equatable {
     // MARK: - Initializer
     init(_ arguments: ScannedArguments) throws {
         self.source = try arguments.requiredPositional(at: 0)
+        self.fps = try arguments.positiveNumber(of: "--fps")
         self.output = try arguments.requiredPath(of: "-o")
         self.range = try arguments.frameRange()
         self.columns = try arguments.integer(of: "--cols") ?? Self.defaultColumns

@@ -29,6 +29,11 @@ package struct PinnedMedia: Equatable, Sendable {
     }
 
     // MARK: - Public
+    // The media time of the frame shown at the media time, nil for a still.
+    func frameTime(at time: Double) -> Double? {
+        frameTimes.isEmpty ? nil : frameTimes[frameIndex(at: time)]
+    }
+
     // The index of the frame shown at the media time: the last that starts at or before it, or the first before the
     // media starts. A still has the one frame 0.
     func frameIndex(at time: Double) -> Int {

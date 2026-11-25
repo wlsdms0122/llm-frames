@@ -8,7 +8,8 @@
 // Recognises the lines of a still or of video frames with the OCR provider in the recognition languages, nil where
 // the provider detects them, and reports them as `ocr` prints them, in reading order, the order a text area's `nth`
 // counts them in. Each frame is the one shown at its media time, read in `colorSpace` where `--color-space` names one.
-// A page of a PDF is the page `--page` names, or the one page of a PDF of one page, and its lines are in its points.
+// A page of a PDF is the page `--page` names, or the one page of a PDF of one page, and its lines are in its points. A
+// directory is an image sequence, read as a video at the rate `fps` gives it.
 package struct OCRReporter: Sendable {
     // MARK: - Property
     private let mediaFacts: any MediaFactProvider
@@ -30,11 +31,12 @@ package struct OCRReporter: Sendable {
     // MARK: - Public
     package func report(
         of path: String,
+        fps: Double? = nil,
         page: Int? = nil,
         at selection: TimeSelection = .start,
         colorSpace: ColorSpace? = nil
     ) throws -> OCRReport {
-        let (file, size, times) = try media(at: path, page: page, selection: selection)
+        let (file, size, times) = try media(of: try MediaArgument(path: path, fps: fps), page: page, selection: selection)
         if let refused = file.pageRefusedColorSpace(colorSpace), let page = file.page {
             throw AnalysisError.highDynamicRangePage(file: path, page: page, colorSpace: refused)
         }
@@ -47,12 +49,29 @@ package struct OCRReporter: Sendable {
     }
 
     // MARK: - Private
-    // The file read, its picture's size and the media times read: a page of a PDF is a still of its size in points.
+    // The file read, its picture's size and the media times read: a page of a PDF is a still of its size in points,
+    // and an image sequence has no pages.
     private func media(
-        at path: String,
+        of argument: MediaArgument,
         page: Int?,
         selection: TimeSelection
     ) throws -> (MediaFile, Size, [Double]) {
+        let path: String
+        switch argument {
+        case let .imageSequence(directory, fps):
+            if let page { throw AnalysisError.pageOfNonPDF(file: directory, page: page) }
+            guard let probed = try mediaFacts.probedImageSequence(at: directory) else {
+                throw AnalysisError.missingMedia(file: directory)
+            }
+            let sequence = ImageSequence(probed: probed, directory: directory, fps: fps)
+            let times = try times(selection, isStill: false, end: sequence.duration, file: directory)
+
+            return (sequence.file, probed.size, times)
+
+        case let .file(file):
+            path = file
+        }
+
         switch try mediaFacts.commandPage(page, of: path) {
         case let .page(number):
             guard let probed = try mediaFacts.probedPage(number, of: path) else {
@@ -69,7 +88,9 @@ package struct OCRReporter: Sendable {
         case let .media(probed):
             guard let size = probed.size else { throw AnalysisError.noPicture(file: path) }
 
-            return (MediaFile(path: path, probed: probed), size, try times(selection, in: probed, file: path))
+            let times = try times(selection, isStill: probed.kind.isStill, end: probed.duration, file: path)
+
+            return (MediaFile(path: path, probed: probed), size, times)
 
         case nil:
             throw AnalysisError.missingMedia(file: path)
@@ -109,16 +130,16 @@ package struct OCRReporter: Sendable {
 
     private func times(
         _ selection: TimeSelection,
-        in probed: ProbedMedia,
+        isStill: Bool,
+        end: Double,
         file: String
     ) throws -> [Double] {
-        if probed.kind.isStill {
+        if isStill {
             guard selection == .start else { throw AnalysisError.timeOnStill(file: file) }
 
             return [0]
         }
 
-        let end = probed.duration
         switch selection {
         case .start:
             return [0]

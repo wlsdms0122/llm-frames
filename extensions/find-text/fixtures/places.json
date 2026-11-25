@@ -1,0 +1,144 @@
+{
+  "unparented": {
+    "kind": "sequence",
+    "storyline": [
+      {
+        "id": "b",
+        "media": "/media/board.png",
+        "duration": 2,
+        "connected": [
+          {
+            "shape": "rect",
+            "fill": "#FF0000",
+            "area": {
+              "text": "Total"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "title_mask": {
+    "kind": "sequence",
+    "storyline": [
+      {
+        "id": "b",
+        "media": "/media/board.png",
+        "duration": 2,
+        "connected": [
+          {
+            "title": "x",
+            "style": "title",
+            "placement": "center",
+            "mask": {
+              "shape": "rect",
+              "area": {
+                "text": "Total"
+              }
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "parent_title": {
+    "kind": "sequence",
+    "storyline": [
+      {
+        "id": "b",
+        "media": "/media/board.png",
+        "duration": 2,
+        "connected": [
+          {
+            "id": "t",
+            "parent": "b",
+            "title": "x",
+            "style": "title",
+            "position": [
+              10,
+              10
+            ]
+          },
+          {
+            "parent": "t",
+            "shape": "rect",
+            "fill": "#FF0000",
+            "area": {
+              "text": "Total"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "parent_solid": {
+    "kind": "sequence",
+    "format": {
+      "size": [
+        1920,
+        1080
+      ]
+    },
+    "storyline": [
+      {
+        "id": "s",
+        "solid": "#000000",
+        "duration": 2,
+        "connected": [
+          {
+            "parent": "s",
+            "shape": "rect",
+            "fill": "#FF0000",
+            "area": {
+              "text": "Total"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "parent_corner_pin": {
+    "kind": "sequence",
+    "storyline": [
+      {
+        "id": "b",
+        "media": "/media/board.png",
+        "duration": 2,
+        "connected": [
+          {
+            "id": "p",
+            "parent": "b",
+            "media": "/media/board.png",
+            "cornerPin": [
+              [
+                0,
+                0
+              ],
+              [
+                100,
+                0
+              ],
+              [
+                100,
+                100
+              ],
+              [
+                0,
+                100
+              ]
+            ]
+          },
+          {
+            "parent": "p",
+            "shape": "rect",
+            "fill": "#FF0000",
+            "area": {
+              "text": "Total",
+              "nth": 1
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

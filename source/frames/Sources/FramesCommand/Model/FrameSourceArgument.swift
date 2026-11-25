@@ -7,11 +7,11 @@
 
 import Foundation
 
-// What the argument of `sheet` or `extract` names frames from: a `.json` file, compared ignoring case, a pack template
-// or `-` is a document argument, and any other absolute path a video.
+// What the argument of `sheet`, `extract` or `loudness` names: a `.json` file, compared ignoring case, a pack template
+// or `-` is a document argument, and any other absolute path a medium, a video or an image sequence's directory.
 enum FrameSourceArgument: Equatable, Sendable {
     case document(String)
-    case video(path: String)
+    case medium(path: String)
 
     // MARK: - Property
     // MARK: - Initializer
@@ -21,7 +21,7 @@ enum FrameSourceArgument: Equatable, Sendable {
             return
         }
 
-        self = .video(path: argument)
+        self = .medium(path: argument)
     }
 
     // MARK: - Public

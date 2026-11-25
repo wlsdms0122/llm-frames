@@ -12,11 +12,12 @@ struct OCROptions: CommandOptions, Equatable {
     private static let rangeOptions = ["--from", "--to", "--step"]
 
     static let rules = [
+        OptionRule.fps,
         OptionRule.page,
         OptionRule(
             "--at",
             value: "<t>",
-            help: "The media time a video is read at, in [0, duration). Default: 0."
+            help: "The media time a video or an image sequence is read at, in [0, duration). Default: 0."
         ),
         OptionRule.from,
         OptionRule.to,
@@ -41,13 +42,14 @@ struct OCROptions: CommandOptions, Equatable {
     ]
     static let positionals = [
         PositionalRule(
-            "<still | video>",
-            help: "A still, an image or a PDF, read whole, or a video, read at --at or over a range, as an absolute "
-                + "path."
+            "<still | video | image sequence>",
+            help: "A still, an image or a PDF, read whole, or a video or an image sequence's directory, read at --at "
+                + "or over a range, as an absolute path."
         )
     ]
 
     let media: String
+    let fps: Double?
     let page: Int?
     let selection: TimeSelection
     let languages: [LanguageTag]?
@@ -57,6 +59,7 @@ struct OCROptions: CommandOptions, Equatable {
     // MARK: - Initializer
     init(_ arguments: ScannedArguments) throws {
         self.media = try arguments.requiredPositionalPath(at: 0)
+        self.fps = try arguments.positiveNumber(of: "--fps")
         self.page = try arguments.page(of: "--page")
         self.selection = try Self.selection(of: arguments)
         self.languages = try arguments.languages(of: "--languages")

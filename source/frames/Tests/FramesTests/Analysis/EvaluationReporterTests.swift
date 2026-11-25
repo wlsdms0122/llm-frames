@@ -491,7 +491,7 @@ struct EvaluationReporterTests {
         #expect(error?.description == "\(place) (title): the item draws unit \(unit) of the title, \(reason)")
     }
 
-    @Test("a resolved document is evaluated at the time, its clips reporting places, ids, kinds, bounds and rects")
+    @Test("a resolved document is evaluated at the time, its clips reporting places, ids, kinds, bounds, rects and the frame drawn")
     func reportsResolvedDocument() throws {
         // Given
         let document = try resolved(#"""
@@ -523,7 +523,8 @@ struct EvaluationReporterTests {
                 bounds: frame,
                 opacity: 1,
                 transform: .identity,
-                rect: frame
+                rect: frame,
+                frame: DrawnFrame(file: "/abs/short.mp4", mediaTime: 1)
             ),
             EvaluationItem(
                 origin: ItemOrigin(place: "storyline[0]#intro.connected[0]", id: nil, kind: "rect"),
@@ -1245,6 +1246,60 @@ struct EvaluationReporterTests {
             ]
 
             """#)
+    }
+
+    @Test(
+        "a picture of a media file names the frame it draws, as locate names it, for a video, an image, a page of a PDF and an image sequence",
+        arguments: [
+            (#""/abs/leak.mov", "in": 0.2, "out": 2"#, 0.4, DrawnFrame(file: "/abs/leak.mov", mediaTime: 0.5)),
+            (#""/abs/card.png", "duration": 2"#, 1, DrawnFrame(file: "/abs/card.png", mediaTime: 0)),
+            (#"{ "file": "/abs/deck.pdf", "page": 3 }, "duration": 2"#, 1, DrawnFrame(file: "/abs/deck.pdf", mediaTime: 0, page: 3)),
+            (#"{ "imageSequence": "/abs/frames", "fps": 10 }, "in": 0.1, "out": 1.2"#, 0.35, DrawnFrame(file: "/abs/frames/frame-5.png", mediaTime: 0.4))
+        ] as [(String, Double, DrawnFrame)]
+    )
+    func namesDrawnFrame(
+        media: String,
+        time: Double,
+        frame: DrawnFrame
+    ) throws {
+        // Given
+        let document = try resolved(#"""
+            { "kind": "sequence", "format": { "size": [1080, 1920] }, "storyline": [ { "media": \#(media) } ] }
+            """#)
+
+        // When
+        let report = try sut.report(of: document, at: time)
+        let location = try LocationReporter().report(of: document, at: time, point: Point(x: 540, y: 960))
+
+        // Then
+        let picture = try #require(report.items.first { $0.origin?.place == "storyline[0]" })
+        #expect(picture.frame == frame)
+        #expect(location.hits.first?.media?.frame == frame)
+        let written = try #require(report.machineOutput.objectValue?["items"]?.arrayValue?.last?.objectValue)
+        #expect(written["media"] == .string(frame.file))
+        #expect(written["mediaTime"] == .number(frame.mediaTime))
+        #expect(written["page"] == frame.page.map { .number(Double($0)) } ?? .null)
+    }
+
+    @Test("an item that is not a picture of a media file names no frame, a compound clip's frame named by the picture inside it")
+    func namesNoFrameOffMedia() throws {
+        // Given
+        let document = try resolved(#"""
+            { "kind": "sequence", "format": { "size": [1080, 1920] },
+              "storyline": [ { "media": { "kind": "sequence", "format": { "size": [1080, 1920] }, "storyline": [ { "media": "/abs/leak.mov", "in": 0, "out": 2 } ] } } ],
+              "clips": [ { "at": [0, 2], "title": "Top", "style": "title" }, { "at": [0, 2], "shape": "rect", "fill": "#FF0000", "area": [0, 0, 100, 100] } ] }
+            """#)
+
+        // When
+        let report = try sut.report(of: document, at: 0.7)
+
+        // Then
+        let framed = report.items.filter { $0.frame != nil }
+        #expect(framed.map { $0.origin?.place } == ["storyline[0].media.storyline[0]"])
+        #expect(framed.first?.frame == DrawnFrame(file: "/abs/leak.mov", mediaTime: 0.5))
+        let written = report.machineOutput.objectValue?["items"]?.arrayValue?.compactMap(\.objectValue) ?? []
+        #expect(written.count == report.items.count)
+        #expect(written.filter { $0["media"] != nil || $0["mediaTime"] != nil || $0["page"] != nil }.count == 1)
     }
 
     // MARK: - Private

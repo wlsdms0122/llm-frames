@@ -10,7 +10,9 @@
 extension TimelineReport {
     // MARK: - Property
     package var text: String {
-        (["duration \(time(duration))"] + lines(indent: "")).joined(separator: "\n")
+        let header = ["duration \(seconds(duration))"] + (time.map { ["at \(seconds($0))"] } ?? [])
+
+        return (header + lines(indent: "")).joined(separator: "\n")
     }
 
     // MARK: - Initializer
@@ -19,20 +21,22 @@ extension TimelineReport {
     private func lines(indent: String) -> [String] {
         let storylineLines = storyline.flatMap { entry in
             let transition = entry.transition.map { transition in
-                [transition.preset, time(transition.seconds)].compactMap(\.self).joined(separator: " ")
+                [transition.preset, seconds(transition.seconds)].compactMap(\.self).joined(separator: " ")
             } ?? "none"
             let line = [
                 "\(indent)\(entry.place)",
-                entry.media.map { media in entry.page.map { "\(media) page \($0)" } ?? media } ?? "-",
+                entry.kind,
+                media(entry.media, page: entry.page),
                 "edit \(written(entry.edit))",
                 "drawn \(written(entry.drawn))",
                 "clip \(written(entry.clip))",
                 "sound \(entry.sound.map(written) ?? "-")",
                 entry.isTimeRemapped ? "time-remapped" : "speed \(number(entry.speed))",
                 "transition \(transition)"
-            ].joined(separator: "  ")
+            ] + (entry.time.map { ["clip time \(seconds($0.clipTime))", "media time \(media(time: $0.mediaTime))"] } ?? [])
+            let joined = line.joined(separator: "  ")
 
-            return [line] + (entry.nested?.lines(indent: indent + "  ") ?? [])
+            return [joined] + (entry.nested?.lines(indent: indent + "  ") ?? [])
         }
         let clipLines = clips.flatMap { entry in
             let animation = entry.animation.map { animation in
@@ -41,14 +45,15 @@ extension TimelineReport {
             let line = [
                 "\(indent)\(entry.place)",
                 entry.kind,
+                media(entry.media, page: entry.page),
                 "visible \(written(entry.visible))",
                 "sound \(entry.sound.map(written) ?? "-")",
                 "lane \(entry.lane.map(String.init) ?? "-")",
                 "parent \(entry.parent ?? "-")",
                 "animation \(animation)"
-            ].joined(separator: "  ")
+            ] + (entry.time.map { ["media time \(media(time: $0.mediaTime))"] } ?? [])
 
-            return [line] + (entry.nested?.lines(indent: indent + "  ") ?? [])
+            return [line.joined(separator: "  ")] + (entry.nested?.lines(indent: indent + "  ") ?? [])
         }
 
         return storylineLines + clipLines
@@ -58,15 +63,26 @@ extension TimelineReport {
     private func name(of span: TimelineSpan?) -> String {
         guard let span else { return "-" }
 
-        return span.preset ?? "\(time(span.length))s"
+        return span.preset ?? "\(seconds(span.length))s"
+    }
+
+    private func media(
+        _ media: String?,
+        page: Int?
+    ) -> String {
+        media.map { media in page.map { "\(media) page \($0)" } ?? media } ?? "-"
+    }
+
+    private func media(time: Double?) -> String {
+        time.map(seconds) ?? "-"
     }
 
     private func written(_ range: TimeRange) -> String {
-        "[\(time(range.start)), \(time(range.end)))"
+        "[\(seconds(range.start)), \(seconds(range.end)))"
     }
 
     // Times are written as the machine output writes them, to the nearest microsecond.
-    private func time(_ seconds: Double) -> String {
+    private func seconds(_ seconds: Double) -> String {
         JSONValue.time(seconds).written
     }
 
