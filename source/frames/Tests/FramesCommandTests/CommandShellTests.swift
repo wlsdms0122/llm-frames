@@ -151,8 +151,9 @@ struct CommandShellTests {
         arguments: [
             (["resolve", "/abs/doc.json"], "resolve: missing -o <resolved.json>"),
             (["timeline", "--json"], "timeline: missing <document.json>"),
-            (["timeline", "/abs/doc.json", "--fps", "30"], #"timeline: unknown option "--fps". Allowed: --at, --args, --json"#),
+            (["timeline", "/abs/doc.json", "--fps", "30"], #"timeline: unknown option "--fps". Allowed: --at, --nested, --args, --json"#),
             (["timeline", "/abs/doc.json", "--args"], "timeline: --args takes a value, <args.json>"),
+            (["timeline", "/abs/doc.json", "--nested"], "timeline: --nested takes a value, <place>"),
             (
                 ["timeline", "doc.json"],
                 #"timeline: the document "doc.json" is not an absolute path, <pack>/<name> or -, and paths are absolute"#
@@ -219,6 +220,31 @@ struct CommandShellTests {
         #expect(themed == 1)
         #expect(arguedError == "frames: top level (sequence): the document declares no params, so it takes no arguments\n")
         #expect(sut.standardError == "frames: top level (sequence): a template resolves on the base theme and its own theme, so it takes no --theme\n")
+    }
+
+    @Test("timeline --nested prints the sequence nested at a place at a time on its own clock, and stops on a place that holds none")
+    func reportsNestedSequence() throws {
+        // Given
+        let document = try sut.write(##"""
+            { "kind": "sequence", "format": { "size": [200, 100] },
+              "storyline": [ { "kind": "solid", "color": "#000000", "duration": 2 } ],
+              "clips": [ { "id": "inner", "at": [0, 2], "kind": "media", "width": 100, "position": [50, 50],
+                "media": { "kind": "sequence", "format": { "size": [100, 100] },
+                  "storyline": [ { "id": "back", "kind": "solid", "color": "#FFFFFF", "duration": 3 } ] } } ] }
+            """##, named: "doc.json")
+
+        // When
+        let code = sut.run(["timeline", document, "--nested", "clips[0]#inner", "--at", "2.5", "--json"])
+        let output = sut.standardOutput
+        let stopped = sut.run(["timeline", document, "--nested", "storyline[0]"])
+
+        // Then
+        #expect(code == 0)
+        #expect(output.contains(#""time": 2.5"#))
+        #expect(output.contains(#""place": "clips[0]#inner.media.storyline[0]#back""#))
+        #expect(output.contains(#""clipTime": 2.5"#))
+        #expect(stopped == 1)
+        #expect(sut.standardError == "frames: --nested: no compound clip or template instance is at \"storyline[0]\"\n")
     }
 
     @Test("a pack's tool runs with the global options as written before its arguments, unchanged, and frames exits with its code")

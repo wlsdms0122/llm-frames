@@ -33,6 +33,36 @@ struct TimelineReporterTests {
         followed: ["/abs/screen.mp4": 0...1.9]
     )
 
+    // `/abs/page.png` is 1000 by 800, fit into a 1000 by 1000 frame, so its media pixels are output pixels moved down by
+    // 100 and its conformed crop covers the frame: a null on it by area, a rect turned a quarter about its centre, a media clip at half size with a mask, a rect
+    // with a corner pin and an audio clip.
+    private let placed = ##"""
+        { "kind": "sequence", "format": { "size": [1000, 1000] },
+          "storyline": [
+            { "id": "page", "kind": "media", "media": "/abs/page.png", "duration": 2,
+              "connected": [ { "id": "anchor", "at": [0, 2], "kind": "null", "parent": "page", "area": [100, 100, 200, 100] } ] } ],
+          "clips": [
+            { "id": "spun", "at": [0, 2], "kind": "rect", "fill": "#FFFFFF", "width": 100, "height": 50, "position": [500, 500], "rotation": 90 },
+            { "id": "masked", "at": [0, 2], "kind": "media", "media": "/abs/page.png", "width": 500, "position": [250, 250],
+              "mask": { "kind": "rect", "area": [0, 0, 500, 400] } },
+            { "id": "pinned", "at": [0, 2], "kind": "rect", "fill": "#FFFFFF", "width": 100, "height": 100,
+              "cornerPin": [[10, 10], [110, 20], [100, 120], [20, 110]] },
+            { "at": 0, "kind": "audio", "media": "/abs/ding.wav" } ] }
+        """##
+
+    // A compound clip at half size in the top left, whose nested storyline clip of `/abs/light-leak.mov`, 1920 by 1080,
+    // fills its frame from media second 1 and holds a rect parented to it.
+    private let nested = ##"""
+        { "kind": "sequence", "format": { "size": [1000, 1000] },
+          "storyline": [ { "kind": "media", "media": "/abs/page.png", "duration": 2 } ],
+          "clips": [
+            { "id": "inner", "at": [0, 2], "kind": "media", "width": 960, "position": [480, 270],
+              "media": { "kind": "sequence", "format": { "size": [1920, 1080] },
+                "storyline": [ { "id": "innerShot", "kind": "media", "media": "/abs/light-leak.mov", "in": 1, "out": 3,
+                  "connected": [ { "id": "innerBox", "at": [0, 2], "kind": "rect", "fill": "#FFFFFF", "parent": "innerShot",
+                                   "width": 100, "height": 50, "position": [60, 45] } ] } ] } } ] }
+        """##
+
     // MARK: - Initializer
     // MARK: - Test
     @Test("the machine output is the timeline object FRAMES-23 gives, with places, ranges, transitions, parents and units")
@@ -574,7 +604,7 @@ struct TimelineReporterTests {
         #expect(report.text.split(separator: "\n").prefix(3) == [
             "duration 4",
             "at 1",
-            "storyline[0]#intro  video  /abs/short.mp4  edit [0, 2)  drawn [0, 2.5)  clip [1, 3)  sound -  speed 1  transition none  clip time 2  media time 2"
+            "storyline[0]#intro  video  /abs/short.mp4  edit [0, 2)  drawn [0, 2.5)  clip [1, 3)  sound -  speed 1  transition none  clip time 2  media time 2  box [0, 0, 1080, 1920] on [[0, 0], [1080, 0], [1080, 1920], [0, 1920]]  masks none"
         ])
     }
 
@@ -771,8 +801,131 @@ struct TimelineReporterTests {
         ])
     }
 
+    @Test("timeline at a time gives each clip's box in its own space with the quad it lies on in output pixels, and each mask's quad")
+    func reportsBoxesAndMasks() throws {
+        // Given
+        let value = try Fixture.json(placed)
+        let resolved = try ResolvedSequence(plan: Fixture.documentPlanner.plan(value), hashes: FileHashTable())
+
+        // When
+        let report = try sut.report(of: value, at: 0.5)
+        let resolvedReport = sut.report(of: resolved, at: 0.5)
+
+        // Then
+        let boxes = entries(of: report).map { $0["box"] }
+        #expect(boxes == [
+            box([0, -100, 1000, 1000], [[0, 0], [1000, 0], [1000, 1000], [0, 1000]]),
+            box([100, 100, 200, 100], [[100, 200], [300, 200], [300, 300], [100, 300]]),
+            box([0, 0, 100, 50], [[525, 450], [525, 550], [475, 550], [475, 450]]),
+            box([0, 0, 1000, 800], [[0, 50], [500, 50], [500, 450], [0, 450]]),
+            box([0, 0, 100, 100], [[10, 10], [110, 20], [100, 120], [20, 110]]),
+            .null
+        ])
+        #expect(entries(of: report).map { $0["masks"] } == [
+            .array([]),
+            .null,
+            .array([]),
+            .array([quad([[0, 50], [250, 50], [250, 250], [0, 250]])]),
+            .array([]),
+            .null
+        ])
+        #expect(entries(of: resolvedReport).map { $0["box"] } == Array(boxes.dropLast()))
+    }
+
+    @Test("timeline at a time outside a clip's window gives its box as the values it holds at the window's edge")
+    func reportsHeldBox() throws {
+        // Given
+        let value = try Fixture.json(##"""
+            { "kind": "sequence", "format": { "size": [1000, 1000] },
+              "storyline": [ { "kind": "media", "media": "/abs/page.png", "duration": 4 } ],
+              "clips": [
+                { "at": [0, 1], "kind": "rect", "fill": "#FFFFFF", "width": 50, "height": 50,
+                  "keyframes": [ { "at": 0, "position": [100, 100] }, { "at": 0.5, "position": [200, 100] } ] } ] }
+            """##)
+
+        // When
+        let before = try sut.report(of: value, at: -1)
+        let after = try sut.report(of: value, at: 3)
+
+        // Then
+        #expect(entries(of: before).last?["box"] == box([0, 0, 50, 50], [[75, 75], [125, 75], [125, 125], [75, 125]]))
+        #expect(entries(of: after).last?["box"] == box([0, 0, 50, 50], [[175, 75], [225, 75], [225, 125], [175, 125]]))
+    }
+
+    @Test("timeline at a time gives a clip inside a nested document its box in the nested sequence's output pixels")
+    func reportsNestedBoxes() throws {
+        // Given
+        let value = try Fixture.json(nested)
+
+        // When
+        let report = try sut.report(of: value, at: 0.5)
+
+        // Then
+        let compound = try #require(entries(of: report).last)
+        let inner = try #require(compound["nested"].flatMap { entries(of: $0) })
+        #expect(compound["box"] == box([0, 0, 1920, 1080], [[0, 0], [960, 0], [960, 540], [0, 540]]))
+        #expect(inner.map { $0["box"] } == [
+            box([0, 0, 1920, 1080], [[0, 0], [1920, 0], [1920, 1080], [0, 1080]]),
+            box([0, 0, 100, 50], [[10, 20], [110, 20], [110, 70], [10, 70]])
+        ])
+    }
+
+    @Test("timeline nested at a place reports that sequence on its own clock, from the document and from its resolved document")
+    func reportsNestedSequence() throws {
+        // Given
+        let value = try Fixture.json(nested)
+        let resolved = try ResolvedSequence(plan: Fixture.documentPlanner.plan(value), hashes: FileHashTable())
+
+        // When
+        let report = try sut.report(of: value, at: -0.5, nested: "clips[0]#inner")
+        let resolvedReport = try sut.report(of: resolved, nested: "clips[0]#inner", at: -0.5)
+
+        // Then
+        let output = report.machineOutput.objectValue
+        #expect(output?["time"] == .number(-0.5))
+        #expect(output?["duration"] == .number(2))
+        #expect(entries(of: report).map { $0["place"] } == [
+            .string("clips[0]#inner.media.storyline[0]#innerShot"),
+            .string("clips[0]#inner.media.storyline[0]#innerShot.connected[0]#innerBox")
+        ])
+        #expect(entries(of: report).first?["clipTime"] == .number(0.5))
+        #expect(entries(of: resolvedReport).map { $0["box"] } == entries(of: report).map { $0["box"] })
+    }
+
+    @Test("timeline nested at a place that holds no nested sequence stops, naming the place")
+    func refusesNestedPlaceWithoutSequence() throws {
+        // Given
+        let value = try Fixture.json(nested)
+        let resolved = try ResolvedSequence(plan: Fixture.documentPlanner.plan(value), hashes: FileHashTable())
+
+        // Then
+        for place in ["storyline[0]", "clips[0]", "clips[0]#inner.media.storyline[0]#innerShot"] {
+            #expect(throws: AnalysisError.notNested(place: place)) { try sut.report(of: value, nested: place) }
+            #expect(throws: AnalysisError.notNested(place: place)) { try sut.report(of: resolved, nested: place) }
+        }
+    }
+
     // MARK: - Private
     // Every entry of a report's machine output, storyline first.
+    private func box(
+        _ rect: [Double],
+        _ corners: [[Double]]
+    ) -> JSONValue {
+        .object(JSONObject(members: [
+            JSONMember(key: "rect", value: .array(rect.map(JSONValue.number))),
+            JSONMember(key: "quad", value: quad(corners))
+        ]))
+    }
+
+    private func quad(_ corners: [[Double]]) -> JSONValue {
+        .array(corners.map { .array($0.map(JSONValue.number)) })
+    }
+
+    private func entries(of nested: JSONValue) -> [JSONObject] {
+        let output = nested.objectValue
+        return ["storyline", "clips"].flatMap { output?[$0]?.arrayValue?.compactMap(\.objectValue) ?? [] }
+    }
+
     private func entries(of report: TimelineReport) -> [JSONObject] {
         let output = report.machineOutput.objectValue
         return ["storyline", "clips"].flatMap { output?[$0]?.arrayValue?.compactMap(\.objectValue) ?? [] }
