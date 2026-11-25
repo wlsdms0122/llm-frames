@@ -89,15 +89,15 @@ struct ShapeAppearanceTests {
             ),
             (
                 #"{ "shape": "path", "points": [[0, 0], [10, 0]], "stroke": { "width": 2, "end": "arrow" } }"#,
-                #"clips[0].stroke.end (path): unknown head preset "arrow". A preset is named <pack>/<name>, and the ones frames ships are frames/<name>"#
+                #"clips[0].stroke.end (path): unknown head preset "arrow". Did you mean "frames/arrow"? A preset is named <pack>/<name>, and the ones frames ships are frames/<name>"#
             ),
             (
                 #"{ "shape": "path", "points": [[0, 0], [10, 0]], "stroke": { "width": 2, "start": { "preset": "mine/hook", "scale": 2 } } }"#,
-                #"clips[0].stroke.start (path): unknown head preset "mine/hook". A preset is named <pack>/<name>, and the ones frames ships are frames/<name>"#
+                #"clips[0].stroke.start (path): unknown head preset "mine/hook". The pack "mine" holds no head presets"#
             ),
             (
                 #"{ "shape": "path", "points": [[0, 0], [10, 0]], "style": "pointer", "stroke": { "end": "frames/dot" } }"#,
-                #"clips[0].stroke.end (path): unknown head preset "frames/dot". A preset is named <pack>/<name>, and the ones frames ships are frames/<name>"#
+                #"clips[0].stroke.end (path): unknown head preset "frames/dot". The pack "frames" holds the head presets frames/arrow, frames/bar, frames/circle, frames/diamond, frames/line-arrow, frames/square"#
             ),
             (
                 #"{ "shape": "rect", "area": [0, 0, 10, 10], "style": "box" }"#,

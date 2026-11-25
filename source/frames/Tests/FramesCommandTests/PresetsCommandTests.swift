@@ -126,9 +126,9 @@ struct PresetsCommandTests {
         "an unknown kind or preset stops",
         arguments: [
             (["presets", "wipe"], #"presets: unknown kind "wipe". Known: transition, animation, filter, audio, head"#),
-            (["presets", "transition", "frames/dissolve"], #"presets: unknown transition preset "frames/dissolve". A preset is named <pack>/<name>, and the ones frames ships are frames/<name>"#),
-            (["presets", "transition", "flash"], #"presets: unknown transition preset "flash". A preset is named <pack>/<name>, and the ones frames ships are frames/<name>"#),
-            (["presets", "animation", "frames/flash"], #"presets: unknown animation preset "frames/flash". A preset is named <pack>/<name>, and the ones frames ships are frames/<name>"#),
+            (["presets", "transition", "frames/dissolve"], #"presets: unknown transition preset "frames/dissolve". The pack "frames" holds the transition presets frames/flash"#),
+            (["presets", "transition", "flash"], #"presets: unknown transition preset "flash". Did you mean "frames/flash"? A preset is named <pack>/<name>, and the ones frames ships are frames/<name>"#),
+            (["presets", "animation", "frames/flash"], #"presets: unknown animation preset "frames/flash". The pack "frames" holds the animation presets frames/pop"#),
             (["presets", "transition", "frames/flash", "more"], #"presets: unexpected argument "more""#)
         ]
     )

@@ -78,6 +78,24 @@ struct PresetTable: PresetProvider {
         return try PresetReader().publishedHead(from: value, place: Place(file: name, components: [])).defaults.head
     }
 
+    // A pack is there where it is `frames` or the table holds a preset of any kind in it.
+    func names(
+        of kind: PresetKind,
+        inPack pack: String
+    ) throws -> [String]? {
+        let all = [Array(transitions.keys), Array(animations.keys), Array(filters.keys), Array(audio.keys), Array(heads.keys)]
+        guard pack == "frames" || all.joined().contains(where: { $0.hasPrefix("\(pack)/") }) else { return nil }
+
+        let names: [String] = switch kind {
+        case .transition: Array(transitions.keys)
+        case .animation: Array(animations.keys)
+        case .filter: Array(filters.keys)
+        case .audio: Array(audio.keys)
+        case .head: Array(heads.keys)
+        }
+        return names.filter { $0.hasPrefix("\(pack)/") }.sorted()
+    }
+
     // MARK: - Private
     private func checkArguments(of instance: PresetInstance) throws {
         _ = try ParameterFiller(checker: KeyChecker()).values(

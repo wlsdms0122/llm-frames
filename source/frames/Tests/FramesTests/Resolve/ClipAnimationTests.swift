@@ -267,7 +267,7 @@ struct ClipAnimationTests {
 
         // When, Then
         let error = #expect(throws: ResolveError.self) { try sut.plan(document: document) }
-        #expect(error?.description == #"clips[0] (title): unknown animation preset "mine/spin". A preset is named <pack>/<name>, and the ones frames ships are frames/<name>"#)
+        #expect(error?.description == #"clips[0] (title): unknown animation preset "mine/spin". The pack "mine" holds the animation presets mine/wipe-in"#)
     }
 
     @Test(
@@ -275,11 +275,11 @@ struct ClipAnimationTests {
         arguments: [
             (
                 #"{ "animation": { "shape": "mine/spin" } }"#,
-                #"theme.defaults.animation.shape (animation defaults): unknown animation preset "mine/spin". A preset is named <pack>/<name>, and the ones frames ships are frames/<name>"#
+                #"theme.defaults.animation.shape (animation defaults): unknown animation preset "mine/spin". The pack "mine" holds the animation presets mine/wipe-in"#
             ),
             (
                 #"{ "animation": { "title": { "subtitle": "mine/spin" } } }"#,
-                #"theme.defaults.animation.title.subtitle (title animations): unknown animation preset "mine/spin". A preset is named <pack>/<name>, and the ones frames ships are frames/<name>"#
+                #"theme.defaults.animation.title.subtitle (title animations): unknown animation preset "mine/spin". The pack "mine" holds the animation presets mine/wipe-in"#
             )
         ]
     )

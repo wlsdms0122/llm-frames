@@ -37,23 +37,23 @@ struct ThemeValidatorTests {
             ),
             (
                 #"{ "defaults": { "animation": { "media": "mine/spin" } } }"#,
-                #"defaults.animation.media (animation defaults): unknown animation preset "mine/spin". A preset is named <pack>/<name>, and the ones frames ships are frames/<name>"#
+                #"defaults.animation.media (animation defaults): unknown animation preset "mine/spin". The pack "mine" holds the animation presets mine/wipe-in"#
             ),
             (
                 #"{ "defaults": { "animation": { "adjust": { "entrance": "frames/pop", "exit": "mine/spin" } } } }"#,
-                #"defaults.animation.adjust (animation defaults): unknown animation preset "mine/spin". A preset is named <pack>/<name>, and the ones frames ships are frames/<name>"#
+                #"defaults.animation.adjust (animation defaults): unknown animation preset "mine/spin". The pack "mine" holds the animation presets mine/wipe-in"#
             ),
             (
                 #"{ "defaults": { "animation": { "title": { "subtitle": "mine/spin" } } } }"#,
-                #"defaults.animation.title.subtitle (title animations): unknown animation preset "mine/spin". A preset is named <pack>/<name>, and the ones frames ships are frames/<name>"#
+                #"defaults.animation.title.subtitle (title animations): unknown animation preset "mine/spin". The pack "mine" holds the animation presets mine/wipe-in"#
             ),
             (
                 #"{ "shapes": { "pointer": { "stroke": { "width": 4, "end": "arrow" } } } }"#,
-                #"shapes.pointer.stroke.end (shape style): unknown head preset "arrow". A preset is named <pack>/<name>, and the ones frames ships are frames/<name>"#
+                #"shapes.pointer.stroke.end (shape style): unknown head preset "arrow". Did you mean "frames/arrow"? A preset is named <pack>/<name>, and the ones frames ships are frames/<name>"#
             ),
             (
                 #"{ "shapes": { "pointer": { "stroke": { "width": 4, "start": { "preset": "mine/hook", "scale": 2 } } } } }"#,
-                #"shapes.pointer.stroke.start (shape style): unknown head preset "mine/hook". A preset is named <pack>/<name>, and the ones frames ships are frames/<name>"#
+                #"shapes.pointer.stroke.start (shape style): unknown head preset "mine/hook". The pack "mine" holds no head presets"#
             )
         ]
     )
