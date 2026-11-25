@@ -119,7 +119,7 @@ end = max(group["rect"][inline] + group["rect"][inline + 2] for group in groups)
 clips = []
 for number, group in enumerate(groups):
     clip = {key: value for key, value in title.items() if key not in ("placement", "width", "keyframes")}
-    clip.update({"id": f"{title_id}-{number}", "title": group["text"], "anchor": "top-left",
+    clip.update({"id": f"{title_id}-{number}", "text": group["text"], "anchor": "top-left",
                  "position": [0, 0], "rotation": 0})
     clips.append(clip)
 document["clips"][index:index + 1] = clips
@@ -145,7 +145,7 @@ for clip, group in zip(clips, groups):
     clip["rotation"] = round(rotation, 3)
 
 if "--guide" in sys.argv:
-    document["clips"].insert(index, {"id": f"{title_id}-path", "shape": "path", "points": GUIDES[path_name],
+    document["clips"].insert(index, {"id": f"{title_id}-path", "kind": "path", "points": GUIDES[path_name],
                                      "stroke": {"color": "#F59E0B", "width": 2}, "fill": False, "animation": "none"})
 json.dump(document, sys.stdout, ensure_ascii=False, indent=1)
 ```

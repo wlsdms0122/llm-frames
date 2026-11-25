@@ -391,7 +391,7 @@ class Places(Case):
     def test_other_requests_only(self):
         # Given a document whose only requests are for another tool, one with a frames/find-text request as its argument,
         # and an area written as text without a tool
-        document = {"kind": "sequence", "storyline": [{"id": "b", "media": self.board, "duration": 2, "connected": [
+        document = {"kind": "sequence", "storyline": [{"id": "b", "kind": "media", "media": self.board, "duration": 2, "connected": [
             {"parent": "b", "kind": "rect", "area": [0, 0, 10, 10], "track": {"tool": "frames/track-motion", "target": "area"}},
             {"parent": "b", "kind": "rect", "area": [0, 0, 10, 10],
              "track": {"tool": "frames/track-motion", "target": {"tool": "frames/find-text", "text": "Total"}}},
@@ -407,7 +407,7 @@ class Places(Case):
 
     def test_request_where_no_area_stands(self):
         # Given a frames/find-text request as a clip's track
-        document = {"kind": "sequence", "storyline": [{"id": "b", "media": self.board, "duration": 2, "connected": [
+        document = {"kind": "sequence", "storyline": [{"id": "b", "kind": "media", "media": self.board, "duration": 2, "connected": [
             {"parent": "b", "kind": "rect", "area": [0, 0, 10, 10], "track": {"tool": "frames/find-text", "text": "Total"}}
         ]}]}
 
@@ -420,7 +420,7 @@ class Places(Case):
 
     def test_probe_fills_other_requests(self):
         # Given a document with requests for another tool in an area, a mask's area and a track, and one in a point
-        document = {"kind": "sequence", "storyline": [{"id": "b", "media": self.board, "duration": 2, "connected": [
+        document = {"kind": "sequence", "storyline": [{"id": "b", "kind": "media", "media": self.board, "duration": 2, "connected": [
             {"parent": "b", "kind": "rect", "area": {"tool": "other", "name": "box"},
              "mask": {"shape": "rect", "area": {"tool": "other", "name": "hole"}},
              "track": {"tool": "frames/track-motion", "target": "area"}}
@@ -443,8 +443,8 @@ class Places(Case):
 
     def test_compound(self):
         # Given a crop that names text inside a compound clip
-        document = {"kind": "sequence", "storyline": [{"media": {"kind": "sequence", "storyline": [
-            {"id": "b", "media": self.board, "duration": 2, "crop": {"tool": "frames/find-text", "text": "Total"}}
+        document = {"kind": "sequence", "storyline": [{"kind": "media", "media": {"kind": "sequence", "storyline": [
+            {"id": "b", "kind": "media", "media": self.board, "duration": 2, "crop": {"tool": "frames/find-text", "text": "Total"}}
         ]}}]}
 
         # When the tool runs
@@ -456,7 +456,7 @@ class Places(Case):
 
     def test_mixed_form(self):
         # Given a frames/find-text request that mixes its text with a clip area's key
-        document = {"kind": "sequence", "storyline": [{"id": "b", "media": self.board, "duration": 2, "connected": [
+        document = {"kind": "sequence", "storyline": [{"id": "b", "kind": "media", "media": self.board, "duration": 2, "connected": [
             {"parent": "b", "kind": "rect", "area": {"tool": "frames/find-text", "text": "Total", "clip": "b"}}
         ]}]}
 

@@ -225,7 +225,8 @@ jq --slurpfile document "$input" '
     | $document[0] + { clips: (($document[0].clips // []) + [
         .storyline | to_entries[] | {
             at: .value.edit,
-            title: "\(.key + 1)/\($count)",
+            kind: "title",
+            text: "\(.key + 1)/\($count)",
             style: "subtitle",
             placement: "top-right",
             animation: "none",
