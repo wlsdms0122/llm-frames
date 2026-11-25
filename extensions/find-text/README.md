@@ -50,7 +50,7 @@ Anywhere else it stops, naming the place and the space its entry reports:
 - a box: a child of a title or of a rect or ellipse placed by `width` and `height`, and such a clip's own `mask`;
 - the media pixels of a compound clip or a template instance, whose picture is drawn and not read.
 
-A `track` target is searched in the clip's own media when it tracks its own media (a video or an image sequence without a corner pin), and otherwise in its parent's media, which a parent with a corner pin or without media of its own does not give ([FRAMES-12](../../spec/FRAMES-12/SPEC.md)).
+A form also stands as the target of a `track` request, the requests `frames track-motion` follows ([its README](../track-motion/README.md)): `"track": <form>`, and `"track": {"time": t, "area": <form>}`. It becomes the rectangle, and the request stays for `frames track-motion`, so the chain is `frames find-text doc.json | frames track-motion - | frames render - -o out.mp4`. The target is searched in the media of the clip its entry reports as `tracked.clip` ([FRAMES-23](../../spec/FRAMES-23/SPEC.md#a-clips-times-and-spaces)), the media its track follows, and an entry whose `tracked` is `null` stops, since there is no video or image sequence to follow.
 
 ## The frame searched
 
@@ -60,9 +60,9 @@ A still or a page has one picture. On a video or an image sequence the form is s
 | --- | --- |
 | a static value | the clip's `instant` |
 | a keyframe's value | its `at` carried by the clip's `clock`, `origin + at / speed` |
-| a `track` object's `area` | none: the frame shown at the media time its `time` names |
+| a `track` request's `area` beside `time` | none: the frame shown at the media time its `time` names |
 
-The extension writes a copy of the document with each form in a placeholder rectangle and without `track`, so frames resolves it without searching or tracking and times its clips as it times the document. It reads `timeline --json` once, and `timeline --at <t> --json` once for each sequence time, whose entry for the searched clip gives the `mediaTime` of the frame its time map shows there, whether the clip draws anything at t or not and inside the sequence or outside it. So `speed`, `in`, `loop`, `timeRemap` and transitions are applied by frames, and the extension computes no time and follows no parent.
+The extension writes a copy of the document with each form in a placeholder rectangle and without `track`, since a request is no value frames takes, so frames resolves it and times its clips as it times the document before any target is followed. It reads `timeline --json` once, and `timeline --at <t> --json` once for each sequence time, whose entry for the searched clip gives the `mediaTime` of the frame its time map shows there, whether the clip draws anything at t or not and inside the sequence or outside it. So `speed`, `in`, `loop`, `timeRemap` and transitions are applied by frames, and the extension computes no time and follows no parent.
 
 The media are read with `frames ocr --json` at that media time: the searched clip's `media`, its `page` as `--page`, an image sequence's directory with the `fps` its entry reports as `--fps`, the searched clip's `colorSpace` as `--color-space`, and `--languages` as given. Each distinct media file, time, page, rate, colour space and languages is read once.
 
