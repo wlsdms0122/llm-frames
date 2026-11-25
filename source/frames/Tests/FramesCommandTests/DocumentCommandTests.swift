@@ -90,13 +90,13 @@ struct DocumentCommandTests {
         #expect(code == 0)
         #expect(sut.standardOutput == """
             duration 1.5
-            storyline[0]  -  edit [0, 1)  drawn [0, 1.25)  clip [0, 1)  sound -  speed 1  transition none
-            storyline[1]#end  -  edit [1, 1.5)  drawn [0.75, 1.5)  clip [0, 0.5)  sound -  speed 1  transition frames/fade 0.5
+            storyline[0]  solid  -  edit [0, 1)  drawn [0, 1.25)  clip [0, 1)  sound -  speed 1  transition none
+            storyline[1]#end  solid  -  edit [1, 1.5)  drawn [0.75, 1.5)  clip [0, 0.5)  sound -  speed 1  transition frames/fade 0.5
 
             """)
     }
 
-    @Test("timeline --json of a resolved document is the document's own, with no preset names")
+    @Test("timeline --json of a resolved document is the document's own, with no preset names, no instants and every clock on sequence time")
     func printsResolvedTimeline() throws {
         // Given
         let document = try sut.write(sequence, named: "doc.json")
@@ -109,7 +109,24 @@ struct DocumentCommandTests {
 
         // Then
         #expect(documentOutput.contains(#""preset": "frames/fade""#))
-        #expect(resolvedOutput == documentOutput.replacingOccurrences(of: #""preset": "frames/fade""#, with: #""preset": null"#))
+        #expect(documentOutput.contains(#""instant": 1,"#))
+        #expect(documentOutput.contains(#""clip": "storyline[1]#end","#))
+        var expected = try #require(JSONSerialization.jsonObject(with: Data(documentOutput.utf8)) as? [String: Any])
+        for key in ["storyline", "clips"] {
+            expected[key] = try #require(expected[key] as? [[String: Any]]).map { entry in
+                var entry = entry
+                entry["instant"] = NSNull()
+                entry["clock"] = ["clip": NSNull(), "origin": 0, "speed": 1] as [String: Any]
+                if var transition = entry["transition"] as? [String: Any] {
+                    transition["preset"] = NSNull()
+                    entry["transition"] = transition
+                }
+
+                return entry
+            }
+        }
+        let timeline = try #require(JSONSerialization.jsonObject(with: Data(resolvedOutput.utf8)) as? [String: Any])
+        #expect(NSDictionary(dictionary: timeline) == NSDictionary(dictionary: expected))
     }
 
     @Test("a document is also read from standard input")
