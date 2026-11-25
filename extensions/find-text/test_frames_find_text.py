@@ -264,6 +264,15 @@ class Places(Case):
         self.assertEqual(area, [77.795659, 483, 238.387482, 23])
         self.assertEqual(self.commands("ocr"), [["ocr", self.board, "--json"]])
 
+    def test_track_on_still(self):
+        # Given a track request whose target names text, on a shape parented to a still
+        # When the extension runs
+        message = self.place("track_on_still")
+
+        # Then it stops, since the shape's entry reports `tracked` as null: a still has no frames to follow
+        self.assertIn("storyline[0]#b.connected[0]: track: the place is not in a medium's pixels", message)
+        self.assertIn("timeline reports no video or image sequence for its track to follow", message)
+
     def test_compound(self):
         # Given a crop that names text inside a compound clip
         document = {"kind": "sequence", "storyline": [{"media": {"kind": "sequence", "storyline": [
