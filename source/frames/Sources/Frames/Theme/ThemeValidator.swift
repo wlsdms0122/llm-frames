@@ -133,10 +133,10 @@ struct ThemeValidator: Sendable {
         )
         guard case let .preset(instance, _) = choice else { return choice }
         guard let preset = try presets.transition(instance) else {
-            throw ThemeError.unknownPreset(
+            throw ThemeError.unknownReference(
                 place: instance.place,
                 kind: kind,
-                preset: try presets.unknown(.transition, named: instance.name)
+                reference: try presets.unknown(.transition, named: instance.name)
             )
         }
         if case let .color(color) = preset.cover?.source {
@@ -158,10 +158,10 @@ struct ThemeValidator: Sendable {
 
         for instance in choice.presets {
             guard let preset = try presets.filter(instance) else {
-                throw ThemeError.unknownPreset(
+                throw ThemeError.unknownReference(
                     place: instance.place,
                     kind: ThemeKeyTable.defaults.kind,
-                    preset: try presets.unknown(.filter, named: instance.name)
+                    reference: try presets.unknown(.filter, named: instance.name)
                 )
             }
 
@@ -185,10 +185,10 @@ struct ThemeValidator: Sendable {
                 guard let name, name != StrokeHeadResolver.none, try presets.head(named: name) == nil else { continue }
 
                 let place = Place.root.appending(key: "shapes").appending(key: style.key).appending(key: "stroke")
-                throw ThemeError.unknownPreset(
+                throw ThemeError.unknownReference(
                     place: theme.place(of: place.appending(key: key)),
                     kind: ShapeKeyTable.style.kind,
-                    preset: try presets.unknown(.head, named: name)
+                    reference: try presets.unknown(.head, named: name)
                 )
             }
         }
@@ -213,10 +213,10 @@ struct ThemeValidator: Sendable {
         )
         for instance in choice.instances {
             guard try presets.animation(instance) != nil else {
-                throw ThemeError.unknownPreset(
+                throw ThemeError.unknownReference(
                     place: theme.place(of: place.appending(key: key)),
                     kind: kind,
-                    preset: try presets.unknown(.animation, named: instance.name)
+                    reference: try presets.unknown(.animation, named: instance.name)
                 )
             }
         }

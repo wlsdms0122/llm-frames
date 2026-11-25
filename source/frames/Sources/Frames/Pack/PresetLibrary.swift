@@ -65,7 +65,11 @@ package struct PresetLibrary: PresetProvider {
         of kind: PresetKind,
         inPack pack: String
     ) throws -> [String]? {
-        try packs.pack(named: pack).map { try names(of: kind, in: $0) }
+        try packs.names(of: .preset(kind), inPack: pack)
+    }
+
+    func packNames() throws -> [String] {
+        try packs.packNames()
     }
 
     // MARK: - Public
@@ -101,7 +105,7 @@ package struct PresetLibrary: PresetProvider {
         of kind: PresetKind,
         in pack: Pack
     ) throws -> [String] {
-        try packs.names(in: "presets/\(kind.rawValue)", of: pack, pathExtension: "json").map { "\(pack.name)/\($0)" }
+        try packs.names(of: .preset(kind), in: pack).map { "\(pack.name)/\($0)" }
     }
 
     private func entry(

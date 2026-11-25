@@ -34,8 +34,9 @@ struct PresetsCommand: Command {
             return
         }
         guard let text = try presets.text(named: name, kind: kind) else {
-            throw CommandError.unknownPreset(
-                try UnknownPreset(kind: kind, name: name) { pack in try presets.names(of: kind, inPack: pack) }
+            throw CommandError.unknownReference(
+                command: self.name,
+                reference: try context.packs.unknown(.preset(kind), named: name)
             )
         }
 

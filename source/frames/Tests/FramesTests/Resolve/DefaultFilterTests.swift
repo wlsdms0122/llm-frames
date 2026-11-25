@@ -111,7 +111,7 @@ struct DefaultFilterTests {
 
         // When, Then
         let error = #expect(throws: ResolveError.self) { try filmPlan(document) }
-        #expect(error == .unknownPresetFile(place: place, kind: .themeDefaults, name: "film.cube"))
+        #expect(error == .unknownReference(place: place, kind: .themeDefaults, reference: UnknownReference(kind: .lut, name: "film.cube", hint: .spelling(nearest: nil))))
     }
 
     // MARK: - Private

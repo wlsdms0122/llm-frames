@@ -24,17 +24,16 @@ enum CommandError: Error, Equatable, CustomStringConvertible, Sendable {
     case argumentsAfterHelp(arguments: [String])
     case unknownRole(option: String, role: String, name: String, known: [String])
     case unknownCommand(name: String)
-    case unknownTool(UnknownTool)
+    case unknownTool(UnknownReference)
     case unstartableTool(path: String, reason: String)
     case unknownDocument(command: String, argument: String)
-    case unknownTemplate(command: String, name: String)
+    case unknownReference(command: String, reference: UnknownReference)
     case missingFile(path: String)
     case unwritableFile(path: String)
     case resolvedExtension(path: String)
     case reportExtension(path: String)
     case reportOverOutput(path: String)
     case unknownPresetKind(kind: String, known: [String])
-    case unknownPreset(UnknownPreset)
     case unknownPack(name: String)
     case missingLabelFace(name: String, file: String)
     case argumentsOfMedium(command: String, path: String)
@@ -98,9 +97,8 @@ enum CommandError: Error, Equatable, CustomStringConvertible, Sendable {
             "\(command): the document \(quoted(argument)) is not an absolute path, <pack>/<name> or -, "
                 + "and paths are absolute"
 
-        case let .unknownTemplate(command, name):
-            "\(command): unknown template \(quoted(name)), "
-                + "as a document that is not an absolute path names <pack>/<name>"
+        case let .unknownReference(command, reference):
+            "\(command): \(reference)"
 
         case let .missingFile(path):
             "\(path): the file is not there"
@@ -119,9 +117,6 @@ enum CommandError: Error, Equatable, CustomStringConvertible, Sendable {
 
         case let .unknownPresetKind(kind, known):
             "presets: unknown kind \(quoted(kind)). Known: \(known.joined(separator: ", "))"
-
-        case let .unknownPreset(preset):
-            "presets: \(preset)"
 
         case let .unknownPack(name):
             "packs: unknown pack \(quoted(name))"

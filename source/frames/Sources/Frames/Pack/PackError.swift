@@ -15,7 +15,7 @@ enum PackError: Error, Equatable, CustomStringConvertible, Sendable {
     case unexecutableRun(place: Place, run: String)
     case unreadableFile(file: String)
     case circularReference(place: Place, files: [String])
-    case unknownThemeOption(name: String)
+    case unknownThemeOption(reference: UnknownReference)
     case themeOnTemplate(place: Place, kind: String)
     case argumentsWithoutTemplate(place: Place, kind: String)
     case argumentOfWrongKind(place: Place, kind: String, name: String, type: String, found: MediaKind)
@@ -55,8 +55,8 @@ enum PackError: Error, Equatable, CustomStringConvertible, Sendable {
             "\(place) (document): "
                 + "it holds itself through \(files.map(quoted).joined(separator: ", ")), so it never ends"
 
-        case let .unknownThemeOption(name):
-            "--theme: unknown theme \(quoted(name)). A theme is named <pack>/<name> or by an absolute path"
+        case let .unknownThemeOption(reference):
+            "--theme: \(reference)"
 
         case let .themeOnTemplate(place, kind):
             "\(place) (\(kind)): a template resolves on the base theme and its own theme, so it takes no --theme"

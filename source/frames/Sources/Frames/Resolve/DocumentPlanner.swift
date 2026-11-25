@@ -118,7 +118,9 @@ package struct DocumentPlanner: Sendable {
     // MARK: - Private
     private func theme(named name: String?) throws -> MergedTheme {
         guard let name else { return .base }
-        guard let layer = try library.theme(named: name) else { throw PackError.unknownThemeOption(name: name) }
+        guard let layer = try library.theme(named: name) else {
+            throw PackError.unknownThemeOption(reference: try library.unknown(.theme, named: name))
+        }
 
         return try merger.merge([layer], over: .base)
     }

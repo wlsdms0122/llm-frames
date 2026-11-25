@@ -51,7 +51,7 @@ struct PresetValueResolver: Sendable {
         place: Place,
         kind: PlaceKind
     ) throws -> String {
-        try file(name, found: library.lutFile(named: name), place: place, kind: kind)
+        try file(name, of: .lut, found: library.lutFile(named: name), place: place, kind: kind)
     }
 
     // A displacement map is named as media is, and is a raster still read as its tags say.
@@ -137,7 +137,7 @@ struct PresetValueResolver: Sendable {
         place: Place,
         kind: PlaceKind
     ) throws -> String {
-        try file(name, found: library.mediaFile(named: name), place: place, kind: kind)
+        try file(name, of: .media, found: library.mediaFile(named: name), place: place, kind: kind)
     }
 
     // A document is a sequence whatever it holds.
@@ -218,20 +218,31 @@ struct PresetValueResolver: Sendable {
                 throw ResolveError.unreadableMedia(place: place, kind: kind, reference: reference, reason: "\(error)")
             }
 
-            throw ResolveError.missingMedia(place: place, kind: kind, reference: reference)
+            throw ResolveError.unknownReference(
+                place: place,
+                kind: kind,
+                reference: try library.unknown(.media, named: reference)
+            )
         }
 
         return medium
     }
 
-    // A bare name, an unknown pack or another spelling names no file, and stops.
+    // A name of another spelling or of a pack that is not there names no file of `fileKind`, and stops.
     private func file(
         _ name: String,
+        of fileKind: ReferenceKind,
         found: String?,
         place: Place,
         kind: PlaceKind
     ) throws -> String {
-        guard let found else { throw ResolveError.unknownPresetFile(place: place, kind: kind, name: name) }
+        guard let found else {
+            throw ResolveError.unknownReference(
+                place: place,
+                kind: kind,
+                reference: try library.unknown(fileKind, named: name)
+            )
+        }
 
         return found
     }

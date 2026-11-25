@@ -606,7 +606,7 @@ struct SequencePlannerTests {
 
         // When, Then
         let error = #expect(throws: ResolveError.self) { try plan(document) }
-        #expect(error == .unknownPreset(place: Place.root.appending(key: "storyline").appending(index: 0).appending(key: "filter").appending(index: 1), kind: .clip(.media(.video)), preset: UnknownPreset(kind: .filter, name: "mine/cold", hint: .pack(pack: "mine", names: ["mine/grade"], nearest: nil))))
+        #expect(error == .unknownReference(place: Place.root.appending(key: "storyline").appending(index: 0).appending(key: "filter").appending(index: 1), kind: .clip(.media(.video)), reference: UnknownReference(kind: .preset(.filter), name: "mine/cold", hint: .pack(pack: "mine", names: ["mine/grade"], nearest: nil))))
     }
 
     @Test("each mask geometry form resolves in the clip's space, its feather times the length scale and its keys defaulted")

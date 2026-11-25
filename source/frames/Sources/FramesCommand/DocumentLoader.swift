@@ -60,7 +60,10 @@ struct DocumentLoader: Sendable {
                 let file = try packs.file(of: reference, in: "templates", pathExtension: "json"),
                 let data = try packs.contents(of: file)
             else {
-                throw CommandError.unknownTemplate(command: command, name: "\(pack)/\(name)")
+                throw CommandError.unknownReference(
+                    command: command,
+                    reference: try packs.unknown(.template, named: "\(pack)/\(name)")
+                )
             }
 
             return data

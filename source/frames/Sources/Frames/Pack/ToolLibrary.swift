@@ -12,8 +12,6 @@ import Foundation
 // It finds a tool and runs nothing.
 package struct ToolLibrary: Sendable {
     // MARK: - Property
-    private static let folder = "tools"
-
     private let packs: PackLibrary
     private let reader = ToolReader()
 
@@ -45,20 +43,14 @@ package struct ToolLibrary: Sendable {
     }
 
     // The stop for `name`, which finds no tool, with what the tools that are there say about it.
-    package func unknown(named name: String) throws -> UnknownTool {
-        try UnknownTool(name: name) { packName in
-            try packs.pack(named: packName).map { pack in
-                try names(in: pack).map { "\(pack.name)/\($0)" }
-            }
-        }
+    package func unknown(named name: String) throws -> UnknownReference {
+        try packs.unknown(.tool, named: name)
     }
 
     // MARK: - Private
-    // The names of the tools a pack holds, in name order. A tool is a directory, so a file in `tools/` is none.
+    // The names of the tools a pack holds, in name order.
     private func names(in pack: Pack) throws -> [String] {
-        try packs.names(in: Self.folder, of: pack, pathExtension: nil).filter { name in
-            packs.isDirectory(directory(of: name, in: pack))
-        }
+        try packs.names(of: .tool, in: pack)
     }
 
     private func directory(
@@ -66,7 +58,7 @@ package struct ToolLibrary: Sendable {
         in pack: Pack
     ) -> URL {
         pack.directory
-            .appendingPathComponent(Self.folder, isDirectory: true)
+            .appendingPathComponent(ReferenceKind.tool.folder, isDirectory: true)
             .appendingPathComponent(name, isDirectory: true)
     }
 

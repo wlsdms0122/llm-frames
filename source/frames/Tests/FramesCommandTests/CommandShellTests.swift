@@ -159,7 +159,7 @@ struct CommandShellTests {
             ),
             (["timeline", "a/b/c.json"], #"timeline: the document "a/b/c.json" is not an absolute path, <pack>/<name> or -, and paths are absolute"#),
             (["timeline", "/nowhere/doc.json"], "/nowhere/doc.json: the file is not there"),
-            (["timeline", "nopack/intro"], #"timeline: unknown template "nopack/intro", as a document that is not an absolute path names <pack>/<name>"#),
+            (["timeline", "nopack/intro"], #"timeline: unknown template "nopack/intro". There is no pack "nopack", and the packs are frames"#),
             (["--decoder", "ffmpeg", "theme"], #"--decoder: unknown decoder "ffmpeg". Known: avfoundation"#),
             (["--renderer", "metal", "theme"], #"--renderer: unknown renderer "metal". Known: quartz"#),
             (["--ocr", "tesseract", "theme"], #"--ocr: unknown OCR provider "tesseract". Known: vision"#),
@@ -299,7 +299,7 @@ struct CommandShellTests {
             ("studio/autocat", #"unknown tool "studio/autocat". Did you mean "studio/autocut"? The pack "studio" holds the tools studio/autocut, studio/captions"#),
             ("studio/render", #"unknown tool "studio/render". The pack "studio" holds the tools studio/autocut, studio/captions"#),
             ("frames/find-txt", #"unknown tool "frames/find-txt". The pack "frames" holds no tools"#),
-            ("nopack/autocut", #"unknown tool "nopack/autocut". A tool is named <pack>/<name>, and the ones frames ships are frames/<name>"#),
+            ("nopack/autocut", #"unknown tool "nopack/autocut". There is no pack "nopack", and the packs are frames, studio"#),
             ("studio/autocut/more", #"unknown tool "studio/autocut/more". A tool is named <pack>/<name>, and the ones frames ships are frames/<name>"#),
             ("/abs/autocut", #"unknown tool "/abs/autocut". A tool is named <pack>/<name>, and the ones frames ships are frames/<name>"#)
         ]

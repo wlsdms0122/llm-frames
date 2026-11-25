@@ -20,13 +20,12 @@ enum ModelError: Error, Equatable, CustomStringConvertible, Sendable {
     case misplacedParameter(place: Place, kind: String, name: String, type: String, expected: String)
     case unusedParameter(place: Place, name: String)
     case nestedTemplate(place: Place, kind: String)
-    case missingMedia(place: Place, kind: String, reference: String)
+    case unknownReference(place: Place, kind: String, reference: UnknownReference)
     case unreadableMedia(place: Place, kind: String, reference: String, reason: String)
     case unnamedPage(place: Place, kind: String, reference: String, pageCount: Int)
     case missingPage(place: Place, kind: String, reference: String, page: Int, pageCount: Int)
     case pageOfNonPDF(place: Place, kind: String, reference: String)
     case highDynamicRangePage(place: Place, kind: String, reference: String, page: Int, colorSpace: ColorSpace)
-    case unknownTemplate(place: Place, kind: String, name: String)
     case misplacedMedia(place: Place, kind: String, reason: String)
     case easeWithoutFollowingKeyframe(place: Place, leaves: [Place])
     case request(place: Place, tool: String)
@@ -79,8 +78,8 @@ enum ModelError: Error, Equatable, CustomStringConvertible, Sendable {
         case let .nestedTemplate(place, kind):
             "\(place) (\(kind)): a document with params is a template and is used only as a template instance"
 
-        case let .missingMedia(place, kind, reference):
-            "\(place) (\(kind)): media \"\(reference)\" is not there"
+        case let .unknownReference(place, kind, reference):
+            "\(place) (\(kind)): \(reference)"
 
         case let .unreadableMedia(place, kind, reference, reason):
             "\(place) (\(kind)): media \"\(reference)\" cannot be probed: \(reason)"
@@ -96,9 +95,6 @@ enum ModelError: Error, Equatable, CustomStringConvertible, Sendable {
 
         case let .highDynamicRangePage(place, kind, reference, page, colorSpace):
             "\(place) (\(kind)): media \"\(reference)\" page \(page) is not HDR, so it is read in a colour space of standard dynamic range, not \"\(colorSpace.rawValue)\". Allowed: \(VocabularyTable.standardDynamicRangeColorSpaces.joined(separator: ", "))"
-
-        case let .unknownTemplate(place, kind, name):
-            "\(place) (\(kind)): unknown template \"\(name)\""
 
         case let .misplacedMedia(place, kind, reason):
             "\(place) (\(kind)): \(reason)"

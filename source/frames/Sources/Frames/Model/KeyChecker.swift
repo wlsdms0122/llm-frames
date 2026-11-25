@@ -874,7 +874,11 @@ struct KeyChecker: Sendable {
             [template.stringValue ?? ""]
         }
         for name in names where try !mediaKinds.hasTemplate(named: name) {
-            throw ModelError.unknownTemplate(place: place.appending(key: "template"), kind: kind, name: name)
+            throw ModelError.unknownReference(
+                place: place.appending(key: "template"),
+                kind: kind,
+                reference: try mediaKinds.unknown(.template, named: name)
+            )
         }
 
         return .sequence
@@ -950,7 +954,13 @@ struct KeyChecker: Sendable {
         } catch let error as UnreadableMediaError {
             throw ModelError.unreadableMedia(place: place, kind: kind, reference: reference, reason: "\(error.reason)")
         }
-        guard let found else { throw ModelError.missingMedia(place: place, kind: kind, reference: reference) }
+        guard let found else {
+            throw ModelError.unknownReference(
+                place: place,
+                kind: kind,
+                reference: try mediaKinds.unknown(.media, named: reference)
+            )
+        }
 
         return found
     }

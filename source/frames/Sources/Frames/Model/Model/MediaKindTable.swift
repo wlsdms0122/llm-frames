@@ -35,5 +35,23 @@ struct MediaKindTable: MediaKindProvider {
         templates.contains(name)
     }
 
+    // A pack is there where the table holds media or a template in it, and holds the names of the kind it gives.
+    func unknown(
+        _ kind: ReferenceKind,
+        named name: String
+    ) -> UnknownReference {
+        let all = Set(kinds.keys).union(pageCounts.keys).union(templates)
+        let held = kind == .template ? templates : Set(kinds.keys).union(pageCounts.keys)
+        let packs = Set(all.compactMap { name -> String? in
+            guard case let .pack(pack, _)? = PackReference(name) else { return nil }
+
+            return pack
+        })
+
+        return UnknownReference(kind: kind, name: name, packs: { packs.sorted() }) { pack in
+            packs.contains(pack) ? held.filter { $0.hasPrefix("\(pack)/") }.sorted() : nil
+        }
+    }
+
     // MARK: - Private
 }

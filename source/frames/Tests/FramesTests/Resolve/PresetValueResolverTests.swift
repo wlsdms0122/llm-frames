@@ -24,6 +24,7 @@ struct PresetValueResolverTests {
             in: "shorts",
             at: "presets/filter/film.json"
         )
+        try directory.write("LUT_3D_SIZE 2", in: "shorts", at: "luts/film.cube")
         try directory.write(
             #"""
             { "description": "ripple", "ops": [ { "kind": "displace", "file": "shorts/ripple.png", "amount": 8 },
@@ -169,8 +170,8 @@ struct PresetValueResolverTests {
         }
 
         // Then
-        #expect(missing == .missingMedia(place: .root, kind: .clip(.media(.video)), reference: "/abs/none.png"))
-        #expect(bare == .unknownPresetFile(place: .root, kind: .clip(.media(.video)), name: "ripple.png"))
+        #expect(missing == .unknownReference(place: .root, kind: .clip(.media(.video)), reference: UnknownReference(kind: .media, name: "/abs/none.png", hint: nil)))
+        #expect(bare == .unknownReference(place: .root, kind: .clip(.media(.video)), reference: UnknownReference(kind: .media, name: "ripple.png", hint: .spelling(nearest: nil))))
     }
 
     @Test("a pack preset's impulse responses, by <pack>/<name.ext> in the pack's media and by an absolute path, are pinned with their SHA-256")
@@ -252,8 +253,8 @@ struct PresetValueResolverTests {
         }
 
         // Then
-        #expect(missing == .missingMedia(place: .root, kind: .clip(.media(.audio)), reference: "/abs/none.wav"))
-        #expect(unknownPack == .unknownPresetFile(place: .root, kind: .clip(.media(.audio)), name: "nopack/hall.wav"))
+        #expect(missing == .unknownReference(place: .root, kind: .clip(.media(.audio)), reference: UnknownReference(kind: .media, name: "/abs/none.wav", hint: nil)))
+        #expect(unknownPack == .unknownReference(place: .root, kind: .clip(.media(.audio)), reference: UnknownReference(kind: .media, name: "nopack/hall.wav", hint: .unknownPack(pack: "nopack", packs: ["shorts"], nearest: nil))))
     }
 
     @Test("a cover named by an absolute path in a pack preset keeps that path")
@@ -306,7 +307,7 @@ struct PresetValueResolverTests {
         }
 
         // Then
-        #expect(error == .unknownPresetFile(place: .root, kind: .clip(.media(.video)), name: "wipe.png"))
+        #expect(error == .unknownReference(place: .root, kind: .clip(.media(.video)), reference: UnknownReference(kind: .media, name: "wipe.png", hint: .spelling(nearest: nil))))
     }
 
     @Test("a cover colour named in a preset is written as the theme's value, color(srgb r g b / a)")

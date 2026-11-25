@@ -7,10 +7,9 @@
 
 enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
     case emptyStoryline(place: Place, kind: PlaceKind)
-    case missingMedia(place: Place, kind: PlaceKind, reference: String)
+    case unknownReference(place: Place, kind: PlaceKind, reference: UnknownReference)
     case unreadableMedia(place: Place, kind: PlaceKind, reference: String, reason: String)
     case unconvertibleMediaColor(place: Place, kind: PlaceKind, reference: String)
-    case unknownTheme(place: Place, kind: PlaceKind, name: String)
     case missingKey(place: Place, kind: PlaceKind, key: String)
     case nonPositiveDuration(place: Place, kind: PlaceKind, duration: Double)
     case emptyClipRange(place: Place, kind: PlaceKind, in: Double, out: Double)
@@ -28,8 +27,6 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
     case rangeWithTimeRemap(place: Place, kind: PlaceKind, key: String)
     case singleStartWithTimeRemap(place: Place, kind: PlaceKind)
     case transitionOnFirstClip(place: Place, kind: PlaceKind)
-    case unknownPreset(place: Place, kind: PlaceKind, preset: UnknownPreset)
-    case unknownPresetFile(place: Place, kind: PlaceKind, name: String)
     case unknownPresetColor(place: Place, kind: PlaceKind, name: String)
     case unusableDisplacementMap(place: Place, kind: PlaceKind, reference: String, refusal: DisplacementMapRefusal)
     case unusableImpulseResponse(place: Place, kind: PlaceKind, reference: String, refusal: ImpulseResponseRefusal)
@@ -106,8 +103,8 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
         case let .emptyStoryline(place, kind):
             "\(place) (\(kind.label)): the storyline is empty, and a sequence needs at least one storyline clip"
 
-        case let .missingMedia(place, kind, reference):
-            "\(place) (\(kind.label)): media \(quoted(reference)) is not there"
+        case let .unknownReference(place, kind, reference):
+            "\(place) (\(kind.label)): \(reference)"
 
         case let .unreadableMedia(place, kind, reference, reason):
             "\(place) (\(kind.label)): media \(quoted(reference)) cannot be probed: \(reason)"
@@ -116,10 +113,6 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
             "\(place) (\(kind.label)): media \(quoted(reference)) is tagged with a LUT-based ICC profile or a code "
                 + "point H.273 reserves, which no fixed formula converts. Write the colorSpace it is in here, or "
                 + "convert it with transcode"
-
-        case let .unknownTheme(place, kind, name):
-            "\(place) (\(kind.label)): unknown theme \(quoted(name)). "
-                + "A theme is named <pack>/<name> or by an absolute path"
 
         case let .missingKey(place, kind, key):
             "\(place) (\(kind.label)): missing key \(quoted(key))"
@@ -174,13 +167,6 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
         case let .transitionOnFirstClip(place, kind):
             "\(place) (\(kind.label)): the first storyline clip has no transition. "
                 + "To open from black, put a solid clip first and give the clip after it the transition"
-
-        case let .unknownPreset(place, kind, preset):
-            "\(place) (\(kind.label)): \(preset)"
-
-        case let .unknownPresetFile(place, kind, name):
-            "\(place) (\(kind.label)): the preset names the file \(quoted(name)), which names nothing. "
-                + "A preset names a file by <pack>/<name> or by an absolute path"
 
         case let .unknownPresetColor(place, kind, name):
             "\(place) (\(kind.label)): the preset names the colour \(quoted(name)), which is not in the theme's colors"
