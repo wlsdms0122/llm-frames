@@ -18,7 +18,7 @@ struct FailingVideoWriter: VideoWriter {
     // MARK: - Lifecycle
     // A file it never writes, in no time.
     var encoding: FileEncoding {
-        FileEncoding(path: "", codec: "ProRes 422 HQ", usesHardware: false, seconds: StageTimes())
+        FileEncoding(path: "", codec: "ProRes 422 HQ", usesHardware: false, device: .cpu, seconds: StageTimes())
     }
 
     func append(_ frame: Pixels) throws {

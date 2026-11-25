@@ -11,10 +11,11 @@ import Frames
 
 // Composites the items of one frame's list on the GPU, bottom first, as a Core Image image of the list's raster, rows
 // counted from the bottom, in the form the list's `compositing` names. Each item is a layer laid over what is below it
-// by source-over, or by its blend mode's kernel (`Blender`). A picture that shows its media source alone, placed by a
-// scale and a move, cut where it is cut on whole pixels, with no mask, track matte or reveal, is a layer made on the GPU
-// from the decoder's pixels with its opacity. Every other item is drawn by `FrameDrawer` into a layer of the part of the
-// raster it covers, an adjustment reading the image below it. The items of a nested list drawn in place are laid one by
+// by source-over, or by its blend mode's kernel (`Blender`). A picture that shows its media source alone at its own
+// size, moved by whole pixels, cut where it is cut on whole pixels, with no mask, track matte or reveal, is a layer made
+// on the GPU from the decoder's pixels with its opacity, which resamples nothing. Every other item, a picture that is
+// resampled among them, is drawn by `FrameDrawer` into a layer of the part of the raster it covers, so it is resampled
+// by the filter of `quartz`, an adjustment reading the image below it. The items of a nested list drawn in place are laid one by
 // one, as `FrameDrawer` draws them.
 final class LayerCompositor {
     // MARK: - Property
@@ -93,8 +94,8 @@ final class LayerCompositor {
             .transformed(by: CGAffineTransform(translationX: area.minX, y: CGFloat(raster.height) - area.maxY))
     }
 
-    // The picture item's media carried onto the raster on the GPU, cut to its destination and scaled by its opacity,
-    // nil where the item is not one the GPU draws this way.
+    // The picture item's media carried onto the raster on the GPU pixel for pixel, cut to its destination and scaled
+    // by its opacity, nil where the item is not one the GPU draws this way.
     private func picture(
         of item: DisplayItem,
         on raster: Raster
@@ -117,7 +118,12 @@ final class LayerCompositor {
         guard let placement = picture.placement(ofSourceSized: size) else { return nil }
 
         let map = placement.concatenating(matrix)
-        guard map.b == 0, map.c == 0, map.a > 0, map.d > 0 else { return nil }
+        guard
+            map.a == 1, map.b == 0, map.c == 0, map.d == 1,
+            map.tx == map.tx.rounded(), map.ty == map.ty.rounded()
+        else {
+            return nil
+        }
 
         let destination = CGRect(picture.destination).applying(matrix)
         let placed = CGRect(origin: .zero, size: size).applying(map)

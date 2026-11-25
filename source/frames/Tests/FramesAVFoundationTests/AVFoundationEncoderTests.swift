@@ -8,6 +8,7 @@
 import AVFoundation
 import Foundation
 import ImageIO
+import IOSurface
 import Frames
 import FramesAVFoundation
 import FramesTestMedia
@@ -588,13 +589,64 @@ struct AVFoundationEncoderTests {
         #expect(encodings.map(\.path) == [master, delivery])
         #expect(encodings.map(\.codec) == ["ProRes 422 HQ", "H.264"])
         #expect(encodings[1].usesHardware)
+        #expect(encodings.allSatisfy { $0.device == .cpu })
         #expect(encodings.allSatisfy { $0.seconds[.outputConversion] > 0 && $0.seconds[.encode] > 0 })
         #expect(encodings.allSatisfy { $0.seconds.renderThreadSeconds == 0 })
-        #expect(png.path == image && png.codec == "PNG" && !png.usesHardware)
+        #expect(png.path == image && png.codec == "PNG" && !png.usesHardware && png.device == .cpu)
         #expect(png.seconds[.outputConversion] > 0 && png.seconds[.encode] > 0)
     }
 
+    @Test("a video writer converts frames given as surfaces on the GPU and frames given as bitmaps on the CPU, and a scaled one every frame on the CPU")
+    func namesConversionDevice() throws {
+        // Given
+        let directory = try TemporaryDirectory()
+        let sut = AVFoundationEncoder(deadline: Self.deadline)
+        let targets = [
+            EncodeTarget.master(path: directory.file("master.mov"), alpha: true),
+            .delivery(path: directory.file("delivery.mp4")),
+            .compressed(path: directory.file("small.mp4"), codec: .h264, quality: .medium, size: Size(width: 32, height: 24))
+        ]
+        let surface = try surface(of: frame())
+
+        // When
+        let devices = try [Pixels.surface(surface), .bitmap(frame())].map { picture in
+            try targets.map { target in
+                let writer = try sut.videoWriter(for: target, size: size, fps: 30, sound: nil)
+                for _ in 0..<frameCount {
+                    try writer.append(picture)
+                }
+                try writer.finish()
+
+                return writer.encoding.device
+            }
+        }
+
+        // Then
+        #expect(devices == [[.gpu, .gpu, .cpu], [.cpu, .cpu, .cpu]])
+    }
+
     // MARK: - Private
+    // The bitmap's pixels as a surface of half floats.
+    private func surface(of bitmap: Bitmap) throws -> PictureSurface {
+        let (surface, picture) = try #require(SurfacePool().surface(width: bitmap.width, height: bitmap.height))
+        IOSurfaceLock(surface, [], nil)
+        defer { IOSurfaceUnlock(surface, [], nil) }
+
+        let base = IOSurfaceGetBaseAddress(surface)
+        let bytesPerRow = IOSurfaceGetBytesPerRow(surface)
+        bitmap.pixels.withUnsafeBytes { buffer in
+            for y in 0..<bitmap.height {
+                let source = (buffer.baseAddress! + y * bitmap.bytesPerRow).assumingMemoryBound(to: UInt16.self)
+                let row = (base + y * bytesPerRow).assumingMemoryBound(to: Float16.self)
+                for index in 0..<bitmap.width * 4 {
+                    row[index] = Float16(Float(UInt16(littleEndian: source[index])) / 65_535)
+                }
+            }
+        }
+
+        return picture
+    }
+
     private var size: Size {
         Size(width: Double(width), height: Double(height))
     }
