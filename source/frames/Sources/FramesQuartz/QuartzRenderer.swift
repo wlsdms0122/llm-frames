@@ -33,8 +33,11 @@ extension QuartzRenderer: Renderer {
         try DisplayListChecker(tables: tables).check(list)
     }
 
+    // Once the frame is drawn, the media pictures it did not use are let go of.
     package func frame(of list: DisplayList) throws -> Pixels {
-        try autoreleasepool {
+        defer { pictures.frameDrawn() }
+
+        return try autoreleasepool {
             .bitmap(try FrameDrawer(pictures: pictures, tables: tables, fonts: fonts).draw(list).bitmap())
         }
     }

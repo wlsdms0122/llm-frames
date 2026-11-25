@@ -79,7 +79,7 @@ struct PictureLookaheadTests {
             let file = directory.file("code-\(index).mp4")
             try FileManager.default.linkItem(atPath: movie, toPath: file)
 
-            return MediaFile(path: file, size: size, frameTimes: times)
+            return MediaFile.video(file, frameTimes: times, size: size)
         }
         let sut = AVFoundationDecoder()
 
