@@ -7,12 +7,13 @@
 
 import Frames
 
-// Prints, as machine output, the track data of a target the tracker provider follows in a video, an area or a
-// quadrilateral: the quads it follows the target along, which a clip's `track` takes.
+// Prints, as machine output, the track data of a target the tracker provider follows in a video or an image
+// sequence, an area or a quadrilateral: the quads it follows the target along, which a clip's `track` takes.
 struct TrackCommand: Command {
     // MARK: - Property
     let name = "track"
-    let synopsis = "<video> --at <t> (--area <area> | --quad <quad>) [--to <t>] [--color-space <name>]"
+    let synopsis = "<video | image sequence> [--fps <rate>] --at <t> (--area <area> | --quad <quad>) [--to <t>] "
+        + "[--color-space <name>]"
     let summary = "Follows an area or a quadrilateral on the frame at a media time backwards and forwards with the "
         + "tracker provider, and prints as JSON the track data a clip's track takes: its quadrilateral on every frame "
         + "followed."
@@ -31,7 +32,8 @@ struct TrackCommand: Command {
             tracker: roles.tracker
         )
         let report = try reporter.report(
-            of: options.video,
+            of: options.media,
+            fps: options.fps,
             target: options.target,
             at: options.time,
             to: options.end,

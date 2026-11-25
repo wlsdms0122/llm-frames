@@ -46,11 +46,12 @@ enum AnalysisError: Error, Equatable, CustomStringConvertible, Sendable {
             "media \(quoted(file)) is sound, so it has no picture to read"
 
         case let .notVideo(file, kind):
-            "media \(quoted(file)) is \(kind == .audio ? "sound" : "a still"), and only a video has frames to follow"
+            "media \(quoted(file)) is \(kind == .audio ? "sound" : "a still"), and only a video or an image sequence "
+                + "has frames to follow"
 
         case let .targetNotFollowed(option, time, file):
-            "\(option): the tracker follows the target on no frame of \(quoted(file)) from media second \(number(time)), "
-                + "since none of it lies inside the picture or the tracker loses it there"
+            "\(option): the tracker follows the target on no frame of \(quoted(file)) from media second "
+                + "\(number(time)), since none of it lies inside the picture or the tracker loses it there"
 
         case .quadForm:
             "--quad: a quadrilateral is four points [x, y] of numbers, its top left, top right, bottom right and bottom "
