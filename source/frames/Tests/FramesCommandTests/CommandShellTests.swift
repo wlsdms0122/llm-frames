@@ -160,7 +160,7 @@ struct CommandShellTests {
             (["timeline", "a/b/c.json"], #"timeline: the document "a/b/c.json" is not an absolute path, <pack>/<name> or -, and paths are absolute"#),
             (["timeline", "/nowhere/doc.json"], "/nowhere/doc.json: the file is not there"),
             (["timeline", "nopack/intro"], #"timeline: unknown template "nopack/intro". There is no pack "nopack", and the packs are frames"#),
-            (["--decoder", "ffmpeg", "theme"], #"--decoder: unknown decoder "ffmpeg". Known: avfoundation"#),
+            (["--decoder", "ffmpeg", "theme"], #"--decoder: unknown decoder "ffmpeg". Known: avfoundation, avfoundation-cpu"#),
             (["--renderer", "metal", "theme"], #"--renderer: unknown renderer "metal". Known: quartz"#),
             (["--ocr", "tesseract", "theme"], #"--ocr: unknown OCR provider "tesseract". Known: vision"#),
             (["--shaper", "harfbuzz", "theme"], #"--shaper: unknown shaping provider "harfbuzz". Known: coretext"#),
@@ -349,7 +349,7 @@ struct CommandShellTests {
 
         // Then
         #expect(code == 1)
-        #expect(sut.standardError == "frames: --decoder: unknown decoder \"ffmpeg\". Known: avfoundation\n")
+        #expect(sut.standardError == "frames: --decoder: unknown decoder \"ffmpeg\". Known: avfoundation, avfoundation-cpu\n")
         #expect(!FileManager.default.fileExists(atPath: record))
     }
 

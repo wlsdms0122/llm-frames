@@ -44,7 +44,7 @@ final class MediaPictureCache: Sendable {
         }
         if let kept { return kept }
 
-        let image = try decoder.picture(of: frame).cgImage()
+        let image = try decoder.picture(of: frame).bitmap.cgImage()
         pictures.withLock { pictures in
             let others = (pictures[file.path] ?? []).filter { $0.picture != picture || $0.reading != reading }
             pictures[file.path] = Array((others + [(picture, reading, image)]).suffix(Self.picturesPerFile))
@@ -64,7 +64,7 @@ final class MediaPictureCache: Sendable {
         let kept = pages.withLock { pages in pages[file.path]?.first { $0.request == request }?.image }
         if let kept { return kept }
 
-        let image = try decoder.picture(of: file, region: region, scale: scale, reading: frame.reading).cgImage()
+        let image = try decoder.picture(of: file, region: region, scale: scale, reading: frame.reading).bitmap.cgImage()
         pages.withLock { pages in
             let others = (pages[file.path] ?? []).filter { $0.request != request }
             pages[file.path] = Array((others + [(request, image)]).suffix(Self.picturesPerFile))

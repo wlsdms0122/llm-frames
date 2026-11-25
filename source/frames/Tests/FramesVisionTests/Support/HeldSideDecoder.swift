@@ -25,7 +25,7 @@ struct HeldSideDecoder: MediaDecoder {
         of file: MediaFile,
         atFrame index: Int,
         reading: PictureReading
-    ) throws -> Bitmap {
+    ) throws -> Pixels {
         try decoder.picture(of: file, atFrame: index, reading: reading)
     }
 
@@ -34,7 +34,7 @@ struct HeldSideDecoder: MediaDecoder {
         region: PageRegion,
         scale: Double,
         reading: PictureReading
-    ) throws -> Bitmap {
+    ) throws -> Pixels {
         try decoder.picture(of: file, region: region, scale: scale, reading: reading)
     }
 

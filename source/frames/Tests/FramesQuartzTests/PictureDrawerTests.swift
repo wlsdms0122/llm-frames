@@ -73,7 +73,7 @@ struct PictureDrawerTests {
         let bitmap = try sut.frame(of: list(size: Size(width: 24, height: 24), items: [DisplayItem(content: .picture(picture))]))
 
         // Then
-        let source = try decoder.picture(of: MediaFile(media: frame.media), atFrame: 0)
+        let source = try decoder.picture(of: MediaFile(media: frame.media), atFrame: 0).bitmap
         expectCopy(bitmap, of: source)
     }
 
@@ -106,7 +106,7 @@ struct PictureDrawerTests {
         let bitmap = try sut.frame(of: list(size: Size(width: 24, height: 24), items: [item]))
 
         // Then
-        let source = try decoder.picture(of: MediaFile(media: frame.media), atFrame: 0)
+        let source = try decoder.picture(of: MediaFile(media: frame.media), atFrame: 0).bitmap
         expectCopy(bitmap, of: source)
     }
 

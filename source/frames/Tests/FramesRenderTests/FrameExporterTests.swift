@@ -373,7 +373,7 @@ struct FrameExporterTests {
     }
 
     private func picture(at path: String) throws -> Bitmap {
-        try AVFoundationDecoder().picture(of: MediaFile(path: path), atFrame: 0)
+        try AVFoundationDecoder().picture(of: MediaFile(path: path), atFrame: 0).bitmap
     }
 
     // `color` under a label's background, black at an alpha of 0xB3.

@@ -87,7 +87,7 @@ extension VisionOCR: OCRProvider {
         let (picture, scale) = if file.page != nil {
             try decoder.providerPicture(ofPage: file, reading: reading)
         } else {
-            (try decoder.picture(of: file, atFrame: index, reading: reading), 1.0)
+            (try decoder.picture(of: file, atFrame: index, reading: reading).bitmap, 1.0)
         }
         let image = try converter.image(of: picture, file: file.path, index: index)
         try VNImageRequestHandler(cgImage: image).perform([request])

@@ -20,7 +20,10 @@ struct RoleFactory: Sendable {
         role: "decoder",
         option: "--decoder",
         defaultName: "avfoundation",
-        builders: ["avfoundation": { AVFoundationDecoder() }]
+        builders: [
+            "avfoundation": { AVFoundationDecoder(conversion: .gpu) },
+            "avfoundation-cpu": { AVFoundationDecoder(conversion: .cpu) }
+        ]
     )
     private let renderers = RoleTable<@Sendable (any MediaDecoder) -> any Renderer>(
         role: "renderer",

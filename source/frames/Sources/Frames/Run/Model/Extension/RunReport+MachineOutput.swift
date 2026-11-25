@@ -59,6 +59,7 @@ extension RunReport {
             JSONMember(key: "page", value: reading.page.map(count) ?? .null),
             JSONMember(key: "colorSpace", value: reading.conversion.colorSpace.map { .string($0.rawValue) } ?? .null),
             JSONMember(key: "conversion", value: .string(reading.conversion.name)),
+            JSONMember(key: "device", value: .string(reading.device.name)),
             JSONMember(key: "pixelFormat", value: .string(reading.pixelFormat)),
             JSONMember(key: "framesRead", value: count(reading.framesRead)),
             JSONMember(key: "framesDecoded", value: count(reading.framesDecoded)),

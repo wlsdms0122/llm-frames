@@ -11,12 +11,14 @@ import Foundation
 import Frames
 import VideoToolbox
 
-// Writes a one-frame video of one colour, its R'G'B' values encoded in `colorSpace` and tagged with that space's code
-// points. `srgb` and `rec709` are H.264 from 8-bit 32BGRA, each value taken to the nearest code value; the other spaces
-// are HEVC Main 10 from 64RGBAHalf.
+// Writes a video of one colour in one frame, or of the colours a function gives each pixel of each frame at 30
+// frames a second, its R'G'B' values encoded in `colorSpace` and tagged with that space's code points. `srgb` and
+// `rec709` are H.264 from 8-bit 32BGRA, each value taken to the nearest code value; the other spaces are HEVC Main 10
+// from 64RGBAHalf.
 package struct ColorMovieWriter {
     // MARK: - Property
     private static let timescale: Int32 = 600
+    private static let frameDuration: Int64 = 20
 
     private let size: Size
     private let colorSpace: ColorSpace
@@ -80,6 +82,16 @@ package struct ColorMovieWriter {
         green: Double,
         blue: Double
     ) async throws {
+        try await write(to: path, frames: 1) { _, _, _ in (red, green, blue) }
+    }
+
+    // `frames` frames, the pixel at column x and row y of frame k, rows top first, of the R'G'B' values
+    // `color(k, x, y)` gives.
+    package func write(
+        to path: String,
+        frames: Int,
+        color: (_ frame: Int, _ x: Int, _ y: Int) -> (red: Double, green: Double, blue: Double)
+    ) async throws {
         let url = URL(fileURLWithPath: path)
         let writer = try AVAssetWriter(outputURL: url, fileType: url.pathExtension == "mp4" ? .mp4 : .mov)
         let tags = tags
@@ -110,17 +122,21 @@ package struct ColorMovieWriter {
         writer.startSession(atSourceTime: .zero)
 
         do {
-            try await wait(for: video, of: writer, path: path)
-            let buffer = try pixelBuffer(from: adaptor, path: path, red: red, green: green, blue: blue)
-            guard adaptor.append(buffer, withPresentationTime: .zero) else {
-                throw writer.error ?? TestMediaError.unwritable(path)
+            for frame in 0..<frames {
+                try await wait(for: video, of: writer, path: path)
+                let buffer = try pixelBuffer(from: adaptor, path: path) { color(frame, $0, $1) }
+                let time = CMTime(value: Self.frameDuration * Int64(frame), timescale: Self.timescale)
+                guard adaptor.append(buffer, withPresentationTime: time) else {
+                    throw writer.error ?? TestMediaError.unwritable(path)
+                }
             }
         } catch {
             writer.cancelWriting()
             throw error
         }
         video.markAsFinished()
-        writer.endSession(atSourceTime: CMTime(value: CMTimeValue(Self.timescale), timescale: Self.timescale))
+        let end = frames == 1 ? Int64(Self.timescale) : Self.frameDuration * Int64(frames)
+        writer.endSession(atSourceTime: CMTime(value: end, timescale: Self.timescale))
         await writer.finishWriting()
         guard writer.status == .completed else { throw writer.error ?? TestMediaError.unwritable(path) }
     }
@@ -145,9 +161,7 @@ package struct ColorMovieWriter {
     private func pixelBuffer(
         from adaptor: AVAssetWriterInputPixelBufferAdaptor,
         path: String,
-        red: Double,
-        green: Double,
-        blue: Double
+        color: (_ x: Int, _ y: Int) -> (red: Double, green: Double, blue: Double)
     ) throws -> CVPixelBuffer {
         var created: CVPixelBuffer?
         guard
@@ -173,6 +187,7 @@ package struct ColorMovieWriter {
                 let bytes = line.bindMemory(to: UInt8.self, capacity: width * 4)
                 let code = { (value: Double) in UInt8((min(max(value, 0), 1) * 255).rounded()) }
                 for column in 0..<width {
+                    let (red, green, blue) = color(column, row)
                     bytes[column * 4] = code(blue)
                     bytes[column * 4 + 1] = code(green)
                     bytes[column * 4 + 2] = code(red)
@@ -181,6 +196,7 @@ package struct ColorMovieWriter {
             } else {
                 let halves = line.bindMemory(to: Float16.self, capacity: width * 4)
                 for column in 0..<width {
+                    let (red, green, blue) = color(column, row)
                     halves[column * 4] = Float16(red)
                     halves[column * 4 + 1] = Float16(green)
                     halves[column * 4 + 2] = Float16(blue)

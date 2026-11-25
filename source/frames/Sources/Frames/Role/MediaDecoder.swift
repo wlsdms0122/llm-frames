@@ -14,14 +14,15 @@ package protocol MediaDecoder: Sendable {
     var largestPictureSide: Int { get }
 
     // Frame `index` of `file`, a video, a still or an image sequence directory, read as `reading` says: working values
-    // at depth `halfFloat`, or an analysis picture at depth `eight`. A still has the one frame 0. A video whose frames
-    // count differently from the pinned `frameTimes` stops, and so does a picture no fixed formula converts, an image
-    // with a LUT-based ICC profile or a video with a code point H.273 reserves, unless `reading` names its colour space.
+    // at depth `halfFloat`, as a bitmap or a surface (FRAMES-21 Pictures), or an analysis picture at depth `eight`, a
+    // bitmap. A still has the one frame 0. A video whose frames count differently from the pinned `frameTimes` stops,
+    // and so does a picture no fixed formula converts, an image with a LUT-based ICC profile or a video with a code
+    // point H.273 reserves, unless `reading` names its colour space.
     func picture(
         of file: MediaFile,
         atFrame index: Int,
         reading: PictureReading
-    ) throws -> Bitmap
+    ) throws -> Pixels
 
     // `region` of the grid of the page `file` names at `scale` pixels per media pixel, read as `reading` says, as one
     // draw: working values at depth `halfFloat`, with what the page paints nothing over and what lies off it
@@ -33,7 +34,7 @@ package protocol MediaDecoder: Sendable {
         region: PageRegion,
         scale: Double,
         reading: PictureReading
-    ) throws -> Bitmap
+    ) throws -> Pixels
 
     // The size in media pixels of the page `file` names, as it is displayed (FRAMES-3 PDF pages), which its pixel grid
     // covers at scale 1. A file that names no page, or a page the file does not hold, stops.
@@ -75,20 +76,20 @@ extension MediaDecoder {
     package func picture(
         of file: MediaFile,
         atFrame index: Int
-    ) throws -> Bitmap {
+    ) throws -> Pixels {
         try picture(of: file, atFrame: index, reading: .tagged)
     }
 
     // A display list's media frame, read as the frame says: a frame by its index, and a page whole as a provider reads
     // it.
-    package func picture(of frame: MediaFrame) throws -> Bitmap {
+    package func picture(of frame: MediaFrame) throws -> Pixels {
         let file = MediaFile(media: frame.media)
         switch frame.picture {
         case let .frame(index):
             return try picture(of: file, atFrame: index, reading: frame.reading)
 
         case .page:
-            return try providerPicture(ofPage: file, reading: frame.reading).picture
+            return .bitmap(try providerPicture(ofPage: file, reading: frame.reading).picture)
         }
     }
 
@@ -111,7 +112,7 @@ extension MediaDecoder {
             largest: largestPictureSide
         )
 
-        return (try picture(of: file, region: region, scale: scale, reading: reading), scale)
+        return (try picture(of: file, region: region, scale: scale, reading: reading).bitmap, scale)
     }
 
     // MARK: - Private

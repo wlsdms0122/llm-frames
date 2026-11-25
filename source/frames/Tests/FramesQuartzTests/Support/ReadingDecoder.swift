@@ -35,10 +35,10 @@ final class ReadingDecoder: MediaDecoder {
         of file: MediaFile,
         atFrame index: Int,
         reading: PictureReading
-    ) throws -> Bitmap {
+    ) throws -> Pixels {
         pictureReadings.withLock { $0[file.path, default: []].append(reading) }
 
-        return Bitmap(width: 2, height: 2, depth: .eight, bytesPerRow: 8, pixels: Data(repeating: 255, count: 16))
+        return .bitmap(Bitmap(width: 2, height: 2, depth: .eight, bytesPerRow: 8, pixels: Data(repeating: 255, count: 16)))
     }
 
     func picture(
@@ -46,11 +46,11 @@ final class ReadingDecoder: MediaDecoder {
         region: PageRegion,
         scale: Double,
         reading: PictureReading
-    ) throws -> Bitmap {
+    ) throws -> Pixels {
         pictureReadings.withLock { $0[file.path, default: []].append(reading) }
         regions.withLock { $0[file.path, default: []].append(PageRegionRequest(region: region, scale: scale)) }
 
-        return Bitmap(width: 2, height: 2, depth: .eight, bytesPerRow: 8, pixels: Data(repeating: 255, count: 16))
+        return .bitmap(Bitmap(width: 2, height: 2, depth: .eight, bytesPerRow: 8, pixels: Data(repeating: 255, count: 16)))
     }
 
     func pageSize(of file: MediaFile) throws -> Size {

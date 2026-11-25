@@ -84,8 +84,8 @@ struct PageReaderTests {
         let region = PageRegion(x: 150, y: 90, width: 300, height: 180)
 
         // When
-        let wholePicture = try sut.picture(of: file, region: whole, scale: 1.5, reading: .tagged)
-        let regionPicture = try sut.picture(of: file, region: region, scale: 1.5, reading: .tagged)
+        let wholePicture = try sut.picture(of: file, region: whole, scale: 1.5, reading: .tagged).bitmap
+        let regionPicture = try sut.picture(of: file, region: region, scale: 1.5, reading: .tagged).bitmap
 
         // Then
         #expect(wholePicture.width == 600)
@@ -109,7 +109,7 @@ struct PageReaderTests {
         let file = MediaFile(path: path, page: 1)
 
         // When
-        let picture = try sut.picture(of: file, region: PageRegion(x: 0, y: 50, width: 100, height: 100), scale: 1, reading: .tagged)
+        let picture = try sut.picture(of: file, region: PageRegion(x: 0, y: 50, width: 100, height: 100), scale: 1, reading: .tagged).bitmap
         let pixels = picture.floatPixels()
 
         // Then
@@ -127,8 +127,8 @@ struct PageReaderTests {
         let region = PageRegion(x: 0, y: 0, width: 100, height: 100)
 
         // When
-        let analysis = [UInt8](try sut.picture(of: file, region: region, scale: 1, reading: .analysis(colorSpace: nil)).pixels)
-        let working = try sut.picture(of: file, region: region, scale: 1, reading: .tagged).floatPixels()
+        let analysis = [UInt8](try sut.picture(of: file, region: region, scale: 1, reading: .analysis(colorSpace: nil)).bitmap.pixels)
+        let working = try sut.picture(of: file, region: region, scale: 1, reading: .tagged).bitmap.floatPixels()
 
         // Then
         let unpainted = ((50 * 100) + 50) * 4
@@ -151,7 +151,7 @@ struct PageReaderTests {
         let file = MediaFile(path: path, page: 1)
 
         // When
-        let picture = try sut.picture(of: file, region: PageRegion(x: 0, y: 0, width: 100, height: 100), scale: 1, reading: .tagged)
+        let picture = try sut.picture(of: file, region: PageRegion(x: 0, y: 0, width: 100, height: 100), scale: 1, reading: .tagged).bitmap
         let pixels = picture.floatPixels()
 
         // Then
@@ -173,16 +173,16 @@ struct PageReaderTests {
         // When
         // Then
         #expect(throws: DecoderError.pageRegion(file: path, region: empty, scale: 1)) {
-            try sut.picture(of: file, region: empty, scale: 1, reading: .tagged)
+            try sut.picture(of: file, region: empty, scale: 1, reading: .tagged).bitmap
         }
         #expect(throws: DecoderError.pageRegion(file: path, region: region, scale: 0)) {
-            try sut.picture(of: file, region: region, scale: 0, reading: .tagged)
+            try sut.picture(of: file, region: region, scale: 0, reading: .tagged).bitmap
         }
         #expect(throws: DecoderError.pictureSize(file: path, width: largest + 1, height: 1, largest: largest)) {
-            try sut.picture(of: file, region: large, scale: 1, reading: .tagged)
+            try sut.picture(of: file, region: large, scale: 1, reading: .tagged).bitmap
         }
         #expect(throws: DecoderError.pageFrame(file: path, page: 1)) {
-            try sut.picture(of: file, atFrame: 0, reading: .tagged)
+            try sut.picture(of: file, atFrame: 0, reading: .tagged).bitmap
         }
     }
 
@@ -214,7 +214,7 @@ struct PageReaderTests {
 
         // When
         let probed = try sut.probedPage(1, of: path)
-        let pixels = try sut.picture(of: file, region: PageRegion(x: 0, y: 0, width: 10, height: 10), scale: 1, reading: .tagged)
+        let pixels = try sut.picture(of: file, region: PageRegion(x: 0, y: 0, width: 10, height: 10), scale: 1, reading: .tagged).bitmap
             .floatPixels()
 
         // Then
@@ -252,8 +252,8 @@ struct PageReaderTests {
         let region = PageRegion(x: 0, y: 0, width: 10, height: 10)
 
         // When
-        let srgb = try sut.picture(of: file, region: region, scale: 1, reading: .tagged).floatPixels()
-        let p3 = try sut.picture(of: file, region: region, scale: 1, reading: .working(colorSpace: .displayP3, targetPeak: nil))
+        let srgb = try sut.picture(of: file, region: region, scale: 1, reading: .tagged).bitmap.floatPixels()
+        let p3 = try sut.picture(of: file, region: region, scale: 1, reading: .working(colorSpace: .displayP3, targetPeak: nil)).bitmap
             .floatPixels()
 
         // Then
