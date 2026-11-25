@@ -16,7 +16,7 @@ It is one Python 3 script that uses the standard library alone. Copy or link it 
 ln -s "$PWD/extensions/find-text/frames-find-text" /usr/local/bin/frames-find-text
 ```
 
-`frames find-text` then runs it, with the global options written before `find-text` (`--theme`, `--ocr` and the other role options) passed to every frames command it runs. It runs the `frames` on `PATH`, or the executable the environment variable `FRAMES_EXECUTABLE` names. It is written for frames 0.x and stops on another major version.
+`frames find-text` then runs it, with the global options written before `find-text` (`--theme`, `--ocr` and the other role options) passed to every frames command it runs. It runs the `frames` on `PATH`, or the executable the environment variable `FRAMES_EXECUTABLE` names. It is written for frames 0.x and stops on another major version. A frames command that fails stops the extension with the command line it ran, the global options it passed included, and what frames printed, so a theme left out shows: `frames-find-text: frames timeline /tmp/frames-find-text-1a2b/document.json --json failed: frames: ...`.
 
 ```
 frames find-text <document.json | -> [--languages <tag>[,<tag>...]]
