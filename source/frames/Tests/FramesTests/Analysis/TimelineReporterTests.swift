@@ -50,7 +50,7 @@ struct TimelineReporterTests {
             {"place": "storyline[1]", "id": null, "kind": "solid", "media": null, "page": null, "edit": [2, 4], "drawn": [1.5, 4], "clip": [0, 2], "sound": null, "speed": 1, "timeRemap": false, "transition": {"preset": "frames/flash", "seconds": 1}, "fps": null, "instant": 2, "clock": {"clip": "storyline[1]", "origin": 2, "speed": 1}, "space": {"kind": "output", "clip": null}, "ownSpace": {"kind": "output", "clip": null}, "tracked": null}], \#
             "clips": [\#
             {"place": "storyline[0]#intro.connected[0]", "id": null, "kind": "rect", "media": null, "page": null, "visible": [0, 2], "sound": null, "lane": 1, "storyline": "storyline[0]#intro", "parent": "storyline[0]#intro", "animation": {"entrance": {"preset": "frames/pulse", "seconds": 0.25}, "loop": {"preset": "frames/pulse", "period": 1}, "exit": {"preset": "frames/pulse", "seconds": 0.25}, "by": null, "stagger": null, "order": null}, "fps": null, "instant": 0, "clock": {"clip": "storyline[0]#intro", "origin": -1, "speed": 1}, "space": {"kind": "media", "clip": "storyline[0]#intro"}, "ownSpace": {"kind": "media", "clip": "storyline[0]#intro"}, "tracked": {"clip": "storyline[0]#intro", "first": 1, "last": 3}}, \#
-            {"place": "clips[0]", "id": null, "kind": "title", "media": null, "page": null, "visible": [0, 4], "sound": null, "lane": 2, "storyline": null, "parent": null, "animation": {"entrance": {"preset": "frames/pop", "seconds": 0.25}, "loop": null, "exit": null, "by": "word", "stagger": 0.12, "order": "forward"}, "fps": null, "instant": 0, "clock": {"clip": null, "origin": 0, "speed": 1}, "space": {"kind": "output", "clip": null}, "ownSpace": {"kind": "box", "clip": "clips[0]"}, "tracked": null}, \#
+            {"place": "clips[0]", "id": null, "kind": "title", "media": null, "page": null, "visible": [0, 4], "sound": null, "lane": 2, "storyline": null, "parent": null, "animation": {"entrance": {"preset": "frames/pop", "seconds": 0.25}, "loop": null, "exit": null, "by": "word", "stagger": 0.12, "order": "forward"}, "fps": null, "instant": 0, "clock": {"clip": null, "origin": 0, "speed": 1}, "space": {"kind": "output", "clip": null}, "ownSpace": {"kind": "text", "clip": "clips[0]"}, "tracked": null}, \#
             {"place": "clips[1]", "id": null, "kind": "audio", "media": "/abs/ding.wav", "page": null, "visible": [1, 2.5], "sound": null, "lane": null, "storyline": null, "parent": null, "animation": null, "fps": null, "instant": 1, "clock": {"clip": null, "origin": 0, "speed": 1}, "space": null, "ownSpace": null, "tracked": null}]}
             """#
         #expect(report.machineOutput.written == expected)
@@ -71,7 +71,7 @@ struct TimelineReporterTests {
             {"place": "storyline[1]", "id": null, "kind": "solid", "media": null, "page": null, "edit": [2, 4], "drawn": [1.5, 4], "clip": [0, 2], "sound": null, "speed": 1, "timeRemap": false, "transition": {"preset": null, "seconds": 1}, "fps": null, "instant": null, "clock": {"clip": null, "origin": 0, "speed": 1}, "space": {"kind": "output", "clip": null}, "ownSpace": {"kind": "output", "clip": null}, "tracked": null}], \#
             "clips": [\#
             {"place": "storyline[0]#intro.connected[0]", "id": null, "kind": "rect", "media": null, "page": null, "visible": [0, 2], "sound": null, "lane": 1, "storyline": "storyline[0]#intro", "parent": "storyline[0]#intro", "animation": {"entrance": {"preset": null, "seconds": 0.25}, "loop": {"preset": null, "period": 1}, "exit": {"preset": null, "seconds": 0.25}, "by": null, "stagger": null, "order": null}, "fps": null, "instant": null, "clock": {"clip": null, "origin": 0, "speed": 1}, "space": {"kind": "media", "clip": "storyline[0]#intro"}, "ownSpace": {"kind": "media", "clip": "storyline[0]#intro"}, "tracked": null}, \#
-            {"place": "clips[0]", "id": null, "kind": "title", "media": null, "page": null, "visible": [0, 4], "sound": null, "lane": 2, "storyline": null, "parent": null, "animation": {"entrance": {"preset": null, "seconds": 0.25}, "loop": null, "exit": null, "by": "word", "stagger": 0.12, "order": "forward"}, "fps": null, "instant": null, "clock": {"clip": null, "origin": 0, "speed": 1}, "space": {"kind": "output", "clip": null}, "ownSpace": {"kind": "box", "clip": "clips[0]"}, "tracked": null}]}
+            {"place": "clips[0]", "id": null, "kind": "title", "media": null, "page": null, "visible": [0, 4], "sound": null, "lane": 2, "storyline": null, "parent": null, "animation": {"entrance": {"preset": null, "seconds": 0.25}, "loop": null, "exit": null, "by": "word", "stagger": 0.12, "order": "forward"}, "fps": null, "instant": null, "clock": {"clip": null, "origin": 0, "speed": 1}, "space": {"kind": "output", "clip": null}, "ownSpace": {"kind": "text", "clip": "clips[0]"}, "tracked": null}]}
             """#
         #expect(report.machineOutput.written == expected)
         #expect(report.text.split(separator: "\n").last == "clips[0]  title  -  visible [0, 4)  sound -  lane 2  parent -  animation 0.25s / - / -")
@@ -484,7 +484,7 @@ struct TimelineReporterTests {
             {"place": "storyline[0]#screen", "id": "screen", "kind": "video", "media": "/abs/screen.mp4", "page": null, "edit": [0, 2], "drawn": [0, 2], "clip": [1, 3], "sound": null, "speed": 1, "timeRemap": false, "transition": null, "fps": null, "instant": 0, "clock": {"clip": "storyline[0]#screen", "origin": -1, "speed": 1}, "space": {"kind": "output", "clip": null}, "ownSpace": {"kind": "media", "clip": "storyline[0]#screen"}, "tracked": {"clip": "storyline[0]#screen", "first": 1, "last": 3}}], \#
             "clips": [\#
             {"place": "storyline[0]#screen.connected[0]", "id": null, "kind": "rect", "media": null, "page": null, "visible": [0.5, 1], "sound": null, "lane": 1, "storyline": "storyline[0]#screen", "parent": "storyline[0]#screen", "animation": null, "fps": null, "instant": 0.5, "clock": {"clip": "storyline[0]#screen", "origin": -1, "speed": 1}, "space": {"kind": "media", "clip": "storyline[0]#screen"}, "ownSpace": {"kind": "media", "clip": "storyline[0]#screen"}, "tracked": {"clip": "storyline[0]#screen", "first": 1, "last": 3}}, \#
-            {"place": "clips[0]", "id": null, "kind": "title", "media": null, "page": null, "visible": [0, 2], "sound": null, "lane": 1, "storyline": null, "parent": null, "animation": null, "fps": null, "instant": 0, "clock": {"clip": null, "origin": 0, "speed": 1}, "space": {"kind": "output", "clip": null}, "ownSpace": {"kind": "box", "clip": "clips[0]"}, "tracked": null}]}
+            {"place": "clips[0]", "id": null, "kind": "title", "media": null, "page": null, "visible": [0, 2], "sound": null, "lane": 1, "storyline": null, "parent": null, "animation": null, "fps": null, "instant": 0, "clock": {"clip": null, "origin": 0, "speed": 1}, "space": {"kind": "output", "clip": null}, "ownSpace": {"kind": "text", "clip": "clips[0]"}, "tracked": null}]}
             """#
         #expect(report.machineOutput.written == expected)
     }
@@ -703,12 +703,12 @@ struct TimelineReporterTests {
             [output, output],
             [shot, pip],
             [pip, pip],
-            [pip, label],
+            [pip, space("text", "clips[1]#label")],
             [label, space("box", "clips[2]")],
-            [pip, space("box", "clips[3]#card")],
-            [pip, space("box", "clips[4]")],
-            [output, space("box", "clips[5]")],
-            [output, space("box", "clips[6]")],
+            [pip, space("text", "clips[3]#card")],
+            [pip, space("text", "clips[4]")],
+            [output, space("text", "clips[5]")],
+            [output, space("text", "clips[6]")],
             [.null, .null]
         ]
         #expect(entries(of: report).map { [$0["space"], $0["ownSpace"]] } == expected)
