@@ -81,9 +81,28 @@ final class MetalPictureConverter: @unchecked Sendable {
     }
 
     // MARK: - Public
-    // The working values of `buffer`, a buffer of `format`'s pixel format and of `storedSize` pixels, displayed at
-    // `displaySize` by `transform`, top left origin, by `steps`. Nil where the steps are `formulas`, the buffer is of
-    // another size or format, the transform is no whole-pixel turn or flip, or Metal does not run the conversion.
+    // Whether the GPU converts `buffer`, a buffer of `format`'s pixel format and of `storedSize` pixels, displayed by
+    // `transform`, top left origin, by `steps`: it does where the steps are not `formulas`, the buffer is of that size
+    // and format and the transform is a whole-pixel turn or flip. A video's reader gives every frame of a reading in one
+    // format and size, so this holds for every frame of the reading or for none.
+    func converts(
+        _ buffer: CVPixelBuffer,
+        format: DecodedFormat,
+        storedSize: CGSize,
+        transform: CGAffineTransform,
+        steps: ConversionSteps
+    ) -> Bool {
+        if case .formulas = steps { return false }
+
+        return CVPixelBufferGetPixelFormatType(buffer) == format.pixelFormat
+            && CVPixelBufferGetWidth(buffer) == Int(storedSize.width)
+            && CVPixelBufferGetHeight(buffer) == Int(storedSize.height)
+            && Self.isWholePixelMap(transform)
+    }
+
+    // The working values of `buffer`, displayed at `displaySize`, by `steps`, for a buffer `converts` takes. Nil where
+    // `converts` does not take it, or where Metal does not run the conversion: no texture, surface, decode table or
+    // command buffer is made, or the command buffer does not complete.
     func picture(
         from buffer: CVPixelBuffer,
         format: DecodedFormat,
@@ -95,10 +114,7 @@ final class MetalPictureConverter: @unchecked Sendable {
         let width = Int(displaySize.width)
         let height = Int(displaySize.height)
         guard
-            CVPixelBufferGetPixelFormatType(buffer) == format.pixelFormat,
-            CVPixelBufferGetWidth(buffer) == Int(storedSize.width),
-            CVPixelBufferGetHeight(buffer) == Int(storedSize.height),
-            Self.isWholePixelMap(transform),
+            converts(buffer, format: format, storedSize: storedSize, transform: transform, steps: steps),
             let (placement, matrix, table) = arguments(of: steps, transform: transform),
             let stored = textures(of: buffer, format: format),
             let (_, output, picture) = surfaces.surface(width: width, height: height)
