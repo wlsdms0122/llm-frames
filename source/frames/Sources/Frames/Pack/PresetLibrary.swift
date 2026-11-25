@@ -61,6 +61,13 @@ package struct PresetLibrary: PresetProvider {
         try publishedHead(named: name)?.defaults.head
     }
 
+    package func names(
+        of kind: PresetKind,
+        inPack pack: String
+    ) throws -> [String]? {
+        try packs.pack(named: pack).map { try names(of: kind, in: $0) }
+    }
+
     // MARK: - Public
     // Every preset of a kind, each pack's in pack order, each read and checked, so a preset that would stop a document
     // stops the listing too.

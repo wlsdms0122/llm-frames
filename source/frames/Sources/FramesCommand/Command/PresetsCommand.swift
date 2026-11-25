@@ -34,7 +34,9 @@ struct PresetsCommand: Command {
             return
         }
         guard let text = try presets.text(named: name, kind: kind) else {
-            throw CommandError.unknownPreset(kind: kind.rawValue, name: name)
+            throw CommandError.unknownPreset(
+                try UnknownPreset(kind: kind, name: name) { pack in try presets.names(of: kind, inPack: pack) }
+            )
         }
 
         context.output.write(text.hasSuffix("\n") ? text : text + "\n")

@@ -28,7 +28,7 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
     case rangeWithTimeRemap(place: Place, kind: PlaceKind, key: String)
     case singleStartWithTimeRemap(place: Place, kind: PlaceKind)
     case transitionOnFirstClip(place: Place, kind: PlaceKind)
-    case unknownPreset(place: Place, kind: PlaceKind, presetKind: String, name: String)
+    case unknownPreset(place: Place, kind: PlaceKind, preset: UnknownPreset)
     case unknownPresetFile(place: Place, kind: PlaceKind, name: String)
     case unknownPresetColor(place: Place, kind: PlaceKind, name: String)
     case unusableDisplacementMap(place: Place, kind: PlaceKind, reference: String, refusal: DisplacementMapRefusal)
@@ -173,9 +173,8 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
             "\(place) (\(kind.label)): the first storyline clip has no transition. "
                 + "To open from black, put a solid clip first and give the clip after it the transition"
 
-        case let .unknownPreset(place, kind, presetKind, name):
-            "\(place) (\(kind.label)): unknown \(presetKind) preset \(quoted(name))"
-                + ". A preset is named <pack>/<name>, and the ones frames ships are frames/<name>"
+        case let .unknownPreset(place, kind, preset):
+            "\(place) (\(kind.label)): \(preset)"
 
         case let .unknownPresetFile(place, kind, name):
             "\(place) (\(kind.label)): the preset names the file \(quoted(name)), which names nothing. "
