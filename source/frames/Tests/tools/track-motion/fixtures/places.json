@@ -73,7 +73,7 @@
           88
         ],
         "mask": {
-          "shape": "rect",
+          "kind": "rect",
           "area": [
             124,
             202,
@@ -96,7 +96,7 @@
         "kind": "media",
         "media": "/media/moving.mp4",
         "mask": {
-          "shape": "ellipse",
+          "kind": "ellipse",
           "area": [
             124,
             202,

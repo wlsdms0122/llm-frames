@@ -21,7 +21,7 @@
           "kind": "rect",
           "stroke": {
             "width": 6,
-            "color": "#E0303A"
+            "paint": "#E0303A"
           },
           "keyframes": [
             {
@@ -140,7 +140,7 @@
           "kind": "rect",
           "stroke": {
             "width": 6,
-            "color": "#E0303A"
+            "paint": "#E0303A"
           },
           "area": {
             "tool": "frames/find-text",
@@ -153,7 +153,8 @@
       "id": "seq",
       "kind": "media",
       "media": {
-        "imageSequence": "/media/frames",
+        "kind": "imageSequence",
+        "directory": "/media/frames",
         "fps": 2
       },
       "in": 1,
@@ -206,7 +207,7 @@
       "kind": "rect",
       "stroke": {
         "width": 6,
-        "color": "#30A0E0"
+        "paint": "#30A0E0"
       },
       "area": {
         "tool": "frames/find-text",

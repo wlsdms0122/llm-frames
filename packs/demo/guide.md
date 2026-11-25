@@ -23,7 +23,7 @@ People who will use the feature watch it: users reading release notes or a chang
 **The title card.** The template `demo/title-card`, a storyline clip whose media is the template:
 
 ```json
-{ "id": "title-card", "kind": "media", "media": { "template": "demo/title-card", "args": { "area": "Checkout", "feature": "Totals now include shipping" } } }
+{ "id": "title-card", "kind": "media", "media": { "kind": "template", "template": "demo/title-card", "args": { "area": "Checkout", "feature": "Totals now include shipping" } } }
 ```
 
 | Param | Type | Default | What it is |

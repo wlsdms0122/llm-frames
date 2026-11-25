@@ -16,7 +16,7 @@
       ] }
   ],
   "clips": [
-    { "kind": "media", "media": { "template": "pr-evidence/header",
+    { "kind": "media", "media": { "kind": "template", "template": "pr-evidence/header",
                  "args": { "conclusion": "Total includes shipping", "reason": "The total was 38,000 and is now 42,000 with 4,000 shipping" } },
       "width": 1206, "anchor": "bottom-left", "position": [0, -80] }
   ]

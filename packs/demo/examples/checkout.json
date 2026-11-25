@@ -3,7 +3,7 @@
   "theme": "demo/demo",
   "format": { "size": [1920, 1080], "fps": 30, "background": "#000000" },
   "storyline": [
-    { "id": "title-card", "kind": "media", "media": { "template": "demo/title-card", "args": { "area": "Checkout", "feature": "Totals now include shipping" } } },
+    { "id": "title-card", "kind": "media", "media": { "kind": "template", "template": "demo/title-card", "args": { "area": "Checkout", "feature": "Totals now include shipping" } } },
     { "id": "add", "kind": "media", "media": "/path/to/checkout.mov", "in": 0, "out": 2.8, "volume": 0, "transition": "frames/fade",
       "connected": [
         { "at": [0, 1.1], "kind": "title", "text": "Click Add shipping", "style": "subtitle" },
@@ -23,7 +23,7 @@
       "connected": [
         { "at": [0, 3], "kind": "title", "text": "The order summary on mobile shows the same total", "style": "subtitle" }
       ] },
-    { "id": "end-card", "kind": "media", "media": { "template": "demo/end-card", "args": { "headline": "Available in version 2.4", "detail": "Settings > Checkout > Shipping" } },
+    { "id": "end-card", "kind": "media", "media": { "kind": "template", "template": "demo/end-card", "args": { "headline": "Available in version 2.4", "detail": "Settings > Checkout > Shipping" } },
       "transition": "frames/fade" }
   ]
 }

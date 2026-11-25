@@ -61,7 +61,7 @@ How the rules play out when you write keys:
 
 ## Eases
 
-An ease is a name, a cubic Bézier or a spring. The formulas are [FRAMES-4](../spec/FRAMES-4/SPEC.md).
+An ease is a name, a cubic Bézier or a spring, an object that says it is a spring with `kind`. The formulas are [FRAMES-4](../spec/FRAMES-4/SPEC.md).
 
 | ease | Shape |
 | --- | --- |
@@ -73,7 +73,7 @@ An ease is a name, a cubic Bézier or a spring. The formulas are [FRAMES-4](../s
 | `bounce-out` | lands and bounces three times |
 | `step` | holds the start until the end of the span |
 | `[x1, y1, x2, y2]` | a cubic Bézier, as CSS `cubic-bezier()` writes it. `x1` and `x2` lie in 0 to 1 |
-| `{ "spring": { "bounce": b } }` | a damped spring that lands exactly at the end of the span |
+| `{ "kind": "spring", "bounce": b }` | a damped spring that lands exactly at the end of the span |
 
 A spring's `bounce` lies between -1 and 1, both ends excluded. At 0 it settles with no overshoot. Above about 0.134 it swings past the end and back before it settles, more the higher it is. Below 0 it approaches more slowly. The span's length sets the spring's speed, so the same bounce over 0.3 seconds is a snap and over 1 second a slow settle. A spring above 0 overshoots like `back-out`: a property whose keys reach `t: 1` swings past its last value.
 
@@ -97,7 +97,7 @@ A transition plays across the edit point between two storyline clips. It moves t
 | `over` | which picture is on top: `incoming` (default) or `outgoing` |
 | `audio` | the curve of the sound crossfade: `constant-power` (default) or `constant-gain`. It runs at an even pace, and `ease` does not bend it |
 | `incoming`, `outgoing` | spans of the two storyline pictures. Each reads opacity, scale, x, y, rotation and reveal |
-| `cover` | `{color, keys}` or `{media, colorSpace, keys}`: a colour or an image or video with alpha over both pictures, stretched over the frame. Its keys take `t` and `opacity` only |
+| `cover` | `{"kind": "solid", color, keys}` or `{"kind": "media", media, colorSpace, keys}`: a colour or an image or video with alpha over both pictures, stretched over the frame. Its keys take `t` and `opacity` only |
 | `matte` | `{media, colorSpace, softness, invert}`: a luma wipe from a greyscale image or video |
 
 - The motion acts after the picture's own transform: scale and rotation about the centre of the frame, x and y in multiples of the frame, so `"x": -1` moves a picture exactly out to the left.
@@ -114,7 +114,7 @@ A transition plays across the edit point between two storyline clips. It moves t
     "curve": { "type": "choice", "options": ["linear", "ease-in-out"], "default": "linear", "description": "pace of the fade" } },
   "seconds": 0.7, "ease": { "param": "curve" },
   "incoming": { "keys": [ { "t": 0, "opacity": 0 }, { "t": 0.5, "opacity": 0 }, { "t": 0.5, "opacity": 1 } ] },
-  "cover": { "color": { "param": "color" },
+  "cover": { "kind": "solid", "color": { "param": "color" },
              "keys": [ { "t": 0, "opacity": 0 }, { "t": 0.4, "opacity": 1 }, { "t": 0.6, "opacity": 1 }, { "t": 1, "opacity": 0 } ] } }
 ```
 
@@ -144,7 +144,7 @@ An animation moves a clip as it comes in, while it stays, and as it goes. Titles
 ```json
 { "description": "Springs up a little from below as it fades in, breathes while it stays, and fades out.",
   "params": { "bounce": { "type": "number", "default": 0.3, "description": "how far it springs past its place" } },
-  "entrance": { "seconds": 0.5, "ease": { "spring": { "bounce": { "param": "bounce" } } },
+  "entrance": { "seconds": 0.5, "ease": { "kind": "spring", "bounce": { "param": "bounce" } },
                 "keys": [ { "t": 0, "y": 0.3, "opacity": 0 }, { "t": 0.3, "opacity": 1 }, { "t": 1, "y": 0 } ] },
   "loop":     { "period": 1.2,
                 "keys": [ { "t": 0, "scale": 1 }, { "t": 0.5, "scale": 1.04 }, { "t": 1, "scale": 1 } ] },
@@ -186,9 +186,9 @@ A filter is a chain of operations from a fixed table, applied in order. Each ope
   "params": {
     "lift":  { "type": "number", "default": 0.08, "description": "how far the blacks are lifted" },
     "grain": { "type": "number", "default": 0.05, "description": "strength of the grain" } },
-  "ops": [ { "op": "saturation", "amount": 0.8 },
-           { "op": "levels", "input": [0, 1], "output": [{ "param": "lift" }, 0.95] },
-           { "op": "grain", "amount": { "param": "grain" }, "size": 2 } ] }
+  "ops": [ { "kind": "saturation", "amount": 0.8 },
+           { "kind": "levels", "input": [0, 1], "output": [{ "param": "lift" }, 0.95] },
+           { "kind": "grain", "amount": { "param": "grain" }, "size": 2 } ] }
 ```
 
 | op | Parameters |
@@ -209,6 +209,7 @@ A filter is a chain of operations from a fixed table, applied in order. Each ope
 | `pixelate` | `size` |
 | `grain` | `amount` (0 to 1), `size` |
 
+- Each operation in `ops` names its op with `kind` and takes the parameters of its row, as an op written in a document's `filter` does.
 - Order matters: a sharpen after a blur sharpens the blurred picture, and a blur after a sharpen softens the sharpened one.
 - `radius`, `size` and a `displace`'s `amount` and `offset` are theme lengths, so a blur of 8 looks the same on a 1080 and a 2160 wide output.
 - An unknown op or a value out of range stops when the preset is read.
@@ -255,7 +256,7 @@ Inside the preset, `{"param": "<name>"}` stands for a value of the parameter's t
 | `color` | a cover `color`, a `bloom` `color` |
 | `choice` | a span's or a transition's `ease` |
 
-It never stands for a key, for a name (`revealFrom`, `over`, `audio`, an `op`, a `colorSpace`, a `lut` `space`) or for a file (`media`, a `lut`, `displace` or `convolve` file). frames checks a preset when it reads it: every `{"param"}` names one of its parameters and stands where its type is taken, every parameter is used somewhere, and every value is in range with each parameter at its default. When a document passes arguments, the values are checked again with them, and the stop names the place in the document.
+It never stands for a key, for a name (`revealFrom`, `over`, `audio`, a `kind`, a `colorSpace`, a `lut` `space`) or for a file (`media`, a `lut`, `displace` or `convolve` file). frames checks a preset when it reads it: every `{"param"}` names one of its parameters and stands where its type is taken, every parameter is used somewhere, and every value is in range with each parameter at its default. When a document passes arguments, the values are checked again with them, and the stop names the place in the document.
 
 ## Passing arguments
 
@@ -264,21 +265,21 @@ A document passes arguments in its preset choices. The same choice may be writte
 | Choice | Forms |
 | --- | --- |
 | transition | `"cut"`, a preset name, or `{preset, seconds, args}` |
-| animation | `"none"`, a preset name, `{preset, args}`, or `{entrance, exit}` |
-| each side of `{entrance, exit}` | `"none"`, a preset name, or `{preset, args}` |
-| filter | `"none"`, a preset name, `{preset, args}`, or a list of names and `{preset, args}` applied in turn |
+| animation | `"none"`, a preset name, or `{preset, args, entrance, exit}`, each key optional, and on a title `by`, `stagger` and `order` |
+| a side, `entrance` or `exit` | `"none"`, a preset name, or `{preset, args}` with both keys |
+| filter | `"none"`, a preset name, a preset entry `{"kind": "preset", "preset": ..., "args": ..., "mix": m}`, an op `{"kind": <op>, ...}`, or a list of those applied in turn |
 
 ```json
 "transition": { "preset": "studio/dip", "seconds": 1, "args": { "color": "#1B3A6B", "curve": "ease-in-out" } },
 "animation": { "preset": "studio/lift", "args": { "bounce": 0.5 } },
 "animation": { "entrance": { "preset": "studio/type-on", "args": { "seconds": 1.2 } }, "exit": "frames/fade" },
-"adjust": [ "frames/warm", { "preset": "studio/film", "args": { "grain": 0.02 } } ]
+"adjust": [ "frames/warm", { "kind": "preset", "preset": "studio/film", "args": { "grain": 0.02 } } ]
 ```
 
-- In an object choice `preset` is required, and so is at least one other key, since the name alone is the plain form.
+- An object choice that names `preset` needs at least one other key, since the name alone is the plain form. One that names none merges over the theme's default choice key by key ([FRAMES-22](../spec/FRAMES-22/SPEC.md)), so `{"exit": "none"}` is the default animation without its exit, and `{"kind": "preset", "mix": 0.5}` is a default filter of one preset entry at half strength. A choice that names a preset replaces the default whole.
 - `seconds` in a transition choice replaces the preset's own and is above 0.
 - `args` maps parameter names to values. An unknown name, or a value of the wrong type (for a choice, one that is not among its options), stops. A parameter without an argument takes its default.
-- `{entrance, exit}` takes the entrance of one preset and the exit of another, each with its own arguments, and no loop. Both sides are written, and a side with no span is `"none"`.
+- An animation choice takes its entrance, loop and exit from its `preset`, or from the default it merges over where it names none, and `entrance` and `exit` each replace that one span with the span of the same name in the side's own preset, with its own arguments. So `{entrance, exit}` takes the entrance of one preset and the exit of another and keeps the default's loop, and a choice that must play no loop names a `preset` that has none. A side with no span is `"none"`.
 - The presets of the pack `frames` publish no parameters, so they are named bare, and an argument given to one stops as unknown.
 
 ## Trying a preset
@@ -306,7 +307,7 @@ Then try the preset in a document small enough to read at a glance:
       "connected": [ { "kind": "title", "text": "After", "style": "title",
                        "animation": { "entrance": { "preset": "studio/type-on", "args": { "seconds": 1.2 } }, "exit": "frames/fade" } } ] },
     { "kind": "solid", "color": "#0F766E", "duration": 3, "transition": "studio/iris",
-      "connected": [ { "kind": "adjustment", "adjust": [ "frames/warm", { "preset": "studio/film", "args": { "grain": 0.02 } } ] } ] }
+      "connected": [ { "kind": "adjustment", "adjust": [ "frames/warm", { "kind": "preset", "preset": "studio/film", "args": { "grain": 0.02 } } ] } ] }
   ] }
 ```
 

@@ -12,7 +12,7 @@
       "box": {
         "stroke": {
           "width": 4,
-          "color": "#E0303A"
+          "paint": "#E0303A"
         }
       }
     }

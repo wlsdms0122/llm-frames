@@ -30,7 +30,7 @@
           "kind": "rect",
           "stroke": {
             "width": 4,
-            "color": "#3DDC84"
+            "paint": "#3DDC84"
           },
           "keyframes": [
             {

@@ -418,11 +418,37 @@ class Places(Case):
         self.assertIn("storyline[0]#b.connected[0]: track: a frames/find-text request stands where an area does", message)
         self.assertEqual(Replay.log, [])
 
+    def test_vertex_point(self):
+        # Given a path and a path mask whose vertices stand at points of requested areas, and a corner pin's point
+        request = {"tool": "frames/find-text", "text": "Total"}
+        clip = tool.Clip({"parent": "b", "kind": "path", "points": [[0, 0], {"vertex": {"area": request, "point": "right"}}],
+                          "mask": {"kind": "path", "points": [[0, 0], [10, 0], {"vertex": {"area": request, "point": "top"}, "inTangent": [1, 0]}]},
+                          "cornerPin": [[0, 0], {"area": request, "point": "top-right"}, [10, 10], [0, 10]]}, "place")
+
+        # When the requests of the clip are collected
+        found = tool.text_forms(clip)
+
+        # Then each is found as the area of its point, a vertex's under its `vertex`
+        self.assertEqual(sorted(entry.path for entry in found), ["cornerPin[1].area", "mask.points[2].vertex.area", "points[1].vertex.area"])
+
+    def test_area_point_written_as_vertex(self):
+        # Given a path whose points hold a point of a requested area written in place of a vertex object
+        document = {"kind": "sequence", "storyline": [{"id": "b", "kind": "media", "media": self.board, "duration": 2, "connected": [
+            {"parent": "b", "kind": "path", "points": [[0, 0], {"area": {"tool": "frames/find-text", "text": "Total"}, "point": "right"}]}
+        ]}]}
+
+        # When the tool runs
+        message = self.stop(document)
+
+        # Then it stops, since an object in points is a vertex and the request stands where no area does
+        self.assertIn("storyline[0]#b.connected[0]: points[1].area: a frames/find-text request stands where an area does", message)
+        self.assertEqual(Replay.log, [])
+
     def test_probe_fills_other_requests(self):
         # Given a document with requests for another tool in an area, a mask's area and a track, and one in a point
         document = {"kind": "sequence", "storyline": [{"id": "b", "kind": "media", "media": self.board, "duration": 2, "connected": [
             {"parent": "b", "kind": "rect", "area": {"tool": "other", "name": "box"},
-             "mask": {"shape": "rect", "area": {"tool": "other", "name": "hole"}},
+             "mask": {"kind": "rect", "area": {"tool": "other", "name": "hole"}},
              "track": {"tool": "frames/track-motion", "target": "area"}}
         ]}]}
         pointed = copy.deepcopy(document)

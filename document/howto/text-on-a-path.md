@@ -146,7 +146,7 @@ for clip, group in zip(clips, groups):
 
 if "--guide" in sys.argv:
     document["clips"].insert(index, {"id": f"{title_id}-path", "kind": "path", "points": GUIDES[path_name],
-                                     "stroke": {"color": "#F59E0B", "width": 2}, "fill": False, "animation": "none"})
+                                     "stroke": {"paint": "#F59E0B", "width": 2}, "fill": False, "animation": "none"})
 json.dump(document, sys.stdout, ensure_ascii=False, indent=1)
 ```
 

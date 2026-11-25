@@ -1,7 +1,7 @@
 {
   "description": "Contrasty black and white with deep blacks and coarse grain, for a serious or timeless beat",
   "ops": [
-    { "op": "lut", "file": "film/mono-contrast", "amount": 1 },
-    { "op": "grain", "amount": 0.035, "size": 2.5 }
+    { "kind": "lut", "file": "film/mono-contrast", "amount": 1 },
+    { "kind": "grain", "amount": 0.035, "size": 2.5 }
   ]
 }
