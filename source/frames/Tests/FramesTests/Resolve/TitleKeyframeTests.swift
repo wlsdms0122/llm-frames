@@ -780,13 +780,8 @@ struct TitleKeyframeTests {
             end: clip.end,
             storyline: clip.storyline,
             parent: clip.parent,
-            box: clip.box,
-            crop: clip.crop,
-            mask: clip.mask,
-            trackMatte: clip.trackMatte,
+            placement: clip.placement,
             track: clip.track,
-            scale: clip.scale,
-            rotation: clip.rotation,
             animation: ResolvedAnimation(entrance: entrance, loop: nil, exit: nil, units: nil)
         )
     }

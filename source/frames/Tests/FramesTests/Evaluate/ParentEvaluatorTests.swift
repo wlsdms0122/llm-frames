@@ -90,14 +90,14 @@ struct ParentEvaluatorTests {
                 media: .pinned(media),
                 timing: nil,
                 filter: .off,
+                crop: .keyframes([Keyframe(at: 0, value: Crop(whole))]),
                 appearance: ResolvedMediaAppearance(conform: .fit, radius: .off, border: .off, shadow: .off)
             )),
             box: ResolvedBox(
                 size: Size(width: 80, height: 40),
                 position: [Keyframe(at: 0, value: Point(x: 50, y: 40))],
                 anchor: Point(x: 40, y: 20)
-            ),
-            crop: .keyframes([Keyframe(at: 0, value: Crop(whole))])
+            )
         )
         let child = fill(parent: "card")
         let sut = ParentEvaluator(sequence: sequence(clips: [parent, child]))
@@ -209,14 +209,14 @@ struct ParentEvaluatorTests {
                 media: .pinned(media),
                 timing: .played(PlayedRange(map: TimeMap(origin: 0, in: 2, speed: 1), out: 4.75, loop: false)),
                 filter: .off,
+                crop: .keyframes([Keyframe(at: 0, value: Crop(whole))]),
                 appearance: ResolvedMediaAppearance(conform: .fit, radius: .off, border: .off, shadow: .off)
             )),
             box: ResolvedBox(
                 size: Size(width: 80, height: 40),
                 position: [Keyframe(at: 0, value: Point(x: 50, y: 40))],
                 anchor: Point(x: 40, y: 20)
-            ),
-            crop: .keyframes([Keyframe(at: 0, value: Crop(whole))])
+            )
         )
         let box = clip(
             id: "box",
@@ -258,6 +258,7 @@ struct ParentEvaluatorTests {
                 media: .pinned(media),
                 timing: .played(PlayedRange(map: TimeMap(origin: 0, in: 2, speed: 1), out: 4.75, loop: false)),
                 filter: .off,
+                crop: .keyframes([Keyframe(at: 0, value: Crop(whole))]),
                 appearance: ResolvedMediaAppearance(conform: .fit, radius: .off, border: .off, shadow: .off)
             )),
             end: 1,
@@ -265,8 +266,7 @@ struct ParentEvaluatorTests {
                 size: Size(width: 80, height: 40),
                 position: [Keyframe(at: 0, value: Point(x: 50, y: 40)), Keyframe(at: 2, value: Point(x: 90, y: 40))],
                 anchor: Point(x: 40, y: 20)
-            ),
-            crop: .keyframes([Keyframe(at: 0, value: Crop(whole))])
+            )
         )
         let box = clip(
             id: "box",
@@ -481,7 +481,6 @@ struct ParentEvaluatorTests {
         parent: String? = nil,
         mask: [ResolvedMask]? = nil,
         box: ResolvedBox? = nil,
-        crop: FollowedValue<Crop>? = nil,
         track: ResolvedTrack? = nil,
         scale: Double = 1
     ) -> ResolvedClip {
@@ -490,19 +489,16 @@ struct ParentEvaluatorTests {
             id: id,
             content: .picture(
                 content,
-                ResolvedComposite(lane: 1, opacity: [Keyframe(at: 0, value: 1)], blend: "normal")
+                ResolvedComposite(lane: 1, opacity: [Keyframe(at: 0, value: 1)], blend: "normal", mask: mask)
             ),
             start: start,
             end: end,
             storyline: nil,
             parent: parent,
-            box: box,
-            crop: crop,
-            mask: mask,
-            trackMatte: nil,
+            placement: box.map { box in
+                .transform(ResolvedTransform(box: box, scale: [Keyframe(at: 0, value: Scale(scale))], rotation: [Keyframe(at: 0, value: 0)]))
+            } ?? .box(nil),
             track: track,
-            scale: box == nil ? nil : [Keyframe(at: 0, value: Scale(scale))],
-            rotation: box == nil ? nil : [Keyframe(at: 0, value: 0)],
             animation: .none
         )
     }

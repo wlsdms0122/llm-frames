@@ -143,7 +143,7 @@ package struct Evaluator: Sendable {
                 (left.lane, left.offset) < (right.lane, right.offset)
             }
             .flatMap { _, _, clip in
-                let trackMatte = trackMatte(clip.trackMatte, in: sequence, parents: parents, at: sample, seed: seed)
+                let trackMatte = trackMatte(clip.composite?.trackMatte, in: sequence, parents: parents, at: sample, seed: seed)
                 return items(
                     of: clip,
                     parents: parents,

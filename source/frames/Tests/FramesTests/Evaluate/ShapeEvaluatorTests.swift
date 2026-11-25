@@ -564,13 +564,12 @@ struct ShapeEvaluatorTests {
             end: 4,
             storyline: nil,
             parent: nil,
-            box: box,
-            crop: nil,
-            mask: nil,
-            trackMatte: nil,
+            placement: .transform(ResolvedTransform(
+                box: box,
+                scale: [Keyframe(at: 0, value: scale ?? .identity)],
+                rotation: [Keyframe(at: 0, value: rotation ?? 0)]
+            )),
             track: nil,
-            scale: scale.map { [Keyframe(at: 0, value: $0)] },
-            rotation: rotation.map { [Keyframe(at: 0, value: $0)] },
             animation: ResolvedAnimation(entrance: entrance, loop: nil, exit: nil, units: nil)
         )
     }

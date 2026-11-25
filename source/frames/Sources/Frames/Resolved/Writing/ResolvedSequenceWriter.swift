@@ -156,9 +156,9 @@ struct ResolvedSequenceWriter: Sendable {
         switch clip.content {
         case let .picture(picture, composite):
             let geometry = box + (isAdjustment ? [] : [JSONMember(key: "cornerPin", value: cornerPin ?? .null)]) + [
-                JSONMember(key: "crop", value: clip.crop.map(crops) ?? .null),
-                JSONMember(key: "mask", value: values.masks(clip.mask)),
-                JSONMember(key: "trackMatte", value: clip.trackMatte.map(trackMatte) ?? .null),
+                JSONMember(key: "crop", value: crop(of: picture).map(crops) ?? .null),
+                JSONMember(key: "mask", value: values.masks(composite.mask)),
+                JSONMember(key: "trackMatte", value: composite.trackMatte.map(trackMatte) ?? .null),
                 track
             ]
 
@@ -175,6 +175,12 @@ struct ResolvedSequenceWriter: Sendable {
                 members: head + self.null(null) + window + parent + box + [track] + scaleAndRotation + tail
             ))
         }
+    }
+
+    // A media clip's crop, nil for every other picture, whose entry writes it as null.
+    private func crop(of picture: ResolvedPicture) -> FollowedValue<Crop>? {
+        guard case let .media(media) = picture else { return nil }
+        return media.crop
     }
 
     // The clip's kind as its document names it.

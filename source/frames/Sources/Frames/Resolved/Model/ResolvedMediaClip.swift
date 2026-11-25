@@ -8,7 +8,8 @@
 // A media clip's picture: what it shows, how its pictures are read, how a timed one plays (nil for a still), its
 // filter, and how it fills its box. `colorSpace` is the space that overrides the file's tags, nil where they apply, and
 // `isToneMapped` the clip's `toneMap`, nil for a nested sequence, whose pictures are working values already, and for a
-// page, which takes none.
+// page, which takes none. `crop` is its every crop conformed to its box, in its media pixels, keyframes in sequence
+// time.
 struct ResolvedMediaClip: Equatable, Sendable {
     // MARK: - Property
     let media: ResolvedMediaContent
@@ -16,6 +17,7 @@ struct ResolvedMediaClip: Equatable, Sendable {
     let isToneMapped: Bool?
     let timing: MediaTiming?
     let filter: TimedValue
+    let crop: FollowedValue<Crop>?
     let appearance: ResolvedMediaAppearance
 
     // The media time a timed clip shows, nil for a still.
@@ -30,6 +32,7 @@ struct ResolvedMediaClip: Equatable, Sendable {
         isToneMapped: Bool? = nil,
         timing: MediaTiming?,
         filter: TimedValue,
+        crop: FollowedValue<Crop>? = nil,
         appearance: ResolvedMediaAppearance
     ) {
         self.media = media
@@ -37,6 +40,7 @@ struct ResolvedMediaClip: Equatable, Sendable {
         self.isToneMapped = isToneMapped
         self.timing = timing
         self.filter = filter
+        self.crop = crop
         self.appearance = appearance
     }
 

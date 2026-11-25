@@ -85,13 +85,8 @@ struct ClipEvaluatorTests {
             end: 4,
             storyline: nil,
             parent: nil,
-            box: box(size: Size(width: 80, height: 40), at: Point(x: 100, y: 100), anchor: Point(x: 40, y: 20)),
-            crop: nil,
-            mask: nil,
-            trackMatte: nil,
+            placement: .transform(ResolvedTransform(box: box(size: Size(width: 80, height: 40), at: Point(x: 100, y: 100), anchor: Point(x: 40, y: 20)), scale: [Keyframe(at: 0, value: .identity)], rotation: [Keyframe(at: 0, value: 0)])),
             track: nil,
-            scale: [Keyframe(at: 0, value: .identity)],
-            rotation: [Keyframe(at: 0, value: 0)],
             animation: ResolvedAnimation(entrance: entrance, loop: nil, exit: nil, units: nil)
         )
 
@@ -129,13 +124,8 @@ struct ClipEvaluatorTests {
             end: 4,
             storyline: nil,
             parent: nil,
-            box: box(size: Size(width: 80, height: 40), at: Point(x: 100, y: 100), anchor: Point(x: 40, y: 20)),
-            crop: nil,
-            mask: nil,
-            trackMatte: nil,
+            placement: .transform(ResolvedTransform(box: box(size: Size(width: 80, height: 40), at: Point(x: 100, y: 100), anchor: Point(x: 40, y: 20)), scale: [Keyframe(at: 0, value: Scale(x: 2, y: 2))], rotation: [Keyframe(at: 0, value: 0)])),
             track: nil,
-            scale: [Keyframe(at: 0, value: Scale(x: 2, y: 2))],
-            rotation: [Keyframe(at: 0, value: 0)],
             animation: ResolvedAnimation(entrance: entrance, loop: nil, exit: nil, units: nil)
         )
 
@@ -244,11 +234,11 @@ struct ClipEvaluatorTests {
                     media: .pinned(media),
                     timing: nil,
                     filter: .off,
+                    crop: .keyframes([Keyframe(at: 0, value: Crop(Rectangle(x: 100, y: 50, width: 200, height: 100)))]),
                     appearance: ResolvedMediaAppearance(conform: .fit, radius: .off, border: .off, shadow: .off)
                 )),
                 mask: geometry,
-                box: box(size: Size(width: 80, height: 40), at: Point(x: 10, y: 20), anchor: Point(x: 40, y: 20)),
-                crop: Rectangle(x: 100, y: 50, width: 200, height: 100)
+                box: box(size: Size(width: 80, height: 40), at: Point(x: 10, y: 20), anchor: Point(x: 40, y: 20))
             )
             expected = [(Point(x: 100, y: 50), Point(x: 70, y: 60)), (Point(x: 300, y: 150), Point(x: 150, y: 100))]
 
@@ -396,17 +386,12 @@ struct ClipEvaluatorTests {
             end: 4,
             storyline: nil,
             parent: nil,
-            box: ResolvedBox(
+            placement: .transform(ResolvedTransform(box: ResolvedBox(
                 size: text.size,
                 position: [Keyframe(at: 0, value: Point(x: 100, y: 200))],
                 anchor: Point(x: 50, y: 40)
-            ),
-            crop: nil,
-            mask: nil,
-            trackMatte: nil,
+            ), scale: [Keyframe(at: 0, value: Scale(scale))], rotation: [Keyframe(at: 0, value: rotation)])),
             track: nil,
-            scale: [Keyframe(at: 0, value: Scale(scale))],
-            rotation: [Keyframe(at: 0, value: rotation)],
             animation: animation
         )
     }
@@ -417,7 +402,6 @@ struct ClipEvaluatorTests {
         mask geometry: PathGeometry,
         feather: Double = 0,
         box: ResolvedBox? = nil,
-        crop: Rectangle? = nil,
         scale: Double? = nil,
         rotation: Double? = nil,
         animation: ResolvedAnimation = .none
@@ -426,7 +410,6 @@ struct ClipEvaluatorTests {
             content,
             mask: [ResolvedMask(geometry: geometry, feather: feather, isInverted: false, mode: .add)],
             box: box,
-            crop: crop,
             scale: scale,
             rotation: rotation,
             animation: animation
@@ -437,7 +420,6 @@ struct ClipEvaluatorTests {
         _ content: ResolvedPicture,
         mask: [ResolvedMask],
         box: ResolvedBox? = nil,
-        crop: Rectangle? = nil,
         scale: Double? = nil,
         rotation: Double? = nil,
         animation: ResolvedAnimation = .none
@@ -449,19 +431,20 @@ struct ClipEvaluatorTests {
             id: nil,
             content: .picture(
                 content,
-                ResolvedComposite(lane: 1, opacity: [Keyframe(at: 0, value: 1)], blend: "normal")
+                ResolvedComposite(lane: 1, opacity: [Keyframe(at: 0, value: 1)], blend: "normal", mask: mask)
             ),
             start: 0,
             end: 4,
             storyline: nil,
             parent: nil,
-            box: box,
-            crop: crop.map { .keyframes([Keyframe(at: 0, value: Crop($0))]) },
-            mask: mask,
-            trackMatte: nil,
+            placement: isAdjustment
+                ? .box(box)
+                : .transform(ResolvedTransform(
+                    box: box,
+                    scale: [Keyframe(at: 0, value: Scale(scale ?? 1))],
+                    rotation: [Keyframe(at: 0, value: rotation ?? 0)]
+                )),
             track: nil,
-            scale: isAdjustment ? nil : [Keyframe(at: 0, value: Scale(scale ?? 1))],
-            rotation: isAdjustment ? nil : [Keyframe(at: 0, value: rotation ?? 0)],
             animation: animation
         )
     }

@@ -349,10 +349,10 @@ struct ResolvedSequenceReader: Sendable {
         )
     }
 
-    // What a clip draws decides the keys it holds: its content's, then a corner pin, scale and rotation for anything
-    // but an adjustment, and how a picture is drawn and composited for anything but a null. A shape or a null without
-    // `size` is placed by its geometry, and its `position` and `anchor` are its own. A clip with a corner pin has `size`,
-    // and its `position`, `anchor`, `scale` and `rotation` are null.
+    // What a clip draws decides the keys it holds: its content's, then a corner pin, scale and rotation for anything but
+    // an adjustment, and how a picture is drawn and composited for anything but a null. Only a media clip's `crop` is
+    // other than null. A shape or a null without `size` is placed by its geometry, and its `position` and `anchor` are its
+    // own. A clip with a corner pin has `size`, and its `position`, `anchor`, `scale` and `rotation` are null.
     private func clip(_ value: PlacedJSONValue) throws -> ResolvedClip {
         let written = try value.object(kind: "clip", keys: Self.clipKeys + Self.contentKeys)
         let kind = try written.member("kind").name(among: Self.kinds) { Self.kinds.contains($0) ? $0 : nil }
@@ -378,7 +378,17 @@ struct ResolvedSequenceReader: Sendable {
         } else {
             try box(size: size, position: position, anchor: anchor)
         }
-        let isPlaced = isTransformed && cornerPin == nil
+        let placement: ResolvedPlacement = if !isTransformed {
+            .box(box)
+        } else if let cornerPin {
+            .cornerPin(cornerPin)
+        } else {
+            .transform(ResolvedTransform(
+                box: box,
+                scale: try values.scales(clip.member("scale")),
+                rotation: try values.numbers(clip.member("rotation"))
+            ))
+        }
         let content: ResolvedClipContent = if isNull {
             .null(try null(clip, isPlacedByBox: box != nil))
         } else {
@@ -387,9 +397,22 @@ struct ResolvedSequenceReader: Sendable {
                 ResolvedComposite(
                     lane: try clip.member("lane").integer(),
                     opacity: try values.numbers(clip.member("opacity")),
-                    blend: try clip.member("blend").string()
+                    blend: try clip.member("blend").string(),
+                    mask: try values.masks(clip.member("mask")),
+                    trackMatte: try clip.member("trackMatte").optional(trackMatte)
                 )
             )
+        }
+
+        if !isNull, kind != "media" {
+            let crop = try clip.member("crop")
+            guard crop.isNull else {
+                throw ModelError.invalidValue(
+                    place: crop.place,
+                    kind: crop.kind,
+                    reason: "only a media clip has a crop, so a \(kind)'s crop is null, found \(crop.value.written)"
+                )
+            }
         }
 
         return ResolvedClip(
@@ -400,14 +423,8 @@ struct ResolvedSequenceReader: Sendable {
             end: try clip.member("end").number(),
             storyline: try clip.member("storyline").optional { try $0.integer() },
             parent: try clip.member("parent").optional { try $0.string() },
-            box: box,
-            cornerPin: cornerPin,
-            crop: isNull ? nil : try clip.member("crop").optional(values.crops),
-            mask: isNull ? nil : try values.masks(clip.member("mask")),
-            trackMatte: isNull ? nil : try clip.member("trackMatte").optional(trackMatte),
+            placement: placement,
             track: try clip.member("track").optional(track),
-            scale: isPlaced ? try values.scales(clip.member("scale")) : nil,
-            rotation: isPlaced ? try values.numbers(clip.member("rotation")) : nil,
             isMotionBlurred: try clip.member("motionBlur").bool(),
             animation: try values.animation(clip.member("animation"))
         )
@@ -489,6 +506,7 @@ struct ResolvedSequenceReader: Sendable {
             isToneMapped: reading.isToneMapped,
             timing: timing,
             filter: try values.timed(clip.member("filter"), as: LookStructureTable.resolvedFilter),
+            crop: try clip.member("crop").optional(values.crops),
             appearance: ResolvedMediaAppearance(
                 conform: try conform(clip.member("conform")),
                 radius: try values.timed(clip.member("radius"), as: LookStructureTable.radius),

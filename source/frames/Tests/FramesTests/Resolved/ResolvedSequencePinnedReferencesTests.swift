@@ -207,13 +207,8 @@ struct ResolvedSequencePinnedReferencesTests {
             end: 2,
             storyline: nil,
             parent: nil,
-            box: nil,
-            crop: nil,
-            mask: nil,
-            trackMatte: nil,
+            placement: .box(nil),
             track: nil,
-            scale: nil,
-            rotation: nil,
             animation: .none
         )
     }

@@ -101,7 +101,7 @@ struct ClipEvaluator: Sendable {
 
         case .picture(.adjustment, _):
             let transform = adjustPresentation(of: clip, sample: sample, in: space, at: time).transform
-            guard clip.mask == nil else { return transform }
+            guard clip.composite?.mask == nil else { return transform }
 
             // Without a mask the adjustment acts in output pixels, and its children are still in its parent's space.
             return space.tracked(by: clip.parentTrack, at: time).transform.concatenating(transform)
@@ -585,7 +585,7 @@ struct ClipEvaluator: Sendable {
         in space: ClipSpace,
         at time: SampleTime
     ) -> [ItemMask] {
-        guard let mask = clip.mask else { return [] }
+        guard let mask = clip.composite?.mask else { return [] }
 
         let masks = clip.space == .parent
             ? space.masks(of: mask, track: clip.parentTrack, at: time)
@@ -607,6 +607,6 @@ struct ClipEvaluator: Sendable {
         in space: ClipSpace,
         at time: SampleTime
     ) -> Rectangle? {
-        clip.mask.flatMap { space.masks(of: $0, track: clip.parentTrack, at: time).bounds }
+        clip.composite?.mask.flatMap { space.masks(of: $0, track: clip.parentTrack, at: time).bounds }
     }
 }

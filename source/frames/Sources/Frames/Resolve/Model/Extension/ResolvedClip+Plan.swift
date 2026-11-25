@@ -7,9 +7,8 @@
 
 // A connected or sequence clip as resolve decided it, every static property one keyframe at the clip's instant but a
 // followed value true on the track's frame, which stays a static value. A title, a media clip, or a shape or a null
-// given by `width` and `height` carries its box, or its corner pin where one places it, and a shape or a null placed by
-// its geometry carries its placement in its own entry. Scale and rotation belong to anything drawn but an adjustment
-// and a clip with a corner pin.
+// given by `width` and `height` carries its box in its transform, or its corner pin where one places it, a shape or a
+// null placed by its geometry carries its placement in its own entry, and an adjustment is placed by its box alone.
 extension ResolvedClip {
     // MARK: - Property
     // MARK: - Initializer
@@ -33,14 +32,36 @@ extension ResolvedClip {
                 ResolvedComposite(
                     lane: lane,
                     opacity: composite.opacity.keyframes(at: instant) { $0 },
-                    blend: composite.blend
+                    blend: composite.blend,
+                    mask: geometry.mask,
+                    trackMatte: plan.trackMatte
                 )
             )
 
         case let .null(null):
             content = .null(ResolvedNull(geometry: NullGeometry(plan: null, geometry: geometry, instant: instant)))
         }
-        let isTransformed = if case .picture(.adjustment, _) = content { false } else { geometry.cornerPin == nil }
+        let box = geometry.box.map { box in
+            ResolvedBox(
+                size: box.size,
+                position: box.position.followed(at: instant, isOnTrackFrame: onTrackFrame.contains(.position)) { $0 },
+                anchor: box.anchor
+            )
+        }
+        let placement: ResolvedPlacement = if case .picture(.adjustment, _) = content {
+            .box(box)
+        } else if let pin = geometry.cornerPin {
+            .cornerPin(ResolvedCornerPin(
+                size: pin.size,
+                points: pin.points.followed(at: instant, isOnTrackFrame: onTrackFrame.contains(.cornerPin)) { $0 }
+            ))
+        } else {
+            .transform(ResolvedTransform(
+                box: box,
+                scale: appearance.scale.keyframes(at: instant) { $0 },
+                rotation: appearance.rotation.keyframes(at: instant) { $0 }
+            ))
+        }
 
         self.init(
             place: plan.place.description,
@@ -50,26 +71,8 @@ extension ResolvedClip {
             end: plan.visible.end,
             storyline: plan.storyline,
             parent: plan.parent?.id,
-            box: geometry.box.map { box in
-                ResolvedBox(
-                    size: box.size,
-                    position: box.position.followed(at: instant, isOnTrackFrame: onTrackFrame.contains(.position)) { $0 },
-                    anchor: box.anchor
-                )
-            },
-            cornerPin: geometry.cornerPin.map { pin in
-                ResolvedCornerPin(
-                    size: pin.size,
-                    points: pin.points.followed(at: instant, isOnTrackFrame: onTrackFrame.contains(.cornerPin)) { $0 }
-                )
-            },
-            crop: appearance.media?.crop
-                .followed(at: instant, isOnTrackFrame: onTrackFrame.contains(.crop)) { Crop($0) },
-            mask: geometry.mask,
-            trackMatte: plan.trackMatte,
+            placement: placement,
             track: try geometry.track.map { try ResolvedTrack(track: $0, hashes: hashes) },
-            scale: isTransformed ? appearance.scale.keyframes(at: instant) { $0 } : nil,
-            rotation: isTransformed ? appearance.rotation.keyframes(at: instant) { $0 } : nil,
             isMotionBlurred: plan.isMotionBlurred,
             animation: ResolvedAnimation(plan: plan.animation)
         )
@@ -103,6 +106,7 @@ extension ResolvedClip {
                 isToneMapped: plan.media?.isToneMapped,
                 timing: plan.timing,
                 filter: filter,
+                crop: fill.crop.followed(at: plan.instant, isOnTrackFrame: geometry.onTrackFrame.contains(.crop)) { Crop($0) },
                 appearance: ResolvedMediaAppearance(
                     conform: fill.conform,
                     radius: fill.radius,

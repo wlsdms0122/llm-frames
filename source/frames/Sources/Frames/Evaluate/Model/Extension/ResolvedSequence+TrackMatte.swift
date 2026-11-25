@@ -13,7 +13,7 @@ extension ResolvedSequence {
     func isMatte(_ clip: ResolvedClip) -> Bool {
         guard let id = clip.id else { return false }
 
-        return storyline.contains { $0.trackMatte?.clip == id } || clips.contains { $0.trackMatte?.clip == id }
+        return storyline.contains { $0.trackMatte?.clip == id } || clips.contains { $0.composite?.trackMatte?.clip == id }
     }
 
     // Each track matte of the chain from `trackMatte` with the clip it names, the clip's own matte first.
@@ -22,7 +22,7 @@ extension ResolvedSequence {
         var next = trackMatte
         while let trackMatte = next, let clip = clips.first(where: { $0.id == trackMatte.clip }) {
             chain.append((trackMatte, clip))
-            next = clip.trackMatte
+            next = clip.composite?.trackMatte
         }
 
         return chain
