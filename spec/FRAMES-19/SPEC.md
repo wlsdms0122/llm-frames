@@ -33,7 +33,7 @@ How it is written, so the same plan gives the same bytes:
 
 - **One layout.** It is UTF-8 JSON indented by two spaces, one member or element to a line, except that a list of numbers, strings, booleans or `null` stays on one line, and it ends with a line break. Keys come in one fixed order for each kind of object, `kind` and `"resolved"` first, never sorted.
 - **One number form.** A number is the shortest decimal that reads back to the same 64-bit floating point value, with no exponent, no fraction when it is whole (`1080`, not `1080.0`), and `0` for negative zero. A string escapes `"`, `\` and control characters only, and writes every other character as itself.
-- **Hashes.** A SHA-256 is 64 lower case hexadecimal digits under `sha256`, next to the absolute `file` it pins. An image sequence is `imageSequence`, its frame files in order, each `{file, sha256}`. A page of a PDF is `{file, sha256, page}`, `page` its number from 1, written for every PDF, so a PDF of one page named as a file is written with `page` 1 and the form does not depend on how the document named it.
+- **Hashes.** A SHA-256 is 64 lower case hexadecimal digits under `sha256`, next to the absolute `file` it pins. Pinned media names what it is under `kind`, as a media object of the document does ([FRAMES-3](../FRAMES-3/SPEC.md)), with its own keys beside it. A video, image or sound file is `{"kind": "file", file, sha256, frames}`, `frames` the frame times of a video file and `null` for an image or a sound file. An image sequence is `{"kind": "imageSequence", files, frames}`, `files` its frame files in order, each `{file, sha256}`, and `frames` the media time of each. A page of a PDF is `{"kind": "page", file, sha256, page}`, `page` its number from 1, written for every PDF, so a PDF of one page named as a file is written with `page` 1 and the form does not depend on how the document named it. A nested sequence in a `media` is a resolved document, of kind `sequence`, so a reader tells pinned media and a compound clip apart by `kind` alone.
 - **Timed values.** A timed leaf ([FRAMES-4](../FRAMES-4/SPEC.md)) is a keyframe list, a list of `{at, value, ease}` in time order, where `ease` shapes the span that starts at its keyframe, and a keyframable value is a **timed value**: its structure with each timed leaf in it a keyframe list and each static leaf its value. So `opacity` and `position` are keyframe lists, a stroke is `{paint, width, join, cap, ...}` with its `width` and a colour `paint` keyframe lists and its `align`, `join` and `cap` names, and a filter is a list of entries `{ops, mix}`, each the ops of one entry of the choice (its preset's, or the one op written in place), each op named by its `kind` as a preset's `ops` names it, with every op parameter that is a number or a colour a keyframe list, a parameter a preset argument fills taking that argument's keyframes, a list parameter whose elements arguments fill (`levels` `input` and `output`) a list of one keyframe list for each element, so each element keeps the keyframes and eases of its argument, and its `mix` a keyframe list. A leaf written without keyframes is one keyframe at its clip's instant ([FRAMES-8](../FRAMES-8/SPEC.md#a-clips-instant)), and one not written is its plain value there, the layers below merged, `null` leaves written as the merged value and theme colours and `true` written out. The exception is a tracked clip's followed geometry ([FRAMES-12](../FRAMES-12/SPEC.md#the-track)), its `crop` and `mask` on its own media, or its `position`, `area`, `points`, `cornerPin` and a shape's or an adjustment's `mask` on its parent's media: a leaf of it written without keyframes is true on the track's frame and is written as its value in place of a keyframe list, and evaluation does not bring it back. A keyframe list is a list of objects that hold `at`, and no value of such a leaf is one, so the two are read apart. A `scale` value is `[sx, sy]`, a number written as `[s, s]`. A corner `radius` value, a mask's, a background's and a highlight's included, is `[topLeft, topRight, bottomRight, bottomLeft]`, a number written as `[r, r, r, r]`, and a value read there that is one number is that radius at every corner ([FRAMES-11](../FRAMES-11/SPEC.md#shapes)). A keyframable value that is off (a `fill` or `stroke` of `false`, a `shadow` or `border` of `false`, no filter) is `null`.
 - **Every key written.** An entry carries every key of its kind, `null` where it has none. Only the outermost document carries `"resolved"`, and a nested one is the same shape without it. Track frames are frames of media, so they keep media time, as `frames` does. An audio clip is drawn by nothing, so it is an audio entry only, whatever its media is ([FRAMES-13](../FRAMES-13/SPEC.md#audio-clips)).
 
@@ -46,7 +46,7 @@ How it is written, so the same plan gives the same bytes:
               "colorSpace": "srgb", "peak": null, "compositing": "encoded",
               "motionBlur": { "shutterAngle": 180, "shutterPhase": 0, "samplesPerFrame": 16 } },
   "storyline": [
-    { "id": "interview", "kind": "media", "media": { "file": "/abs/interview.mov", "sha256": "9f2c41d07b3e", "frames": [0, 0.04, 0.08] },
+    { "id": "interview", "kind": "media", "media": { "kind": "file", "file": "/abs/interview.mov", "sha256": "9f2c41d07b3e", "frames": [0, 0.04, 0.08] },
       "in": 12, "out": 18, "speed": 1, "timeRemap": null, "start": 0, "end": 6,
       "size": [1920, 1080], "anchor": [960, 540],
       "position": [ { "at": 0, "value": [960, 540], "ease": "linear" } ],
@@ -55,7 +55,7 @@ How it is written, so the same plan gives the same bytes:
       "filter": [ { "ops": [ { "kind": "saturation", "amount": [ { "at": 0, "value": 1.1, "ease": "linear" } ] } ],
                    "mix": [ { "at": 0, "value": 1, "ease": "linear" } ] } ],
       "mask": null, "trackMatte": null, "track": null, "transition": null },
-    { "id": "surf", "kind": "media", "media": { "file": "/abs/broll-surf.mov", "sha256": "2b7e05aa31c9", "frames": [0, 0.02, 0.04] },
+    { "id": "surf", "kind": "media", "media": { "kind": "file", "file": "/abs/broll-surf.mov", "sha256": "2b7e05aa31c9", "frames": [0, 0.02, 0.04] },
       "in": 0, "out": 3, "speed": 1, "start": 6, "end": 9,
       "timeRemap": [ { "at": 6, "value": 4, "ease": "linear" }, { "at": 7, "value": 4, "ease": "ease-in" }, { "at": 9, "value": 6.5, "ease": "linear" } ],
       "transition": { "start": 5.75, "end": 6.25, "over": "incoming",
@@ -102,7 +102,7 @@ How it is written, so the same plan gives the same bytes:
                      "glyphs": [ [37, 123.6, 45.7, 0, 0], [68, 148.3, 45.7, 0, 0], [78, 167.6, 45.7, 0, 0], [72, 185.6, 45.7, 0, 0], [85, 204.9, 45.7, 0, 0] ] } ] },
       "size": [216.2, 55.9], "anchor": [0, 27.95],
       "position": [ { "at": 1.2, "value": [128, 900], "ease": "linear" } ], "blend": "normal", "mask": null, "trackMatte": null },
-    { "id": "logo", "kind": "media", "media": { "file": "/abs/logo.png", "sha256": "77d01c3e9ab4" }, "start": 0, "end": 9, "lane": 3, "storyline": null, "parent": null,
+    { "id": "logo", "kind": "media", "media": { "kind": "file", "file": "/abs/logo.png", "sha256": "77d01c3e9ab4", "frames": null }, "start": 0, "end": 9, "lane": 3, "storyline": null, "parent": null,
       "size": [160, 160], "anchor": [80, 80], "position": [ { "at": 0, "value": [1744, 176], "ease": "linear" } ],
       "crop": [ { "at": 0, "value": [0, 0, 512, 512], "ease": "linear" } ], "conform": "fit", "colorSpace": null, "toneMap": true,
       "mask": [ { "geometry": { "ellipse": { "rect": [ { "at": 0, "value": [16, 16, 480, 480], "ease": "linear" } ] } },
@@ -110,7 +110,7 @@ How it is written, so the same plan gives the same bytes:
       "trackMatte": null, "blend": "normal", "radius": [ { "at": 0, "value": [0, 0, 0, 0], "ease": "linear" } ], "border": null, "shadow": null }
   ],
   "audio": [
-    { "media": { "file": "/abs/score.m4a", "sha256": "c07d9a1e44f2" }, "in": 0, "out": 184.2, "speed": 1, "start": 0, "origin": 0, "end": 9, "loop": false,
+    { "media": { "kind": "file", "file": "/abs/score.m4a", "sha256": "c07d9a1e44f2", "frames": null }, "in": 0, "out": 184.2, "speed": 1, "start": 0, "origin": 0, "end": 9, "loop": false,
       "volume": [ { "at": 0, "value": 0.4, "ease": "linear" }, { "at": 8, "value": 0.4, "ease": "linear" }, { "at": 9, "value": 0, "ease": "linear" } ],
       "pan": [ { "at": 0, "value": -0.2, "ease": "linear" } ], "audioFilter": null }
   ],
@@ -160,6 +160,8 @@ Its version is [FRAMES-18](../FRAMES-18/SPEC.md). Evaluation reads it ([FRAMES-2
 An exchange format (FCPXML, OpenTimelineIO, an EDL): those carry an edit between tools and leave out what frames must fix to make a result again, such as shaped glyphs, fitted tracks and pinned hashes. frames reads only what resolve wrote, so its form can follow frames.
 
 A project file that keeps names and is resolved again on every render, as an NLE project relinks media and lays out titles with the fonts it finds: the result would change with the machine's fonts, packs, providers and theme, and the principle of a result reproducible from one file would not hold.
+
+Pinned media named by the kind `probe` reports, `video`, `image` or `audio`, in place of `file`: the three are one reference, a file and its hash, whose frame times say whether it plays, so three kinds would hold one form, and a reader would have to tell them apart by a fact the reference does not hold. `page` and `imageSequence` hold keys of their own, and `file` names what the reference holds.
 
 Writing only the tracker's quadrilaterals and fitting the motion in evaluation: the fit is a decision like any other, and writing it leaves evaluation with arithmetic only.
 
