@@ -24,12 +24,13 @@ enum ChoiceKeyTable {
             groups: [KeyGroup(keys: ["seconds", "args"], isExclusive: false)]
         ))
     ])
+    static let animationSideKind = "animation side"
     // A side of an animation choice takes the span of its own name from one preset, named alone or with its
     // arguments.
     static let animationSide = ValueType.oneOf([
         .name,
         .object(ObjectTable(
-            kind: "animation side",
+            kind: animationSideKind,
             rules: [
                 KeyRule("preset", .name, isRequired: true),
                 KeyRule("args", arguments, isRequired: true)
