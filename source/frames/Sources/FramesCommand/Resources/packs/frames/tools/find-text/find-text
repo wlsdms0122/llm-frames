@@ -387,6 +387,8 @@ def searched_place(found, times):
         refuse(found, "an audio clip has no picture")
     if space["kind"] == "output":
         refuse(found, "it is written in output pixels")
+    if space["kind"] == "text":
+        refuse(found, f"it is written in the text box of {space['clip']}")
     if space["kind"] == "box":
         refuse(found, f"it is written in the box of {space['clip']}" + clip_area_hint(found, times.entry(space["clip"])))
     if times.entry(space["clip"])["kind"] == "compound":

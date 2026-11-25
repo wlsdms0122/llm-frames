@@ -125,6 +125,9 @@ extension TimelineReport {
 
         case let .box(place):
             ("box", place)
+
+        case let .text(place):
+            ("text", place)
         }
 
         return .object(JSONObject(members: [

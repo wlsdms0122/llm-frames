@@ -299,7 +299,8 @@ def space_text(space):
         return "no pixels"
     if space["kind"] == "output":
         return "output pixels"
-    return f"the {'box' if space['kind'] == 'box' else 'media pixels'} of {space['clip']}"
+    words = {"box": "box", "text": "text box", "media": "media pixels"}
+    return f"the {words[space['kind']]} of {space['clip']}"
 
 
 def first_keyframe(clip, key):

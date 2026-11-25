@@ -31,15 +31,15 @@ extension ResolvedSequence {
         return .media(clip.place)
     }
 
-    // The space a clip's `crop` and `mask` are written in: its own media or box, and for a shape placed by its
-    // geometry or an adjustment the space its parent gives.
+    // The space a clip's `crop` and `mask` are written in: its own media, a title's text box or its own box, and for a
+    // shape placed by its geometry or an adjustment the space its parent gives.
     func ownSpace(of clip: ResolvedClip) -> CoordinateSpace {
         switch clip.space {
         case .media:
             .media(clip.place)
 
         case .box:
-            .box(clip.place)
+            if case .picture(.title, _) = clip.content { .text(clip.place) } else { .box(clip.place) }
 
         case .parent:
             space(givenBy: clip.parent)
