@@ -11,7 +11,7 @@
 struct SequencePlanner: Sendable {
     // MARK: - Property
     private let finder: GeometryFinder
-    private let tracker: TrackPlanner
+    private let tracks = TrackPlanner()
     private let titles: TitlePlanner
     private let sound: SoundPlanner
     private let appearances: ClipAppearancePlanner
@@ -20,13 +20,11 @@ struct SequencePlanner: Sendable {
 
     // MARK: - Initializer
     init(
-        tracker: any TrackerProvider,
         shaper: any ShapingProvider,
         presets: any PresetProvider,
         library: ReferenceLibrary
     ) {
         self.finder = GeometryFinder()
-        self.tracker = TrackPlanner(tracker: tracker)
         self.titles = TitlePlanner(shaper: shaper, library: library)
         self.sound = SoundPlanner(presets: presets, library: library)
         self.appearances = ClipAppearancePlanner(presets: presets, library: library)
@@ -70,15 +68,7 @@ struct SequencePlanner: Sendable {
             try cornerPin(of: time.storyline[index], written: time.sequence.storyline[index])
         }
 
-        let tracked = try tracker.plan(
-            time,
-            storylineCrops: crops,
-            storylineMasks: storylineMasks,
-            crops: found.map(\.crop),
-            areas: found.map(\.area),
-            masks: found.map { $0.mask?.map(\.mask) },
-            cornerPins: found.map(\.cornerPin)
-        )
+        let tracked = try tracks.plan(time)
         try checkKeyframes(of: tracked.time)
         let shapes = try tracked.time.clips.indices.map { index in
             try appearances.shape(
@@ -379,11 +369,7 @@ struct SequencePlanner: Sendable {
             throw ResolveError.soundAsPicture(place: place, kind: .clip(kind), reference: reference)
         }
 
-        return Picture(
-            name: media.reference ?? file.path,
-            size: size,
-            colorSpace: media.colorSpace
-        )
+        return Picture(name: media.reference ?? file.path, size: size)
     }
 
     // A drawn media clip's picture, which its crop, its box and how it fills it are all found in. Audio is drawn by

@@ -29,7 +29,7 @@ struct Clip: Equatable, Sendable {
     let crop: PropertyValue<CropForm>?
     let mask: LookProperty?
     let trackMatte: TrackMatte?
-    let track: TrackTarget?
+    let track: TrackData?
     let width: Double?
     let height: Double?
     let conform: Conform?
@@ -62,7 +62,7 @@ struct Clip: Equatable, Sendable {
         crop: PropertyValue<CropForm>? = nil,
         mask: LookProperty? = nil,
         trackMatte: TrackMatte? = nil,
-        track: TrackTarget? = nil,
+        track: TrackData? = nil,
         width: Double? = nil,
         height: Double? = nil,
         conform: Conform? = nil,

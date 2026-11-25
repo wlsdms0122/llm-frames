@@ -62,7 +62,6 @@ struct CommandContext: Sendable {
         DocumentPlanner(
             mediaFacts: roles.decoder,
             presets: presets,
-            tracker: roles.tracker,
             shaper: roles.shaper,
             packs: packs,
             pack: pack

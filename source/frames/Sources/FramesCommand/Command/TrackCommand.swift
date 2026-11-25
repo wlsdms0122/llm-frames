@@ -7,14 +7,14 @@
 
 import Frames
 
-// Prints, as machine output, the quads the tracker provider follows an area found in a video along, and the motion
-// fitted to each.
+// Prints, as machine output, the track data of an area the tracker provider follows in a video: the quads it follows
+// the area along, which a clip's `track` takes.
 struct TrackCommand: Command {
     // MARK: - Property
     let name = "track"
     let synopsis = "<video> --at <t> --area <area> [--to <t>] [--color-space <name>]"
-    let summary = "Follows an area found at a media time backwards and forwards with the tracker provider, and "
-        + "prints as JSON its quadrilateral there and on every frame followed, with the motion fitted to it."
+    let summary = "Follows an area on the frame at a media time backwards and forwards with the tracker provider, and "
+        + "prints as JSON the track data a clip's track takes: its quadrilateral on every frame followed."
 
     // MARK: - Initializer
     init() { }

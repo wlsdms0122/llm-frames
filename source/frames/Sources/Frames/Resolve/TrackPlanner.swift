@@ -5,60 +5,28 @@
 //  Created by JSilver on 11/16/26.
 //
 
-// Plans what `track` follows (FRAMES-12). The target is found on the track's frame, the frame a `track`
-// object's `time` names or else the one the clip's instant shows, and the tracker follows it from there in the tracked
-// media, a storyline or media clip's own video or image sequence and any other clip's parent's, over every frame the
-// clip can show and the frames between them and the track's frame: a storyline clip's handles included, and through
-// the clock of the tracked media's clip. Track data gives the frames in place of the tracker. A storyline clip that
-// loses its target inside its edit range stops, and a connected or sequence clip is visible only on the frames followed,
-// narrowed from its instant.
+// Plans what `track` follows (FRAMES-12). A clip's track data names the track's frame by its `time` and gives the
+// target's quad on every frame followed, in the tracked media: a storyline or media clip's own video or image sequence
+// and any other clip's parent's. Resolve fits each frame's motion to the quads, through the clock of the tracked media's
+// clip. A storyline clip whose data does not cover its edit range stops, and a connected or sequence clip is visible
+// only on the frames followed, narrowed from its instant.
 struct TrackPlanner: Sendable {
     // MARK: - Property
     // Sequence times are sums and quotients of media times, so a frame boundary may miss an edit point by rounding.
     private static let tolerance = 1e-9
 
-    private let follower: TargetFollower
-
     // MARK: - Initializer
-    init(tracker: any TrackerProvider) {
-        self.follower = TargetFollower(tracker: tracker)
-    }
+    init() { }
 
     // MARK: - Public
-    // `storylineCrops` and `storylineMasks` are what was found for each storyline clip's crop and mask, and `crops`,
-    // `areas`, `masks` and `cornerPins` for each other clip's crop, area, mask and corner pin, in the time plan's order,
-    // which `true` follows.
-    func plan(
-        _ time: TimePlan,
-        storylineCrops: [PropertyValue<Rectangle>?],
-        storylineMasks: [[ResolvedMask]?],
-        crops: [PropertyValue<Rectangle>?],
-        areas: [PropertyValue<AreaValue>?],
-        masks: [[ResolvedMask]?],
-        cornerPins: [PropertyValue<[GeometryPoint]>?]
-    ) throws -> TrackPlan {
+    func plan(_ time: TimePlan) throws -> TrackPlan {
         let storyline = try time.storyline.indices.map { index in
-            try track(
-                time.storyline[index],
-                written: time.sequence.storyline[index],
-                crop: storylineCrops[index],
-                mask: storylineMasks[index],
-                fps: time.fps
-            )
+            try track(time.storyline[index], written: time.sequence.storyline[index], fps: time.fps)
         }
 
         let written = time.sequence.storyline.flatMap(\.connected) + time.sequence.clips
         let clips = try time.clips.indices.map { index in
-            try track(
-                time.clips[index],
-                written: written[index],
-                crop: crops[index],
-                area: try ownArea(areas[index], of: time.clips[index], written: written[index]),
-                mask: masks[index],
-                cornerPin: try ownCornerPin(cornerPins[index], of: time.clips[index], written: written[index]),
-                time: time,
-                fps: time.fps
-            )
+            try track(time.clips[index], written: written[index], time: time, fps: time.fps)
         }
 
         return TrackPlan(time: time.replacingClips(clips.map(\.plan)), storyline: storyline, clips: clips.map(\.track))
@@ -68,23 +36,17 @@ struct TrackPlanner: Sendable {
     private func track(
         _ plan: StorylinePlan,
         written: StorylineClip,
-        crop: PropertyValue<Rectangle>?,
-        mask: [ResolvedMask]?,
         fps: Double
     ) throws -> Track? {
-        guard let target = written.track else { return nil }
+        guard let data = written.track else { return nil }
 
         let place = written.place.appending(key: "track")
         let kind = PlaceKind.clip(plan.source.kind)
-        guard let picture = picture(of: plan) else { throw ResolveError.trackWithoutVideo(place: place, kind: kind) }
+        guard let media = media(of: plan) else { throw ResolveError.trackWithoutVideo(place: place, kind: kind) }
 
         let followed = try self.followed(
-            target,
-            candidates: [
-                ("crop", isArea(written.crop) ? crop : nil),
-                ("mask", mask.map { self.area(of: $0, instant: plan.instant) })
-            ],
-            in: picture,
+            data,
+            in: media,
             at: plan.instant,
             drawn: plan.drawn,
             fps: fps,
@@ -105,145 +67,71 @@ struct TrackPlanner: Sendable {
         return followed.track
     }
 
-    // A media clip of video or image sequence without a corner pin follows its own media, where `true` follows its
-    // area crop or its mask, and the frames needed are those its clock shows while it is visible. Any other clip, one
-    // with a corner pin included, follows its parent's media.
+    // A media clip of video or image sequence without a corner pin follows its own media, and the frames needed are
+    // those its clock shows while it is visible. Any other clip, one with a corner pin included, follows its parent's
+    // media.
     private func track(
         _ plan: ClipPlan,
         written: Clip,
-        crop: PropertyValue<Rectangle>?,
-        area: PropertyValue<Rectangle>?,
-        mask: [ResolvedMask]?,
-        cornerPin: PropertyValue<Quad>?,
         time: TimePlan,
         fps: Double
     ) throws -> (plan: ClipPlan, track: TrackedMedia?) {
-        guard let target = written.track else { return (plan, nil) }
+        guard let data = written.track else { return (plan, nil) }
 
         let place = written.place.appending(key: "track")
         let kind = PlaceKind.clip(plan.kind)
-        guard !plan.isPinned, let picture = picture(of: plan) else {
-            return try trackInParent(
-                plan,
-                written: written,
-                target: target,
-                area: area,
-                mask: mask,
-                cornerPin: cornerPin,
-                time: time,
-                fps: fps
-            )
+        guard !plan.isPinned, let media = media(of: plan) else {
+            return try trackInParent(plan, written: written, data: data, time: time, fps: fps)
         }
 
         let followed = try self.followed(
-            target,
-            candidates: [
-                ("crop", isArea(written.crop) ? crop : nil),
-                ("mask", mask.map { self.area(of: $0, instant: plan.instant) })
-            ],
-            in: picture,
+            data,
+            in: media,
             at: plan.instant,
             drawn: plan.visible,
             fps: fps,
             place: place,
             kind: kind
         )
-        try checkInstant(of: plan, followedBy: followed.track, target: target, in: picture, place: place)
+        try checkInstant(of: plan, followedBy: followed.track, in: media, place: place)
 
         return (
             try narrowed(plan, to: followed.range, place: written.place),
-            TrackedMedia(track: followed.track, file: picture.file, clock: picture.clock)
+            TrackedMedia(track: followed.track, file: media.file, clock: media.clock)
         )
     }
 
-    // `true` belongs to a shape or an adjustment with an area or a mask in its parent's space, or to a clip with a corner
-    // pin, whose corner pin is the one geometry of it there (its crop and mask lie on its plane), and a title, still or
-    // compound clip without one names what it follows. The parent's media must be the video or image sequence of a
-    // storyline clip or of a connected or sequence media clip without a corner pin. The frames needed under a storyline
-    // clip are those it draws, and under any other parent those its clock shows while the clip is visible.
+    // The parent's media must be the video or image sequence of a storyline clip or of a connected or sequence media
+    // clip without a corner pin. The frames needed under a storyline clip are those it draws, and under any other parent
+    // those its clock shows while the clip is visible.
     private func trackInParent(
         _ plan: ClipPlan,
         written: Clip,
-        target: TrackTarget,
-        area: PropertyValue<Rectangle>?,
-        mask: [ResolvedMask]?,
-        cornerPin: PropertyValue<Quad>?,
+        data: TrackData,
         time: TimePlan,
         fps: Double
     ) throws -> (plan: ClipPlan, track: TrackedMedia?) {
         let place = written.place.appending(key: "track")
         let kind = PlaceKind.clip(plan.kind)
-        if target.isOwn, !plan.isPinned, isNaming(plan.kind) {
-            throw ResolveError.trackOwnOnNamingClip(place: place, kind: kind)
-        }
-        if target.isOwn, !plan.isPinned, area == nil, mask == nil {
-            throw ResolveError.trackOwnWithoutArea(place: place, kind: kind)
-        }
-        guard let parent = plan.parent, let picture = picture(of: parent, in: time) else {
+        guard let parent = plan.parent, let media = media(of: parent, in: time) else {
             throw ResolveError.trackWithoutVideo(place: place, kind: kind)
         }
 
-        // Only a mask in the parent's space lies in the media followed; a box shape's is in its own box.
-        let ownMask = plan.space == .parent && !plan.isPinned
-            ? mask.map { self.area(of: $0, instant: plan.instant) }
-            : nil
         let followed = try self.followed(
-            target,
-            candidates: [
-                ("area", area),
-                ("mask", ownMask)
-            ],
-            cornerPin: cornerPin,
-            in: picture,
+            data,
+            in: media,
             at: plan.instant,
             drawn: drawn(under: parent, of: plan, in: time),
             fps: fps,
             place: place,
             kind: kind
         )
-        try checkInstant(of: plan, followedBy: followed.track, target: target, in: picture, place: place)
+        try checkInstant(of: plan, followedBy: followed.track, in: media, place: place)
 
         return (
             try narrowed(plan, to: followed.range, place: written.place),
-            TrackedMedia(track: followed.track, file: picture.file, clock: picture.clock)
+            TrackedMedia(track: followed.track, file: media.file, clock: media.clock)
         )
-    }
-
-    // The area `true` may follow, nil where the clip tracks nothing of its own. A clip area is the box of another
-    // clip, not a place in the media followed, so it stops there.
-    private func ownArea(
-        _ area: PropertyValue<AreaValue>?,
-        of plan: ClipPlan,
-        written: Clip
-    ) throws -> PropertyValue<Rectangle>? {
-        guard let area, written.track?.isOwn == true else { return nil }
-
-        return try area.map { value in
-            guard let rectangle = value.rectangle else {
-                throw AreaError.clipAreaInPicture(place: written.place.appending(key: "track"), kind: plan.kind.label)
-            }
-
-            return rectangle
-        }
-    }
-
-    // The quad of the corner pin `true` follows, nil where the clip tracks nothing of its own or has no corner pin. A
-    // clip area is the box of another clip, not a place in the media followed, so it stops there.
-    private func ownCornerPin(
-        _ cornerPin: PropertyValue<[GeometryPoint]>?,
-        of plan: ClipPlan,
-        written: Clip
-    ) throws -> PropertyValue<Quad>? {
-        guard let cornerPin, plan.isPinned, written.track?.isOwn == true else { return nil }
-
-        return try cornerPin.map { points in
-            guard points.count == 4, points.allSatisfy({ $0.clipArea == nil }) else {
-                throw AreaError.clipAreaInPicture(place: written.place.appending(key: "track"), kind: plan.kind.label)
-            }
-
-            let corners = points.map(\.fixed)
-            return Quad(topLeft: corners[0], topRight: corners[1], bottomRight: corners[2], bottomLeft: corners[3])
-        }
     }
 
     // A connected or sequence clip is visible only where its target was followed.
@@ -257,138 +145,6 @@ struct TrackPlanner: Sendable {
         }
 
         return plan.narrowed(to: visible)
-    }
-
-    // What `true` follows: the one of the clip's area, mask and crop it has, each where it starts. A clip with more
-    // than one stops, since it must name its target.
-    private func own(
-        _ candidates: [(key: String, value: PropertyValue<Rectangle>?)],
-        place: Place,
-        kind: PlaceKind
-    ) throws -> PropertyValue<Rectangle>? {
-        let present = candidates.filter { $0.value != nil }
-        guard present.count <= 1 else {
-            throw ResolveError.trackOwnAmbiguous(place: place, kind: kind, keys: present.map(\.key))
-        }
-
-        return present.first?.value
-    }
-
-    // The bounding box of every mask's geometry, without feather, as the area `true` follows. The target is found
-    // where the masks start: at the first time a keyframe gives a geometry leaf, a leaf no keyframe moves being at the
-    // clip's instant.
-    private func area(
-        of masks: [ResolvedMask],
-        instant: Double
-    ) -> PropertyValue<Rectangle> {
-        let start = masks.flatMap(\.geometryTimes).min() ?? instant
-        let bounds = masks.map { $0.sampled(at: SampleTime(start)) }.bounds ?? Rectangle(x: 0, y: 0, width: 0, height: 0)
-        guard start != instant else { return .value(bounds) }
-
-        return .keyframes([PropertyKeyframe(index: 0, at: start, value: bounds, ease: .linear)])
-    }
-
-    // The track of a target in the tracked media and the sequence range it is followed over: track data as written,
-    // or the target found on the track's frame and followed by the tracker from there.
-    private func followed(
-        _ target: TrackTarget,
-        candidates: [(key: String, value: PropertyValue<Rectangle>?)],
-        cornerPin: PropertyValue<Quad>? = nil,
-        in media: (picture: Picture, file: MediaFile, clock: MediaClock),
-        at instant: Double,
-        drawn: TimeRange,
-        fps: Double,
-        place: Place,
-        kind: PlaceKind
-    ) throws -> (track: Track, range: TimeRange) {
-        let start: (quad: Quad, mediaTime: Double, instant: Double)
-        switch target {
-        case let .own(time):
-            start = try cornerPin.map { try self.target($0, time: time, on: media, at: instant, place: place, kind: kind) }
-                ?? self.target(nil, time: time, candidates: candidates, in: media, at: instant, place: place, kind: kind)
-
-        case let .area(form, time):
-            start = try self.target(form, time: time, candidates: [], in: media, at: instant, place: place, kind: kind)
-
-        case let .data(time, frames):
-            return try data(
-                frames,
-                time: time,
-                in: media,
-                at: instant,
-                drawn: drawn,
-                fps: fps,
-                place: place,
-                kind: kind
-            )
-        }
-
-        return try follow(
-            start.quad,
-            atMediaTime: start.mediaTime,
-            at: start.instant,
-            on: media.clock,
-            drawn: drawn,
-            file: media.file,
-            colorSpace: media.picture.colorSpace,
-            named: media.picture.name,
-            fps: fps,
-            place: place,
-            kind: kind
-        )
-    }
-
-    // The target's quad, the media time of the track's frame and the sequence time the window is
-    // narrowed from: for `true` the one of the clip's own candidates it has, at its first keyframe or else at the clip's
-    // instant, and otherwise the area `form` names, found on the track's frame. With a `time` the track's frame is the
-    // frame it names, and the clip's own geometry is static, since a keyframe's value is where it is at its own time. A
-    // named target does not look at the candidates.
-    private func target(
-        _ form: AreaForm?,
-        time: Double?,
-        candidates: [(key: String, value: PropertyValue<Rectangle>?)],
-        in media: (picture: Picture, file: MediaFile, clock: MediaClock),
-        at instant: Double,
-        place: Place,
-        kind: PlaceKind
-    ) throws -> (quad: Quad, mediaTime: Double, instant: Double) {
-        let frameTime = try time.map { try trackFrameTime($0, in: media.file, place: place, kind: kind) }
-        guard let form else {
-            guard let own = try own(candidates, place: place, kind: kind) else {
-                throw ResolveError.trackOwnWithoutArea(place: place, kind: kind)
-            }
-            guard let frameTime else {
-                let at = own.first?.at ?? instant
-                return (Quad(own.firstValue), media.clock.mediaTime(atSequenceTime: at), at)
-            }
-            guard case let .value(rectangle) = own else {
-                throw ResolveError.trackOwnKeyframed(place: place, kind: kind)
-            }
-
-            return (Quad(rectangle), frameTime, instant)
-        }
-
-        let rectangle = try form.rectangle(place: place, kind: kind.label)
-        return (Quad(rectangle), frameTime ?? media.clock.mediaTime(atSequenceTime: instant), instant)
-    }
-
-    // The corner pin of a clip with one, the only geometry `true` follows on it, at its first keyframe or else at the
-    // clip's instant, and with a `time` static, on the frame it names.
-    private func target(
-        _ cornerPin: PropertyValue<Quad>,
-        time: Double?,
-        on media: (picture: Picture, file: MediaFile, clock: MediaClock),
-        at instant: Double,
-        place: Place,
-        kind: PlaceKind
-    ) throws -> (quad: Quad, mediaTime: Double, instant: Double) {
-        guard let time else {
-            let at = cornerPin.first?.at ?? instant
-            return (cornerPin.firstValue, media.clock.mediaTime(atSequenceTime: at), at)
-        }
-        guard case let .value(quad) = cornerPin else { throw ResolveError.trackOwnKeyframed(place: place, kind: kind) }
-
-        return (quad, try trackFrameTime(time, in: media.file, place: place, kind: kind), instant)
     }
 
     // The timestamp of the frame of the tracked media whose presentation interval holds `time`: from its timestamp to
@@ -426,14 +182,13 @@ struct TrackPlanner: Sendable {
         return frame
     }
 
-    // Track data as the track it gives: each frame at the timestamp of the media frame it names, and the target the quad
-    // of the frame `time` names. A written quad is a value, so a frame out of order, two frames on one media frame, a
-    // gap, a quad that is not strictly convex or runs the other way round than the target, and a `time` that names no
-    // frame of the data stop. The range is followed as the tracker's frames are.
-    private func data(
-        _ frames: [TrackDataFrame],
-        time: Double,
-        in media: (picture: Picture, file: MediaFile, clock: MediaClock),
+    // Track data as the track it gives and the sequence range it is followed over: each frame at the timestamp of the
+    // media frame it names, and the target the quad of the frame `time` names. A written quad is a value, so a frame out
+    // of order, two frames on one media frame, a gap, a quad that is not strictly convex or runs the other way round than
+    // the target, and a `time` that names no frame of the data stop.
+    private func followed(
+        _ data: TrackData,
+        in media: (file: MediaFile, clock: MediaClock),
         at instant: Double,
         drawn: TimeRange,
         fps: Double,
@@ -448,7 +203,8 @@ struct TrackPlanner: Sendable {
                 reason: reason
             )
         }
-        let targetTime = try trackFrameTime(time, in: file, place: place, kind: kind)
+        let frames = data.frames
+        let targetTime = try trackFrameTime(data.time, in: file, place: place, kind: kind)
         var times: [Double] = []
         for (index, frame) in frames.enumerated() {
             guard let frameTime = self.frameTime(named: frame.time, in: file) else { throw refuse(index, .outsideMedia) }
@@ -485,17 +241,14 @@ struct TrackPlanner: Sendable {
         )
     }
 
-    // A clip whose track names its frame by `time` can show at its instant a frame the track does not follow, and its
-    // window, narrowed from its instant, would hold none. With a short form the instant shows the track's frame.
+    // A clip can show at its instant a frame its track data does not name, and its window, narrowed from its instant,
+    // would hold none.
     private func checkInstant(
         of plan: ClipPlan,
         followedBy track: Track,
-        target: TrackTarget,
-        in media: (picture: Picture, file: MediaFile, clock: MediaClock),
+        in media: (file: MediaFile, clock: MediaClock),
         place: Place
     ) throws {
-        guard target.time != nil else { return }
-
         let mediaTime = media.clock.mediaTime(atSequenceTime: plan.instant)
         let shown = media.file.frameIndex(at: mediaTime)
         guard !track.samples.contains(where: { media.file.frameIndex(at: $0.time) == shown }) else { return }
@@ -505,48 +258,6 @@ struct TrackPlanner: Sendable {
             kind: .clip(plan.kind),
             mediaTime: media.file.frameTime(at: mediaTime) ?? mediaTime
         )
-    }
-
-    // Follows the target's quad from the track's frame at `mediaTime` over every media frame the clock shows on the
-    // frames it draws and those between them and the track's frame: with holds and reverse, the lowest to the highest
-    // media time shown. The range comes back in sequence time, narrowed from the clip's `instant`, open on a side where
-    // nothing needed was lost.
-    private func follow(
-        _ target: Quad,
-        atMediaTime mediaTime: Double,
-        at instant: Double,
-        on clock: MediaClock,
-        drawn: TimeRange,
-        file: MediaFile,
-        colorSpace: ColorSpace?,
-        named media: String,
-        fps: Double,
-        place: Place,
-        kind: PlaceKind
-    ) throws -> (track: Track, range: TimeRange) {
-        let shown = shownMediaTimes(on: clock, drawn: drawn, fps: fps)
-        let needed = needed(shown: shown, from: mediaTime, in: file)
-        let frames = try Result {
-            try follower.follow(
-                target,
-                in: file,
-                atMediaTime: mediaTime,
-                over: needed,
-                colorSpace: colorSpace
-            )
-        }
-        .mapError { error in
-            ProviderError.failed(
-                provider: .tracker,
-                place: place,
-                kind: kind.label,
-                picture: ProviderPicture(media: media, mediaTime: mediaTime),
-                message: "\(error)"
-            )
-        }
-        .get()
-        let track = Track(target: target, mediaTime: mediaTime, frames: frames)
-        return range(of: track, needed: needed, at: instant, on: clock, drawn: drawn, file: file, fps: fps)
     }
 
     // The media frames needed: those shown and those between them and the track's frame.
@@ -639,57 +350,45 @@ struct TrackPlanner: Sendable {
         )
     }
 
-    // The video or image sequence a storyline clip plays, which a tracker can follow, and nil for a still, a solid or
+    // The video or image sequence a storyline clip plays, which has frames to follow, and nil for a still, a solid or
     // a compound clip.
-    private func picture(of plan: StorylinePlan) -> (picture: Picture, file: MediaFile, clock: MediaClock)? {
+    private func media(of plan: StorylinePlan) -> (file: MediaFile, clock: MediaClock)? {
         guard
             plan.source.kind == .media(.video),
             let media = plan.source.media,
             case let .file(file) = media.source,
-            let size = file.size,
             let clock = plan.clock
         else {
             return nil
         }
 
-        let picture = Picture(
-            name: media.reference ?? file.path,
-            size: size,
-            colorSpace: media.colorSpace
-        )
-        return (picture, file, clock)
+        return (file, clock)
     }
 
     // The video or image sequence a connected or sequence media clip plays, nil for any other clip.
-    private func picture(of plan: ClipPlan) -> (picture: Picture, file: MediaFile, clock: MediaClock)? {
+    private func media(of plan: ClipPlan) -> (file: MediaFile, clock: MediaClock)? {
         guard
             plan.kind == .media(.video),
             let media = plan.media,
             case let .file(file) = media.source,
-            let size = file.size,
             let clock = plan.mediaClock
         else {
             return nil
         }
 
-        let picture = Picture(
-            name: media.reference ?? file.path,
-            size: size,
-            colorSpace: media.colorSpace
-        )
-        return (picture, file, clock)
+        return (file, clock)
     }
 
-    private func picture(
+    private func media(
         of parent: ClipParent,
         in time: TimePlan
-    ) -> (picture: Picture, file: MediaFile, clock: MediaClock)? {
+    ) -> (file: MediaFile, clock: MediaClock)? {
         switch parent {
         case let .storyline(index, _):
-            time.sequence.storyline[index].cornerPin == nil ? picture(of: time.storyline[index]) : nil
+            time.sequence.storyline[index].cornerPin == nil ? media(of: time.storyline[index]) : nil
 
         case let .clip(index, _):
-            time.clips[index].isPinned ? nil : picture(of: time.clips[index])
+            time.clips[index].isPinned ? nil : media(of: time.clips[index])
         }
     }
 
@@ -704,21 +403,6 @@ struct TrackPlanner: Sendable {
 
         case .clip:
             plan.visible
-        }
-    }
-
-    // A crop `true` follows is an area where it starts, not a `{scale}`.
-    private func isArea(_ crop: PropertyValue<CropForm>?) -> Bool {
-        if case .area = crop?.firstValue { true } else { false }
-    }
-
-    private func isNaming(_ kind: ClipKind) -> Bool {
-        switch kind {
-        case .title, .media:
-            true
-
-        default:
-            false
         }
     }
 

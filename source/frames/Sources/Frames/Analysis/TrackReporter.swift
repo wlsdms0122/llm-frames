@@ -5,10 +5,10 @@
 //  Created by JSilver on 11/17/26.
 //
 
-// Follows a rectangle in a video from media time `--at` with the tracker provider, as `track` on a clip does, and
-// reports it as `track` prints it. The rectangle is JSON text in a document's rect area form. It is followed over the
-// whole video, or over the frames shown from `--at` to `--to`, either way. The video is read in `colorSpace` where
-// `--color-space` names one.
+// Follows a rectangle in a video from media time `--at` with the tracker provider, and reports it as the track data
+// `track` prints (FRAMES-23). The rectangle is JSON text in a document's rect area form. It is followed over the whole
+// video, or over the frames shown from `--at` to `--to`, either way. The video is read in `colorSpace` where
+// `--color-space` names one. A rectangle followed on no frame stops, since track data names the frame at `--at`.
 package struct TrackReporter: Sendable {
     // MARK: - Property
     private static let place = Place(components: [.key("--area")])
@@ -74,8 +74,9 @@ package struct TrackReporter: Sendable {
             )
         }
         .get()
+        guard !frames.isEmpty else { throw AnalysisError.areaNotFollowed(time: time, file: path) }
 
-        return TrackReport(track: Track(target: Quad(target), mediaTime: time, frames: frames))
+        return TrackReport(time: time, frames: frames)
     }
 
     // MARK: - Private

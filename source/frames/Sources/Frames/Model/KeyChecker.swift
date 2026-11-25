@@ -272,13 +272,6 @@ struct KeyChecker: Sendable {
                 try checkArea(value, as: type, place: place, kind: kind, scope: &scope)
             }
 
-        case .track:
-            if case let .object(object) = value, ["time", "area", "frames"].contains(where: object.contains) {
-                try checkObject(object, as: ClipKeyTable.track, place: place, scope: &scope)
-            } else if value != .bool(true) {
-                try checkArea(value, as: type, place: place, kind: kind, scope: &scope)
-            }
-
         case .margin:
             try checkMargin(value, place: place, kind: kind, scope: &scope)
 
@@ -1577,8 +1570,8 @@ struct KeyChecker: Sendable {
              (.filterOperation, .object), (.audioOperation, .object), (.document, .object):
             true
 
-        case (.area, .array), (.area, .object), (.crop, .array), (.crop, .object), (.track, .bool),
-             (.track, .array), (.track, .object), (.margin, .number), (.margin, .array):
+        case (.area, .array), (.area, .object), (.crop, .array), (.crop, .object), (.margin, .number),
+             (.margin, .array):
             true
 
         case (.media, .string), (.media, .object), (.masks, .object), (.masks, .array), (.runs, .string),
@@ -1680,9 +1673,6 @@ struct KeyChecker: Sendable {
 
         case .crop:
             "an area or {scale}"
-
-        case .track:
-            "true, an area or a track object"
 
         case .margin:
             "a whole number, 0 or more, or a list of 2 or 4 of them"

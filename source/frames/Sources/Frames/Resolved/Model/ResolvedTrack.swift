@@ -5,8 +5,8 @@
 //  Created by JSilver on 11/16/26.
 //
 
-// What the tracker followed, as resolve pinned it: `media` is the media followed, the clip's own or its parent's, and
-// `track` the target's quad at the instant and its quad and fitted motion on every frame followed, in media time.
+// What track data followed, as resolve pinned it: `media` is the media followed, the clip's own or its parent's, and
+// `track` the target's quad on the track's frame and its quad and fitted motion on every frame followed, in media time.
 struct ResolvedTrack: Equatable, Sendable {
     // MARK: - Property
     let media: PinnedMedia

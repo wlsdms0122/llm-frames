@@ -6,7 +6,7 @@
 //
 
 // What tracking decided for a sequence: the time plan with each tracked connected clip's visible window narrowed to
-// the frames followed, and what the tracker followed for each storyline clip and each other clip, in the time plan's
+// the frames followed, and what the track data followed for each storyline clip and each other clip, in the time plan's
 // order, nil where nothing is tracked.
 struct TrackPlan: Equatable, Sendable {
     // MARK: - Property
