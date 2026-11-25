@@ -38,7 +38,8 @@ final class KernelLibrary: @unchecked Sendable {
             MatteKernelSource.text,
             FilterKernelSource.text,
             TrackMatteKernelSource.text,
-            CornerPinKernelSource.text
+            CornerPinKernelSource.text,
+            ResampleKernelSource.text
         ]
         .joined(separator: "\n")
     }

@@ -13,8 +13,8 @@ import FramesTestMedia
 
 // A resolved document, the times of the frames two renderers are compared on and the checks it is held to, one for
 // each kind of item and operation a renderer draws: a video under a moving title, a scaled still with opacity and a
-// blend mode, a detailed still scaled by 0.625 and by 1.375 and one turned, hard edges of a shape and of a picture at
-// sub-pixel positions, shapes with strokes, rounded corners, a shadow and a feathered mask, an adjustment cut by a
+// blend mode, a detailed still scaled by 0.25, 0.625, 1.375 and 3, one turned and one moved by part of a pixel, hard
+// edges of a shape and of a picture at sub-pixel positions, unscaled and scaled, shapes with strokes, rounded corners, a shadow and a feathered mask, an adjustment cut by a
 // track matte, a crossfade between two detailed pictures, a corner pin, motion blur, and a list composited in the
 // linear form.
 struct AgreementCase {
@@ -133,6 +133,31 @@ struct AgreementCase {
                                        "connected": [ { "kind": "media", "media": "\#(detail)", "at": [0, 2], "width": 100, "position": [80, 45], "rotation": 17 } ] } ] }
                     """#),
                 times: [0.5]
+            ),
+            AgreementCase(
+                name: "a detailed still scaled by 0.25 and by 3 and one at its own size moved by part of a pixel",
+                document: try resolver.resolve(#"""
+                    { "kind": "sequence", "format": { "size": [160, 90], "fps": 10 },
+                      "storyline": [ { "kind": "media", "media": "\#(pattern)", "in": 0, "out": 2,
+                                       "connected": [ { "kind": "media", "media": "\#(detail)", "at": [0, 2], "width": 160, "position": [80.375, 45.625] },
+                                                      { "kind": "media", "media": "\#(detail)", "at": [0, 2], "width": 480, "position": [120.125, 20.875] },
+                                                      { "kind": "media", "media": "\#(detail)", "at": [0, 2], "width": 40, "position": [30.625, 70.375] } ] } ] }
+                    """#),
+                times: [0.5]
+            ),
+            AgreementCase(
+                name: "edges of a still scaled by 1.375 at fractional positions",
+                document: try resolver.resolve(#"""
+                    { "kind": "sequence", "format": { "size": [160, 90], "fps": 10, "background": "#00000000" },
+                      "storyline": [ { "kind": "solid", "color": "#00000000", "duration": 1 } ],
+                      "clips": [ { "kind": "media", "media": "\#(white)", "at": [0, 1], "width": 44, "position": [60.3125, 40.8125] } ] }
+                    """#),
+                times: [0.5],
+                checks: [
+                    .edge(EdgeProbe(name: "the scaled picture's left edge at 38.3125", isVertical: true, inside: 50, outside: 33, along: 30..<50)),
+                    .edge(EdgeProbe(name: "the scaled picture's right edge at 82.3125", isVertical: true, inside: 70, outside: 88, along: 30..<50)),
+                    .edge(EdgeProbe(name: "the scaled picture's top edge at 18.8125", isVertical: false, inside: 30, outside: 13, along: 50..<70))
+                ]
             ),
             AgreementCase(
                 name: "hard edges of a shape and of a picture at sub-pixel positions",

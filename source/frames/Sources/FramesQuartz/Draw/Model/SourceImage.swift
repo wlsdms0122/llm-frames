@@ -45,13 +45,5 @@ struct SourceImage {
     }
 
     // MARK: - Public
-    // Draws the image so that the source's coordinates land where the context's current coordinates are.
-    func draw(in context: CGContext) {
-        context.saveGState()
-        context.concatenate(transform.inverted())
-        context.drawUpright(image, in: CGRect(x: 0, y: 0, width: image.width, height: image.height))
-        context.restoreGState()
-    }
-
     // MARK: - Private
 }
