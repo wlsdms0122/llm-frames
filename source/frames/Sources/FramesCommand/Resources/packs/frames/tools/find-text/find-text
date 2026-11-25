@@ -6,7 +6,9 @@ A request is an object with the key `tool` that stands where a value is still to
 fills are those whose `tool` is `frames/find-text`, standing where an area does. It asks frames where and when each
 one is searched, reads the media with `frames ocr --json`, and prints the same document with each of its requests
 replaced by a rectangle in the media pixels it is written in, and with `--report` writes what it filled. A request
-for any other tool is left as written. It reads only frames' machine output and never a resolved document.
+inside a compound clip written as a sequence object is read from `frames timeline --nested`, on the nested sequence's
+own clock. A request for any other tool is left as written. It reads only frames' machine output and never a resolved
+document.
 """
 
 import json
@@ -33,7 +35,8 @@ Prints the document with every request for frames/find-text, standing where an a
 
 Either takes "aspectRatio": [w, h], which grows the padded rectangle to that ratio inside the picture searched.
 
-A request for any other tool is left as written.
+A request inside a compound clip written as a sequence object is searched on the nested sequence's own clock. A
+request among a template instance's arguments stops. A request for any other tool is left as written.
 
   <document.json | ->           The document, as an absolute path, or - for standard input.
   --languages <tag>[,<tag>...]  The recognition languages passed to `frames ocr --languages`. Default: detected.
@@ -224,11 +227,13 @@ def bounding(rects):
 # MARK: - Walking the document
 
 class Clip:
-    """A clip of the outermost document at its place, as reports name it."""
+    """A clip of the document at its place, as reports name it, and the place of the compound clip whose nested
+    sequence holds it, None for a clip of the document's own sequence."""
 
-    def __init__(self, value, place):
+    def __init__(self, value, place, nested=None):
         self.value = value
         self.place = place
+        self.nested = nested
 
 
 class Found:
@@ -256,19 +261,32 @@ def place_name(base, value):
     return f"{base}#{identifier}" if isinstance(identifier, str) else base
 
 
-def clips_of(document):
+def clips_of(document, nested=None):
+    """The clips of a sequence, with places continued from the compound clip's place where it is nested."""
+    base = f"{nested}.media." if nested else ""
     clips = []
     for index, value in enumerate(document.get("storyline") or []):
         if not isinstance(value, dict):
             continue
-        place = place_name(f"storyline[{index}]", value)
-        clips.append(Clip(value, place))
+        place = place_name(f"{base}storyline[{index}]", value)
+        clips.append(Clip(value, place, nested))
         for inner, connected in enumerate(value.get("connected") or []):
             if isinstance(connected, dict):
-                clips.append(Clip(connected, place_name(f"{place}.connected[{inner}]", connected)))
+                clips.append(Clip(connected, place_name(f"{place}.connected[{inner}]", connected), nested))
     for index, value in enumerate(document.get("clips") or []):
         if isinstance(value, dict):
-            clips.append(Clip(value, place_name(f"clips[{index}]", value)))
+            clips.append(Clip(value, place_name(f"{base}clips[{index}]", value), nested))
+    return clips
+
+
+def every_clip(document, nested=None):
+    """The clips of a sequence and of every compound clip in it written as a sequence object, at any depth. A nested
+    document named by its path is another file, and a template instance's clips are its template's."""
+    clips = clips_of(document, nested)
+    for clip in list(clips):
+        media = clip.value.get("media")
+        if isinstance(media, dict) and media.get("kind") == "sequence":
+            clips += every_clip(media, clip.place)
     return clips
 
 
@@ -358,18 +376,26 @@ def check_placed(clip, found):
             raise Stop(f"{clip.place}: {path}: a frames/find-text request stands where an area does, as a crop, an area, a mask's area or the area of a point")
 
 
-def nested_text_forms(document, place):
-    """The place of the first request of this tool inside a nested document, or None."""
-    for clip in clips_of(document):
-        found = [path for holder, key, path in requests_in(clip.value, "", []) if is_own(holder[key])]
-        if found:
-            return f"{place}.{clip.place}: {found[0]}"
-        media = clip.value.get("media")
-        if isinstance(media, dict) and media.get("kind") == "sequence":
-            inner = nested_text_forms(media, f"{place}.{clip.place}.media")
-            if inner:
-                return inner
-    return None
+def check_template_arguments(clip):
+    """Stops on a request of this tool among the arguments of a clip's template instance, a sequence argument's clips
+    included, since where an argument lies is its template's, which `timeline` names by the template's places."""
+    media = clip.value.get("media")
+    if not (isinstance(media, dict) and media.get("kind") == "template"):
+        return
+    found = own_requests_anywhere(media.get("args"), "media.args")
+    if found:
+        raise Stop(f"{clip.place}: {found[0]}: a frames/find-text request stands among the arguments of a template instance, whose clips are its template's, so it is not filled: write the rectangle")
+
+
+def own_requests_anywhere(value, path):
+    """The path of every request of this tool in a value, at any depth, nested documents included."""
+    if is_own(value):
+        return [path]
+    entries = value.items() if isinstance(value, dict) else enumerate(value) if isinstance(value, list) else []
+    found = []
+    for key, inner in entries:
+        found += own_requests_anywhere(inner, f"{path}[{key}]" if isinstance(value, list) else f"{path}.{key}")
+    return found
 
 
 # MARK: - Where a request is searched
@@ -421,19 +447,22 @@ def is_point(found):
 # MARK: - The frame searched
 
 class Times:
-    """Reads each clip's entry from `timeline`, and from `timeline --at` the frame its time map shows at an instant."""
+    """Reads the entries of one sequence's clips from `timeline`, and from `timeline --at` the frame each clip's time
+    map shows at an instant: the document's own sequence, or with `nested` the sequence of the compound clip at that
+    place, from `timeline --nested` on its own clock."""
 
-    def __init__(self, frames, probe_path, clips):
+    def __init__(self, frames, probe_path, clips, nested):
         self.frames = frames
         self.probe_path = probe_path
         self.clips = {clip.place: clip for clip in clips}
+        self.scope = ["--nested", nested] if nested else []
         self.entries = None
         self.shown_at = {}
 
     def entry(self, place):
         """A clip's `timeline` entry: its kind, media, instant, clock and spaces."""
         if self.entries is None:
-            self.entries = entries_by_place(self.frames.report(["timeline", self.probe_path, "--json"]))
+            self.entries = entries_by_place(self.frames.report(["timeline", self.probe_path, *self.scope, "--json"]))
         return self.entries[place]
 
     def written(self, place):
@@ -443,7 +472,7 @@ class Times:
     def shown(self, place, time):
         """A clip's `timeline --at` entry at a sequence time, whose `mediaTime` is the frame its time map shows."""
         if time not in self.shown_at:
-            report = self.frames.report(["timeline", self.probe_path, "--at", number_text(time), "--json"])
+            report = self.frames.report(["timeline", self.probe_path, *self.scope, "--at", number_text(time), "--json"])
             self.shown_at[time] = entries_by_place(report)
         return self.shown_at[time][place]
 
@@ -513,7 +542,7 @@ def probe_document(document):
     stands, and no `track` where a track request stands, since a clip's times and spaces do not depend on its track.
     A request standing anywhere else has no value that keeps those facts, and stops."""
     copy = json.loads(json.dumps(document))
-    for clip in clips_of(copy):
+    for clip in every_clip(copy):
         for holder, key, path in requests_in(clip.value, "", []):
             if key == "track" and holder is clip.value:
                 del holder[key]
@@ -590,15 +619,10 @@ def run(arguments, executable):
     frames gave it."""
     options, path, languages, report_path = parse(arguments)
     document = load(path)
-    clips = clips_of(document)
+    clips = every_clip(document)
     found = [entry for clip in clips for entry in text_forms(clip)]
     for clip in clips:
-        media = clip.value.get("media")
-        if isinstance(media, dict) and media.get("kind") == "sequence":
-            inner = nested_text_forms(media, f"{clip.place}.media")
-            if inner:
-                raise Stop(f"{inner}: its text cannot be searched: it is inside a compound clip or template instance, and timeline --at gives a nested document's clips at the outer sequence's times only")
-    for clip in clips:
+        check_template_arguments(clip)
         check_placed(clip, [entry for entry in found if entry.clip is clip])
     for entry in found:
         check_text_form(entry.form, entry.where)
@@ -613,12 +637,16 @@ def run(arguments, executable):
         probe_path = os.path.join(directory, "document.json")
         with open(probe_path, "w", encoding="utf-8") as file:
             json.dump(probe_document(document), file)
-        times = Times(frames, probe_path, clips)
-        searched = [searched_place(entry, times) for entry in found]
+        scopes = {}
+        for clip in clips:
+            scopes.setdefault(clip.nested, []).append(clip)
+        times = {nested: Times(frames, probe_path, inner, nested) for nested, inner in scopes.items()}
+        searched = [searched_place(entry, times[entry.clip.nested]) for entry in found]
         filled = []
         for entry, place in zip(found, searched):
-            read = picture_of(entry, place, times)
-            reading = frames.ocr(read, times.written(place).value.get("colorSpace"), languages)
+            scope = times[entry.clip.nested]
+            read = picture_of(entry, place, scope)
+            reading = frames.ocr(read, scope.written(place).value.get("colorSpace"), languages)
             rect, lines = find(entry.form, reading, entry.where, read.describe())
             filled.append(report_entry(entry, read, lines, rect))
     for entry, item in zip(found, filled):
