@@ -1,52 +1,8 @@
 # Measurements
 
-A spec states rules and requirements. Where a bound or a constant takes its value from a measurement, the spec gives that basis in one sentence, and this page keeps the measurement itself: what was measured, on what, the numbers, and the spec sentence it supports. A measurement says what held on the runs made. It binds nothing, and a spec never depends on this page to say what it requires.
+This is not part of the specification. A spec states rules and requirements, and where a bound or a constant takes its value from a measurement, the spec gives that basis in one sentence. This page keeps the measurement itself: what was measured, on what, the numbers, and the spec sentence it supports, which each entry names on its Supports line. A measurement says what held on the runs made. It binds nothing, and no spec depends on this page or links to it.
 
-The reference machine is an Apple M1 Pro. A section is kept for each spec that has measurements, in the order of the specs.
-
-## FRAMES-24
-
-### A video frame converted by the decoder on the GPU and on the CPU
-
-Supports: [Tolerances](../spec/FRAMES-24/SPEC.md#tolerances), the `avfoundation` decoder's conversion on the GPU within 2⁻¹⁰ × max(1, |v|) of the CPU's, mean within 2⁻¹⁸.
-
-On: the reference machine with the `avfoundation` decoder, three frames each of 640 by 360 gradients, values from -0.05 to 1.05, written as HEVC Main 10 in `display-p3` and `rec2020` and as 8-bit H.264 in `rec709` and `srgb`; and a frame of a 1206 by 2622 Display P3 screen recording rendered with a title to a 16-bit PNG.
-
-Numbers: the largest difference of a component over max(1, |v|) was 9.7e-4 in `display-p3` and `rec2020`, one step of a half float just above 1, and 4.9e-4 in `rec709`. The mean difference was at most 3.8e-7. `srgb`, whose conversion is the identity, gave the same bits. The screen recording's frame differed in 2 of its 12.6 million components, by one step of a half float. Two conversions of a frame on the GPU gave the same bytes.
-
-### `metal` against `quartz` on the same display lists
-
-Supports: [Tolerances](../spec/FRAMES-24/SPEC.md#tolerances), a renderer against `quartz` within 2⁻⁹ × max(1, |v|) per component, 2⁻¹² on average, and edges within 1/64 of a pixel; and the rule that a role gives the same bytes on every run.
-
-On: the reference machine, twenty-three frames of nineteen cases, of 160 by 90 pixels, 400 by 20 for motion blur and 1024 by 1024 for the corner pin: a video under a moving title, in the encoded and the linear form; a still scaled down, half transparent and in `screen`; a detailed still scaled by 0.625 and by 1.375, one turned by 17 degrees, ones scaled by 0.25 and by 3, and one at its own size moved by part of a pixel; pictures with rounded corners, a border and a shadow, one turned and half transparent and one casting its shadow from outside the frame; a detailed still filtered by temperature, contrast and exposure, one blurred, and a video with rounded corners, a border and a shadow blurred and warmed; a still through a LUT; a still scaled by 0.75, turned by 23 degrees, half grey by a mix and sharpened; an adjustment with a mix and one with a feathered mask and an opacity over a filtered video under a title; the edges of a still scaled by 1.375 at fractional positions; hard edges of a shape and of a picture at positions of 3/8 and 5/8 of a pixel; shapes with a stroke, rounded corners, a shadow and a feathered mask; an adjustment cut by a track matte; a crossfade between a detailed video and a detailed still at a quarter, a half and three quarters of the way; a corner pin; and motion blur.
-
-Numbers, agreement: the largest difference of a component over max(1, |v|) was 1.6e-3 on the adjustments over the filtered video, the same on `quartz`'s drawing of them into layers, and at most 9.8e-4, one step of a half float at 1, on every other case, at flat pixels in the linear form and at others in the crossfade, the turned still and the filtered and decorated pictures. The mean difference was at most 1.3e-4 at flat pixels and 1.2e-4 at the others, both in the crossfade. Alpha differed nowhere, and every edge lay at the same position in both. By kind of picture:
-
-| Pictures | How `metal` draws them | Largest difference | Mean |
-| --- | --- | --- | --- |
-| Resampled pictures | on the GPU by the kernel `quartz` resamples with | 9.7e-4 turned, 4.9e-4 upright | at most 9.7e-6; edges the same |
-| Rounded corners, border, shadow | covered, bordered and shadowed on the GPU from what the rasteriser of `quartz` draws | 9.8e-4 | 2.9e-5 |
-| Filtered pictures | one Core Image image on both renderers, which `metal` lays as it is and `quartz` renders and draws | 9.8e-4 | 1.1e-5 upright, 1.0e-4 turned and half transparent |
-| Adjustments | filtered on the GPU frame below them | 1.6e-3 | 3.0e-5; the one cut by a track matte not at all |
-| Shapes, corner pin, motion blur | by the drawing of `quartz` into a layer | 4.9e-4, the rounding of the layer | |
-
-Numbers, repeated runs: `metal` gave the same bytes for each of these frames drawn again by one renderer and by a new renderer on a new decoder in every run measured: 200 rounds of the twenty-three frames in each of five processes, two alone, two beside a `quartz` and a `metal` renderer drawing the same frames on another thread, and one beside those and three processes rendering 1080 by 1920 videos, 46,000 frames in all; the frames of 132 fresh processes, 30 of them with every kernel compiled anew; and 90 runs of the determinism and agreement tests together in fresh processes. `quartz` gave the same bytes for 9,200 frames drawn the same way beside the same thread. The frames of two processes differed only where the H.264 videos each process writes for these cases differed: the hardware encoder may write other bits for the same pictures, and one video kept and decoded in 30 processes gave the same bytes in each. A video frame converted on the CPU differs from the GPU's conversion by one step of a half float at one to three pixels of eleven of these frames, within every tolerance against `quartz`.
-
-### A picture of pixels resampled against its definition
-
-Supports: [Rules](../spec/FRAMES-24/SPEC.md#rules), "A picture of pixels is resampled by its definition": each component within 2⁻⁹ × max(1, |v|) of the definition in double precision, 2⁻¹² on average.
-
-On: the reference machine, the set that rule names, on `quartz` and `metal`, against the definition evaluated in double precision.
-
-Numbers: `quartz` and `metal` gave the same values, each component within 4.9e-4 of the definition at every scale and turn, a quarter of the bound, within 1.5e-4 on average turned by 17 degrees at scale 1, and at most 1.3e-4 upright. Each edge of the picture scaled by 1.375 and at its own size lay within 2.5e-4 of a pixel of its geometric position.
-
-### A frame converted by the encoder on the GPU and on the CPU
-
-Supports: [Tolerances](../spec/FRAMES-24/SPEC.md#tolerances), the `avfoundation` encoder's conversion on the GPU within one code value of the CPU's.
-
-On: the reference machine with the `avfoundation` encoder, a 512 by 96 frame of half floats whose unpremultiplied colours run from -0.25 to 1.25 at alphas from 0 to 1, in `srgb`, `display-p3`, `rec2020` and `rec709`, at eight bits, as a delivery is written, and at sixteen, as a master is, with alpha kept and dropped.
-
-Numbers: a code value converted on the GPU differed from the CPU's by at most 1, in at most 1.9 percent of the values, in `display-p3`, and in none at eight bits in `srgb`, `rec2020` and `rec709`. Two conversions of the frame on the GPU gave the same bytes.
+The reference machine is an Apple M1 Pro. A section is kept for each spec that has measurements, in the order of their numbers.
 
 ## FRAMES-21
 
@@ -68,7 +24,7 @@ Numbers: text set from an embedded font gave the same pixels. An axial gradient 
 
 ### The cost of drawing a dense page
 
-Supports: the Note on what a dense page costs and that a decoder may draw pictures of one document in parallel.
+Supports: the Note in [Notes](../spec/FRAMES-21/SPEC.md#notes) on what a dense page costs and that a decoder may draw pictures of one document in parallel.
 
 On: the reference machine (10 processors) with the `avfoundation` decoder, a page of 1920 by 1080 points holding 50,000 paths about 30 points across and 2,000 runs of text in 4 fonts.
 
@@ -76,7 +32,7 @@ Numbers: 1.9 s for the whole page at scale 2 (3840 by 2160 pixels), 1.1 s for a 
 
 ### The `planar` tracker losing a target
 
-Supports: the Note on when the `planar` tracker reports its target lost.
+Supports: the Note in [Notes](../spec/FRAMES-21/SPEC.md#notes) on when the `planar` tracker reports its target lost.
 
 On: 640 by 360 H.264 video of a textured poster in perspective with a bar growing over the target from its left or its top edge, and a target of one flat grey.
 
@@ -151,23 +107,49 @@ Supports: the reasons [Alternatives considered](../spec/FRAMES-21/SPEC.md#altern
 - Reading ahead up to 32 frames: renders of 16 and 24 videos of 1206 by 2622 pixels shown at once took 31.3 and 70.7 s reading up to 10 frames ahead and 30.8 and 70.0 s reading up to 32, and with up to 32 a render of 64 small videos shown at once had a reader give no frame.
 - Several Metal command queues: a render of 24 videos of 1206 by 2622 pixels took 131 s with four queues against 121 s with one, and 129 s of system time against 90 s.
 
-## FRAMES-28
+## FRAMES-24
 
-### The limiter's true peak over its ceiling
+### A video frame converted by the decoder on the GPU and on the CPU
 
-Supports: the limiter check of [FRAMES-24](../spec/FRAMES-24/SPEC.md#rules), a `truePeak` at most the ceiling plus 0.05 dB, and the range of `lookahead` from 0.0015 in [Limiter](../spec/FRAMES-28/SPEC.md#limiter).
+Supports: [Tolerances](../spec/FRAMES-24/SPEC.md#tolerances), the `avfoundation` decoder's conversion on the GPU within 2⁻¹⁰ × max(1, |v|) of the CPU's, mean within 2⁻¹⁸.
 
-On: the limiter at a `ceiling` of -1, the output's `truePeak` read by frames' meter from the output's own samples.
+On: the reference machine with the `avfoundation` decoder, three frames each of 640 by 360 gradients, values from -0.05 to 1.05, written as HEVC Main 10 in `display-p3` and `rec2020` and as 8-bit H.264 in `rec709` and `srgb`; and a frame of a 1206 by 2622 Display P3 screen recording rendered with a title to a 16-bit PNG.
 
-Numbers: at a `lookahead` of 0.0015, 0.005 and 0.05 and a `release` of 0.000001, 0.1 and 1, the five signals of the limiter check of FRAMES-24 read at most 0.019 dB over the ceiling, on the noise bursts at a `lookahead` of 0.0015 and a `release` of 0.000001, and under 0.004 dB over it from a `lookahead` of 0.005. Other sounds (sines from 50 Hz to 0.45 of the sample rate, square waves, clicks, white noise and noise bursts up to 50 dB over full scale, and a dense mix 8 dB over full scale, at a `release` from 0.000001 to 1) read at most 0.025 dB over, on white noise 50 dB over full scale at a `lookahead` of 0.0015 and a `release` of 0.000001. With a look-ahead of one sample or none the output read up to 2 dB over the ceiling.
+Numbers: the largest difference of a component over max(1, |v|) was 9.7e-4 in `display-p3` and `rec2020`, one step of a half float just above 1, and 4.9e-4 in `rec709`. The mean difference was at most 3.8e-7. `srgb`, whose conversion is the identity, gave the same bits. The screen recording's frame differed in 2 of its 12.6 million components, by one step of a half float. Two conversions of a frame on the GPU gave the same bytes.
 
-### A limited mix on another meter
+### `metal` against `quartz` on the same display lists
 
-Supports: the Note that another meter interpolates otherwise than the four points of the Annex 2 filter.
+Supports: [Tolerances](../spec/FRAMES-24/SPEC.md#tolerances), a renderer against `quartz` within 2⁻⁹ × max(1, |v|) per component, 2⁻¹² on average, and edges within 1/64 of a pixel; and the rule that a role gives the same bytes on every run.
 
-On: mixes limited by frames' limiter, read with a 16 times interpolator.
+On: the reference machine, twenty-three frames of nineteen cases, of 160 by 90 pixels, 400 by 20 for motion blur and 1024 by 1024 for the corner pin: a video under a moving title, in the encoded and the linear form; a still scaled down, half transparent and in `screen`; a detailed still scaled by 0.625 and by 1.375, one turned by 17 degrees, ones scaled by 0.25 and by 3, and one at its own size moved by part of a pixel; pictures with rounded corners, a border and a shadow, one turned and half transparent and one casting its shadow from outside the frame; a detailed still filtered by temperature, contrast and exposure, one blurred, and a video with rounded corners, a border and a shadow blurred and warmed; a still through a LUT; a still scaled by 0.75, turned by 23 degrees, half grey by a mix and sharpened; an adjustment with a mix and one with a feathered mask and an opacity over a filtered video under a title; the edges of a still scaled by 1.375 at fractional positions; hard edges of a shape and of a picture at positions of 3/8 and 5/8 of a pixel; shapes with a stroke, rounded corners, a shadow and a feathered mask; an adjustment cut by a track matte; a crossfade between a detailed video and a detailed still at a quarter, a half and three quarters of the way; a corner pin; and motion blur.
 
-Numbers: the mixes read up to 0.23 dB above their ceiling, and the same mixes limited 0.25 dB lower read under the ceiling there.
+Numbers, agreement: the largest difference of a component over max(1, |v|) was 1.6e-3 on the adjustments over the filtered video, the same on `quartz`'s drawing of them into layers, and at most 9.8e-4, one step of a half float at 1, on every other case, at flat pixels in the linear form and at others in the crossfade, the turned still and the filtered and decorated pictures. The mean difference was at most 1.3e-4 at flat pixels and 1.2e-4 at the others, both in the crossfade. Alpha differed nowhere, and every edge lay at the same position in both. By kind of picture:
+
+| Pictures | How `metal` draws them | Largest difference | Mean |
+| --- | --- | --- | --- |
+| Resampled pictures | on the GPU by the kernel `quartz` resamples with | 9.7e-4 turned, 4.9e-4 upright | at most 9.7e-6; edges the same |
+| Rounded corners, border, shadow | covered, bordered and shadowed on the GPU from what the rasteriser of `quartz` draws | 9.8e-4 | 2.9e-5 |
+| Filtered pictures | one Core Image image on both renderers, which `metal` lays as it is and `quartz` renders and draws | 9.8e-4 | 1.1e-5 upright, 1.0e-4 turned and half transparent |
+| Adjustments | filtered on the GPU frame below them | 1.6e-3 | 3.0e-5; the one cut by a track matte not at all |
+| Shapes, corner pin, motion blur | by the drawing of `quartz` into a layer | 4.9e-4, the rounding of the layer | |
+
+Numbers, repeated runs: `metal` gave the same bytes for each of these frames drawn again by one renderer and by a new renderer on a new decoder in every run measured: 200 rounds of the twenty-three frames in each of five processes, two alone, two beside a `quartz` and a `metal` renderer drawing the same frames on another thread, and one beside those and three processes rendering 1080 by 1920 videos, 46,000 frames in all; the frames of 132 fresh processes, 30 of them with every kernel compiled anew; and 90 runs of the determinism and agreement tests together in fresh processes. `quartz` gave the same bytes for 9,200 frames drawn the same way beside the same thread. The frames of two processes differed only where the H.264 videos each process writes for these cases differed: the hardware encoder may write other bits for the same pictures, and one video kept and decoded in 30 processes gave the same bytes in each. A video frame converted on the CPU differs from the GPU's conversion by one step of a half float at one to three pixels of eleven of these frames, within every tolerance against `quartz`.
+
+### A picture of pixels resampled against its definition
+
+Supports: [Rules](../spec/FRAMES-24/SPEC.md#rules), "A picture of pixels is resampled by its definition": each component within 2⁻⁹ × max(1, |v|) of the definition in double precision, 2⁻¹² on average.
+
+On: the reference machine, the set that rule names, on `quartz` and `metal`, against the definition evaluated in double precision.
+
+Numbers: `quartz` and `metal` gave the same values, each component within 4.9e-4 of the definition at every scale and turn, a quarter of the bound, within 1.5e-4 on average turned by 17 degrees at scale 1, and at most 1.3e-4 upright. Each edge of the picture scaled by 1.375 and at its own size lay within 2.5e-4 of a pixel of its geometric position.
+
+### A frame converted by the encoder on the GPU and on the CPU
+
+Supports: [Tolerances](../spec/FRAMES-24/SPEC.md#tolerances), the `avfoundation` encoder's conversion on the GPU within one code value of the CPU's.
+
+On: the reference machine with the `avfoundation` encoder, a 512 by 96 frame of half floats whose unpremultiplied colours run from -0.25 to 1.25 at alphas from 0 to 1, in `srgb`, `display-p3`, `rec2020` and `rec709`, at eight bits, as a delivery is written, and at sixteen, as a master is, with alpha kept and dropped.
+
+Numbers: a code value converted on the GPU differed from the CPU's by at most 1, in at most 1.9 percent of the values, in `display-p3`, and in none at eight bits in `srgb`, `rec2020` and `rec709`. Two conversions of the frame on the GPU gave the same bytes.
 
 ## FRAMES-26
 
@@ -189,7 +171,7 @@ Numbers: it mapped 203 cd/m² to 0.89, where the BT.2390 EETF from 1000 cd/m² g
 
 ### Core Graphics drawing a page's colour spaces
 
-Supports: the Note that a page's tagged colour is as exact as its renderer's colour management.
+Supports: the Note in [Notes](../spec/FRAMES-26/SPEC.md#notes) that a page's tagged colour is as exact as its renderer's colour management.
 
 On: the reference machine, Core Graphics drawing into an extended sRGB or an extended linear floating point context.
 
@@ -214,6 +196,24 @@ Numbers:
 | An n × n kernel without a pyramid, n adapted to the local shrink | 0.025 on the grid | 0.002 | | up to 48 ms |
 
 The Metal kernel gave the same bytes over 20 renders and three processes. Its levels, transparent past the source's edge, darkened what lies just inside the edge under minification. Through the whole path, with the list that holds the still rastered at the stretch held to the pixel limit, below 1 under the mild corner pin and about 1.41 under the steep one, the result was 0.16 to 0.27 from the mean at worst, and on the grid 0.016 on average under the mild corner pin and 0.008 under the steep one. With the list at its own size, every case was within the bounds.
+
+## FRAMES-28
+
+### The limiter's true peak over its ceiling
+
+Supports: the limiter check of [FRAMES-24](../spec/FRAMES-24/SPEC.md#rules), a `truePeak` at most the ceiling plus 0.05 dB, and the range of `lookahead` from 0.0015 in [Limiter](../spec/FRAMES-28/SPEC.md#limiter).
+
+On: the limiter at a `ceiling` of -1, the output's `truePeak` read by frames' meter from the output's own samples.
+
+Numbers: at a `lookahead` of 0.0015, 0.005 and 0.05 and a `release` of 0.000001, 0.1 and 1, the five signals of the limiter check of FRAMES-24 read at most 0.019 dB over the ceiling, on the noise bursts at a `lookahead` of 0.0015 and a `release` of 0.000001, and under 0.004 dB over it from a `lookahead` of 0.005. Other sounds (sines from 50 Hz to 0.45 of the sample rate, square waves, clicks, white noise and noise bursts up to 50 dB over full scale, and a dense mix 8 dB over full scale, at a `release` from 0.000001 to 1) read at most 0.025 dB over, on white noise 50 dB over full scale at a `lookahead` of 0.0015 and a `release` of 0.000001. With a look-ahead of one sample or none the output read up to 2 dB over the ceiling.
+
+### A limited mix on another meter
+
+Supports: the Note in [Limiter](../spec/FRAMES-28/SPEC.md#limiter) that another meter interpolates otherwise than the four points of the Annex 2 filter.
+
+On: mixes limited by frames' limiter, read with a 16 times interpolator.
+
+Numbers: the mixes read up to 0.23 dB above their ceiling, and the same mixes limited 0.25 dB lower read under the ceiling there.
 
 ## FRAMES-29
 
