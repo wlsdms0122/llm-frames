@@ -236,17 +236,17 @@ struct TransitionSamplerTests {
         ResolvedStorylineClip(
             place: "storyline",
             id: nil,
-            content: .solid([Keyframe(at: start, value: Color(written: "#000000"))]),
+            content: .solid(ResolvedSolid(
+                color: [Keyframe(at: start, value: Color(written: "#000000"))],
+                size: Size(width: frame.width, height: frame.height),
+                conform: .fit
+            )),
             in: 0,
             out: end - start,
             speed: 1,
             start: start,
             end: end,
-            crop: .keyframes([Keyframe(at: start, value: Crop(frame))]),
-            track: nil,
-            filter: .off,
-            transition: transition,
-            filling: Size(width: frame.width, height: frame.height)
+            transition: transition
         )
     }
 }

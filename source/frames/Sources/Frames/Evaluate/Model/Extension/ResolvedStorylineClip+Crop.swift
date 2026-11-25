@@ -11,9 +11,9 @@ extension ResolvedStorylineClip {
     // MARK: - Initializer
     // MARK: - Public
     func crop(at time: SampleTime) -> Rectangle {
-        guard let track, let clock else { return crop.value(at: time).rectangle }
+        guard let track = picture.track, let clock else { return picture.crop.value(at: time).rectangle }
 
-        return track.crop(of: crop, on: clock, at: time)
+        return track.crop(of: picture.crop, on: clock, at: time)
     }
 
     // MARK: - Private

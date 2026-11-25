@@ -123,9 +123,9 @@ struct ContentFitPlanner: Sendable {
     ) -> [Rectangle] {
         let parents = ParentEvaluator(sequence: sequence)
         let storyline = sequence.storyline.compactMap { entry -> Rectangle? in
-            guard case .media = entry.content else { return nil }
+            guard case let .media(media) = entry.content else { return nil }
 
-            switch entry.placement {
+            switch media.picture.placement {
             case let .cornerPin(pin):
                 return Rectangle(bounding: pin.points.mapValues { $0.sampled(\.fixed) }.value(at: SampleTime(0)).corners)
 

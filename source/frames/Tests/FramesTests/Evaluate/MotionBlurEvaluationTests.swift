@@ -938,18 +938,18 @@ struct MotionBlurEvaluationTests {
             ResolvedStorylineClip(
                 place: place,
                 id: nil,
-                content: .solid([Keyframe(at: start, value: Color(written: "#000000"))]),
+                content: .solid(ResolvedSolid(
+                    color: [Keyframe(at: start, value: Color(written: "#000000"))],
+                    size: size,
+                    conform: .fit
+                )),
                 in: 0,
                 out: end - start,
                 speed: 1,
                 start: start,
                 end: end,
-                crop: .keyframes([Keyframe(at: start, value: Crop(frame))]),
-                track: nil,
-                filter: .off,
                 isMotionBlurred: isMotionBlurred,
-                transition: transition,
-                filling: size
+                transition: transition
             )
         }
 

@@ -31,7 +31,7 @@ extension ResolvedSequence {
         }
         let transition = entry.transition.map { references(of: $0, place: entry.place) } ?? []
 
-        return media + references(of: entry.filter, place: entry.place) + transition
+        return media + references(of: entry.picture.filter, place: entry.place) + transition
     }
 
     private func references(

@@ -161,9 +161,9 @@ struct MediaKeyframeTests {
             media.appearance,
             ResolvedMediaAppearance(
                 conform: .fit,
-                radius: storyline.radius,
-                border: storyline.border,
-                shadow: storyline.shadow
+                radius: storyline.picture.radius,
+                border: storyline.picture.border,
+                shadow: storyline.picture.shadow
             )
         ]
     }

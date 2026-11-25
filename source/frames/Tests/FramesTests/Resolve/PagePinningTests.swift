@@ -32,9 +32,16 @@ struct PagePinningTests {
         let resolved = try resolved(document)
 
         // Then
-        #expect(resolved.storyline[0].content == .media(ResolvedStorylineMedia(media: .pinned(PinnedMedia(
+        guard case let .media(media) = resolved.storyline[0].content else {
+            Issue.record("the entry shows no media")
+            return
+        }
+        #expect(media.media == .pinned(PinnedMedia(
             source: .page(PinnedFile(path: "/abs/deck.pdf", sha256: "sha256-of-/abs/deck.pdf"), page: 3)
-        )))))
+        )))
+        #expect(media.colorSpace == nil)
+        #expect(media.isToneMapped == nil)
+        #expect(media.timeRemap == nil)
         #expect(resolved.storyline[0].end == 2)
     }
 

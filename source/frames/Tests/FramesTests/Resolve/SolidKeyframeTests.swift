@@ -135,8 +135,8 @@ struct SolidKeyframeTests {
 
     // A solid entry's colour keyframes, nil for an entry with media.
     private func color(of entry: ResolvedStorylineClip) -> [Keyframe<Color>]? {
-        guard case let .solid(color) = entry.content else { return nil }
+        guard case let .solid(solid) = entry.content else { return nil }
 
-        return color
+        return solid.color
     }
 }

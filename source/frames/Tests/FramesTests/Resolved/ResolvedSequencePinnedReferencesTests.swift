@@ -158,17 +158,22 @@ struct ResolvedSequencePinnedReferencesTests {
         ResolvedStorylineClip(
             place: place,
             id: nil,
-            content: .media(ResolvedStorylineMedia(media: media, colorSpace: colorSpace)),
+            content: .media(ResolvedStorylineMedia(
+                media: media,
+                colorSpace: colorSpace,
+                picture: ResolvedStorylinePicture(
+                    crop: .keyframes([Keyframe(at: 0, value: Crop(whole))]),
+                    filter: .filter(filter),
+                    filling: size,
+                    from: 0
+                )
+            )),
             in: 0,
             out: 1,
             speed: 1,
             start: 0,
             end: 1,
-            crop: .keyframes([Keyframe(at: 0, value: Crop(whole))]),
-            track: nil,
-            filter: .filter(filter),
-            transition: transition,
-            filling: size
+            transition: transition
         )
     }
 

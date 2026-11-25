@@ -27,7 +27,7 @@ extension ResolvedSequence {
         guard
             let clip = storyline.first(where: { $0.id == id }),
             case .media = clip.content,
-            case .transform = clip.placement
+            case .transform = clip.picture.placement
         else {
             return .output
         }

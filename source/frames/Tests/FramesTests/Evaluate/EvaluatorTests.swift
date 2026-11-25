@@ -268,18 +268,19 @@ struct EvaluatorTests {
             id: nil,
             content: .media(ResolvedStorylineMedia(
                 media: .pinned(first),
-                timeRemap: [Keyframe(at: 0, value: 4), Keyframe(at: 2, value: 0)]
+                timeRemap: [Keyframe(at: 0, value: 4), Keyframe(at: 2, value: 0)],
+                picture: ResolvedStorylinePicture(
+                    crop: .keyframes([Keyframe(at: 0, value: Crop(whole))]),
+                    filling: size,
+                    from: 0
+                )
             )),
             in: 0,
             out: 2,
             speed: 1,
             start: 0,
             end: 2,
-            crop: .keyframes([Keyframe(at: 0, value: Crop(whole))]),
-            track: nil,
-            filter: .off,
-            transition: nil,
-            filling: size
+            transition: nil
         )
         let sequence = sequence([clip])
 
@@ -1286,21 +1287,35 @@ struct EvaluatorTests {
         transition: ResolvedTransition? = nil,
         filling frame: Size? = nil
     ) -> ResolvedStorylineClip {
-        ResolvedStorylineClip(
+        let content: ResolvedStorylineContent = if let media {
+            .media(ResolvedStorylineMedia(
+                media: media,
+                picture: ResolvedStorylinePicture(
+                    crop: .keyframes(crop),
+                    track: track,
+                    filter: .filter(filter),
+                    filling: frame ?? size,
+                    from: start
+                )
+            ))
+        } else {
+            .solid(ResolvedSolid(
+                color: color.map { [Keyframe(at: start, value: $0)] } ?? [],
+                size: frame ?? size,
+                conform: .fit
+            ))
+        }
+
+        return ResolvedStorylineClip(
             place: "storyline",
             id: id,
-            content: media.map { .media(ResolvedStorylineMedia(media: $0)) }
-                ?? .solid(color.map { [Keyframe(at: start, value: $0)] } ?? []),
+            content: content,
             in: `in`,
             out: `in` + (end - start) * speed,
             speed: speed,
             start: start,
             end: end,
-            crop: .keyframes(crop),
-            track: track,
-            filter: .filter(filter),
-            transition: transition,
-            filling: frame ?? size
+            transition: transition
         )
     }
 
@@ -1317,25 +1332,15 @@ struct EvaluatorTests {
         border: MediaBorder? = nil,
         shadow: DropShadow? = nil
     ) -> ResolvedStorylineClip {
-        // The entries restyled here are placed by their box.
-        guard case let .transform(box, ownScale, rotation) = entry.placement else {
-            preconditionFailure("\(entry.place) is placed by a corner pin")
+        // The entries restyled here show media and are placed by their box.
+        guard
+            case let .media(media) = entry.content,
+            case let .transform(box, ownScale, rotation) = media.picture.placement
+        else {
+            preconditionFailure("\(entry.place) is a solid or placed by a corner pin")
         }
 
-        return ResolvedStorylineClip(
-            place: entry.place,
-            id: entry.id,
-            content: entry.content,
-            in: entry.in,
-            out: entry.out,
-            speed: entry.speed,
-            start: entry.start,
-            end: entry.end,
-            crop: entry.crop,
-            mask: mask,
-            trackMatte: nil,
-            track: entry.track,
-            filter: entry.filter,
+        let picture = ResolvedStorylinePicture(
             placement: .transform(
                 box: ResolvedBox(
                     size: box.size,
@@ -1347,11 +1352,33 @@ struct EvaluatorTests {
                 scale: scale ?? ownScale,
                 rotation: rotation
             ),
+            crop: media.picture.crop,
+            mask: mask,
+            trackMatte: nil,
+            track: media.picture.track,
+            filter: media.picture.filter,
             opacity: [Keyframe(at: entry.start, value: opacity)],
             blend: blend,
             radius: radius,
             border: .border(border),
-            shadow: .shadow(shadow),
+            shadow: .shadow(shadow)
+        )
+
+        return ResolvedStorylineClip(
+            place: entry.place,
+            id: entry.id,
+            content: .media(ResolvedStorylineMedia(
+                media: media.media,
+                colorSpace: media.colorSpace,
+                isToneMapped: media.isToneMapped,
+                timeRemap: media.timeRemap,
+                picture: picture
+            )),
+            in: entry.in,
+            out: entry.out,
+            speed: entry.speed,
+            start: entry.start,
+            end: entry.end,
             transition: entry.transition
         )
     }

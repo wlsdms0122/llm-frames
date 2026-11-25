@@ -53,7 +53,7 @@ struct TimelineGeometrySampler: Sendable {
         let sample = SampleInstant(frameTime: time)
         let valueTime = storyline.valueTime(ofEntry: index, in: sample)
         let motion = parents.motion(ofStoryline: index, at: sample)
-        let plane: CornerPinPlane? = if case let .cornerPin(pin) = entry.placement, let quad = entry.cornerPin(at: valueTime) {
+        let plane: CornerPinPlane? = if case let .cornerPin(pin) = entry.picture.placement, let quad = entry.cornerPin(at: valueTime) {
             CornerPinPlane(box: Rectangle(x: 0, y: 0, width: pin.size.width, height: pin.size.height), cornerPin: quad)
         } else {
             nil

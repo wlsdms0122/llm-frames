@@ -126,7 +126,7 @@ struct CornerPinEvaluationTests {
         let list = sut.displayList(of: sequence, at: 1)
 
         // Then
-        guard case let .cornerPin(pin)? = sequence.storyline.first?.placement else {
+        guard case let .cornerPin(pin)? = sequence.storyline.first?.picture.placement else {
             Issue.record("the entry is not placed by a corner pin")
             return
         }
