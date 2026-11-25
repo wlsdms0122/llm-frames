@@ -347,7 +347,7 @@ struct ShapeAppearanceTests {
         let clips = try ResolvedSequence(plan: plan(document), hashes: FileHashTable()).clips
 
         // Then
-        guard case let .shape(rect) = clips[0].content, case let .shape(path) = clips[1].content else {
+        guard case let .picture(.shape(rect), _) = clips[0].content, case let .picture(.shape(path), _) = clips[1].content else {
             Issue.record("both clips are shapes")
             return
         }
@@ -395,7 +395,7 @@ struct ShapeAppearanceTests {
 
     private func resolvedShape(_ clip: String) throws -> ResolvedShape {
         let clips = try ResolvedSequence(plan: plan(document(clip)), hashes: FileHashTable()).clips
-        guard case let .shape(shape) = clips.first?.content else {
+        guard case let .picture(.shape(shape), _) = clips.first?.content else {
             Issue.record("the clip is a shape")
             return ResolvedShape(area: [], fill: nil)
         }

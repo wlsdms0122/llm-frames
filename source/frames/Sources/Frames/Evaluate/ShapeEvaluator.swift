@@ -15,10 +15,12 @@ struct ShapeEvaluator: Sendable {
     init() { }
 
     // MARK: - Public
+    // `composite` is how the clip's picture composites, its opacity multiplying the animation's.
     func items(
         of shape: ResolvedShape,
         clip: ResolvedClip,
         sample: ClipSample,
+        composite: ResolvedComposite,
         in space: ClipSpace,
         at time: SampleTime
     ) -> [DisplayItem] {
@@ -34,8 +36,8 @@ struct ShapeEvaluator: Sendable {
 
         return [DisplayItem(
             transform: laid.transform,
-            opacity: laid.opacity,
-            blend: sample.blend,
+            opacity: laid.opacity * composite.opacity.opacity(at: time),
+            blend: composite.blend,
             reveal: sample.animation.revealRectangle(wiping: receiverBox(of: path, carriedBy: laid.transform)),
             content: .path(path)
         )]
@@ -117,7 +119,8 @@ struct ShapeEvaluator: Sendable {
         )
     }
 
-    // `carried` is what a length the transform carries is multiplied by, nil where the transform flattens the plane;
+    // `opacity` is the animation's, which the clip's own multiplies where it is drawn. `carried` is what a length the
+    // transform carries is multiplied by, nil where the transform flattens the plane;
     // the geometry then takes none. `box` is the shape's box as written, before its outset, in the geometry's
     // coordinates.
     private func laid(
@@ -175,7 +178,7 @@ struct ShapeEvaluator: Sendable {
         ).concatenating(tracked.transform)
         let carried = carried(by: transform, sample: sample)
 
-        return (geometry(carried ?? 0), bounds, transform, sample.opacity * motion.value(of: .opacity), carried)
+        return (geometry(carried ?? 0), bounds, transform, motion.value(of: .opacity), carried)
     }
 
     // While the box changes size the anchor point stays the same fraction of it.
@@ -200,8 +203,7 @@ struct ShapeEvaluator: Sendable {
         let values = KeyframedValues(
             position: Point(x: point.x - anchor.x, y: point.y - anchor.y),
             scale: clip.scale.map { $0.value(at: time) } ?? .identity,
-            rotation: (clip.rotation.map { $0.value(at: time) } ?? 0) + tracked.transform.rotation,
-            opacity: sample.opacity
+            rotation: (clip.rotation.map { $0.value(at: time) } ?? 0) + tracked.transform.rotation
         )
         let presentation = ItemPresentation(box: size, anchor: anchor, values: values, motion: sample.animation.motion)
         let carried = carried(by: presentation.transform, sample: sample)

@@ -6,10 +6,10 @@
 //
 
 enum ClipKeyTable {
-    static let kindKeys = ["media", "title", "shape", "adjust", "solid"]
+    static let kindKeys = ["media", "title", "shape", "adjust", "solid", "null"]
 
     static func kindKeys(in place: ClipPlace) -> [String] {
-        place == .storyline ? ["media", "solid"] : ["media", "title", "shape", "adjust"]
+        place == .storyline ? ["media", "solid"] : ["media", "title", "shape", "adjust", "null"]
     }
 
     static func table(
@@ -100,6 +100,9 @@ enum ClipKeyTable {
 
         case (_, .solid):
             ["solid"]
+
+        case (_, .null):
+            ["area", "width", "height", "position", "scale", "rotation"]
         }
     }
 
@@ -236,6 +239,14 @@ enum ClipKeyTable {
 
         case (_, .adjust):
             return everyClip + ["adjust"]
+
+        // A null draws nothing, so it takes the keys that place and move a box and none of how a picture is drawn or
+        // composited.
+        case (_, .null):
+            return [
+                "id", "metadata", "at", "parent", "motionBlur", "track", "animation", "keyframes", "null", "area",
+                "width", "height", "placement", "position", "anchor", "scale", "rotation"
+            ]
         }
     }
 
@@ -274,6 +285,9 @@ enum ClipKeyTable {
 
         case "solid":
             .color
+
+        case "null":
+            .exactly(.bool(true))
 
         case "loop", "closed", "picture", "toneMap", "motionBlur":
             .bool

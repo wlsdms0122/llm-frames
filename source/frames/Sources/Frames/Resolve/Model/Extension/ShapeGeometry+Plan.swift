@@ -73,12 +73,15 @@ extension ShapeGeometry {
             .bounds(isClosed: isClosed)
     }
 
-    // MARK: - Private
-    private static func anchor(
+    // The anchor point a clip names of its geometry's box: the point itself, or its name where the geometry holds a
+    // clip area, whose box only evaluation knows.
+    static func anchor(
         named name: String,
         holdsClipArea: Bool,
         in box: () -> Rectangle
     ) -> GeometryAnchor {
         holdsClipArea ? .named(name) : .point(box().point(named: name))
     }
+
+    // MARK: - Private
 }

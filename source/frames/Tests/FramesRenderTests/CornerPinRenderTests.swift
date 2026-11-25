@@ -180,7 +180,7 @@ struct CornerPinRenderTests {
         // Given
         let resolver = try DocumentResolver()
         let placeholder = try resolver.resolve(title(#""cornerPin": [[0, 0], [100, 0], [100, 100], [0, 100]]"#))
-        guard case let .title(text) = try #require(placeholder.clips.first).content else {
+        guard case let .picture(.title(text), _) = try #require(placeholder.clips.first).content else {
             Issue.record("the clip is not a title")
             return
         }

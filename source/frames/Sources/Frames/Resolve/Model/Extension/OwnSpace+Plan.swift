@@ -21,6 +21,9 @@ extension OwnSpace {
 
         case .adjust:
             self = .parent
+
+        case let .null(null):
+            self = null.isPlacedByBox ? .box : .parent
         }
     }
 

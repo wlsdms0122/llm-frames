@@ -195,15 +195,17 @@ struct ResolvedSequencePinnedReferencesTests {
 
     private func clip(
         _ place: String,
-        content: ResolvedClipContent
+        content: ResolvedPicture
     ) -> ResolvedClip {
         ResolvedClip(
             place: place,
             id: nil,
-            content: content,
+            content: .picture(
+                content,
+                ResolvedComposite(lane: 1, opacity: [Keyframe(at: 0, value: 1)], blend: "normal")
+            ),
             start: 0,
             end: 2,
-            lane: 1,
             storyline: nil,
             parent: nil,
             box: nil,
@@ -211,10 +213,8 @@ struct ResolvedSequencePinnedReferencesTests {
             mask: nil,
             trackMatte: nil,
             track: nil,
-            opacity: [Keyframe(at: 0, value: 1)],
             scale: nil,
             rotation: nil,
-            blend: "normal",
             animation: .none
         )
     }

@@ -28,7 +28,16 @@ extension TrackMatteLink {
         place: Place,
         kind: PlaceKind
     ) {
-        let refusal: TrackMatteRefusal? = if case .adjustment = clip.content { .adjustment } else { nil }
+        let refusal: TrackMatteRefusal? = switch clip.content {
+        case .picture(.adjustment, _):
+            .adjustment
+
+        case .null:
+            .null
+
+        case .picture(.title, _), .picture(.shape, _), .picture(.media, _):
+            nil
+        }
 
         self.init(place: place, kind: kind, id: clip.id, trackMatte: clip.trackMatte, refusal: refusal)
     }

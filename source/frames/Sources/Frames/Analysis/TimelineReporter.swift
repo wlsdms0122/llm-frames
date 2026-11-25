@@ -261,7 +261,7 @@ package struct TimelineReporter: Sendable {
         let parent = clip.parent.flatMap { id in
             sequence.storyline.first { $0.id == id }?.place ?? sequence.clips.first { $0.id == id }?.place
         }
-        let media: ResolvedMediaClip? = if case let .media(media) = clip.content { media } else { nil }
+        let media: ResolvedMediaClip? = if case let .picture(.media(media), _) = clip.content { media } else { nil }
         let shown = time.map { time in
             TimelineClipTime(mediaTime: media.map { shownTime(of: $0.media, at: $0.mediaTime(at: time)) })
         }
@@ -280,7 +280,7 @@ package struct TimelineReporter: Sendable {
             tracked: nil,
             visible: TimeRange(start: clip.start, end: clip.end),
             sound: media == nil ? nil : sound(at: clip.place, in: sequence),
-            lane: clip.lane,
+            lane: lane(of: clip.content),
             storyline: clip.storyline.map { sequence.storyline[$0].place },
             parent: parent,
             animation: animation == .none
@@ -312,19 +312,29 @@ package struct TimelineReporter: Sendable {
         }
     }
 
+    // The lane a clip's picture is stacked in, nil for a null, which draws none.
+    private func lane(of content: ResolvedClipContent) -> Int? {
+        guard case let .picture(_, composite) = content else { return nil }
+
+        return composite.lane
+    }
+
     // The kind a clip was written as, as far as what it draws tells it: a media clip without timing shows a still.
     private func kind(of content: ResolvedClipContent) -> String {
         switch content {
-        case .title:
+        case .picture(.title, _):
             ClipKind.title.label
 
-        case let .shape(shape):
+        case let .picture(.shape(shape), _):
             ClipKind.shape(shape.kind.rawValue).label
 
-        case .adjustment:
+        case .picture(.adjustment, _):
             ClipKind.adjust.label
 
-        case let .media(clip):
+        case .null:
+            ClipKind.null.label
+
+        case let .picture(.media(clip), _):
             switch clip.media {
             case .nested:
                 ClipKind.media(.sequence).label

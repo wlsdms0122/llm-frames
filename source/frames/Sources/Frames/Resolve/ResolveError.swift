@@ -244,15 +244,15 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
             "\(place) (\(kind.label)): media \(quoted(reference)) is sound, and a picture is taken here"
 
         case let .shapeAreaWithBox(place, kind):
-            "\(place) (\(kind.label)): a rect or ellipse is given by \"area\" or by \"width\" and \"height\", "
+            "\(place) (\(kind.label)): \(boxed(kind)) is given by \"area\" or by \"width\" and \"height\", "
                 + "and this one writes both"
 
         case let .placementWithoutBox(place, kind):
             "\(place) (\(kind.label)): \"placement\" places a box given by \"width\" and \"height\", "
-                + "and a shape given by \"area\" is placed by its area"
+                + "and \(kind == .clip(.null) ? "a null" : "a shape") given by \"area\" is placed by its area"
 
         case let .shapeWithoutGeometry(place, kind):
-            "\(place) (\(kind.label)): a rect or ellipse needs \"area\", or \"width\" and \"height\""
+            "\(place) (\(kind.label)): \(boxed(kind)) needs \"area\", or \"width\" and \"height\""
 
         case let .cornerPinWithPlacement(place, kind, key):
             "\(place) (\(kind.label)): a clip placed by \"cornerPin\" takes no \(quoted(key)), since its corner pin places it"
@@ -343,7 +343,7 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
 
         case let .clipAreaKind(place, kind, id, named):
             "\(place) (\(kind.label)): \(quoted(id)) is \(words(of: named)), "
-                + "and a clip area names a connected or sequence media clip, title or shape"
+                + "and a clip area names a connected or sequence media clip, title, shape or null"
 
         case let .clipAreaAcrossSpaces(place, kind, id, parent, namedParent):
             "\(place) (\(kind.label)): this clip's parent is \(parent.map(quoted) ?? "none") and the parent of "
@@ -481,7 +481,15 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
 
         case .audio:
             "an audio clip"
+
+        case .null:
+            "a null, which draws nothing"
         }
+    }
+
+    // The clips whose box is given by `area` or by `width` and `height`, as a message about one of them names them.
+    private func boxed(_ kind: PlaceKind) -> String {
+        kind == .clip(.null) ? "a null" : "a rect or ellipse"
     }
 
     private func read(in colorSpace: ColorSpace?) -> String {

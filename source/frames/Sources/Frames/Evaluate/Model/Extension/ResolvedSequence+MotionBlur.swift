@@ -11,7 +11,7 @@ extension ResolvedSequence {
     var hasMotionBlur: Bool {
         storyline.contains { $0.isMotionBlurred || hasMotionBlur(in: $0.media) }
             || clips.contains { clip in
-                guard case let .media(media) = clip.content else { return clip.isMotionBlurred }
+                guard case let .picture(.media(media), _) = clip.content else { return clip.isMotionBlurred }
 
                 return clip.isMotionBlurred || hasMotionBlur(in: media.media)
             }

@@ -275,10 +275,9 @@ struct ClipAppearancePlanner: Sendable {
         theme: MergedTheme
     ) throws -> ClipAppearance {
         ClipAppearance(
-            opacity: property(written.opacity, plain: 1, clock: plan.clock),
+            drawing: try drawing(of: plan, written: written),
             scale: property(written.scale, plain: .identity, clock: plan.clock),
             rotation: property(written.rotation, plain: 0, clock: plan.clock),
-            blend: written.blend ?? "normal",
             shape: shape,
             filter: try filter(
                 written.filter,
@@ -462,6 +461,28 @@ struct ClipAppearancePlanner: Sendable {
     }
 
     // MARK: - Private
+    // A null is placed by its box, a rect's: `area`, or both of `width` and `height`. Any other clip's picture
+    // composites by its `opacity`, 1 when not written, and its `blend`, `normal` when not written.
+    private func drawing(
+        of plan: ClipPlan,
+        written: Clip
+    ) throws -> ClipDrawing {
+        guard case let .null(null) = written.content else {
+            return .picture(ClipComposite(
+                opacity: property(written.opacity, plain: 1, clock: plan.clock),
+                blend: written.blend ?? "normal"
+            ))
+        }
+
+        try checkBox(of: written, width: null.width, height: null.height, kind: .clip(plan.kind))
+        guard let width = null.width, let height = null.height else { return .null(.area(anchor: written.anchor)) }
+
+        return .null(.box(
+            width: property(width, plain: 0, clock: plan.clock),
+            height: property(height, plain: 0, clock: plan.clock)
+        ))
+    }
+
     // A corner pin given as numbers at a keyframe's time or as a static value is strictly convex,
     // checked in doubles as FRAMES-27 writes the test. One that holds a clip area takes that clip's box at each instant,
     // which only evaluation knows. A keyframe is named with its time as written.
@@ -524,6 +545,14 @@ struct ClipAppearancePlanner: Sendable {
             guard case let .box(width, height, _) = shape?.geometry else { return nil }
 
             return Size(width: value(of: width, at: plan.instant), height: value(of: height, at: plan.instant))
+
+        case let .null(null):
+            guard let width = null.width, let height = null.height else { return nil }
+
+            return Size(
+                width: value(of: property(width, plain: 0, clock: plan.clock), at: plan.instant),
+                height: value(of: property(height, plain: 0, clock: plan.clock), at: plan.instant)
+            )
 
         case .adjust:
             return nil
@@ -740,7 +769,17 @@ struct ClipAppearancePlanner: Sendable {
             return
         }
 
-        switch (written.area, shape.width, shape.height) {
+        try checkBox(of: written, width: shape.width, height: shape.height, kind: kind)
+    }
+
+    // A rect's, an ellipse's or a null's box: exactly one of `area` and the pair `width` and `height`.
+    private func checkBox(
+        of written: Clip,
+        width: PropertyValue<Double>?,
+        height: PropertyValue<Double>?,
+        kind: PlaceKind
+    ) throws {
+        switch (written.area, width, height) {
         case (.some, .none, .none):
             // `placement` places a clip by its box, and a shape given by its area is placed by its geometry.
             guard written.placement == nil else {

@@ -9,8 +9,8 @@
 // which it gives its children, except that a clip with a corner pin (`isPinned`) gives its children the space its
 // corner pin is written in (FRAMES-10). `window` is where its `at` puts it, and `visible` is the part of the window it is seen
 // or heard in. `storyline` is the index of the storyline clip a connected clip belongs to, and `clock` maps its
-// instants to sequence time. `instant`, the start of its window, is where its areas take effect. `keyframes` are in
-// sequence time.
+// instants to sequence time. `instant`, the start of its window, is where its areas take effect. `lane` is the lane it
+// is stacked in, nil for an audio clip and a null, which draw no picture. `keyframes` are in sequence time.
 struct ClipPlan: Equatable, Sendable {
     // MARK: - Property
     let place: Place

@@ -78,10 +78,12 @@ struct ClipEvaluatorTests {
         let clip = ResolvedClip(
             place: "clips[0]",
             id: nil,
-            content: .media(ResolvedMediaClip(media: .pinned(media), timing: nil, filter: .off, appearance: appearance)),
+            content: .picture(
+                .media(ResolvedMediaClip(media: .pinned(media), timing: nil, filter: .off, appearance: appearance)),
+                ResolvedComposite(lane: 1, opacity: [Keyframe(at: 0, value: 1)], blend: "normal")
+            ),
             start: 0,
             end: 4,
-            lane: 1,
             storyline: nil,
             parent: nil,
             box: box(size: Size(width: 80, height: 40), at: Point(x: 100, y: 100), anchor: Point(x: 40, y: 20)),
@@ -89,10 +91,8 @@ struct ClipEvaluatorTests {
             mask: nil,
             trackMatte: nil,
             track: nil,
-            opacity: [Keyframe(at: 0, value: 1)],
             scale: [Keyframe(at: 0, value: .identity)],
             rotation: [Keyframe(at: 0, value: 0)],
-            blend: "normal",
             animation: ResolvedAnimation(entrance: entrance, loop: nil, exit: nil, units: nil)
         )
 
@@ -122,10 +122,12 @@ struct ClipEvaluatorTests {
         let clip = ResolvedClip(
             place: "clips[0]",
             id: nil,
-            content: .media(ResolvedMediaClip(media: .pinned(media), timing: nil, filter: .off, appearance: appearance)),
+            content: .picture(
+                .media(ResolvedMediaClip(media: .pinned(media), timing: nil, filter: .off, appearance: appearance)),
+                ResolvedComposite(lane: 1, opacity: [Keyframe(at: 0, value: 1)], blend: "normal")
+            ),
             start: 0,
             end: 4,
-            lane: 1,
             storyline: nil,
             parent: nil,
             box: box(size: Size(width: 80, height: 40), at: Point(x: 100, y: 100), anchor: Point(x: 40, y: 20)),
@@ -133,10 +135,8 @@ struct ClipEvaluatorTests {
             mask: nil,
             trackMatte: nil,
             track: nil,
-            opacity: [Keyframe(at: 0, value: 1)],
             scale: [Keyframe(at: 0, value: Scale(x: 2, y: 2))],
             rotation: [Keyframe(at: 0, value: 0)],
-            blend: "normal",
             animation: ResolvedAnimation(entrance: entrance, loop: nil, exit: nil, units: nil)
         )
 
@@ -313,7 +313,7 @@ struct ClipEvaluatorTests {
         // The parent doubles its space, the clip is at scale 3 where it takes one, and its entrance doubles it.
         let area = Rectangle(x: 0, y: 0, width: 40, height: 20)
         let geometry = PathGeometry.ellipse(area)
-        let content: ResolvedClipContent = switch kind {
+        let content: ResolvedPicture = switch kind {
         case "title":
             .title(text())
 
@@ -389,10 +389,12 @@ struct ClipEvaluatorTests {
         ResolvedClip(
             place: "clips[0]",
             id: nil,
-            content: .title(text),
+            content: .picture(
+                .title(text),
+                ResolvedComposite(lane: 1, opacity: [Keyframe(at: 0, value: opacity)], blend: "normal")
+            ),
             start: 0,
             end: 4,
-            lane: 1,
             storyline: nil,
             parent: nil,
             box: ResolvedBox(
@@ -404,17 +406,15 @@ struct ClipEvaluatorTests {
             mask: nil,
             trackMatte: nil,
             track: nil,
-            opacity: [Keyframe(at: 0, value: opacity)],
             scale: [Keyframe(at: 0, value: Scale(scale))],
             rotation: [Keyframe(at: 0, value: rotation)],
-            blend: "normal",
             animation: animation
         )
     }
 
     // A clip of `content` visible from 0 to 4 with one mask of `geometry`.
     private func masked(
-        _ content: ResolvedClipContent,
+        _ content: ResolvedPicture,
         mask geometry: PathGeometry,
         feather: Double = 0,
         box: ResolvedBox? = nil,
@@ -435,7 +435,7 @@ struct ClipEvaluatorTests {
     }
 
     private func masked(
-        _ content: ResolvedClipContent,
+        _ content: ResolvedPicture,
         mask: [ResolvedMask],
         box: ResolvedBox? = nil,
         crop: Rectangle? = nil,
@@ -448,10 +448,12 @@ struct ClipEvaluatorTests {
         return ResolvedClip(
             place: "clips[0]",
             id: nil,
-            content: content,
+            content: .picture(
+                content,
+                ResolvedComposite(lane: 1, opacity: [Keyframe(at: 0, value: 1)], blend: "normal")
+            ),
             start: 0,
             end: 4,
-            lane: 1,
             storyline: nil,
             parent: nil,
             box: box,
@@ -459,10 +461,8 @@ struct ClipEvaluatorTests {
             mask: mask,
             trackMatte: nil,
             track: nil,
-            opacity: [Keyframe(at: 0, value: 1)],
             scale: isAdjustment ? nil : [Keyframe(at: 0, value: Scale(scale ?? 1))],
             rotation: isAdjustment ? nil : [Keyframe(at: 0, value: rotation ?? 0)],
-            blend: "normal",
             animation: animation
         )
     }

@@ -710,7 +710,7 @@ struct TitleKeyframeTests {
               "keyframes": [ { "at": 0, "paragraph": { "lineHeight": 50 } }, { "at": 1, "paragraph": { "lineHeight": 100 } } ] }
             """#)
         let clip = animated(resolved, by: Motion(values: [.scale: 2, .y: 1]))
-        guard case let .title(text) = clip.content else {
+        guard case let .picture(.title(text), _) = clip.content else {
             Issue.record("the clip is a title")
             return
         }
@@ -778,7 +778,6 @@ struct TitleKeyframeTests {
             content: clip.content,
             start: clip.start,
             end: clip.end,
-            lane: clip.lane,
             storyline: clip.storyline,
             parent: clip.parent,
             box: clip.box,
@@ -786,10 +785,8 @@ struct TitleKeyframeTests {
             mask: clip.mask,
             trackMatte: clip.trackMatte,
             track: clip.track,
-            opacity: clip.opacity,
             scale: clip.scale,
             rotation: clip.rotation,
-            blend: clip.blend,
             animation: ResolvedAnimation(entrance: entrance, loop: nil, exit: nil, units: nil)
         )
     }
@@ -812,7 +809,7 @@ struct TitleKeyframeTests {
         )
         let plan = try planner.plan(try Fixture.json(document(clip)))
         let clips = try ResolvedSequence(plan: plan, hashes: FileHashTable()).clips
-        guard case let .title(text) = clips.first?.content else {
+        guard case let .picture(.title(text), _) = clips.first?.content else {
             Issue.record("the clip is a title")
             return ResolvedText(size: Size(width: 0, height: 0), background: nil, runs: [])
         }

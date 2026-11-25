@@ -147,6 +147,12 @@ struct SequenceReader: Sendable {
         if let kind = object["shape"]?.stringValue.flatMap(ShapeKind.init(rawValue:)) {
             return .shape(shape(kind, of: object))
         }
+        if object["null"] != nil {
+            return .null(ClipNull(
+                width: property("width", of: object, read: \.numberValue),
+                height: property("height", of: object, read: \.numberValue)
+            ))
+        }
         if let title = object["title"] {
             return .title(ClipTitle(
                 runs: TitleRun.runs(in: title),

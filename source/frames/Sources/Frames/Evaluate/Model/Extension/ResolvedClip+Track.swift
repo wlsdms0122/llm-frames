@@ -20,7 +20,7 @@ extension ResolvedClip {
         guard
             track != nil,
             cornerPin == nil,
-            case let .media(media) = content,
+            case let .picture(.media(media), _) = content,
             case let .pinned(pinned) = media.media,
             !pinned.frameTimes.isEmpty
         else {

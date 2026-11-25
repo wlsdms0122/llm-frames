@@ -11,6 +11,7 @@ enum ClipKind: Equatable, Sendable {
     case shape(String)
     case adjust
     case solid
+    case null
 
     // MARK: - Property
     var label: String {
@@ -29,6 +30,9 @@ enum ClipKind: Equatable, Sendable {
 
         case .solid:
             "solid"
+
+        case .null:
+            "null"
         }
     }
 

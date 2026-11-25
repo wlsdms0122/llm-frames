@@ -5,10 +5,9 @@
 //  Created by JSilver on 11/16/26.
 //
 
-// What a clips entry draws: a title's shaped text, a shape, an adjustment's filter, or a media clip.
+// What a clips entry is: a picture it draws with how that picture composites, or a null, which draws nothing and
+// carries a box and a transform for other clips to follow.
 enum ResolvedClipContent: Equatable, Sendable {
-    case title(ResolvedText)
-    case shape(ResolvedShape)
-    case adjustment(TimedValue)
-    case media(ResolvedMediaClip)
+    case picture(ResolvedPicture, ResolvedComposite)
+    case null(ResolvedNull)
 }
