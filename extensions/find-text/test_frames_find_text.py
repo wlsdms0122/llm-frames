@@ -264,8 +264,31 @@ class Places(Case):
         # Then each stops on the space its entry reports, the title's box and output pixels
         self.assertIn("storyline[0]#b.connected[1]: area: the place is not in a medium's pixels", title)
         self.assertIn("it is written in the box of storyline[0]#b.connected[0]#t", title)
+        self.assertNotIn("clip's area", title)
         self.assertIn("storyline[0]#s.connected[0]: area: the place is not in a medium's pixels", solid)
         self.assertIn("it is written in output pixels", solid)
+
+    def test_parent_shape(self):
+        # Given the parent title case with its parent written as a rect placed by width and height, whose box timeline
+        # reports as it reports the title's, and the child's area or point naming text
+        calls = copy.deepcopy(self.calls["parent_title"])
+        parent = next(call for call in calls if call["arguments"][0] == "timeline")["output"]["clips"][0]
+        parent["kind"] = "rect"
+        document = copy.deepcopy(self.documents["parent_title"])
+        connected = document["storyline"][0]["connected"]
+        connected[0] = {"id": "t", "parent": "b", "shape": "rect", "width": 200, "height": 80, "position": [10, 10]}
+        pointed = copy.deepcopy(document)
+        pointed["storyline"][0]["connected"][1] = {"parent": "t", "title": "y", "style": "title", "anchor": "left",
+            "position": {"area": {"tool": "find-text", "text": "Total"}, "point": "bottom-right"}}
+
+        # When the extension runs on each
+        area = self.stop(document, calls)
+        point = self.stop(pointed, calls)
+
+        # Then each stops naming the parent's box and how the place is written as the parent's clip area
+        self.assertIn("it is written in the box of storyline[0]#b.connected[0]#t, a rect placed by width and height, "
+                      'so write the place as that clip\'s area: {"clip": "t"}', area)
+        self.assertIn('write the place as that clip\'s area: {"area": {"clip": "t"}, "point": "bottom-right"}', point)
 
     def test_parent_corner_pin(self):
         # Given a shape parented to a clip with a corner pin, which is parented to a still
