@@ -1,0 +1,216 @@
+{
+  "kind": "sequence",
+  "format": {
+    "size": [
+      1920,
+      1080
+    ],
+    "fps": 25
+  },
+  "storyline": [
+    {
+      "id": "v",
+      "media": "/media/clip.mp4",
+      "in": 0,
+      "out": 4,
+      "connected": [
+        {
+          "id": "k",
+          "parent": "v",
+          "shape": "rect",
+          "stroke": {
+            "width": 6,
+            "color": "#E0303A"
+          },
+          "keyframes": [
+            {
+              "at": 0.5,
+              "area": [
+                95.923614,
+                104,
+                186.152771,
+                39
+              ],
+              "ease": "step"
+            },
+            {
+              "at": 3,
+              "area": [
+                695.866547,
+                504,
+                186.266907,
+                39
+              ]
+            }
+          ]
+        },
+        {
+          "id": "a",
+          "parent": "v",
+          "shape": "rect",
+          "fill": "#E0303A",
+          "area": [
+            0,
+            0,
+            10,
+            10
+          ],
+          "track": {
+            "time": 2.5,
+            "area": [
+              701.866547,
+              510,
+              174.266907,
+              27
+            ]
+          }
+        },
+        {
+          "id": "n",
+          "parent": "v",
+          "title": "x",
+          "style": "title",
+          "position": [
+            10,
+            10
+          ],
+          "track": [
+            701.866547,
+            510,
+            174.266907,
+            27
+          ],
+          "at": [
+            2.2,
+            3
+          ]
+        }
+      ],
+      "track": [
+        101.923614,
+        110,
+        174.152771,
+        27
+      ]
+    },
+    {
+      "id": "fast",
+      "media": "/media/clip.mp4",
+      "in": 0.5,
+      "out": 3.9,
+      "speed": 2,
+      "keyframes": [
+        {
+          "at": 0.5,
+          "crop": [
+            61.923614,
+            70,
+            254.152771,
+            107
+          ]
+        },
+        {
+          "at": 3.2,
+          "crop": [
+            661.866547,
+            470,
+            254.266907,
+            107
+          ]
+        }
+      ]
+    },
+    {
+      "id": "held",
+      "media": "/media/clip.mp4",
+      "in": 0,
+      "out": 2,
+      "keyframes": [
+        {
+          "at": 0,
+          "timeRemap": 3
+        },
+        {
+          "at": 2,
+          "timeRemap": 3
+        }
+      ],
+      "connected": [
+        {
+          "parent": "held",
+          "shape": "rect",
+          "stroke": {
+            "width": 6,
+            "color": "#E0303A"
+          },
+          "area": [
+            701.866547,
+            510,
+            174.266907,
+            27
+          ]
+        }
+      ]
+    }
+  ],
+  "clips": [
+    {
+      "id": "pip",
+      "at": [
+        6,
+        9
+      ],
+      "media": "/media/clip.mp4",
+      "in": 1.5,
+      "loop": true,
+      "width": 640,
+      "position": [
+        1500,
+        300
+      ]
+    },
+    {
+      "at": [
+        7,
+        9
+      ],
+      "parent": "pip",
+      "shape": "rect",
+      "stroke": {
+        "width": 6,
+        "color": "#30A0E0"
+      },
+      "area": [
+        701.866547,
+        510,
+        174.266907,
+        27
+      ]
+    },
+    {
+      "parent": "pip",
+      "shape": "rect",
+      "fill": "#E0303A",
+      "keyframes": [
+        {
+          "at": 7,
+          "area": [
+            701.866547,
+            510,
+            174.266907,
+            27
+          ]
+        },
+        {
+          "at": 7.5,
+          "area": [
+            701.866547,
+            510,
+            174.266907,
+            27
+          ]
+        }
+      ]
+    }
+  ]
+}

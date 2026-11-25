@@ -1,0 +1,752 @@
+#!/usr/bin/env python3
+"""frames-find-text: writes each place a document names by its text on screen as the rectangle `frames ocr` finds.
+
+It reads a document whose areas and points may name text, asks frames where and when each one is searched, reads
+the media with `frames ocr --json`, and prints the same document with every text form replaced by a rectangle in
+the media pixels it is written in. It reads only frames' machine output and never a resolved document.
+"""
+
+import json
+import os
+import subprocess
+import sys
+import tempfile
+
+SUPPORTED_MAJOR = 0
+GLOBAL_OPTIONS = ("--theme", "--decoder", "--renderer", "--mixer", "--encoder", "--shaper", "--tracker", "--ocr")
+TEXT_KEYS = {"text", "nth", "padding"}
+RANGE_KEYS = {"from", "to", "fromNth", "toNth", "padding"}
+PLACEHOLDER = [0, 0, 1, 1]
+USAGE = """frames find-text <document.json | -> [--languages <tag>[,<tag>...]]
+
+Prints the document with every area written as text ({"text", "nth", "padding"} or {"from", "to", "fromNth",
+"toNth", "padding"}) replaced by the rectangle `frames ocr` finds, in the media pixels the area is written in.
+
+  <document.json | ->           The document, as an absolute path, or - for standard input.
+  --languages <tag>[,<tag>...]  The recognition languages passed to `frames ocr --languages`. Default: detected.
+  --help                        Prints this help.
+
+The global options of frames given before `find-text` are passed to every frames command it runs. The frames it
+runs is the one on PATH, or the executable FRAMES_EXECUTABLE names."""
+
+
+class Stop(Exception):
+    """A reason the document cannot be written, printed as `frames-find-text: <reason>`."""
+
+
+# MARK: - Frames
+
+class Frames:
+    """Runs frames commands and reads their machine output."""
+
+    def __init__(self, executable, options):
+        self.executable = executable
+        self.options = options
+        self.probes = {}
+        self.readings = {}
+
+    def report(self, arguments):
+        completed = subprocess.run(
+            [self.executable] + self.options + arguments, capture_output=True, text=True
+        )
+        if completed.returncode != 0:
+            message = completed.stderr.strip() or f"exit {completed.returncode}"
+            raise Stop(f"frames {arguments[0]} failed: {message}")
+        output = json.loads(completed.stdout)
+        version = output.get(arguments[0])
+        if major(version) != SUPPORTED_MAJOR:
+            raise Stop(f"frames {arguments[0]} printed version {version!r}, and this extension reads {SUPPORTED_MAJOR}.x")
+        return output
+
+    def check_version(self):
+        try:
+            completed = subprocess.run([self.executable, "--version"], capture_output=True, text=True)
+        except OSError as error:
+            raise Stop(f"cannot run {self.executable}: {error.strerror}")
+        version = completed.stdout.strip()
+        if completed.returncode != 0 or major(version) != SUPPORTED_MAJOR:
+            raise Stop(f"{self.executable} --version is {version!r}, and this extension is written for {SUPPORTED_MAJOR}.x")
+
+    def probe(self, path, page):
+        key = (path, page)
+        if key not in self.probes:
+            arguments = ["probe", path, "--json"] + (["--page", str(page)] if page is not None else [])
+            self.probes[key] = self.report(arguments)
+        return self.probes[key]
+
+    def ocr(self, path, time, page, color_space, languages):
+        key = (path, time, page, color_space, languages)
+        if key not in self.readings:
+            arguments = ["ocr", path, "--json"]
+            if time is not None:
+                arguments += ["--at", number_text(time)]
+            if page is not None:
+                arguments += ["--page", str(page)]
+            if color_space is not None:
+                arguments += ["--color-space", color_space]
+            if languages is not None:
+                arguments += ["--languages", languages]
+            self.readings[key] = self.report(arguments)["frames"][0]["lines"]
+        return self.readings[key]
+
+
+def major(version):
+    """The major version of a version string, or None for anything else."""
+    head = version.split(".")[0] if isinstance(version, str) else ""
+    return int(head) if head.isdigit() else None
+
+
+# MARK: - Text forms
+
+def text_form_kind(value):
+    """`text` or `range` for a text form, None for any other value."""
+    if not isinstance(value, dict):
+        return None
+    if "text" in value:
+        return "text"
+    if "from" in value or "to" in value:
+        return "range"
+    return None
+
+
+def check_text_form(value, where):
+    kind = text_form_kind(value)
+    keys = TEXT_KEYS if kind == "text" else RANGE_KEYS
+    unknown = sorted(set(value) - keys)
+    if unknown:
+        raise Stop(f"{where}: unknown key {json.dumps(unknown[0])} in a text area. Allowed: {', '.join(sorted(keys))}")
+    texts = ["text"] if kind == "text" else ["from", "to"]
+    for key in texts:
+        if not isinstance(value.get(key), str) or not squeeze(value[key]):
+            raise Stop(f"{where}: {key} needs text that is not only whitespace")
+    for key in ("nth", "fromNth", "toNth"):
+        if key in value and (not isinstance(value[key], int) or isinstance(value[key], bool) or value[key] < 0):
+            raise Stop(f"{where}: {key} is a whole number, 0 or more")
+    padding = value.get("padding", 0)
+    if not isinstance(padding, (int, float)) or isinstance(padding, bool) or padding < 0:
+        raise Stop(f"{where}: padding is a number, 0 or more")
+
+
+def squeeze(text):
+    return "".join(text.split())
+
+
+def matches(lines, text):
+    wanted = squeeze(text)
+    return [line for line in lines if wanted in squeeze(line["text"])]
+
+
+def pick(lines, text, nth, where, source):
+    found = matches(lines, text)
+    if nth is None:
+        if len(found) == 1:
+            return found[0]
+        if not found:
+            raise Stop(f"{where}: {json.dumps(text)} (no nth) matches no recognised line in {source}")
+        listed = "\n".join(f"  {rect_text(line['rect'])}  {line['text']}" for line in found)
+        raise Stop(f"{where}: {json.dumps(text)} matches {len(found)} lines in {source}, so it needs an nth:\n{listed}")
+    if nth >= len(found):
+        raise Stop(f"{where}: {json.dumps(text)} nth {nth} is past the {len(found)} recognised lines that contain it in {source}")
+    return found[nth]
+
+
+def find(form, lines, where, source):
+    """The rectangle a text form names among the lines of one picture, padding included."""
+    if text_form_kind(form) == "text":
+        rect = pick(lines, form["text"], form.get("nth"), where, source)["rect"]
+    else:
+        first = pick(lines, form["from"], form.get("fromNth"), f"{where} (from)", source)["rect"]
+        last = pick(lines, form["to"], form.get("toNth"), f"{where} (to)", source)["rect"]
+        top = min(first[1], last[1])
+        bottom = max(first[1] + first[3], last[1] + last[3])
+        rects = [first, last] + [
+            line["rect"] for line in lines if top <= line["rect"][1] + line["rect"][3] / 2 <= bottom
+        ]
+        rect = bounding(rects)
+    padding = form.get("padding", 0)
+    return [rounded(rect[0] - padding), rounded(rect[1] - padding), rounded(rect[2] + 2 * padding), rounded(rect[3] + 2 * padding)]
+
+
+def bounding(rects):
+    left = min(rect[0] for rect in rects)
+    top = min(rect[1] for rect in rects)
+    right = max(rect[0] + rect[2] for rect in rects)
+    bottom = max(rect[1] + rect[3] for rect in rects)
+    return [left, top, right - left, bottom - top]
+
+
+# MARK: - Walking the document
+
+class Clip:
+    """A clip of the outermost document, with what places and times it."""
+
+    def __init__(self, value, place, role, storyline_index):
+        self.value = value
+        self.place = place
+        self.role = role
+        self.storyline_index = storyline_index
+
+    def kind(self):
+        for key in ("media", "title", "shape", "adjust", "solid"):
+            if key in self.value:
+                return key
+        return None
+
+    def written(self, key):
+        """Whether the clip writes the key, on the clip or in a keyframe."""
+        keyframes = self.value.get("keyframes")
+        return key in self.value or (
+            isinstance(keyframes, list) and any(isinstance(keyframe, dict) and key in keyframe for keyframe in keyframes)
+        )
+
+
+class Found:
+    """A text form in the document: where it is, the container that holds it and its key there."""
+
+    def __init__(self, clip, path, holder, key, keyframe, role, track_time):
+        self.clip = clip
+        self.path = path
+        self.holder = holder
+        self.key = key
+        self.keyframe = keyframe
+        self.role = role
+        self.track_time = track_time
+
+    @property
+    def form(self):
+        return self.holder[self.key]
+
+    @property
+    def where(self):
+        return f"{self.clip.place}: {self.path}"
+
+
+def place_name(base, value):
+    identifier = value.get("id") if isinstance(value, dict) else None
+    return f"{base}#{identifier}" if isinstance(identifier, str) else base
+
+
+def clips_of(document):
+    clips = []
+    for index, value in enumerate(document.get("storyline") or []):
+        if not isinstance(value, dict):
+            continue
+        place = place_name(f"storyline[{index}]", value)
+        clips.append(Clip(value, place, "storyline", index))
+        for inner, connected in enumerate(value.get("connected") or []):
+            if isinstance(connected, dict):
+                clips.append(Clip(connected, place_name(f"{place}.connected[{inner}]", connected), "connected", index))
+    for index, value in enumerate(document.get("clips") or []):
+        if isinstance(value, dict):
+            clips.append(Clip(value, place_name(f"clips[{index}]", value), "sequence", None))
+    return clips
+
+
+def forms_in_area(holder, key, path, sink, role, track_time=None):
+    if text_form_kind(holder.get(key) if isinstance(holder, dict) else None):
+        sink.append((path, holder, key, role, track_time))
+
+
+def forms_in_point(holder, key, path, sink, role):
+    point = holder[key] if isinstance(holder, (dict, list)) else None
+    if isinstance(point, dict) and "area" in point:
+        forms_in_area(point, "area", f"{path}.area", sink, role)
+    elif isinstance(point, dict) and "vertex" in point:
+        forms_in_point(point, "vertex", f"{path}.vertex", sink, role)
+
+
+def forms_in_points(holder, key, path, sink, role):
+    points = holder.get(key)
+    if isinstance(points, list):
+        for index in range(len(points)):
+            forms_in_point(points, index, f"{path}[{index}]", sink, role)
+
+
+def forms_in_masks(holder, path, sink):
+    masks = holder.get("mask")
+    entries = [(masks, "mask")] if isinstance(masks, dict) else [
+        (mask, f"mask[{index}]") for index, mask in enumerate(masks) if isinstance(mask, dict)
+    ] if isinstance(masks, list) else []
+    for mask, name in entries:
+        forms_in_area(mask, "area", f"{path}{name}.area", sink, "mask")
+        forms_in_points(mask, "points", f"{path}{name}.points", sink, "mask")
+        if "position" in mask:
+            forms_in_point(mask, "position", f"{path}{name}.position", sink, "mask")
+
+
+def forms_in_values(holder, path, sink, static):
+    """Every text form among the area and point keys of a clip or a keyframe."""
+    forms_in_area(holder, "crop", f"{path}crop", sink, "crop")
+    forms_in_area(holder, "area", f"{path}area", sink, "space")
+    forms_in_points(holder, "points", f"{path}points", sink, "space")
+    forms_in_points(holder, "cornerPin", f"{path}cornerPin", sink, "space")
+    if "position" in holder:
+        forms_in_point(holder, "position", f"{path}position", sink, "space")
+    forms_in_masks(holder, path, sink)
+    if static:
+        track = holder.get("track")
+        forms_in_area(holder, "track", f"{path}track", sink, "track")
+        if isinstance(track, dict) and "time" in track:
+            forms_in_area(track, "area", f"{path}track.area", sink, "track", track_time=track["time"])
+
+
+def text_forms(clip):
+    sink = []
+    forms_in_values(clip.value, "", sink, static=True)
+    found = [Found(clip, path, holder, key, None, role, time) for path, holder, key, role, time in sink]
+    for index, keyframe in enumerate(clip.value.get("keyframes") or []):
+        if isinstance(keyframe, dict):
+            sink = []
+            forms_in_values(keyframe, f"keyframes[{index}].", sink, static=False)
+            found += [Found(clip, path, holder, key, index, role, time) for path, holder, key, role, time in sink]
+    return found
+
+
+def nested_text_forms(document, place):
+    """The place of the first text form inside a nested document, or None."""
+    for clip in clips_of(document):
+        found = text_forms(clip)
+        if found:
+            return f"{place}.{clip.place}: {found[0].path}"
+        media = clip.value.get("media")
+        if isinstance(media, dict) and media.get("kind") == "sequence":
+            inner = nested_text_forms(media, f"{place}.{clip.place}.media")
+            if inner:
+                return inner
+    return None
+
+
+# MARK: - Where a text form is searched
+
+def media_form(clip):
+    """What a clip's media is: `file`, `page`, `imageSequence`, `compound`, or None for a clip without media."""
+    media = clip.value.get("media")
+    if isinstance(media, str):
+        return "compound" if media.endswith(".json") else "file"
+    if isinstance(media, dict):
+        if "imageSequence" in media:
+            return "imageSequence"
+        if "file" in media:
+            return "page"
+        return "compound"
+    return None
+
+
+def refuse(found, reason):
+    raise Stop(f"{found.where}: the place is not in a medium's pixels, so its text cannot be searched: {reason}")
+
+
+def own_media(found, clip):
+    form = media_form(clip)
+    if form is None:
+        refuse(found, f"a {clip.kind()} has no media of its own")
+    if form == "compound":
+        refuse(found, "a compound clip or template instance is drawn, not read")
+    return clip
+
+
+def parent_media(found, clips_by_id):
+    clip = found.clip
+    parent_id = clip.value.get("parent")
+    if clip.role == "storyline":
+        refuse(found, "a storyline clip's coordinates are output pixels")
+    if parent_id is None:
+        refuse(found, "an unparented clip's coordinates are output pixels")
+    parent = clips_by_id.get(parent_id)
+    if parent is None:
+        raise Stop(f"{found.where}: parent {json.dumps(parent_id)} names no clip")
+    kind = parent.kind()
+    if kind != "media":
+        space = {
+            "title": "a title's space is its text box",
+            "shape": "a shape's space is its box or the space its geometry is written in",
+            "adjust": "an adjustment clip's space is the space its mask is written in",
+            "solid": "a solid's space is output pixels",
+        }.get(kind, "its parent has no media")
+        refuse(found, f"its parent {parent.place} is a {kind}, and {space}")
+    if parent.written("cornerPin"):
+        refuse(found, f"its parent {parent.place} has a corner pin, whose space is the one its corner pin is written in")
+    if media_form(parent) == "compound":
+        refuse(found, f"its parent {parent.place} is a compound clip or template instance, whose picture is drawn, not read")
+    return parent
+
+
+def tracks_own_media(clip, frames, times):
+    """Whether a clip's `track` follows its own media: a video or an image sequence without a corner pin."""
+    if clip.kind() != "media" or clip.written("cornerPin"):
+        return False
+    form = media_form(clip)
+    if form == "imageSequence":
+        return True
+    if form != "file":
+        return False
+    media = clip.value["media"]
+    if not media.startswith("/"):
+        hit = times.shown(clip.place, times.start(clip))
+        if hit is None:
+            raise Stop(f"{clip.place}: frames draws no picture of the clip at its start, so no report gives its media file")
+        media = hit["media"]
+    return frames.probe(media, None)["kind"] == "video"
+
+
+def searched_clip(found, clips_by_id, frames, times):
+    """The clip whose media the text form is searched in."""
+    clip = found.clip
+    kind = clip.kind()
+    if found.role == "crop":
+        return own_media(found, clip)
+    if found.role == "mask":
+        if kind == "media":
+            return own_media(found, clip)
+        if kind == "title":
+            refuse(found, "a title's mask is in its text box")
+        if kind == "shape" and not (clip.written("area") or clip.written("points")):
+            refuse(found, "the mask of a shape placed by width and height is in its box")
+        return parent_media(found, clips_by_id)
+    if found.role == "track":
+        if tracks_own_media(clip, frames, times):
+            return clip
+        return parent_media(found, clips_by_id)
+    return parent_media(found, clips_by_id)
+
+
+# MARK: - The frame searched
+
+class Times:
+    """Maps a clip's clock to sequence time and asks frames which frame a clip shows at an instant."""
+
+    def __init__(self, frames, probe_path):
+        self.frames = frames
+        self.probe_path = probe_path
+        self.timeline = None
+        self.frames_shown = {}
+        self.evaluations = {}
+
+    def plan(self):
+        if self.timeline is None:
+            self.timeline = self.frames.report(["timeline", self.probe_path, "--json"])
+        return self.timeline
+
+    def storyline_entry(self, index):
+        return self.plan()["storyline"][index]
+
+    def sequence_time(self, clip, instant):
+        """An instant on a clip's clock (its `at` and keyframes) in sequence time."""
+        if clip.role == "sequence":
+            return instant
+        entry = self.storyline_entry(clip.storyline_index)
+        return rounded(entry["edit"][0] + (instant - entry["clip"][0]) / entry["speed"])
+
+    def start(self, clip):
+        """The sequence time a clip starts at."""
+        at = clip.value.get("at")
+        begin = at[0] if isinstance(at, list) and at else at
+        if clip.role == "storyline":
+            return self.storyline_entry(clip.storyline_index)["edit"][0]
+        if clip.role == "connected" and begin is None:
+            return self.storyline_entry(clip.storyline_index)["edit"][0]
+        return self.sequence_time(clip, begin if begin is not None else 0)
+
+    def shown(self, place, time):
+        """The `locate` hit of the picture a clip draws at a sequence time, or None where frames draws none of it."""
+        key = (place, time)
+        if key in self.frames_shown:
+            return self.frames_shown[key]
+        hit = None
+        if 0 <= time < self.plan()["duration"]:
+            if time not in self.evaluations:
+                self.evaluations[time] = self.frames.report(["evaluate", self.probe_path, "--at", number_text(time)])
+            items = [
+                item for item in self.evaluations[time]["items"]
+                if item["place"] == place and item["item"] == "picture" and item["bounds"] is not None
+            ]
+            for item in items:
+                for point in sample_points(item):
+                    located = self.frames.report(
+                        ["locate", self.probe_path, "--at", number_text(time), "--point", f"{number_text(point[0])},{number_text(point[1])}"]
+                    )
+                    hit = next(
+                        (entry for entry in located["hits"] if entry["place"] == place and entry.get("media")), None
+                    )
+                    if hit:
+                        break
+                if hit:
+                    break
+        self.frames_shown[key] = hit
+        return hit
+
+
+def sample_points(item):
+    """Points of an item's own rect, centre first, carried to output pixels."""
+    x, y, width, height = item["rect"]
+    fractions = [0.5, 0.25, 0.75, 0.1, 0.9]
+    for fy in fractions:
+        for fx in fractions:
+            yield carried(item, (x + fx * width, y + fy * height))
+
+
+def carried(item, point):
+    a, b, c, d, tx, ty = item["transform"]
+    point = (a * point[0] + c * point[1] + tx, b * point[0] + d * point[1] + ty)
+    for pin in item["cornerPins"] or []:
+        point = homography(pin["dest"], pin["cornerPin"], point)
+    return point
+
+
+def homography(source, target, point):
+    """The point carried by the homography that takes the quadrilateral `source` onto `target`."""
+    rows = []
+    values = []
+    for (x, y), (u, v) in zip(source, target):
+        rows.append([x, y, 1, 0, 0, 0, -u * x, -u * y])
+        values.append(u)
+        rows.append([0, 0, 0, x, y, 1, -v * x, -v * y])
+        values.append(v)
+    h = solve(rows, values) + [1]
+    x, y = point
+    w = h[6] * x + h[7] * y + h[8]
+    return ((h[0] * x + h[1] * y + h[2]) / w, (h[3] * x + h[4] * y + h[5]) / w)
+
+
+def solve(rows, values):
+    size = len(values)
+    matrix = [row[:] + [value] for row, value in zip(rows, values)]
+    for column in range(size):
+        pivot = max(range(column, size), key=lambda row: abs(matrix[row][column]))
+        matrix[column], matrix[pivot] = matrix[pivot], matrix[column]
+        for row in range(size):
+            if row != column and matrix[column][column] != 0:
+                factor = matrix[row][column] / matrix[column][column]
+                matrix[row] = [left - factor * right for left, right in zip(matrix[row], matrix[column])]
+    return [matrix[row][size] / matrix[row][row] if matrix[row][row] else 0 for row in range(size)]
+
+
+class Picture:
+    """One picture to read: a media file, the media time of a video's frame, and a PDF page."""
+
+    def __init__(self, path, time, page):
+        self.path = path
+        self.time = time
+        self.page = page
+
+    def describe(self):
+        where = self.path + (f" page {self.page}" if self.page is not None else "")
+        return where + (f" at {number_text(self.time)}" if self.time is not None else "")
+
+
+def written_media(clip):
+    """The absolute file and page a clip's media names as written, or None for a pack name or an image sequence."""
+    media = clip.value.get("media")
+    if isinstance(media, str) and media.startswith("/"):
+        return media, None
+    if isinstance(media, dict) and isinstance(media.get("file"), str) and media["file"].startswith("/"):
+        return media["file"], media.get("page")
+    return None
+
+
+def picture_of(found, searched, frames, times):
+    """The picture a text form is searched in."""
+    clip = found.clip
+    if found.track_time is not None:
+        written = written_media(searched)
+        if written is None:
+            raise Stop(
+                f"{found.where}: frames reports no file for media time {number_text(found.track_time)} of "
+                f"{searched.place}, whose media is not an absolute file"
+            )
+        return Picture(written[0], found.track_time, None)
+    if found.keyframe is None:
+        instant = times.start(clip)
+        label = "the clip's start"
+    else:
+        at = clip.value["keyframes"][found.keyframe].get("at")
+        if not isinstance(at, (int, float)) or isinstance(at, bool):
+            raise Stop(f"{found.clip.place}: keyframes[{found.keyframe}] needs a number at")
+        instant = times.sequence_time(clip, at)
+        label = f"keyframe at {number_text(at)}"
+    hit = times.shown(searched.place, instant)
+    if hit:
+        path = hit["media"]
+        kind = frames.probe(path, hit["page"])["kind"]
+        return Picture(path, hit["mediaTime"] if kind == "video" else None, hit["page"])
+    return computed_picture(found, searched, frames, times, instant, label)
+
+
+def computed_picture(found, searched, frames, times, instant, label):
+    """The picture where frames draws none of the searched clip at the instant, from the written document alone."""
+    written = written_media(searched)
+    missing = (
+        f"{found.where}: frames draws no picture of {searched.place} at sequence time {number_text(instant)} "
+        f"({label}), so no report gives the frame it shows there"
+    )
+    if written is None:
+        raise Stop(missing)
+    path, page = written
+    kind = frames.probe(path, page)["kind"]
+    if kind in ("image", "page"):
+        return Picture(path, None, page)
+    if kind != "video":
+        raise Stop(missing)
+    value = searched.value
+    if value.get("speed", 1) != 1 or value.get("loop") or searched.written("timeRemap"):
+        raise Stop(f"{missing}, and its speed, loop or timeRemap keeps the media time from being read off the document")
+    if searched.role == "storyline":
+        entry = times.storyline_entry(searched.storyline_index)
+        time = entry["clip"][0] + (instant - entry["edit"][0])
+    else:
+        time = value.get("in", 0) + (instant - times.start(searched))
+    return Picture(path, rounded(time), None)
+
+
+# MARK: - The extension
+
+def number_text(value):
+    value = rounded(value)
+    return str(int(value)) if float(value).is_integer() else repr(value)
+
+
+def rounded(value):
+    value = round(float(value), 6)
+    return int(value) if value.is_integer() else value
+
+
+def rect_text(rect):
+    return "[" + ", ".join(number_text(value) for value in rect) + "]"
+
+
+def probe_document(document, found):
+    """The document with every text form in a placeholder rectangle, the masks that hold one and every track removed,
+    so frames resolves it without searching or tracking and draws each searched picture where it lies."""
+    copy = json.loads(json.dumps(document))
+    by_place = {clip.place: clip for clip in clips_of(copy)}
+    for entry in found:
+        clip = by_place[entry.clip.place]
+        holder = clip.value if entry.keyframe is None else clip.value["keyframes"][entry.keyframe]
+        set_at(holder, entry.path.split("].", 1)[1] if entry.keyframe is not None else entry.path, PLACEHOLDER)
+    for clip in by_place.values():
+        clip.value.pop("track", None)
+        if any(entry.clip.place == clip.place and entry.role == "mask" for entry in found):
+            clip.value.pop("mask", None)
+            for keyframe in clip.value.get("keyframes") or []:
+                if isinstance(keyframe, dict):
+                    keyframe.pop("mask", None)
+        keyframes = clip.value.get("keyframes")
+        if isinstance(keyframes, list):
+            kept = [keyframe for keyframe in keyframes if not isinstance(keyframe, dict) or set(keyframe) - {"at", "ease"}]
+            if kept:
+                clip.value["keyframes"] = kept
+            else:
+                clip.value.pop("keyframes")
+    return copy
+
+
+def set_at(holder, path, value):
+    """Sets the value at a path such as `mask[0].area` or `cornerPin[2].area`."""
+    steps = []
+    for part in path.split("."):
+        name, _, rest = part.partition("[")
+        if name:
+            steps.append(name)
+        for index in rest.split("[") if rest else []:
+            steps.append(int(index.rstrip("]")))
+    for step in steps[:-1]:
+        holder = holder[step]
+    holder[steps[-1]] = value
+
+
+def parse(arguments):
+    options = []
+    document = None
+    languages = None
+    index = 0
+    while index < len(arguments):
+        argument = arguments[index]
+        if argument in ("--help", "-h"):
+            print(USAGE)
+            sys.exit(0)
+        if argument in GLOBAL_OPTIONS or argument == "--languages":
+            if index + 1 >= len(arguments):
+                raise Stop(f"{argument} needs a value")
+            if argument == "--languages":
+                languages = arguments[index + 1]
+            else:
+                options += [argument, arguments[index + 1]]
+            index += 2
+            continue
+        if argument.startswith("--"):
+            raise Stop(f"unknown option {argument}")
+        if document is not None:
+            raise Stop(f"one document is taken, and {argument} is a second")
+        document = argument
+        index += 1
+    if document is None:
+        raise Stop("a document is needed, as an absolute path or -")
+    if document != "-" and not document.startswith("/"):
+        raise Stop(f"<document.json> {json.dumps(document)} is not an absolute path, and paths are absolute")
+    return options, document, languages
+
+
+def load(document):
+    try:
+        text = sys.stdin.read() if document == "-" else open(document, encoding="utf-8").read()
+    except OSError as error:
+        raise Stop(f"cannot read {document}: {error.strerror}")
+    try:
+        value = json.loads(text)
+    except json.JSONDecodeError as error:
+        raise Stop(f"{document} is not JSON: {error}")
+    if not isinstance(value, dict) or value.get("kind") != "sequence":
+        raise Stop(f"{document} is not a sequence document")
+    return value
+
+
+def run(arguments):
+    options, path, languages = parse(arguments)
+    document = load(path)
+    clips = clips_of(document)
+    found = [entry for clip in clips for entry in text_forms(clip)]
+    for clip in clips:
+        media = clip.value.get("media")
+        if isinstance(media, dict) and media.get("kind") == "sequence":
+            inner = nested_text_forms(media, f"{clip.place}.media")
+            if inner:
+                raise Stop(f"{inner}: the place is not in a medium's pixels, so its text cannot be searched: it is inside a compound clip, whose picture is drawn, not read")
+    for entry in found:
+        check_text_form(entry.form, entry.where)
+    if not found:
+        return document
+
+    frames = Frames(os.environ.get("FRAMES_EXECUTABLE") or "frames", options)
+    frames.check_version()
+    clips_by_id = {clip.value["id"]: clip for clip in clips if isinstance(clip.value.get("id"), str)}
+
+    with tempfile.TemporaryDirectory(prefix="frames-find-text-") as directory:
+        probe_path = os.path.join(directory, "document.json")
+        with open(probe_path, "w", encoding="utf-8") as file:
+            json.dump(probe_document(document, found), file)
+        times = Times(frames, probe_path)
+        searched = [searched_clip(entry, clips_by_id, frames, times) for entry in found]
+        rects = []
+        for entry, clip in zip(found, searched):
+            picture = picture_of(entry, clip, frames, times)
+            color_space = clip.value.get("colorSpace")
+            lines = frames.ocr(picture.path, picture.time, picture.page, color_space, languages)
+            rects.append(find(entry.form, lines, entry.where, picture.describe()))
+    for entry, rect in zip(found, rects):
+        entry.holder[entry.key] = rect
+    return document
+
+
+def main():
+    try:
+        document = run(sys.argv[1:])
+    except Stop as stop:
+        print(f"frames-find-text: {stop}", file=sys.stderr)
+        return 1
+    json.dump(document, sys.stdout, ensure_ascii=False, indent=2)
+    sys.stdout.write("\n")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

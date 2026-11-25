@@ -30,11 +30,11 @@ audio 2 channels, 48000 Hz
 - `probe` gives the size, length, frame rate, alpha and sound. Write the document's `format` from it, or decide how the material is conformed when it differs.
 - Lay the whole video out with `sheet` every 1 to 2 seconds to find the parts that matter, then again every 0.5 seconds over the part you chose. Each frame is labelled with its media time. On a storyline clip without `timeRemap`, clip time is media time ([FRAMES-8](../spec/FRAMES-8/SPEC.md)), so a time read from a sheet goes straight into `in`, `out`, a connected clip's `at` and the clip's keyframes.
 - Listen to the sound in a player: where speech starts and ends, where the beat falls, where a noise has to be cut around. A picture cut against the sound is decided here.
-- Where a place has to be found or followed, `track` it. Where it is found by its text on screen, `ocr` the frame first. A plane seen in perspective, a screen or a sign a `cornerPin` is laid on, is followed with `--tracker planar`.
+- Where a place has to be found or followed, `track` it. Where it is found by its text on screen, `ocr` the frame and write the rectangle it reports. A plane seen in perspective, a screen or a sign a `cornerPin` is laid on, is followed with `--tracker planar`.
 
 ```sh
 frames ocr /path/to/recording.mov --at 1
-frames track /path/to/recording.mov --at 1 --area '{"text": "Total"}' --to 2
+frames track /path/to/recording.mov --at 1 --area '[158, 385, 180, 26]' --to 2
 ```
 
 ```
@@ -44,7 +44,7 @@ size 1280x720
 [158, 385, 180, 26]  Total $47.00
 ```
 
-`ocr` prints each recognised line with its rectangle in media pixels. An area written as `{"text": "Total"}` names the whole line that contains the text, and a text that matches several lines stops and lists them, so add `nth` or a longer part of the line ([FRAMES-2](../spec/FRAMES-2/SPEC.md)). `ocr --from --to --step` reads a range and shows when a line appears, moves or leaves. `track` prints the target's quadrilateral and its motion on every frame it followed, which is what a `track` on a clip uses ([FRAMES-12](../spec/FRAMES-12/SPEC.md)).
+`ocr` prints each recognised line with its rectangle in media pixels, which are the coordinates of a storyline or media clip's own `crop`, `mask` and `track` target and of a clip parented to it ([FRAMES-2](../spec/FRAMES-2/SPEC.md)): `[158, 385, 180, 26]` is the line `Total $47.00`, and `[150, 377, 196, 42]` the same line with 8 pixels of room on every side. A document can also name the line by its text, `{"text": "Total", "padding": 8}`, and have the extension `frames find-text` write the rectangle `ocr` finds, so it keeps working on a new take ([extensions/find-text](../extensions/find-text/README.md)). `ocr --from --to --step` reads a range and shows when a line appears, moves or leaves. `track` prints the target's quadrilateral and its motion on every frame it followed, which is what a `track` on a clip uses ([FRAMES-12](../spec/FRAMES-12/SPEC.md)).
 
 ### 2. Edit the document
 
@@ -89,7 +89,7 @@ storyline[1]#demo.connected[1]#note  title  visible [2.2, 3.4)  animation none
 storyline[1]#demo.connected[2]#badge  title  visible [1, 4)  animation none
 ```
 
-- `timeline` gives every storyline clip's edit range, drawn range and clip range, and every other clip's visible range on the sequence clock. It stops on what resolve stops on: an unknown preset, a clip that is never visible, a text area that matches nothing or several lines, a parent chain with a cycle. Fix those first.
+- `timeline` gives every storyline clip's edit range, drawn range and clip range, and every other clip's visible range on the sequence clock. It stops on what resolve stops on: an unknown preset, a clip that is never visible, a parent chain with a cycle. Fix those first.
 - `still` draws frames at the instants you name, side by side with their times. Put one at each entrance, each edit point, the middle of each transition and the last frame.
 - `sheet` given a document lays out a range of composite frames, as `still` draws them.
 - Where a check needs numbers, `evaluate --at` prints every item drawn at that instant with its bounds and opacity, and `locate --at --point` says which clip drew a point of the output and which media pixel it shows.
@@ -264,7 +264,7 @@ Before: a recording after a title card. It comes in with a dissolve, pushes in s
       "transition": "frames/fade", "fadeOut": 0.5,
       "keyframes": [ { "at": 0, "scale": 1, "ease": "ease-in-out" }, { "at": 3, "scale": 1.1 } ],
       "connected": [
-        { "id": "ring", "at": [0.5, 1.4], "parent": "demo", "shape": "rect", "area": { "text": "Total", "padding": 8 },
+        { "id": "ring", "at": [0.5, 1.4], "parent": "demo", "shape": "rect", "area": [150, 377, 196, 42],
           "stroke": { "color": "#F59E0B", "width": 4 }, "radius": 6, "animation": "frames/fade" },
         { "id": "note", "at": [1.2, 2.4], "parent": "demo", "title": "Shipping is added here", "style": "subtitle",
           "anchor": "top-left", "position": [420, 380] },
@@ -283,7 +283,7 @@ After a blade at clip second 1 of `demo`, which is sequence second 2:
       "transition": "frames/fade",
       "keyframes": [ { "at": 0, "scale": 1, "ease": "ease-in-out" }, { "at": 3, "scale": 1.1 } ],
       "connected": [
-        { "id": "ring", "at": [0.5, 1], "parent": "demo", "shape": "rect", "area": { "text": "Total", "padding": 8 },
+        { "id": "ring", "at": [0.5, 1], "parent": "demo", "shape": "rect", "area": [150, 377, 196, 42],
           "stroke": { "color": "#F59E0B", "width": 4 }, "radius": 6,
           "animation": { "entrance": "frames/fade", "exit": "none" } },
         { "id": "badge", "at": [0, 3], "title": "DEMO", "style": "subtitle", "placement": "top-right" } ] },
@@ -291,7 +291,7 @@ After a blade at clip second 1 of `demo`, which is sequence second 2:
       "transition": "cut", "fadeOut": 0.5,
       "keyframes": [ { "at": 0, "scale": 1, "ease": "ease-in-out" }, { "at": 3, "scale": 1.1 } ],
       "connected": [
-        { "id": "ring-2", "at": [1, 1.4], "parent": "demo-2", "shape": "rect", "area": { "text": "Total", "padding": 8 },
+        { "id": "ring-2", "at": [1, 1.4], "parent": "demo-2", "shape": "rect", "area": [150, 377, 196, 42],
           "stroke": { "color": "#F59E0B", "width": 4 }, "radius": 6,
           "animation": { "entrance": "none", "exit": "frames/fade" } },
         { "id": "note", "at": [1.2, 2.4], "parent": "demo-2", "title": "Shipping is added here", "style": "subtitle",
@@ -303,7 +303,7 @@ After a blade at clip second 1 of `demo`, which is sequence second 2:
 - The ring is parented to `demo` and crosses the cut, so each part gets a copy parented to it, with its window cut at clip second 1: `ring` from sequence second 1.5 to 2, `ring-2` from 2 to 2.4. Its fade in stays on the first and its fade out on the second.
 - The note starts at clip second 1.2, inside `demo-2`, so it goes there with the same `at`, and its parent becomes `demo-2`.
 - The tag had no `at`, so it first takes `demo`'s edit range in clip time, `[0, 3]`, and stays on `demo`. Unparented, it plays its whole window across the edit point.
-- `ring-2` starts at the edit point, so its text area is searched in the frame there and not at clip second 0.5. On a screen that moves, write the rectangle `ocr` reports at the original start instead of the text.
+- A document that names places by text is bladed after `frames find-text` has written its rectangles, since a static text area is searched on the frame its clip starts on, and `ring-2` starts at the edit point and not at clip second 0.5.
 
 Check that nothing moved: `timeline` gives the same duration and the same visible ranges, and `still` at the same instants draws the same frames.
 
@@ -335,10 +335,10 @@ The heading starts on `card` and stays there with its window unchanged. The subt
 
 These are not contract, but help whoever writes documents.
 
-- OCR confuses similar characters (`0` and `O`). Read the `ocr` output before pointing, and point with a part of the line that is less confusable, plus `nth`.
-- A shape placed by text while the screen is still moving lands where the text was at its start. Start it after the screen settles, or follow the text with `track`.
+- OCR confuses similar characters (`0` and `O`). Read the `ocr` output before writing a rectangle or naming a line for `frames find-text`, and name it by a part of the line that is less confusable, plus `nth`.
+- A rectangle read on one frame while the screen is still moving lands where the text was on that frame. Read it after the screen settles, or follow the text with `track`.
 - A shape found on one screen stays where that text was. When the recording changes screens, end the shape at the change, or start another on the new screen.
-- A crop found by text has the shape of the text, not of the frame. The default `conform` of `fit` grows it to the frame's shape, and where that reaches past the picture's edge the frame stays empty. A crop that zooms in on text near an edge takes `"conform": "fill"`, which cuts the crop to the frame's shape.
+- A crop around text has the shape of the text, not of the frame. The default `conform` of `fit` grows it to the frame's shape, and where that reaches past the picture's edge the frame stays empty. A crop that zooms in on text near an edge takes `"conform": "fill"`, which cuts the crop to the frame's shape.
 - `still` and `sheet` draw a time label over the top left of each frame. To see what lies under it, write that frame with `render --at`, which draws no label.
 - `evaluate` gives each item's `bounds` and `opacity` bottom first, so a clip that does not show because another covers it can be found from the items above it.
 - PNG is lossless and does not shrink when written again. Use JPEG or HEIC for smaller stills.

@@ -11,7 +11,7 @@
         { "shape": "rect", "style": "outline", "id": "total", "parent": "checkout",
           "area": { "from": "Total", "to": "42,000", "toNth": 0, "padding": 16 } },
         { "title": "38,000 + 4,000", "style": "label", "parent": "total",
-          "position": { "area": { "from": "Total", "to": "42,000", "toNth": 0, "padding": 16 }, "point": "bottom-right" }, "anchor": "top-right" }
+          "position": { "area": { "clip": "total" }, "point": "bottom-right" }, "anchor": "top-right" }
       ] }
   ],
   "clips": [

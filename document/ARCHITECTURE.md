@@ -111,6 +111,8 @@ frames/
     PACK.md                how to make a pack, a form and a template
     howto/<name>.md
   packs/<name>/            packs kept beside the tool and installed by copying, not part of it
+  extensions/<name>/       first-party extensions, frames-<name> with its README and check, installed by putting
+                           frames-<name> on PATH, not part of the tool
   source/frames/           the Swift package
     Package.swift
     Sources/Frames/                the engine
