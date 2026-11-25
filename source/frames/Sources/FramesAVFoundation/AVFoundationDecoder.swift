@@ -256,6 +256,7 @@ package final class AVFoundationDecoder: Sendable {
         let surface = clock.measure(.workingConversion) {
             metal.picture(
                 from: buffer,
+                format: video.decodedFormat,
                 storedSize: video.storedSize,
                 displaySize: video.displaySize,
                 transform: video.transform,
@@ -475,7 +476,7 @@ extension AVFoundationDecoder: MediaDecoder {
                     file,
                     conversion: surface.conversion,
                     device: .gpu,
-                    pixelFormat: VideoReader.pixelFormat,
+                    pixelFormat: video.decodedFormat.name,
                     read: 0,
                     decoded: decoded,
                     reopened: reopened,
@@ -485,8 +486,9 @@ extension AVFoundationDecoder: MediaDecoder {
                 return .surface(surface.picture)
             }
 
+            let image = clock.measure(.workingConversion) { video.image(of: buffer) }
             let (picture, conversion) = try picture(
-                from: video.image(of: buffer),
+                from: image,
                 tagged: tagged,
                 path: path,
                 reading: reading,
@@ -496,7 +498,7 @@ extension AVFoundationDecoder: MediaDecoder {
                 file,
                 conversion: conversion,
                 device: .cpu,
-                pixelFormat: VideoReader.pixelFormat,
+                pixelFormat: video.decodedFormat.name,
                 read: 0,
                 decoded: decoded,
                 reopened: reopened,
@@ -516,7 +518,7 @@ extension AVFoundationDecoder: MediaDecoder {
             file,
             conversion: try workingConversion(of: reading, tagged: tagged, path: path),
             device: device,
-            pixelFormat: VideoReader.pixelFormat,
+            pixelFormat: video.decodedFormat.name,
             read: 1,
             decoded: 0,
             reopened: false,

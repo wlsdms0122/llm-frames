@@ -20,9 +20,6 @@ final class VideoReader: Sendable {
     // A later frame further ahead than this, in seconds, restarts the reader at it rather than decoding up to it.
     private static let forwardReach: Double = 1
 
-    // How AVAssetReader gives the decoder a frame's samples, `kCVPixelFormatType_64RGBAHalf` (FRAMES-23 Runs).
-    static let pixelFormat = "16-bit float RGBA"
-
     let frames: [CMTime]
     let displaySize: Size
     let fps: Double
@@ -30,6 +27,8 @@ final class VideoReader: Sendable {
     let hasSound: Bool
     let hasAlpha: Bool
     let taggedColor: TaggedColor
+    // How AVAssetReader gives the decoder the frames' samples (FRAMES-21 Rules).
+    let decodedFormat: DecodedFormat
 
     var frameTimes: [Double] {
         frames.map(CMTimeGetSeconds)
@@ -69,27 +68,30 @@ final class VideoReader: Sendable {
         self.hasSound = loaded.hasSound
         self.hasAlpha = loaded.hasAlpha
         self.taggedColor = loaded.taggedColor
+        self.decodedFormat = loaded.decodedFormat
         self.frames = try Self.frames(of: track, in: asset, edits: loaded.edits, path: path)
         self.duration = CMTimeGetSeconds(loaded.duration)
     }
 
     // MARK: - Public
-    // The picture of frame `index` as it is displayed: the last decoded frame presented at or before its presented
-    // time, taken to R'G'B' half floats by the matrix and range the file says, with no colour matched, a value beyond
-    // the nominal range kept. Asking for the frame read last decodes nothing. With it come the samples decoded to give
-    // it and whether a reader was opened again for it.
-    func image(
-        atFrame index: Int,
-        path: String
-    ) throws -> (image: CIImage, decoded: Int, reopened: Bool) {
-        let (buffer, decoded, reopened) = try self.buffer(atFrame: index, path: path)
-
-        return (image(of: buffer), decoded, reopened)
-    }
-
-    // A buffer `buffer(atFrame:path:)` gave as it is displayed, with no colour matched.
+    // A buffer `buffer(atFrame:path:)` gave as it is displayed, with no colour matched: its R'G'B', taken from its
+    // Y'CbCr by the formulas in double precision where it holds Y'CbCr, a value beyond the nominal range kept.
     func image(of buffer: CVImageBuffer) -> CIImage {
-        displayed(CIImage(cvImageBuffer: buffer, options: [.colorSpace: NSNull()]))
+        guard case let .yCbCr(layout) = decodedFormat else {
+            return displayed(CIImage(cvImageBuffer: buffer, options: [.colorSpace: NSNull()]))
+        }
+
+        let width = CVPixelBufferGetWidth(buffer)
+        let height = CVPixelBufferGetHeight(buffer)
+        let samples = layout.encodedSamples(of: buffer)
+
+        return displayed(CIImage(
+            bitmapData: samples.withUnsafeBytes { Data($0) },
+            bytesPerRow: width * 4 * MemoryLayout<Float>.size,
+            size: CGSize(width: width, height: height),
+            format: .RGBAf,
+            colorSpace: nil
+        ))
     }
 
     // The picture of frame `index` as it is displayed, tagged with the colour its frame carries, which Core Image's
@@ -101,8 +103,7 @@ final class VideoReader: Sendable {
         displayed(CIImage(cvImageBuffer: try buffer(atFrame: index, path: path).buffer))
     }
 
-    // The buffer of frame `index` as the file stores it, R'G'B' half floats as `image(atFrame:path:)` takes them, the
-    // samples decoded to reach it, and whether a reader was opened again for it, which the first reader opened on the
+    // The buffer of frame `index` as the file stores it, in `decodedFormat`, the samples decoded to reach it, and whether a reader was opened again for it, which the first reader opened on the
     // video is not.
     func buffer(
         atFrame index: Int,
@@ -122,7 +123,7 @@ final class VideoReader: Sendable {
             let reader = try FrameReader(
                 asset: asset,
                 track: track,
-                pixelFormat: kCVPixelFormatType_64RGBAHalf,
+                pixelFormat: decodedFormat.pixelFormat,
                 start: time,
                 path: path
             )
@@ -153,6 +154,17 @@ final class VideoReader: Sendable {
             CMFormatDescriptionGetExtension($0, extensionKey: kCMFormatDescriptionExtension_BitsPerComponent)
         }
         let bitsPerComponent = depth as? Int ?? 8
+        let hasAlpha = formats.first.map(hasAlpha) ?? false
+        let matrix = formats.first.flatMap {
+            CMFormatDescriptionGetExtension($0, extensionKey: kCMFormatDescriptionExtension_YCbCrMatrix) as? String
+        }
+        let layout = formats.first.flatMap {
+            YCbCrLayout(
+                format: $0,
+                matrix: matrix.map { Int(CVYCbCrMatrixGetIntegerCodePointForString($0 as CFString)) },
+                hasAlpha: hasAlpha
+            )
+        }
         let segments = try waiter.value(of: .segments, key: "segments", in: track)
 
         return TrackFacts(
@@ -160,8 +172,9 @@ final class VideoReader: Sendable {
             preferredTransform: try waiter.value(of: .preferredTransform, key: "preferredTransform", in: track),
             nominalFrameRate: try waiter.value(of: .nominalFrameRate, key: "nominalFrameRate", in: track),
             bitsPerComponent: bitsPerComponent,
-            hasAlpha: formats.first.map(hasAlpha) ?? false,
+            hasAlpha: hasAlpha,
             taggedColor: taggedColor(of: formats.first, bitsPerComponent: bitsPerComponent),
+            decodedFormat: layout.map(DecodedFormat.yCbCr) ?? .halfFloatRGBA,
             edits: segments.filter { !$0.isEmpty }.map(\.timeMapping),
             duration: try waiter.value(of: .duration, key: "duration", in: asset),
             hasSound: !(try waiter.tracks(of: asset, type: .audio)).isEmpty
