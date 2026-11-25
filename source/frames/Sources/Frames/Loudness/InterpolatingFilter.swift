@@ -8,8 +8,8 @@
 import Accelerate
 
 // The 48-tap interpolating filter of ITU-R BS.1770-5 Annex 2 as four phases of 12 taps, u_p[m] = Σ h_p[k] x[m - k]
-// over k from 0 to 11. u_0[n + 6] to u_3[n + 6] are the sound oversampled 4 times between samples n and n + 1, at about
-// n + 1/8, n + 3/8, n + 5/8 and n + 7/8. It is computed in floating point, so the Annex's attenuation before the filter
+// over k from 0 to 11. u_p[n + 6] is the sound at n + (2p + 1)/8, between samples n and n + 1: the 48 taps are
+// symmetric about tap 23.5, so every frequency is delayed by the same 23.5 oversampled steps. It is computed in floating point, so the Annex's attenuation before the filter
 // and its gain after it, which give headroom to integer arithmetic, are left out.
 package struct InterpolatingFilter: Sendable {
     // MARK: - Property

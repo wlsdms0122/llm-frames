@@ -94,7 +94,7 @@ A document's keys are [FRAMES-7](../FRAMES-7/SPEC.md), its format and storyline 
 
 ## Alternatives considered
 
-A separate image document kind, an ordered list of operations on one picture (crop, resize, pad, draw): it is a second editing model beside the sequence, with its own coordinates and its own rules for what a later operation does to an earlier drawing, and every tool and check would have to learn both. A still as a one-frame sequence uses the clip keys any editor already knows, and content fit gives the frame that grows with its content, which was the reason for a separate kind.
+A separate image document kind, an ordered list of operations on one picture (crop, resize, pad, draw): it is a second editing model beside the sequence, with its own coordinates and its own rules for what a later operation does to an earlier drawing, and every tool and check would have to learn both. A still as a one-frame sequence uses the clip keys any editor already knows, and content fit gives the frame that grows with its content, which is what a separate kind would be for.
 
 A layout document kind, pictures on a grid with headings: a grid is one arrangement among many, the kind of shape a purpose takes. Media clips placed by `position`, and a template or a pack that writes them, make any arrangement.
 

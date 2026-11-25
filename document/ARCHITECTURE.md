@@ -145,6 +145,7 @@ frames/
     GUIDE.md               the editing loop, and how to write a guide, a how-to or a tool
     PRESET.md              how to write a preset
     PACK.md                how to make a pack, a form, a template and a tool
+    MEASUREMENTS.md        the measurements behind the specification's bounds and constants
     howto/<name>.md
   packs/<name>/            packs kept beside frames and installed by copying, not part of it
   source/frames/           the Swift package
