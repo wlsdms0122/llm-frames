@@ -732,6 +732,18 @@ struct ResolvedDocumentReaderTests {
         #expect(error?.description == "clips[0].mask (clip): a mask list holds at least one mask, and a clip without one has null")
     }
 
+    @Test("a media clip's null crop stops, since a media clip carries its crops, the whole picture where none is written")
+    func refusesNullMediaCrop() throws {
+        // Given
+        let text = try replacing("crop", ofClip: 1, with: "null", in: written(Self.documents[0]))
+
+        // When
+        let error = #expect(throws: ModelError.self) { try sut.read(text) }
+
+        // Then
+        #expect(error?.description == "clips[1].crop (clip): expected a list of 4 numbers, found null")
+    }
+
     @Test(
         "a track matte that names no clip, a storyline clip or an adjustment, or a chain that comes back to itself, stops",
         arguments: [
