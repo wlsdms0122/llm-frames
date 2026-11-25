@@ -14,13 +14,17 @@ import FramesTestMedia
 // A resolved document, the times of the frames two renderers are compared on and the checks it is held to, one for
 // each kind of item and operation a renderer draws: a video under a moving title, a scaled still with opacity and a
 // blend mode, a detailed still scaled by 0.25, 0.625, 1.375 and 3, one turned and one moved by part of a pixel,
-// pictures with rounded corners, a border and a shadow, hard edges of a shape and of a picture at sub-pixel positions,
-// unscaled and scaled, shapes with strokes, rounded corners, a shadow and a feathered mask, an adjustment cut by a
-// track matte, a crossfade between two detailed pictures, a corner pin, motion blur, and a list composited in the
-// linear form.
+// pictures with rounded corners, a border and a shadow, filtered pictures with colour operations, a blur and a LUT,
+// one scaled, turned and filtered with a mix, hard edges of a shape and of a picture at sub-pixel positions, unscaled
+// and scaled, shapes with strokes, rounded corners, a shadow and a feathered mask, an adjustment cut by a track matte,
+// adjustments with a mix and with a feathered mask, a crossfade between two detailed pictures, a corner pin, motion
+// blur, and a list composited in the linear form.
 struct AgreementCase {
     // MARK: - Property
     private static let grey = #"{ "description": "every colour turned to its grey", "ops": [ { "kind": "saturation", "amount": 0 } ] }"#
+    // A 2 by 2 by 2 cube, red varying fastest, in which no channel is affine.
+    private static let look = "LUT_3D_SIZE 2\n0.1 0.0 0.2\n0.9 0.3 0.1\n0.2 0.8 0.0\n0.7 0.6 0.9\n0.0 0.1 1.0\n1.0 0.5 0.4\n0.3 0.9 0.6\n0.8 1.0 0.7\n"
+    private static let soften = #"{ "description": "a soft blur and warmer light", "ops": [ { "kind": "blur", "radius": 2 }, { "kind": "temperature", "kelvin": 4000 } ] }"#
     private static let fade = #"""
         { "description": "the incoming clip faded in over the outgoing one", "seconds": 0.5, "ease": "linear",
           "incoming": { "keys": [ { "t": 0, "opacity": 0 }, { "t": 1, "opacity": 1 } ] } }
@@ -66,7 +70,11 @@ struct AgreementCase {
             .write(to: white, codeValues: [255, 255, 255])
         let grid = directory.file("grid.png")
         try CornerPinStill.grid.write(to: grid)
-        let resolver = try DocumentResolver(presets: ["filter/grey": Self.grey, "transition/fade": Self.fade])
+        let look = directory.file("look.cube")
+        try Self.look.write(toFile: look, atomically: true, encoding: .utf8)
+        let resolver = try DocumentResolver(
+            presets: ["filter/grey": Self.grey, "filter/soften": Self.soften, "transition/fade": Self.fade]
+        )
         let title = #"{ "kind": "title", "text": "A caption", "style": "title", "at": [0, 2], "keyframes": [ { "at": 0, "position": [80, 60] }, { "at": 2, "position": [80, 30] } ] }"#
 
         return [
@@ -148,6 +156,59 @@ struct AgreementCase {
                                                         "border": { "width": 2, "color": "#00FFFF" }, "shadow": { "radius": 3, "offset": [9, -7], "color": "#000000" } } ] } ] }
                     """#),
                 times: [0.5]
+            ),
+            AgreementCase(
+                name: "a detailed still filtered by colour operations over a video",
+                document: try resolver.resolve(#"""
+                    { "kind": "sequence", "format": { "size": [160, 90], "fps": 10 },
+                      "storyline": [ { "kind": "media", "media": "\#(pattern)", "in": 0, "out": 2,
+                                       "connected": [ { "kind": "media", "media": "\#(detail)", "at": [0, 2], "width": 100, "position": [70.375, 45.625],
+                                                        "filter": [ { "kind": "temperature", "kelvin": 3500 }, { "kind": "contrast", "amount": 1.3 }, { "kind": "exposure", "ev": 0.4 } ] } ] } ] }
+                    """#),
+                times: [0.5]
+            ),
+            AgreementCase(
+                name: "a detailed still blurred, one with rounded corners, a border and a shadow, over a video",
+                document: try resolver.resolve(#"""
+                    { "kind": "sequence", "format": { "size": [160, 90], "fps": 10 },
+                      "storyline": [ { "kind": "media", "media": "\#(pattern)", "in": 0, "out": 2,
+                                       "connected": [ { "kind": "media", "media": "\#(detail)", "at": [0, 2], "width": 70, "position": [40.375, 45.625], "filter": { "kind": "blur", "radius": 3 } },
+                                                      { "kind": "media", "media": "\#(video)", "at": [0, 2], "width": 64, "position": [115.25, 40.5], "radius": 10,
+                                                        "border": { "width": 2, "color": "#FFFFFF" }, "shadow": { "radius": 3, "offset": [2, 4], "color": "#000000A0" },
+                                                        "filter": "mine/soften" } ] } ] }
+                    """#),
+                times: [0.5]
+            ),
+            AgreementCase(
+                name: "a detailed still through a LUT over a video",
+                document: try resolver.resolve(#"""
+                    { "kind": "sequence", "format": { "size": [160, 90], "fps": 10 },
+                      "storyline": [ { "kind": "media", "media": "\#(pattern)", "in": 0, "out": 2,
+                                       "connected": [ { "kind": "media", "media": "\#(detail)", "at": [0, 2], "width": 120, "position": [80, 45], "filter": { "kind": "lut", "file": "\#(look)", "amount": 0.8 } } ] } ] }
+                    """#),
+                times: [0.5]
+            ),
+            AgreementCase(
+                name: "a detailed still scaled by 0.75, turned by 23 degrees and filtered with a mix over a video",
+                document: try resolver.resolve(#"""
+                    { "kind": "sequence", "format": { "size": [160, 90], "fps": 10 },
+                      "storyline": [ { "kind": "media", "media": "\#(pattern)", "in": 0, "out": 2,
+                                       "connected": [ { "kind": "media", "media": "\#(detail)", "at": [0, 2], "width": 120, "position": [80.25, 45.75], "rotation": 23, "opacity": 0.8,
+                                                        "filter": [ { "kind": "preset", "preset": "mine/grey", "mix": 0.6 }, { "kind": "sharpen", "amount": 0.5, "radius": 1.5 } ] } ] } ] }
+                    """#),
+                times: [0.5]
+            ),
+            AgreementCase(
+                name: "an adjustment with a mix and one with a feathered mask over a filtered video under a title",
+                document: try resolver.resolve(#"""
+                    { "kind": "sequence", "format": { "size": [160, 90], "fps": 10 },
+                      "storyline": [ { "kind": "media", "media": "\#(pattern)", "in": 0, "out": 2, "filter": { "kind": "temperature", "kelvin": 8000 },
+                                       "connected": [ \#(title),
+                                                      { "kind": "adjustment", "adjust": { "kind": "preset", "preset": "mine/soften", "mix": 0.7 }, "at": [0, 1] },
+                                                      { "kind": "adjustment", "adjust": "mine/grey", "at": [1, 2], "opacity": 0.9,
+                                                        "mask": { "kind": "ellipse", "area": [20, 10, 100, 60], "feather": 6 } } ] } ] }
+                    """#),
+                times: [0.5, 1.5]
             ),
             AgreementCase(
                 name: "a detailed still scaled by 0.25 and by 3 and one at its own size moved by part of a pixel",

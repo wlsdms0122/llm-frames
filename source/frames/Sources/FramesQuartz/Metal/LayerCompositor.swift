@@ -11,15 +11,17 @@ import Frames
 
 // Composites the items of one frame's list on the GPU, bottom first, as a Core Image image of the list's raster, rows
 // counted from the bottom, in the form the list's `compositing` names. Each item is a layer laid over what is below it
-// by source-over, or by its blend mode's kernel (`Blender`). A picture of a media frame with no filter, transition
-// matte, corner pin, mask, track matte or reveal, at any scale, turn and position, is a layer made on the GPU from the
-// decoder's pixels, resampled by `PictureResampler`, the resampling of `quartz`, and covered as `PictureDrawer` covers
-// it: by the resampler at square corners, and by the coverage Core Graphics gives the destination with its corners
-// rounded otherwise. Its border is drawn by `PictureDrawer` into a layer of the part of the raster it covers, its
-// shadow cast from the picture and the border as `FrameDrawer` casts one, and the whole is scaled by its opacity.
-// Every other item is drawn
-// by `FrameDrawer` into a layer of the part of the raster it covers, an adjustment reading the image below it. The
-// items of a nested list drawn in place are laid one by one, as `FrameDrawer` draws them.
+// by source-over, or by its blend mode's kernel (`Blender`), and every layer made on the GPU is left unrendered until
+// the frame is rendered. A picture of a media frame with no transition matte, corner pin, mask, track matte or reveal,
+// at any scale, turn and position, is a layer made on the GPU from the decoder's pixels: resampled by
+// `PictureResampler`, the resampling of `quartz`, and covered as `PictureDrawer` covers it, by the resampler at square
+// corners and by the coverage Core Graphics gives the destination with its corners rounded otherwise, or, filtered,
+// the Core Image image `PictureDrawer` filters it into. Its border is drawn by `PictureDrawer` into a layer of the part
+// of the raster it covers, its shadow cast from the picture and the border as `FrameDrawer` casts one, and the whole
+// is scaled by its opacity. An adjustment with no reveal is the image below it through its filter, times the coverage
+// `FrameDrawer` gives its masks and track matte and its opacity. Every other item is drawn by `FrameDrawer` into a
+// layer of the part of the raster it covers. The items of a nested list drawn in place are laid one by one, as
+// `FrameDrawer` draws them.
 final class LayerCompositor {
     // MARK: - Property
     private let drawer: FrameDrawer
@@ -86,7 +88,10 @@ final class LayerCompositor {
         over frame: CIImage
     ) throws -> CIImage? {
         let raster = Raster(holding: list.size)
-        if let picture = try picture(of: item, in: list, on: raster) { return picture.cropped(to: raster.bounds) }
+        if let picture = try picture(of: item, in: list, seed: seed, on: raster) {
+            return picture.cropped(to: raster.bounds)
+        }
+        if let adjusted = try adjusted(item, in: list, seed: seed, over: frame, on: raster) { return adjusted }
 
         let area = drawer.area(of: item, in: list)
         guard !area.isEmpty else { return nil }
@@ -97,11 +102,13 @@ final class LayerCompositor {
             .transformed(by: CGAffineTransform(translationX: area.minX, y: CGFloat(raster.height) - area.maxY))
     }
 
-    // The picture item's media resampled onto the raster on the GPU, covered, under its border and over its shadow,
-    // and scaled by its opacity, nil where the item is not one the GPU draws this way.
+    // The picture item's media resampled onto the raster on the GPU, filtered and covered, under its border and over
+    // its shadow, and scaled by its opacity, nil where the item is not one the GPU draws this way. `seed` is that of
+    // the list the item was written in.
     private func picture(
         of item: DisplayItem,
         in list: DisplayList,
+        seed: Int,
         on raster: Raster
     ) throws -> CIImage? {
         guard
@@ -109,50 +116,52 @@ final class LayerCompositor {
             item.mask.isEmpty,
             item.trackMatte == nil,
             item.reveal == nil,
-            picture.showsSourceFramed,
+            picture.drawsSourceAlone,
             case let .media(frame) = picture.source,
             frame.picture != .page
         else {
             return nil
         }
 
-        let pixels = try pictures.pixels(of: frame)
-        let size = CGSize(width: pixels.width, height: pixels.height)
-        guard let placement = picture.placement(ofSourceSized: size) else { return nil }
+        let source = try pictures.source(of: frame)
+        guard let placement = picture.placement(ofSourceSized: source.size) else { return nil }
 
-        read.append(pixels)
-        let source = switch pixels {
-        case let .surface(surface):
-            CIImage(ioSurface: surface.surface, options: [.colorSpace: WorkingSpace.encoded])
-
-        case .bitmap:
-            CIImage(cgImage: try pictures.image(of: frame))
-        }
-
+        read.append(try pictures.pixels(of: frame))
         // Core Image counts rows from the bottom, of the source and of the raster.
         let height = CGFloat(raster.height)
-        let sourceFlip = CGAffineTransform(a: 1, b: 0, c: 0, d: -1, tx: 0, ty: size.height)
+        let sourceFlip = CGAffineTransform(a: 1, b: 0, c: 0, d: -1, tx: 0, ty: source.size.height)
         let rasterFlip = CGAffineTransform(a: 1, b: 0, c: 0, d: -1, tx: 0, ty: height)
         let matrix = CGAffineTransform(item.transform).concatenating(raster.transform)
-        let map = sourceFlip.concatenating(placement).concatenating(matrix).concatenating(rasterFlip)
+        let device = matrix.concatenating(rasterFlip)
+        let map = sourceFlip.concatenating(placement).concatenating(device)
         // A picture that casts a shadow is drawn as far past the raster as the shadow reaches into it from.
         let margin = picture.shadow
             .map { CGFloat(CastShadow($0, through: matrix, rasterScale: raster.transform.lengthScale).margin) } ?? 0
         let bounds = raster.bounds.insetBy(dx: -margin, dy: -margin)
         var image: CIImage
-        if picture.radius == 0 {
-            guard let shown = picture.shownSource(ofSourceSized: size) else { return CIImage.empty() }
+        if !picture.filter.isEmpty {
+            image = try PictureDrawer(chain: drawer.chain).filtered(
+                picture,
+                source: source,
+                matte: nil,
+                seed: seed,
+                through: device,
+                within: bounds,
+                compositing: list.compositing
+            )
+        } else if picture.radius == 0 {
+            guard let shown = picture.shownSource(ofSourceSized: source.size) else { return CIImage.empty() }
 
             image = try PictureResampler()
-                .resample(source, through: map, covering: shown.applying(sourceFlip), within: bounds)
+                .resample(source.picture, through: map, covering: shown.applying(sourceFlip), within: bounds)
         } else {
             let outline = PathOutline(.rect(picture.destination, radius: picture.radius)).path
             let area = outline.boundingBoxOfPath.applying(matrix).integral.intersection(bounds)
             guard !area.isNull, !area.isEmpty else { return CIImage.empty() }
 
-            let extended = picture.extendedSource(ofSourceSized: size)
+            let extended = picture.extendedSource(ofSourceSized: source.size)
             let resampled = try PictureResampler().resample(
-                source,
+                source.picture,
                 through: map,
                 covering: extended.applying(sourceFlip),
                 within: area.applying(rasterFlip)
@@ -181,11 +190,51 @@ final class LayerCompositor {
             image = image.composited(over: cast(shadow, from: image, through: matrix, on: raster))
         }
 
-        guard item.opacity < 1 else { return image }
+        return scaled(image, by: item.opacity)
+    }
 
-        let opacity = CIImage(color: CIColor(red: 0, green: 0, blue: 0, alpha: item.opacity)).cropped(to: image.extent)
+    // The adjustment's layer: `frame`, the image below it, through its filter, times the coverage of its masks and
+    // track matte and its opacity, nil where the item is not an adjustment or has a reveal. `seed` is that of the list
+    // the item was written in.
+    private func adjusted(
+        _ item: DisplayItem,
+        in list: DisplayList,
+        seed: Int,
+        over frame: CIImage,
+        on raster: Raster
+    ) throws -> CIImage? {
+        guard case let .adjust(adjust) = item.content, item.reveal == nil else { return nil }
 
-        return image.applyingFilter("CISourceInCompositing", parameters: [kCIInputBackgroundImageKey: opacity])
+        // The item's transform carries only its reveal, and one that flattens the plane leaves nothing drawn.
+        let matrix = CGAffineTransform(item.transform).concatenating(raster.transform)
+        guard matrix.a * matrix.d - matrix.b * matrix.c != 0 else { return CIImage.empty() }
+
+        var image = try drawer.filtered(frame, by: adjust, on: raster, seed: seed, compositing: list.compositing)
+        if let coverage = try drawer.coverage(of: item, over: raster.bounds, on: raster) {
+            // The coverage's grey values are taken as they are, outside colour management, as a clip takes them.
+            let values = CIImage(cgImage: coverage, options: [.colorSpace: NSNull()])
+            image = image.applyingFilter(
+                "CIBlendWithRedMask",
+                parameters: [
+                    kCIInputBackgroundImageKey: CIImage(color: .clear).cropped(to: image.extent),
+                    kCIInputMaskImageKey: values
+                ]
+            )
+        }
+
+        return scaled(image, by: item.opacity)
+    }
+
+    // The image times `opacity`.
+    private func scaled(
+        _ image: CIImage,
+        by opacity: Double
+    ) -> CIImage {
+        guard opacity < 1 else { return image }
+
+        let alpha = CIImage(color: CIColor(red: 0, green: 0, blue: 0, alpha: opacity)).cropped(to: image.extent)
+
+        return image.applyingFilter("CISourceInCompositing", parameters: [kCIInputBackgroundImageKey: alpha])
     }
 
     // The shadow `picture` casts, an image of the raster: its alpha in the shadow's colour, blurred and moved, worked
