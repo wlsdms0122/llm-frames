@@ -47,7 +47,12 @@ extension ItemCoverage {
         case .path:
             let outline = PathOutline(path.geometry)
             let fill = path.fill == nil ? [] : [ConvexPolygon(hullOf: outline.segments.flatMap(\.hullPoints))]
-            let line = Self.pieces(of: outline, path: path, width: stroke.map { $0.align.tracedWidth(of: width) } ?? 0)
+            let line = Self.pieces(
+                of: outline,
+                path: path,
+                carriedBy: transform,
+                width: stroke.map { $0.align.tracedWidth(of: width) } ?? 0
+            )
             self.init(pieces: fill + line + overhangs)
         }
     }
@@ -66,16 +71,18 @@ extension ItemCoverage {
         )
     }
 
-    // The stroke's segments between its arrowheads, as `DrawnStroke` lays them along the outline.
+    // The stroke's segments between its arrowheads along `outline`, the item's own, its line's ends laid on the
+    // outline `transform` carries and brought back.
     private static func pieces(
         of outline: PathOutline,
         path: PathItem,
+        carriedBy transform: AffineTransform,
         width: Double
     ) -> [ConvexPolygon] {
-        guard let drawn = path.drawnStroke, drawn.isDrawn, outline.length > 0 else { return [] }
+        guard case let (carried, drawn)? = path.carriedStroke(by: transform), drawn.isDrawn else { return [] }
 
-        let lineStart = drawn.lineStart(along: outline.length)
-        let lineEnd = drawn.lineEnd(along: outline.length)
+        let lineStart = carried.distance(carried.lineStart(of: drawn), onto: outline)
+        let lineEnd = carried.distance(carried.lineEnd(of: drawn), onto: outline)
         guard lineEnd > lineStart else { return [] }
 
         var parts: [ConvexPolygon] = []

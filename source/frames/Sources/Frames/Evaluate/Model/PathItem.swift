@@ -110,7 +110,7 @@ package struct PathItem: Equatable, Sendable {
 
         let corners = carried.overhangs(of: stroke.traced, drawn: drawn).flatMap { $0 }
             .map { transform.apply(to: back.apply(to: $0)) }
-        let heads = carried.arrowheads(of: drawn).map { head in head.geometry.bounds(carriedBy: disc) }
+        let heads = carried.arrowheads(of: drawn).map { head in head.geometry().bounds(carriedBy: disc) }
 
         return ([corners.isEmpty ? nil : Rectangle(bounding: corners)].compactMap { $0 } + heads)
             .reduce(stroked) { bounds, part in bounds.union(part) }

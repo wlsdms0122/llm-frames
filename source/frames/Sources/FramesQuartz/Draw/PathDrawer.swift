@@ -90,8 +90,8 @@ struct PathDrawer {
         let line = line(
             of: stroke,
             from: drawn.start(along: outline.length),
-            between: drawn.lineStart(along: outline.length),
-            and: drawn.lineEnd(along: outline.length),
+            between: outline.lineStart(of: drawn),
+            and: outline.lineEnd(of: drawn),
             along: outline,
             own: own
         )
@@ -189,31 +189,9 @@ struct PathDrawer {
         )
     }
 
-    // A head as one shape: its outline, a closed path through its vertices, straight where a segment's two tangents
-    // are 0 and a cubic segment elsewhere.
+    // A head as one shape, the fill of its outline.
     private func path(of head: Arrowhead) -> CGPath {
-        let path = CGMutablePath()
-        guard case let .path(vertices, _) = head.geometry, let first = vertices.first else { return path }
-
-        let zero = Point(x: 0, y: 0)
-        path.move(to: CGPoint(x: first.vertex.x, y: first.vertex.y))
-        for (index, start) in vertices.enumerated() {
-            let end = vertices[(index + 1) % vertices.count]
-            let target = CGPoint(x: end.vertex.x, y: end.vertex.y)
-            guard start.outTangent != zero || end.inTangent != zero else {
-                path.addLine(to: target)
-                continue
-            }
-
-            path.addCurve(
-                to: target,
-                control1: CGPoint(x: start.vertex.x + start.outTangent.x, y: start.vertex.y + start.outTangent.y),
-                control2: CGPoint(x: end.vertex.x + end.inTangent.x, y: end.vertex.y + end.inTangent.y)
-            )
-        }
-        path.closeSubpath()
-
-        return path
+        PathOutline(head.geometry()).fillPath
     }
 
     private func lineCap(of cap: StrokeCap) -> CGLineCap {

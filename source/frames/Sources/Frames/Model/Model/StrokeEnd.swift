@@ -28,13 +28,9 @@ package struct StrokeEnd: Equatable, Sendable {
         head == nil ? 0 : width * scale
     }
 
-    // How long its head is along the stroke and how far back from its tip the line stops, in units, 0 for none.
+    // How long its head is along the stroke, in units, 0 for none.
     package var length: Double {
         head?.length ?? 0
-    }
-
-    package var inset: Double {
-        head?.inset ?? 0
     }
 
     // MARK: - Private

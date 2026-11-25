@@ -5,35 +5,28 @@
 //  Created by JSilver on 11/18/26.
 //
 
-// A head drawn at an end of the stroke (FRAMES-20 Arrowheads): its preset's outline laid with its origin at `tip` and
-// its x axis along `axis`, a unit direction from the middle of its base to its tip. Each unit of the outline is `along`
-// long along the axis and `unit` across it, `unit` the stroke's width times the head's scale after shrinking. On a
-// straight end the two are equal, and on a curved one the axis is the chord of the stroke's last part as long as the
-// head, and `along` is that chord over the head's length, so its tip and its base both lie on the curve.
+// A head drawn at an end of the stroke (FRAMES-20 Arrowheads): its preset's outline turned so its x axis lies along
+// `axis`, a unit direction from the middle of its base to its tip, grown by `scale` along both axes and moved so its
+// origin is `tip`. `scale` is the chord from its base to its tip over the head's length, so the head keeps its shape on
+// every end: on a straight end the chord is the head's length along the stroke and `scale` is the stroke's width times
+// the head's scale after shrinking, and on a curved one the chord is shorter.
 package struct Arrowhead: Equatable, Sendable {
     // MARK: - Property
     package let head: StrokeHead
     package let tip: Point
     package let axis: Point
-    package let along: Double
-    package let unit: Double
+    package let scale: Double
 
     // The map from the head's own coordinates onto the stroke's.
     package var transform: AffineTransform {
         AffineTransform(
-            a: axis.x * along,
-            b: axis.y * along,
-            c: -axis.y * unit,
-            d: axis.x * unit,
+            a: axis.x * scale,
+            b: axis.y * scale,
+            c: -axis.y * scale,
+            d: axis.x * scale,
             tx: tip.x,
             ty: tip.y
         )
-    }
-
-    // The head's outline in the stroke's coordinates, a closed path.
-    package var geometry: PathGeometry {
-        let transform = transform
-        return .path(head.outline.map { $0.carried(by: transform) }, isClosed: true)
     }
 
     // The vertices and control points of its outline in the stroke's coordinates, whose convex hull holds the head.
@@ -42,21 +35,30 @@ package struct Arrowhead: Equatable, Sendable {
         return head.controlPoints.map(transform.apply(to:))
     }
 
+    // How far back along the stroke from the tip the line stops.
+    package var inset: Double {
+        head.inset * scale
+    }
+
     // MARK: - Initializer
     package init(
         head: StrokeHead,
         tip: Point,
         axis: Point,
-        along: Double,
-        unit: Double
+        scale: Double
     ) {
         self.head = head
         self.tip = tip
         self.axis = axis
-        self.along = along
-        self.unit = unit
+        self.scale = scale
     }
 
     // MARK: - Public
+    // The head's outline, a closed path, in the stroke's coordinates carried on by `transform`.
+    package func geometry(carriedBy transform: AffineTransform = .identity) -> PathGeometry {
+        let map = self.transform.concatenating(transform)
+        return .path(head.outline.map { $0.carried(by: map) }, isClosed: true)
+    }
+
     // MARK: - Private
 }
