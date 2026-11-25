@@ -108,5 +108,5 @@ To take it away, either render the exit in the page as well and let the frames r
 ## Notes
 
 - Text in the graphic is pixels to frames. Change the page and render again to change it. Words that change from edit to edit are better as frames titles over a graphic that has none, and a graphic used with different words in many edits is better as a template whose words are `text` parameters ([PACK.md](../PACK.md#a-template)).
-- A graphic used in many edits belongs in a pack: put the folder in the pack's `media/` and name it `<pack>/<folder>` in `imageSequence`, so the pack carries it ([PACK.md](../PACK.md)).
+- A graphic used in many edits belongs in a pack: put the folder in the pack's `media/` and name it `<pack>/<folder>` as the image sequence's `directory`, so the pack carries it ([PACK.md](../PACK.md)).
 - A browser renders the fonts installed on the machine. Use the same font as the form's theme, so the graphic and the titles match.
