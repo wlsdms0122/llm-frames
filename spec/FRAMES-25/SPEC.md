@@ -147,10 +147,10 @@ frames comes with two tools that fill requests, kept beside the tool in the fram
 
 | Tool | Fills | Arguments |
 | --- | --- | --- |
-| `find-text` | an area wherever one stands (a `crop`, an `area`, a mask's `area`, the `area` of a point) on a clip or a keyframe, with the rect area `ocr --json` reports for its text on the frame the area takes effect on | `text`, with `nth` and `padding`, or `from` and `to`, with `fromNth`, `toNth` and `padding` |
+| `find-text` | an area wherever one stands (a `crop`, an `area`, a mask's `area`, the `area` of a point) on a clip or a keyframe, with the rect area `ocr --json` reports for its text on the frame the area takes effect on | `text`, with `nth`, `padding` and `aspectRatio`, or `from` and `to`, with `fromNth`, `toNth`, `padding` and `aspectRatio` |
 | `track-motion` | a clip's `track`, with the track data `track` prints for its target | `target` and `time` |
 
-- `find-text`'s `text` names the recognised line that contains it, and `from` and `to` the lines from one text to another with every line between them. `nth`, `fromNth` and `toNth` pick one match where several lines contain the text, and `padding` grows the rectangle on every side.
+- `find-text`'s `text` names the recognised line that contains it, and `from` and `to` the lines from one text to another with every line between them. `nth`, `fromNth` and `toNth` pick one match where several lines contain the text, and `padding` grows the rectangle on every side. `aspectRatio` `[w, h]` then takes the part of the padded rectangle inside the picture searched, whose size `ocr --json` reports, grows it about its centre along one axis to the ratio w to h, and slides it to lie inside the picture, so a crop zoomed on the text fills a box of that ratio without the transparent bands a `fit` conform gives past the picture ([FRAMES-9](../FRAMES-9/SPEC.md)). Where the picture holds no rectangle of that ratio around that part, the request stops.
 - `track-motion`'s `target` is what is followed, and is required: the name of one of the clip's own keys that lies in the media pixels its track follows (`area`, `cornerPin`, `crop` or `mask`), or an area `[x, y, w, h]` in those pixels. A key the clip does not write, or one not in those pixels, stops. `time` is the media time of the frame the target is written on, and is optional: without it, the frame the clip's instant shows, and for a keyframed key the frame its first keyframe shows.
 
 ## Interactions
