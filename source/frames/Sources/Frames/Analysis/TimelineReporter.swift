@@ -9,7 +9,9 @@ import Foundation
 
 // Plans a sequence without rendering and reports its time as `timeline` prints it, with every window as tracking
 // leaves it. It stops wherever the plan does. A resolved document is reported as it is written: it keeps no names, so
-// its presets are nil and its media is the pinned file, and it holds an audio clip only as sound, so it reports none.
+// its presets are nil, and it holds an audio clip only as sound, so it reports none. Media is named by its pinned
+// path in both. Asked at a sequence time, which may lie outside the sequence, every entry also gives what its time map
+// gives there (FRAMES-8), and a nested document is reported at the media time its clip shows.
 package struct TimelineReporter: Sendable {
     // MARK: - Property
     private let planner: DocumentPlanner
@@ -23,42 +25,52 @@ package struct TimelineReporter: Sendable {
     package func report(
         of document: JSONValue,
         theme: String? = nil,
-        arguments: ArgumentFile? = nil
+        arguments: ArgumentFile? = nil,
+        at time: Double? = nil
     ) throws -> TimelineReport {
-        report(of: try planner.plan(document, theme: theme, arguments: arguments))
+        report(of: try planner.plan(document, theme: theme, arguments: arguments), at: time)
     }
 
-    func report(of plan: SequencePlan) -> TimelineReport {
-        let time = plan.time
+    func report(
+        of plan: SequencePlan,
+        at time: Double? = nil
+    ) -> TimelineReport {
+        let timePlan = plan.time
 
         return TimelineReport(
-            duration: time.duration,
-            storyline: time.storyline.indices.map { index in
-                let clip = time.storyline[index]
-                return entry(of: clip, geometry: plan.storyline[index], sound: sound(at: clip.place, in: plan))
+            duration: timePlan.duration,
+            time: time,
+            storyline: timePlan.storyline.indices.map { index in
+                let clip = timePlan.storyline[index]
+                return entry(of: clip, geometry: plan.storyline[index], sound: sound(at: clip.place, in: plan), at: time)
             },
-            clips: time.clips.indices.map { index in
-                let clip = time.clips[index]
+            clips: timePlan.clips.indices.map { index in
+                let clip = timePlan.clips[index]
                 let isVisualMedia = if case let .media(kind) = clip.kind { kind != .audio } else { false }
                 let range = isVisualMedia ? sound(at: clip.place, in: plan) : nil
-                return entry(of: clip, geometry: plan.clips[index], sound: range, time: time)
+                return entry(of: clip, geometry: plan.clips[index], sound: range, plan: timePlan, at: time)
             }
         )
     }
 
-    package func report(of sequence: ResolvedSequence) -> TimelineReport {
+    package func report(
+        of sequence: ResolvedSequence,
+        at time: Double? = nil
+    ) -> TimelineReport {
         let storyline = sequence.storyline
 
         return TimelineReport(
             duration: sequence.format.duration,
+            time: time,
             storyline: storyline.indices.map { index in
                 entry(
                     of: storyline[index],
                     outgoing: storyline.indices.contains(index + 1) ? storyline[index + 1] : nil,
-                    sound: sound(at: storyline[index].place, in: sequence)
+                    sound: sound(at: storyline[index].place, in: sequence),
+                    at: time
                 )
             },
-            clips: sequence.clips.map { entry(of: $0, sequence: sequence) }
+            clips: sequence.clips.map { entry(of: $0, sequence: sequence, at: time) }
         )
     }
 
@@ -70,16 +82,27 @@ package struct TimelineReporter: Sendable {
         plan.sound.first { $0.place == place }?.range
     }
 
+    // A still shows its one picture at media time 0 at every instant.
     private func entry(
         of clip: StorylinePlan,
         geometry: StorylineGeometry,
-        sound: TimeRange?
+        sound: TimeRange?,
+        at time: Double?
     ) -> TimelineStorylineEntry {
-        TimelineStorylineEntry(
+        let media = clip.source.media
+        let shown = time.map { time in
+            TimelineStorylineTime(
+                clipTime: clip.map.clipTime(atSequenceTime: time),
+                mediaTime: media.map { $0.kind.isStill ? 0 : clip.mediaTime(atSequenceTime: time) }
+            )
+        }
+
+        return TimelineStorylineEntry(
             place: clip.place.description,
             id: clip.id,
-            media: clip.source.media?.reference,
-            page: clip.source.media.flatMap(page(of:)),
+            kind: clip.source.kind.label,
+            media: media.flatMap(file(of:)),
+            page: media.flatMap(page(of:)),
             edit: clip.edit,
             drawn: clip.drawn,
             clip: clip.source.clipRange,
@@ -87,36 +110,44 @@ package struct TimelineReporter: Sendable {
             speed: clip.source.speed,
             isTimeRemapped: clip.timeRemap != nil,
             transition: clip.transition.map { TimelineTransition(preset: $0.preset, seconds: $0.seconds) },
-            nested: geometry.nested.map { report(of: $0) }
+            time: shown,
+            nested: geometry.nested.map { report(of: $0, at: shown?.mediaTime) }
         )
     }
 
+    // A media clip without a clock is a still, which shows media time 0 at every instant.
     private func entry(
         of clip: ClipPlan,
         geometry: ClipGeometry,
         sound: TimeRange?,
-        time: TimePlan
+        plan: TimePlan,
+        at time: Double?
     ) -> TimelineClipEntry {
         let animation = clip.animation
         let parent: String? = switch clip.parent {
         case let .storyline(index, _):
-            time.storyline[index].place.description
+            plan.storyline[index].place.description
 
         case let .clip(index, _):
-            time.clips[index].place.description
+            plan.clips[index].place.description
 
         case nil:
             nil
+        }
+        let shown = time.map { time in
+            TimelineClipTime(mediaTime: clip.media.map { _ in clip.mediaClock?.mediaTime(atSequenceTime: time) ?? 0 })
         }
 
         return TimelineClipEntry(
             place: clip.place.description,
             id: clip.id,
             kind: clip.kind.label,
+            media: clip.media.flatMap(file(of:)),
+            page: clip.media.flatMap(page(of:)),
             visible: clip.visible,
             sound: sound,
             lane: clip.lane,
-            storyline: clip.storyline.map { time.storyline[$0].place.description },
+            storyline: clip.storyline.map { plan.storyline[$0].place.description },
             parent: parent,
             animation: animation.isEmpty
                 ? nil
@@ -126,7 +157,8 @@ package struct TimelineReporter: Sendable {
                     exit: animation.exit.map(span),
                     units: animation.units
                 ),
-            nested: geometry.nested.map { report(of: $0) }
+            time: shown,
+            nested: geometry.nested.map { report(of: $0, at: shown?.mediaTime) }
         )
     }
 
@@ -142,21 +174,30 @@ package struct TimelineReporter: Sendable {
         sequence.audio.first { $0.place == place }.map { TimeRange(start: $0.start, end: $0.end) }
     }
 
-    // A clip is drawn from the start of its incoming transition to the end of its outgoing one.
+    // A clip is drawn from the start of its incoming transition to the end of its outgoing one. A still shows its one
+    // picture at media time 0 at every instant.
     private func entry(
         of clip: ResolvedStorylineClip,
         outgoing: ResolvedStorylineClip?,
-        sound: TimeRange?
+        sound: TimeRange?,
+        at time: Double?
     ) -> TimelineStorylineEntry {
         let edit = TimeRange(start: clip.start, end: clip.end)
         let drawn = TimeRange(
             start: clip.transition?.start ?? clip.start,
             end: outgoing?.transition?.end ?? clip.end
         )
+        let shown = time.map { time in
+            TimelineStorylineTime(
+                clipTime: clip.map.clipTime(atSequenceTime: time),
+                mediaTime: clip.media.map { kind(of: $0).isStill ? 0 : clip.mediaTime(at: time) }
+            )
+        }
 
         return TimelineStorylineEntry(
             place: clip.place,
             id: clip.id,
+            kind: (clip.media.map { ClipKind.media(kind(of: $0)) } ?? .solid).label,
             media: clip.media.flatMap(file(of:)),
             page: clip.media.flatMap(page(of:)),
             edit: edit,
@@ -166,24 +207,29 @@ package struct TimelineReporter: Sendable {
             speed: clip.speed,
             isTimeRemapped: clip.timeRemap != nil,
             transition: clip.transition.map { TimelineTransition(preset: nil, seconds: $0.end - $0.start) },
-            nested: clip.media.flatMap(nestedReport(of:))
+            time: shown,
+            nested: clip.media.flatMap { nestedReport(of: $0, at: shown?.mediaTime) }
         )
     }
 
     private func entry(
         of clip: ResolvedClip,
-        sequence: ResolvedSequence
+        sequence: ResolvedSequence,
+        at time: Double?
     ) -> TimelineClipEntry {
         let animation = clip.animation
         let parent = clip.parent.flatMap { id in
             sequence.storyline.first { $0.id == id }?.place ?? sequence.clips.first { $0.id == id }?.place
         }
-        let media: ResolvedMediaContent? = if case let .media(media) = clip.content { media.media } else { nil }
+        let media: ResolvedMediaClip? = if case let .media(media) = clip.content { media } else { nil }
+        let shown = time.map { time in TimelineClipTime(mediaTime: media?.mediaTime(at: time)) }
 
         return TimelineClipEntry(
             place: clip.place,
             id: clip.id,
             kind: kind(of: clip.content),
+            media: media.flatMap { file(of: $0.media) },
+            page: media.flatMap { page(of: $0.media) },
             visible: TimeRange(start: clip.start, end: clip.end),
             sound: media == nil ? nil : sound(at: clip.place, in: sequence),
             lane: clip.lane,
@@ -197,12 +243,25 @@ package struct TimelineReporter: Sendable {
                     exit: animation.exit.map(span),
                     units: animation.units
                 ),
-            nested: media.flatMap(nestedReport(of:))
+            time: shown,
+            nested: media.flatMap { nestedReport(of: $0.media, at: shown?.mediaTime) }
         )
     }
 
     private func span(_ span: AnimationSpan) -> TimelineSpan {
         TimelineSpan(preset: nil, length: span.length)
+    }
+
+    // The kind of a storyline clip's media, as far as what it shows tells it: a pinned medium without frame times is a
+    // still.
+    private func kind(of media: ResolvedMediaContent) -> MediaKind {
+        switch media {
+        case .nested:
+            .sequence
+
+        case let .pinned(pinned):
+            pinned.page != nil ? .page : pinned.frameTimes.isEmpty ? .image : .video
+        }
     }
 
     // The kind a clip was written as, as far as what it draws tells it: a media clip without timing shows a still.
@@ -244,6 +303,13 @@ package struct TimelineReporter: Sendable {
         }
     }
 
+    // A nested sequence has no file of its own.
+    private func file(of media: MediaPlan) -> String? {
+        guard case let .file(file) = media.source else { return nil }
+
+        return file.path
+    }
+
     private func page(of media: MediaPlan) -> Int? {
         guard case let .file(file) = media.source else { return nil }
 
@@ -256,9 +322,12 @@ package struct TimelineReporter: Sendable {
         return pinned.page
     }
 
-    private func nestedReport(of media: ResolvedMediaContent) -> TimelineReport? {
+    private func nestedReport(
+        of media: ResolvedMediaContent,
+        at time: Double?
+    ) -> TimelineReport? {
         guard case let .nested(sequence) = media else { return nil }
 
-        return report(of: sequence)
+        return report(of: sequence, at: time)
     }
 }

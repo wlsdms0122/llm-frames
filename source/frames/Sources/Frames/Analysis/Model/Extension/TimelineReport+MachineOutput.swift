@@ -5,14 +5,16 @@
 //  Created by JSilver on 11/15/26.
 //
 
-// `{"timeline": "0.1.0", duration, storyline, clips}`, the object `timeline --json` prints. A nested document's
-// object has the same form.
+// `{"timeline": "0.1.0", duration, storyline, clips}`, the object `timeline --json` prints, with `time` after
+// `duration` when it is asked at a time, where a storyline entry also has `clipTime` and every entry `mediaTime`.
+// Every entry has `kind`, `media`, its pinned path or `null`, and `page`. A nested document's object has the same form.
 extension TimelineReport {
     // MARK: - Property
     package var machineOutput: JSONValue {
         .object(JSONObject(members: [
             JSONMember(key: "timeline", value: .string(FramesVersion.current)),
-            JSONMember(key: "duration", value: .time(duration)),
+            JSONMember(key: "duration", value: .time(duration))
+        ] + (time.map { [JSONMember(key: "time", value: .time($0))] } ?? []) + [
             JSONMember(key: "storyline", value: .array(storyline.map(output))),
             JSONMember(key: "clips", value: .array(clips.map(output)))
         ]))
@@ -31,7 +33,9 @@ extension TimelineReport {
         let members = [
             JSONMember(key: "place", value: .string(entry.place)),
             JSONMember(key: "id", value: text(entry.id)),
-            JSONMember(key: "media", value: media(of: entry)),
+            JSONMember(key: "kind", value: .string(entry.kind)),
+            JSONMember(key: "media", value: text(entry.media)),
+            JSONMember(key: "page", value: page(entry.page)),
             JSONMember(key: "edit", value: output(entry.edit)),
             JSONMember(key: "drawn", value: output(entry.drawn)),
             JSONMember(key: "clip", value: output(entry.clip)),
@@ -40,8 +44,14 @@ extension TimelineReport {
             JSONMember(key: "timeRemap", value: .bool(entry.isTimeRemapped)),
             JSONMember(key: "transition", value: transition ?? .null)
         ]
+        let time = entry.time.map { time in
+            [
+                JSONMember(key: "clipTime", value: .time(time.clipTime)),
+                JSONMember(key: "mediaTime", value: mediaTime(time.mediaTime))
+            ]
+        }
 
-        return .object(JSONObject(members: members + nested(entry.nested)))
+        return .object(JSONObject(members: members + (time ?? []) + nested(entry.nested)))
     }
 
     private func output(_ entry: TimelineClipEntry) -> JSONValue {
@@ -59,6 +69,8 @@ extension TimelineReport {
             JSONMember(key: "place", value: .string(entry.place)),
             JSONMember(key: "id", value: text(entry.id)),
             JSONMember(key: "kind", value: .string(entry.kind)),
+            JSONMember(key: "media", value: text(entry.media)),
+            JSONMember(key: "page", value: page(entry.page)),
             JSONMember(key: "visible", value: output(entry.visible)),
             JSONMember(key: "sound", value: entry.sound.map(output) ?? .null),
             JSONMember(key: "lane", value: entry.lane.map { .number(Double($0)) } ?? .null),
@@ -66,8 +78,9 @@ extension TimelineReport {
             JSONMember(key: "parent", value: text(entry.parent)),
             JSONMember(key: "animation", value: animation ?? .null)
         ]
+        let time = entry.time.map { [JSONMember(key: "mediaTime", value: mediaTime($0.mediaTime))] }
 
-        return .object(JSONObject(members: members + nested(entry.nested)))
+        return .object(JSONObject(members: members + (time ?? []) + nested(entry.nested)))
     }
 
     // A span writes its length under the key its preset uses for it.
@@ -87,14 +100,12 @@ extension TimelineReport {
         .array([.time(range.start), .time(range.end)])
     }
 
-    // The file as written, and for a page of a PDF the `{file, page}` object.
-    private func media(of entry: TimelineStorylineEntry) -> JSONValue {
-        guard let file = entry.media, let page = entry.page else { return text(entry.media) }
+    private func page(_ page: Int?) -> JSONValue {
+        page.map { .number(Double($0)) } ?? .null
+    }
 
-        return .object(JSONObject(members: [
-            JSONMember(key: "file", value: .string(file)),
-            JSONMember(key: "page", value: .number(Double(page)))
-        ]))
+    private func mediaTime(_ time: Double?) -> JSONValue {
+        time.map(JSONValue.time) ?? .null
     }
 
     private func text(_ string: String?) -> JSONValue {

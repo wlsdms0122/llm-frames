@@ -34,6 +34,7 @@ enum CommandError: Error, Equatable, CustomStringConvertible, Sendable {
     case unknownPack(name: String)
     case missingLabelFace(name: String, file: String)
     case argumentsOfMedium(command: String, path: String)
+    case rateOfDocument(command: String)
 
     // MARK: - Property
     var description: String {
@@ -115,6 +116,9 @@ enum CommandError: Error, Equatable, CustomStringConvertible, Sendable {
 
         case let .argumentsOfMedium(command, path):
             "\(command): media \(quoted(path)) has no params, so it takes no --args"
+
+        case let .rateOfDocument(command):
+            "\(command): --fps gives an image sequence its rate, and a document's frames are at sequence times"
         }
     }
 

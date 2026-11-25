@@ -7,12 +7,13 @@
 
 import Frames
 
-// Prints the lines the OCR provider recognises in a still or in video frames, in the recognition languages of
+// Prints the lines the OCR provider recognises in a still or in the frames of a video or an image sequence, in the recognition languages of
 // `--languages`: the text for people, or with `--json` the machine output.
 struct OCRCommand: Command {
     // MARK: - Property
     let name = "ocr"
-    let synopsis = "<still | video> [--page <n>] [--at <t> | --from <t> --to <t> --step <s>] "
+    let synopsis = "<still | video | image sequence> [--fps <rate>] [--page <n>] "
+        + "[--at <t> | --from <t> --to <t> --step <s>] "
         + "[--languages <tag>[,<tag>...]] [--color-space <name>] [--json]"
     let summary = "Prints the picture's size, then each recognised line as [x, y, w, h] and its text in media "
         + "pixels, for a page of a PDF in points, top to bottom by row and left to right within a row. Over a "
@@ -34,6 +35,7 @@ struct OCRCommand: Command {
         )
         let report = try reporter.report(
             of: options.media,
+            fps: options.fps,
             page: options.page,
             at: options.selection,
             colorSpace: options.colorSpace

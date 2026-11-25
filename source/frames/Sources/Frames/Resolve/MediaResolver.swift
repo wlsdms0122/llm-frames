@@ -72,21 +72,12 @@ struct MediaResolver: Sendable {
             else {
                 throw ResolveError.missingMedia(place: place, kind: kind, reference: reference)
             }
-            // Its media seconds are frame index / fps, so its last frame starts one frame before its end.
-            let duration = Double(probed.files.count) / fps
-            let file = MediaFile(
-                path: directory,
-                fps: fps,
-                size: probed.size,
-                frameTimes: probed.files.indices.map { Double($0) / fps },
-                frameFiles: probed.files,
-                colorReading: probed.colorSpace?.reading
-            )
+            let file = MediaFile(imageSequence: probed, in: directory, fps: fps)
             return MediaPlan(
                 kind: .video,
                 reference: reference,
                 source: .file(file),
-                duration: duration
+                duration: file.imageSequenceDuration
             )
 
         case let .page(reference, page):
