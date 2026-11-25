@@ -5,10 +5,13 @@
   "storyline": [
     { "id": "checkout", "media": "/path/to/checkout.mov", "in": 0.4, "out": 2.8, "volume": 0, "border": true,
       "connected": [
-        { "shape": "rect", "style": "cover", "parent": "checkout", "animation": "none",
-          "area": { "text": "jane@example.com", "padding": 8 }, "track": { "text": "Total" } },
-        { "at": [1.2, 2.8], "shape": "rect", "style": "outline", "id": "total", "parent": "checkout", "track": true,
-          "area": { "from": "Total", "to": "42,000", "padding": 12 } },
+        { "shape": "rect", "style": "cover", "id": "list", "parent": "checkout", "opacity": 0, "animation": "none",
+          "area": { "tool": "find-text", "text": "Total" }, "track": { "tool": "track-motion", "target": "area" } },
+        { "shape": "rect", "style": "cover", "parent": "list", "animation": "none",
+          "area": { "tool": "find-text", "text": "jane@example.com", "padding": 8 } },
+        { "at": [1.2, 2.8], "shape": "rect", "style": "outline", "id": "total", "parent": "checkout",
+          "area": { "tool": "find-text", "from": "Total", "to": "42,000", "padding": 12 },
+          "track": { "tool": "track-motion", "target": "area" } },
         { "at": [1.2, 2.8], "title": "38,000 + 4,000", "style": "label", "parent": "total",
           "position": { "area": { "clip": "total" }, "point": "bottom-right" }, "anchor": "top-right" }
       ] }
