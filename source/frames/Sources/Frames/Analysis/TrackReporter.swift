@@ -7,7 +7,8 @@
 
 // Follows a rectangle in a video from media time `--at` with the tracker provider, as `track` on a clip does, and
 // reports it as `track` prints it. The rectangle is JSON text in a document's rect area form. It is followed over the
-// whole video, or over the frames shown from `--at` to `--to`, either way. The video is read in `colorSpace` where `--color-space` names one.
+// whole video, or over the frames shown from `--at` to `--to`, either way. The video is read in `colorSpace` where
+// `--color-space` names one.
 package struct TrackReporter: Sendable {
     // MARK: - Property
     private static let place = Place(components: [.key("--area")])
