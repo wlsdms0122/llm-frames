@@ -64,7 +64,7 @@ struct ShapeAppearanceTests {
                 #"clips[0].keyframes[0].points[1] (path): missing key "vertex""#
             ),
             (
-                #"{ "shape": "rect", "area": [0, 0, 10, 10] }"#,
+                #"{ "kind": "rect", "area": [0, 0, 10, 10] }"#,
                 #"clips[0] (rect): the shape has neither a fill nor a stroke after its style, so it draws nothing"#
             ),
             (

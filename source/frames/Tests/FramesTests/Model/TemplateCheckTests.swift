@@ -67,7 +67,7 @@ struct TemplateCheckTests {
 
         // When, Then
         let error = #expect(throws: ModelError.self) { try sut.check(document: document) }
-        #expect(error?.description == #"storyline[0] (image): unknown key "in". Allowed: id, metadata, media, colorSpace, toneMap, duration, crop, filter, transition, anchor, position, scale, rotation, cornerPin, opacity, blend, motionBlur, mask, trackMatte, radius, border, shadow, keyframes, connected"#)
+        #expect(error?.description == #"storyline[0] (image): unknown key "in". Allowed: id, metadata, kind, media, colorSpace, toneMap, duration, crop, filter, transition, anchor, position, scale, rotation, cornerPin, opacity, blend, motionBlur, mask, trackMatte, radius, border, shadow, keyframes, connected"#)
     }
 
     @Test(
@@ -76,7 +76,7 @@ struct TemplateCheckTests {
             (#"{ "name": { "type": "text", "description": "the name" } }"#, #"{ "kind": "title", "text": "x", "style": { "param": "name" } }"#,
              #"clips[0].style (title): parameter "name" of type text cannot stand where a string is expected"#),
             (#"{ "size": { "type": "number", "description": "the size" } }"#, #"{ "kind": "title", "text": { "param": "size" }, "style": "s" }"#,
-             #"clips[0].title (title): parameter "size" of type number cannot stand where a string or a list of runs is expected"#),
+             #"clips[0].text (title): parameter "size" of type number cannot stand where a string or a list of runs is expected"#),
             (#"{ "name": { "type": "text", "description": "the name" } }"#, #"{ "kind": "media", "media": { "param": "name" } }"#,
              #"clips[0].media (clip): parameter "name" of type text cannot stand where a media reference is expected"#),
             (#"{ "name": { "type": "text", "description": "the name" } }"#, #"{ "kind": "rect", "stroke": { "width": 8 }, "area": { "param": "name" } }"#,
@@ -84,9 +84,9 @@ struct TemplateCheckTests {
             (#"{ "where": { "type": "choice", "options": ["top", "middle"], "description": "the where" } }"#, #"{ "kind": "title", "text": "x", "style": "s", "placement": { "param": "where" } }"#,
              #"clips[0].placement (title): unknown value "middle". Allowed: top-left, top, top-right, left, center, right, bottom-left, bottom, bottom-right"#),
             (#"{ "name": { "type": "text", "description": "the name" } }"#, #"{ "kind": "title", "text": { "param": "nam" }, "style": "s" }"#,
-             #"clips[0].title (title): parameter "nam" is not declared in params"#),
+             #"clips[0].text (title): parameter "nam" is not declared in params"#),
             (#"{ "name": { "type": "text", "description": "the name" } }"#, #"{ "kind": "title", "text": [ { "text": "x", "style": { "param": "name" } } ], "style": "s" }"#,
-             #"clips[0].title[0].style (run): parameter "name" of type text cannot stand where a string is expected"#)
+             #"clips[0].text[0].style (run): parameter "name" of type text cannot stand where a string is expected"#)
         ]
     )
     func refusesMisplacedParameter(
@@ -237,11 +237,11 @@ struct TemplateCheckTests {
         arguments: [
             (
                 #"{ "kind": "sequence", "params": { "s": { "type": "choice", "options": ["rect", "path"], "description": "the s" } }, "clips": [ { "kind": { "param": "s" }, "area": [0, 0, 10, 10], "fill": "accent" } ] }"#,
-                #"clips[0] (path): unknown key "area". Allowed: id, metadata, at, lane, parent, opacity, blend, motionBlur, mask, trackMatte, track, animation, keyframes, shape, style, position, anchor, fill, stroke, trim, shadow, scale, rotation, points, closed"#
+                #"clips[0] (path): unknown key "area". Allowed: id, metadata, kind, at, lane, parent, opacity, blend, motionBlur, mask, trackMatte, track, animation, keyframes, style, position, anchor, fill, stroke, trim, shadow, scale, rotation, points, closed"#
             ),
             (
                 #"{ "kind": "sequence", "params": { "s": { "type": "choice", "options": ["rect", "path"], "description": "the s" } }, "clips": [ { "kind": { "param": "s" }, "points": [[0, 0], [10, 10]], "fill": "accent" } ] }"#,
-                #"clips[0] (rect): unknown key "points". Allowed: id, metadata, at, lane, parent, opacity, blend, motionBlur, mask, trackMatte, track, animation, keyframes, shape, style, position, anchor, fill, stroke, trim, shadow, scale, rotation, area, width, height, placement, radius, outset, cornerPin"#
+                #"clips[0] (rect): unknown key "points". Allowed: id, metadata, kind, at, lane, parent, opacity, blend, motionBlur, mask, trackMatte, track, animation, keyframes, style, position, anchor, fill, stroke, trim, shadow, scale, rotation, area, width, height, placement, radius, outset, cornerPin"#
             )
         ]
     )

@@ -180,7 +180,7 @@ struct MediaResolverTests {
         // Given
         let document = try Fixture.json(#"""
             { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "out": 6 } ],
-              "clips": [ { "media": "/abs/reserved.mov"\#(picture), "at": 1, "out": 2 } ] }
+              "clips": [ { "kind": "media", "media": "/abs/reserved.mov"\#(picture), "at": 1, "out": 2 } ] }
             """#)
 
         // When

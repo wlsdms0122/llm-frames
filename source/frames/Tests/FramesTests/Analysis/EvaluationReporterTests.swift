@@ -467,7 +467,7 @@ struct EvaluationReporterTests {
     ) throws {
         // Given
         let animation = by.isEmpty ? "" : #", "animation": { "preset": "frames/fade", \#(by) }"#
-        let document = try resolved(titled(#"{ "title": "ab cd"\#(animation) }"#))
+        let document = try resolved(titled(#"{ "kind": "title", "text": "ab cd"\#(animation) }"#))
         let titles = document.titles(at: 1)
         let place = try #require(titles.keys.first)
         let item = GlyphsItem(

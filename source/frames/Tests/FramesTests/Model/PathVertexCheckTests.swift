@@ -100,7 +100,7 @@ struct PathVertexCheckTests {
     // MARK: - Private
     private static func document(_ clip: String) throws -> JSONValue {
         try Fixture.json(#"""
-            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "connected": [ CLIP ] } ] }
+            { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "connected": [ CLIP ] } ] }
             """#.replacingOccurrences(of: "CLIP", with: clip))
     }
 }

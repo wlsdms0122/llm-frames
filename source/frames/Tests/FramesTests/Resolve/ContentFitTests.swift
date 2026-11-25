@@ -90,7 +90,7 @@ struct ContentFitTests {
         // Given
         let plan = try plan(#"""
             { "storyline": [ { "kind": "media", "media": "/abs/page.png", "duration": 1 } ],
-              "clips": [ { "title": "Hello", "style": "title", \#(width)"at": [0, 1], "position": [1200, 0], "anchor": "top-left" } ] }
+              "clips": [ { "kind": "title", "text": "Hello", "style": "title", \#(width)"at": [0, 1], "position": [1200, 0], "anchor": "top-left" } ] }
             """#)
         let box = try #require(plan.clips[0].box)
 
@@ -124,7 +124,7 @@ struct ContentFitTests {
     func skipsTrackMatte() throws {
         // Given
         let matte = #"{ "id": "m", "kind": "media", "media": "/abs/card.png", "at": [0, 1], "crop": [0, 0, 200, 100], "position": [1500, 50] }"#
-        let rect = ##"{ "shape": "rect", "fill": "#FFFFFF", "area": [0, 0, 10, 10], "at": [0, 1]"##
+        let rect = ##"{ "kind": "rect", "fill": "#FFFFFF", "area": [0, 0, 10, 10], "at": [0, 1]"##
         let storyline = #"{ "storyline": [ { "kind": "media", "media": "/abs/page.png", "duration": 1 } ], "clips": "#
 
         // When

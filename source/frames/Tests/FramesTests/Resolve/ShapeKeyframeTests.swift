@@ -399,7 +399,7 @@ struct ShapeKeyframeTests {
     )
     func refusesGradient(written: String) throws {
         // Given
-        let clip = #"{ "shape": "rect", "area": [0, 0, 10, 10], \#(written) }"#
+        let clip = #"{ "kind": "rect", "area": [0, 0, 10, 10], \#(written) }"#
 
         // When, Then
         #expect(throws: (any Error).self) { try resolvedShape(clip) }

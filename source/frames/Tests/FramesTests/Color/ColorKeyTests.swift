@@ -116,7 +116,7 @@ struct ColorKeyTests {
         #expect(resolved.clips.compactMap(mediaClip).map(\.isToneMapped) == [true, false])
 
         let storyline = try #require(written["storyline"]?.arrayValue?.first?.objectValue)
-        #expect(Array(storyline.keys.prefix(6)) == ["place", "id", "media", "solid", "colorSpace", "toneMap"])
+        #expect(Array(storyline.keys.prefix(7)) == ["place", "id", "kind", "media", "color", "colorSpace", "toneMap"])
         #expect(storyline["colorSpace"] == .string("rec709"))
         #expect(storyline["toneMap"] == .bool(false))
         let clip = try #require(written["clips"]?.arrayValue?.last?.objectValue)
@@ -284,8 +284,8 @@ struct ColorKeyTests {
         // Given
         let comma = connected.isEmpty ? "" : ","
         let document = #"""
-            { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", \#(storyline), "connected": [
-                { "media": "/abs/run.mp4", "at": [0, 1]\#(comma) \#(connected) } ] } ] }
+            { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", \#(storyline), "connected": [
+                { "kind": "media", "media": "/abs/run.mp4", "at": [0, 1]\#(comma) \#(connected) } ] } ] }
             """#
 
         // When, Then

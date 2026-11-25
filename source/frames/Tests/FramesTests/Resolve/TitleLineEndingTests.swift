@@ -52,7 +52,7 @@ struct TitleLineEndingTests {
     // MARK: - Private
     private func resolvedText(_ title: String) throws -> ResolvedText {
         let clip = #"""
-            { "title": \#(title), "style": "caption", "position": [400, 225],
+            { "kind": "title", "text": \#(title), "style": "caption", "position": [400, 225],
               "keyframes": [ { "at": 0, "character": { "tracking": 0 } }, { "at": 1, "character": { "tracking": 100 } } ],
               "at": [0, 2] }
             """#

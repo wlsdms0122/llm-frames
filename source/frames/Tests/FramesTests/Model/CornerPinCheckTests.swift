@@ -20,20 +20,20 @@ struct CornerPinCheckTests {
     @Test(
         "a title, a media clip with a picture, a rect or ellipse by its box and a storyline clip with media take a corner pin, statically and in a keyframe",
         arguments: [
-            #"{ "title": "Hi", "style": "subtitle", "at": [0, 1], "cornerPin": PIN }"#,
-            #"{ "media": "/abs/run.mp4", "at": 0, "cornerPin": PIN }"#,
-            #"{ "media": "/abs/card.png", "at": [0, 1], "cornerPin": PIN }"#,
-            #"{ "shape": "rect", "fill": "accent", "width": 10, "height": 10, "at": [0, 1], "cornerPin": PIN }"#,
-            #"{ "shape": "ellipse", "fill": "accent", "width": 10, "height": 10, "at": [0, 1], "keyframes": [ { "at": 0, "cornerPin": PIN } ] }"#,
-            #"{ "media": "/abs/card.png", "at": [0, 1], "keyframes": [ { "at": 0, "cornerPin": PIN }, { "at": 1, "cornerPin": PIN } ] }"#
+            #"{ "kind": "title", "text": "Hi", "style": "subtitle", "at": [0, 1], "cornerPin": PIN }"#,
+            #"{ "kind": "media", "media": "/abs/run.mp4", "at": 0, "cornerPin": PIN }"#,
+            #"{ "kind": "media", "media": "/abs/card.png", "at": [0, 1], "cornerPin": PIN }"#,
+            #"{ "kind": "rect", "fill": "accent", "width": 10, "height": 10, "at": [0, 1], "cornerPin": PIN }"#,
+            #"{ "kind": "ellipse", "fill": "accent", "width": 10, "height": 10, "at": [0, 1], "keyframes": [ { "at": 0, "cornerPin": PIN } ] }"#,
+            #"{ "kind": "media", "media": "/abs/card.png", "at": [0, 1], "keyframes": [ { "at": 0, "cornerPin": PIN }, { "at": 1, "cornerPin": PIN } ] }"#
         ]
     )
     func takesCornerPin(clip: String) throws {
         // Given
         let document = try Fixture.json(#"""
             { "kind": "sequence", "storyline": [
-              { "media": "/abs/run.mp4", "cornerPin": PIN, "connected": [ CLIP ] },
-              { "media": "/abs/card.png", "duration": 1, "keyframes": [ { "at": 0, "cornerPin": PIN } ] }
+              { "kind": "media", "media": "/abs/run.mp4", "cornerPin": PIN, "connected": [ CLIP ] },
+              { "kind": "media", "media": "/abs/card.png", "duration": 1, "keyframes": [ { "at": 0, "cornerPin": PIN } ] }
             ] }
             """#.replacingOccurrences(of: "CLIP", with: clip).replacingOccurrences(of: "PIN", with: Self.pin))
 
@@ -80,10 +80,10 @@ struct CornerPinCheckTests {
     @Test(
         "a solid, an adjustment clip, an audio clip and a path take no corner pin",
         arguments: [
-            (#"{ "solid": "accent", "duration": 1, "cornerPin": PIN }"#, "storyline[1] (solid)"),
-            (#"{ "media": "/abs/run.mp4", "connected": [ { "adjust": "blur", "at": [0, 1], "cornerPin": PIN } ] }"#, "storyline[1].connected[0] (adjustment)"),
-            (#"{ "media": "/abs/run.mp4", "connected": [ { "media": "/abs/bgm.m4a", "at": 0, "cornerPin": PIN } ] }"#, "storyline[1].connected[0] (audio)"),
-            (#"{ "media": "/abs/run.mp4", "connected": [ { "shape": "path", "fill": "accent", "points": [[0, 0], [10, 0], [0, 10]], "at": [0, 1], "cornerPin": PIN } ] }"#, "storyline[1].connected[0] (path)")
+            (#"{ "kind": "solid", "color": "accent", "duration": 1, "cornerPin": PIN }"#, "storyline[1] (solid)"),
+            (#"{ "kind": "media", "media": "/abs/run.mp4", "connected": [ { "kind": "adjustment", "adjust": "blur", "at": [0, 1], "cornerPin": PIN } ] }"#, "storyline[1].connected[0] (adjustment)"),
+            (#"{ "kind": "media", "media": "/abs/run.mp4", "connected": [ { "kind": "media", "media": "/abs/bgm.m4a", "at": 0, "cornerPin": PIN } ] }"#, "storyline[1].connected[0] (audio)"),
+            (#"{ "kind": "media", "media": "/abs/run.mp4", "connected": [ { "kind": "path", "fill": "accent", "points": [[0, 0], [10, 0], [0, 10]], "at": [0, 1], "cornerPin": PIN } ] }"#, "storyline[1].connected[0] (path)")
         ]
     )
     func refusesCornerPin(

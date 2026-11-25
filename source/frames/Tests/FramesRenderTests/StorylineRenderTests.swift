@@ -72,7 +72,7 @@ struct StorylineRenderTests {
         let document = try DocumentResolver(presets: presets).resolve(#"""
             { "kind": "sequence", "format": { "fps": 10 },
               "storyline": [ { "kind": "media", "media": "\#(outgoing)", "duration": 1 },
-                             { "media": "\#(incoming)", "duration": 1, "transition": "mine/\#(transition)"\#(transform) } ] }
+                             { "kind": "media", "media": "\#(incoming)", "duration": 1, "transition": "mine/\#(transition)"\#(transform) } ] }
             """#)
         let sut = QuartzRenderer(decoder: AVFoundationDecoder())
 

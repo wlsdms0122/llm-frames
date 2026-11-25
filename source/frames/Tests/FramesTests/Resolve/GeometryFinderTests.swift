@@ -159,7 +159,7 @@ struct GeometryFinderTests {
     ) throws -> TimePlan {
         let clips = connected.map { #", "connected": [ \#($0) ]"# } ?? ""
         return try Fixture.planner.plan(document: Fixture.json(#"""
-            { "kind": "sequence", "storyline": [ { \#(storylineKeys) "id": "screen", "media": "/abs/screen.mp4", "in": 1\#(clips) } ] }
+            { "kind": "sequence", "storyline": [ { \#(storylineKeys) "id": "screen", "kind": "media", "media": "/abs/screen.mp4", "in": 1\#(clips) } ] }
             """#))
     }
 

@@ -248,7 +248,7 @@ struct SequencePlannerTests {
         // When
         let plan = try plan(#"""
             { "kind": "sequence", "theme": { "styles": { "caption": { "size": 60 } } }, "storyline": [ { "kind": "media", "media": "/abs/screen.mp4" } ],
-              "clips": [ { "title": "\#(word) \#(word)", "style": "caption", "placement": "top", "at": [0, 1]\#(width) } ] }
+              "clips": [ { "kind": "title", "text": "\#(word) \#(word)", "style": "caption", "placement": "top", "at": [0, 1]\#(width) } ] }
             """#)
 
         // Then
@@ -411,7 +411,7 @@ struct SequencePlannerTests {
 
         // When, Then
         let error = #expect(throws: ThemeError.self) { try plan(document) }
-        #expect(error?.description == #"clips[0].title[1].style (title): style "nope" is not in styles, "#
+        #expect(error?.description == #"clips[0].text[1].style (title): style "nope" is not in styles, "#
             + #"which hold "caption", "subtitle", "title""#)
     }
 
@@ -766,7 +766,7 @@ struct SequencePlannerTests {
         let error = #expect(throws: ProviderError.self) { try sut.plan(time) }
 
         // Then
-        #expect(error?.description == "storyline[0].connected[0].title (title): the shaping provider failed: no model")
+        #expect(error?.description == "storyline[0].connected[0].text (title): the shaping provider failed: no model")
     }
 
     // MARK: - Private

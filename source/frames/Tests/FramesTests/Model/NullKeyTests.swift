@@ -12,7 +12,7 @@ import Testing
 @Suite("Null Key Tests")
 struct NullKeyTests {
     // MARK: - Property
-    private static let allowed = "id, metadata, at, parent, motionBlur, track, animation, keyframes, null, area, width, height, placement, position, anchor, scale, rotation"
+    private static let allowed = "id, metadata, kind, at, parent, motionBlur, track, animation, keyframes, area, width, height, placement, position, anchor, scale, rotation"
 
     private let sut = KeyChecker(mediaKinds: Fixture.mediaKinds)
 
@@ -40,11 +40,11 @@ struct NullKeyTests {
     }
 
     @Test(
-        "a null on the storyline, a key of appearance or compositing on a null and a null that is not true stop",
+        "a null on the storyline and a key of appearance or compositing on a null stop",
         arguments: [
             (
                 #"{ "storyline": [ { "kind": "null", "duration": 2 } ] }"#,
-                #"storyline[0] (storyline clip): unknown key "null". Allowed: media, solid"#
+                #"storyline[0].kind (storyline clip): unknown value "null". Allowed: media, solid"#
             ),
             (
                 #"{ "clips": [ { "kind": "null", "width": 10, "height": 10, "opacity": 0 } ] }"#,
@@ -69,10 +69,6 @@ struct NullKeyTests {
             (
                 #"{ "clips": [ { "kind": "null", "width": 10, "height": 10, "keyframes": [ { "at": 0, "opacity": 0 } ] } ] }"#,
                 #"clips[0].keyframes[0] (keyframe): unknown key "opacity". Allowed: at, ease, area, width, height, position, scale, rotation"#
-            ),
-            (
-                #"{ "clips": [ { "null": false, "width": 10, "height": 10 } ] }"#,
-                "clips[0].null (null): expected true, found false"
             )
         ]
     )

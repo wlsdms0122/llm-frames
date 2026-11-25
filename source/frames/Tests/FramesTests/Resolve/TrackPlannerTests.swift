@@ -325,7 +325,7 @@ struct TrackPlannerTests {
         let separator = keys.isEmpty ? "" : ", "
         return try Fixture.planner.plan(document: Fixture.json(#"""
             { "kind": "sequence", "storyline": [
-                { "id": "screen", "media": "/abs/screen.mp4", "in": 1, "out": 3\#(separator)\#(keys)\#(clips) } ] }
+                { "id": "screen", "kind": "media", "media": "/abs/screen.mp4", "in": 1, "out": 3\#(separator)\#(keys)\#(clips) } ] }
             """#))
     }
 

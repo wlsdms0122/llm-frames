@@ -17,7 +17,7 @@ struct ClipWindowTests {
     // A clip at speed 2 between two solids, brought in and out by one-second transitions: edit [2, 5), drawn [1.5, 5.5).
     private let fastClip = ##"""
         { "kind": "solid", "color": "#000000", "duration": 2 },
-        { "id": "run", "media": "/abs/run.mp4", "in": 2, "out": 8, "speed": 2, "transition": { "preset": "frames/flash", "seconds": 1 }, "connected": [ %@ ] },
+        { "id": "run", "kind": "media", "media": "/abs/run.mp4", "in": 2, "out": 8, "speed": 2, "transition": { "preset": "frames/flash", "seconds": 1 }, "connected": [ %@ ] },
         { "kind": "solid", "color": "#FFFFFF", "duration": 2, "transition": { "preset": "frames/flash", "seconds": 1 } }
         """##
 
@@ -239,7 +239,7 @@ struct ClipWindowTests {
     func parentsOnlyByName() throws {
         // Given
         let document = try sequence(connected: #"""
-            { "kind": "adjustment", "adjust": "frames/vivid", "mask": { "shape": "rect", "area": [0, 0, 10, 10] } }, { "shape": "rect", "stroke": { "width": 8 }, "area": [0, 0, 10, 10] }, { "kind": "adjustment", "adjust": "frames/vivid", "mask": { "shape": "rect", "area": [0, 0, 10, 10] }, "parent": "run" }
+            { "kind": "adjustment", "adjust": "frames/vivid", "mask": { "shape": "rect", "area": [0, 0, 10, 10] } }, { "kind": "rect", "stroke": { "width": 8 }, "area": [0, 0, 10, 10] }, { "kind": "adjustment", "adjust": "frames/vivid", "mask": { "shape": "rect", "area": [0, 0, 10, 10] }, "parent": "run" }
             """#)
 
         // When

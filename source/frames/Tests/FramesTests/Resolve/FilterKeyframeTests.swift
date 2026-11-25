@@ -314,7 +314,7 @@ struct FilterKeyframeTests {
         place: String
     ) throws {
         // Given
-        let clip = #"{ "media": "/abs/run.mp4", "in": 0, "out": 3, \#(filter) "keyframes": [] }"#
+        let clip = #"{ "kind": "media", "media": "/abs/run.mp4", "in": 0, "out": 3, \#(filter) "keyframes": [] }"#
 
         // When, Then
         let error = #expect(throws: ResolveError.self) { try plan(clip, defaults: defaults) }

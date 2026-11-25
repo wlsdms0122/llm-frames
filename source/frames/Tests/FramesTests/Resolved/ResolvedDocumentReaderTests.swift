@@ -518,7 +518,7 @@ struct ResolvedDocumentReaderTests {
     @Test("scale and rotation are read for anything drawn, and not for an adjustment")
     func refusesKeyOfAnotherClipKind() throws {
         // Given
-        let text = try replacingFirst(#""kind": "adjustment", "adjust":"#, with: #""scale": [], "adjust":"#, in: written(Self.documents[2]))
+        let text = try replacingFirst(#""adjust":"#, with: #""scale": [], "adjust":"#, in: written(Self.documents[2]))
 
         // When
         let error = #expect(throws: ModelError.self) { try sut.read(text) }
@@ -554,7 +554,7 @@ struct ResolvedDocumentReaderTests {
     @Test(
         "a shape entry's member of the wrong form stops, naming its place",
         arguments: [
-            (#""kind": "rect""#, #""shape": "box""#, #"clips[0].shape (clip): unknown value "box". Allowed: rect, ellipse, path"#),
+            (#""kind": "rect""#, #""kind": "box""#, #"clips[0].kind (clip): unknown value "box". Allowed: media, title, rect, ellipse, path, adjustment, null"#),
             (#""join": "round""#, #""join": "square""#, #"clips[0].stroke.join (stroke): unknown value "square". Allowed: miter, round, bevel"#),
             (#""inset": 2"#, #""inset": 9"#, "clips[4].stroke.start (stroke): a head's inset is from 0 to its length 4, found 9"),
             (#""inset": 2"#, #""inset": 2, "shape": "circle""#, #"clips[4].stroke.start (stroke): unknown key "shape". Allowed: points, length, inset, scale"#),

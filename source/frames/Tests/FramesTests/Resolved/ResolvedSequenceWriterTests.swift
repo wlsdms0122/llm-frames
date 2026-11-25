@@ -215,7 +215,7 @@ struct ResolvedSequenceWriterTests {
         // Then
         #expect(clip["place"] == .string("storyline[0]#run.connected[0]#mark"))
         #expect(clip["id"] == .string("mark"))
-        #expect(clip["shape"] == .string("rect"))
+        #expect(clip["kind"] == .string("rect"))
         #expect(clip["start"] == .number(1))
         #expect(clip["end"] == .number(3))
         #expect(clip["lane"] == .number(-1))
@@ -342,7 +342,7 @@ struct ResolvedSequenceWriterTests {
         let storyline = try #require(try write(document)["storyline"]?.arrayValue)
 
         // Then
-        #expect(storyline.first?.objectValue?["solid"] == held(.string("color(srgb 0 0 0 / 0.5019607843137255)")))
+        #expect(storyline.first?.objectValue?["color"] == held(.string("color(srgb 0 0 0 / 0.5019607843137255)")))
         #expect(storyline.first?.objectValue?["media"] == .null)
     }
 
@@ -533,7 +533,7 @@ struct ResolvedSequenceWriterTests {
 
         // Then
         #expect(clips[0].keys == [
-            "place", "id", "shape", "area", "width", "height", "points", "closed", "outset", "radius", "trim", "fill",
+            "place", "id", "kind", "area", "width", "height", "points", "closed", "outset", "radius", "trim", "fill",
             "stroke", "shadow", "start", "end", "lane", "storyline", "parent", "size", "position", "anchor", "cornerPin", "crop",
             "mask", "trackMatte", "track", "opacity", "scale", "rotation", "blend", "motionBlur", "animation"
         ])

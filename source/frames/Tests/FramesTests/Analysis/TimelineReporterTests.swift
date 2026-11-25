@@ -312,7 +312,7 @@ struct TimelineReporterTests {
         let value = try Fixture.json(##"""
             { "kind": "sequence", "theme": { "defaults": { "transition": "frames/flash" } },
               "storyline": [ { "kind": "media", "media": { "template": "shorts/outer", "args": { "body":
-                { "kind": "sequence", "format": { "size": [1080, 1920] }, "storyline": [ { "solid": "#000000", "duration": 2 }, { "solid": "#FFFFFF", "duration": 2 } ] }
+                { "kind": "sequence", "format": { "size": [1080, 1920] }, "storyline": [ { "kind": "solid", "color": "#000000", "duration": 2 }, { "kind": "solid", "color": "#FFFFFF", "duration": 2 } ] }
               } } } ] }
             """##)
 
@@ -338,7 +338,7 @@ struct TimelineReporterTests {
             { "kind": "sequence", "theme": { "defaults": { "transition": "frames/push-up" } },
               "params": { "body": { "type": "sequence", "description": "the body" } },
               "storyline": [ { "kind": "media", "media": { "template": "shorts/inner", "args": { "body":
-                { "kind": "sequence", "format": { "size": [1080, 1920] }, "storyline": [ { "solid": "#000000", "duration": 2 }, { "media": { "param": "body" } } ] }
+                { "kind": "sequence", "format": { "size": [1080, 1920] }, "storyline": [ { "kind": "solid", "color": "#000000", "duration": 2 }, { "kind": "media", "media": { "param": "body" } } ] }
               } } } ] }
             """##,
             in: "shorts",
@@ -360,7 +360,7 @@ struct TimelineReporterTests {
         let value = try Fixture.json(##"""
             { "kind": "sequence", "theme": { "defaults": { "transition": "frames/flash" } },
               "storyline": [ { "kind": "media", "media": { "template": "shorts/outer", "args": { "body":
-                { "kind": "sequence", "format": { "size": [1080, 1920] }, "storyline": [ { "solid": "#000000", "duration": 2 }, { "solid": "#FFFFFF", "duration": 2 } ] }
+                { "kind": "sequence", "format": { "size": [1080, 1920] }, "storyline": [ { "kind": "solid", "color": "#000000", "duration": 2 }, { "kind": "solid", "color": "#FFFFFF", "duration": 2 } ] }
               } } } ] }
             """##)
 

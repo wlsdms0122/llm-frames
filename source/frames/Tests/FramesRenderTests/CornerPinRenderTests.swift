@@ -253,7 +253,7 @@ struct CornerPinRenderTests {
 
         return ##"""
             { "kind": "sequence", "format": { "size": [1024, 1024], "fps": 10, "background": "#00000000", "colorSpace": "srgb" },
-              "storyline": [ { "media": "\##(path)", "duration": 1\##(pin) } ] }
+              "storyline": [ { "kind": "media", "media": "\##(path)", "duration": 1\##(pin) } ] }
             """##
     }
 

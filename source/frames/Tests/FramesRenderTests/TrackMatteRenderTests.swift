@@ -53,7 +53,7 @@ struct TrackMatteRenderTests {
         let document = try DocumentResolver(presets: ["filter/white": Self.white]).resolve(#"""
             { "kind": "sequence", "format": { "size": [160, 90], "fps": 10 },
               "storyline": [ { "kind": "media", "media": "\#(red)", "duration": 1 } ],
-              "clips": [ { "id": "m", "media": "\#(grey)", "at": [0, 1]\#(matteFilter) },
+              "clips": [ { "id": "m", "kind": "media", "media": "\#(grey)", "at": [0, 1]\#(matteFilter) },
                          { "kind": "media", "media": "\#(blue)", "at": [0, 1], "trackMatte": { "clip": "m", "mode": "luma" } } ] }
             """#)
 

@@ -66,7 +66,7 @@ struct SequenceCheckTests {
 
         // When, Then
         let error = #expect(throws: ModelError.self) { try sut.check(document: document) }
-        #expect(error?.description == #"storyline[2].connected[0] (path): unknown key "anim". Allowed: id, metadata, at, lane, parent, opacity, blend, motionBlur, mask, trackMatte, track, animation, keyframes, shape, style, position, anchor, fill, stroke, trim, shadow, scale, rotation, points, closed"#)
+        #expect(error?.description == #"storyline[2].connected[0] (path): unknown key "anim". Allowed: id, metadata, kind, at, lane, parent, opacity, blend, motionBlur, mask, trackMatte, track, animation, keyframes, style, position, anchor, fill, stroke, trim, shadow, scale, rotation, points, closed"#)
     }
 
     @Test(
@@ -233,7 +233,7 @@ struct SequenceCheckTests {
             (#"{ "kind": "title", "text": "a", "style": "headline", "crop": [0, 0, 1, 1] }"#, "clips", #"clips[0] (title): unknown key "crop""#),
             (#"{ "kind": "rect", "stroke": { "width": 8 }, "area": [0, 0, 1, 1], "side": "left" }"#, "clips", #"clips[0] (rect): unknown key "side""#),
             (#"{ "kind": "rect", "stroke": { "width": 8 }, "area": [0, 0, 1, 1], "label": "x" }"#, "clips", #"clips[0] (rect): unknown key "label""#),
-            (#"{ "adjust": "frames/vivid", "label": "x" }"#, "clips", #"clips[0] (adjustment): unknown key "label""#),
+            (#"{ "kind": "adjustment", "adjust": "frames/vivid", "label": "x" }"#, "clips", #"clips[0] (adjustment): unknown key "label""#),
             (#"{ "id": "a", "kind": "media", "media": "/abs/run.mp4", "parent": "b" }"#, "storyline", #"storyline[0]#a (video): unknown key "parent""#),
             (##"{ "kind": "solid", "color": "#000000", "duration": 2, "parent": "b" }"##, "storyline", #"storyline[0] (solid): unknown key "parent""#),
             (#"{ "kind": "media", "media": "/abs/run.mp4", "placement": "top" }"#, "storyline", #"storyline[0] (video): unknown key "placement""#),
@@ -286,17 +286,57 @@ struct SequenceCheckTests {
     }
 
     @Test(
-        "a clip is exactly one kind, told apart by its keys",
+        "a clip is the kind its kind names, and a clip without one or of a kind its place does not take stops with the kinds it takes",
         arguments: [
-            (#"{ "storyline": [ { "duration": 2 } ] }"#, "storyline[0] (storyline clip): needs one of media, solid"),
-            (#"{ "clips": [ { "at": [0, 1] } ] }"#, "clips[0] (clip): needs one of media, title, shape, adjust, null"),
-            (#"{ "clips": [ { "title": "a", "shape": "rect", "stroke": { "width": 8 } } ] }"#, #"clips[0] (clip): takes only one of "title", "shape""#),
-            (#"{ "storyline": [ { "kind": "title", "text": "a", "style": "headline" } ] }"#, #"storyline[0] (storyline clip): unknown key "title". Allowed: media, solid"#),
-            (##"{ "clips": [ { "kind": "solid", "color": "#000000" } ] }"##, #"clips[0] (clip): unknown key "solid". Allowed: media, title, shape, adjust, null"#),
-            (#"{ "clips": [ { "kind": "circle" } ] }"#, #"clips[0].shape (shape): unknown value "circle". Allowed: rect, ellipse, path"#)
+            (#"{ "storyline": [ { "duration": 2 } ] }"#, #"storyline[0] (storyline clip): missing key "kind""#),
+            (#"{ "clips": [ { "at": [0, 1] } ] }"#, #"clips[0] (clip): missing key "kind""#),
+            (#"{ "storyline": [ { "kind": "title", "text": "a", "style": "headline" } ] }"#, #"storyline[0].kind (storyline clip): unknown value "title". Allowed: media, solid"#),
+            (##"{ "clips": [ { "kind": "solid", "color": "#000000" } ] }"##, #"clips[0].kind (clip): unknown value "solid". Allowed: media, title, rect, ellipse, path, adjustment, null"#),
+            (#"{ "clips": [ { "kind": "circle" } ] }"#, #"clips[0].kind (clip): unknown value "circle". Allowed: media, title, rect, ellipse, path, adjustment, null"#)
         ]
     )
     func tellsClipKindsApart(
+        body: String,
+        message: String
+    ) throws {
+        // Given
+        let document = try Fixture.json(#"{ "kind": "sequence", "# + body.dropFirst())
+
+        // When, Then
+        let error = #expect(throws: ModelError.self) { try sut.check(document: document) }
+        #expect(error?.description == message)
+    }
+
+    @Test(
+        "a content key of another kind stops as an unknown key of the clip's kind",
+        arguments: [
+            (#"{ "clips": [ { "kind": "rect", "text": "a", "stroke": { "width": 8 }, "area": [0, 0, 1, 1] } ] }"#, #"clips[0] (rect): unknown key "text""#),
+            (##"{ "clips": [ { "kind": "title", "text": "a", "style": "headline", "color": "#000000" } ] }"##, #"clips[0] (title): unknown key "color""#),
+            (##"{ "storyline": [ { "kind": "solid", "color": "#000000", "duration": 2, "text": "a" } ] }"##, #"storyline[0] (solid): unknown key "text""#)
+        ]
+    )
+    func refusesContentKeyOfAnotherKind(
+        body: String,
+        message: String
+    ) throws {
+        // Given
+        let document = try Fixture.json(#"{ "kind": "sequence", "# + body.dropFirst())
+
+        // When, Then
+        let error = #expect(throws: ModelError.self) { try sut.check(document: document) }
+        #expect(error?.description.hasPrefix(message) == true, "\(error?.description ?? "no error")")
+    }
+
+    @Test(
+        "a clip without its kind's content stops",
+        arguments: [
+            (#"{ "storyline": [ { "kind": "media" } ] }"#, #"storyline[0] (media): missing key "media""#),
+            (#"{ "storyline": [ { "kind": "solid", "duration": 2 } ] }"#, #"storyline[0] (solid): missing key "color""#),
+            (#"{ "clips": [ { "kind": "title", "style": "headline", "at": [0, 1] } ] }"#, #"clips[0] (title): missing key "text""#),
+            (#"{ "clips": [ { "kind": "adjustment", "at": [0, 1] } ] }"#, #"clips[0] (adjustment): missing key "adjust""#)
+        ]
+    )
+    func refusesMissingContent(
         body: String,
         message: String
     ) throws {
@@ -491,8 +531,8 @@ struct SequenceCheckTests {
         "a keyframe takes only the keyframable properties of its clip",
         arguments: [
             (#"{ "kind": "adjustment", "adjust": "frames/vivid", "keyframes": [ { "at": 1, "position": [0, 0] } ] }"#, #"clips[0].keyframes[0] (keyframe): unknown key "position". Allowed: at, ease, opacity, mask, adjust"#),
-            (#"{ "shape": "path", "points": [[0, 0], [1, 1]], "keyframes": [ { "at": 1, "area": [0, 0, 1, 1] } ] }"#, #"clips[0].keyframes[0] (keyframe): unknown key "area". Allowed: at, ease, points, position, scale, rotation, opacity, trim, fill, stroke, shadow, mask"#),
-            (#"{ "shape": "ellipse", "keyframes": [ { "at": 1, "radius": 2 } ] }"#, #"clips[0].keyframes[0] (keyframe): unknown key "radius". Allowed: at, ease, area, width, height, position, scale, rotation, cornerPin, opacity, trim, outset, fill, stroke, shadow, mask"#),
+            (#"{ "kind": "path", "points": [[0, 0], [1, 1]], "keyframes": [ { "at": 1, "area": [0, 0, 1, 1] } ] }"#, #"clips[0].keyframes[0] (keyframe): unknown key "area". Allowed: at, ease, points, position, scale, rotation, opacity, trim, fill, stroke, shadow, mask"#),
+            (#"{ "kind": "ellipse", "keyframes": [ { "at": 1, "radius": 2 } ] }"#, #"clips[0].keyframes[0] (keyframe): unknown key "radius". Allowed: at, ease, area, width, height, position, scale, rotation, cornerPin, opacity, trim, outset, fill, stroke, shadow, mask"#),
             (#"{ "kind": "title", "text": "a", "style": "headline", "keyframes": [ { "at": 1, "crop": [0, 0, 1, 1] } ] }"#, #"clips[0].keyframes[0] (keyframe): unknown key "crop". Allowed: at, ease, position, scale, rotation, cornerPin, opacity, mask, character, paragraph"#),
             (#"{ "kind": "media", "media": "/abs/bgm.m4a", "keyframes": [ { "at": 1, "opacity": 0 } ] }"#, #"clips[0].keyframes[0] (keyframe): unknown key "opacity". Allowed: at, ease, volume, pan, audioFilter"#),
             (#"{ "kind": "media", "media": "/abs/log.png", "at": [0, 1], "keyframes": [ { "at": 1, "volume": 0 } ] }"#, #"clips[0].keyframes[0] (keyframe): unknown key "volume". Allowed: at, ease, position, scale, rotation, cornerPin, opacity, crop, mask, filter, radius, border, shadow"#),
@@ -585,15 +625,15 @@ struct SequenceCheckTests {
         arguments: [
             (
                 #"{ "kind": "media", "media": "/abs/run.mp4", "parent": "intro" }"#,
-                #"storyline[0] (video): unknown key "parent". Allowed: id, metadata, media, colorSpace, toneMap, in, out, speed, crop, filter, transition, anchor, position, scale, rotation, cornerPin, opacity, blend, motionBlur, mask, trackMatte, track, radius, border, shadow, volume, pan, fadeIn, fadeOut, audioFilter, split, keyframes, connected"#
+                #"storyline[0] (video): unknown key "parent". Allowed: id, metadata, kind, media, colorSpace, toneMap, in, out, speed, crop, filter, transition, anchor, position, scale, rotation, cornerPin, opacity, blend, motionBlur, mask, trackMatte, track, radius, border, shadow, volume, pan, fadeIn, fadeOut, audioFilter, split, keyframes, connected"#
             ),
             (
                 #"{ "kind": "media", "media": "/abs/card.png", "duration": 2, "placement": "top" }"#,
-                #"storyline[0] (image): unknown key "placement". Allowed: id, metadata, media, colorSpace, toneMap, duration, crop, filter, transition, anchor, position, scale, rotation, cornerPin, opacity, blend, motionBlur, mask, trackMatte, radius, border, shadow, keyframes, connected"#
+                #"storyline[0] (image): unknown key "placement". Allowed: id, metadata, kind, media, colorSpace, toneMap, duration, crop, filter, transition, anchor, position, scale, rotation, cornerPin, opacity, blend, motionBlur, mask, trackMatte, radius, border, shadow, keyframes, connected"#
             ),
             (
                 ##"{ "kind": "solid", "color": "#FF0000", "duration": 2, "scale": 2 }"##,
-                #"storyline[0] (solid): unknown key "scale". Allowed: id, metadata, solid, duration, transition, motionBlur, keyframes, connected"#
+                #"storyline[0] (solid): unknown key "scale". Allowed: id, metadata, kind, color, duration, transition, motionBlur, keyframes, connected"#
             )
         ]
     )
@@ -1118,11 +1158,11 @@ struct SequenceCheckTests {
     @Test(
         "a list of runs holds at least one run, and a run is an object of its text and style with its text",
         arguments: [
-            (#"[]"#, "clips[0].title (title): a list of runs holds at least one run, since a title without one has nothing to show"),
-            (#"[ "Ana" ]"#, #"clips[0].title[0] (title): expected an object (run), found "Ana""#),
-            (##"[ { "text": "Ana", "color": "#FFFFFF" } ]"##, #"clips[0].title[0] (run): unknown key "color". Allowed: text, style"#),
-            (#"[ { "style": "name" } ]"#, #"clips[0].title[0] (run): missing key "text""#),
-            (#"[ { "text": 3 } ]"#, "clips[0].title[0].text (run): expected a string, found 3")
+            (#"[]"#, "clips[0].text (title): a list of runs holds at least one run, since a title without one has nothing to show"),
+            (#"[ "Ana" ]"#, #"clips[0].text[0] (title): expected an object (run), found "Ana""#),
+            (##"[ { "text": "Ana", "color": "#FFFFFF" } ]"##, #"clips[0].text[0] (run): unknown key "color". Allowed: text, style"#),
+            (#"[ { "style": "name" } ]"#, #"clips[0].text[0] (run): missing key "text""#),
+            (#"[ { "text": 3 } ]"#, "clips[0].text[0].text (run): expected a string, found 3")
         ]
     )
     func refusesMalformedRuns(

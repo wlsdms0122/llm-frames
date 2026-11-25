@@ -45,12 +45,12 @@ struct SolidKeyframeTests {
         #expect(fill(of: list) == Color(written: "#0000FF"))
     }
 
-    @Test("a solid whose every keyframe writes a colour resolves, its static colour making it a solid and never shown")
-    func resolvesColourEveryKeyframeWrites() throws {
+    @Test("a solid whose keyframes give its colour resolves without a static colour")
+    func resolvesColourOfKeyframes() throws {
         // Given
         let sequence = try resolved(#"""
             "kind": "solid",
-            "color": "#FF0000", "keyframes": [ { "at": 0, "color": "#000000" }, { "at": 2, "color": "#FFFFFF" } ]
+            "keyframes": [ { "at": 0, "color": "#000000" }, { "at": 2, "color": "#FFFFFF" } ]
             """#)
 
         // When
@@ -59,8 +59,20 @@ struct SolidKeyframeTests {
         // Then
         #expect(colours.first == Color(written: "#000000"))
         #expect(colours[4] == Color(written: "color(srgb 0.5 0.5 0.5)"))
-        #expect(!colours.contains(Color(written: "#FF0000")))
         #expect(sequence.storyline[0].solid?.map(\.value) == [Color(written: "#000000"), Color(written: "#FFFFFF")])
+    }
+
+    @Test("a solid whose static colour every keyframe replaces stops, since the static colour never shows")
+    func refusesColourEveryKeyframeReplaces() throws {
+        // Given
+        let keys = #"""
+            "kind": "solid",
+            "color": "#FF0000", "keyframes": [ { "at": 0, "color": "#000000" }, { "at": 2, "color": "#FFFFFF" } ]
+            """#
+
+        // When, Then
+        let error = #expect(throws: (any Error).self) { try resolved(keys) }
+        #expect(error.map { "\($0)" } == "storyline[0].color: written as a static value and in every keyframe that writes it, so the static value never shows")
     }
 
     @Test("a solid's keyframes are written as a keyframe list of colours and read back as they were")
