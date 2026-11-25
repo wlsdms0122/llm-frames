@@ -4,11 +4,11 @@ Status: draft
 
 ## Summary
 
-A limit on the memory one run of frames holds, set with the global option `--memory` and by default three eighths of the machine's memory, as DaVinci Resolve limits its own memory and After Effects and Premiere Pro keep memory for other programs. The limit is one budget for the run, which the holders of large memory it counts draw from: the decoder's readers, the frames it reads ahead and those its turns hold, and the frames the encoder holds, which hold less where the budget is short, and the media pictures the renderer keeps and the mixed sound, which the document fixes. A limit under what the run cannot work without is refused before the first frame. The limit changes how long a run takes and never its frames, and the run report gives what the budget saw.
+A limit on the memory one run of frames holds, set with the global option `--memory` and by default three eighths of the machine's memory, as DaVinci Resolve limits its own memory and After Effects and Premiere Pro keep memory for other programs. The limit is one budget for the run, which the holders of large memory it counts draw from: the decoder's readers, the frames it reads ahead and those its turns hold, and the frames the encoder holds, which hold less where the budget is short, and the media pictures the renderer keeps and the mixed sound, which the document fixes. A limit under what the run cannot work without is refused before the first frame, and what the budget counts never passes the limit. The limit changes how long a run takes and never its frames, and the run report gives what the budget saw.
 
 ## Motivation
 
-A render that shows many videos at once holds memory in two places: frames's process, and the decoding service the platform runs for it, which holds each reader's decoded frames outside the process. Without a limit, a render of 24 videos of 1206 by 2622 pixels read as half floats drove a machine of 16 GB of memory to swap 9 GB a render ([FRAMES-21](../FRAMES-21/SPEC.md#notes)), and the user had no way to say how much frames may hold beside the other programs they run. A bound fixed by the decoder at a fraction of the machine's memory covers only its readers, is no one's choice, and is never seen in a report. Editing programs give the user this setting: DaVinci Resolve a limit on its own memory, After Effects and Premiere Pro the memory left for other programs.
+A render that shows many videos at once holds memory in two places: frames's process, and the decoding service the platform runs for it, which holds each reader's decoded frames outside the process. Without a limit, a render of a few dozen high resolution videos read as half floats holds more than a machine of 16 GB of memory has, and the machine swaps through the render, while the user has no way to say how much frames may hold beside the other programs they run. A bound fixed by the decoder at a fraction of the machine's memory covers only its readers, is no one's choice, and is never seen in a report. Editing programs give the user this setting: DaVinci Resolve a limit on its own memory, After Effects and Premiere Pro the memory left for other programs.
 
 ## Rules
 
@@ -24,28 +24,32 @@ unit   = "MB" | "GB"
 
 `MB` is 2^20 bytes and `GB` 2^30 bytes, the units the system states a machine's memory in. A size is written with no space, its unit in capitals, and is at least 1 MB: `6GB`, `1.5GB`, `512MB`. Its bytes are the number times the unit, rounded down to a whole byte. A size that is not of this form, or under 1 MB, stops naming `--memory`. A size above the machine's memory is the limit as written.
 
-Without `--memory` the limit is three eighths of the machine's physical memory, rounded down to a whole MB, the largest share at which the heaviest render measured on the reference machine held its memory without swapping beside the programs open, with a third of the machine's memory left free at its lowest ([Notes](#notes)).
+Without `--memory` the limit is three eighths of the machine's physical memory, rounded down to a whole MB.
+
+**Note.** Three eighths is the largest share at which a render of 16 videos of ProRes 4444 read as half floats left a third of the reference machine's 16 GB free beside a working day's programs ([measurements](../../document/MEASUREMENTS.md#frames-30)).
 
 ### The budget
 
-A run's limit is one budget, which each holder of large memory the run counts draws from. A holder has a floor, the least it holds for the run to work, and holds its floor or more. The budget counts each holder at the larger of its floor and what it holds, and the run's total is the sum over the holders. A holder that gives way, one the table names a way to hold less, is granted more than its floor only where the total stays within the limit. A holder that does not give way is granted all it holds whatever the total, and the holders that give way find that much less room. Holding less is always granted.
+A run's limit is one budget, which each holder of large memory the run counts draws from. A holder has a floor, the least it holds for the run to work, and holds its floor or more. The budget counts each holder at the larger of its floor and what it holds, and the run's total is the sum over the holders. A holder that gives way, one the table names a way to hold less, is granted more than its floor only where the total stays within the limit. A holder that does not give way holds at most its floor. Holding less is always granted. So the total never passes the limit once the run's floor is within it.
 
 | Holder | What it holds | Floor | Where the budget is short |
 | --- | --- | --- | --- |
 | `readers` | the memory the decoding service holds for each reader the decoder keeps open on a video, by the decoder's cost of that reader ([FRAMES-21](../FRAMES-21/SPEC.md#rules)) | one reader of the costliest video the run reads | the decoder closes readers, and a video whose reader it closed takes turns |
 | `readAhead` | each frame the decoder reads ahead and has not yet given, a picture of the video's displayed size at 8 bytes a pixel | none | the decoder reads the frame where it is asked, not ahead |
 | `turns` | the decoded frames a turn holds for later asks ([FRAMES-21](../FRAMES-21/SPEC.md#rules)), each at the bytes of the buffer the decoder is given it in | none | the turn holds fewer frames, and the video takes its next turn sooner |
-| `pictures` | the media pictures the renderer keeps, those of the frame drawn last and those the frame being drawn has read ([FRAMES-20](../FRAMES-20/SPEC.md#pictures)), each at the bytes the decoder gives it in | for `sheet`, every cell that shows a picture, of the frames' size at 4 bytes a pixel; none for any other command | does not give way |
+| `pictures` | the media pictures of pixels the renderer keeps, frames of videos, stills and image sequences, transition mattes and displacement maps, those of the frame drawn last and those the frame being drawn has read ([FRAMES-20](../FRAMES-20/SPEC.md#pictures)), each of its medium's displayed size at 8 bytes a pixel as working values and 4 as an analysis picture | twice the most one display list the renderer checks reads of them, each picture once; for `still` and `sheet` at least every cell that shows a picture, of the frames' size at 4 bytes a pixel | does not give way |
 | `frames` | the output frames in flight, each of the sequence's size at 8 bytes a pixel: for a video the frame being drawn, the frame the encoder writes, and a second the encoder holds behind it while that one is written, and for a PNG the one frame | for a video two frames, and for a PNG the one frame | the render waits for the frame being written before it hands the encoder the next |
 | `sound` | the run's mixed sound: two channels of 32-bit samples at 48 kHz over the mix plan's length ([FRAMES-20](../FRAMES-20/SPEC.md#the-mix-plan)) | all of it | does not give way |
 
-The run's floor is the sum of the holders' floors. `render` knows its floor once it has checked every pinned medium and made the mix plan, and refuses a limit under it in `check`, before the first frame, naming the limit as it is written, or as the default's whole GB or MB, and the floor and each holder's in the table's order: `memory limit 1.5GB is under the 2 GB this run needs: readers 1.2 GB, readAhead 0 MB, turns 0 MB, pictures 0 MB, frames 768 MB, sound 51.2 MB`, a size of 1 GB or more in GB to two places and a smaller one in MB to one place, with no trailing zeros. A command that reads a video without a document to check (`ocr`, `track`, `extract`, `sheet`, `probe`, `transcode` of a video) raises the `readers` floor to a video's reader as it opens its first, and refuses there in the same words before that video's first frame is decoded. `sheet` gives the budget its `pictures` floor once it has checked every list it draws, and refuses a limit under the run's floor there, in the same words, before a cell's picture is read.
+The run's floor is the sum of the holders' floors. `render` knows its floor once it has checked every pinned medium, made the mix plan and had the renderer check every frame's display list, and refuses a limit under it in `check`, before the first frame, naming the limit as it is written, or as the default's whole GB or MB, and the floor and each holder's in the table's order: `memory limit 1.5GB is under the 2 GB this run needs: readers 1.2 GB, readAhead 0 MB, turns 0 MB, pictures 0 MB, frames 768 MB, sound 51.2 MB`, a size of 1 GB or more in GB to two places and a smaller one in MB to one place, with no trailing zeros. A command that reads a video without a document to check (`ocr`, `track`, `extract`, `sheet`, `probe`, `transcode` of a video) raises the `readers` floor to a video's reader as it opens its first, and refuses there in the same words before that video's first frame is decoded. `still` and `sheet` give the budget the floor of their cells once the renderer has checked every frame's list they draw, and refuse a limit under the run's floor there, in the same words, before a cell's picture is read, and again once the renderer has checked the sheet's own list, before the sheet is drawn.
 
 The decoder keeps its count of open readers ([FRAMES-21](../FRAMES-21/SPEC.md#rules)) as a rule of its own, which closes readers whatever the budget holds.
 
 ### What it counts
 
-The budget counts what frames itself holds of the frames in flight, the frames read ahead, the frames turns hold, the media pictures the renderer keeps and the mixed sound, by their sizes, and what the decoding service holds outside the process by a model, the decoder's cost of a reader, whose constants are the most measured on the reference machine ([FRAMES-21](../FRAMES-21/SPEC.md#notes)). The model errs high for the videos measured. The rest of what a run holds lies outside the limit: the renderer's working memory (its layers, masks, nested rasters and motion blur's sums), the memory a reader holds in the process, the encoder's own buffers and a provider's pictures. So the memory a run holds is more than the budget counts by those: on the reference machine the decoding service and the process held together 1.2 to 1.4 times the budget's peak in the renders measured ([Notes](#notes)).
+The budget counts what frames itself holds of the frames in flight, the frames read ahead, the frames turns hold, the media pictures of pixels the renderer keeps and the mixed sound, by their sizes, and what the decoding service holds outside the process for each reader by a model, the decoder's cost of a reader ([FRAMES-21](../FRAMES-21/SPEC.md#rules)). The model's constants lie above what the service was measured to hold for one reader, so the model errs high for the videos measured, and a video for which the service holds more than the model gives is counted at less than it holds. The rest of what a run holds lies outside the limit: the renderer's working memory (its layers, masks, nested rasters and motion blur's sums), the pictures of pages the renderer keeps, whose regions and scales it finds as it draws, the memory a reader holds in the process, the encoder's own buffers and a provider's pictures.
+
+So the limit bounds what the budget counts, and real use may exceed the limit by the model's error and by the holders not counted. No bound on what a run holds beyond the budget is promised.
 
 ### Frames are the same at any limit
 
@@ -59,10 +63,10 @@ The run report's `memory` gives the limit and what the budget saw ([FRAMES-23](.
 | --- | --- |
 | `limit` | the limit in bytes |
 | `floor` | the run's floor in bytes |
-| `peak` | the largest total the budget counted at once, in bytes |
+| `peak` | the largest total the budget counted at once, in bytes, at most `limit` |
 | `holders` | one object for each holder of the table above, in its order, keyed by its name: `{floor, peak, refused}` |
 
-A holder's `floor` and `peak` are bytes, its `peak` the most the budget counted it at, and `refused` the times the budget refused it more: for `readers` the readers the decoder closed for room, each of which makes a turn when its video is read again, for `readAhead` the frames the decoder read where they were asked for want of room, for `turns` the turns that held fewer frames for want of room, and for `frames` the frames the render handed the encoder only once the frame before was written, for want of room. A holder that only holds its floor has `refused` 0.
+A holder's `floor` and `peak` are bytes, its `peak` the most the budget counted it at, and `refused` the times the budget refused it more: for `readers` the readers the decoder closed for room, each of which makes a turn when its video is read again, for `readAhead` the frames the decoder read where they were asked for want of room, for `turns` the turns that held fewer frames for want of room, and for `frames` the frames the render handed the encoder only once the frame before was written, for want of room. A holder that does not give way has `refused` 0.
 
 ## Interactions
 
@@ -76,25 +80,12 @@ A limit written as the memory left for other programs, as After Effects and Prem
 
 An environment variable or a configuration file for the limit: frames takes every setting of a whole run as a global option, and `FRAMES_HOME` says only where packs are installed, so a second way would be two places to look for one setting.
 
-A bound on the decoder's readers alone, at a fixed quarter of the machine's memory: it left the frames read ahead and the frames in flight uncounted, no one chose it, and a user could not move it. Measured on the reference machine it never closed a reader in a real render: 32 videos of 1206 by 2622 pixels cost 4.25 GB against a bound of 4.29 GB ([FRAMES-21](../FRAMES-21/SPEC.md#notes)).
+A bound on the decoder's readers alone, at a fixed quarter of the machine's memory: it left the frames read ahead and the frames in flight uncounted, no one chose it, and a user could not move it.
 
-Reading a decoded frame on the GPU through a Core Video texture cache, which keeps a texture made on a frame until it ages out a second after it was last used, and only when the cache is next used: every texture kept holds its frame in the decoding service, so a reader closed for a turn left its frames there, and a render of 8 videos at a limit of 2 GB held 7.0 GB in the service while the budget counted 1.98 GB, the more the smaller the limit, since every turn's reader decodes into new frames.
+Reading a decoded frame on the GPU through a Core Video texture cache, which keeps a texture made on a frame until it ages out a second after it was last used, and only when the cache is next used: every texture kept holds its frame in the decoding service, so a reader closed for a turn leaves its frames there, and the service holds the more beyond what the budget counts the smaller the limit, since every turn's reader decodes into new frames.
+
+Counting the media pictures the renderer keeps as they are read, granted whatever the total: the total then passes the limit by those pictures, so the limit bounds nothing, while a floor the renderer finds from the display lists it checks before the first frame holds every picture of pixels a frame reads and those of the frame before it.
 
 Counting the decoding service by what the system reports it holds, read while the run goes: the service serves every process that decodes, its footprint moves after a reader opens and not when, and a run that read it would make its turns depend on other programs, so the same document would take different turns on two runs.
 
 ## Notes
-
-Measured on the reference machine (M1 Pro, 16 GB), a render of N videos at once at a 1280 by 720 sequence, 6 seconds at 30 fps, each video ProRes 4444 of 1206 by 2622 pixels read as `16-bit float RGBA` from a file of its own, with the programs of a working day open. The decoding service's and the process's footprints are the largest of a sample every 2 seconds, and a render was stopped where the system began to swap.
-
-| Limit | Videos | Budget's peak | Decoding service | Process | Both over the peak | Readers closed | Seconds |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| 2 GB | 8 | 2.05 GB | 1.90 GB | 0.89 GB | 1.36 | 321 | 13.6 |
-| 2 GB | 16 | 2.17 GB | 1.26 GB | 1.49 GB | 1.27 | 2310 | 47.1 |
-| 4 GB | 8 | 4.09 GB | 4.37 GB | 1.17 GB | 1.35 | 0 | 10.3 |
-| 4 GB | 16 | 4.03 GB | 3.45 GB | 1.76 GB | 1.29 | 549 | 22.1 |
-| 6 GB | 8 | 4.17 GB | 4.39 GB | 1.38 GB | 1.38 | 0 | 7.7 |
-| 6 GB | 16 | 6.20 GB | 5.43 GB | 2.01 GB | 1.20 | 295 | 19.5 |
-| 8 GB | 8 | 4.17 GB | 4.41 GB | 1.41 GB | 1.40 | 0 | 7.9 |
-| 8 GB | 16 | | 6.81 GB at 6 s | 2.13 GB | | | swapped, stopped |
-
-The budget counts what the run holds within 1.2 to 1.4 times: the service alone holds 0.6 to 1.1 times the budget's peak, below it where many readers take turns, since the reader model errs high, and the process holds the uncounted rest. The budget's peak passes the limit by up to 0.2 GB, the renderer's pictures, which do not give way. At 6 GB, three eighths of the machine, 16 videos left a third of the memory free at its lowest, and at 8 GB, half of it, the system began to swap 6 seconds in, so the default is three eighths.
