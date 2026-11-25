@@ -46,12 +46,12 @@ struct TimelineReporterTests {
         // Then
         let expected = #"""
             {"timeline": "0.1.0", "duration": 4, "storyline": [\#
-            {"place": "storyline[0]#intro", "id": "intro", "kind": "video", "media": "/abs/short.mp4", "page": null, "edit": [0, 2], "drawn": [0, 2.5], "clip": [1, 3], "sound": null, "speed": 1, "timeRemap": false, "transition": null, "fps": null, "instant": 0, "clock": {"clip": "storyline[0]#intro", "origin": -1, "speed": 1}, "space": {"kind": "output", "clip": null}, "ownSpace": {"kind": "media", "clip": "storyline[0]#intro"}}, \#
-            {"place": "storyline[1]", "id": null, "kind": "solid", "media": null, "page": null, "edit": [2, 4], "drawn": [1.5, 4], "clip": [0, 2], "sound": null, "speed": 1, "timeRemap": false, "transition": {"preset": "frames/flash", "seconds": 1}, "fps": null, "instant": 2, "clock": {"clip": "storyline[1]", "origin": 2, "speed": 1}, "space": {"kind": "output", "clip": null}, "ownSpace": {"kind": "output", "clip": null}}], \#
+            {"place": "storyline[0]#intro", "id": "intro", "kind": "video", "media": "/abs/short.mp4", "page": null, "edit": [0, 2], "drawn": [0, 2.5], "clip": [1, 3], "sound": null, "speed": 1, "timeRemap": false, "transition": null, "fps": null, "instant": 0, "clock": {"clip": "storyline[0]#intro", "origin": -1, "speed": 1}, "space": {"kind": "output", "clip": null}, "ownSpace": {"kind": "media", "clip": "storyline[0]#intro"}, "tracked": {"clip": "storyline[0]#intro", "first": 1, "last": 3}}, \#
+            {"place": "storyline[1]", "id": null, "kind": "solid", "media": null, "page": null, "edit": [2, 4], "drawn": [1.5, 4], "clip": [0, 2], "sound": null, "speed": 1, "timeRemap": false, "transition": {"preset": "frames/flash", "seconds": 1}, "fps": null, "instant": 2, "clock": {"clip": "storyline[1]", "origin": 2, "speed": 1}, "space": {"kind": "output", "clip": null}, "ownSpace": {"kind": "output", "clip": null}, "tracked": null}], \#
             "clips": [\#
-            {"place": "storyline[0]#intro.connected[0]", "id": null, "kind": "rect", "media": null, "page": null, "visible": [0, 2], "sound": null, "lane": 1, "storyline": "storyline[0]#intro", "parent": "storyline[0]#intro", "animation": {"entrance": {"preset": "frames/pulse", "seconds": 0.25}, "loop": {"preset": "frames/pulse", "period": 1}, "exit": {"preset": "frames/pulse", "seconds": 0.25}, "by": null, "stagger": null, "order": null}, "fps": null, "instant": 0, "clock": {"clip": "storyline[0]#intro", "origin": -1, "speed": 1}, "space": {"kind": "media", "clip": "storyline[0]#intro"}, "ownSpace": {"kind": "media", "clip": "storyline[0]#intro"}}, \#
-            {"place": "clips[0]", "id": null, "kind": "title", "media": null, "page": null, "visible": [0, 4], "sound": null, "lane": 2, "storyline": null, "parent": null, "animation": {"entrance": {"preset": "frames/pop", "seconds": 0.25}, "loop": null, "exit": null, "by": "word", "stagger": 0.12, "order": "forward"}, "fps": null, "instant": 0, "clock": {"clip": null, "origin": 0, "speed": 1}, "space": {"kind": "output", "clip": null}, "ownSpace": {"kind": "box", "clip": "clips[0]"}}, \#
-            {"place": "clips[1]", "id": null, "kind": "audio", "media": "/abs/ding.wav", "page": null, "visible": [1, 2.5], "sound": null, "lane": null, "storyline": null, "parent": null, "animation": null, "fps": null, "instant": 1, "clock": {"clip": null, "origin": 0, "speed": 1}, "space": null, "ownSpace": null}]}
+            {"place": "storyline[0]#intro.connected[0]", "id": null, "kind": "rect", "media": null, "page": null, "visible": [0, 2], "sound": null, "lane": 1, "storyline": "storyline[0]#intro", "parent": "storyline[0]#intro", "animation": {"entrance": {"preset": "frames/pulse", "seconds": 0.25}, "loop": {"preset": "frames/pulse", "period": 1}, "exit": {"preset": "frames/pulse", "seconds": 0.25}, "by": null, "stagger": null, "order": null}, "fps": null, "instant": 0, "clock": {"clip": "storyline[0]#intro", "origin": -1, "speed": 1}, "space": {"kind": "media", "clip": "storyline[0]#intro"}, "ownSpace": {"kind": "media", "clip": "storyline[0]#intro"}, "tracked": {"clip": "storyline[0]#intro", "first": 1, "last": 3}}, \#
+            {"place": "clips[0]", "id": null, "kind": "title", "media": null, "page": null, "visible": [0, 4], "sound": null, "lane": 2, "storyline": null, "parent": null, "animation": {"entrance": {"preset": "frames/pop", "seconds": 0.25}, "loop": null, "exit": null, "by": "word", "stagger": 0.12, "order": "forward"}, "fps": null, "instant": 0, "clock": {"clip": null, "origin": 0, "speed": 1}, "space": {"kind": "output", "clip": null}, "ownSpace": {"kind": "box", "clip": "clips[0]"}, "tracked": null}, \#
+            {"place": "clips[1]", "id": null, "kind": "audio", "media": "/abs/ding.wav", "page": null, "visible": [1, 2.5], "sound": null, "lane": null, "storyline": null, "parent": null, "animation": null, "fps": null, "instant": 1, "clock": {"clip": null, "origin": 0, "speed": 1}, "space": null, "ownSpace": null, "tracked": null}]}
             """#
         #expect(report.machineOutput.written == expected)
     }
@@ -67,11 +67,11 @@ struct TimelineReporterTests {
         // Then
         let expected = #"""
             {"timeline": "0.1.0", "duration": 4, "storyline": [\#
-            {"place": "storyline[0]#intro", "id": "intro", "kind": "video", "media": "/abs/short.mp4", "page": null, "edit": [0, 2], "drawn": [0, 2.5], "clip": [1, 3], "sound": null, "speed": 1, "timeRemap": false, "transition": null, "fps": null, "instant": null, "clock": {"clip": null, "origin": 0, "speed": 1}, "space": {"kind": "output", "clip": null}, "ownSpace": {"kind": "media", "clip": "storyline[0]#intro"}}, \#
-            {"place": "storyline[1]", "id": null, "kind": "solid", "media": null, "page": null, "edit": [2, 4], "drawn": [1.5, 4], "clip": [0, 2], "sound": null, "speed": 1, "timeRemap": false, "transition": {"preset": null, "seconds": 1}, "fps": null, "instant": null, "clock": {"clip": null, "origin": 0, "speed": 1}, "space": {"kind": "output", "clip": null}, "ownSpace": {"kind": "output", "clip": null}}], \#
+            {"place": "storyline[0]#intro", "id": "intro", "kind": "video", "media": "/abs/short.mp4", "page": null, "edit": [0, 2], "drawn": [0, 2.5], "clip": [1, 3], "sound": null, "speed": 1, "timeRemap": false, "transition": null, "fps": null, "instant": null, "clock": {"clip": null, "origin": 0, "speed": 1}, "space": {"kind": "output", "clip": null}, "ownSpace": {"kind": "media", "clip": "storyline[0]#intro"}, "tracked": null}, \#
+            {"place": "storyline[1]", "id": null, "kind": "solid", "media": null, "page": null, "edit": [2, 4], "drawn": [1.5, 4], "clip": [0, 2], "sound": null, "speed": 1, "timeRemap": false, "transition": {"preset": null, "seconds": 1}, "fps": null, "instant": null, "clock": {"clip": null, "origin": 0, "speed": 1}, "space": {"kind": "output", "clip": null}, "ownSpace": {"kind": "output", "clip": null}, "tracked": null}], \#
             "clips": [\#
-            {"place": "storyline[0]#intro.connected[0]", "id": null, "kind": "rect", "media": null, "page": null, "visible": [0, 2], "sound": null, "lane": 1, "storyline": "storyline[0]#intro", "parent": "storyline[0]#intro", "animation": {"entrance": {"preset": null, "seconds": 0.25}, "loop": {"preset": null, "period": 1}, "exit": {"preset": null, "seconds": 0.25}, "by": null, "stagger": null, "order": null}, "fps": null, "instant": null, "clock": {"clip": null, "origin": 0, "speed": 1}, "space": {"kind": "media", "clip": "storyline[0]#intro"}, "ownSpace": {"kind": "media", "clip": "storyline[0]#intro"}}, \#
-            {"place": "clips[0]", "id": null, "kind": "title", "media": null, "page": null, "visible": [0, 4], "sound": null, "lane": 2, "storyline": null, "parent": null, "animation": {"entrance": {"preset": null, "seconds": 0.25}, "loop": null, "exit": null, "by": "word", "stagger": 0.12, "order": "forward"}, "fps": null, "instant": null, "clock": {"clip": null, "origin": 0, "speed": 1}, "space": {"kind": "output", "clip": null}, "ownSpace": {"kind": "box", "clip": "clips[0]"}}]}
+            {"place": "storyline[0]#intro.connected[0]", "id": null, "kind": "rect", "media": null, "page": null, "visible": [0, 2], "sound": null, "lane": 1, "storyline": "storyline[0]#intro", "parent": "storyline[0]#intro", "animation": {"entrance": {"preset": null, "seconds": 0.25}, "loop": {"preset": null, "period": 1}, "exit": {"preset": null, "seconds": 0.25}, "by": null, "stagger": null, "order": null}, "fps": null, "instant": null, "clock": {"clip": null, "origin": 0, "speed": 1}, "space": {"kind": "media", "clip": "storyline[0]#intro"}, "ownSpace": {"kind": "media", "clip": "storyline[0]#intro"}, "tracked": null}, \#
+            {"place": "clips[0]", "id": null, "kind": "title", "media": null, "page": null, "visible": [0, 4], "sound": null, "lane": 2, "storyline": null, "parent": null, "animation": {"entrance": {"preset": null, "seconds": 0.25}, "loop": null, "exit": null, "by": "word", "stagger": 0.12, "order": "forward"}, "fps": null, "instant": null, "clock": {"clip": null, "origin": 0, "speed": 1}, "space": {"kind": "output", "clip": null}, "ownSpace": {"kind": "box", "clip": "clips[0]"}, "tracked": null}]}
             """#
         #expect(report.machineOutput.written == expected)
         #expect(report.text.split(separator: "\n").last == "clips[0]  title  -  visible [0, 4)  sound -  lane 2  parent -  animation 0.25s / - / -")
@@ -271,12 +271,12 @@ struct TimelineReporterTests {
         // Then
         let expected = #"""
             {"timeline": "0.1.0", "duration": 3, "storyline": [\#
-            {"place": "storyline[0]", "id": null, "kind": "compound", "media": null, "page": null, "edit": [0, 2], "drawn": [0, 2], "clip": [0, 2], "sound": null, "speed": 1, "timeRemap": false, "transition": null, "fps": null, "instant": 0, "clock": {"clip": "storyline[0]", "origin": 0, "speed": 1}, "space": {"kind": "output", "clip": null}, "ownSpace": {"kind": "media", "clip": "storyline[0]"}, "nested": \#
+            {"place": "storyline[0]", "id": null, "kind": "compound", "media": null, "page": null, "edit": [0, 2], "drawn": [0, 2], "clip": [0, 2], "sound": null, "speed": 1, "timeRemap": false, "transition": null, "fps": null, "instant": 0, "clock": {"clip": "storyline[0]", "origin": 0, "speed": 1}, "space": {"kind": "output", "clip": null}, "ownSpace": {"kind": "media", "clip": "storyline[0]"}, "tracked": null, "nested": \#
             {"timeline": "0.1.0", "duration": 2, "storyline": [\#
-            {"place": "storyline[0].media.storyline[0]", "id": null, "kind": "video", "media": "\#(leak)", "page": null, "edit": [0, 2], "drawn": [0, 2], "clip": [0, 2], "sound": null, "speed": 1, "timeRemap": false, "transition": null, "fps": null, "instant": 0, "clock": {"clip": "storyline[0].media.storyline[0]", "origin": 0, "speed": 1}, "space": {"kind": "output", "clip": null}, "ownSpace": {"kind": "media", "clip": "storyline[0].media.storyline[0]"}}], "clips": []}}, \#
-            {"place": "storyline[1]", "id": null, "kind": "compound", "media": null, "page": null, "edit": [2, 3], "drawn": [2, 3], "clip": [0, 1], "sound": null, "speed": 1, "timeRemap": false, "transition": null, "fps": null, "instant": 2, "clock": {"clip": "storyline[1]", "origin": 2, "speed": 1}, "space": {"kind": "output", "clip": null}, "ownSpace": {"kind": "media", "clip": "storyline[1]"}, "nested": \#
+            {"place": "storyline[0].media.storyline[0]", "id": null, "kind": "video", "media": "\#(leak)", "page": null, "edit": [0, 2], "drawn": [0, 2], "clip": [0, 2], "sound": null, "speed": 1, "timeRemap": false, "transition": null, "fps": null, "instant": 0, "clock": {"clip": "storyline[0].media.storyline[0]", "origin": 0, "speed": 1}, "space": {"kind": "output", "clip": null}, "ownSpace": {"kind": "media", "clip": "storyline[0].media.storyline[0]"}, "tracked": {"clip": "storyline[0].media.storyline[0]", "first": 0, "last": 2}}], "clips": []}}, \#
+            {"place": "storyline[1]", "id": null, "kind": "compound", "media": null, "page": null, "edit": [2, 3], "drawn": [2, 3], "clip": [0, 1], "sound": null, "speed": 1, "timeRemap": false, "transition": null, "fps": null, "instant": 2, "clock": {"clip": "storyline[1]", "origin": 2, "speed": 1}, "space": {"kind": "output", "clip": null}, "ownSpace": {"kind": "media", "clip": "storyline[1]"}, "tracked": null, "nested": \#
             {"timeline": "0.1.0", "duration": 1, "storyline": [\#
-            {"place": "storyline[1].media.storyline[0]", "id": null, "kind": "video", "media": "\#(leak)", "page": null, "edit": [0, 1], "drawn": [0, 1], "clip": [0, 1], "sound": null, "speed": 1, "timeRemap": false, "transition": null, "fps": null, "instant": 0, "clock": {"clip": "storyline[1].media.storyline[0]", "origin": 0, "speed": 1}, "space": {"kind": "output", "clip": null}, "ownSpace": {"kind": "media", "clip": "storyline[1].media.storyline[0]"}}], "clips": []}}], \#
+            {"place": "storyline[1].media.storyline[0]", "id": null, "kind": "video", "media": "\#(leak)", "page": null, "edit": [0, 1], "drawn": [0, 1], "clip": [0, 1], "sound": null, "speed": 1, "timeRemap": false, "transition": null, "fps": null, "instant": 0, "clock": {"clip": "storyline[1].media.storyline[0]", "origin": 0, "speed": 1}, "space": {"kind": "output", "clip": null}, "ownSpace": {"kind": "media", "clip": "storyline[1].media.storyline[0]"}, "tracked": {"clip": "storyline[1].media.storyline[0]", "first": 0, "last": 1}}], "clips": []}}], \#
             "clips": []}
             """#
         #expect(report.machineOutput.written == expected)
@@ -481,10 +481,10 @@ struct TimelineReporterTests {
         // Then
         let expected = #"""
             {"timeline": "0.1.0", "duration": 2, "storyline": [\#
-            {"place": "storyline[0]#screen", "id": "screen", "kind": "video", "media": "/abs/screen.mp4", "page": null, "edit": [0, 2], "drawn": [0, 2], "clip": [1, 3], "sound": null, "speed": 1, "timeRemap": false, "transition": null, "fps": null, "instant": 0, "clock": {"clip": "storyline[0]#screen", "origin": -1, "speed": 1}, "space": {"kind": "output", "clip": null}, "ownSpace": {"kind": "media", "clip": "storyline[0]#screen"}}], \#
+            {"place": "storyline[0]#screen", "id": "screen", "kind": "video", "media": "/abs/screen.mp4", "page": null, "edit": [0, 2], "drawn": [0, 2], "clip": [1, 3], "sound": null, "speed": 1, "timeRemap": false, "transition": null, "fps": null, "instant": 0, "clock": {"clip": "storyline[0]#screen", "origin": -1, "speed": 1}, "space": {"kind": "output", "clip": null}, "ownSpace": {"kind": "media", "clip": "storyline[0]#screen"}, "tracked": {"clip": "storyline[0]#screen", "first": 1, "last": 3}}], \#
             "clips": [\#
-            {"place": "storyline[0]#screen.connected[0]", "id": null, "kind": "rect", "media": null, "page": null, "visible": [0.5, 1], "sound": null, "lane": 1, "storyline": "storyline[0]#screen", "parent": "storyline[0]#screen", "animation": null, "fps": null, "instant": 0.5, "clock": {"clip": "storyline[0]#screen", "origin": -1, "speed": 1}, "space": {"kind": "media", "clip": "storyline[0]#screen"}, "ownSpace": {"kind": "media", "clip": "storyline[0]#screen"}}, \#
-            {"place": "clips[0]", "id": null, "kind": "title", "media": null, "page": null, "visible": [0, 2], "sound": null, "lane": 1, "storyline": null, "parent": null, "animation": null, "fps": null, "instant": 0, "clock": {"clip": null, "origin": 0, "speed": 1}, "space": {"kind": "output", "clip": null}, "ownSpace": {"kind": "box", "clip": "clips[0]"}}]}
+            {"place": "storyline[0]#screen.connected[0]", "id": null, "kind": "rect", "media": null, "page": null, "visible": [0.5, 1], "sound": null, "lane": 1, "storyline": "storyline[0]#screen", "parent": "storyline[0]#screen", "animation": null, "fps": null, "instant": 0.5, "clock": {"clip": "storyline[0]#screen", "origin": -1, "speed": 1}, "space": {"kind": "media", "clip": "storyline[0]#screen"}, "ownSpace": {"kind": "media", "clip": "storyline[0]#screen"}, "tracked": {"clip": "storyline[0]#screen", "first": 1, "last": 3}}, \#
+            {"place": "clips[0]", "id": null, "kind": "title", "media": null, "page": null, "visible": [0, 2], "sound": null, "lane": 1, "storyline": null, "parent": null, "animation": null, "fps": null, "instant": 0, "clock": {"clip": null, "origin": 0, "speed": 1}, "space": {"kind": "output", "clip": null}, "ownSpace": {"kind": "box", "clip": "clips[0]"}, "tracked": null}]}
             """#
         #expect(report.machineOutput.written == expected)
     }
@@ -715,6 +715,62 @@ struct TimelineReporterTests {
         #expect(entries(of: resolvedReport).map { [$0["space"], $0["ownSpace"]] } == Array(expected.dropLast()))
     }
 
+    @Test("every entry gives the clip whose video a track on it follows, its own or its parent's, and none where there is no video to follow")
+    func reportsTrackedClips() throws {
+        // Given
+        let value = try Fixture.json(##"""
+            { "kind": "sequence", "format": { "size": [1080, 1920] },
+              "storyline": [
+                { "id": "shot", "media": "/abs/short.mp4", "in": 0, "out": 2,
+                  "connected": [ { "id": "pip", "media": "/abs/leak.mov", "parent": "shot", "position": [100, 100] } ] },
+                { "id": "black", "solid": "#000000", "duration": 2 } ],
+              "clips": [
+                { "id": "ring", "at": [0, 2], "shape": "rect", "stroke": { "width": 8 }, "area": [10, 10, 50, 50], "parent": "pip" },
+                { "id": "label", "at": [0, 2], "title": "a", "style": "title", "parent": "ring", "position": [10, 10] },
+                { "id": "card", "at": [0, 2], "title": "b", "style": "title", "parent": "pip", "cornerPin": [[0, 0], [100, 0], [100, 50], [0, 50]] },
+                { "at": [0, 2], "title": "c", "style": "title", "parent": "card", "position": [5, 5] },
+                { "at": [2, 4], "title": "d", "style": "title", "parent": "black", "position": [5, 5] },
+                { "at": [0, 2], "title": "e", "style": "title" },
+                { "at": 0, "media": "/abs/ding.wav" } ] }
+            """##)
+        let resolved = try ResolvedSequence(plan: Fixture.documentPlanner.plan(value), hashes: FileHashTable())
+
+        // When
+        let report = try sut.report(of: value)
+        let resolvedReport = sut.report(of: resolved)
+
+        // Then
+        let shot = JSONValue.string("storyline[0]#shot")
+        let pip = JSONValue.string("storyline[0]#shot.connected[0]#pip")
+        let expected: [JSONValue?] = [shot, nil, pip, pip, nil, pip, nil, nil, nil, nil]
+        #expect(entries(of: report).map { $0["tracked"]?.objectValue?["clip"] } == expected)
+        #expect(entries(of: resolvedReport).allSatisfy { $0["tracked"] == .null })
+    }
+
+    @Test("tracked gives the first and the last frame a clip's time map shows over its window, speed, timeRemap and loop applied")
+    func reportsTrackedFrames() throws {
+        // Given
+        let value = try Fixture.json(timeMapped)
+
+        // When
+        let report = try sut.report(of: value)
+
+        // Then
+        let tracked = { (clip: String, first: Double, last: Double) -> JSONValue in
+            .object(JSONObject(members: [
+                JSONMember(key: "clip", value: .string(clip)),
+                JSONMember(key: "first", value: .number(first)),
+                JSONMember(key: "last", value: .number(last))
+            ]))
+        }
+        #expect(entries(of: report).map { $0["tracked"] } == [
+            tracked("storyline[0]", 0.5, 1.5),
+            tracked("storyline[1]", 1, 3),
+            tracked("storyline[1].connected[0]", 0.5, 1),
+            tracked("storyline[1].connected[1]", 0.5, 1)
+        ])
+    }
+
     // MARK: - Private
     // Every entry of a report's machine output, storyline first.
     private func entries(of report: TimelineReport) -> [JSONObject] {
@@ -722,12 +778,12 @@ struct TimelineReporterTests {
         return ["storyline", "clips"].flatMap { output?[$0]?.arrayValue?.compactMap(\.objectValue) ?? [] }
     }
 
-    // A report's machine output without `instant` and `clock`, which a resolved document gives as it keeps them, every
-    // instant in sequence time.
+    // A report's machine output without `instant`, `clock` and `tracked`, which a resolved document gives as it keeps
+    // them, every instant in sequence time and every track as resolve fitted it.
     private func withoutClocks(_ value: JSONValue) -> JSONValue {
         switch value {
         case let .object(object):
-            .object(JSONObject(members: object.members.filter { $0.key != "instant" && $0.key != "clock" }.map { member in
+            .object(JSONObject(members: object.members.filter { !["instant", "clock", "tracked"].contains($0.key) }.map { member in
                 JSONMember(key: member.key, value: withoutClocks(member.value))
             }))
 
