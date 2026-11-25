@@ -111,6 +111,30 @@ struct ClipEvaluator: Sendable {
         }
     }
 
+    // A placed shape and an adjustment write their masks in their parent's space, a title in its text box, which lies
+    // inside the box its children see, and any other clip in its own box or media pixels.
+    func masks(
+        of clip: ResolvedClip,
+        in space: ClipSpace,
+        at time: SampleTime
+    ) -> [ItemMask] {
+        guard let mask = clip.mask else { return [] }
+
+        let masks = clip.space == .parent
+            ? space.masks(of: mask, track: clip.parentTrack, at: time)
+            : clip.ownMasks(at: time)
+        let inBox = if case let .picture(.title(text), _) = clip.content {
+            text.textBoxInBox(at: time)
+        } else {
+            AffineTransform.identity
+        }
+        let transform = inBox
+            .concatenating(clip.ownMotion(at: time))
+            .concatenating(childTransform(of: clip, in: space, at: time))
+        let factor = ClipSample(clip: clip, at: time).lengthFactor
+        return masks.map { ItemMask(mask: $0, transform: transform, factor: factor) }
+    }
+
     // MARK: - Private
     private func drawn(
         _ clip: ResolvedClip,
@@ -576,30 +600,6 @@ struct ClipEvaluator: Sendable {
                 moved: Point(x: motion.value(of: .x) * bounds.width, y: motion.value(of: .y) * bounds.height)
             ).concatenating(tracked.transform)
         }
-    }
-
-    // A placed shape and an adjustment write their masks in their parent's space, a title in its text box, which lies
-    // inside the box its children see, and any other clip in its own box or media pixels.
-    private func masks(
-        of clip: ResolvedClip,
-        in space: ClipSpace,
-        at time: SampleTime
-    ) -> [ItemMask] {
-        guard let mask = clip.mask else { return [] }
-
-        let masks = clip.space == .parent
-            ? space.masks(of: mask, track: clip.parentTrack, at: time)
-            : clip.ownMasks(at: time)
-        let inBox = if case let .picture(.title(text), _) = clip.content {
-            text.textBoxInBox(at: time)
-        } else {
-            AffineTransform.identity
-        }
-        let transform = inBox
-            .concatenating(clip.ownMotion(at: time))
-            .concatenating(childTransform(of: clip, in: space, at: time))
-        let factor = ClipSample(clip: clip, at: time).lengthFactor
-        return masks.map { ItemMask(mask: $0, transform: transform, factor: factor) }
     }
 
     private func maskBounds(

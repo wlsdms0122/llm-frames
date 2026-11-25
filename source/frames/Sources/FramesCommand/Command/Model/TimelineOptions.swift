@@ -11,8 +11,8 @@ struct TimelineOptions: CommandOptions, Equatable {
         OptionRule(
             "--at",
             value: "<t>",
-            help: "A sequence time, inside the sequence or outside it, at which each clip's clip time and media time "
-                + "are given as well. Default: none."
+            help: "A sequence time, inside the sequence or outside it, at which each clip's clip time and media time, "
+                + "and where its box and its masks lie, are given as well. Default: none."
         ),
         OptionRule.arguments,
         OptionRule.json

@@ -15,7 +15,7 @@ struct TimelineCommand: Command {
     let summary = "Resolves without rendering and prints the plan of time: every clip's kind and media, every "
         + "storyline clip's edit, drawn and clip ranges, speed and incoming transition, and every other clip's "
         + "visible range, lane, animation, place and parent. With --at it also gives each clip's clip time and "
-        + "media time there. It writes no file."
+        + "media time there, and where its box and its masks lie in output pixels. It writes no file."
 
     // MARK: - Initializer
     init() { }

@@ -55,6 +55,19 @@ struct ShapeEvaluator: Sendable {
             ?? space.tracked(by: clip.parentTrack, at: time).transform
     }
 
+    // The shape's box as written, before its outset, in the coordinates `transform(of:clip:sample:in:at:)` carries: a
+    // rect's or an ellipse's `[0, 0, w, h]` by `width` and `height`, and for one placed by its geometry its area or its
+    // path's curve's box in the space it is written in. Nil for a box shape whose entry carries no box.
+    func box(
+        of shape: ResolvedShape,
+        clip: ResolvedClip,
+        sample: ClipSample,
+        in space: ClipSpace,
+        at time: SampleTime
+    ) -> Rectangle? {
+        laid(shape, clip: clip, sample: sample, in: space, at: time)?.box
+    }
+
     // A rect or an ellipse given by `width` and `height` drawn flat in its box B, `[0, 0, w, h]` at the time, for a clip
     // with a corner pin (FRAMES-27 The key): its outline grown by its outset, its lengths carried by `plane`, the
     // transform B is drawn with. Nil for a shape placed by its geometry, and where `plane` flattens B outside a sample

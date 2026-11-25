@@ -12,7 +12,8 @@ import Foundation
 // its presets are nil, it holds an audio clip only as sound, so it reports none, it writes every instant in sequence
 // time and keeps no clip's instant, and it pins an image sequence's frame times and no rate. Media is named by its pinned
 // path in both. Asked at a sequence time, which may lie outside the sequence, every entry also gives what its time map
-// gives there (FRAMES-8), and a nested document is reported at the media time its clip shows.
+// gives there (FRAMES-8) and where it lies there, which the sequence as resolve builds it gives, and a nested document is
+// reported at the media time its clip shows.
 package struct TimelineReporter: Sendable {
     // MARK: - Property
     private let planner: DocumentPlanner
@@ -30,34 +31,40 @@ package struct TimelineReporter: Sendable {
         arguments: ArgumentFile? = nil,
         at time: Double? = nil
     ) throws -> TimelineReport {
-        report(of: try planner.plan(document, theme: theme, arguments: arguments), at: time)
+        try report(of: planner.plan(document, theme: theme, arguments: arguments), at: time)
     }
 
+    // At a time the plan is built into the sequence resolve would write, without reading a file to pin it, to find where
+    // each clip lies.
     func report(
         of plan: SequencePlan,
         at time: Double? = nil
-    ) -> TimelineReport {
+    ) throws -> TimelineReport {
         let timePlan = plan.time
+        let sampler = try time.map { _ in
+            TimelineGeometrySampler(sequence: try ResolvedSequence(plan: plan, hashes: PlaceholderHasher()))
+        }
+        let instant = time.flatMap { time in sampler.map { (time: time, sampler: $0) } }
 
         return TimelineReport(
             duration: timePlan.duration,
             time: time,
-            storyline: timePlan.storyline.indices.map { index in
+            storyline: try timePlan.storyline.indices.map { index in
                 let clip = timePlan.storyline[index]
-                return entry(
+                return try entry(
                     of: clip,
                     geometry: plan.storyline[index],
                     sound: sound(at: clip.place, in: plan),
                     ownSpace: timePlan.ownSpace(of: clip),
                     tracked: tracks.source(of: clip).map { tracked($0, fps: timePlan.fps) },
-                    at: time
+                    at: instant
                 )
             },
-            clips: timePlan.clips.indices.map { index in
+            clips: try timePlan.clips.indices.map { index in
                 let clip = timePlan.clips[index]
                 let isVisualMedia = if case let .media(kind) = clip.kind { kind != .audio } else { false }
                 let range = isVisualMedia ? sound(at: clip.place, in: plan) : nil
-                return entry(of: clip, geometry: plan.clips[index], sound: range, plan: timePlan, at: time)
+                return try entry(of: clip, geometry: plan.clips[index], sound: range, plan: timePlan, at: instant)
             }
         )
     }
@@ -67,6 +74,7 @@ package struct TimelineReporter: Sendable {
         at time: Double? = nil
     ) -> TimelineReport {
         let storyline = sequence.storyline
+        let sampler = TimelineGeometrySampler(sequence: sequence)
 
         return TimelineReport(
             duration: sequence.format.duration,
@@ -77,10 +85,11 @@ package struct TimelineReporter: Sendable {
                     outgoing: storyline.indices.contains(index + 1) ? storyline[index + 1] : nil,
                     sound: sound(at: storyline[index].place, in: sequence),
                     ownSpace: sequence.ownSpace(of: storyline[index]),
+                    sampler: sampler,
                     at: time
                 )
             },
-            clips: sequence.clips.map { entry(of: $0, sequence: sequence, at: time) }
+            clips: sequence.clips.map { entry(of: $0, sequence: sequence, sampler: sampler, at: time) }
         )
     }
 
@@ -98,13 +107,14 @@ package struct TimelineReporter: Sendable {
         sound: TimeRange?,
         ownSpace: CoordinateSpace,
         tracked: TimelineTrack?,
-        at time: Double?
-    ) -> TimelineStorylineEntry {
+        at instant: (time: Double, sampler: TimelineGeometrySampler)?
+    ) throws -> TimelineStorylineEntry {
         let media = clip.source.media
-        let shown = time.map { time in
+        let shown = instant.map { time, sampler in
             TimelineStorylineTime(
                 clipTime: clip.map.clipTime(atSequenceTime: time),
-                mediaTime: media.map { shownTime(of: $0, at: clip.mediaTime(atSequenceTime: time)) }
+                mediaTime: media.map { shownTime(of: $0, at: clip.mediaTime(atSequenceTime: time)) },
+                geometry: sampler.geometry(at: clip.place.description, time: time)
             )
         }
 
@@ -128,7 +138,7 @@ package struct TimelineReporter: Sendable {
             isTimeRemapped: clip.timeRemap != nil,
             transition: clip.transition.map { TimelineTransition(preset: $0.preset, seconds: $0.seconds) },
             time: shown,
-            nested: geometry.nested.map { report(of: $0, at: shown?.mediaTime) }
+            nested: try geometry.nested.map { try report(of: $0, at: shown?.mediaTime) }
         )
     }
 
@@ -138,8 +148,8 @@ package struct TimelineReporter: Sendable {
         geometry: ClipGeometry,
         sound: TimeRange?,
         plan: TimePlan,
-        at time: Double?
-    ) -> TimelineClipEntry {
+        at instant: (time: Double, sampler: TimelineGeometrySampler)?
+    ) throws -> TimelineClipEntry {
         let animation = clip.animation
         let parent: String? = switch clip.parent {
         case let .storyline(index, _):
@@ -152,10 +162,13 @@ package struct TimelineReporter: Sendable {
             nil
         }
         let isSound = clip.kind == .media(.audio)
-        let shown = time.map { time in
-            TimelineClipTime(mediaTime: clip.media.map { media in
-                shownTime(of: media, at: clip.mediaClock?.mediaTime(atSequenceTime: time) ?? 0)
-            })
+        let shown = instant.map { time, sampler in
+            TimelineClipTime(
+                mediaTime: clip.media.map { media in
+                    shownTime(of: media, at: clip.mediaClock?.mediaTime(atSequenceTime: time) ?? 0)
+                },
+                geometry: sampler.geometry(at: clip.place.description, time: time)
+            )
         }
 
         return TimelineClipEntry(
@@ -184,7 +197,7 @@ package struct TimelineReporter: Sendable {
                     units: animation.units
                 ),
             time: shown,
-            nested: geometry.nested.map { report(of: $0, at: shown?.mediaTime) }
+            nested: try geometry.nested.map { try report(of: $0, at: shown?.mediaTime) }
         )
     }
 
@@ -214,6 +227,7 @@ package struct TimelineReporter: Sendable {
         outgoing: ResolvedStorylineClip?,
         sound: TimeRange?,
         ownSpace: CoordinateSpace,
+        sampler: TimelineGeometrySampler,
         at time: Double?
     ) -> TimelineStorylineEntry {
         let edit = TimeRange(start: clip.start, end: clip.end)
@@ -224,7 +238,8 @@ package struct TimelineReporter: Sendable {
         let shown = time.map { time in
             TimelineStorylineTime(
                 clipTime: clip.map.clipTime(atSequenceTime: time),
-                mediaTime: clip.media.map { shownTime(of: $0, at: clip.mediaTime(at: time)) }
+                mediaTime: clip.media.map { shownTime(of: $0, at: clip.mediaTime(at: time)) },
+                geometry: sampler.geometry(at: clip.place, time: time)
             )
         }
 
@@ -255,6 +270,7 @@ package struct TimelineReporter: Sendable {
     private func entry(
         of clip: ResolvedClip,
         sequence: ResolvedSequence,
+        sampler: TimelineGeometrySampler,
         at time: Double?
     ) -> TimelineClipEntry {
         let animation = clip.animation
@@ -263,7 +279,10 @@ package struct TimelineReporter: Sendable {
         }
         let media: ResolvedMediaClip? = if case let .picture(.media(media), _) = clip.content { media } else { nil }
         let shown = time.map { time in
-            TimelineClipTime(mediaTime: media.map { shownTime(of: $0.media, at: $0.mediaTime(at: time)) })
+            TimelineClipTime(
+                mediaTime: media.map { shownTime(of: $0.media, at: $0.mediaTime(at: time)) },
+                geometry: sampler.geometry(at: clip.place, time: time)
+            )
         }
 
         return TimelineClipEntry(
