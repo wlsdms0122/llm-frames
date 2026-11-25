@@ -107,7 +107,6 @@ struct TimelineGeometrySampler: Sendable {
         guard
             case let .picture(content, _) = clip.content,
             let pin = clip.cornerPin,
-            let box = ownBox(of: clip, in: space, at: time),
             let written = clip.writtenCornerPin(areas: space.areas, clock: space.clock, at: time)
         else {
             return .none
@@ -117,16 +116,20 @@ struct TimelineGeometrySampler: Sendable {
         switch content {
         case let .title(text):
             let drawn = text.box(at: time)
-            flat = (Rectangle(x: 0, y: 0, width: drawn.width, height: drawn.height), box.ownSpace)
+            flat = (Rectangle(x: 0, y: 0, width: drawn.width, height: drawn.height), text.textBoxInBox(at: time))
 
         case .media:
             let flatBox = Rectangle(x: 0, y: 0, width: pin.size.width, height: pin.size.height)
-            let crop = AffineTransform(translation: Point(x: -box.rect.x, y: -box.rect.y))
-                .concatenating(AffineTransform(mapping: Size(width: box.rect.width, height: box.rect.height), onto: flatBox))
+            let shown = clip.crop(at: time) ?? flatBox
+            let crop = AffineTransform(translation: Point(x: -shown.x, y: -shown.y))
+                .concatenating(AffineTransform(mapping: Size(width: shown.width, height: shown.height), onto: flatBox))
             flat = (flatBox, crop)
 
-        case .shape:
-            flat = (box.rect, box.ownSpace)
+        case let .shape(shape):
+            // A rect or an ellipse with a corner pin is placed by it and carries no box of its own.
+            guard case let .box(width, height, _) = shape.geometry else { return .none }
+
+            flat = (Rectangle(x: 0, y: 0, width: width.value(at: time), height: height.value(at: time)), .identity)
 
         case .adjustment:
             return .none
@@ -142,8 +145,10 @@ struct TimelineGeometrySampler: Sendable {
             plane.carry(Quad(rectangle), by: flat.ownSpace.concatenating(animation)).carried(by: outer)
         }
 
+        let rect = ownBox(of: clip, in: space, at: time)?.rect ?? flat.box
+
         return TimelineGeometry(
-            box: TimelineBox(rect: box.rect, quad: carry(box.rect)),
+            box: TimelineBox(rect: rect, quad: carry(rect)),
             masks: clip.ownMasks(at: time).map { carry($0.geometry.bounds()) }
         )
     }
