@@ -30,7 +30,7 @@ Editing is iterative: a document is changed, checked with `still`, `sheet` and `
         { "id": "name", "at": [13, 18], "kind": "title", "text": [ { "text": "Mina Park\n" }, { "text": "Head baker", "style": "role" } ], "style": "name",
           "animation": { "entrance": { "preset": "studio/slide", "args": { "distance": 0.4 } }, "exit": "frames/fade" } },
         { "at": [13, 18], "parent": "name", "kind": "path", "points": [ [0, -18], [420, -18] ],
-          "stroke": { "color": "#F2B33D", "width": 6, "cap": "round" },
+          "stroke": { "paint": "#F2B33D", "width": 6, "cap": "round" },
           "keyframes": [ { "at": 13, "trim": [0, 0], "ease": "ease-out" }, { "at": 13.6, "trim": [0, 1] } ] } ] },
     { "id": "pour", "kind": "media", "media": "/abs/broll/pour.mov", "in": 0, "out": 6,
       "keyframes": [ { "at": 0, "timeRemap": 4 }, { "at": 2, "timeRemap": 6 },
@@ -45,7 +45,7 @@ Editing is iterative: a document is changed, checked with `still`, `sheet` and `
   ],
   "clips": [
     { "id": "logo", "kind": "media", "media": "/abs/brand/logo.png", "width": 180, "placement": "top-right", "opacity": 0.9, "lane": 3,
-      "mask": { "shape": "ellipse", "area": [0, 0, 512, 512], "feather": 2 } },
+      "mask": { "kind": "ellipse", "area": [0, 0, 512, 512], "feather": 2 } },
     { "kind": "media", "media": "/abs/music/morning.m4a", "fadeIn": 1, "fadeOut": 2,
       "keyframes": [ { "at": 9.3, "volume": 0.15, "ease": "ease-in-out" }, { "at": 9.8, "volume": 0.6 },
                      { "at": 15.2, "volume": 0.6, "ease": "ease-in-out" }, { "at": 15.7, "volume": 0.15 } ] },
@@ -84,13 +84,12 @@ The interview opens with a slow push in and a lower third, a name and a role in 
 | shape clip (`rect`, `ellipse`, `path`) | every clip with a picture's, `style, area, width, height, placement, position, anchor, points, closed, radius, outset, fill, stroke, trim, shadow, scale, rotation`, and `cornerPin` on a rect or ellipse given by `width` and `height` ([FRAMES-27](../FRAMES-27/SPEC.md)) |
 | null clip | `id, metadata, kind, at, parent, motionBlur, track, animation, keyframes, area, width, height, placement, position, anchor, scale, rotation` ([FRAMES-11](../FRAMES-11/SPEC.md#null-clips)) |
 | split (on a storyline clip or a visual media clip) | `before, after` ([FRAMES-13](../FRAMES-13/SPEC.md)) |
-| stroke | `color, gradient, width, align, join, cap, start, end, dash, dashOffset` |
-| gradient | exactly one of `linear` and `radial` ([FRAMES-11](../FRAMES-11/SPEC.md)) |
-| linear gradient | `from, to, stops` |
-| radial gradient | `center, radius, stops` |
+| stroke | `paint, width, align, join, cap, start, end, dash, dashOffset` |
+| linear gradient (`linear`, [FRAMES-11](../FRAMES-11/SPEC.md)) | `kind, from, to, stops` |
+| radial gradient (`radial`) | `kind, center, radius, stops` |
 | adjustment clip (`adjustment`) | every clip with a picture's, `adjust` |
-| mask | `shape, area, points, width, height, position, radius, feather, invert, mode` |
-| path vertex (an object in the `points` of a path shape or a path mask, [FRAMES-11](../FRAMES-11/SPEC.md#shapes)) | `vertex, inTangent, outTangent`, `vertex` required outside a keyframe |
+| mask | `kind, area, points, width, height, position, radius, feather, invert, mode` |
+| path vertex (every object in the `points` of a path shape or a path mask, [FRAMES-11](../FRAMES-11/SPEC.md#shapes)) | `vertex, inTangent, outTangent`, `vertex` required outside a keyframe |
 | track matte | `clip, mode, invert` |
 | `track`, track data ([FRAMES-12](../FRAMES-12/SPEC.md#track-data)) | `time, frames`, both required |
 | track data frame | `time, quad` |
