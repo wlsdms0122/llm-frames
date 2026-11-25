@@ -14,7 +14,7 @@ import os
 // read.
 final class ReadingDecoder: MediaDecoder {
     // MARK: - Property
-    private let readings = OSAllocatedUnfairLock<[String: [PictureReading]]>(initialState: [:])
+    private let pictureReadings = OSAllocatedUnfairLock<[String: [PictureReading]]>(initialState: [:])
     private let regions = OSAllocatedUnfairLock<[String: [PageRegionRequest]]>(initialState: [:])
     private let pageSize: Size
 
@@ -36,7 +36,7 @@ final class ReadingDecoder: MediaDecoder {
         atFrame index: Int,
         reading: PictureReading
     ) throws -> Bitmap {
-        readings.withLock { $0[file.path, default: []].append(reading) }
+        pictureReadings.withLock { $0[file.path, default: []].append(reading) }
 
         return Bitmap(width: 2, height: 2, depth: .eight, bytesPerRow: 8, pixels: Data(repeating: 255, count: 16))
     }
@@ -47,7 +47,7 @@ final class ReadingDecoder: MediaDecoder {
         scale: Double,
         reading: PictureReading
     ) throws -> Bitmap {
-        readings.withLock { $0[file.path, default: []].append(reading) }
+        pictureReadings.withLock { $0[file.path, default: []].append(reading) }
         regions.withLock { $0[file.path, default: []].append(PageRegionRequest(region: region, scale: scale)) }
 
         return Bitmap(width: 2, height: 2, depth: .eight, bytesPerRow: 8, pixels: Data(repeating: 255, count: 16))
@@ -74,10 +74,15 @@ final class ReadingDecoder: MediaDecoder {
         SoundBuffer(sampleRate: 48_000, channels: 2, samples: [])
     }
 
+    // Reports no medium and no time, as a run's report of it would be empty.
+    func readings() -> MediaReadings {
+        MediaReadings(media: [], seconds: StageTimes())
+    }
+
     // MARK: - Public
     // The readings of the file at `path`, in the order they were asked for.
     func readings(of path: String) -> [PictureReading] {
-        readings.withLock { $0[path] ?? [] }
+        pictureReadings.withLock { $0[path] ?? [] }
     }
 
     // The regions and scales of the page at `path`, in the order they were asked for.

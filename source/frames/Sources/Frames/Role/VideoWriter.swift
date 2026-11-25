@@ -12,4 +12,7 @@ package protocol VideoWriter {
 
     // Writes the rest of the file and closes it. Nothing is appended after.
     func finish() throws
+
+    // How the file has been written so far, read once it is finished (FRAMES-23 Runs).
+    var encoding: FileEncoding { get }
 }

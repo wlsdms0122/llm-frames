@@ -8,12 +8,14 @@
 import AVFoundation
 import Foundation
 import Frames
+import VideoToolbox
 
 // Writes one video file with AVAssetWriter, straight to its path. Frame k is presented at k / fps. The sound, given
 // whole, goes in after each frame up to that frame's end, so neither input waits on the other, and the rest at the
 // end. Frames come at `size`, and the file's picture is the format's size when it has one, each frame scaled to it. A
 // wait on the writer longer than `deadline` seconds cancels it. A writer that fails, or is let go before it finishes,
-// cancels and removes its file.
+// cancels and removes its file. Its conversion of each frame to the output's values is `outputConversion`, and the rest
+// of appending a frame and finishing the file `encode`, each on the thread that calls it (FRAMES-23 Runs).
 final class AssetVideoWriter {
     // MARK: - Property
     private static let soundChunk = 48_000
@@ -29,6 +31,8 @@ final class AssetVideoWriter {
     private let sound: SoundBuffer?
     private let soundConverter: SoundConverter?
     private let frameConverter: FrameConverter
+    private let usesHardware: Bool
+    private let clock = StageClock(marker: StageSignposter())
 
     private var frameCount = 0
     private var soundPosition = 0
@@ -97,6 +101,7 @@ final class AssetVideoWriter {
         self.sound = sound
         self.soundConverter = try sound.map { try SoundConverter(sound: $0, path: format.path) }
         self.frameConverter = FrameConverter(keepsAlpha: format.keepsAlpha, output: format.target.output)
+        self.usesHardware = Self.usesHardware(codec: format.codecType, width: width, height: height, format: format)
 
         guard writer.startWriting() else {
             abandon()
@@ -129,7 +134,8 @@ final class AssetVideoWriter {
         else {
             throw failure("no pixel buffer for frame \(frameCount)")
         }
-        guard frameConverter.copy(frame, into: buffer) else { throw failure("frame \(frameCount) cannot be scaled") }
+        let isCopied = clock.measure(.outputConversion) { frameConverter.copy(frame, into: buffer) }
+        guard isCopied else { throw failure("frame \(frameCount) cannot be scaled") }
 
         try waitUntilReady(video, for: "frame \(frameCount)")
         guard adaptor.append(buffer, withPresentationTime: timing.time(ofFrame: frameCount)) else {
@@ -207,6 +213,47 @@ final class AssetVideoWriter {
         }
     }
 
+    // Whether the compression session VideoToolbox makes for the codec, picture size and pixel format, with no encoder
+    // named, as AVAssetWriter names none, runs on a hardware encoder. A session VideoToolbox cannot make runs on none.
+    private static func usesHardware(
+        codec: CMVideoCodecType,
+        width: Int,
+        height: Int,
+        format: TargetFormat
+    ) -> Bool {
+        var created: VTCompressionSession?
+        let attributes = [
+            kCVPixelBufferPixelFormatTypeKey: format.pixelFormat,
+            kCVPixelBufferWidthKey: width,
+            kCVPixelBufferHeightKey: height
+        ] as CFDictionary
+        let status = VTCompressionSessionCreate(
+            allocator: nil,
+            width: Int32(width),
+            height: Int32(height),
+            codecType: codec,
+            encoderSpecification: nil,
+            imageBufferAttributes: attributes,
+            compressedDataAllocator: nil,
+            outputCallback: nil,
+            refcon: nil,
+            compressionSessionOut: &created
+        )
+        guard status == noErr, let session = created else { return false }
+        defer { VTCompressionSessionInvalidate(session) }
+
+        var value: Unmanaged<CFTypeRef>?
+        let copied = VTSessionCopyProperty(
+            session,
+            key: kVTCompressionPropertyKey_UsingHardwareAcceleratedVideoEncoder,
+            allocator: nil,
+            valueOut: &value
+        )
+        guard copied == noErr, let flag = value?.takeRetainedValue() else { return false }
+
+        return (flag as? Bool) == true
+    }
+
     private func failure(_ reason: String) -> EncoderError {
         let detail = writer.error.map { ": \($0.localizedDescription)" } ?? ""
 
@@ -225,10 +272,20 @@ final class AssetVideoWriter {
 
 extension AssetVideoWriter: VideoWriter {
     // MARK: - Lifecycle
+    var encoding: FileEncoding {
+        var seconds = clock.seconds
+        // The encoder's time in a frame is what appending it took beside its conversion.
+        seconds.add(-seconds[.outputConversion], to: .encode)
+
+        return FileEncoding(path: format.path, codec: format.codecName, usesHardware: usesHardware, seconds: seconds)
+    }
+
     func append(_ frame: Bitmap) throws {
         do {
-            try autoreleasepool {
-                try appendFrame(frame)
+            try clock.measure(.encode) {
+                try autoreleasepool {
+                    try appendFrame(frame)
+                }
             }
         } catch {
             abandon()
@@ -238,7 +295,7 @@ extension AssetVideoWriter: VideoWriter {
 
     func finish() throws {
         do {
-            try finishWriting()
+            try clock.measure(.encode) { try finishWriting() }
         } catch {
             abandon()
             throw error

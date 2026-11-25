@@ -17,7 +17,9 @@ import os
 // their colour by the fixed formulas of FRAMES-26: in the colour space a reading names, or the one its tags name. A
 // `platform` reading instead converts the picture from its file's colour by Core Image's colour management. A page of a
 // PDF is checked and drawn by `PageReader`. A video, a sound track and a PDF are loaded once and kept. The largest
-// picture it holds is 16384 pixels on a side.
+// picture it holds is 16384 pixels on a side. It times its reading of pictures and sound as `decode` and its conversion
+// of them as `workingConversion`, and tallies how it read each medium (FRAMES-23 Runs). A page's draw is `decode`
+// whole, any colour conversion included, that of Core Graphics and that of a written `colorSpace` alike (FRAMES-21).
 package final class AVFoundationDecoder: Sendable {
     // MARK: - Property
     // The most pixels on a side of a picture this decoder holds: a frame, a still or a region of a page.
@@ -28,6 +30,8 @@ package final class AVFoundationDecoder: Sendable {
     private let videos = OSAllocatedUnfairLock<[String: VideoReader]>(initialState: [:])
     private let sounds = OSAllocatedUnfairLock<[String: SoundReader]>(initialState: [:])
     private let documents = OSAllocatedUnfairLock<[String: PageReader]>(initialState: [:])
+    private let clock = StageClock(marker: StageSignposter())
+    private let tallies = OSAllocatedUnfairLock<[ReadingKey: ReadingTally]>(initialState: [:])
 
     // MARK: - Initializer
     package init() {}
@@ -83,38 +87,72 @@ package final class AVFoundationDecoder: Sendable {
         try soundTrack(at: path).map { ProbedSound(channels: $0.layout.labels.count, sampleRate: $0.sampleRate) }
     }
 
+    // `path` is the still's file, the frame's of an image sequence, and `file` the medium it belongs to.
     private func picture(
         of still: StillReader,
         path: String,
+        in file: MediaFile,
         reading: PictureReading
     ) throws -> Bitmap {
         let tagged = try still.taggedColor(path: path)
-        let image: CIImage
         if case .platform = reading {
-            image = try still.taggedImage(path: path)
-        } else {
-            image = try still.image(path: path)
+            let image = try clock.measure(.decode) { try still.taggedImage(path: path) }
+
+            return try picture(from: image, tagged: tagged, path: path, reading: reading).picture
         }
 
-        return try picture(from: image, tagged: tagged, path: path, reading: reading)
+        let (image, pixelFormat) = try clock.measure(.decode) { try still.image(path: path) }
+        let (picture, conversion) = try picture(from: image, tagged: tagged, path: path, reading: reading)
+        record(file, conversion: conversion, pixelFormat: pixelFormat, decoded: 1, reopened: false, readFile: path)
+
+        return picture
+    }
+
+    // A picture of `file` read by `conversion`, nil for a `platform` reading, which only `transcode` makes and no run
+    // reports. A video's reader opened again is `reopened`, and a still's or a frame's file read again is `readFile`
+    // read before.
+    private func record(
+        _ file: MediaFile,
+        conversion: WorkingConversion?,
+        pixelFormat: String,
+        decoded: Int,
+        reopened: Bool,
+        readFile: String?
+    ) {
+        guard let conversion else { return }
+
+        tallies.withLock { tallies in
+            let key = ReadingKey(path: file.path, page: file.page, conversion: conversion)
+            var tally = tallies[key] ?? ReadingTally(order: tallies.count, pixelFormat: pixelFormat)
+            tally.pixelFormat = pixelFormat
+            tally.framesRead += 1
+            tally.framesDecoded += decoded
+            if reopened { tally.reopened += 1 }
+            if let readFile, !tally.filesRead.insert(readFile).inserted { tally.reopened += 1 }
+            tallies[key] = tally
+        }
     }
 
     // `image` is the picture with no colour matched, or tagged with its file's colour for a `platform` reading.
     // `tagged` is the file's colour, which a reading that names a colour space overrides, and its mastering display's
-    // peak, which an HDR picture is tone mapped from either way.
+    // peak, which an HDR picture is tone mapped from either way. With the picture comes the form it was converted by,
+    // nil for a `platform` reading.
     private func picture(
         from image: CIImage,
         tagged: TaggedColor,
         path: String,
         reading: PictureReading
-    ) throws -> Bitmap {
+    ) throws -> (picture: Bitmap, conversion: WorkingConversion?) {
         switch reading {
         case let .working(colorSpace, targetPeak):
             let conversion = try conversion(in: colorSpace, tagged: tagged, path: path)
             let toneMapping = targetPeak.flatMap {
                 conversion.toneMapping(masteringDisplayPeak: tagged.masteringDisplayPeak, targetPeak: $0)
             }
-            return converter.picture(from: image, conversion: conversion, toneMapping: toneMapping)
+            let picture = clock.measure(.workingConversion) {
+                converter.picture(from: image, conversion: conversion, toneMapping: toneMapping)
+            }
+            return (picture, conversion.workingConversion)
 
         case let .analysis(colorSpace):
             let conversion = try conversion(in: colorSpace, tagged: tagged, path: path)
@@ -122,10 +160,13 @@ package final class AVFoundationDecoder: Sendable {
                 masteringDisplayPeak: tagged.masteringDisplayPeak,
                 targetPeak: ColorSpace.srgb.peakLuminance
             )
-            return converter.analysisPicture(from: image, conversion: conversion, toneMapping: toneMapping)
+            let picture = clock.measure(.workingConversion) {
+                converter.analysisPicture(from: image, conversion: conversion, toneMapping: toneMapping)
+            }
+            return (picture, conversion.workingConversion)
 
         case let .platform(colorSpace):
-            return managedConverter.picture(from: image, in: colorSpace)
+            return (clock.measure(.workingConversion) { managedConverter.picture(from: image, in: colorSpace) }, nil)
         }
     }
 
@@ -268,13 +309,13 @@ extension AVFoundationDecoder: MediaDecoder {
             guard let still = try StillReader(path: path) else { throw DecoderError.unreadable(file: path) }
             try checkSize(still.displaySize, path: path)
 
-            return try picture(of: still, path: path, reading: reading)
+            return try picture(of: still, path: path, in: file, reading: reading)
         }
         if let still = try StillReader(path: file.path) {
             guard index == 0 else { throw DecoderError.noFrame(file: file.path, index: index, count: 1) }
             try checkSize(still.displaySize, path: file.path)
 
-            return try picture(of: still, path: file.path, reading: reading)
+            return try picture(of: still, path: file.path, in: file, reading: reading)
         }
 
         guard let video = try video(at: file.path) else { throw DecoderError.unreadable(file: file.path) }
@@ -288,13 +329,29 @@ extension AVFoundationDecoder: MediaDecoder {
         }
 
         try checkColor(video.taggedColor, in: reading.colorSpace, path: file.path)
-        let image = if case .platform = reading {
-            try video.taggedImage(atFrame: index, path: file.path)
-        } else {
-            try video.image(atFrame: index, path: file.path)
+        if case .platform = reading {
+            let image = try clock.measure(.decode) { try video.taggedImage(atFrame: index, path: file.path) }
+
+            return try picture(from: image, tagged: video.taggedColor, path: file.path, reading: reading).picture
         }
 
-        return try picture(from: image, tagged: video.taggedColor, path: file.path, reading: reading)
+        let (image, decoded, reopened) = try clock.measure(.decode) { try video.image(atFrame: index, path: file.path) }
+        let (picture, conversion) = try picture(
+            from: image,
+            tagged: video.taggedColor,
+            path: file.path,
+            reading: reading
+        )
+        record(
+            file,
+            conversion: conversion,
+            pixelFormat: VideoReader.pixelFormat,
+            decoded: decoded,
+            reopened: reopened,
+            readFile: nil
+        )
+
+        return picture
     }
 
     package func picture(
@@ -316,7 +373,26 @@ extension AVFoundationDecoder: MediaDecoder {
             )
         }
 
-        return try document.picture(page, region: region, scale: scale, reading: reading)
+        let picture = try clock.measure(.decode) {
+            try document.picture(page, region: region, scale: scale, reading: reading)
+        }
+        let conversion: WorkingConversion? = switch reading {
+        case let .working(colorSpace, _), let .analysis(colorSpace):
+            MediaColorConversion(.space(colorSpace ?? .srgb)).workingConversion
+
+        case .platform:
+            nil
+        }
+        record(
+            file,
+            conversion: conversion,
+            pixelFormat: PageReader.pixelFormat,
+            decoded: 1,
+            reopened: false,
+            readFile: nil
+        )
+
+        return picture
     }
 
     package func pageSize(of file: MediaFile) throws -> Size {
@@ -385,6 +461,24 @@ extension AVFoundationDecoder: MediaDecoder {
     ) throws -> SoundBuffer {
         guard let sound = try soundTrack(at: file.path) else { throw DecoderError.noSound(file: file.path) }
 
-        return try sound.sound(from: start, to: end, path: file.path)
+        return try clock.measure(.decode) { try sound.sound(from: start, to: end, path: file.path) }
+    }
+
+    package func readings() -> MediaReadings {
+        let media = tallies.withLock { $0 }
+            .sorted { $0.value.order < $1.value.order }
+            .map { key, tally in
+                MediumReading(
+                    path: key.path,
+                    page: key.page,
+                    conversion: key.conversion,
+                    pixelFormat: tally.pixelFormat,
+                    framesRead: tally.framesRead,
+                    framesDecoded: tally.framesDecoded,
+                    reopened: tally.reopened
+                )
+            }
+
+        return MediaReadings(media: media, seconds: clock.seconds)
     }
 }

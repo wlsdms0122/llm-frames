@@ -256,21 +256,27 @@ extension AVFoundationEncoder: Encoder {
         try write(picture, type: .png, properties: [:], to: path)
     }
 
+    // ImageIO writes the image on the processor. Its conversion to the output's values is `outputConversion`, and its
+    // compression and writing `encode`.
+    @discardableResult
     package func writeImage(
         _ bitmap: Bitmap,
         for target: ImageTarget
-    ) throws {
+    ) throws -> FileEncoding {
         let output = target.output
         let isJPEG = if case .jpeg = target { true } else { false }
-        let picture = try image(
-            of: bitmap,
-            width: Int(target.size.width),
-            height: Int(target.size.height),
-            depth: depth(of: target),
-            space: output.space.imageSpace,
-            isOpaque: isJPEG,
-            path: target.path
-        ) { output.output($0) }
+        let clock = StageClock(marker: StageSignposter())
+        let picture = try clock.measure(.outputConversion) {
+            try image(
+                of: bitmap,
+                width: Int(target.size.width),
+                height: Int(target.size.height),
+                depth: depth(of: target),
+                space: output.space.imageSpace,
+                isOpaque: isJPEG,
+                path: target.path
+            ) { output.output($0) }
+        }
         let properties: [CFString: Any] = switch target {
         case .png:
             [:]
@@ -279,7 +285,16 @@ extension AVFoundationEncoder: Encoder {
             [kCGImageDestinationLossyCompressionQuality: quality.imageQuality]
         }
 
-        try write(picture, type: fileType(of: target), properties: properties, to: target.path)
+        try clock.measure(.encode) {
+            try write(picture, type: fileType(of: target), properties: properties, to: target.path)
+        }
+
+        return FileEncoding(
+            path: target.path,
+            codec: codecName(of: target),
+            usesHardware: false,
+            seconds: clock.seconds
+        )
     }
 
     package func writeSound(

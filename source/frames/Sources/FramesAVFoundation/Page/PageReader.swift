@@ -17,6 +17,9 @@ import os
 // one document from several threads at once.
 final class PageReader: @unchecked Sendable {
     // MARK: - Property
+    // How Core Graphics gives the decoder a page's drawn samples (FRAMES-23 Runs).
+    static let pixelFormat = "32-bit float RGBA"
+
     let path: String
     let pageCount: Int
 

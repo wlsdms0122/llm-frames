@@ -68,5 +68,10 @@ struct EmptySoundDecoder: MediaDecoder {
         return SoundBuffer(sampleRate: sound.sampleRate, channels: sound.channels, samples: [], layout: sound.layout)
     }
 
+    // Reports no medium and no time, as a run's report of it would be empty.
+    func readings() -> MediaReadings {
+        MediaReadings(media: [], seconds: StageTimes())
+    }
+
     // MARK: - Private
 }

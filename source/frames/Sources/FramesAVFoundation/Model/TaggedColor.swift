@@ -53,7 +53,7 @@ struct TaggedColor: Equatable, Sendable {
             color: color,
             masteringDisplayPeak: masteringDisplayPeak,
             probed: ProbedColorSpace(
-                reading: Self.reading(of: color),
+                conversion: (try? color.get()).map { MediaColorConversion($0).workingConversion },
                 primaries: primaries,
                 transfer: transfer,
                 matrix: matrix,
@@ -86,7 +86,7 @@ struct TaggedColor: Equatable, Sendable {
             color: color,
             masteringDisplayPeak: masteringDisplayPeak,
             probed: ProbedColorSpace(
-                reading: Self.reading(of: color),
+                conversion: (try? color.get()).map { MediaColorConversion($0).workingConversion },
                 primaries: row?.colorPrimaries,
                 transfer: row?.transferCharacteristics,
                 matrix: nil,

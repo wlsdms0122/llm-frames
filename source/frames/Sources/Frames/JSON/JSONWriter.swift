@@ -25,6 +25,12 @@ package struct JSONWriter: Sendable {
         return text + "\n"
     }
 
+    // The value on one line, members and elements separated by `, `, ending with a line break, for output read a line
+    // at a time.
+    package func writeLine(_ value: JSONValue) -> String {
+        line(value) + "\n"
+    }
+
     func number(_ number: Double) -> String {
         // A plan that reaches a non-finite number is a fault of resolve, not of the document.
         precondition(number.isFinite, "JSON has no form for \(number)")
@@ -100,6 +106,28 @@ package struct JSONWriter: Sendable {
     }
 
     // MARK: - Private
+    private func line(_ value: JSONValue) -> String {
+        switch value {
+        case .null:
+            "null"
+
+        case let .bool(bool):
+            bool ? "true" : "false"
+
+        case let .number(number):
+            self.number(number)
+
+        case let .string(string):
+            self.string(string)
+
+        case let .array(elements):
+            "[" + elements.map(line).joined(separator: ", ") + "]"
+
+        case let .object(object):
+            "{" + object.members.map { string($0.key) + ": " + line($0.value) }.joined(separator: ", ") + "}"
+        }
+    }
+
     private func write(
         _ value: JSONValue,
         depth: Int,

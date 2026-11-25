@@ -5,19 +5,26 @@
 //  Created by JSilver on 11/20/26.
 //
 
-// The colour facts of a picture as `probe` reports them (FRAMES-23): `reading` is how the decoder takes the picture to
-// working values, and `primaries`, `transfer` and `matrix` the H.273 code points it is tagged with, nil for one it
-// leaves out. An image tagged by an ICC profile gives those of the table's row the profile describes, nil outside the
-// table, and no matrix. `bitDepth` is the bits per channel the file stores, nil for a page of a PDF, which has no pixels
-// of its own, and `isHighDynamicRange` says whether its transfer is PQ or HLG.
+// The colour facts of a picture as `probe` reports them (FRAMES-23): `conversion` is the form by which the decoder
+// takes the picture to working values by its tags, nil for a picture only the platform's colour management reads, and
+// `primaries`, `transfer` and `matrix` the H.273 code points it is tagged with, nil for one it leaves out. An image
+// tagged by an ICC profile gives those of the table's row the profile describes, nil outside the table, and no matrix.
+// `bitDepth` is the bits per channel the file stores, nil for a page of a PDF, which has no pixels of its own, and
+// `isHighDynamicRange` says whether its transfer is PQ or HLG.
 package struct ProbedColorSpace: Equatable, Sendable {
     // MARK: - Property
-    package let reading: ColorReading
+    package let conversion: WorkingConversion?
     package let primaries: Int?
     package let transfer: Int?
     package let matrix: Int?
     package let bitDepth: Int?
     package let isHighDynamicRange: Bool
+
+    // How the decoder takes the picture to working values: by the fixed formulas, from the space of the table its tags
+    // name, or only by the platform's colour management.
+    package var reading: ColorReading {
+        conversion.map { .formulas($0.colorSpace) } ?? .platform
+    }
 
     // The space of the table the decoder takes the picture in, `srgb` when it is untagged, and nil when it is tagged
     // outside the table or read only by the platform's colour management.
@@ -29,14 +36,14 @@ package struct ProbedColorSpace: Equatable, Sendable {
 
     // MARK: - Initializer
     package init(
-        reading: ColorReading,
+        conversion: WorkingConversion?,
         primaries: Int?,
         transfer: Int?,
         matrix: Int?,
         bitDepth: Int?,
         isHighDynamicRange: Bool
     ) {
-        self.reading = reading
+        self.conversion = conversion
         self.primaries = primaries
         self.transfer = transfer
         self.matrix = matrix

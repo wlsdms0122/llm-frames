@@ -27,10 +27,12 @@ package protocol Encoder: Sendable {
         to path: String
     ) throws
 
+    // How the image was written (FRAMES-23 Runs).
+    @discardableResult
     func writeImage(
         _ bitmap: Bitmap,
         for target: ImageTarget
-    ) throws
+    ) throws -> FileEncoding
 
     // `sound` is the whole file's.
     func writeSound(

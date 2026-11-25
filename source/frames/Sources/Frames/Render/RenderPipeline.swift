@@ -11,9 +11,11 @@ import Foundation
 // master and, when asked, a delivery from the same frames in the same pass, or to a delivery alone, each in the
 // sequence's colour space and clipped to its peak. Everything that can refuse does before the first frame, in this
 // order: the output paths and the time, every pinned file's hash, the decoder on every pinned media, the mixer on the
-// mix plan, the renderer on every frame's display list, and the encoder on each target.
+// mix plan, the renderer on every frame's display list, and the encoder on each target. A run's recorder times each
+// stage the pipeline runs and the time it spends in the encoder, and is told of every frame drawn (FRAMES-23 Runs).
 package struct RenderPipeline: Sendable {
     // MARK: - Property
+    private let decoder: any MediaDecoder
     private let renderer: any Renderer
     private let mixer: any Mixer
     private let encoder: any Encoder
@@ -37,6 +39,7 @@ package struct RenderPipeline: Sendable {
         encoder: any Encoder,
         hasher: any FileHashProvider
     ) {
+        self.decoder = decoder
         self.renderer = renderer
         self.mixer = mixer
         self.encoder = encoder
@@ -46,12 +49,14 @@ package struct RenderPipeline: Sendable {
     // MARK: - Public
     // `time` is the frame of a PNG, 0 when it is nil, and must be nil for a video. `delivery` goes beside a master
     // only.
+    @discardableResult
     package func render(
         _ sequence: ResolvedSequence,
         to output: String,
         at time: Double?,
-        delivery: String?
-    ) throws {
+        delivery: String?,
+        recorder: RunRecorder = RunRecorder()
+    ) throws -> RenderRun {
         let format = sequence.format
 
         switch pathExtension(of: output) {
@@ -59,7 +64,7 @@ package struct RenderPipeline: Sendable {
             if let delivery {
                 throw RenderError.deliveryWithoutMaster(path: delivery)
             }
-            try still(sequence, at: time ?? 0, to: output)
+            return try still(sequence, at: time ?? 0, to: output, recorder: recorder)
 
         case "mov":
             guard time == nil else { throw RenderError.timeOfVideo(path: output) }
@@ -69,7 +74,7 @@ package struct RenderPipeline: Sendable {
 
             let master = EncodeTarget.master(path: output, alpha: !format.background.isOpaque, output: format.output)
             let deliveries = delivery.map { [EncodeTarget.delivery(path: $0, output: format.output)] } ?? []
-            try video(sequence, to: [master] + deliveries)
+            return try video(sequence, to: [master] + deliveries, recorder: recorder)
 
         case "mp4":
             guard time == nil else { throw RenderError.timeOfVideo(path: output) }
@@ -77,7 +82,7 @@ package struct RenderPipeline: Sendable {
                 throw RenderError.deliveryWithoutMaster(path: delivery)
             }
 
-            try video(sequence, to: [.delivery(path: output, output: format.output)])
+            return try video(sequence, to: [.delivery(path: output, output: format.output)], recorder: recorder)
 
         default:
             throw RenderError.outputExtension(path: output)
@@ -88,58 +93,80 @@ package struct RenderPipeline: Sendable {
     private func still(
         _ sequence: ResolvedSequence,
         at time: Double,
-        to output: String
-    ) throws {
+        to output: String,
+        recorder: RunRecorder
+    ) throws -> RenderRun {
         try FrameSpan(end: sequence.format.duration, kind: "sequence").check(time, option: "--at")
 
-        try pinned.check(sequence.pinnedReferences)
+        try recorder.measure(.check, reading: decoder) { try pinned.check(sequence.pinnedReferences) }
 
-        let list = evaluator.displayList(of: sequence, at: time)
-        try renderer.check(list, ofFrameAt: time)
+        let list = recorder.measure(.evaluate, reading: decoder) { evaluator.displayList(of: sequence, at: time) }
         let target = ImageTarget.png(
             path: output,
             size: sequence.format.size,
             depth: .sixteen,
             output: sequence.format.output
         )
-        try encoder.check(target)
+        try recorder.measure(.check, reading: decoder) {
+            try renderer.check(list, ofFrameAt: time)
+            try encoder.check(target)
+        }
 
-        try encoder.writeImage(renderer.frame(of: list), for: target)
+        let frame = try recorder.measure(.draw, reading: decoder) { try renderer.frame(of: list) }
+        let file = try recorder.measureWaiting { try encoder.writeImage(frame, for: target) }
+        recorder.drew(frame: 1, of: 1)
+
+        return RenderRun(frames: 1, files: [file])
     }
 
     // Draws every frame once and appends it to each target's writer, which writes it while the next is drawn.
     private func video(
         _ sequence: ResolvedSequence,
-        to targets: [EncodeTarget]
-    ) throws {
-        let mix = try SequenceMix(of: sequence, pinned: pinned, mixer: mixer)
+        to targets: [EncodeTarget],
+        recorder: RunRecorder
+    ) throws -> RenderRun {
+        let mix = try recorder.measure(.check, reading: decoder) {
+            try SequenceMix(of: sequence, pinned: pinned, mixer: mixer)
+        }
 
         let format = sequence.format
         let times = (0..<format.frameCount).map(format.frameTime)
         for time in times {
-            try renderer.check(evaluator.displayList(of: sequence, at: time), ofFrameAt: time)
+            let list = recorder.measure(.evaluate, reading: decoder) { evaluator.displayList(of: sequence, at: time) }
+            try recorder.measure(.check, reading: decoder) { try renderer.check(list, ofFrameAt: time) }
         }
 
-        for target in targets {
-            try encoder.check(target)
+        try recorder.measure(.check, reading: decoder) {
+            for target in targets {
+                try encoder.check(target)
+            }
         }
 
         // A sequence without sound mixes to silence, so every master and delivery carries one sound track.
-        let sound = try mix.mixed()
-        let writers = try targets.map { target in
-            try encoder.videoWriter(for: target, size: format.size, fps: format.fps, sound: sound)
+        let sound = try recorder.measure(.mix, reading: decoder) { try mix.mixed() }
+        let writers = try recorder.measureWaiting {
+            try targets.map { target in
+                try encoder.videoWriter(for: target, size: format.size, fps: format.fps, sound: sound)
+            }
         }
 
         let queue = FrameWriteQueue(writers: writers)
         do {
-            for time in times {
-                try queue.append(renderer.frame(of: evaluator.displayList(of: sequence, at: time)))
+            for (index, time) in times.enumerated() {
+                let list = recorder.measure(.evaluate, reading: decoder) {
+                    evaluator.displayList(of: sequence, at: time)
+                }
+                let frame = try recorder.measure(.draw, reading: decoder) { try renderer.frame(of: list) }
+                try recorder.measureWaiting { try queue.append(frame) }
+                recorder.drew(frame: index + 1, of: times.count)
             }
-            try queue.finish()
+            try recorder.measureWaiting { try queue.finish() }
         } catch {
             queue.cancel()
             throw error
         }
+
+        return RenderRun(frames: times.count, files: writers.map(\.encoding))
     }
 
     private func pathExtension(of path: String) -> String {

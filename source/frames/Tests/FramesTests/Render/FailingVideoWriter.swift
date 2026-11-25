@@ -16,6 +16,11 @@ struct FailingVideoWriter: VideoWriter {
     // MARK: - Property
     // MARK: - Initializer
     // MARK: - Lifecycle
+    // A file it never writes, in no time.
+    var encoding: FileEncoding {
+        FileEncoding(path: "", codec: "ProRes 422 HQ", usesHardware: false, seconds: StageTimes())
+    }
+
     func append(_ frame: Bitmap) throws {
         throw Failure.refused
     }

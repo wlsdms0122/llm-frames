@@ -67,7 +67,7 @@ enum Fixture {
                 kind: .image,
                 size: Size(width: 1080, height: 1350),
                 colorSpace: ProbedColorSpace(
-                    reading: .formulas(.srgb),
+                    conversion: .identity,
                     primaries: 1,
                     transfer: 13,
                     matrix: nil,
