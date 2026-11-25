@@ -713,7 +713,7 @@ A theme holds a look: sizes, colours, text styles, shape styles and default pres
 | `shapes` | shape styles by name, an open map: `fill`, `stroke`, `radius` (one length or four), `outset`, `shadow` |
 | `placement` | `padding`, the title safe margin |
 | `border`, `shadow` | `{width, color, align}` and `{radius, offset, color}`, drawn by `border: true` and `shadow: true`. `align` is `inside` (the base theme's), `center` or `outside`, the side of the box's edge the border lies on |
-| `defaults` | the presets a clip takes when it names none: `transition`, `filter`, and `animation` by clip kind (`title` keyed by text style, `shape`, `media`, `adjust`) |
+| `defaults` | the presets a clip takes when it names none: `transition`, `filter`, and `animation` by clip kind (`title` keyed by text style, `shape` for the rect, ellipse and path kinds, `media`, `adjustment`) |
 
 ```json
 {
