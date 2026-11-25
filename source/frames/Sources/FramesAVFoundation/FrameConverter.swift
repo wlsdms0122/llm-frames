@@ -129,6 +129,15 @@ struct FrameConverter: Sendable {
         let output = destination.assumingMemoryBound(to: UInt8.self)
         for pixel in 0..<width {
             let offset = pixel * 4
+            // A pixel whose samples have the bits of the pixel before it stores that pixel's bytes.
+            if pixel > 0, Self.words(at: pixels + offset) == Self.words(at: pixels + offset - 4) {
+                (destination + offset).storeBytes(
+                    of: (destination + offset - 4).loadUnaligned(as: UInt32.self),
+                    as: UInt32.self
+                )
+                continue
+            }
+
             output[pixel * 4] = Self.eightBits(pixels[offset + 2])
             output[pixel * 4 + 1] = Self.eightBits(pixels[offset + 1])
             output[pixel * 4 + 2] = Self.eightBits(pixels[offset])
@@ -151,4 +160,10 @@ extension FrameConverter {
     }
 
     // MARK: - Private
+    // The four samples of the pixel at `pixel` as two 64-bit words, which compare at less cost than one vector.
+    private static func words(at pixel: UnsafePointer<Float>) -> (UInt64, UInt64) {
+        let bytes = UnsafeRawPointer(pixel)
+
+        return (bytes.loadUnaligned(as: UInt64.self), bytes.loadUnaligned(fromByteOffset: 8, as: UInt64.self))
+    }
 }

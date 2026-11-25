@@ -105,9 +105,22 @@ extension Bitmap {
                 DispatchQueue.concurrentPerform(iterations: height) { row in
                     let line = input + row * bytesPerRow
                     let packed = output + row * rowLength
-                    for index in 0..<rowLength {
-                        let value = component(of: line, at: index)
-                        packed[index] = index % 4 == 3 ? min(max(value, 0), 1) : value
+
+                    switch depth {
+                    case .eight:
+                        Self.unpack(line.assumingMemoryBound(to: UInt8.self), count: rowLength, into: packed) {
+                            Float($0) / 255
+                        }
+
+                    case .sixteen:
+                        Self.unpack(line.assumingMemoryBound(to: UInt16.self), count: rowLength, into: packed) {
+                            Float(UInt16(littleEndian: $0)) / 65_535
+                        }
+
+                    case .halfFloat:
+                        Self.unpack(line.assumingMemoryBound(to: Float16.self), count: rowLength, into: packed) {
+                            Float($0)
+                        }
                     }
                 }
             }
@@ -117,19 +130,18 @@ extension Bitmap {
     }
 
     // MARK: - Private
-    private func component(
-        of row: UnsafeRawPointer,
-        at index: Int
-    ) -> Float {
-        switch depth {
-        case .eight:
-            Float(row.assumingMemoryBound(to: UInt8.self)[index]) / 255
-
-        case .sixteen:
-            Float(UInt16(littleEndian: row.assumingMemoryBound(to: UInt16.self)[index])) / 65_535
-
-        case .halfFloat:
-            Float(row.assumingMemoryBound(to: Float16.self)[index])
+    // `count` components of a row, four to a pixel, each taken to a float by `component` and alpha clipped to 0 to 1.
+    private static func unpack<Component>(
+        _ row: UnsafePointer<Component>,
+        count: Int,
+        into packed: UnsafeMutablePointer<Float>,
+        by component: (Component) -> Float
+    ) {
+        for pixel in stride(from: 0, to: count, by: 4) {
+            packed[pixel] = component(row[pixel])
+            packed[pixel + 1] = component(row[pixel + 1])
+            packed[pixel + 2] = component(row[pixel + 2])
+            packed[pixel + 3] = min(max(component(row[pixel + 3]), 0), 1)
         }
     }
 }
