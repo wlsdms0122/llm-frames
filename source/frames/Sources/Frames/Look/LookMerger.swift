@@ -192,6 +192,13 @@ struct LookMerger: Sendable {
             let form = structure.structure(ofForm: name) ?? .anyValue
             return .form(name, try mergeObjects(body, changes, as: form, place: place, byElement: byElement))
 
+        case (.choice, .object, .object):
+            // A choice object that names no preset over another, a clip's over a theme's default or a theme's over a
+            // weaker theme's: each key it writes replaces that key below, so a side replaces that side whole.
+            return over.members.reduce(under) { merged, member in
+                member.value == .unset ? merged : merged.setting(member.key, to: member.value)
+            }
+
         case (.choice, .list, _) where over.isPartialChoice:
             throw LookError.partialOverList(place: place)
 
