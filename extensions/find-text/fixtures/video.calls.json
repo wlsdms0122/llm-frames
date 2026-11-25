@@ -39,7 +39,22 @@
      ],
      "speed": 1,
      "timeRemap": false,
-     "transition": null
+     "transition": null,
+     "fps": null,
+     "instant": 0,
+     "clock": {
+      "clip": "storyline[0]#v",
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "output",
+      "clip": null
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "storyline[0]#v"
+     }
     },
     {
      "place": "storyline[1]#fast",
@@ -65,7 +80,22 @@
      ],
      "speed": 2,
      "timeRemap": false,
-     "transition": null
+     "transition": null,
+     "fps": null,
+     "instant": 4,
+     "clock": {
+      "clip": "storyline[1]#fast",
+      "origin": 3.75,
+      "speed": 2
+     },
+     "space": {
+      "kind": "output",
+      "clip": null
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "storyline[1]#fast"
+     }
     },
     {
      "place": "storyline[2]#held",
@@ -88,7 +118,22 @@
      "sound": null,
      "speed": 1,
      "timeRemap": true,
-     "transition": null
+     "transition": null,
+     "fps": null,
+     "instant": 5.7,
+     "clock": {
+      "clip": "storyline[2]#held",
+      "origin": 5.7,
+      "speed": 1
+     },
+     "space": {
+      "kind": "output",
+      "clip": null
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "storyline[2]#held"
+     }
     },
     {
      "place": "storyline[3]#seq",
@@ -111,7 +156,22 @@
      "sound": null,
      "speed": 1,
      "timeRemap": false,
-     "transition": null
+     "transition": null,
+     "fps": 2,
+     "instant": 7.7,
+     "clock": {
+      "clip": "storyline[3]#seq",
+      "origin": 6.7,
+      "speed": 1
+     },
+     "space": {
+      "kind": "output",
+      "clip": null
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "storyline[3]#seq"
+     }
     }
    ],
    "clips": [
@@ -129,7 +189,22 @@
      "lane": 1,
      "storyline": "storyline[0]#v",
      "parent": "storyline[0]#v",
-     "animation": null
+     "animation": null,
+     "fps": null,
+     "instant": 0,
+     "clock": {
+      "clip": "storyline[0]#v",
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "media",
+      "clip": "storyline[0]#v"
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "storyline[0]#v"
+     }
     },
     {
      "place": "storyline[0]#v.connected[1]#a",
@@ -145,7 +220,22 @@
      "lane": 1,
      "storyline": "storyline[0]#v",
      "parent": "storyline[0]#v",
-     "animation": null
+     "animation": null,
+     "fps": null,
+     "instant": 0,
+     "clock": {
+      "clip": "storyline[0]#v",
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "media",
+      "clip": "storyline[0]#v"
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "storyline[0]#v"
+     }
     },
     {
      "place": "storyline[0]#v.connected[2]#n",
@@ -161,7 +251,22 @@
      "lane": 1,
      "storyline": "storyline[0]#v",
      "parent": "storyline[0]#v",
-     "animation": null
+     "animation": null,
+     "fps": null,
+     "instant": 2.2,
+     "clock": {
+      "clip": "storyline[0]#v",
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "media",
+      "clip": "storyline[0]#v"
+     },
+     "ownSpace": {
+      "kind": "box",
+      "clip": "storyline[0]#v.connected[2]#n"
+     }
     },
     {
      "place": "storyline[2]#held.connected[0]",
@@ -177,7 +282,22 @@
      "lane": 1,
      "storyline": "storyline[2]#held",
      "parent": "storyline[2]#held",
-     "animation": null
+     "animation": null,
+     "fps": null,
+     "instant": 5.7,
+     "clock": {
+      "clip": "storyline[2]#held",
+      "origin": 5.7,
+      "speed": 1
+     },
+     "space": {
+      "kind": "media",
+      "clip": "storyline[2]#held"
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "storyline[2]#held"
+     }
     },
     {
      "place": "storyline[3]#seq.connected[0]",
@@ -193,7 +313,22 @@
      "lane": 1,
      "storyline": "storyline[3]#seq",
      "parent": "storyline[3]#seq",
-     "animation": null
+     "animation": null,
+     "fps": null,
+     "instant": 7.7,
+     "clock": {
+      "clip": "storyline[3]#seq",
+      "origin": 6.7,
+      "speed": 1
+     },
+     "space": {
+      "kind": "media",
+      "clip": "storyline[3]#seq"
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "storyline[3]#seq"
+     }
     },
     {
      "place": "clips[0]#pip",
@@ -212,7 +347,22 @@
      "lane": 1,
      "storyline": null,
      "parent": null,
-     "animation": null
+     "animation": null,
+     "fps": null,
+     "instant": 6,
+     "clock": {
+      "clip": null,
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "output",
+      "clip": null
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "clips[0]#pip"
+     }
     },
     {
      "place": "clips[1]",
@@ -228,7 +378,22 @@
      "lane": 1,
      "storyline": null,
      "parent": "clips[0]#pip",
-     "animation": null
+     "animation": null,
+     "fps": null,
+     "instant": 7,
+     "clock": {
+      "clip": null,
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "media",
+      "clip": "clips[0]#pip"
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "clips[0]#pip"
+     }
     },
     {
      "place": "clips[2]",
@@ -244,7 +409,22 @@
      "lane": 1,
      "storyline": null,
      "parent": "clips[0]#pip",
-     "animation": null
+     "animation": null,
+     "fps": null,
+     "instant": 0,
+     "clock": {
+      "clip": null,
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "media",
+      "clip": "clips[0]#pip"
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "clips[0]#pip"
+     }
     },
     {
      "place": "clips[3]#under",
@@ -263,7 +443,22 @@
      "lane": 1,
      "storyline": null,
      "parent": null,
-     "animation": null
+     "animation": null,
+     "fps": null,
+     "instant": 0,
+     "clock": {
+      "clip": null,
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "output",
+      "clip": null
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "clips[3]#under"
+     }
     },
     {
      "place": "clips[4]",
@@ -279,7 +474,22 @@
      "lane": 1,
      "storyline": null,
      "parent": "clips[3]#under",
-     "animation": null
+     "animation": null,
+     "fps": null,
+     "instant": 0,
+     "clock": {
+      "clip": null,
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "media",
+      "clip": "clips[3]#under"
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "clips[3]#under"
+     }
     }
    ]
   }
@@ -322,6 +532,21 @@
      "speed": 1,
      "timeRemap": false,
      "transition": null,
+     "fps": null,
+     "instant": 0,
+     "clock": {
+      "clip": "storyline[0]#v",
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "output",
+      "clip": null
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "storyline[0]#v"
+     },
      "clipTime": 0,
      "mediaTime": 0
     },
@@ -350,6 +575,21 @@
      "speed": 2,
      "timeRemap": false,
      "transition": null,
+     "fps": null,
+     "instant": 4,
+     "clock": {
+      "clip": "storyline[1]#fast",
+      "origin": 3.75,
+      "speed": 2
+     },
+     "space": {
+      "kind": "output",
+      "clip": null
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "storyline[1]#fast"
+     },
      "clipTime": -7.5,
      "mediaTime": 0
     },
@@ -375,6 +615,21 @@
      "speed": 1,
      "timeRemap": true,
      "transition": null,
+     "fps": null,
+     "instant": 5.7,
+     "clock": {
+      "clip": "storyline[2]#held",
+      "origin": 5.7,
+      "speed": 1
+     },
+     "space": {
+      "kind": "output",
+      "clip": null
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "storyline[2]#held"
+     },
      "clipTime": -5.7,
      "mediaTime": 3
     },
@@ -400,6 +655,21 @@
      "speed": 1,
      "timeRemap": false,
      "transition": null,
+     "fps": 2,
+     "instant": 7.7,
+     "clock": {
+      "clip": "storyline[3]#seq",
+      "origin": 6.7,
+      "speed": 1
+     },
+     "space": {
+      "kind": "output",
+      "clip": null
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "storyline[3]#seq"
+     },
      "clipTime": -6.7,
      "mediaTime": 0
     }
@@ -420,6 +690,21 @@
      "storyline": "storyline[0]#v",
      "parent": "storyline[0]#v",
      "animation": null,
+     "fps": null,
+     "instant": 0,
+     "clock": {
+      "clip": "storyline[0]#v",
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "media",
+      "clip": "storyline[0]#v"
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "storyline[0]#v"
+     },
      "mediaTime": null
     },
     {
@@ -437,6 +722,21 @@
      "storyline": "storyline[0]#v",
      "parent": "storyline[0]#v",
      "animation": null,
+     "fps": null,
+     "instant": 0,
+     "clock": {
+      "clip": "storyline[0]#v",
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "media",
+      "clip": "storyline[0]#v"
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "storyline[0]#v"
+     },
      "mediaTime": null
     },
     {
@@ -454,6 +754,21 @@
      "storyline": "storyline[0]#v",
      "parent": "storyline[0]#v",
      "animation": null,
+     "fps": null,
+     "instant": 2.2,
+     "clock": {
+      "clip": "storyline[0]#v",
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "media",
+      "clip": "storyline[0]#v"
+     },
+     "ownSpace": {
+      "kind": "box",
+      "clip": "storyline[0]#v.connected[2]#n"
+     },
      "mediaTime": null
     },
     {
@@ -471,6 +786,21 @@
      "storyline": "storyline[2]#held",
      "parent": "storyline[2]#held",
      "animation": null,
+     "fps": null,
+     "instant": 5.7,
+     "clock": {
+      "clip": "storyline[2]#held",
+      "origin": 5.7,
+      "speed": 1
+     },
+     "space": {
+      "kind": "media",
+      "clip": "storyline[2]#held"
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "storyline[2]#held"
+     },
      "mediaTime": null
     },
     {
@@ -488,6 +818,21 @@
      "storyline": "storyline[3]#seq",
      "parent": "storyline[3]#seq",
      "animation": null,
+     "fps": null,
+     "instant": 7.7,
+     "clock": {
+      "clip": "storyline[3]#seq",
+      "origin": 6.7,
+      "speed": 1
+     },
+     "space": {
+      "kind": "media",
+      "clip": "storyline[3]#seq"
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "storyline[3]#seq"
+     },
      "mediaTime": null
     },
     {
@@ -508,6 +853,21 @@
      "storyline": null,
      "parent": null,
      "animation": null,
+     "fps": null,
+     "instant": 6,
+     "clock": {
+      "clip": null,
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "output",
+      "clip": null
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "clips[0]#pip"
+     },
      "mediaTime": 0
     },
     {
@@ -525,6 +885,21 @@
      "storyline": null,
      "parent": "clips[0]#pip",
      "animation": null,
+     "fps": null,
+     "instant": 7,
+     "clock": {
+      "clip": null,
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "media",
+      "clip": "clips[0]#pip"
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "clips[0]#pip"
+     },
      "mediaTime": null
     },
     {
@@ -542,6 +917,21 @@
      "storyline": null,
      "parent": "clips[0]#pip",
      "animation": null,
+     "fps": null,
+     "instant": 0,
+     "clock": {
+      "clip": null,
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "media",
+      "clip": "clips[0]#pip"
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "clips[0]#pip"
+     },
      "mediaTime": null
     },
     {
@@ -562,6 +952,21 @@
      "storyline": null,
      "parent": null,
      "animation": null,
+     "fps": null,
+     "instant": 0,
+     "clock": {
+      "clip": null,
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "output",
+      "clip": null
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "clips[3]#under"
+     },
      "mediaTime": 0.48
     },
     {
@@ -579,6 +984,21 @@
      "storyline": null,
      "parent": "clips[3]#under",
      "animation": null,
+     "fps": null,
+     "instant": 0,
+     "clock": {
+      "clip": null,
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "media",
+      "clip": "clips[3]#under"
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "clips[3]#under"
+     },
      "mediaTime": null
     }
    ]
@@ -659,6 +1079,21 @@
      "speed": 1,
      "timeRemap": false,
      "transition": null,
+     "fps": null,
+     "instant": 0,
+     "clock": {
+      "clip": "storyline[0]#v",
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "output",
+      "clip": null
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "storyline[0]#v"
+     },
      "clipTime": 0.5,
      "mediaTime": 0.48
     },
@@ -687,6 +1122,21 @@
      "speed": 2,
      "timeRemap": false,
      "transition": null,
+     "fps": null,
+     "instant": 4,
+     "clock": {
+      "clip": "storyline[1]#fast",
+      "origin": 3.75,
+      "speed": 2
+     },
+     "space": {
+      "kind": "output",
+      "clip": null
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "storyline[1]#fast"
+     },
      "clipTime": -6.5,
      "mediaTime": 0
     },
@@ -712,6 +1162,21 @@
      "speed": 1,
      "timeRemap": true,
      "transition": null,
+     "fps": null,
+     "instant": 5.7,
+     "clock": {
+      "clip": "storyline[2]#held",
+      "origin": 5.7,
+      "speed": 1
+     },
+     "space": {
+      "kind": "output",
+      "clip": null
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "storyline[2]#held"
+     },
      "clipTime": -5.2,
      "mediaTime": 3
     },
@@ -737,6 +1202,21 @@
      "speed": 1,
      "timeRemap": false,
      "transition": null,
+     "fps": 2,
+     "instant": 7.7,
+     "clock": {
+      "clip": "storyline[3]#seq",
+      "origin": 6.7,
+      "speed": 1
+     },
+     "space": {
+      "kind": "output",
+      "clip": null
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "storyline[3]#seq"
+     },
      "clipTime": -6.2,
      "mediaTime": 0
     }
@@ -757,6 +1237,21 @@
      "storyline": "storyline[0]#v",
      "parent": "storyline[0]#v",
      "animation": null,
+     "fps": null,
+     "instant": 0,
+     "clock": {
+      "clip": "storyline[0]#v",
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "media",
+      "clip": "storyline[0]#v"
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "storyline[0]#v"
+     },
      "mediaTime": null
     },
     {
@@ -774,6 +1269,21 @@
      "storyline": "storyline[0]#v",
      "parent": "storyline[0]#v",
      "animation": null,
+     "fps": null,
+     "instant": 0,
+     "clock": {
+      "clip": "storyline[0]#v",
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "media",
+      "clip": "storyline[0]#v"
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "storyline[0]#v"
+     },
      "mediaTime": null
     },
     {
@@ -791,6 +1301,21 @@
      "storyline": "storyline[0]#v",
      "parent": "storyline[0]#v",
      "animation": null,
+     "fps": null,
+     "instant": 2.2,
+     "clock": {
+      "clip": "storyline[0]#v",
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "media",
+      "clip": "storyline[0]#v"
+     },
+     "ownSpace": {
+      "kind": "box",
+      "clip": "storyline[0]#v.connected[2]#n"
+     },
      "mediaTime": null
     },
     {
@@ -808,6 +1333,21 @@
      "storyline": "storyline[2]#held",
      "parent": "storyline[2]#held",
      "animation": null,
+     "fps": null,
+     "instant": 5.7,
+     "clock": {
+      "clip": "storyline[2]#held",
+      "origin": 5.7,
+      "speed": 1
+     },
+     "space": {
+      "kind": "media",
+      "clip": "storyline[2]#held"
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "storyline[2]#held"
+     },
      "mediaTime": null
     },
     {
@@ -825,6 +1365,21 @@
      "storyline": "storyline[3]#seq",
      "parent": "storyline[3]#seq",
      "animation": null,
+     "fps": null,
+     "instant": 7.7,
+     "clock": {
+      "clip": "storyline[3]#seq",
+      "origin": 6.7,
+      "speed": 1
+     },
+     "space": {
+      "kind": "media",
+      "clip": "storyline[3]#seq"
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "storyline[3]#seq"
+     },
      "mediaTime": null
     },
     {
@@ -845,6 +1400,21 @@
      "storyline": null,
      "parent": null,
      "animation": null,
+     "fps": null,
+     "instant": 6,
+     "clock": {
+      "clip": null,
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "output",
+      "clip": null
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "clips[0]#pip"
+     },
      "mediaTime": 0
     },
     {
@@ -862,6 +1432,21 @@
      "storyline": null,
      "parent": "clips[0]#pip",
      "animation": null,
+     "fps": null,
+     "instant": 7,
+     "clock": {
+      "clip": null,
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "media",
+      "clip": "clips[0]#pip"
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "clips[0]#pip"
+     },
      "mediaTime": null
     },
     {
@@ -879,6 +1464,21 @@
      "storyline": null,
      "parent": "clips[0]#pip",
      "animation": null,
+     "fps": null,
+     "instant": 0,
+     "clock": {
+      "clip": null,
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "media",
+      "clip": "clips[0]#pip"
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "clips[0]#pip"
+     },
      "mediaTime": null
     },
     {
@@ -899,6 +1499,21 @@
      "storyline": null,
      "parent": null,
      "animation": null,
+     "fps": null,
+     "instant": 0,
+     "clock": {
+      "clip": null,
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "output",
+      "clip": null
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "clips[3]#under"
+     },
      "mediaTime": 1.48
     },
     {
@@ -916,6 +1531,21 @@
      "storyline": null,
      "parent": "clips[3]#under",
      "animation": null,
+     "fps": null,
+     "instant": 0,
+     "clock": {
+      "clip": null,
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "media",
+      "clip": "clips[3]#under"
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "clips[3]#under"
+     },
      "mediaTime": null
     }
    ]
@@ -996,6 +1626,21 @@
      "speed": 1,
      "timeRemap": false,
      "transition": null,
+     "fps": null,
+     "instant": 0,
+     "clock": {
+      "clip": "storyline[0]#v",
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "output",
+      "clip": null
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "storyline[0]#v"
+     },
      "clipTime": 3,
      "mediaTime": 3
     },
@@ -1024,6 +1669,21 @@
      "speed": 2,
      "timeRemap": false,
      "transition": null,
+     "fps": null,
+     "instant": 4,
+     "clock": {
+      "clip": "storyline[1]#fast",
+      "origin": 3.75,
+      "speed": 2
+     },
+     "space": {
+      "kind": "output",
+      "clip": null
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "storyline[1]#fast"
+     },
      "clipTime": -1.5,
      "mediaTime": 0
     },
@@ -1049,6 +1709,21 @@
      "speed": 1,
      "timeRemap": true,
      "transition": null,
+     "fps": null,
+     "instant": 5.7,
+     "clock": {
+      "clip": "storyline[2]#held",
+      "origin": 5.7,
+      "speed": 1
+     },
+     "space": {
+      "kind": "output",
+      "clip": null
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "storyline[2]#held"
+     },
      "clipTime": -2.7,
      "mediaTime": 3
     },
@@ -1074,6 +1749,21 @@
      "speed": 1,
      "timeRemap": false,
      "transition": null,
+     "fps": 2,
+     "instant": 7.7,
+     "clock": {
+      "clip": "storyline[3]#seq",
+      "origin": 6.7,
+      "speed": 1
+     },
+     "space": {
+      "kind": "output",
+      "clip": null
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "storyline[3]#seq"
+     },
      "clipTime": -3.7,
      "mediaTime": 0
     }
@@ -1094,6 +1784,21 @@
      "storyline": "storyline[0]#v",
      "parent": "storyline[0]#v",
      "animation": null,
+     "fps": null,
+     "instant": 0,
+     "clock": {
+      "clip": "storyline[0]#v",
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "media",
+      "clip": "storyline[0]#v"
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "storyline[0]#v"
+     },
      "mediaTime": null
     },
     {
@@ -1111,6 +1816,21 @@
      "storyline": "storyline[0]#v",
      "parent": "storyline[0]#v",
      "animation": null,
+     "fps": null,
+     "instant": 0,
+     "clock": {
+      "clip": "storyline[0]#v",
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "media",
+      "clip": "storyline[0]#v"
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "storyline[0]#v"
+     },
      "mediaTime": null
     },
     {
@@ -1128,6 +1848,21 @@
      "storyline": "storyline[0]#v",
      "parent": "storyline[0]#v",
      "animation": null,
+     "fps": null,
+     "instant": 2.2,
+     "clock": {
+      "clip": "storyline[0]#v",
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "media",
+      "clip": "storyline[0]#v"
+     },
+     "ownSpace": {
+      "kind": "box",
+      "clip": "storyline[0]#v.connected[2]#n"
+     },
      "mediaTime": null
     },
     {
@@ -1145,6 +1880,21 @@
      "storyline": "storyline[2]#held",
      "parent": "storyline[2]#held",
      "animation": null,
+     "fps": null,
+     "instant": 5.7,
+     "clock": {
+      "clip": "storyline[2]#held",
+      "origin": 5.7,
+      "speed": 1
+     },
+     "space": {
+      "kind": "media",
+      "clip": "storyline[2]#held"
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "storyline[2]#held"
+     },
      "mediaTime": null
     },
     {
@@ -1162,6 +1912,21 @@
      "storyline": "storyline[3]#seq",
      "parent": "storyline[3]#seq",
      "animation": null,
+     "fps": null,
+     "instant": 7.7,
+     "clock": {
+      "clip": "storyline[3]#seq",
+      "origin": 6.7,
+      "speed": 1
+     },
+     "space": {
+      "kind": "media",
+      "clip": "storyline[3]#seq"
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "storyline[3]#seq"
+     },
      "mediaTime": null
     },
     {
@@ -1182,6 +1947,21 @@
      "storyline": null,
      "parent": null,
      "animation": null,
+     "fps": null,
+     "instant": 6,
+     "clock": {
+      "clip": null,
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "output",
+      "clip": null
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "clips[0]#pip"
+     },
      "mediaTime": 0
     },
     {
@@ -1199,6 +1979,21 @@
      "storyline": null,
      "parent": "clips[0]#pip",
      "animation": null,
+     "fps": null,
+     "instant": 7,
+     "clock": {
+      "clip": null,
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "media",
+      "clip": "clips[0]#pip"
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "clips[0]#pip"
+     },
      "mediaTime": null
     },
     {
@@ -1216,6 +2011,21 @@
      "storyline": null,
      "parent": "clips[0]#pip",
      "animation": null,
+     "fps": null,
+     "instant": 0,
+     "clock": {
+      "clip": null,
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "media",
+      "clip": "clips[0]#pip"
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "clips[0]#pip"
+     },
      "mediaTime": null
     },
     {
@@ -1236,6 +2046,21 @@
      "storyline": null,
      "parent": null,
      "animation": null,
+     "fps": null,
+     "instant": 0,
+     "clock": {
+      "clip": null,
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "output",
+      "clip": null
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "clips[3]#under"
+     },
      "mediaTime": 3.96
     },
     {
@@ -1253,6 +2078,21 @@
      "storyline": null,
      "parent": "clips[3]#under",
      "animation": null,
+     "fps": null,
+     "instant": 0,
+     "clock": {
+      "clip": null,
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "media",
+      "clip": "clips[3]#under"
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "clips[3]#under"
+     },
      "mediaTime": null
     }
    ]
@@ -1370,6 +2210,21 @@
      "speed": 1,
      "timeRemap": false,
      "transition": null,
+     "fps": null,
+     "instant": 0,
+     "clock": {
+      "clip": "storyline[0]#v",
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "output",
+      "clip": null
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "storyline[0]#v"
+     },
      "clipTime": 2.2,
      "mediaTime": 2.2
     },
@@ -1398,6 +2253,21 @@
      "speed": 2,
      "timeRemap": false,
      "transition": null,
+     "fps": null,
+     "instant": 4,
+     "clock": {
+      "clip": "storyline[1]#fast",
+      "origin": 3.75,
+      "speed": 2
+     },
+     "space": {
+      "kind": "output",
+      "clip": null
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "storyline[1]#fast"
+     },
      "clipTime": -3.1,
      "mediaTime": 0
     },
@@ -1423,6 +2293,21 @@
      "speed": 1,
      "timeRemap": true,
      "transition": null,
+     "fps": null,
+     "instant": 5.7,
+     "clock": {
+      "clip": "storyline[2]#held",
+      "origin": 5.7,
+      "speed": 1
+     },
+     "space": {
+      "kind": "output",
+      "clip": null
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "storyline[2]#held"
+     },
      "clipTime": -3.5,
      "mediaTime": 3
     },
@@ -1448,6 +2333,21 @@
      "speed": 1,
      "timeRemap": false,
      "transition": null,
+     "fps": 2,
+     "instant": 7.7,
+     "clock": {
+      "clip": "storyline[3]#seq",
+      "origin": 6.7,
+      "speed": 1
+     },
+     "space": {
+      "kind": "output",
+      "clip": null
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "storyline[3]#seq"
+     },
      "clipTime": -4.5,
      "mediaTime": 0
     }
@@ -1468,6 +2368,21 @@
      "storyline": "storyline[0]#v",
      "parent": "storyline[0]#v",
      "animation": null,
+     "fps": null,
+     "instant": 0,
+     "clock": {
+      "clip": "storyline[0]#v",
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "media",
+      "clip": "storyline[0]#v"
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "storyline[0]#v"
+     },
      "mediaTime": null
     },
     {
@@ -1485,6 +2400,21 @@
      "storyline": "storyline[0]#v",
      "parent": "storyline[0]#v",
      "animation": null,
+     "fps": null,
+     "instant": 0,
+     "clock": {
+      "clip": "storyline[0]#v",
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "media",
+      "clip": "storyline[0]#v"
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "storyline[0]#v"
+     },
      "mediaTime": null
     },
     {
@@ -1502,6 +2432,21 @@
      "storyline": "storyline[0]#v",
      "parent": "storyline[0]#v",
      "animation": null,
+     "fps": null,
+     "instant": 2.2,
+     "clock": {
+      "clip": "storyline[0]#v",
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "media",
+      "clip": "storyline[0]#v"
+     },
+     "ownSpace": {
+      "kind": "box",
+      "clip": "storyline[0]#v.connected[2]#n"
+     },
      "mediaTime": null
     },
     {
@@ -1519,6 +2464,21 @@
      "storyline": "storyline[2]#held",
      "parent": "storyline[2]#held",
      "animation": null,
+     "fps": null,
+     "instant": 5.7,
+     "clock": {
+      "clip": "storyline[2]#held",
+      "origin": 5.7,
+      "speed": 1
+     },
+     "space": {
+      "kind": "media",
+      "clip": "storyline[2]#held"
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "storyline[2]#held"
+     },
      "mediaTime": null
     },
     {
@@ -1536,6 +2496,21 @@
      "storyline": "storyline[3]#seq",
      "parent": "storyline[3]#seq",
      "animation": null,
+     "fps": null,
+     "instant": 7.7,
+     "clock": {
+      "clip": "storyline[3]#seq",
+      "origin": 6.7,
+      "speed": 1
+     },
+     "space": {
+      "kind": "media",
+      "clip": "storyline[3]#seq"
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "storyline[3]#seq"
+     },
      "mediaTime": null
     },
     {
@@ -1556,6 +2531,21 @@
      "storyline": null,
      "parent": null,
      "animation": null,
+     "fps": null,
+     "instant": 6,
+     "clock": {
+      "clip": null,
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "output",
+      "clip": null
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "clips[0]#pip"
+     },
      "mediaTime": 0
     },
     {
@@ -1573,6 +2563,21 @@
      "storyline": null,
      "parent": "clips[0]#pip",
      "animation": null,
+     "fps": null,
+     "instant": 7,
+     "clock": {
+      "clip": null,
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "media",
+      "clip": "clips[0]#pip"
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "clips[0]#pip"
+     },
      "mediaTime": null
     },
     {
@@ -1590,6 +2595,21 @@
      "storyline": null,
      "parent": "clips[0]#pip",
      "animation": null,
+     "fps": null,
+     "instant": 0,
+     "clock": {
+      "clip": null,
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "media",
+      "clip": "clips[0]#pip"
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "clips[0]#pip"
+     },
      "mediaTime": null
     },
     {
@@ -1610,6 +2630,21 @@
      "storyline": null,
      "parent": null,
      "animation": null,
+     "fps": null,
+     "instant": 0,
+     "clock": {
+      "clip": null,
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "output",
+      "clip": null
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "clips[3]#under"
+     },
      "mediaTime": 3.96
     },
     {
@@ -1627,6 +2662,21 @@
      "storyline": null,
      "parent": "clips[3]#under",
      "animation": null,
+     "fps": null,
+     "instant": 0,
+     "clock": {
+      "clip": null,
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "media",
+      "clip": "clips[3]#under"
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "clips[3]#under"
+     },
      "mediaTime": null
     }
    ]
@@ -1707,6 +2757,21 @@
      "speed": 1,
      "timeRemap": false,
      "transition": null,
+     "fps": null,
+     "instant": 0,
+     "clock": {
+      "clip": "storyline[0]#v",
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "output",
+      "clip": null
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "storyline[0]#v"
+     },
      "clipTime": 4,
      "mediaTime": 3.96
     },
@@ -1735,6 +2800,21 @@
      "speed": 2,
      "timeRemap": false,
      "transition": null,
+     "fps": null,
+     "instant": 4,
+     "clock": {
+      "clip": "storyline[1]#fast",
+      "origin": 3.75,
+      "speed": 2
+     },
+     "space": {
+      "kind": "output",
+      "clip": null
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "storyline[1]#fast"
+     },
      "clipTime": 0.5,
      "mediaTime": 0.48
     },
@@ -1760,6 +2840,21 @@
      "speed": 1,
      "timeRemap": true,
      "transition": null,
+     "fps": null,
+     "instant": 5.7,
+     "clock": {
+      "clip": "storyline[2]#held",
+      "origin": 5.7,
+      "speed": 1
+     },
+     "space": {
+      "kind": "output",
+      "clip": null
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "storyline[2]#held"
+     },
      "clipTime": -1.7,
      "mediaTime": 3
     },
@@ -1785,6 +2880,21 @@
      "speed": 1,
      "timeRemap": false,
      "transition": null,
+     "fps": 2,
+     "instant": 7.7,
+     "clock": {
+      "clip": "storyline[3]#seq",
+      "origin": 6.7,
+      "speed": 1
+     },
+     "space": {
+      "kind": "output",
+      "clip": null
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "storyline[3]#seq"
+     },
      "clipTime": -2.7,
      "mediaTime": 0
     }
@@ -1805,6 +2915,21 @@
      "storyline": "storyline[0]#v",
      "parent": "storyline[0]#v",
      "animation": null,
+     "fps": null,
+     "instant": 0,
+     "clock": {
+      "clip": "storyline[0]#v",
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "media",
+      "clip": "storyline[0]#v"
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "storyline[0]#v"
+     },
      "mediaTime": null
     },
     {
@@ -1822,6 +2947,21 @@
      "storyline": "storyline[0]#v",
      "parent": "storyline[0]#v",
      "animation": null,
+     "fps": null,
+     "instant": 0,
+     "clock": {
+      "clip": "storyline[0]#v",
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "media",
+      "clip": "storyline[0]#v"
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "storyline[0]#v"
+     },
      "mediaTime": null
     },
     {
@@ -1839,6 +2979,21 @@
      "storyline": "storyline[0]#v",
      "parent": "storyline[0]#v",
      "animation": null,
+     "fps": null,
+     "instant": 2.2,
+     "clock": {
+      "clip": "storyline[0]#v",
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "media",
+      "clip": "storyline[0]#v"
+     },
+     "ownSpace": {
+      "kind": "box",
+      "clip": "storyline[0]#v.connected[2]#n"
+     },
      "mediaTime": null
     },
     {
@@ -1856,6 +3011,21 @@
      "storyline": "storyline[2]#held",
      "parent": "storyline[2]#held",
      "animation": null,
+     "fps": null,
+     "instant": 5.7,
+     "clock": {
+      "clip": "storyline[2]#held",
+      "origin": 5.7,
+      "speed": 1
+     },
+     "space": {
+      "kind": "media",
+      "clip": "storyline[2]#held"
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "storyline[2]#held"
+     },
      "mediaTime": null
     },
     {
@@ -1873,6 +3043,21 @@
      "storyline": "storyline[3]#seq",
      "parent": "storyline[3]#seq",
      "animation": null,
+     "fps": null,
+     "instant": 7.7,
+     "clock": {
+      "clip": "storyline[3]#seq",
+      "origin": 6.7,
+      "speed": 1
+     },
+     "space": {
+      "kind": "media",
+      "clip": "storyline[3]#seq"
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "storyline[3]#seq"
+     },
      "mediaTime": null
     },
     {
@@ -1893,6 +3078,21 @@
      "storyline": null,
      "parent": null,
      "animation": null,
+     "fps": null,
+     "instant": 6,
+     "clock": {
+      "clip": null,
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "output",
+      "clip": null
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "clips[0]#pip"
+     },
      "mediaTime": 0
     },
     {
@@ -1910,6 +3110,21 @@
      "storyline": null,
      "parent": "clips[0]#pip",
      "animation": null,
+     "fps": null,
+     "instant": 7,
+     "clock": {
+      "clip": null,
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "media",
+      "clip": "clips[0]#pip"
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "clips[0]#pip"
+     },
      "mediaTime": null
     },
     {
@@ -1927,6 +3142,21 @@
      "storyline": null,
      "parent": "clips[0]#pip",
      "animation": null,
+     "fps": null,
+     "instant": 0,
+     "clock": {
+      "clip": null,
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "media",
+      "clip": "clips[0]#pip"
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "clips[0]#pip"
+     },
      "mediaTime": null
     },
     {
@@ -1947,6 +3177,21 @@
      "storyline": null,
      "parent": null,
      "animation": null,
+     "fps": null,
+     "instant": 0,
+     "clock": {
+      "clip": null,
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "output",
+      "clip": null
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "clips[3]#under"
+     },
      "mediaTime": 3.96
     },
     {
@@ -1964,6 +3209,21 @@
      "storyline": null,
      "parent": "clips[3]#under",
      "animation": null,
+     "fps": null,
+     "instant": 0,
+     "clock": {
+      "clip": null,
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "media",
+      "clip": "clips[3]#under"
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "clips[3]#under"
+     },
      "mediaTime": null
     }
    ]
@@ -2007,6 +3267,21 @@
      "speed": 1,
      "timeRemap": false,
      "transition": null,
+     "fps": null,
+     "instant": 0,
+     "clock": {
+      "clip": "storyline[0]#v",
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "output",
+      "clip": null
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "storyline[0]#v"
+     },
      "clipTime": 5.35,
      "mediaTime": 3.96
     },
@@ -2035,6 +3310,21 @@
      "speed": 2,
      "timeRemap": false,
      "transition": null,
+     "fps": null,
+     "instant": 4,
+     "clock": {
+      "clip": "storyline[1]#fast",
+      "origin": 3.75,
+      "speed": 2
+     },
+     "space": {
+      "kind": "output",
+      "clip": null
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "storyline[1]#fast"
+     },
      "clipTime": 3.2,
      "mediaTime": 3.2
     },
@@ -2060,6 +3350,21 @@
      "speed": 1,
      "timeRemap": true,
      "transition": null,
+     "fps": null,
+     "instant": 5.7,
+     "clock": {
+      "clip": "storyline[2]#held",
+      "origin": 5.7,
+      "speed": 1
+     },
+     "space": {
+      "kind": "output",
+      "clip": null
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "storyline[2]#held"
+     },
      "clipTime": -0.35,
      "mediaTime": 3
     },
@@ -2085,6 +3390,21 @@
      "speed": 1,
      "timeRemap": false,
      "transition": null,
+     "fps": 2,
+     "instant": 7.7,
+     "clock": {
+      "clip": "storyline[3]#seq",
+      "origin": 6.7,
+      "speed": 1
+     },
+     "space": {
+      "kind": "output",
+      "clip": null
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "storyline[3]#seq"
+     },
      "clipTime": -1.35,
      "mediaTime": 0
     }
@@ -2105,6 +3425,21 @@
      "storyline": "storyline[0]#v",
      "parent": "storyline[0]#v",
      "animation": null,
+     "fps": null,
+     "instant": 0,
+     "clock": {
+      "clip": "storyline[0]#v",
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "media",
+      "clip": "storyline[0]#v"
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "storyline[0]#v"
+     },
      "mediaTime": null
     },
     {
@@ -2122,6 +3457,21 @@
      "storyline": "storyline[0]#v",
      "parent": "storyline[0]#v",
      "animation": null,
+     "fps": null,
+     "instant": 0,
+     "clock": {
+      "clip": "storyline[0]#v",
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "media",
+      "clip": "storyline[0]#v"
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "storyline[0]#v"
+     },
      "mediaTime": null
     },
     {
@@ -2139,6 +3489,21 @@
      "storyline": "storyline[0]#v",
      "parent": "storyline[0]#v",
      "animation": null,
+     "fps": null,
+     "instant": 2.2,
+     "clock": {
+      "clip": "storyline[0]#v",
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "media",
+      "clip": "storyline[0]#v"
+     },
+     "ownSpace": {
+      "kind": "box",
+      "clip": "storyline[0]#v.connected[2]#n"
+     },
      "mediaTime": null
     },
     {
@@ -2156,6 +3521,21 @@
      "storyline": "storyline[2]#held",
      "parent": "storyline[2]#held",
      "animation": null,
+     "fps": null,
+     "instant": 5.7,
+     "clock": {
+      "clip": "storyline[2]#held",
+      "origin": 5.7,
+      "speed": 1
+     },
+     "space": {
+      "kind": "media",
+      "clip": "storyline[2]#held"
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "storyline[2]#held"
+     },
      "mediaTime": null
     },
     {
@@ -2173,6 +3553,21 @@
      "storyline": "storyline[3]#seq",
      "parent": "storyline[3]#seq",
      "animation": null,
+     "fps": null,
+     "instant": 7.7,
+     "clock": {
+      "clip": "storyline[3]#seq",
+      "origin": 6.7,
+      "speed": 1
+     },
+     "space": {
+      "kind": "media",
+      "clip": "storyline[3]#seq"
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "storyline[3]#seq"
+     },
      "mediaTime": null
     },
     {
@@ -2193,6 +3588,21 @@
      "storyline": null,
      "parent": null,
      "animation": null,
+     "fps": null,
+     "instant": 6,
+     "clock": {
+      "clip": null,
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "output",
+      "clip": null
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "clips[0]#pip"
+     },
      "mediaTime": 0.84
     },
     {
@@ -2210,6 +3620,21 @@
      "storyline": null,
      "parent": "clips[0]#pip",
      "animation": null,
+     "fps": null,
+     "instant": 7,
+     "clock": {
+      "clip": null,
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "media",
+      "clip": "clips[0]#pip"
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "clips[0]#pip"
+     },
      "mediaTime": null
     },
     {
@@ -2227,6 +3652,21 @@
      "storyline": null,
      "parent": "clips[0]#pip",
      "animation": null,
+     "fps": null,
+     "instant": 0,
+     "clock": {
+      "clip": null,
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "media",
+      "clip": "clips[0]#pip"
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "clips[0]#pip"
+     },
      "mediaTime": null
     },
     {
@@ -2247,6 +3687,21 @@
      "storyline": null,
      "parent": null,
      "animation": null,
+     "fps": null,
+     "instant": 0,
+     "clock": {
+      "clip": null,
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "output",
+      "clip": null
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "clips[3]#under"
+     },
      "mediaTime": 3.96
     },
     {
@@ -2264,6 +3719,21 @@
      "storyline": null,
      "parent": "clips[3]#under",
      "animation": null,
+     "fps": null,
+     "instant": 0,
+     "clock": {
+      "clip": null,
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "media",
+      "clip": "clips[3]#under"
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "clips[3]#under"
+     },
      "mediaTime": null
     }
    ]
@@ -2344,6 +3814,21 @@
      "speed": 1,
      "timeRemap": false,
      "transition": null,
+     "fps": null,
+     "instant": 0,
+     "clock": {
+      "clip": "storyline[0]#v",
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "output",
+      "clip": null
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "storyline[0]#v"
+     },
      "clipTime": 5.7,
      "mediaTime": 3.96
     },
@@ -2372,6 +3857,21 @@
      "speed": 2,
      "timeRemap": false,
      "transition": null,
+     "fps": null,
+     "instant": 4,
+     "clock": {
+      "clip": "storyline[1]#fast",
+      "origin": 3.75,
+      "speed": 2
+     },
+     "space": {
+      "kind": "output",
+      "clip": null
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "storyline[1]#fast"
+     },
      "clipTime": 3.9,
      "mediaTime": 3.88
     },
@@ -2397,6 +3897,21 @@
      "speed": 1,
      "timeRemap": true,
      "transition": null,
+     "fps": null,
+     "instant": 5.7,
+     "clock": {
+      "clip": "storyline[2]#held",
+      "origin": 5.7,
+      "speed": 1
+     },
+     "space": {
+      "kind": "output",
+      "clip": null
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "storyline[2]#held"
+     },
      "clipTime": 0,
      "mediaTime": 3
     },
@@ -2422,6 +3937,21 @@
      "speed": 1,
      "timeRemap": false,
      "transition": null,
+     "fps": 2,
+     "instant": 7.7,
+     "clock": {
+      "clip": "storyline[3]#seq",
+      "origin": 6.7,
+      "speed": 1
+     },
+     "space": {
+      "kind": "output",
+      "clip": null
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "storyline[3]#seq"
+     },
      "clipTime": -1,
      "mediaTime": 0
     }
@@ -2442,6 +3972,21 @@
      "storyline": "storyline[0]#v",
      "parent": "storyline[0]#v",
      "animation": null,
+     "fps": null,
+     "instant": 0,
+     "clock": {
+      "clip": "storyline[0]#v",
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "media",
+      "clip": "storyline[0]#v"
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "storyline[0]#v"
+     },
      "mediaTime": null
     },
     {
@@ -2459,6 +4004,21 @@
      "storyline": "storyline[0]#v",
      "parent": "storyline[0]#v",
      "animation": null,
+     "fps": null,
+     "instant": 0,
+     "clock": {
+      "clip": "storyline[0]#v",
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "media",
+      "clip": "storyline[0]#v"
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "storyline[0]#v"
+     },
      "mediaTime": null
     },
     {
@@ -2476,6 +4036,21 @@
      "storyline": "storyline[0]#v",
      "parent": "storyline[0]#v",
      "animation": null,
+     "fps": null,
+     "instant": 2.2,
+     "clock": {
+      "clip": "storyline[0]#v",
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "media",
+      "clip": "storyline[0]#v"
+     },
+     "ownSpace": {
+      "kind": "box",
+      "clip": "storyline[0]#v.connected[2]#n"
+     },
      "mediaTime": null
     },
     {
@@ -2493,6 +4068,21 @@
      "storyline": "storyline[2]#held",
      "parent": "storyline[2]#held",
      "animation": null,
+     "fps": null,
+     "instant": 5.7,
+     "clock": {
+      "clip": "storyline[2]#held",
+      "origin": 5.7,
+      "speed": 1
+     },
+     "space": {
+      "kind": "media",
+      "clip": "storyline[2]#held"
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "storyline[2]#held"
+     },
      "mediaTime": null
     },
     {
@@ -2510,6 +4100,21 @@
      "storyline": "storyline[3]#seq",
      "parent": "storyline[3]#seq",
      "animation": null,
+     "fps": null,
+     "instant": 7.7,
+     "clock": {
+      "clip": "storyline[3]#seq",
+      "origin": 6.7,
+      "speed": 1
+     },
+     "space": {
+      "kind": "media",
+      "clip": "storyline[3]#seq"
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "storyline[3]#seq"
+     },
      "mediaTime": null
     },
     {
@@ -2530,6 +4135,21 @@
      "storyline": null,
      "parent": null,
      "animation": null,
+     "fps": null,
+     "instant": 6,
+     "clock": {
+      "clip": null,
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "output",
+      "clip": null
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "clips[0]#pip"
+     },
      "mediaTime": 1.2
     },
     {
@@ -2547,6 +4167,21 @@
      "storyline": null,
      "parent": "clips[0]#pip",
      "animation": null,
+     "fps": null,
+     "instant": 7,
+     "clock": {
+      "clip": null,
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "media",
+      "clip": "clips[0]#pip"
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "clips[0]#pip"
+     },
      "mediaTime": null
     },
     {
@@ -2564,6 +4199,21 @@
      "storyline": null,
      "parent": "clips[0]#pip",
      "animation": null,
+     "fps": null,
+     "instant": 0,
+     "clock": {
+      "clip": null,
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "media",
+      "clip": "clips[0]#pip"
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "clips[0]#pip"
+     },
      "mediaTime": null
     },
     {
@@ -2584,6 +4234,21 @@
      "storyline": null,
      "parent": null,
      "animation": null,
+     "fps": null,
+     "instant": 0,
+     "clock": {
+      "clip": null,
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "output",
+      "clip": null
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "clips[3]#under"
+     },
      "mediaTime": 3.96
     },
     {
@@ -2601,6 +4266,21 @@
      "storyline": null,
      "parent": "clips[3]#under",
      "animation": null,
+     "fps": null,
+     "instant": 0,
+     "clock": {
+      "clip": null,
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "media",
+      "clip": "clips[3]#under"
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "clips[3]#under"
+     },
      "mediaTime": null
     }
    ]
@@ -2644,6 +4324,21 @@
      "speed": 1,
      "timeRemap": false,
      "transition": null,
+     "fps": null,
+     "instant": 0,
+     "clock": {
+      "clip": "storyline[0]#v",
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "output",
+      "clip": null
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "storyline[0]#v"
+     },
      "clipTime": 7.7,
      "mediaTime": 3.96
     },
@@ -2672,6 +4367,21 @@
      "speed": 2,
      "timeRemap": false,
      "transition": null,
+     "fps": null,
+     "instant": 4,
+     "clock": {
+      "clip": "storyline[1]#fast",
+      "origin": 3.75,
+      "speed": 2
+     },
+     "space": {
+      "kind": "output",
+      "clip": null
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "storyline[1]#fast"
+     },
      "clipTime": 7.9,
      "mediaTime": 3.96
     },
@@ -2697,6 +4407,21 @@
      "speed": 1,
      "timeRemap": true,
      "transition": null,
+     "fps": null,
+     "instant": 5.7,
+     "clock": {
+      "clip": "storyline[2]#held",
+      "origin": 5.7,
+      "speed": 1
+     },
+     "space": {
+      "kind": "output",
+      "clip": null
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "storyline[2]#held"
+     },
      "clipTime": 2,
      "mediaTime": 3
     },
@@ -2722,6 +4447,21 @@
      "speed": 1,
      "timeRemap": false,
      "transition": null,
+     "fps": 2,
+     "instant": 7.7,
+     "clock": {
+      "clip": "storyline[3]#seq",
+      "origin": 6.7,
+      "speed": 1
+     },
+     "space": {
+      "kind": "output",
+      "clip": null
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "storyline[3]#seq"
+     },
      "clipTime": 1,
      "mediaTime": 1
     }
@@ -2742,6 +4482,21 @@
      "storyline": "storyline[0]#v",
      "parent": "storyline[0]#v",
      "animation": null,
+     "fps": null,
+     "instant": 0,
+     "clock": {
+      "clip": "storyline[0]#v",
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "media",
+      "clip": "storyline[0]#v"
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "storyline[0]#v"
+     },
      "mediaTime": null
     },
     {
@@ -2759,6 +4514,21 @@
      "storyline": "storyline[0]#v",
      "parent": "storyline[0]#v",
      "animation": null,
+     "fps": null,
+     "instant": 0,
+     "clock": {
+      "clip": "storyline[0]#v",
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "media",
+      "clip": "storyline[0]#v"
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "storyline[0]#v"
+     },
      "mediaTime": null
     },
     {
@@ -2776,6 +4546,21 @@
      "storyline": "storyline[0]#v",
      "parent": "storyline[0]#v",
      "animation": null,
+     "fps": null,
+     "instant": 2.2,
+     "clock": {
+      "clip": "storyline[0]#v",
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "media",
+      "clip": "storyline[0]#v"
+     },
+     "ownSpace": {
+      "kind": "box",
+      "clip": "storyline[0]#v.connected[2]#n"
+     },
      "mediaTime": null
     },
     {
@@ -2793,6 +4578,21 @@
      "storyline": "storyline[2]#held",
      "parent": "storyline[2]#held",
      "animation": null,
+     "fps": null,
+     "instant": 5.7,
+     "clock": {
+      "clip": "storyline[2]#held",
+      "origin": 5.7,
+      "speed": 1
+     },
+     "space": {
+      "kind": "media",
+      "clip": "storyline[2]#held"
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "storyline[2]#held"
+     },
      "mediaTime": null
     },
     {
@@ -2810,6 +4610,21 @@
      "storyline": "storyline[3]#seq",
      "parent": "storyline[3]#seq",
      "animation": null,
+     "fps": null,
+     "instant": 7.7,
+     "clock": {
+      "clip": "storyline[3]#seq",
+      "origin": 6.7,
+      "speed": 1
+     },
+     "space": {
+      "kind": "media",
+      "clip": "storyline[3]#seq"
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "storyline[3]#seq"
+     },
      "mediaTime": null
     },
     {
@@ -2830,6 +4645,21 @@
      "storyline": null,
      "parent": null,
      "animation": null,
+     "fps": null,
+     "instant": 6,
+     "clock": {
+      "clip": null,
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "output",
+      "clip": null
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "clips[0]#pip"
+     },
      "mediaTime": 3.2
     },
     {
@@ -2847,6 +4677,21 @@
      "storyline": null,
      "parent": "clips[0]#pip",
      "animation": null,
+     "fps": null,
+     "instant": 7,
+     "clock": {
+      "clip": null,
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "media",
+      "clip": "clips[0]#pip"
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "clips[0]#pip"
+     },
      "mediaTime": null
     },
     {
@@ -2864,6 +4709,21 @@
      "storyline": null,
      "parent": "clips[0]#pip",
      "animation": null,
+     "fps": null,
+     "instant": 0,
+     "clock": {
+      "clip": null,
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "media",
+      "clip": "clips[0]#pip"
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "clips[0]#pip"
+     },
      "mediaTime": null
     },
     {
@@ -2884,6 +4744,21 @@
      "storyline": null,
      "parent": null,
      "animation": null,
+     "fps": null,
+     "instant": 0,
+     "clock": {
+      "clip": null,
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "output",
+      "clip": null
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "clips[3]#under"
+     },
      "mediaTime": 3.96
     },
     {
@@ -2901,6 +4776,21 @@
      "storyline": null,
      "parent": "clips[3]#under",
      "animation": null,
+     "fps": null,
+     "instant": 0,
+     "clock": {
+      "clip": null,
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "media",
+      "clip": "clips[3]#under"
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "clips[3]#under"
+     },
      "mediaTime": null
     }
    ]
@@ -3022,6 +4912,21 @@
      "speed": 1,
      "timeRemap": false,
      "transition": null,
+     "fps": null,
+     "instant": 0,
+     "clock": {
+      "clip": "storyline[0]#v",
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "output",
+      "clip": null
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "storyline[0]#v"
+     },
      "clipTime": 7,
      "mediaTime": 3.96
     },
@@ -3050,6 +4955,21 @@
      "speed": 2,
      "timeRemap": false,
      "transition": null,
+     "fps": null,
+     "instant": 4,
+     "clock": {
+      "clip": "storyline[1]#fast",
+      "origin": 3.75,
+      "speed": 2
+     },
+     "space": {
+      "kind": "output",
+      "clip": null
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "storyline[1]#fast"
+     },
      "clipTime": 6.5,
      "mediaTime": 3.96
     },
@@ -3075,6 +4995,21 @@
      "speed": 1,
      "timeRemap": true,
      "transition": null,
+     "fps": null,
+     "instant": 5.7,
+     "clock": {
+      "clip": "storyline[2]#held",
+      "origin": 5.7,
+      "speed": 1
+     },
+     "space": {
+      "kind": "output",
+      "clip": null
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "storyline[2]#held"
+     },
      "clipTime": 1.3,
      "mediaTime": 3
     },
@@ -3100,6 +5035,21 @@
      "speed": 1,
      "timeRemap": false,
      "transition": null,
+     "fps": 2,
+     "instant": 7.7,
+     "clock": {
+      "clip": "storyline[3]#seq",
+      "origin": 6.7,
+      "speed": 1
+     },
+     "space": {
+      "kind": "output",
+      "clip": null
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "storyline[3]#seq"
+     },
      "clipTime": 0.3,
      "mediaTime": 0
     }
@@ -3120,6 +5070,21 @@
      "storyline": "storyline[0]#v",
      "parent": "storyline[0]#v",
      "animation": null,
+     "fps": null,
+     "instant": 0,
+     "clock": {
+      "clip": "storyline[0]#v",
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "media",
+      "clip": "storyline[0]#v"
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "storyline[0]#v"
+     },
      "mediaTime": null
     },
     {
@@ -3137,6 +5102,21 @@
      "storyline": "storyline[0]#v",
      "parent": "storyline[0]#v",
      "animation": null,
+     "fps": null,
+     "instant": 0,
+     "clock": {
+      "clip": "storyline[0]#v",
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "media",
+      "clip": "storyline[0]#v"
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "storyline[0]#v"
+     },
      "mediaTime": null
     },
     {
@@ -3154,6 +5134,21 @@
      "storyline": "storyline[0]#v",
      "parent": "storyline[0]#v",
      "animation": null,
+     "fps": null,
+     "instant": 2.2,
+     "clock": {
+      "clip": "storyline[0]#v",
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "media",
+      "clip": "storyline[0]#v"
+     },
+     "ownSpace": {
+      "kind": "box",
+      "clip": "storyline[0]#v.connected[2]#n"
+     },
      "mediaTime": null
     },
     {
@@ -3171,6 +5166,21 @@
      "storyline": "storyline[2]#held",
      "parent": "storyline[2]#held",
      "animation": null,
+     "fps": null,
+     "instant": 5.7,
+     "clock": {
+      "clip": "storyline[2]#held",
+      "origin": 5.7,
+      "speed": 1
+     },
+     "space": {
+      "kind": "media",
+      "clip": "storyline[2]#held"
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "storyline[2]#held"
+     },
      "mediaTime": null
     },
     {
@@ -3188,6 +5198,21 @@
      "storyline": "storyline[3]#seq",
      "parent": "storyline[3]#seq",
      "animation": null,
+     "fps": null,
+     "instant": 7.7,
+     "clock": {
+      "clip": "storyline[3]#seq",
+      "origin": 6.7,
+      "speed": 1
+     },
+     "space": {
+      "kind": "media",
+      "clip": "storyline[3]#seq"
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "storyline[3]#seq"
+     },
      "mediaTime": null
     },
     {
@@ -3208,6 +5233,21 @@
      "storyline": null,
      "parent": null,
      "animation": null,
+     "fps": null,
+     "instant": 6,
+     "clock": {
+      "clip": null,
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "output",
+      "clip": null
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "clips[0]#pip"
+     },
      "mediaTime": 2.48
     },
     {
@@ -3225,6 +5265,21 @@
      "storyline": null,
      "parent": "clips[0]#pip",
      "animation": null,
+     "fps": null,
+     "instant": 7,
+     "clock": {
+      "clip": null,
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "media",
+      "clip": "clips[0]#pip"
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "clips[0]#pip"
+     },
      "mediaTime": null
     },
     {
@@ -3242,6 +5297,21 @@
      "storyline": null,
      "parent": "clips[0]#pip",
      "animation": null,
+     "fps": null,
+     "instant": 0,
+     "clock": {
+      "clip": null,
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "media",
+      "clip": "clips[0]#pip"
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "clips[0]#pip"
+     },
      "mediaTime": null
     },
     {
@@ -3262,6 +5332,21 @@
      "storyline": null,
      "parent": null,
      "animation": null,
+     "fps": null,
+     "instant": 0,
+     "clock": {
+      "clip": null,
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "output",
+      "clip": null
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "clips[3]#under"
+     },
      "mediaTime": 3.96
     },
     {
@@ -3279,6 +5364,21 @@
      "storyline": null,
      "parent": "clips[3]#under",
      "animation": null,
+     "fps": null,
+     "instant": 0,
+     "clock": {
+      "clip": null,
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "media",
+      "clip": "clips[3]#under"
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "clips[3]#under"
+     },
      "mediaTime": null
     }
    ]
@@ -3359,6 +5459,21 @@
      "speed": 1,
      "timeRemap": false,
      "transition": null,
+     "fps": null,
+     "instant": 0,
+     "clock": {
+      "clip": "storyline[0]#v",
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "output",
+      "clip": null
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "storyline[0]#v"
+     },
      "clipTime": 7.5,
      "mediaTime": 3.96
     },
@@ -3387,6 +5502,21 @@
      "speed": 2,
      "timeRemap": false,
      "transition": null,
+     "fps": null,
+     "instant": 4,
+     "clock": {
+      "clip": "storyline[1]#fast",
+      "origin": 3.75,
+      "speed": 2
+     },
+     "space": {
+      "kind": "output",
+      "clip": null
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "storyline[1]#fast"
+     },
      "clipTime": 7.5,
      "mediaTime": 3.96
     },
@@ -3412,6 +5542,21 @@
      "speed": 1,
      "timeRemap": true,
      "transition": null,
+     "fps": null,
+     "instant": 5.7,
+     "clock": {
+      "clip": "storyline[2]#held",
+      "origin": 5.7,
+      "speed": 1
+     },
+     "space": {
+      "kind": "output",
+      "clip": null
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "storyline[2]#held"
+     },
      "clipTime": 1.8,
      "mediaTime": 3
     },
@@ -3437,6 +5582,21 @@
      "speed": 1,
      "timeRemap": false,
      "transition": null,
+     "fps": 2,
+     "instant": 7.7,
+     "clock": {
+      "clip": "storyline[3]#seq",
+      "origin": 6.7,
+      "speed": 1
+     },
+     "space": {
+      "kind": "output",
+      "clip": null
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "storyline[3]#seq"
+     },
      "clipTime": 0.8,
      "mediaTime": 0.5
     }
@@ -3457,6 +5617,21 @@
      "storyline": "storyline[0]#v",
      "parent": "storyline[0]#v",
      "animation": null,
+     "fps": null,
+     "instant": 0,
+     "clock": {
+      "clip": "storyline[0]#v",
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "media",
+      "clip": "storyline[0]#v"
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "storyline[0]#v"
+     },
      "mediaTime": null
     },
     {
@@ -3474,6 +5649,21 @@
      "storyline": "storyline[0]#v",
      "parent": "storyline[0]#v",
      "animation": null,
+     "fps": null,
+     "instant": 0,
+     "clock": {
+      "clip": "storyline[0]#v",
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "media",
+      "clip": "storyline[0]#v"
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "storyline[0]#v"
+     },
      "mediaTime": null
     },
     {
@@ -3491,6 +5681,21 @@
      "storyline": "storyline[0]#v",
      "parent": "storyline[0]#v",
      "animation": null,
+     "fps": null,
+     "instant": 2.2,
+     "clock": {
+      "clip": "storyline[0]#v",
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "media",
+      "clip": "storyline[0]#v"
+     },
+     "ownSpace": {
+      "kind": "box",
+      "clip": "storyline[0]#v.connected[2]#n"
+     },
      "mediaTime": null
     },
     {
@@ -3508,6 +5713,21 @@
      "storyline": "storyline[2]#held",
      "parent": "storyline[2]#held",
      "animation": null,
+     "fps": null,
+     "instant": 5.7,
+     "clock": {
+      "clip": "storyline[2]#held",
+      "origin": 5.7,
+      "speed": 1
+     },
+     "space": {
+      "kind": "media",
+      "clip": "storyline[2]#held"
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "storyline[2]#held"
+     },
      "mediaTime": null
     },
     {
@@ -3525,6 +5745,21 @@
      "storyline": "storyline[3]#seq",
      "parent": "storyline[3]#seq",
      "animation": null,
+     "fps": null,
+     "instant": 7.7,
+     "clock": {
+      "clip": "storyline[3]#seq",
+      "origin": 6.7,
+      "speed": 1
+     },
+     "space": {
+      "kind": "media",
+      "clip": "storyline[3]#seq"
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "storyline[3]#seq"
+     },
      "mediaTime": null
     },
     {
@@ -3545,6 +5780,21 @@
      "storyline": null,
      "parent": null,
      "animation": null,
+     "fps": null,
+     "instant": 6,
+     "clock": {
+      "clip": null,
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "output",
+      "clip": null
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "clips[0]#pip"
+     },
      "mediaTime": 3
     },
     {
@@ -3562,6 +5812,21 @@
      "storyline": null,
      "parent": "clips[0]#pip",
      "animation": null,
+     "fps": null,
+     "instant": 7,
+     "clock": {
+      "clip": null,
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "media",
+      "clip": "clips[0]#pip"
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "clips[0]#pip"
+     },
      "mediaTime": null
     },
     {
@@ -3579,6 +5844,21 @@
      "storyline": null,
      "parent": "clips[0]#pip",
      "animation": null,
+     "fps": null,
+     "instant": 0,
+     "clock": {
+      "clip": null,
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "media",
+      "clip": "clips[0]#pip"
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "clips[0]#pip"
+     },
      "mediaTime": null
     },
     {
@@ -3599,6 +5879,21 @@
      "storyline": null,
      "parent": null,
      "animation": null,
+     "fps": null,
+     "instant": 0,
+     "clock": {
+      "clip": null,
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "output",
+      "clip": null
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "clips[3]#under"
+     },
      "mediaTime": 3.96
     },
     {
@@ -3616,6 +5911,21 @@
      "storyline": null,
      "parent": "clips[3]#under",
      "animation": null,
+     "fps": null,
+     "instant": 0,
+     "clock": {
+      "clip": null,
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "media",
+      "clip": "clips[3]#under"
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "clips[3]#under"
+     },
      "mediaTime": null
     }
    ]
@@ -3659,6 +5969,21 @@
      "speed": 1,
      "timeRemap": false,
      "transition": null,
+     "fps": null,
+     "instant": 0,
+     "clock": {
+      "clip": "storyline[0]#v",
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "output",
+      "clip": null
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "storyline[0]#v"
+     },
      "clipTime": 12,
      "mediaTime": 3.96
     },
@@ -3687,6 +6012,21 @@
      "speed": 2,
      "timeRemap": false,
      "transition": null,
+     "fps": null,
+     "instant": 4,
+     "clock": {
+      "clip": "storyline[1]#fast",
+      "origin": 3.75,
+      "speed": 2
+     },
+     "space": {
+      "kind": "output",
+      "clip": null
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "storyline[1]#fast"
+     },
      "clipTime": 16.5,
      "mediaTime": 3.96
     },
@@ -3712,6 +6052,21 @@
      "speed": 1,
      "timeRemap": true,
      "transition": null,
+     "fps": null,
+     "instant": 5.7,
+     "clock": {
+      "clip": "storyline[2]#held",
+      "origin": 5.7,
+      "speed": 1
+     },
+     "space": {
+      "kind": "output",
+      "clip": null
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "storyline[2]#held"
+     },
      "clipTime": 6.3,
      "mediaTime": 3
     },
@@ -3737,6 +6092,21 @@
      "speed": 1,
      "timeRemap": false,
      "transition": null,
+     "fps": 2,
+     "instant": 7.7,
+     "clock": {
+      "clip": "storyline[3]#seq",
+      "origin": 6.7,
+      "speed": 1
+     },
+     "space": {
+      "kind": "output",
+      "clip": null
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "storyline[3]#seq"
+     },
      "clipTime": 5.3,
      "mediaTime": 3.5
     }
@@ -3757,6 +6127,21 @@
      "storyline": "storyline[0]#v",
      "parent": "storyline[0]#v",
      "animation": null,
+     "fps": null,
+     "instant": 0,
+     "clock": {
+      "clip": "storyline[0]#v",
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "media",
+      "clip": "storyline[0]#v"
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "storyline[0]#v"
+     },
      "mediaTime": null
     },
     {
@@ -3774,6 +6159,21 @@
      "storyline": "storyline[0]#v",
      "parent": "storyline[0]#v",
      "animation": null,
+     "fps": null,
+     "instant": 0,
+     "clock": {
+      "clip": "storyline[0]#v",
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "media",
+      "clip": "storyline[0]#v"
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "storyline[0]#v"
+     },
      "mediaTime": null
     },
     {
@@ -3791,6 +6191,21 @@
      "storyline": "storyline[0]#v",
      "parent": "storyline[0]#v",
      "animation": null,
+     "fps": null,
+     "instant": 2.2,
+     "clock": {
+      "clip": "storyline[0]#v",
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "media",
+      "clip": "storyline[0]#v"
+     },
+     "ownSpace": {
+      "kind": "box",
+      "clip": "storyline[0]#v.connected[2]#n"
+     },
      "mediaTime": null
     },
     {
@@ -3808,6 +6223,21 @@
      "storyline": "storyline[2]#held",
      "parent": "storyline[2]#held",
      "animation": null,
+     "fps": null,
+     "instant": 5.7,
+     "clock": {
+      "clip": "storyline[2]#held",
+      "origin": 5.7,
+      "speed": 1
+     },
+     "space": {
+      "kind": "media",
+      "clip": "storyline[2]#held"
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "storyline[2]#held"
+     },
      "mediaTime": null
     },
     {
@@ -3825,6 +6255,21 @@
      "storyline": "storyline[3]#seq",
      "parent": "storyline[3]#seq",
      "animation": null,
+     "fps": null,
+     "instant": 7.7,
+     "clock": {
+      "clip": "storyline[3]#seq",
+      "origin": 6.7,
+      "speed": 1
+     },
+     "space": {
+      "kind": "media",
+      "clip": "storyline[3]#seq"
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "storyline[3]#seq"
+     },
      "mediaTime": null
     },
     {
@@ -3845,6 +6290,21 @@
      "storyline": null,
      "parent": null,
      "animation": null,
+     "fps": null,
+     "instant": 6,
+     "clock": {
+      "clip": null,
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "output",
+      "clip": null
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "clips[0]#pip"
+     },
      "mediaTime": 2.48
     },
     {
@@ -3862,6 +6322,21 @@
      "storyline": null,
      "parent": "clips[0]#pip",
      "animation": null,
+     "fps": null,
+     "instant": 7,
+     "clock": {
+      "clip": null,
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "media",
+      "clip": "clips[0]#pip"
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "clips[0]#pip"
+     },
      "mediaTime": null
     },
     {
@@ -3879,6 +6354,21 @@
      "storyline": null,
      "parent": "clips[0]#pip",
      "animation": null,
+     "fps": null,
+     "instant": 0,
+     "clock": {
+      "clip": null,
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "media",
+      "clip": "clips[0]#pip"
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "clips[0]#pip"
+     },
      "mediaTime": null
     },
     {
@@ -3899,6 +6389,21 @@
      "storyline": null,
      "parent": null,
      "animation": null,
+     "fps": null,
+     "instant": 0,
+     "clock": {
+      "clip": null,
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "output",
+      "clip": null
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "clips[3]#under"
+     },
      "mediaTime": 3.96
     },
     {
@@ -3916,6 +6421,21 @@
      "storyline": null,
      "parent": "clips[3]#under",
      "animation": null,
+     "fps": null,
+     "instant": 0,
+     "clock": {
+      "clip": null,
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "media",
+      "clip": "clips[3]#under"
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "clips[3]#under"
+     },
      "mediaTime": null
     }
    ]
@@ -3959,6 +6479,21 @@
      "speed": 1,
      "timeRemap": false,
      "transition": null,
+     "fps": null,
+     "instant": 0,
+     "clock": {
+      "clip": "storyline[0]#v",
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "output",
+      "clip": null
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "storyline[0]#v"
+     },
      "clipTime": 1,
      "mediaTime": 1
     },
@@ -3987,6 +6522,21 @@
      "speed": 2,
      "timeRemap": false,
      "transition": null,
+     "fps": null,
+     "instant": 4,
+     "clock": {
+      "clip": "storyline[1]#fast",
+      "origin": 3.75,
+      "speed": 2
+     },
+     "space": {
+      "kind": "output",
+      "clip": null
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "storyline[1]#fast"
+     },
      "clipTime": -5.5,
      "mediaTime": 0
     },
@@ -4012,6 +6562,21 @@
      "speed": 1,
      "timeRemap": true,
      "transition": null,
+     "fps": null,
+     "instant": 5.7,
+     "clock": {
+      "clip": "storyline[2]#held",
+      "origin": 5.7,
+      "speed": 1
+     },
+     "space": {
+      "kind": "output",
+      "clip": null
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "storyline[2]#held"
+     },
      "clipTime": -4.7,
      "mediaTime": 3
     },
@@ -4037,6 +6602,21 @@
      "speed": 1,
      "timeRemap": false,
      "transition": null,
+     "fps": 2,
+     "instant": 7.7,
+     "clock": {
+      "clip": "storyline[3]#seq",
+      "origin": 6.7,
+      "speed": 1
+     },
+     "space": {
+      "kind": "output",
+      "clip": null
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "storyline[3]#seq"
+     },
      "clipTime": -5.7,
      "mediaTime": 0
     }
@@ -4057,6 +6637,21 @@
      "storyline": "storyline[0]#v",
      "parent": "storyline[0]#v",
      "animation": null,
+     "fps": null,
+     "instant": 0,
+     "clock": {
+      "clip": "storyline[0]#v",
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "media",
+      "clip": "storyline[0]#v"
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "storyline[0]#v"
+     },
      "mediaTime": null
     },
     {
@@ -4074,6 +6669,21 @@
      "storyline": "storyline[0]#v",
      "parent": "storyline[0]#v",
      "animation": null,
+     "fps": null,
+     "instant": 0,
+     "clock": {
+      "clip": "storyline[0]#v",
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "media",
+      "clip": "storyline[0]#v"
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "storyline[0]#v"
+     },
      "mediaTime": null
     },
     {
@@ -4091,6 +6701,21 @@
      "storyline": "storyline[0]#v",
      "parent": "storyline[0]#v",
      "animation": null,
+     "fps": null,
+     "instant": 2.2,
+     "clock": {
+      "clip": "storyline[0]#v",
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "media",
+      "clip": "storyline[0]#v"
+     },
+     "ownSpace": {
+      "kind": "box",
+      "clip": "storyline[0]#v.connected[2]#n"
+     },
      "mediaTime": null
     },
     {
@@ -4108,6 +6733,21 @@
      "storyline": "storyline[2]#held",
      "parent": "storyline[2]#held",
      "animation": null,
+     "fps": null,
+     "instant": 5.7,
+     "clock": {
+      "clip": "storyline[2]#held",
+      "origin": 5.7,
+      "speed": 1
+     },
+     "space": {
+      "kind": "media",
+      "clip": "storyline[2]#held"
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "storyline[2]#held"
+     },
      "mediaTime": null
     },
     {
@@ -4125,6 +6765,21 @@
      "storyline": "storyline[3]#seq",
      "parent": "storyline[3]#seq",
      "animation": null,
+     "fps": null,
+     "instant": 7.7,
+     "clock": {
+      "clip": "storyline[3]#seq",
+      "origin": 6.7,
+      "speed": 1
+     },
+     "space": {
+      "kind": "media",
+      "clip": "storyline[3]#seq"
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "storyline[3]#seq"
+     },
      "mediaTime": null
     },
     {
@@ -4145,6 +6800,21 @@
      "storyline": null,
      "parent": null,
      "animation": null,
+     "fps": null,
+     "instant": 6,
+     "clock": {
+      "clip": null,
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "output",
+      "clip": null
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "clips[0]#pip"
+     },
      "mediaTime": 0
     },
     {
@@ -4162,6 +6832,21 @@
      "storyline": null,
      "parent": "clips[0]#pip",
      "animation": null,
+     "fps": null,
+     "instant": 7,
+     "clock": {
+      "clip": null,
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "media",
+      "clip": "clips[0]#pip"
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "clips[0]#pip"
+     },
      "mediaTime": null
     },
     {
@@ -4179,6 +6864,21 @@
      "storyline": null,
      "parent": "clips[0]#pip",
      "animation": null,
+     "fps": null,
+     "instant": 0,
+     "clock": {
+      "clip": null,
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "media",
+      "clip": "clips[0]#pip"
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "clips[0]#pip"
+     },
      "mediaTime": null
     },
     {
@@ -4199,6 +6899,21 @@
      "storyline": null,
      "parent": null,
      "animation": null,
+     "fps": null,
+     "instant": 0,
+     "clock": {
+      "clip": null,
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "output",
+      "clip": null
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "clips[3]#under"
+     },
      "mediaTime": 2.48
     },
     {
@@ -4216,6 +6931,21 @@
      "storyline": null,
      "parent": "clips[3]#under",
      "animation": null,
+     "fps": null,
+     "instant": 0,
+     "clock": {
+      "clip": null,
+      "origin": 0,
+      "speed": 1
+     },
+     "space": {
+      "kind": "media",
+      "clip": "clips[3]#under"
+     },
+     "ownSpace": {
+      "kind": "media",
+      "clip": "clips[3]#under"
+     },
      "mediaTime": null
     }
    ]

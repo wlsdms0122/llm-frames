@@ -1,0 +1,722 @@
+{
+ "unparented": [
+  {
+   "arguments": [
+    "--version"
+   ],
+   "output": "0.1.0\n"
+  },
+  {
+   "arguments": [
+    "timeline",
+    "<document>",
+    "--json"
+   ],
+   "output": {
+    "timeline": "0.1.0",
+    "duration": 2,
+    "storyline": [
+     {
+      "place": "storyline[0]#b",
+      "id": "b",
+      "kind": "image",
+      "media": "/media/board.png",
+      "page": null,
+      "edit": [
+       0,
+       2
+      ],
+      "drawn": [
+       0,
+       2
+      ],
+      "clip": [
+       0,
+       2
+      ],
+      "sound": null,
+      "speed": 1,
+      "timeRemap": false,
+      "transition": null,
+      "fps": null,
+      "instant": 0,
+      "clock": {
+       "clip": "storyline[0]#b",
+       "origin": 0,
+       "speed": 1
+      },
+      "space": {
+       "kind": "output",
+       "clip": null
+      },
+      "ownSpace": {
+       "kind": "media",
+       "clip": "storyline[0]#b"
+      }
+     }
+    ],
+    "clips": [
+     {
+      "place": "storyline[0]#b.connected[0]",
+      "id": null,
+      "kind": "rect",
+      "media": null,
+      "page": null,
+      "visible": [
+       0,
+       2
+      ],
+      "sound": null,
+      "lane": 1,
+      "storyline": "storyline[0]#b",
+      "parent": null,
+      "animation": null,
+      "fps": null,
+      "instant": 0,
+      "clock": {
+       "clip": "storyline[0]#b",
+       "origin": 0,
+       "speed": 1
+      },
+      "space": {
+       "kind": "output",
+       "clip": null
+      },
+      "ownSpace": {
+       "kind": "output",
+       "clip": null
+      }
+     }
+    ]
+   }
+  }
+ ],
+ "title_mask": [
+  {
+   "arguments": [
+    "--version"
+   ],
+   "output": "0.1.0\n"
+  },
+  {
+   "arguments": [
+    "timeline",
+    "<document>",
+    "--json"
+   ],
+   "output": {
+    "timeline": "0.1.0",
+    "duration": 2,
+    "storyline": [
+     {
+      "place": "storyline[0]#b",
+      "id": "b",
+      "kind": "image",
+      "media": "/media/board.png",
+      "page": null,
+      "edit": [
+       0,
+       2
+      ],
+      "drawn": [
+       0,
+       2
+      ],
+      "clip": [
+       0,
+       2
+      ],
+      "sound": null,
+      "speed": 1,
+      "timeRemap": false,
+      "transition": null,
+      "fps": null,
+      "instant": 0,
+      "clock": {
+       "clip": "storyline[0]#b",
+       "origin": 0,
+       "speed": 1
+      },
+      "space": {
+       "kind": "output",
+       "clip": null
+      },
+      "ownSpace": {
+       "kind": "media",
+       "clip": "storyline[0]#b"
+      }
+     }
+    ],
+    "clips": [
+     {
+      "place": "storyline[0]#b.connected[0]",
+      "id": null,
+      "kind": "title",
+      "media": null,
+      "page": null,
+      "visible": [
+       0,
+       2
+      ],
+      "sound": null,
+      "lane": 1,
+      "storyline": "storyline[0]#b",
+      "parent": null,
+      "animation": null,
+      "fps": null,
+      "instant": 0,
+      "clock": {
+       "clip": "storyline[0]#b",
+       "origin": 0,
+       "speed": 1
+      },
+      "space": {
+       "kind": "output",
+       "clip": null
+      },
+      "ownSpace": {
+       "kind": "box",
+       "clip": "storyline[0]#b.connected[0]"
+      }
+     }
+    ]
+   }
+  }
+ ],
+ "parent_title": [
+  {
+   "arguments": [
+    "--version"
+   ],
+   "output": "0.1.0\n"
+  },
+  {
+   "arguments": [
+    "timeline",
+    "<document>",
+    "--json"
+   ],
+   "output": {
+    "timeline": "0.1.0",
+    "duration": 2,
+    "storyline": [
+     {
+      "place": "storyline[0]#b",
+      "id": "b",
+      "kind": "image",
+      "media": "/media/board.png",
+      "page": null,
+      "edit": [
+       0,
+       2
+      ],
+      "drawn": [
+       0,
+       2
+      ],
+      "clip": [
+       0,
+       2
+      ],
+      "sound": null,
+      "speed": 1,
+      "timeRemap": false,
+      "transition": null,
+      "fps": null,
+      "instant": 0,
+      "clock": {
+       "clip": "storyline[0]#b",
+       "origin": 0,
+       "speed": 1
+      },
+      "space": {
+       "kind": "output",
+       "clip": null
+      },
+      "ownSpace": {
+       "kind": "media",
+       "clip": "storyline[0]#b"
+      }
+     }
+    ],
+    "clips": [
+     {
+      "place": "storyline[0]#b.connected[0]#t",
+      "id": "t",
+      "kind": "title",
+      "media": null,
+      "page": null,
+      "visible": [
+       0,
+       2
+      ],
+      "sound": null,
+      "lane": 1,
+      "storyline": "storyline[0]#b",
+      "parent": "storyline[0]#b",
+      "animation": null,
+      "fps": null,
+      "instant": 0,
+      "clock": {
+       "clip": "storyline[0]#b",
+       "origin": 0,
+       "speed": 1
+      },
+      "space": {
+       "kind": "media",
+       "clip": "storyline[0]#b"
+      },
+      "ownSpace": {
+       "kind": "box",
+       "clip": "storyline[0]#b.connected[0]#t"
+      }
+     },
+     {
+      "place": "storyline[0]#b.connected[1]",
+      "id": null,
+      "kind": "rect",
+      "media": null,
+      "page": null,
+      "visible": [
+       0,
+       2
+      ],
+      "sound": null,
+      "lane": 1,
+      "storyline": "storyline[0]#b",
+      "parent": "storyline[0]#b.connected[0]#t",
+      "animation": null,
+      "fps": null,
+      "instant": 0,
+      "clock": {
+       "clip": "storyline[0]#b",
+       "origin": 0,
+       "speed": 1
+      },
+      "space": {
+       "kind": "box",
+       "clip": "storyline[0]#b.connected[0]#t"
+      },
+      "ownSpace": {
+       "kind": "box",
+       "clip": "storyline[0]#b.connected[0]#t"
+      }
+     }
+    ]
+   }
+  }
+ ],
+ "parent_solid": [
+  {
+   "arguments": [
+    "--version"
+   ],
+   "output": "0.1.0\n"
+  },
+  {
+   "arguments": [
+    "timeline",
+    "<document>",
+    "--json"
+   ],
+   "output": {
+    "timeline": "0.1.0",
+    "duration": 2,
+    "storyline": [
+     {
+      "place": "storyline[0]#s",
+      "id": "s",
+      "kind": "solid",
+      "media": null,
+      "page": null,
+      "edit": [
+       0,
+       2
+      ],
+      "drawn": [
+       0,
+       2
+      ],
+      "clip": [
+       0,
+       2
+      ],
+      "sound": null,
+      "speed": 1,
+      "timeRemap": false,
+      "transition": null,
+      "fps": null,
+      "instant": 0,
+      "clock": {
+       "clip": "storyline[0]#s",
+       "origin": 0,
+       "speed": 1
+      },
+      "space": {
+       "kind": "output",
+       "clip": null
+      },
+      "ownSpace": {
+       "kind": "output",
+       "clip": null
+      }
+     }
+    ],
+    "clips": [
+     {
+      "place": "storyline[0]#s.connected[0]",
+      "id": null,
+      "kind": "rect",
+      "media": null,
+      "page": null,
+      "visible": [
+       0,
+       2
+      ],
+      "sound": null,
+      "lane": 1,
+      "storyline": "storyline[0]#s",
+      "parent": "storyline[0]#s",
+      "animation": null,
+      "fps": null,
+      "instant": 0,
+      "clock": {
+       "clip": "storyline[0]#s",
+       "origin": 0,
+       "speed": 1
+      },
+      "space": {
+       "kind": "output",
+       "clip": null
+      },
+      "ownSpace": {
+       "kind": "output",
+       "clip": null
+      }
+     }
+    ]
+   }
+  }
+ ],
+ "parent_corner_pin": [
+  {
+   "arguments": [
+    "--version"
+   ],
+   "output": "0.1.0\n"
+  },
+  {
+   "arguments": [
+    "timeline",
+    "<document>",
+    "--json"
+   ],
+   "output": {
+    "timeline": "0.1.0",
+    "duration": 2,
+    "storyline": [
+     {
+      "place": "storyline[0]#b",
+      "id": "b",
+      "kind": "image",
+      "media": "/media/board.png",
+      "page": null,
+      "edit": [
+       0,
+       2
+      ],
+      "drawn": [
+       0,
+       2
+      ],
+      "clip": [
+       0,
+       2
+      ],
+      "sound": null,
+      "speed": 1,
+      "timeRemap": false,
+      "transition": null,
+      "fps": null,
+      "instant": 0,
+      "clock": {
+       "clip": "storyline[0]#b",
+       "origin": 0,
+       "speed": 1
+      },
+      "space": {
+       "kind": "output",
+       "clip": null
+      },
+      "ownSpace": {
+       "kind": "media",
+       "clip": "storyline[0]#b"
+      }
+     }
+    ],
+    "clips": [
+     {
+      "place": "storyline[0]#b.connected[0]#p",
+      "id": "p",
+      "kind": "image",
+      "media": "/media/board.png",
+      "page": null,
+      "visible": [
+       0,
+       2
+      ],
+      "sound": null,
+      "lane": 1,
+      "storyline": "storyline[0]#b",
+      "parent": "storyline[0]#b",
+      "animation": null,
+      "fps": null,
+      "instant": 0,
+      "clock": {
+       "clip": "storyline[0]#b",
+       "origin": 0,
+       "speed": 1
+      },
+      "space": {
+       "kind": "media",
+       "clip": "storyline[0]#b"
+      },
+      "ownSpace": {
+       "kind": "media",
+       "clip": "storyline[0]#b.connected[0]#p"
+      }
+     },
+     {
+      "place": "storyline[0]#b.connected[1]",
+      "id": null,
+      "kind": "rect",
+      "media": null,
+      "page": null,
+      "visible": [
+       0,
+       2
+      ],
+      "sound": null,
+      "lane": 1,
+      "storyline": "storyline[0]#b",
+      "parent": "storyline[0]#b.connected[0]#p",
+      "animation": null,
+      "fps": null,
+      "instant": 0,
+      "clock": {
+       "clip": "storyline[0]#b",
+       "origin": 0,
+       "speed": 1
+      },
+      "space": {
+       "kind": "media",
+       "clip": "storyline[0]#b"
+      },
+      "ownSpace": {
+       "kind": "media",
+       "clip": "storyline[0]#b"
+      }
+     }
+    ]
+   }
+  },
+  {
+   "arguments": [
+    "timeline",
+    "<document>",
+    "--at",
+    "0",
+    "--json"
+   ],
+   "output": {
+    "timeline": "0.1.0",
+    "duration": 2,
+    "time": 0,
+    "storyline": [
+     {
+      "place": "storyline[0]#b",
+      "id": "b",
+      "kind": "image",
+      "media": "/media/board.png",
+      "page": null,
+      "edit": [
+       0,
+       2
+      ],
+      "drawn": [
+       0,
+       2
+      ],
+      "clip": [
+       0,
+       2
+      ],
+      "sound": null,
+      "speed": 1,
+      "timeRemap": false,
+      "transition": null,
+      "fps": null,
+      "instant": 0,
+      "clock": {
+       "clip": "storyline[0]#b",
+       "origin": 0,
+       "speed": 1
+      },
+      "space": {
+       "kind": "output",
+       "clip": null
+      },
+      "ownSpace": {
+       "kind": "media",
+       "clip": "storyline[0]#b"
+      },
+      "clipTime": 0,
+      "mediaTime": 0
+     }
+    ],
+    "clips": [
+     {
+      "place": "storyline[0]#b.connected[0]#p",
+      "id": "p",
+      "kind": "image",
+      "media": "/media/board.png",
+      "page": null,
+      "visible": [
+       0,
+       2
+      ],
+      "sound": null,
+      "lane": 1,
+      "storyline": "storyline[0]#b",
+      "parent": "storyline[0]#b",
+      "animation": null,
+      "fps": null,
+      "instant": 0,
+      "clock": {
+       "clip": "storyline[0]#b",
+       "origin": 0,
+       "speed": 1
+      },
+      "space": {
+       "kind": "media",
+       "clip": "storyline[0]#b"
+      },
+      "ownSpace": {
+       "kind": "media",
+       "clip": "storyline[0]#b.connected[0]#p"
+      },
+      "mediaTime": 0
+     },
+     {
+      "place": "storyline[0]#b.connected[1]",
+      "id": null,
+      "kind": "rect",
+      "media": null,
+      "page": null,
+      "visible": [
+       0,
+       2
+      ],
+      "sound": null,
+      "lane": 1,
+      "storyline": "storyline[0]#b",
+      "parent": "storyline[0]#b.connected[0]#p",
+      "animation": null,
+      "fps": null,
+      "instant": 0,
+      "clock": {
+       "clip": "storyline[0]#b",
+       "origin": 0,
+       "speed": 1
+      },
+      "space": {
+       "kind": "media",
+       "clip": "storyline[0]#b"
+      },
+      "ownSpace": {
+       "kind": "media",
+       "clip": "storyline[0]#b"
+      },
+      "mediaTime": null
+     }
+    ]
+   }
+  },
+  {
+   "arguments": [
+    "ocr",
+    "/media/board.png",
+    "--json"
+   ],
+   "output": {
+    "ocr": "0.1.0",
+    "size": [
+     1280,
+     720
+    ],
+    "languages": null,
+    "frames": [
+     {
+      "time": 0,
+      "lines": [
+       {
+        "text": "Receipt",
+        "rect": [
+         83.274157,
+         87,
+         237.365555,
+         54
+        ]
+       },
+       {
+        "text": "Flat white 4.50",
+        "rect": [
+         80.000001,
+         213,
+         212,
+         23
+        ]
+       },
+       {
+        "text": "Sourdough 6.00",
+        "rect": [
+         80,
+         302,
+         232,
+         30
+        ]
+       },
+       {
+        "text": "Total 10.50",
+        "rect": [
+         77.792892,
+         393,
+         162.414215,
+         23
+        ]
+       },
+       {
+        "text": "Total saved 1.00",
+        "rect": [
+         77.795659,
+         483,
+         238.387482,
+         23
+        ]
+       },
+       {
+        "text": "Thank you",
+        "rect": [
+         759.113963,
+         483,
+         151.536728,
+         29
+        ]
+       }
+      ]
+     }
+    ]
+   }
+  }
+ ]
+}

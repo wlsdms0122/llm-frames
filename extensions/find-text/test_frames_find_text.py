@@ -212,51 +212,57 @@ class Matching(unittest.TestCase):
 
 
 class Places(Case):
-    board = "/media/board.png"
+    """Documents of `fixtures/places.json`, each with the frames commands the extension ran on it in
+    `fixtures/places.calls.json`."""
 
-    def child(self, child, parent=None):
-        parent = parent or {"id": "b", "media": self.board, "duration": 2}
-        return {"kind": "sequence", "storyline": [dict(parent, connected=[child])]}
+    board = "/media/board.png"
+    documents = fixture("places.json")
+    calls = fixture("places.calls.json")
+
+    def place(self, name):
+        return self.stop(copy.deepcopy(self.documents[name]), self.calls[name])
 
     def test_unparented(self):
         # Given an unparented shape that names text
-        document = self.child({"shape": "rect", "fill": "#FF0000", "area": {"text": "Total"}})
-
         # When the extension runs
-        message = self.stop(document)
+        message = self.place("unparented")
 
-        # Then it stops, since the place is in output pixels
+        # Then it stops, since its timeline entry reports its space as output pixels
         self.assertIn("storyline[0]#b.connected[0]: area: the place is not in a medium's pixels", message)
-        self.assertIn("output pixels", message)
+        self.assertIn("it is written in output pixels", message)
 
     def test_title_mask(self):
         # Given a title whose mask names text
-        document = self.child(
-            {"title": "x", "style": "title", "placement": "center", "mask": {"shape": "rect", "area": {"text": "Total"}}}
-        )
-
         # When the extension runs
-        message = self.stop(document)
+        message = self.place("title_mask")
 
-        # Then it stops, since the mask is in the title's text box
+        # Then it stops, since its entry reports its own space as its text box
         self.assertIn("mask.area: the place is not in a medium's pixels", message)
-        self.assertIn("a title's mask is in its text box", message)
+        self.assertIn("it is written in the box of storyline[0]#b.connected[0]", message)
+
+    def test_parent_refused_by_space(self):
+        # Given a shape parented to a title, and one parented to a solid
+        # When the extension runs on each
+        title = self.place("parent_title")
+        solid = self.place("parent_solid")
+
+        # Then each stops on the space its entry reports, the title's box and output pixels
+        self.assertIn("storyline[0]#b.connected[1]: area: the place is not in a medium's pixels", title)
+        self.assertIn("it is written in the box of storyline[0]#b.connected[0]#t", title)
+        self.assertIn("storyline[0]#s.connected[0]: area: the place is not in a medium's pixels", solid)
+        self.assertIn("it is written in output pixels", solid)
 
     def test_parent_corner_pin(self):
-        # Given a shape parented to a clip with a corner pin
-        document = {
-            "kind": "sequence",
-            "storyline": [{"id": "b", "media": self.board, "duration": 2, "connected": [
-                {"id": "p", "media": self.board, "cornerPin": [[0, 0], [100, 0], [100, 100], [0, 100]]},
-                {"parent": "p", "shape": "rect", "fill": "#FF0000", "area": {"text": "Total"}}
-            ]}]
-        }
+        # Given a shape parented to a clip with a corner pin, which is parented to a still
+        document = copy.deepcopy(self.documents["parent_corner_pin"])
 
         # When the extension runs
-        message = self.stop(document)
+        result = self.run_document(document, self.calls["parent_corner_pin"])
 
-        # Then it stops naming the parent and its corner pin
-        self.assertIn("its parent storyline[0]#b.connected[0]#p has a corner pin", message)
+        # Then it is found in the still's pixels, the space the corner pin is written in, as its entry reports
+        area = result["storyline"][0]["connected"][1]["area"]
+        self.assertEqual(area, [77.795659, 483, 238.387482, 23])
+        self.assertEqual(self.commands("ocr"), [["ocr", self.board, "--json"]])
 
     def test_compound(self):
         # Given a crop that names text inside a compound clip
@@ -273,7 +279,9 @@ class Places(Case):
 
     def test_mixed_form(self):
         # Given an area that mixes a text form with a clip area
-        document = self.child({"parent": "b", "shape": "rect", "area": {"text": "Total", "clip": "b"}})
+        document = {"kind": "sequence", "storyline": [{"id": "b", "media": self.board, "duration": 2, "connected": [
+            {"parent": "b", "shape": "rect", "area": {"text": "Total", "clip": "b"}}
+        ]}]}
 
         # When the extension runs
         message = self.stop(document)
