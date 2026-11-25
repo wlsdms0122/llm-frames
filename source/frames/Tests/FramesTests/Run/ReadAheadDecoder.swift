@@ -54,7 +54,7 @@ final class ReadAheadDecoder: MediaDecoder, @unchecked Sendable {
         of file: MediaFile,
         atFrame index: Int,
         reading: PictureReading
-    ) throws -> Bitmap {
+    ) throws -> Pixels {
         let isReadAhead = lock.withLock { framesRead > 0 }
         if isReadAhead {
             clock.advance(by: waitSeconds)
@@ -85,7 +85,7 @@ final class ReadAheadDecoder: MediaDecoder, @unchecked Sendable {
         region: PageRegion,
         scale: Double,
         reading: PictureReading
-    ) throws -> Bitmap {
+    ) throws -> Pixels {
         try decoder.picture(of: file, region: region, scale: scale, reading: reading)
     }
 
@@ -119,6 +119,7 @@ final class ReadAheadDecoder: MediaDecoder, @unchecked Sendable {
                     path: "/abs/run.mp4",
                     page: nil,
                     conversion: .identity,
+                    device: .cpu,
                     pixelFormat: "16-bit float RGBA",
                     framesRead: framesRead,
                     framesDecoded: framesDecoded,

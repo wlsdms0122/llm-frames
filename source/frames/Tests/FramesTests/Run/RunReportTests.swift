@@ -28,7 +28,7 @@ struct RunReportTests {
         recorder.measure(.resolve, reading: decoder) { clock.advance(by: 2) }
         try recorder.measure(.draw, reading: decoder) {
             clock.advance(by: 0.5)
-            _ = try decoder.picture(of: video, atFrame: 0, reading: .tagged)
+            _ = try decoder.picture(of: video, atFrame: 0, reading: .tagged).bitmap
         }
         recorder.measureWaitingOnEncoder { clock.advance(by: 0.75) }
         clock.advance(by: 0.125)
@@ -74,7 +74,7 @@ struct RunReportTests {
         for index in 0..<2 {
             try recorder.measure(.draw, reading: decoder) {
                 clock.advance(by: 0.5)
-                _ = try decoder.picture(of: video, atFrame: index, reading: .tagged)
+                _ = try decoder.picture(of: video, atFrame: index, reading: .tagged).bitmap
             }
         }
         recorder.measureWaitingOnEncoder { clock.advance(by: 0.75) }
@@ -116,9 +116,9 @@ struct RunReportTests {
         recorder.measureWaitingOnEncoder { clock.advance(by: 1.25) }
         clock.advance(by: 0.25)
         let media = [
-            MediumReading(path: "/abs/run.mp4", page: nil, conversion: .space(.rec709), pixelFormat: "16-bit float RGBA", framesRead: 2, framesDecoded: 3, reopened: 1),
-            MediumReading(path: "/abs/deck.pdf", page: 2, conversion: .identity, pixelFormat: "32-bit float RGBA", framesRead: 1, framesDecoded: 1, reopened: 0),
-            MediumReading(path: "/abs/hlg.mov", page: nil, conversion: .hybridLogGamma, pixelFormat: "16-bit float RGBA", framesRead: 1, framesDecoded: 1, reopened: 0)
+            MediumReading(path: "/abs/run.mp4", page: nil, conversion: .space(.rec709), device: .cpu, pixelFormat: "16-bit float RGBA", framesRead: 2, framesDecoded: 3, reopened: 1),
+            MediumReading(path: "/abs/deck.pdf", page: 2, conversion: .identity, device: .cpu, pixelFormat: "32-bit float RGBA", framesRead: 1, framesDecoded: 1, reopened: 0),
+            MediumReading(path: "/abs/hlg.mov", page: nil, conversion: .hybridLogGamma, device: .cpu, pixelFormat: "16-bit float RGBA", framesRead: 1, framesDecoded: 1, reopened: 0)
         ]
         var decoded = StageTimes()
         decoded.add(0.125, to: .decode)
@@ -151,11 +151,11 @@ struct RunReportTests {
             "draw": 0, "outputConversion": 0.375, "encode": 0.5}, "readAhead": {"decode": 0.0625, "workingConversion": 0}, \#
             "waiting": {"encoder": 1.25, "decoder": 0.125}, "other": 0, \#
             "media": [{"path": "/abs/run.mp4", "page": null, "colorSpace": "rec709", "conversion": "space", \#
-            "pixelFormat": "16-bit float RGBA", "framesRead": 2, "framesDecoded": 3, "reopened": 1}, \#
+            "device": "cpu", "pixelFormat": "16-bit float RGBA", "framesRead": 2, "framesDecoded": 3, "reopened": 1}, \#
             {"path": "/abs/deck.pdf", "page": 2, "colorSpace": "srgb", "conversion": "none", \#
-            "pixelFormat": "32-bit float RGBA", "framesRead": 1, "framesDecoded": 1, "reopened": 0}, \#
+            "device": "cpu", "pixelFormat": "32-bit float RGBA", "framesRead": 1, "framesDecoded": 1, "reopened": 0}, \#
             {"path": "/abs/hlg.mov", "page": null, "colorSpace": null, "conversion": "hlg", \#
-            "pixelFormat": "16-bit float RGBA", "framesRead": 1, "framesDecoded": 1, "reopened": 0}], \#
+            "device": "cpu", "pixelFormat": "16-bit float RGBA", "framesRead": 1, "framesDecoded": 1, "reopened": 0}], \#
             "files": [{"path": "/abs/out.mov", "codec": "ProRes 422 HQ", "hardware": true}, \#
             {"path": "/abs/out.mp4", "codec": "H.264", "hardware": true}]}
             """#

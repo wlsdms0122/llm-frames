@@ -40,12 +40,12 @@ struct RecordingDecoder: MediaDecoder {
         of file: MediaFile,
         atFrame index: Int,
         reading: PictureReading
-    ) throws -> Bitmap {
+    ) throws -> Pixels {
         if reading != .tagged {
             log.record(.readPicture(path: file.path, frame: index, reading: reading))
         }
 
-        return Bitmap(frame: index)
+        return .bitmap(Bitmap(frame: index))
     }
 
     func picture(
@@ -53,10 +53,10 @@ struct RecordingDecoder: MediaDecoder {
         region: PageRegion,
         scale: Double,
         reading: PictureReading
-    ) throws -> Bitmap {
+    ) throws -> Pixels {
         log.record(.readPage(path: file.path, page: file.page, region: region, scale: scale, reading: reading))
 
-        return Bitmap(frame: 0)
+        return .bitmap(Bitmap(frame: 0))
     }
 
     func pageSize(of file: MediaFile) throws -> Size {
