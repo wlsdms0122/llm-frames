@@ -193,8 +193,6 @@ enum Fixture {
     static let shaper = ShaperTable()
 
     static let sequencePlanner = SequencePlanner(
-        ocr: ocr,
-        languages: nil,
         tracker: tracker,
         shaper: shaper,
         presets: presets,
@@ -204,8 +202,6 @@ enum Fixture {
     static let documentPlanner = DocumentPlanner(
         mediaFacts: mediaFacts,
         presets: presets,
-        ocr: ocr,
-        languages: nil,
         tracker: tracker,
         shaper: shaper,
         library: library

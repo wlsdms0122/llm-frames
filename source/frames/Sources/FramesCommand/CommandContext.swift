@@ -62,8 +62,6 @@ struct CommandContext: Sendable {
         DocumentPlanner(
             mediaFacts: roles.decoder,
             presets: presets,
-            ocr: roles.ocr,
-            languages: options.ocrLanguages,
             tracker: roles.tracker,
             shaper: roles.shaper,
             packs: packs,

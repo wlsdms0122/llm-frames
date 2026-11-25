@@ -409,8 +409,8 @@ struct ResolvedSequenceWriterTests {
         // Given
         let document = #"""
             { "kind": "sequence", "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "in": 1, "out": 3, "connected": [
-                { "shape": "rect", "stroke": { "width": 8 }, "area": { "text": "Total" }, "parent": "screen", "track": { "text": "Total" } },
-                { "shape": "rect", "fill": "#FFD43B80", "area": { "text": "Total", "padding": 14 }, "parent": "screen", "track": true } ] } ] }
+                { "shape": "rect", "stroke": { "width": 8 }, "area": [100, 100, 200, 40], "parent": "screen", "track": [100, 100, 200, 40] },
+                { "shape": "rect", "fill": "#FFD43B80", "area": [86, 86, 228, 68], "parent": "screen", "track": true } ] } ] }
             """#
 
         // When
@@ -714,8 +714,6 @@ struct ResolvedSequenceWriterTests {
         let planner = DocumentPlanner(
             mediaFacts: Fixture.mediaFacts,
             presets: presets,
-            ocr: Fixture.ocr,
-            languages: nil,
             tracker: tracker,
             shaper: Fixture.shaper,
             library: Fixture.library

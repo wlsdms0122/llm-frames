@@ -11,7 +11,6 @@ import FramesAVFoundation
 import FramesCoreText
 import FramesTestMedia
 import FramesTracker
-import FramesVision
 import Testing
 
 @testable import Frames
@@ -21,9 +20,7 @@ import Testing
 @Suite("Resolve End To End Tests", .serialized)
 struct ResolveEndToEndTests {
     // MARK: - Property
-    // How far the found area's edges may lie from the drawn line box, and how far each followed rectangle's centre
-    // may lie from where the drawn line moved it, in media pixels.
-    private let ocrTolerance = 8.0
+    // How far each followed rectangle's centre may lie from where the drawn line moved it, in media pixels.
     private let trackTolerance = 1.5
     // How far a corner pin tracked by the planar tracker may lie from its projected corners, in output pixels.
     private let planarTolerance = 0.5
@@ -32,7 +29,7 @@ struct ResolveEndToEndTests {
 
     // MARK: - Initializer
     // MARK: - Test
-    @Test("a sequence on generated media resolves through the real decoder, OCR, tracker and shaper")
+    @Test("a sequence on generated media resolves through the real decoder, tracker and shaper")
     func resolvesOnRealProviders() async throws {
         // Given
         let directory = try TemporaryDirectory()
@@ -44,12 +41,7 @@ struct ResolveEndToEndTests {
         let plan = try sut.plan(document)
 
         // Then
-        guard case let .value(area) = plan.clips[0].area else {
-            Issue.record("the box's area is not one value")
-            return
-        }
-        #expect(area.lines.map(\.text) == ["Total 12,000원"])
-        #expect(isNear(area.target, drawn[0]), "found \(area.target), drawn \(drawn[0])")
+        #expect(plan.clips[0].area == .value(.rectangle(drawn[0])))
 
         let track = try #require(plan.clips[0].track?.track)
         #expect(track.samples.map(\.time) == times)
@@ -193,14 +185,15 @@ struct ResolveEndToEndTests {
     }
 
     // MARK: - Private
-    // The screen recording with a box tracking its scrolling line and a title over it. The drawn boxes of the
-    // scrolling line come back in frame order.
+    // The screen recording with a box on its scrolling line as drawn on the first frame, tracking it, and a title
+    // over it. The drawn boxes of the scrolling line come back in frame order.
     private func screenDocument(in directory: TemporaryDirectory) async throws -> (JSONValue, [Rectangle]) {
         let file = directory.file("screen.mov")
         let drawn = try await ScreenRecording(scale: 0.5).write(to: file)
+        let line = "[\(drawn[0].x), \(drawn[0].y), \(drawn[0].width), \(drawn[0].height)]"
         let document = try Fixture.json(#"""
             { "kind": "sequence",
-              "storyline": [ { "id": "screen", "media": "\#(file)", "connected": [ { "shape": "rect", "stroke": { "width": 8 }, "area": { "text": "Total" }, "parent": "screen", "track": true } ] } ],
+              "storyline": [ { "id": "screen", "media": "\#(file)", "connected": [ { "shape": "rect", "stroke": { "width": 8 }, "area": \#(line), "parent": "screen", "track": true } ] } ],
               "clips": [ { "at": [0, 1], "title": "결제 완료", "style": "title" } ] }
             """#)
 
@@ -219,8 +212,6 @@ struct ResolveEndToEndTests {
         return DocumentPlanner(
             mediaFacts: decoder,
             presets: Fixture.presets,
-            ocr: VisionOCR(decoder: decoder),
-            languages: ["ko-KR", "en-US"].compactMap(LanguageTag.init),
             tracker: tracker,
             shaper: CoreTextShaper(),
             library: library
@@ -247,18 +238,5 @@ struct ResolveEndToEndTests {
         }
 
         return try #require(strokes.first)
-    }
-
-    private func isNear(
-        _ found: Rectangle,
-        _ drawn: Rectangle
-    ) -> Bool {
-        [
-            (found.x, drawn.x),
-            (found.y, drawn.y),
-            (found.maxX, drawn.maxX),
-            (found.maxY, drawn.maxY)
-        ]
-        .allSatisfy { abs($0 - $1) <= ocrTolerance }
     }
 }

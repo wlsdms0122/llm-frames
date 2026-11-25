@@ -722,7 +722,7 @@ struct MotionBlurEvaluationTests {
         // 10 pixels.
         let sequence = try drifting(#"""
             { "kind": "sequence", "format": { "size": [1920, 1080], "fps": 25 },
-              "storyline": [ { "media": "/abs/screen.mp4", "in": 0, "out": 2, "crop": { "text": "Total" }, "track": true, "motionBlur": true } ] }
+              "storyline": [ { "media": "/abs/screen.mp4", "in": 0, "out": 2, "crop": [100, 100, 200, 40], "track": true, "motionBlur": true } ] }
             """#)
 
         // When
@@ -745,7 +745,7 @@ struct MotionBlurEvaluationTests {
             #"""
                 { "kind": "sequence", "format": { "size": [1920, 1080], "fps": 25 },
                   "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "in": 0, "out": 2, "connected": [
-                    { "id": "box", "shape": "rect", "stroke": { "width": 8 }, "parent": "screen", "at": [0, 2], "area": { "text": "Total" },
+                    { "id": "box", "shape": "rect", "stroke": { "width": 8 }, "parent": "screen", "at": [0, 2], "area": [100, 100, 200, 40],
                       "track": true, "motionBlur": \#(isMotionBlurred) } ] } ] }
                 """#
         }
@@ -906,8 +906,6 @@ struct MotionBlurEvaluationTests {
         let planner = DocumentPlanner(
             mediaFacts: Fixture.mediaFacts,
             presets: presets,
-            ocr: Fixture.ocr,
-            languages: nil,
             tracker: Fixture.tracker,
             shaper: Fixture.shaper,
             library: Fixture.library
@@ -922,8 +920,6 @@ struct MotionBlurEvaluationTests {
         let planner = DocumentPlanner(
             mediaFacts: Fixture.mediaFacts,
             presets: Fixture.presets,
-            ocr: Fixture.ocr,
-            languages: nil,
             tracker: TrackerTable(frameTimes: ["/abs/screen.mp4": Fixture.screenFrameTimes], drift: Point(x: 100, y: 0)),
             shaper: Fixture.shaper,
             library: Fixture.library

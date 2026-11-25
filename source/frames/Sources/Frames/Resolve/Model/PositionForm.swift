@@ -11,10 +11,6 @@ enum PositionForm: Equatable, Sendable {
     case area(AreaForm, point: String)
 
     // MARK: - Property
-    var isFoundByText: Bool {
-        if case let .area(area, _) = self { area.isFoundByText } else { false }
-    }
-
     var clip: String? {
         if case let .area(area, _) = self { area.clip } else { nil }
     }

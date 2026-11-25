@@ -48,7 +48,6 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
     case missingFormatSize(place: Place, kind: PlaceKind)
     case contentFitWithoutPicture(place: Place, kind: PlaceKind)
     case soundAsPicture(place: Place, kind: PlaceKind, reference: String)
-    case textAreaInOutputPixels(place: Place, kind: PlaceKind)
     case shapeAreaWithBox(place: Place, kind: PlaceKind)
     case placementWithoutBox(place: Place, kind: PlaceKind)
     case shapeWithoutGeometry(place: Place, kind: PlaceKind)
@@ -60,7 +59,7 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
     case cornerPinOnGeometry(place: Place, kind: PlaceKind)
     case cornerPinNotConvex(place: Place, kind: PlaceKind, time: Double?)
     // `time` is the keyframe's, nil for a static corner pin found at the clip's instant.
-    case cornerPinNotBroughtBack(place: Place, kind: PlaceKind, time: Double?)
+    case cornerPinNotBroughtBack(place: Place, kind: PlaceKind, time: Double)
     case trackOnStorylineCornerPin(place: Place, kind: PlaceKind)
     // `layer` is the theme layer that turned the value off, nil where no layer of the look gives one.
     case missingLookLeaf(place: Place, kind: PlaceKind, key: String, layer: Place?)
@@ -70,7 +69,6 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
     case staggerWithoutBy(place: Place, kind: PlaceKind)
     case orderWithoutBy(place: Place, kind: PlaceKind)
     case unitsWithoutSpan(place: Place, kind: PlaceKind)
-    case textMaskInOwnBox(place: Place, kind: PlaceKind)
     case unknownParent(place: Place, kind: PlaceKind, id: String)
     case audioParent(place: Place, kind: PlaceKind, id: String)
     case parentCycle(place: Place, kind: PlaceKind, ids: [String])
@@ -82,7 +80,6 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
     case clipAreaAcrossSpaces(place: Place, kind: PlaceKind, id: String, parent: String?, namedParent: String?)
     case clipAreaCycle(place: Place, kind: PlaceKind, ids: [String])
     case clipAreaOnStoryline(place: Place, kind: PlaceKind)
-    case textUnderClipArea(place: Place, kind: PlaceKind, parent: String)
     case trackWithoutVideo(place: Place, kind: PlaceKind)
     case trackOwnWithoutArea(place: Place, kind: PlaceKind)
     case trackOwnOnNamingClip(place: Place, kind: PlaceKind)
@@ -93,7 +90,6 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
     case trackTimeOutside(place: Place, kind: PlaceKind, time: Double)
     case instantNotFollowed(place: Place, kind: PlaceKind, mediaTime: Double)
     case trackData(place: Place, kind: PlaceKind, reason: TrackDataRefusal)
-    case flatParent(place: Place, kind: PlaceKind, instant: Double)
     case unreadableFile(path: String)
     case unreadableResolvedVersion(place: Place, kind: String, written: String, current: String)
     case optionOnResolved(place: Place, kind: String, option: String)
@@ -252,10 +248,6 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
         case let .soundAsPicture(place, kind, reference):
             "\(place) (\(kind.label)): media \(quoted(reference)) is sound, and a picture is taken here"
 
-        case let .textAreaInOutputPixels(place, kind):
-            "\(place) (\(kind.label)): a text area is searched in the media of the clip's parent, "
-                + "and this clip's coordinates are output pixels"
-
         case let .shapeAreaWithBox(place, kind):
             "\(place) (\(kind.label)): a rect or ellipse is given by \"area\" or by \"width\" and \"height\", "
                 + "and this one writes both"
@@ -275,8 +267,7 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
                 + "since its outline is in its space already"
 
         case let .cornerPinNotBroughtBack(place, kind, time):
-            "\(place) (\(kind.label)): the corner pin"
-                + (time.map { " at \(number($0))" } ?? ", found at the clip's instant")
+            "\(place) (\(kind.label)): the corner pin at \(number(time))"
                 + ", brought back through the inverse of the track's homography there, does not lie wholly in front of its "
                 + "horizon or is not strictly convex"
 
@@ -287,9 +278,6 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
         case let .trackOnStorylineCornerPin(place, kind):
             "\(place) (\(kind.label)): a storyline clip with a corner pin is placed in the frame, which has no media "
                 + "to follow, so it takes no \"track\""
-
-        case let .textMaskInOwnBox(place, kind):
-            "\(place) (\(kind.label)): a text form is searched in media, and this clip's mask is in its own box"
 
         case let .pointCountsDiffer(place, kind, counts):
             "\(place) (\(kind.label)): the values of \"points\" hold "
@@ -376,11 +364,6 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
             "\(place) (\(kind.label)): a storyline clip is placed by the storyline in output pixels, so it takes "
                 + "no clip area"
 
-        case let .textUnderClipArea(place, kind, parent):
-            "\(place) (\(kind.label)): text found under \(quoted(parent)) is brought back through its transform when "
-                + "resolved, and its geometry, position or corner pin holds a clip area, whose box is known only when "
-                + "evaluated"
-
         case let .trackWithoutVideo(place, kind):
             "\(place) (\(kind.label)): track follows the video or image sequence of the clip or of its parent, "
                 + "and there is none to follow here"
@@ -418,10 +401,6 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
 
         case let .trackData(place, kind, reason):
             "\(place) (\(kind.label)): \(words(of: reason))"
-
-        case let .flatParent(place, kind, instant):
-            "\(place) (\(kind.label)): found by text at \(number(instant)), where its parent's transform has a scale "
-                + "of 0 on an axis and cannot be undone to bring it into the parent's space"
 
         case let .unreadableFile(path):
             "\(quoted(path)): the file cannot be read, so it cannot be pinned by its SHA-256"

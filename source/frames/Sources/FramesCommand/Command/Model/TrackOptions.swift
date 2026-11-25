@@ -10,11 +10,11 @@ import Frames
 struct TrackOptions: CommandOptions, Equatable {
     // MARK: - Property
     static let rules = [
-        OptionRule("--at", value: "<t>", help: "The media time the area is found at."),
+        OptionRule("--at", value: "<t>", help: "The media time of the frame the area is on."),
         OptionRule(
             "--area",
             value: "<area>",
-            help: "The area as JSON text, [x, y, w, h] or a text form found in the frame at --at."
+            help: "The area as JSON text, [x, y, w, h] in the frame at --at."
         ),
         OptionRule(
             "--to",

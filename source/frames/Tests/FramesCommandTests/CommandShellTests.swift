@@ -51,7 +51,7 @@ struct CommandShellTests {
         // Given, When
         let code = sut.run(["--help"])
         let output = sut.standardOutput
-        let optioned = sut.run(["--theme", "shorts/shorts", "--ocr-languages", "ko-KR,en-US", "--help"])
+        let optioned = sut.run(["--theme", "shorts/shorts", "--ocr", "vision", "--help"])
 
         // Then
         #expect(code == 0)
@@ -116,7 +116,6 @@ struct CommandShellTests {
         arguments: [
             (["--renderer", "metal", "--help"], #"--renderer: unknown renderer "metal". Known: quartz"#),
             (["--tracker", "klt", "render", "--help"], #"--tracker: unknown tracker provider "klt". Known: planar, point"#),
-            (["--ocr-languages", "en_US", "--help"], #"--ocr-languages "en_US" is not BCP 47 tags separated by commas"#),
             (["--theme", "a/b", "--theme", "c/d", "--help"], "--theme is given more than once"),
             (["--help", "render"], #"--help takes no arguments, found "render". A command's help is frames <command> --help"#),
             (["--version", "--help"], #"--version takes no arguments, found "--help""#)

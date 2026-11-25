@@ -7,7 +7,7 @@
 
 // A `colorSpace` is a fact of the medium it is written for, so every place that names a medium (a storyline entry, a
 // media clip, a transition's cover or matte, nested sequences included) reads it in one colour space, and its
-// recognised text and tracks have one answer. A file is known by the SHA-256 of what it holds, and a page of a PDF by
+// tracks have one answer. A file is known by the SHA-256 of what it holds, and a page of a PDF by
 // that of its file and its number, and a place that writes no `colorSpace` reads it in the space its tags name, a
 // page's untagged colour in `srgb` (FRAMES-26 Media).
 extension ResolvedSequence {

@@ -5,10 +5,10 @@
 //  Created by JSilver on 11/17/26.
 //
 
-// Finds an area in a video at media time `--at` and follows it with the tracker provider, as `track` on a clip does,
-// and reports it as `track` prints it. The area is JSON text in one of a document's area forms, and is followed as
-// found, before padding: a text form with OCR, a rectangle as written. It is followed over the whole video, or over
-// the frames shown from `--at` to `--to`, either way. The video is read in `colorSpace` where `--color-space` names one.
+// Follows a rectangle in a video from media time `--at` with the tracker provider, as `track` on a clip does, and
+// reports it as `track` prints it. The rectangle is JSON text in a document's rect area form. It is followed over the
+// whole video, or over the frames shown from `--at` to `--to`, either way. The video is read in `colorSpace` where
+// `--color-space` names one.
 package struct TrackReporter: Sendable {
     // MARK: - Property
     private static let place = Place(components: [.key("--area")])
@@ -16,19 +16,15 @@ package struct TrackReporter: Sendable {
 
     private let mediaFacts: any MediaFactProvider
     private let follower: TargetFollower
-    private let finder: AreaFinder
     private let checker = KeyChecker()
 
     // MARK: - Initializer
     package init(
         mediaFacts: any MediaFactProvider,
-        ocr: any OCRProvider,
-        languages: [LanguageTag]?,
         tracker: any TrackerProvider
     ) {
         self.mediaFacts = mediaFacts
         self.follower = TargetFollower(tracker: tracker)
-        self.finder = AreaFinder(ocr: ocr, languages: languages)
     }
 
     // MARK: - Public
@@ -39,9 +35,9 @@ package struct TrackReporter: Sendable {
         to end: Double? = nil,
         colorSpace: ColorSpace? = nil
     ) throws -> TrackReport {
-        let form = try area(text)
+        let target = try area(text)
         guard let medium = try mediaFacts.probedMedium(of: path) else { throw AnalysisError.missingMedia(file: path) }
-        guard case let .media(probed) = medium, probed.kind == .video, let size = probed.size else {
+        guard case let .media(probed) = medium, probed.kind == .video else {
             throw AnalysisError.notVideo(file: path, kind: medium.kind)
         }
 
@@ -62,13 +58,11 @@ package struct TrackReporter: Sendable {
         }
 
         let file = MediaFile(path: path, probed: probed)
-        let picture = Picture(name: path, source: .mediaFile(file), size: size, colorSpace: colorSpace)
-        let found = try finder.area(form, in: picture, atMediaTime: time, place: Self.place, kind: Self.kind)
         let first = end.map { min(time, $0) } ?? 0
         let last = end.map { max(time, $0) } ?? duration
         let range = (file.frameTime(at: first) ?? first)...last
         let frames = try Result {
-            try follower.follow(Quad(found.target), in: file, atMediaTime: time, over: range, colorSpace: colorSpace)
+            try follower.follow(Quad(target), in: file, atMediaTime: time, over: range, colorSpace: colorSpace)
         }
         .mapError { error in
             ProviderError.failed(
@@ -81,15 +75,17 @@ package struct TrackReporter: Sendable {
         }
         .get()
 
-        return TrackReport(track: Track(target: Quad(found.target), mediaTime: time, frames: frames))
+        return TrackReport(track: Track(target: Quad(target), mediaTime: time, frames: frames))
     }
 
     // MARK: - Private
-    // The area as JSON text, read and checked as a document's area is, so a message names `--area`.
-    private func area(_ text: String) throws -> AreaForm {
+    // The rectangle as JSON text, read and checked as a document's area is, so a message names `--area`. A clip area
+    // stops, since there is no clip to name.
+    private func area(_ text: String) throws -> Rectangle {
         let value = try JSONReader(file: Self.place.description).read(text)
         try checker.check(value, as: .area, place: Self.place, kind: Self.kind)
 
-        return AreaForm(value: value) ?? .rectangle(Rectangle(x: 0, y: 0, width: 0, height: 0))
+        return try (AreaForm(value: value) ?? .rectangle(Rectangle(x: 0, y: 0, width: 0, height: 0)))
+            .rectangle(place: Self.place, kind: Self.kind)
     }
 }

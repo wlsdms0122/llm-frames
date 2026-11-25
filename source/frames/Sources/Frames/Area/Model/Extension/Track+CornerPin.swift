@@ -6,7 +6,7 @@
 //
 
 // A keyframe of a tracked corner pin brought back to the track's frame (FRAMES-27 A tracked corner pin), as resolve
-// checks it and evaluation draws it. Each corner that is a point, a number or found by text, is brought back through
+// checks it and evaluation draws it. Each corner that is a point or a number is brought back through
 // the inverse of the homography of the frame shown at its media time, and the keyframe is nil where such a corner does
 // not lie in front of that inverse's horizon. A corner of a clip area is the named clip's box before its tracked
 // motion, on the track's frame already, and is kept. A keyframe of points only is also nil where its corner pin

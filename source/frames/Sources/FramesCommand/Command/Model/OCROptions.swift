@@ -28,7 +28,8 @@ struct OCROptions: CommandOptions, Equatable {
         OptionRule(
             "--languages",
             value: "<tag>[,<tag>...]",
-            help: "The recognition languages, BCP 47 tags in order of preference. Default: the global --ocr-languages."
+            help: "The recognition languages, BCP 47 tags in order of preference. "
+                + "Without it the provider detects the language of each picture."
         ),
         OptionRule(
             "--color-space",

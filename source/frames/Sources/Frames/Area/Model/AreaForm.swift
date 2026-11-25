@@ -5,26 +5,13 @@
 //  Created by JSilver on 11/16/26.
 //
 
-// A place in a picture as a document writes it: a rectangle, text found by OCR in one of the finding forms, which
-// grows by its `padding` in the pixels of the picture searched, or the box of another clip, which grows by its
-// `padding` as a theme length.
+// A place in a picture as a document writes it: a rectangle, or the box of another clip, which grows by its `padding`
+// as a theme length.
 enum AreaForm: Equatable, Sendable {
     case rectangle(Rectangle)
-    case text(String, nth: Int?, padding: Double)
-    case range(from: String, fromNth: Int?, to: String, toNth: Int?, padding: Double)
     case clip(String, padding: Double)
 
     // MARK: - Property
-    var isFoundByText: Bool {
-        switch self {
-        case .rectangle, .clip:
-            false
-
-        case .text, .range:
-            true
-        }
-    }
-
     var clip: String? {
         guard case let .clip(clip, _) = self else { return nil }
 
@@ -37,26 +24,26 @@ enum AreaForm: Equatable, Sendable {
             self = .rectangle(Rectangle(x: numbers[0], y: numbers[1], width: numbers[2], height: numbers[3]))
             return
         }
-        guard let object = value.objectValue else { return nil }
+        guard let object = value.objectValue, let clip = object["clip"]?.stringValue else { return nil }
 
-        let padding = object["padding"]?.numberValue ?? 0
-        if let clip = object["clip"]?.stringValue {
-            self = .clip(clip, padding: padding)
-        } else if let text = object["text"]?.stringValue {
-            self = .text(text, nth: object["nth"]?.numberValue.flatMap { Int(exactly: $0) }, padding: padding)
-        } else if let from = object["from"]?.stringValue, let to = object["to"]?.stringValue {
-            self = .range(
-                from: from,
-                fromNth: object["fromNth"]?.numberValue.flatMap { Int(exactly: $0) },
-                to: to,
-                toNth: object["toNth"]?.numberValue.flatMap { Int(exactly: $0) },
-                padding: padding
-            )
-        } else {
-            return nil
-        }
+        self = .clip(clip, padding: object["padding"]?.numberValue ?? 0)
     }
 
     // MARK: - Public
+    // The rectangle of an area in a picture, where a clip area stops, since it is the box of another clip in the space
+    // a clip is drawn in and not a place in the picture.
+    func rectangle(
+        place: Place,
+        kind: String
+    ) throws -> Rectangle {
+        switch self {
+        case let .rectangle(rectangle):
+            return rectangle
+
+        case .clip:
+            throw AreaError.clipAreaInPicture(place: place, kind: kind)
+        }
+    }
+
     // MARK: - Private
 }

@@ -550,39 +550,6 @@ struct CornerPinEvaluationTests {
         #expect(zip(drawn, expected).allSatisfy { abs($0.x - $1.x) < 1e-9 && abs($0.y - $1.y) < 1e-9 })
     }
 
-    @Test("a static tracked corner pin with a corner found by text under a named target is brought back whole at the clip's instant, so it draws there what it writes and finds")
-    func bringsBackFoundStaticWhole() throws {
-        // Given
-        // From media second 0.1 the target [0, 0, 100, 100] is seen as a trapezoid, so the track's homography there is
-        // not its motion. The clip's instant shows media 0.5, where "Sign" has its bottom left at (10, 40).
-        let target = Quad(Rectangle(x: 0, y: 0, width: 100, height: 100))
-        let far = Quad(topLeft: Point(x: 0, y: 0), topRight: Point(x: 100, y: 0), bottomRight: Point(x: 60, y: 50), bottomLeft: Point(x: 40, y: 50))
-        let quads = [(0.0, target)] + (1...10).map { (Double($0) / 10, far) }
-        let ocr = OCRTable(["/abs/screen.mp4": [
-            (from: 0, lines: [RecognisedLine(text: "Sign", rectangle: Rectangle(x: 10, y: 30, width: 20, height: 10))])
-        ]])
-        let document = #"""
-            { "kind": "sequence", "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "out": 1, "connected": [
-                { "id": "tracked", "media": "/abs/card.png", "parent": "screen", "at": [0.5, 1], "width": 300, "track": { "time": 0, "area": [0, 0, 100, 100] },
-                  "cornerPin": [[10, 10], [90, 10], [90, 40], { "area": { "text": "Sign" }, "point": "bottom-left" }] } ] } ] }
-            """#
-        let sequence = try resolved(document: document, tracker: QuadTrackerTable(base: target, quads: quads), ocr: ocr)
-
-        // When
-        let list = sut.displayList(of: sequence, at: 0.5)
-
-        // Then
-        let item = try #require(list.items.first { $0.origin?.id == "tracked" })
-        guard case let .picture(picture) = item.content else {
-            Issue.record("the group is not a picture")
-            return
-        }
-        let drawn = try #require(picture.cornerPin).corners.map(item.transform.apply(to:))
-        let expected = [Point(x: 10, y: 10), Point(x: 90, y: 10), Point(x: 90, y: 40), Point(x: 10, y: 40)]
-        #expect(drawn.count == 4)
-        #expect(zip(drawn, expected).allSatisfy { abs($0.x - $1.x) < 1e-9 && abs($0.y - $1.y) < 1e-9 })
-    }
-
     @Test("a tracked corner pin draws nothing where all four corners lie beyond the horizon of the track's homography, though the corner pin it would carry is strictly convex")
     func drawsNothingBeyondHorizon() throws {
         // Given
@@ -774,14 +741,11 @@ struct CornerPinEvaluationTests {
 
     private func resolved(
         document: String,
-        tracker: any TrackerProvider,
-        ocr: any OCRProvider = Fixture.ocr
+        tracker: any TrackerProvider
     ) throws -> ResolvedSequence {
         let planner = DocumentPlanner(
             mediaFacts: Fixture.mediaFacts,
             presets: Fixture.presets,
-            ocr: ocr,
-            languages: nil,
             tracker: tracker,
             shaper: Fixture.shaper,
             library: Fixture.library
@@ -797,8 +761,6 @@ struct CornerPinEvaluationTests {
         let planner = DocumentPlanner(
             mediaFacts: Fixture.mediaFacts,
             presets: presets,
-            ocr: Fixture.ocr,
-            languages: nil,
             tracker: Fixture.tracker,
             shaper: Fixture.shaper,
             library: Fixture.library

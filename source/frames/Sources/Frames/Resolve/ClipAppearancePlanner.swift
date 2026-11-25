@@ -40,35 +40,22 @@ struct ClipAppearancePlanner: Sendable {
     // time, on the frame shown there or the nearest frame followed, corner by corner as `Track.broughtBack` brings it
     // back for evaluation, and a corner at or beyond that inverse's horizon, or a corner pin of points brought back that
     // is not strictly convex, stops (FRAMES-27 A tracked corner pin). A corner of a clip area is on the track's frame
-    // already and is kept. A static corner pin true on the track's frame is where the homography is the identity; one a
-    // text form found other than the track's target is one keyframe at the clip's instant, and is brought back there as
-    // a keyframe is (FRAMES-19 Timed values).
+    // already and is kept. A static corner pin is true on the track's frame, where the homography is the identity.
     private func checkBroughtBack(
         of points: PropertyValue<GeometryQuad>,
         written: PropertyValue<[PositionForm]>,
         track: TrackedMedia,
-        isOnTrackFrame: Bool,
-        instant: Double,
         place: Place,
         kind: PlaceKind
     ) throws {
-        switch (points, written) {
-        case let (.keyframes(keyframes), .keyframes(writtenKeyframes)):
-            for keyframe in keyframes where !isBroughtBack(keyframe.value, track: track, at: keyframe.at) {
-                throw ResolveError.cornerPinNotBroughtBack(
-                    place: place.appending(key: "keyframes").appending(index: keyframe.index).appending(key: "cornerPin"),
-                    kind: kind,
-                    time: writtenKeyframes.first { $0.index == keyframe.index }?.at ?? keyframe.at
-                )
-            }
+        guard case let (.keyframes(keyframes), .keyframes(writtenKeyframes)) = (points, written) else { return }
 
-        case let (.value(points), .value):
-            guard !isOnTrackFrame, !isBroughtBack(points, track: track, at: instant) else { return }
-
-            throw ResolveError.cornerPinNotBroughtBack(place: place.appending(key: "cornerPin"), kind: kind, time: nil)
-
-        default:
-            return
+        for keyframe in keyframes where !isBroughtBack(keyframe.value, track: track, at: keyframe.at) {
+            throw ResolveError.cornerPinNotBroughtBack(
+                place: place.appending(key: "keyframes").appending(index: keyframe.index).appending(key: "cornerPin"),
+                kind: kind,
+                time: writtenKeyframes.first { $0.index == keyframe.index }?.at ?? keyframe.at
+            )
         }
     }
 
@@ -92,7 +79,7 @@ struct ClipAppearancePlanner: Sendable {
         of plan: ClipPlan,
         written: Clip,
         position: PropertyValue<GeometryPoint>?,
-        crop: PropertyValue<FoundArea>?,
+        crop: PropertyValue<Rectangle>?,
         title: TextLayout?,
         picture: Picture?,
         shape: ShapeAppearance?,
@@ -148,13 +135,13 @@ struct ClipAppearancePlanner: Sendable {
     // The box a clip with a corner pin draws, sized as every clip's box is, and the points its corners go to, nil for a
     // clip without one. It takes no other placement, a style's included, so a key that places a clip stops beside it,
     // and a rect or ellipse placed by its area stops, its outline being in its space already; a path takes no
-    // `cornerPin` key, which the key table refuses. Every corner pin written or found as numbers is strictly convex (FRAMES-27).
+    // `cornerPin` key, which the key table refuses. Every corner pin written as numbers is strictly convex (FRAMES-27).
     func cornerPin(
         of plan: ClipPlan,
         written: Clip,
         points: PropertyValue<[GeometryPoint]>?,
         track: TrackedMedia?,
-        crop: PropertyValue<FoundArea>?,
+        crop: PropertyValue<Rectangle>?,
         title: TextLayout?,
         picture: Picture?,
         shape: ShapeAppearance?,
@@ -184,8 +171,6 @@ struct ClipAppearancePlanner: Sendable {
                 of: points,
                 written: pin,
                 track: track,
-                isOnTrackFrame: plan.onTrackFrame(of: written).contains(.cornerPin),
-                instant: plan.instant,
                 place: written.place,
                 kind: kind
             )
@@ -283,7 +268,7 @@ struct ClipAppearancePlanner: Sendable {
         of plan: ClipPlan,
         written: Clip,
         box: Size?,
-        crop: PropertyValue<FoundArea>?,
+        crop: PropertyValue<Rectangle>?,
         picture: Picture?,
         shape: ShapeAppearance?,
         scale: Double,
@@ -477,7 +462,7 @@ struct ClipAppearancePlanner: Sendable {
     }
 
     // MARK: - Private
-    // A corner pin given as numbers or found by text at a keyframe's time or as a static value is strictly convex,
+    // A corner pin given as numbers at a keyframe's time or as a static value is strictly convex,
     // checked in doubles as FRAMES-27 writes the test. One that holds a clip area takes that clip's box at each instant,
     // which only evaluation knows. A keyframe is named with its time as written.
     private func checkConvexity(
@@ -514,7 +499,7 @@ struct ClipAppearancePlanner: Sendable {
     private func boxSize(
         of plan: ClipPlan,
         written: Clip,
-        crop: PropertyValue<FoundArea>?,
+        crop: PropertyValue<Rectangle>?,
         title: TextLayout?,
         picture: Picture?,
         shape: ShapeAppearance?,
@@ -594,12 +579,12 @@ struct ClipAppearancePlanner: Sendable {
     private func mediaSize(
         width: Double?,
         height: Double?,
-        crop: PropertyValue<FoundArea>?,
+        crop: PropertyValue<Rectangle>?,
         picture: Size,
         frame: Size?
     ) -> Size {
         let first = crop.map { crop in
-            let rectangle = crop.firstValue.rectangle
+            let rectangle = crop.firstValue
             return Size(width: rectangle.width, height: rectangle.height)
         } ?? picture
 
@@ -630,7 +615,7 @@ struct ClipAppearancePlanner: Sendable {
         of plan: ClipPlan,
         written: Clip,
         box: Size?,
-        crop: PropertyValue<FoundArea>?,
+        crop: PropertyValue<Rectangle>?,
         picture: Picture?,
         scale: Double,
         theme: MergedTheme
@@ -652,14 +637,14 @@ struct ClipAppearancePlanner: Sendable {
         let crops: PropertyValue<Rectangle>
         switch crop {
         case let .value(area):
-            crops = .value(conformed(area.rectangle))
+            crops = .value(conformed(area))
 
         case let .keyframes(keyframes):
             crops = .keyframes(keyframes.map { keyframe in
                 PropertyKeyframe(
                     index: keyframe.index,
                     at: keyframe.at,
-                    value: conformed(keyframe.value.rectangle),
+                    value: conformed(keyframe.value),
                     ease: keyframe.ease
                 )
             })

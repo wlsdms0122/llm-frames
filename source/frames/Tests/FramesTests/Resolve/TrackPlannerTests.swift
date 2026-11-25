@@ -10,25 +10,25 @@ import Testing
 @testable import Frames
 
 // `/abs/screen.mp4` has a frame every 0.1 media seconds. Its storyline clip plays media [1, 3) over the edit range
-// [0, 2), and "Total" is on every frame. The fake tracker moves the target 10 pixels down per media second.
+// [0, 2). The fake tracker moves the target 10 pixels down per media second.
 @Suite("TrackPlanner Tests")
 struct TrackPlannerTests {
     // MARK: - Property
     private static let untrackable: [(String, String)] = [
         (
-            #"{ "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4" } ], "clips": [ { "shape": "rect", "stroke": { "width": 8 }, "area": [0, 0, 10, 10], "at": [0, 1], "track": { "text": "Total" } } ] }"#,
+            #"{ "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4" } ], "clips": [ { "shape": "rect", "stroke": { "width": 8 }, "area": [0, 0, 10, 10], "at": [0, 1], "track": [100, 100, 200, 40] } ] }"#,
             "clips[0].track (rect): track follows the video or image sequence of the clip or of its parent, and there is none to follow here"
         ),
         (
-            #"{ "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4", "connected": [ { "title": "a", "style": "title", "at": [0, 1], "track": { "text": "Total" } } ] } ] }"#,
+            #"{ "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4", "connected": [ { "title": "a", "style": "title", "at": [0, 1], "track": [100, 100, 200, 40] } ] } ] }"#,
             "storyline[0].connected[0].track (title): track follows the video or image sequence of the clip or of its parent, and there is none to follow here"
         ),
         (
-            #"{ "kind": "sequence", "storyline": [ { "id": "page", "media": "/abs/page.png", "duration": 2, "connected": [ { "shape": "rect", "stroke": { "width": 8 }, "area": { "text": "Total" }, "parent": "page", "track": { "text": "Total" } } ] } ] }"#,
+            #"{ "kind": "sequence", "storyline": [ { "id": "page", "media": "/abs/page.png", "duration": 2, "connected": [ { "shape": "rect", "stroke": { "width": 8 }, "area": [100, 100, 200, 40], "parent": "page", "track": [100, 100, 200, 40] } ] } ] }"#,
             "storyline[0]#page.connected[0].track (rect): track follows the video or image sequence of the clip or of its parent, and there is none to follow here"
         ),
         (
-            ##"{ "kind": "sequence", "storyline": [ { "media": { "kind": "sequence", "storyline": [ { "solid": "#000000", "duration": 2 } ] }, "track": { "text": "Total" } } ] }"##,
+            ##"{ "kind": "sequence", "storyline": [ { "media": { "kind": "sequence", "storyline": [ { "solid": "#000000", "duration": 2 } ] }, "track": [100, 100, 200, 40] } ] }"##,
             "storyline[0].track (compound): track follows the video or image sequence of the clip or of its parent, and there is none to follow here"
         ),
         (
@@ -52,23 +52,20 @@ struct TrackPlannerTests {
             #"storyline[0].connected[0].track (rect): "track": true follows the clip's own area, mask or crop, and it has none given as an area"#
         ),
         (
-            #"{ "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4" } ], "clips": [ { "id": "card", "media": "/abs/page.png", "at": [0, 1], "width": 300 }, { "shape": "rect", "stroke": { "width": 8 }, "area": [0, 0, 10, 10], "at": [0, 1], "parent": "card", "track": { "text": "Total" } } ] }"#,
+            #"{ "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4" } ], "clips": [ { "id": "card", "media": "/abs/page.png", "at": [0, 1], "width": 300 }, { "shape": "rect", "stroke": { "width": 8 }, "area": [0, 0, 10, 10], "at": [0, 1], "parent": "card", "track": [100, 100, 200, 40] } ] }"#,
             "clips[1].track (rect): track follows the video or image sequence of the clip or of its parent, and there is none to follow here"
         )
     ]
 
     private let total = Rectangle(x: 100, y: 100, width: 200, height: 40)
-    private let ocr = OCRTable(file: "/abs/screen.mp4", lines: [
-        RecognisedLine(text: "Total", rectangle: Rectangle(x: 100, y: 100, width: 200, height: 40))
-    ])
 
     // MARK: - Initializer
     // MARK: - Test
-    @Test("a storyline clip follows the area it names, before padding, from its in over every frame it draws")
+    @Test("a storyline clip follows the area it names from its in over every frame it draws")
     func followsStorylineTarget() throws {
         // Given
         let sut = planner()
-        let time = try plan(storyline: #""track": { "text": "Total" }"#)
+        let time = try plan(storyline: #""track": [100, 100, 200, 40]"#)
 
         // When
         let plan = try sut.plan(time, storylineCrops: [nil], storylineMasks: time.storyline.map { _ in nil }, crops: time.clips.map { _ in nil }, areas: [], masks: time.clips.map { _ in nil }, cornerPins: time.clips.map { _ in nil })
@@ -87,7 +84,7 @@ struct TrackPlannerTests {
     func refusesLostStorylineTarget() throws {
         // Given
         let sut = planner(followed: 0...2.4)
-        let time = try plan(storyline: #""track": { "text": "Total" }"#)
+        let time = try plan(storyline: #""track": [100, 100, 200, 40]"#)
 
         // When, Then
         let error = #expect(throws: ResolveError.self) { try sut.plan(time, storylineCrops: [nil], storylineMasks: time.storyline.map { _ in nil }, crops: time.clips.map { _ in nil }, areas: [], masks: time.clips.map { _ in nil }, cornerPins: time.clips.map { _ in nil }) }
@@ -103,7 +100,7 @@ struct TrackPlannerTests {
         let sut = planner(followed: 0...3)
         let time = try Fixture.planner.plan(document: Fixture.json(#"""
             { "kind": "sequence", "storyline": [
-                { "media": "/abs/screen.mp4", "in": 1, "out": 3, "track": { "text": "Total" } },
+                { "media": "/abs/screen.mp4", "in": 1, "out": 3, "track": [100, 100, 200, 40] },
                 { "solid": "#000000", "duration": 2, "transition": { "preset": "frames/flash", "seconds": 1 } } ] }
             """#))
 
@@ -122,7 +119,7 @@ struct TrackPlannerTests {
         // Given
         let sut = planner()
         let reverse = #""keyframes": [ { "at": 1, "timeRemap": 3 }, { "at": 3, "timeRemap": 1 } ]"#
-        let time = try plan(storyline: #""track": { "text": "Total" }, \#(reverse)"#)
+        let time = try plan(storyline: #""track": [100, 100, 200, 40], \#(reverse)"#)
 
         // When
         let plan = try sut.plan(time, storylineCrops: [nil], storylineMasks: [nil], crops: time.clips.map { _ in nil }, areas: [], masks: [], cornerPins: time.clips.map { _ in nil })
@@ -144,7 +141,7 @@ struct TrackPlannerTests {
         let time = try plan(
             storyline: #""keyframes": [ { "at": 1, "timeRemap": 3 }, { "at": 3, "timeRemap": 1 } ]"#,
             connected: #"""
-                { "shape": "rect", "stroke": { "width": 8 }, "parent": "screen", "area": { "text": "Total" }, "track": { "text": "Total" } }
+                { "shape": "rect", "stroke": { "width": 8 }, "parent": "screen", "area": [100, 100, 200, 40], "track": [100, 100, 200, 40] }
                 """#
         )
 
@@ -169,7 +166,7 @@ struct TrackPlannerTests {
         let time = try plan(
             storyline: #""keyframes": [ { "at": 1, "timeRemap": 1 }, { "at": 3, "timeRemap": 3 } ]"#,
             connected: #"""
-                { "shape": "rect", "stroke": { "width": 8 }, "parent": "screen", "area": { "text": "Total" }, "at": [1.5, 2.5], "track": { "text": "Total" } }
+                { "shape": "rect", "stroke": { "width": 8 }, "parent": "screen", "area": [100, 100, 200, 40], "at": [1.5, 2.5], "track": [100, 100, 200, 40] }
                 """#
         )
 
@@ -192,7 +189,7 @@ struct TrackPlannerTests {
         let time = try plan(
             storyline: #""keyframes": [ { "at": 1, "timeRemap": 1 }, { "at": 3, "timeRemap": 3 } ]"#,
             connected: #"""
-                { "shape": "rect", "stroke": { "width": 8 }, "parent": "screen", "track": true, "keyframes": [ { "at": 1.8, "area": { "text": "Total" } }, { "at": 2.2, "area": { "text": "Total" } } ] }
+                { "shape": "rect", "stroke": { "width": 8 }, "parent": "screen", "track": true, "keyframes": [ { "at": 1.8, "area": [100, 100, 200, 40] }, { "at": 2.2, "area": [100, 100, 200, 40] } ] }
                 """#
         )
 
@@ -203,8 +200,8 @@ struct TrackPlannerTests {
             storylineMasks: [nil],
             crops: time.clips.map { _ in nil },
             areas: [.keyframes([
-                PropertyKeyframe(index: 1, at: 1.2, value: .found(found(total, at: 2.2)), ease: .linear),
-                PropertyKeyframe(index: 0, at: 0.8, value: .found(found(total, at: 1.8)), ease: .linear)
+                PropertyKeyframe(index: 1, at: 1.2, value: .rectangle(total), ease: .linear),
+                PropertyKeyframe(index: 0, at: 0.8, value: .rectangle(total), ease: .linear)
             ])],
             masks: [nil],
             cornerPins: time.clips.map { _ in nil }
@@ -219,19 +216,19 @@ struct TrackPlannerTests {
     func followsOwnCrop() throws {
         // Given
         let sut = planner()
-        let staticTime = try plan(storyline: #""crop": { "text": "Total" }, "track": true"#)
+        let staticTime = try plan(storyline: #""crop": [100, 100, 200, 40], "track": true"#)
         let keyframedTime = try plan(storyline: #"""
-            "track": true, "keyframes": [ { "at": 2.5, "crop": { "scale": 2 } }, { "at": 1.5, "crop": { "text": "Total" } } ]
+            "track": true, "keyframes": [ { "at": 2.5, "crop": { "scale": 2 } }, { "at": 1.5, "crop": [100, 100, 200, 40] } ]
             """#)
         let crop = Rectangle(x: 120, y: 300, width: 400, height: 300)
 
         // When
-        let staticPlan = try sut.plan(staticTime, storylineCrops: [.value(found(total, at: 1))], storylineMasks: staticTime.storyline.map { _ in nil }, crops: staticTime.clips.map { _ in nil }, areas: [], masks: staticTime.clips.map { _ in nil }, cornerPins: staticTime.clips.map { _ in nil })
+        let staticPlan = try sut.plan(staticTime, storylineCrops: [.value(total)], storylineMasks: staticTime.storyline.map { _ in nil }, crops: staticTime.clips.map { _ in nil }, areas: [], masks: staticTime.clips.map { _ in nil }, cornerPins: staticTime.clips.map { _ in nil })
         let keyframedPlan = try sut.plan(
             keyframedTime,
             storylineCrops: [.keyframes([
-                PropertyKeyframe(index: 0, at: 1.5, value: found(Rectangle(x: 0, y: 0, width: 603, height: 1311), at: 2.5), ease: .linear),
-                PropertyKeyframe(index: 1, at: 0.5, value: found(crop, at: 1.5), ease: .linear)
+                PropertyKeyframe(index: 0, at: 1.5, value: Rectangle(x: 0, y: 0, width: 603, height: 1311), ease: .linear),
+                PropertyKeyframe(index: 1, at: 0.5, value: crop, ease: .linear)
             ])],
             storylineMasks: keyframedTime.storyline.map { _ in nil },
             crops: keyframedTime.clips.map { _ in nil },
@@ -252,7 +249,7 @@ struct TrackPlannerTests {
         arguments: [
             #""track": true"#,
             #""track": true, "crop": { "scale": 2 }"#,
-            #""track": true, "keyframes": [ { "at": 1.5, "crop": { "scale": 2 } }, { "at": 2, "crop": { "text": "Total" } } ]"#
+            #""track": true, "keyframes": [ { "at": 1.5, "crop": { "scale": 2 } }, { "at": 2, "crop": [100, 100, 200, 40] } ]"#
         ]
     )
     func refusesOwnCropWithoutArea(keys: String) throws {
@@ -262,7 +259,7 @@ struct TrackPlannerTests {
 
         // When, Then
         let error = #expect(throws: ResolveError.self) {
-            try sut.plan(time, storylineCrops: [.value(found(total, at: 1))], storylineMasks: time.storyline.map { _ in nil }, crops: time.clips.map { _ in nil }, areas: [], masks: time.clips.map { _ in nil }, cornerPins: time.clips.map { _ in nil })
+            try sut.plan(time, storylineCrops: [.value(total)], storylineMasks: time.storyline.map { _ in nil }, crops: time.clips.map { _ in nil }, areas: [], masks: time.clips.map { _ in nil }, cornerPins: time.clips.map { _ in nil })
         }
         #expect(error?.description == #"""
             storyline[0]#screen.track (video): "track": true follows the clip's own area, mask or crop, and it has none \#
@@ -274,7 +271,7 @@ struct TrackPlannerTests {
     func narrowsConnectedWindow() throws {
         // Given
         let sut = planner(followed: 0...1.9)
-        let time = try plan(connected: #"{ "shape": "rect", "stroke": { "width": 8 }, "parent": "screen", "area": { "text": "Total" }, "at": [1.5, 2.5], "track": { "text": "Total" } }"#)
+        let time = try plan(connected: #"{ "shape": "rect", "stroke": { "width": 8 }, "parent": "screen", "area": [100, 100, 200, 40], "at": [1.5, 2.5], "track": [100, 100, 200, 40] }"#)
 
         // When
         let plan = try sut.plan(time, storylineCrops: [nil], storylineMasks: time.storyline.map { _ in nil }, crops: time.clips.map { _ in nil }, areas: [nil], masks: time.clips.map { _ in nil }, cornerPins: time.clips.map { _ in nil })
@@ -296,8 +293,8 @@ struct TrackPlannerTests {
         let time = try Fixture.planner.plan(document: Fixture.json(#"""
             { "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4", "in": 1, "out": 3 } ], "clips": [
                 { "id": "card", "media": "/abs/screen.mp4", "in": 0.5, "at": [0.5, 2], "width": 300 },
-                { "shape": "rect", "stroke": { "width": 8 }, "parent": "card", "area": { "text": "Total" }, "at": [1, 1.5],
-                  "track": { "text": "Total" } } ] }
+                { "shape": "rect", "stroke": { "width": 8 }, "parent": "card", "area": [100, 100, 200, 40], "at": [1, 1.5],
+                  "track": [100, 100, 200, 40] } ] }
             """#))
 
         // When
@@ -322,7 +319,7 @@ struct TrackPlannerTests {
         let sut = planner(followed: 0...1.3)
         let time = try Fixture.planner.plan(document: Fixture.json(#"""
             { "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4", "in": 1, "out": 3 } ], "clips": [
-                { "media": "/abs/screen.mp4", "in": 0.5, "at": [0.5, 2], "width": 300, "track": { "text": "Total" } } ] }
+                { "media": "/abs/screen.mp4", "in": 0.5, "at": [0.5, 2], "width": 300, "track": [100, 100, 200, 40] } ] }
             """#))
 
         // When
@@ -345,7 +342,7 @@ struct TrackPlannerTests {
         // The screen shows media time 1.5 at sequence time 0.5, and the clip, from its `in` 0.2 there, 0.2.
         let sut = planner()
         let time = try plan(connected: #"""
-            { "media": "/abs/screen.mp4", "parent": "screen", "position": [0, 0], "in": 0.2, "at": [1.5, 2.5], "track": { "text": "Total" } }
+            { "media": "/abs/screen.mp4", "parent": "screen", "position": [0, 0], "in": 0.2, "at": [1.5, 2.5], "track": [100, 100, 200, 40] }
             """#)
 
         // When
@@ -364,7 +361,7 @@ struct TrackPlannerTests {
         // Given
         let sut = planner()
         let cropped = try plan(connected: #"""
-            { "media": "/abs/screen.mp4", "parent": "screen", "position": [0, 0], "crop": { "text": "Total" }, "track": true }
+            { "media": "/abs/screen.mp4", "parent": "screen", "position": [0, 0], "crop": [100, 100, 200, 40], "track": true }
             """#)
         let masked = try plan(connected: #"""
             { "media": "/abs/screen.mp4", "parent": "screen", "position": [0, 0], "track": true, "mask": { "shape": "rect", "area": [0, 0, 10, 10] } }
@@ -372,7 +369,7 @@ struct TrackPlannerTests {
         let crop = Rectangle(x: 120, y: 300, width: 400, height: 300)
 
         // When
-        let croppedPlan = try sut.plan(cropped, storylineCrops: [nil], storylineMasks: [nil], crops: [.value(found(crop, at: 0))], areas: [nil], masks: [nil], cornerPins: cropped.clips.map { _ in nil })
+        let croppedPlan = try sut.plan(cropped, storylineCrops: [nil], storylineMasks: [nil], crops: [.value(crop)], areas: [nil], masks: [nil], cornerPins: cropped.clips.map { _ in nil })
         let maskedPlan = try sut.plan(masked, storylineCrops: [nil], storylineMasks: [nil], crops: [nil], areas: [nil], masks: [[mask(.ellipse(total))]], cornerPins: masked.clips.map { _ in nil })
 
         // Then
@@ -386,7 +383,7 @@ struct TrackPlannerTests {
     func findsTargetAtStorylineIn() throws {
         // Given
         let sut = planner()
-        let time = try plan(connected: #"{ "shape": "rect", "stroke": { "width": 8 }, "parent": "screen", "area": { "text": "Total" }, "track": { "text": "Total" } }"#)
+        let time = try plan(connected: #"{ "shape": "rect", "stroke": { "width": 8 }, "parent": "screen", "area": [100, 100, 200, 40], "track": [100, 100, 200, 40] }"#)
 
         // When
         let plan = try sut.plan(time, storylineCrops: [nil], storylineMasks: time.storyline.map { _ in nil }, crops: time.clips.map { _ in nil }, areas: [nil], masks: time.clips.map { _ in nil }, cornerPins: time.clips.map { _ in nil })
@@ -401,7 +398,7 @@ struct TrackPlannerTests {
         // Given
         let sut = planner()
         let time = try plan(connected: #"""
-            { "shape": "rect", "stroke": { "width": 8 }, "parent": "screen", "track": true, "keyframes": [ { "at": 1.8, "area": { "text": "Total" } }, { "at": 2.2, "area": { "text": "Total" } } ] }
+            { "shape": "rect", "stroke": { "width": 8 }, "parent": "screen", "track": true, "keyframes": [ { "at": 1.8, "area": [100, 100, 200, 40] }, { "at": 2.2, "area": [100, 100, 200, 40] } ] }
             """#)
         let first = Rectangle(x: 10, y: 20, width: 30, height: 40)
 
@@ -412,8 +409,8 @@ struct TrackPlannerTests {
             storylineMasks: time.storyline.map { _ in nil },
             crops: time.clips.map { _ in nil },
             areas: [.keyframes([
-                PropertyKeyframe(index: 1, at: 1.2, value: .found(found(total, at: 2.2)), ease: .linear),
-                PropertyKeyframe(index: 0, at: 0.8, value: .found(found(first, at: 1.8)), ease: .linear)
+                PropertyKeyframe(index: 1, at: 1.2, value: .rectangle(total), ease: .linear),
+                PropertyKeyframe(index: 0, at: 0.8, value: .rectangle(first), ease: .linear)
             ])],
             masks: time.clips.map { _ in nil },
             cornerPins: time.clips.map { _ in nil }
@@ -428,7 +425,7 @@ struct TrackPlannerTests {
     func refusesNeverFollowed() throws {
         // Given
         let sut = planner(followed: 3...3.9)
-        let time = try plan(connected: #"{ "shape": "rect", "stroke": { "width": 8 }, "parent": "screen", "area": { "text": "Total" }, "at": [1.5, 2.5], "track": { "text": "Total" } }"#)
+        let time = try plan(connected: #"{ "shape": "rect", "stroke": { "width": 8 }, "parent": "screen", "area": [100, 100, 200, 40], "at": [1.5, 2.5], "track": [100, 100, 200, 40] }"#)
 
         // When, Then
         let error = #expect(throws: ResolveError.self) { try sut.plan(time, storylineCrops: [nil], storylineMasks: time.storyline.map { _ in nil }, crops: time.clips.map { _ in nil }, areas: [nil], masks: time.clips.map { _ in nil }, cornerPins: time.clips.map { _ in nil }) }
@@ -446,14 +443,17 @@ struct TrackPlannerTests {
         let time = try plan(connected: #"{ "shape": "rect", "stroke": { "width": 8 }, "parent": "screen", "area": [1106, 100, 200, 40], "at": [0, 2], "track": true }"#)
 
         // When
-        let plan = try sut.plan(time, storylineCrops: [nil], storylineMasks: time.storyline.map { _ in nil }, crops: time.clips.map { _ in nil }, areas: [.value(.found(found(target, at: 1)))], masks: time.clips.map { _ in nil }, cornerPins: time.clips.map { _ in nil })
+        let plan = try sut.plan(time, storylineCrops: [nil], storylineMasks: time.storyline.map { _ in nil }, crops: time.clips.map { _ in nil }, areas: [.value(.rectangle(target))], masks: time.clips.map { _ in nil }, cornerPins: time.clips.map { _ in nil })
 
         // Then
+        // The clip starts at media 0, so the track's frame is media 0, and the last frame followed, media 3, has the
+        // target 30 pixels down.
         let track = try #require(plan.clips[0]?.track)
         #expect(track.target == Quad(target))
+        #expect(track.mediaTime == 0)
         #expect(plan.time.clips[0].visible == time.clips[0].visible)
         let last = try #require(track.samples.last)
-        let moved = Quad(moved(target, down: 20))
+        let moved = Quad(moved(target, down: 30))
         #expect(zip(last.quad.corners, moved.corners).allSatisfy { abs($0.x - $1.x) < 1e-9 && abs($0.y - $1.y) < 1e-9 })
     }
 
@@ -558,15 +558,15 @@ struct TrackPlannerTests {
         let shape = try plan(connected: #"""
             { "shape": "rect", "stroke": { "width": 8 }, "parent": "screen", "area": [0, 0, 10, 10], "track": true, "mask": { "shape": "rect", "area": [0, 0, 10, 10] } }
             """#)
-        let storyline = try plan(storyline: #""crop": { "text": "Total" }, "track": true"#)
+        let storyline = try plan(storyline: #""crop": [100, 100, 200, 40], "track": true"#)
         let masks: [ResolvedMask] = [mask(.ellipse(total))]
 
         // When
         let shapeError = #expect(throws: ResolveError.self) {
-            try sut.plan(shape, storylineCrops: [nil], storylineMasks: [nil], crops: shape.clips.map { _ in nil }, areas: [.value(.found(found(total, at: 1)))], masks: [masks], cornerPins: shape.clips.map { _ in nil })
+            try sut.plan(shape, storylineCrops: [nil], storylineMasks: [nil], crops: shape.clips.map { _ in nil }, areas: [.value(.rectangle(total))], masks: [masks], cornerPins: shape.clips.map { _ in nil })
         }
         let storylineError = #expect(throws: ResolveError.self) {
-            try sut.plan(storyline, storylineCrops: [.value(found(total, at: 1))], storylineMasks: [masks], crops: storyline.clips.map { _ in nil }, areas: [], masks: [], cornerPins: storyline.clips.map { _ in nil })
+            try sut.plan(storyline, storylineCrops: [.value(total)], storylineMasks: [masks], crops: storyline.clips.map { _ in nil }, areas: [], masks: [], cornerPins: storyline.clips.map { _ in nil })
         }
 
         // Then
@@ -584,9 +584,9 @@ struct TrackPlannerTests {
     func followsNamedTargetPastOwnCandidates() throws {
         // Given
         let sut = planner()
-        let named = try plan(storyline: #""crop": { "text": "Total" }, "track": { "text": "Total" }"#)
-        let own = try plan(storyline: #""crop": { "text": "Total" }, "track": true"#)
-        let crops: [PropertyValue<FoundArea>?] = [.value(found(total, at: 1))]
+        let named = try plan(storyline: #""crop": [100, 100, 200, 40], "track": [100, 100, 200, 40]"#)
+        let own = try plan(storyline: #""crop": [100, 100, 200, 40], "track": true"#)
+        let crops: [PropertyValue<Rectangle>?] = [.value(total)]
         let masks: [[ResolvedMask]?] = [[mask(.ellipse(Rectangle(x: 0, y: 0, width: 50, height: 50)))]]
 
         // When
@@ -629,9 +629,7 @@ struct TrackPlannerTests {
                 frameTimes: ["/abs/screen.mp4": Fixture.screenFrameTimes],
                 followed: followed.map { ["/abs/screen.mp4": $0] } ?? [:],
                 drift: Point(x: 0, y: 10)
-            ),
-            ocr: ocr,
-            languages: nil
+            )
         )
     }
 
@@ -652,13 +650,6 @@ struct TrackPlannerTests {
         feather: Double = 0
     ) -> ResolvedMask {
         ResolvedMask(geometry: geometry, feather: feather, isInverted: false, mode: .add)
-    }
-
-    private func found(
-        _ target: Rectangle,
-        at mediaTime: Double
-    ) -> FoundArea {
-        FoundArea(rectangle: target.grown(by: 14), target: target, mediaTime: mediaTime, lines: [])
     }
 
     private func moved(

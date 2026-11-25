@@ -5,9 +5,9 @@
 //  Created by JSilver on 11/17/26.
 //
 
-// Puts recognised lines in reading order, the order `nth` counts them in: top to bottom by row and left to right
-// within a row. Lines whose vertical centres lie within half the shorter one's height of each other are one row, so a
-// row is every line such a chain reaches.
+// Puts recognised lines in the order `ocr` lists them: top to bottom by row and left to right within a row. Lines
+// whose vertical centres lie within half the shorter one's height of each other are one row, so a row is every line
+// such a chain reaches.
 struct ReadingOrder: Sendable {
     // MARK: - Property
     // MARK: - Initializer

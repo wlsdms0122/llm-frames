@@ -80,12 +80,11 @@ struct ResolvedDocumentReaderTests {
             { "media": { "imageSequence": "/abs/frames", "fps": 12 }, "filter": "film", "transition": "reveal" },
             { "media": { "kind": "sequence", "storyline": [ { "media": "/abs/run.mp4", "in": 0, "out": 2 } ] }, "transition": "dip" } ] }
         """#,
-        // Shapes, tracked areas with and without padding, an adjustment, a timed media clip, a title parented to a shape and sound
-        // with fades.
+        // Shapes, tracked areas, an adjustment, a timed media clip, a title parented to a shape and sound with fades.
         #"""
         { "kind": "sequence", "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "in": 1, "out": 3, "fadeIn": 0.5, "connected": [
-            { "shape": "rect", "stroke": { "width": 8 }, "area": { "text": "Total" }, "parent": "screen", "track": { "text": "Total" } },
-            { "shape": "rect", "fill": "#FFD43B80", "area": { "text": "Total", "padding": 14 }, "parent": "screen", "track": true },
+            { "shape": "rect", "stroke": { "width": 8 }, "area": [100, 100, 200, 40], "parent": "screen", "track": [100, 100, 200, 40] },
+            { "shape": "rect", "fill": "#FFD43B80", "area": [86, 86, 228, 68], "parent": "screen", "track": true },
             { "shape": "path", "points": [[500, 500], [600, 550]], "stroke": { "width": 10, "end": "frames/arrow" }, "at": [1, 2], "lane": -1 },
             { "shape": "rect", "area": [0, 0, 100, 100], "fill": "#0000008C", "at": [1, 2], "id": "dim" },
             { "adjust": "mine/grade", "mask": { "shape": "rect", "area": [0, 0, 10, 10] }, "at": [1, 2] },
@@ -121,17 +120,17 @@ struct ResolvedDocumentReaderTests {
               "points": [{ "vertex": [0, 0], "outTangent": [0, 40] }, [100, 0]],
               "keyframes": [ { "at": 0, "points": [{}, { "inTangent": [0, 40] }] }, { "at": 2, "points": [{}, { "inTangent": [0, 80] }] } ] } ] }
         """##,
-        // Masks of each geometry form on a storyline clip, an adjustment, a shape and a title: an area found by text, a
-        // box, an area and a path, inverted, feathered, in each mode, static and keyframed.
+        // Masks of each geometry form on a storyline clip, an adjustment, a shape and a title: an area, a box and a
+        // path, inverted, feathered, in each mode, static and keyframed.
         #"""
         { "kind": "sequence", "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "in": 0, "out": 3,
-            "mask": { "shape": "rect", "area": { "text": "Total", "padding": 4 }, "radius": 6, "feather": 2, "invert": true },
+            "mask": { "shape": "rect", "area": [96, 96, 208, 48], "radius": 6, "feather": 2, "invert": true },
             "connected": [
               { "adjust": "mine/grade", "parent": "screen", "mask": [
                   { "shape": "ellipse", "width": 60, "height": 30, "position": [100, 100], "mode": "subtract" },
                   { "shape": "path", "points": [[0, 0], [100, 0], [50, 80]], "mode": "intersect" } ] },
               { "shape": "rect", "fill": "#FF000080", "parent": "screen", "area": [0, 0, 500, 500], "mask": { "shape": "ellipse" }, "keyframes": [
-                  { "at": 0, "ease": "ease-out", "mask": { "area": { "text": "Total" }, "feather": 1 } },
+                  { "at": 0, "ease": "ease-out", "mask": { "area": [100, 100, 200, 40], "feather": 1 } },
                   { "at": 2, "mask": { "area": [0, 0, 50, 50], "feather": 3 } } ] },
               { "title": "Hi", "style": "title", "parent": "screen", "position": [300, 300], "mask": { "shape": "path" }, "keyframes": [
                   { "at": 0, "mask": { "points": [[0, 0], [10, 0], [5, 10]] } },
@@ -242,9 +241,9 @@ struct ResolvedDocumentReaderTests {
     // A tracked screen, a shape that follows the screen it is parented to, and a media clip of video under it that
     // follows its own media.
     private static let trackedDocument = #"""
-        { "kind": "sequence", "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "in": 0, "out": 3, "track": { "text": "Total" }, "connected": [
-            { "shape": "rect", "stroke": { "width": 8 }, "area": { "text": "Total" }, "parent": "screen", "track": true },
-            { "media": "/abs/short.mp4", "parent": "screen", "position": [0, 0], "at": [0, 2], "track": { "text": "Send" } } ] } ] }
+        { "kind": "sequence", "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "in": 0, "out": 3, "track": [100, 100, 200, 40], "connected": [
+            { "shape": "rect", "stroke": { "width": 8 }, "area": [100, 100, 200, 40], "parent": "screen", "track": true },
+            { "media": "/abs/short.mp4", "parent": "screen", "position": [0, 0], "at": [0, 2], "track": [400, 1200, 200, 60] } ] } ] }
         """#
 
     // A vertical title whose combined run "12" is set as a composition, "2" falling back to another face where the
@@ -1578,8 +1577,6 @@ struct ResolvedDocumentReaderTests {
         let planner = DocumentPlanner(
             mediaFacts: Fixture.mediaFacts,
             presets: Self.presets,
-            ocr: Fixture.ocr,
-            languages: nil,
             tracker: tracker,
             shaper: shaper,
             library: Fixture.library

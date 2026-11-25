@@ -16,9 +16,6 @@ import Testing
 @Suite("TrackFrame Tests")
 struct TrackFrameTests {
     // MARK: - Property
-    private static let total = Rectangle(x: 100, y: 100, width: 200, height: 40)
-    private static let moved = Rectangle(x: 100, y: 130, width: 200, height: 40)
-
     private let sut = Evaluator()
 
     // MARK: - Initializer
@@ -45,27 +42,32 @@ struct TrackFrameTests {
         #expect(atInstant.tracked.x == atInstant.still.x)
     }
 
-    @Test("an own target found by text on the frame a track's time names is true there and is not brought back from the instant")
-    func keepsFoundTargetOnTrackFrame() throws {
+    @Test("a tracked area's keyframes are brought back through the motion at their own times, where a static area is true on the track's frame")
+    func bringsKeyframedAreaBack() throws {
         // Given
         let sequence = try resolved(#"""
-            { "id": "tracked", "shape": "rect", "fill": "#FFFFFF", "parent": "screen", "area": { "text": "Total" }, "at": [1, 3], "track": { "time": 1.5 } },
-            { "id": "still", "shape": "rect", "fill": "#FFFFFF", "parent": "screen", "area": [100, 130, 200, 40], "at": [1, 3] }
+            { "id": "static", "shape": "rect", "fill": "#FFFFFF", "parent": "screen", "area": [100, 100, 200, 40], "at": [1, 3], "track": { "time": 1.5, "area": [100, 100, 200, 40] } },
+            { "id": "keyed", "shape": "rect", "fill": "#FFFFFF", "parent": "screen", "at": [1, 3], "track": { "time": 1.5, "area": [100, 100, 200, 40] },
+              "keyframes": [ { "at": 1, "area": [100, 100, 200, 40] }, { "at": 2, "area": [100, 100, 200, 40] } ] },
+            { "id": "still", "shape": "rect", "fill": "#FFFFFF", "parent": "screen", "area": [100, 100, 200, 40], "at": [1, 3] }
             """#)
 
         // When
-        let onTrackFrame = try boxes(in: sut.displayList(of: sequence, at: 0.5))
-        let atInstant = try boxes(in: sut.displayList(of: sequence, at: 0))
+        let read = try ResolvedDocumentReader().read(ResolvedDocumentWriter().write(sequence))
+        let lists = [0, 0.5, 1].map { time in sut.displayList(of: read, at: time) }
 
         // Then
-        let clip = try #require(sequence.clips.first { $0.id == "tracked" })
-        guard case let .shape(shape) = clip.content, case let .area(area, _, _) = shape.geometry else {
-            Issue.record("the tracked clip is not a shape placed by its area")
-            return
+        #expect(read == sequence)
+        #expect(area(of: "static", in: read) == .onTrackFrame(.rectangle(Rectangle(x: 100, y: 100, width: 200, height: 40))))
+        #expect(area(of: "keyed", in: read)?.keyframeTimes == [0, 1])
+        // Each keyframe is drawn where it is written at its own time, and the static area only on the track's frame,
+        // media 1.5, five pixels below where it is drawn at media 1 and five above where it is drawn at media 2.
+        for (list, offset) in zip(lists, [-5.0, 0, 5]) {
+            let still = try rectangle(of: "still", in: list)
+            let scale = try #require(list.items.first { $0.origin?.id == "still" }).transform.d
+            #expect(isClose(try rectangle(of: "keyed", in: list), still))
+            #expect(abs(try rectangle(of: "static", in: list).y - (still.y + offset * scale)) < 1e-9)
         }
-        #expect(area == .onTrackFrame(.rectangle(Self.moved)))
-        #expect(onTrackFrame.tracked == onTrackFrame.still)
-        #expect(abs(atInstant.tracked.y - (atInstant.still.y - 5 * atInstant.scale)) < 1e-9)
     }
 
     @Test("a mask with keyframes keeps each geometry leaf written without keyframes true on the track's frame, and a leaf one keyframe writes at its time")
@@ -91,12 +93,12 @@ struct TrackFrameTests {
         #expect(radius.keyframeTimes.count == 1)
     }
 
-    @Test("a tracked path keeps each vertex leaf written without keyframes true on the track's frame, a point found by text at the instant and a keyframed tangent at its keyframes")
+    @Test("a tracked path keeps each vertex leaf written without keyframes true on the track's frame, a point on an area included, and a keyframed tangent at its keyframes")
     func keepsStaticPathLeavesOnTrackFrame() throws {
         // Given
         let sequence = try resolved(#"""
             { "id": "tracked", "shape": "path", "stroke": { "width": 4 }, "parent": "screen", "at": [1, 3], "track": { "time": 1.5, "area": [100, 100, 200, 40] },
-              "points": [[100, 100], { "vertex": [300, 100], "inTangent": [0, 20] }, { "vertex": { "area": { "text": "Total" }, "point": "left" } }],
+              "points": [[100, 100], { "vertex": [300, 100], "inTangent": [0, 20] }, { "vertex": { "area": [100, 100, 200, 40], "point": "left" } }],
               "keyframes": [ { "at": 1, "points": [{ "outTangent": [10, 0] }, {}, {}] }, { "at": 2, "points": [{ "outTangent": [20, 0] }, {}, {}] } ] }
             """#)
 
@@ -114,7 +116,7 @@ struct TrackFrameTests {
         #expect(vertices[0].inTangent == .onTrackFrame(Point(x: 0, y: 0)))
         #expect(vertices[0].outTangent.keyframeTimes.count == 2)
         #expect(vertices[1].inTangent == .onTrackFrame(Point(x: 0, y: 20)))
-        #expect(vertices[2].vertex.keyframeTimes.count == 1)
+        #expect(vertices[2].vertex == .onTrackFrame(.point(Point(x: 100, y: 120))))
         #expect(vertices[2].outTangent == .onTrackFrame(Point(x: 0, y: 0)))
     }
 
@@ -149,11 +151,6 @@ struct TrackFrameTests {
         let planner = DocumentPlanner(
             mediaFacts: Fixture.mediaFacts,
             presets: Fixture.presets,
-            ocr: OCRTable(["/abs/screen.mp4": [
-                (from: 0, lines: [RecognisedLine(text: "Total", rectangle: Self.total)]),
-                (from: 1.5, lines: [RecognisedLine(text: "Total", rectangle: Self.moved)])
-            ]]),
-            languages: nil,
             tracker: TrackerTable(frameTimes: ["/abs/screen.mp4": Fixture.screenFrameTimes], drift: Point(x: 0, y: 10)),
             shaper: Fixture.shaper,
             library: Fixture.library
@@ -169,19 +166,43 @@ struct TrackFrameTests {
     // The rectangle of each clip's path carried by its item's transform to output pixels, and the vertical scale of
     // the still clip's transform, which is its parent's.
     private func boxes(in list: DisplayList) throws -> (tracked: Rectangle, still: Rectangle, scale: Double) {
-        let box = { (id: String) throws -> (Rectangle, Double) in
-            let item = try #require(list.items.first { $0.origin?.id == id })
-            let rectangle: Rectangle? = if case let .path(path) = item.content, case let .rect(rectangle, _) = path.geometry {
-                rectangle
-            } else {
-                nil
-            }
+        let still = try #require(list.items.first { $0.origin?.id == "still" })
 
-            return (Rectangle(bounding: item.transform.apply(toCornersOf: try #require(rectangle))), item.transform.d)
+        return (try rectangle(of: "tracked", in: list), try rectangle(of: "still", in: list), still.transform.d)
+    }
+
+    // The rectangle of a clip's path carried by its item's transform to output pixels.
+    private func rectangle(
+        of id: String,
+        in list: DisplayList
+    ) throws -> Rectangle {
+        let item = try #require(list.items.first { $0.origin?.id == id })
+        let rectangle: Rectangle? = if case let .path(path) = item.content, case let .rect(rectangle, _) = path.geometry {
+            rectangle
+        } else {
+            nil
         }
-        let tracked = try box("tracked")
-        let still = try box("still")
 
-        return (tracked.0, still.0, still.1)
+        return Rectangle(bounding: item.transform.apply(toCornersOf: try #require(rectangle)))
+    }
+
+    private func isClose(
+        _ rectangle: Rectangle,
+        _ other: Rectangle
+    ) -> Bool {
+        [rectangle.x - other.x, rectangle.y - other.y, rectangle.width - other.width, rectangle.height - other.height]
+            .allSatisfy { abs($0) < 1e-9 }
+    }
+
+    // The area of a shape placed by its area in a resolved sequence, nil for any other clip.
+    private func area(
+        of id: String,
+        in sequence: ResolvedSequence
+    ) -> FollowedValue<GeometryArea>? {
+        guard let clip = sequence.clips.first(where: { $0.id == id }), case let .shape(shape) = clip.content,
+              case let .area(area, _, _) = shape.geometry else { return nil }
+
+        return area
     }
 }
+

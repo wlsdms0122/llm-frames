@@ -143,16 +143,6 @@ struct PathShapeTests {
         #expect(isClose(anchor, Point(x: 50, y: 30)), "the anchor is \(anchor)")
     }
 
-    @Test("a vertex point found by text stops on a clip whose space is output pixels, placed under its `vertex`")
-    func stopsOnTextVertexInOutputPixels() throws {
-        // Given
-        let document = document(#"{ "shape": "path", "points": [[0, 0], { "vertex": { "area": { "text": "Total" }, "point": "left" } }], "fill": "accent", "at": [0, 1] }"#)
-
-        // When, Then
-        let error = #expect(throws: ResolveError.self) { try plan(document) }
-        #expect(error?.description.hasPrefix("clips[0].points[1].vertex (path): ") == true, "\(error?.description ?? "no error")")
-    }
-
     @Test("a clip area in a vertex object's point names a clip and stays a clip area")
     func keepsClipAreaInVertex() throws {
         // When
@@ -183,27 +173,14 @@ struct PathShapeTests {
     @Test("a shape parent placed by a curved path gives its children the space of the curve's box, its centre kept under its scale")
     func scalesParentAboutCurveBox() throws {
         // Given
-        let vertices = [
-            PathVertex<FollowedValue<GeometryPoint>, FollowedValue<Point>>(
-                vertex: .keyframes([Keyframe(at: 0, value: .point(Self.zero))]),
-                inTangent: .keyframes([Keyframe(at: 0, value: Self.zero)]),
-                outTangent: .keyframes([Keyframe(at: 0, value: Point(x: 0, y: 40))])
-            ),
-            PathVertex(
-                vertex: .keyframes([Keyframe(at: 0, value: .point(Point(x: 100, y: 0)))]),
-                inTangent: .keyframes([Keyframe(at: 0, value: Point(x: 0, y: 40))]),
-                outTangent: .keyframes([Keyframe(at: 0, value: Self.zero)])
-            )
-        ]
-        let sut = ParentTransformPlan(
-            geometry: .points(vertices, isClosed: false, placement: GeometryPlacement()),
-            track: nil,
-            scale: [Keyframe(at: 0, value: Scale(2))],
-            rotation: [Keyframe(at: 0, value: 0)]
-        )
+        let sequence = try ResolvedSequence(plan: plan(document(#"""
+            { "id": "curve", "shape": "path", "stroke": { "width": 4 }, "points": \#(Self.curve), "scale": 2, "at": [0, 1] },
+            { "shape": "rect", "parent": "curve", "area": [0, 0, 10, 10], "fill": "accent", "at": [0, 1] }
+            """#)), hashes: FileHashTable())
+        let sut = ParentEvaluator(sequence: sequence)
 
         // When
-        let transform = sut.transform(at: 0)
+        let transform = sut.space(of: sequence.clips[1], at: SampleTime(0)).transform
 
         // Then
         #expect(isClose(transform.apply(to: Point(x: 50, y: 15)), Point(x: 50, y: 15)))

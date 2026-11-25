@@ -11,9 +11,6 @@ enum CropForm: Equatable, Sendable {
     case scale(Double)
 
     // MARK: - Property
-    var isFoundByText: Bool {
-        if case let .area(area) = self { area.isFoundByText } else { false }
-    }
 
     // MARK: - Initializer
     init?(value: JSONValue) {

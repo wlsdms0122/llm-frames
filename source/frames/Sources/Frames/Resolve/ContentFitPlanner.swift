@@ -300,14 +300,7 @@ struct ContentFitPlanner: Sendable {
     ) -> ClipGeometry {
         ClipGeometry(
             area: geometry.area?.map { area in
-                area.map { area in
-                    FoundArea(
-                        rectangle: moved(area.rectangle, by: offset),
-                        target: moved(area.target, by: offset),
-                        mediaTime: area.mediaTime,
-                        lines: area.lines
-                    )
-                }
+                area.map { moved($0, by: offset) }
             },
             points: geometry.points?.map { vertex in
                 vertex.map(vertex: { $0.mapValues { $0.map { moved($0, by: offset) } } }, tangent: { $0 })

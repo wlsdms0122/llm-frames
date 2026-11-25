@@ -7,8 +7,7 @@
 
 // Plans a clip's masks as timed values: the clip's `mask` is its own layer with the structure its keyframes give, and
 // no style lies below it, so the merged value is that layer; `shape` must be given there. Each leaf is then timed over
-// it, an area, a position or a point given by text found in `picture` at the media time of the leaf's own instant, a
-// clip area kept for evaluation where the masks take one, and `feather` and a clip area's padding theme lengths times
+// it, a clip area kept for evaluation where the masks take one, and `feather` and a clip area's padding theme lengths times
 // `lengthScale`. A mask written alone is read as a list of one, and a stop names it as
 // the document wrote it, `mask.<key>` for a mask alone and `mask[i].<key>` in a list.
 struct MaskPlanner: Sendable {
@@ -42,14 +41,10 @@ struct MaskPlanner: Sendable {
     }
 
     // MARK: - Public
-    // `textStop` is the stop for a text form where the clip's masks are not in a picture that can be searched, and
-    // `takesClipArea` whether the masks are in the space the clip is drawn in, where a clip area names a box drawn
-    // there. Anywhere else a clip area stops as an area searched in a picture.
+    // `takesClipArea` is whether the masks are in the space the clip is drawn in, where a clip area names a box drawn
+    // there. Anywhere else a clip area stops, since the masks are in the clip's own media or box.
     func masks(
         _ property: LookProperty?,
-        in picture: Picture,
-        pictureClock: PictureClock,
-        textStop: ((Place) -> ResolveError)? = nil,
         takesClipArea: Bool = false
     ) throws -> [FoundMask]? {
         guard let property else { return nil }
@@ -77,7 +72,6 @@ struct MaskPlanner: Sendable {
             )
         }
 
-        var textTimes: [Int: [MaskLeaf: Set<Double>]] = [:]
         var staticLeaves: [Int: Set<MaskLeaf>] = [:]
         let timed: TimedValue
         do {
@@ -95,24 +89,18 @@ struct MaskPlanner: Sendable {
                 instant: instant,
                 place: lookPlace,
                 leaf: { json, leafKind, source in
-                    let found = try leaf(
+                    let value = try leaf(
                         json,
                         kind: leafKind,
                         source: source,
-                        in: picture,
-                        pictureClock: pictureClock,
                         place: placed(source.written),
-                        textStop: textStop,
                         takesClipArea: takesClipArea
                     )
-                    if let index = found.index, let text = found.text {
-                        textTimes[index, default: [:]][text, default: []].insert(source.time)
-                    }
                     if source.keyframe == nil, let geometry = geometryLeaf(at: source.place.path.components) {
                         staticLeaves[geometry.index, default: []].insert(geometry.leaf)
                     }
 
-                    return found.value
+                    return value
                 }
             )
         } catch let LookError.missingLeaf(place, key) {
@@ -125,7 +113,7 @@ struct MaskPlanner: Sendable {
 
         return masks.enumerated().compactMap { index, mask in
             ResolvedMask(timed: mask).map { mask in
-                FoundMask(mask: mask, textTimes: textTimes[index] ?? [:], staticLeaves: staticLeaves[index] ?? [])
+                FoundMask(mask: mask, staticLeaves: staticLeaves[index] ?? [])
             }
         }
     }
@@ -175,72 +163,55 @@ struct MaskPlanner: Sendable {
         }
     }
 
-    // One leaf's value, the index of the mask that holds it, and the geometry leaf a text form gave.
+    // One leaf's value.
     private func leaf(
         _ json: JSONValue,
         kind leafKind: LeafKind,
         source: LeafSource,
-        in picture: Picture,
-        pictureClock: PictureClock,
         place: Place,
-        textStop: ((Place) -> ResolveError)?,
         takesClipArea: Bool
-    ) throws -> (value: LeafValue, index: Int?, text: MaskLeaf?) {
+    ) throws -> LeafValue {
         let path = source.place.path.components
-        guard path.count >= 2, case let .index(index, _) = path[0], case let .key(key) = path[1] else {
-            return (number(json, kind: leafKind), nil, nil)
+        guard path.count >= 2, case .index = path[0], case let .key(key) = path[1] else {
+            return number(json, kind: leafKind)
         }
 
-        let mediaTime = pictureClock.mediaTime(atSequenceTime: source.time)
         let position: PositionForm?
-        let maskLeaf: MaskLeaf
         switch key {
         case "area":
-            guard let form = AreaForm(value: json) else { return (number(json, kind: leafKind), index, nil) }
+            guard let form = AreaForm(value: json) else { return number(json, kind: leafKind) }
 
-            if form.isFoundByText, let textStop {
-                throw textStop(place)
-            }
             if takesClipArea, let area = ClipArea(form: form, lengthScale: lengthScale) {
-                return (.area(area), index, nil)
+                return .area(area)
             }
-            let rectangle = try finder.area(form, in: picture, at: mediaTime, place: place, kind: kind.label).rectangle
-            return (
-                .numbers([rectangle.x, rectangle.y, rectangle.width, rectangle.height]),
-                index,
-                form.isFoundByText ? .area : nil
-            )
+            let rectangle = try form.rectangle(place: place, kind: kind.label)
+            return .numbers([rectangle.x, rectangle.y, rectangle.width, rectangle.height])
 
         case "position":
             position = PositionForm(value: json)
-            maskLeaf = .position
 
         case "points":
-            guard path.count >= 4, case let .index(vertex, _) = path[2], path[3] == .key("vertex") else {
-                return (number(json, kind: leafKind), index, nil)
+            guard path.count >= 4, case .index = path[2], path[3] == .key("vertex") else {
+                return number(json, kind: leafKind)
             }
 
             position = PositionForm(value: json)
-            maskLeaf = .point(vertex)
 
         default:
-            return (number(json, kind: leafKind), index, nil)
+            return number(json, kind: leafKind)
         }
 
-        guard let position else { return (number(json, kind: leafKind), index, nil) }
+        guard let position else { return number(json, kind: leafKind) }
 
-        if position.isFoundByText, let textStop {
-            throw textStop(place)
-        }
         if
             takesClipArea,
             case let .area(form, name) = position,
             let area = ClipArea(form: form, lengthScale: lengthScale)
         {
-            return (.point(area, name: name), index, nil)
+            return .point(area, name: name)
         }
-        let point = try finder.point(position, in: picture, at: mediaTime, place: place, kind: kind.label)
-        return (.numbers([point.x, point.y]), index, position.isFoundByText ? maskLeaf : nil)
+        let point = try finder.point(position, place: place, kind: kind.label)
+        return .numbers([point.x, point.y])
     }
 
     private func number(

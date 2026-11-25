@@ -5,7 +5,7 @@
 //  Created by JSilver on 11/16/26.
 //
 
-// Plans what `track` follows (FRAMES-12). The target is found before padding on the track's frame, the frame a `track`
+// Plans what `track` follows (FRAMES-12). The target is found on the track's frame, the frame a `track`
 // object's `time` names or else the one the clip's instant shows, and the tracker follows it from there in the tracked
 // media, a storyline or media clip's own video or image sequence and any other clip's parent's, over every frame the
 // clip can show and the frames between them and the track's frame: a storyline clip's handles included, and through
@@ -18,16 +18,10 @@ struct TrackPlanner: Sendable {
     private static let tolerance = 1e-9
 
     private let follower: TargetFollower
-    private let finder: AreaFinder
 
     // MARK: - Initializer
-    init(
-        tracker: any TrackerProvider,
-        ocr: any OCRProvider,
-        languages: [LanguageTag]?
-    ) {
+    init(tracker: any TrackerProvider) {
         self.follower = TargetFollower(tracker: tracker)
-        self.finder = AreaFinder(ocr: ocr, languages: languages)
     }
 
     // MARK: - Public
@@ -36,9 +30,9 @@ struct TrackPlanner: Sendable {
     // which `true` follows.
     func plan(
         _ time: TimePlan,
-        storylineCrops: [PropertyValue<FoundArea>?],
+        storylineCrops: [PropertyValue<Rectangle>?],
         storylineMasks: [[ResolvedMask]?],
-        crops: [PropertyValue<FoundArea>?],
+        crops: [PropertyValue<Rectangle>?],
         areas: [PropertyValue<AreaValue>?],
         masks: [[ResolvedMask]?],
         cornerPins: [PropertyValue<[GeometryPoint]>?]
@@ -74,7 +68,7 @@ struct TrackPlanner: Sendable {
     private func track(
         _ plan: StorylinePlan,
         written: StorylineClip,
-        crop: PropertyValue<FoundArea>?,
+        crop: PropertyValue<Rectangle>?,
         mask: [ResolvedMask]?,
         fps: Double
     ) throws -> Track? {
@@ -88,7 +82,7 @@ struct TrackPlanner: Sendable {
             target,
             candidates: [
                 ("crop", isArea(written.crop) ? crop : nil),
-                ("mask", mask.map { self.area(of: $0, on: picture.clock, instant: plan.instant) })
+                ("mask", mask.map { self.area(of: $0, instant: plan.instant) })
             ],
             in: picture,
             at: plan.instant,
@@ -117,8 +111,8 @@ struct TrackPlanner: Sendable {
     private func track(
         _ plan: ClipPlan,
         written: Clip,
-        crop: PropertyValue<FoundArea>?,
-        area: PropertyValue<FoundArea>?,
+        crop: PropertyValue<Rectangle>?,
+        area: PropertyValue<Rectangle>?,
         mask: [ResolvedMask]?,
         cornerPin: PropertyValue<Quad>?,
         time: TimePlan,
@@ -145,7 +139,7 @@ struct TrackPlanner: Sendable {
             target,
             candidates: [
                 ("crop", isArea(written.crop) ? crop : nil),
-                ("mask", mask.map { self.area(of: $0, on: picture.clock, instant: plan.instant) })
+                ("mask", mask.map { self.area(of: $0, instant: plan.instant) })
             ],
             in: picture,
             at: plan.instant,
@@ -171,7 +165,7 @@ struct TrackPlanner: Sendable {
         _ plan: ClipPlan,
         written: Clip,
         target: TrackTarget,
-        area: PropertyValue<FoundArea>?,
+        area: PropertyValue<Rectangle>?,
         mask: [ResolvedMask]?,
         cornerPin: PropertyValue<Quad>?,
         time: TimePlan,
@@ -191,7 +185,7 @@ struct TrackPlanner: Sendable {
 
         // Only a mask in the parent's space lies in the media followed; a box shape's is in its own box.
         let ownMask = plan.space == .parent && !plan.isPinned
-            ? mask.map { self.area(of: $0, on: picture.clock, instant: plan.instant) }
+            ? mask.map { self.area(of: $0, instant: plan.instant) }
             : nil
         let followed = try self.followed(
             target,
@@ -221,15 +215,15 @@ struct TrackPlanner: Sendable {
         _ area: PropertyValue<AreaValue>?,
         of plan: ClipPlan,
         written: Clip
-    ) throws -> PropertyValue<FoundArea>? {
+    ) throws -> PropertyValue<Rectangle>? {
         guard let area, written.track?.isOwn == true else { return nil }
 
         return try area.map { value in
-            guard let found = value.found else {
+            guard let rectangle = value.rectangle else {
                 throw AreaError.clipAreaInPicture(place: written.place.appending(key: "track"), kind: plan.kind.label)
             }
 
-            return found
+            return rectangle
         }
     }
 
@@ -268,10 +262,10 @@ struct TrackPlanner: Sendable {
     // What `true` follows: the one of the clip's area, mask and crop it has, each where it starts. A clip with more
     // than one stops, since it must name its target.
     private func own(
-        _ candidates: [(key: String, value: PropertyValue<FoundArea>?)],
+        _ candidates: [(key: String, value: PropertyValue<Rectangle>?)],
         place: Place,
         kind: PlaceKind
-    ) throws -> PropertyValue<FoundArea>? {
+    ) throws -> PropertyValue<Rectangle>? {
         let present = candidates.filter { $0.value != nil }
         guard present.count <= 1 else {
             throw ResolveError.trackOwnAmbiguous(place: place, kind: kind, keys: present.map(\.key))
@@ -285,27 +279,20 @@ struct TrackPlanner: Sendable {
     // clip's instant.
     private func area(
         of masks: [ResolvedMask],
-        on clock: MediaClock,
         instant: Double
-    ) -> PropertyValue<FoundArea> {
+    ) -> PropertyValue<Rectangle> {
         let start = masks.flatMap(\.geometryTimes).min() ?? instant
         let bounds = masks.map { $0.sampled(at: SampleTime(start)) }.bounds ?? Rectangle(x: 0, y: 0, width: 0, height: 0)
-        let found = FoundArea(
-            rectangle: bounds,
-            target: bounds,
-            mediaTime: clock.mediaTime(atSequenceTime: start),
-            lines: []
-        )
-        guard start != instant else { return .value(found) }
+        guard start != instant else { return .value(bounds) }
 
-        return .keyframes([PropertyKeyframe(index: 0, at: start, value: found, ease: .linear)])
+        return .keyframes([PropertyKeyframe(index: 0, at: start, value: bounds, ease: .linear)])
     }
 
     // The track of a target in the tracked media and the sequence range it is followed over: track data as written,
     // or the target found on the track's frame and followed by the tracker from there.
     private func followed(
         _ target: TrackTarget,
-        candidates: [(key: String, value: PropertyValue<FoundArea>?)],
+        candidates: [(key: String, value: PropertyValue<Rectangle>?)],
         cornerPin: PropertyValue<Quad>? = nil,
         in media: (picture: Picture, file: MediaFile, clock: MediaClock),
         at instant: Double,
@@ -351,7 +338,7 @@ struct TrackPlanner: Sendable {
         )
     }
 
-    // The target's quad before padding, the media time of the track's frame and the sequence time the window is
+    // The target's quad, the media time of the track's frame and the sequence time the window is
     // narrowed from: for `true` the one of the clip's own candidates it has, at its first keyframe or else at the clip's
     // instant, and otherwise the area `form` names, found on the track's frame. With a `time` the track's frame is the
     // frame it names, and the clip's own geometry is static, since a keyframe's value is where it is at its own time. A
@@ -359,7 +346,7 @@ struct TrackPlanner: Sendable {
     private func target(
         _ form: AreaForm?,
         time: Double?,
-        candidates: [(key: String, value: PropertyValue<FoundArea>?)],
+        candidates: [(key: String, value: PropertyValue<Rectangle>?)],
         in media: (picture: Picture, file: MediaFile, clock: MediaClock),
         at instant: Double,
         place: Place,
@@ -371,16 +358,18 @@ struct TrackPlanner: Sendable {
                 throw ResolveError.trackOwnWithoutArea(place: place, kind: kind)
             }
             guard let frameTime else {
-                return (Quad(own.firstValue.target), own.firstValue.mediaTime, own.first?.at ?? instant)
+                let at = own.first?.at ?? instant
+                return (Quad(own.firstValue), media.clock.mediaTime(atSequenceTime: at), at)
             }
-            guard case let .value(found) = own else { throw ResolveError.trackOwnKeyframed(place: place, kind: kind) }
+            guard case let .value(rectangle) = own else {
+                throw ResolveError.trackOwnKeyframed(place: place, kind: kind)
+            }
 
-            return (Quad(found.target), frameTime, instant)
+            return (Quad(rectangle), frameTime, instant)
         }
 
-        let mediaTime = frameTime ?? media.clock.mediaTime(atSequenceTime: instant)
-        let found = try finder.area(form, in: media.picture, atMediaTime: mediaTime, place: place, kind: kind.label)
-        return (Quad(found.target), found.mediaTime, instant)
+        let rectangle = try form.rectangle(place: place, kind: kind.label)
+        return (Quad(rectangle), frameTime ?? media.clock.mediaTime(atSequenceTime: instant), instant)
     }
 
     // The corner pin of a clip with one, the only geometry `true` follows on it, at its first keyframe or else at the
@@ -665,7 +654,6 @@ struct TrackPlanner: Sendable {
 
         let picture = Picture(
             name: media.reference ?? file.path,
-            source: .mediaFile(file),
             size: size,
             colorSpace: media.colorSpace
         )
@@ -686,7 +674,6 @@ struct TrackPlanner: Sendable {
 
         let picture = Picture(
             name: media.reference ?? file.path,
-            source: .mediaFile(file),
             size: size,
             colorSpace: media.colorSpace
         )

@@ -237,72 +237,14 @@ struct CornerPinTests {
         #expect(error?.description == "storyline[0].cornerPin (video): the corner pin is not strictly convex, so no homography takes the clip's box to it")
     }
 
-    @Test("a storyline clip's corner pin is in output pixels, so a text form in it stops")
-    func refusesStorylineTextForm() throws {
-        // Given
-        let document = #"""
-            { "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4",
-              "cornerPin": [ { "area": { "text": "Total" }, "point": "top-left" }, [500, 120], [480, 400], [120, 380] ] } ] }
-            """#
-
-        // When, Then
-        let error = #expect(throws: ResolveError.self) { try plan(document) }
-        #expect(error?.description.hasPrefix("storyline[0].cornerPin[0] (video):") == true)
-    }
-
     @Test("a storyline clip with a corner pin has no parent's media to follow, so track stops, naming the corner pin")
     func refusesTrackOnStorylineCornerPin() throws {
         // Given
-        let document = #"{ "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4", "cornerPin": \#(Self.pin), "track": { "text": "Total" } } ] }"#
+        let document = #"{ "kind": "sequence", "storyline": [ { "media": "/abs/screen.mp4", "cornerPin": \#(Self.pin), "track": [100, 100, 200, 40] } ] }"#
 
         // When, Then
         let error = #expect(throws: ResolveError.self) { try plan(document) }
         #expect(error?.description == #"storyline[0].cornerPin (video): a storyline clip with a corner pin is placed in the frame, which has no media to follow, so it takes no "track""#)
-    }
-
-    @Test("a clip parented to a storyline clip with a corner pin is in output pixels, so a text form in it stops")
-    func refusesTextUnderStorylineCornerPin() throws {
-        // Given
-        let document = #"""
-            { "kind": "sequence", "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "cornerPin": \#(Self.pin), "connected": [
-              { "shape": "rect", "fill": "accent", "area": { "text": "Total" }, "at": [0, 3], "parent": "screen" } ] } ] }
-            """#
-
-        // When, Then
-        let error = #expect(throws: ResolveError.self) { try plan(document) }
-        #expect(error?.description.hasPrefix("storyline[0]#screen.connected[0].area (rect): a text area is searched in the media of the clip's parent") == true)
-    }
-
-    @Test("a clip parented to a media clip with a corner pin searches text in that clip's parent's media, the space its corner pin is written in")
-    func searchesTextUnderCornerPin() throws {
-        // Given
-        let document = #"""
-            { "kind": "sequence", "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "connected": [
-              { "id": "card", "media": "/abs/card.png", "at": [0, 3], "parent": "screen", "cornerPin": \#(Self.pin) },
-              { "shape": "rect", "fill": "accent", "area": { "text": "Total" }, "at": [0, 3], "parent": "card" } ] } ] }
-            """#
-
-        // When
-        let plan = try plan(document)
-
-        // Then
-        #expect(plan.clips[1].area?.firstValue.found?.rectangle == Fixture.total)
-    }
-
-    @Test("a clip parented to a clip whose corner pin holds a clip area takes no text form, since its parent's map moves with the named clip")
-    func refusesTextUnderClipAreaCornerPin() throws {
-        // Given
-        let document = #"""
-            { "kind": "sequence", "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "connected": [
-              { "id": "bar", "shape": "rect", "fill": "accent", "area": [0, 0, 100, 100], "at": [0, 3], "parent": "screen" },
-              { "id": "card", "media": "/abs/card.png", "at": [0, 3], "parent": "screen",
-                "cornerPin": [ { "area": { "clip": "bar" }, "point": "top-left" }, [500, 120], [480, 400], [120, 380] ] },
-              { "shape": "rect", "fill": "accent", "area": { "text": "Total" }, "at": [0, 3], "parent": "card" } ] } ] }
-            """#
-
-        // When, Then
-        let error = #expect(throws: ResolveError.self) { try plan(document) }
-        #expect(error?.description == #"storyline[0]#screen.connected[2].area (rect): text found under "card" is brought back through its transform when resolved, and its geometry, position or corner pin holds a clip area, whose box is known only when evaluated"#)
     }
 
     @Test("true on a clip with a corner pin follows its corner pin in its parent's media, its own video included")
@@ -435,47 +377,9 @@ struct CornerPinTests {
         #expect(error?.description == "storyline[0]#screen.connected[0].keyframes[1].cornerPin (image): the corner pin at 0.8, brought back through the inverse of the track's homography there, does not lie wholly in front of its horizon or is not strictly convex")
     }
 
-    @Test("a static corner pin a text form found under a named target is brought back at the instant, and stops past the inverse homography's horizon")
-    func refusesFoundStaticBeyondHorizon() throws {
-        // Given
-        // As above, from media second 0.1 the horizon of the inverse homography is the line y = 62.5. The clip's
-        // instant shows media 0.5, where its corner pin's last corner is found, as the bottom left of the text.
-        let target = Quad(Rectangle(x: 0, y: 0, width: 100, height: 100))
-        let far = Quad(topLeft: Point(x: 0, y: 0), topRight: Point(x: 100, y: 0), bottomRight: Point(x: 60, y: 50), bottomLeft: Point(x: 40, y: 50))
-        let quads = [(0.0, target)] + (1...10).map { (Double($0) / 10, far) }
-        let planner = { (bottom: Double) in
-            self.planner(
-                tracker: QuadTrackerTable(base: target, quads: quads),
-                ocr: OCRTable(["/abs/screen.mp4": [
-                    (from: 0, lines: [RecognisedLine(text: "Sign", rectangle: Rectangle(x: 10, y: bottom - 10, width: 20, height: 10))])
-                ]])
-            )
-        }
-        let document = { (bottom: Double) in #"""
-            { "kind": "sequence", "storyline": [ { "id": "screen", "media": "/abs/screen.mp4", "out": 1, "connected": [
-                { "media": "/abs/card.png", "parent": "screen", "at": [0.5, 1], "width": 300, "track": { "time": 0, "area": [0, 0, 100, 100] },
-                  "cornerPin": [[10, 10], [90, 10], [90, \#(bottom)], { "area": { "text": "Sign" }, "point": "bottom-left" }] } ] } ] }
-            """# }
-
-        // When
-        let plan = try planner(40).plan(Fixture.planner.plan(document: Fixture.json(document(40))))
-
-        // Then
-        #expect(plan.clips[0].cornerPin != nil)
-        let error = #expect(throws: ResolveError.self) {
-            try planner(70).plan(Fixture.planner.plan(document: Fixture.json(document(70))))
-        }
-        #expect(error?.description == "storyline[0]#screen.connected[0].cornerPin (image): the corner pin, found at the clip's instant, brought back through the inverse of the track's homography there, does not lie wholly in front of its horizon or is not strictly convex")
-    }
-
     // MARK: - Private
-    private func planner(
-        tracker: any TrackerProvider,
-        ocr: any OCRProvider = Fixture.ocr
-    ) -> SequencePlanner {
+    private func planner(tracker: any TrackerProvider) -> SequencePlanner {
         SequencePlanner(
-            ocr: ocr,
-            languages: nil,
             tracker: tracker,
             shaper: Fixture.shaper,
             presets: Fixture.presets,

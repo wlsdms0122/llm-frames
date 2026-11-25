@@ -1309,8 +1309,6 @@ struct EvaluationReporterTests {
         let planner = DocumentPlanner(
             mediaFacts: Fixture.mediaFacts,
             presets: PresetTable(transitions: [:], animations: animations, filters: [:]),
-            ocr: Fixture.ocr,
-            languages: nil,
             tracker: Fixture.tracker,
             shaper: Fixture.shaper,
             library: Fixture.library
@@ -1326,8 +1324,6 @@ struct EvaluationReporterTests {
         let planner = DocumentPlanner(
             mediaFacts: Fixture.mediaFacts,
             presets: Fixture.presets,
-            ocr: Fixture.ocr,
-            languages: nil,
             tracker: Fixture.tracker,
             shaper: shaper,
             library: Fixture.library

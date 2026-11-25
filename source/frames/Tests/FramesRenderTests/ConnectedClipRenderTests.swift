@@ -178,11 +178,13 @@ struct ConnectedClipRenderTests {
         let directory = try TemporaryDirectory()
         let file = directory.file("screen.mov")
         let drawn = try await ScreenRecording(scale: 0.5).write(to: file)
+        let target = drawn[0].grown(by: 4)
+        let area = "[\(target.x), \(target.y), \(target.width), \(target.height)]"
         let document = try DocumentResolver().resolve(#"""
             { "kind": "sequence", "format": { "size": [180, 320] },
               "storyline": [ { "id": "screen", "media": "\#(file)",
                                "keyframes": [ { "at": 0, "crop": { "scale": 1 } }, { "at": 0.9, "crop": { "scale": 1.25 } } ],
-                               "connected": [ { "shape": "rect", "stroke": { "width": 40, "color": "#ED2929" }, "area": { "text": "Total", "padding": 4 }, "parent": "screen", "track": true } ] } ] }
+                               "connected": [ { "shape": "rect", "stroke": { "width": 40, "color": "#ED2929" }, "area": \#(area), "parent": "screen", "track": true } ] } ] }
             """#)
         let sut = QuartzRenderer(decoder: AVFoundationDecoder())
 
@@ -191,7 +193,8 @@ struct ConnectedClipRenderTests {
         let frames = try lists.map { list in try sut.frame(of: list) }
 
         // Then
-        // The found line box lies within a few media pixels of the drawn one, which is a few output pixels here.
+        // The box is the line box drawn on the first frame grown by 4 media pixels, and the tracker keeps it within a
+        // few media pixels of the drawn line, which is a few output pixels here.
         let slack = 3.0
         let width = ScreenRecording(scale: 0.5).size.width
         for (index, (list, frame)) in zip(lists, frames).enumerated() {

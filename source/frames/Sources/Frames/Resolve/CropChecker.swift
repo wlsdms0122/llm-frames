@@ -16,7 +16,7 @@ struct CropChecker: Sendable {
 
     // MARK: - Public
     func check(
-        _ crop: PropertyValue<FoundArea>?,
+        _ crop: PropertyValue<Rectangle>?,
         of picture: Picture,
         box: Size,
         conform: Conform,
@@ -27,7 +27,7 @@ struct CropChecker: Sendable {
         guard !isTracked, case let .value(area) = crop else { return }
 
         let bounds = Rectangle(x: 0, y: 0, width: box.width, height: box.height)
-        let conformed = conformer.conformed(area.rectangle, to: bounds, by: conform)
+        let conformed = conformer.conformed(area, to: bounds, by: conform)
         guard conformed.intersection(picture.bounds) == nil else { return }
 
         throw ResolveError.cropOutsideMedia(place: place, kind: kind, crop: conformed, size: picture.size)

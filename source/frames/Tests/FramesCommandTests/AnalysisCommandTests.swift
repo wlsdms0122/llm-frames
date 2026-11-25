@@ -66,7 +66,7 @@ struct AnalysisCommandTests {
         let text = sut.standardOutput
         let machineCode = sut.run(["ocr", image, "--json"])
         let machine = sut.standardOutput
-        let languagesCode = sut.run(["--ocr-languages", "ko-KR", "ocr", image, "--languages", "en-US", "--json"])
+        let languagesCode = sut.run(["ocr", image, "--languages", "en-US", "--json"])
         let languages = try JSONReader().read(sut.standardOutput).objectValue?["languages"]
         let unsupportedCode = sut.run(["ocr", image, "--languages", "tlh-AQ"])
 

@@ -76,9 +76,13 @@ media time at clip time c (timed media clip):
 - A connected audio clip is only anchored by its start. It plays its window, or its natural length, across transitions. One whose start lies outside its storyline clip's drawn range stops.
 - A window `[start, end]` needs its start before its end. One that does not stops.
 
+### A clip's instant
+
+A clip's **instant** is where a value it writes without keyframes takes effect: a connected or sequence clip's start (a connected clip without `at` starts at its storyline clip's `in`, a sequence clip without `at` at 0), and a storyline clip's `in`. It is on the clip's own clock. The frame of a media that the instant shows is found by carrying the instant to the clip time of the clip whose media it is, and turning that into media time through that clip's time map: its `timeRemap` when it has one, otherwise clip time is media time. So a clip parented to a time-remapped clip shows, at its instant, the frame its parent shows at that clip's start. A tracked clip's short forms find their target on that frame ([FRAMES-12](../FRAMES-12/SPEC.md#the-track)).
+
 ## Interactions
 
-Keyframes and eases are [FRAMES-4](../FRAMES-4/SPEC.md). A media time picks a frame as [FRAMES-3](../FRAMES-3/SPEC.md) says, and a text area is searched at the media time its instant maps to through its clip's time map, `timeRemap` included ([FRAMES-2](../FRAMES-2/SPEC.md)). Windows are narrowed by tracking ([FRAMES-12](../FRAMES-12/SPEC.md)). Sound under these clocks is [FRAMES-13](../FRAMES-13/SPEC.md). The resolved document writes every instant in sequence time ([FRAMES-19](../FRAMES-19/SPEC.md)).
+Keyframes and eases are [FRAMES-4](../FRAMES-4/SPEC.md). A media time picks a frame as [FRAMES-3](../FRAMES-3/SPEC.md) says. Windows are narrowed by tracking ([FRAMES-12](../FRAMES-12/SPEC.md)). Sound under these clocks is [FRAMES-13](../FRAMES-13/SPEC.md). The resolved document writes every instant in sequence time ([FRAMES-19](../FRAMES-19/SPEC.md)).
 
 ## Alternatives considered
 

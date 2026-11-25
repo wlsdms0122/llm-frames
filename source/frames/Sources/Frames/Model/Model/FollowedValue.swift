@@ -8,7 +8,7 @@
 // A resolved value of a clip's geometry that a track can carry (FRAMES-19 Timed values): keyframes in sequence time, or
 // a static value of a tracked clip true on the track's frame (FRAMES-12 The track). A static value holds at every time,
 // and a track does not bring it back, since its motion is the identity on that frame. A static value of a clip that is
-// not tracked, or one searched at the clip's instant, is one keyframe there.
+// not tracked is one keyframe at the clip's instant.
 enum FollowedValue<Value: Equatable & Sendable>: Equatable, Sendable {
     case onTrackFrame(Value)
     case keyframes([Keyframe<Value>])
