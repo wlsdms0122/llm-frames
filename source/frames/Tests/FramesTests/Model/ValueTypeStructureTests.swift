@@ -21,31 +21,30 @@ struct ValueTypeStructureTests {
 
     // MARK: - Initializer
     // MARK: - Test
-    @Test("a gradient is an object of one form key, each form's kind its name before the value's")
+    @Test("a gradient is one object per kind, each requiring its kind under `kind` and named by it before the value's")
     func readsGradient() {
         // When
         let sut = ValueType(structure: .forms(LookStructureTable.gradientForms), kind: "gradient")
 
         // Then
-        #expect(sut == Self.gradient)
+        #expect(sut == .oneOf(Self.gradients(of: "gradient")))
     }
 
     @Test("a shape's fill, stroke and shadow take `false`, and a shadow `true`, beside their values")
     func readsShapeLooks() {
         // When
-        let fill = ValueType(written: LookStructureTable.fill, kind: "gradient")
+        let fill = ValueType(written: LookStructureTable.paint, kind: "gradient")
         let stroke = ValueType(written: LookStructureTable.stroke, kind: "stroke")
         let shadow = ValueType(written: LookStructureTable.shadow, kind: "shadow")
 
         // Then
-        #expect(fill == .oneOf([.exactly(.bool(false)), .color, Self.gradient]))
+        #expect(fill == .oneOf([.exactly(.bool(false)), .color] + Self.gradients(of: "gradient")))
         #expect(stroke == .oneOf([
             .exactly(.bool(false)),
             .object(ObjectTable(
                 kind: "stroke",
                 rules: [
-                    KeyRule("color", .color),
-                    KeyRule("gradient", Self.gradient),
+                    KeyRule("paint", .oneOf([.color] + Self.gradients(of: "paint"))),
                     KeyRule("width", .number(.positive)),
                     KeyRule("align", .literal(Self.aligns)),
                     KeyRule("join", .literal(Self.joins)),
@@ -54,8 +53,7 @@ struct ValueTypeStructureTests {
                     KeyRule("end", Self.end("end")),
                     KeyRule("dash", .dash(isKeyframed: false)),
                     KeyRule("dashOffset", .number(.any))
-                ],
-                groups: [KeyGroup(keys: ["color", "gradient"], isExclusive: true, isOptional: true)]
+                ]
             ))
         ]))
         #expect(shadow == .oneOf([.bool, Self.shadow]))
@@ -206,7 +204,7 @@ struct ValueTypeStructureTests {
         let tables = ShapeKind.allCases.map(MaskKeyTable.table(for:))
 
         // Then
-        let shape = KeyRule("shape", .literal(VocabularyTable.shapes))
+        let shape = KeyRule("kind", .literal(VocabularyTable.shapes))
         let box = [
             KeyRule("area", .area),
             KeyRule("width", .number(.positive)),
@@ -347,28 +345,29 @@ struct ValueTypeStructureTests {
         ])
     }
 
-    private static let gradient = ValueType.object(ObjectTable(
-        kind: "gradient",
-        rules: [
-            KeyRule("linear", .object(ObjectTable(
-                kind: "linear gradient",
+    // A gradient's object forms, each named in messages by its kind before `kind`.
+    private static func gradients(of kind: String) -> [ValueType] {
+        [
+            .object(ObjectTable(
+                kind: "linear \(kind)",
                 rules: [
+                    KeyRule("kind", .exactly(.string("linear")), isRequired: true),
                     KeyRule("from", .numbers(2, .any)),
                     KeyRule("to", .numbers(2, .any)),
                     KeyRule("stops", .stops(isKeyframed: false))
                 ]
-            ))),
-            KeyRule("radial", .object(ObjectTable(
-                kind: "radial gradient",
+            )),
+            .object(ObjectTable(
+                kind: "radial \(kind)",
                 rules: [
+                    KeyRule("kind", .exactly(.string("radial")), isRequired: true),
                     KeyRule("center", .numbers(2, .any)),
                     KeyRule("radius", .number(.positive)),
                     KeyRule("stops", .stops(isKeyframed: false))
                 ]
-            )))
-        ],
-        groups: [KeyGroup(keys: ["linear", "radial"], isExclusive: true)]
-    ))
+            ))
+        ]
+    }
 
     private static let border = ValueType.object(ObjectTable(
         kind: "border",

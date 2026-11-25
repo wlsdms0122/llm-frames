@@ -50,7 +50,7 @@ struct MotionBlurEvaluationTests {
         (
             #"""
             { "id": "leaf", "kind": "rect", "fill": "#FF0000", "at": [0, 4], "width": 100, "height": 50, "position": [500, 500],
-              "stroke": { "color": "#FFFFFF" }, "motionBlur": true,
+              "stroke": { "paint": "#FFFFFF" }, "motionBlur": true,
               "keyframes": [ { "at": 0, "stroke": { "width": 0 } }, { "at": 1, "stroke": { "width": 0 } }, { "at": 2, "stroke": { "width": 10 } } ] }
             """#,
             nil,
@@ -59,7 +59,7 @@ struct MotionBlurEvaluationTests {
         (
             #"""
             { "id": "leaf", "kind": "rect", "fill": "#FF0000", "at": [0, 4], "width": 100, "height": 50, "position": [500, 500],
-              "stroke": { "width": 2, "color": "#FFFFFF" }, "motionBlur": true,
+              "stroke": { "width": 2, "paint": "#FFFFFF" }, "motionBlur": true,
               "keyframes": [ { "at": 0, "stroke": { "dash": [10, 10] }, "ease": "back-out" }, { "at": 1, "stroke": { "dash": [0.5, 0.5] } } ] }
             """#,
             nil,
@@ -68,7 +68,7 @@ struct MotionBlurEvaluationTests {
         (
             #"""
             { "id": "leaf", "kind": "rect", "fill": "#FF0000", "at": [1, 4], "width": 100, "height": 50, "position": [500, 500],
-              "stroke": { "width": 2, "color": "#FFFFFF", "dash": [4, 2] }, "shadow": { "radius": 4, "offset": [2, 2], "color": "#000000" },
+              "stroke": { "width": 2, "paint": "#FFFFFF", "dash": [4, 2] }, "shadow": { "radius": 4, "offset": [2, 2], "color": "#000000" },
               "motionBlur": true, "keyframes": [ { "at": 1, "scale": 0 }, { "at": 1.5, "scale": 1 } ] }
             """#,
             #"{ "shutterPhase": -180 }"#,
@@ -221,7 +221,7 @@ struct MotionBlurEvaluationTests {
         // Given
         let stroked = #"""
             { "id": "stroked", "kind": "rect", "fill": "#FF0000", "at": [0, 4], "width": 100, "height": 50, "position": [500, 500],
-              "stroke": { "color": "#FFFFFF" }, "motionBlur": true,
+              "stroke": { "paint": "#FFFFFF" }, "motionBlur": true,
               "keyframes": [ { "at": 0, "stroke": { "width": 0 } }, { "at": 1, "stroke": { "width": 0 } }, { "at": 2, "stroke": { "width": 10 } } ] }
             """#
         let sequence = try resolved(clips: [stroked])
@@ -329,12 +329,12 @@ struct MotionBlurEvaluationTests {
         "a complete wipe on an adjustment with a feathered or inverted mask, or one its animation moves, is written in every sample as the bounds of what the adjustment draws",
         arguments: [
             (
-                #""animation": "mine/wipe-in", "mask": { "shape": "rect", "area": [100, 100, 400, 300], "feather": 8 }"#,
+                #""animation": "mine/wipe-in", "mask": { "kind": "rect", "area": [100, 100, 400, 300], "feather": 8 }"#,
                 2.0,
                 Rectangle(x: 68, y: 68, width: 464, height: 364) as Rectangle?
             ),
             (
-                #""animation": "mine/wipe-in", "mask": { "shape": "ellipse", "area": [100, 100, 400, 300], "invert": true }"#,
+                #""animation": "mine/wipe-in", "mask": { "kind": "ellipse", "area": [100, 100, 400, 300], "invert": true }"#,
                 2.0,
                 Rectangle(x: 0, y: 0, width: 1920, height: 1080)
             ),
@@ -375,7 +375,7 @@ struct MotionBlurEvaluationTests {
         // Given
         let sequence = try resolved(clips: [#"""
             { "id": "grade", "kind": "adjustment", "adjust": "mine/grade", "at": [0, 4], "animation": "mine/wipe-in",
-              "mask": { "shape": "rect", "area": [10.1, 20.3, 30.7, 40.9] } }
+              "mask": { "kind": "rect", "area": [10.1, 20.3, 30.7, 40.9] } }
             """#])
         let box = Rectangle(x: 10.1, y: 20.3, width: 30.7, height: 40.9)
 
@@ -391,7 +391,7 @@ struct MotionBlurEvaluationTests {
         // Given
         let sequence = try resolved(clips: [#"""
             { "id": "grade", "kind": "adjustment", "adjust": "mine/grade", "at": [0, 4], "animation": "mine/wipe-in",
-              "mask": { "shape": "rect", "area": [100, 100, 400, 300], "feather": 8 } }
+              "mask": { "kind": "rect", "area": [100, 100, 400, 300], "feather": 8 } }
             """#])
 
         // When
@@ -644,7 +644,7 @@ struct MotionBlurEvaluationTests {
     func movesPathPointsInEverySample() throws {
         // Given
         let sequence = try resolved(clips: [#"""
-            { "id": "leaf", "kind": "path", "stroke": { "width": 4, "color": "#FFFFFF" }, "at": [0, 4], "motionBlur": true,
+            { "id": "leaf", "kind": "path", "stroke": { "width": 4, "paint": "#FFFFFF" }, "at": [0, 4], "motionBlur": true,
               "keyframes": [ { "at": 0, "points": [[0, 0], [100, 0], [100, 100]] }, { "at": 2, "points": [[0, 0], [300, 0], [300, 400]] } ] }
             """#])
         let list = sut.displayList(of: sequence, at: 1)

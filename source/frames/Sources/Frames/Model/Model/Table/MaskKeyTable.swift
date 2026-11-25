@@ -5,10 +5,10 @@
 //  Created by JSilver on 11/18/26.
 //
 
-// The keys of a mask for each shape it can be, read from the mask's look structure: a rect or an ellipse takes a box,
-// by `area` or by `width`, `height` and `position`, and only a rect a `radius`, and a path takes `points`. A key its
-// shape does not take stops as an unknown key. A mask's geometry is written as a clip's is, an area or a point found by
-// text included, so `area`, `position` and `points` take the clip's geometry types, where the structure holds the
+// The keys of a mask for each shape its `kind` can be, read from the mask's look structure: a rect or an ellipse takes
+// a box, by `area` or by `width`, `height` and `position`, and only a rect a `radius`, and a path takes `points`. A key
+// its kind does not take stops as an unknown key. A mask's geometry is written as a clip's is, an area or a point found
+// by text included, so `area`, `position` and `points` take the clip's geometry types, where the structure holds the
 // numbers they are found as.
 enum MaskKeyTable {
     static let box = ["width", "height", "position"]
@@ -25,7 +25,7 @@ enum MaskKeyTable {
         case .path:
             ["points"]
         }
-        let keys = ["shape"] + geometry + ["feather", "invert", "mode"]
+        let keys = ["kind"] + geometry + ["feather", "invert", "mode"]
 
         return ObjectTable(
             kind: "\(shape.rawValue) mask",

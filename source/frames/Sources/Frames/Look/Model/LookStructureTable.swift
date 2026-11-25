@@ -9,14 +9,14 @@
 // numbers and colours are its timed leaves, and the look merge and timing read nothing else of it. The key tables read
 // the keys and domains of the look objects they check from here.
 enum LookStructureTable {
-    // A gradient's kind is its form and its number of stops the length of `stops`, both static; its points are
-    // fractions of the shape's box, not theme lengths.
+    // A gradient's kind is its form, named by its `kind`, and its number of stops the length of `stops`, both static;
+    // its points are fractions of the shape's box, not theme lengths.
     static let gradientForms: [(name: String, structure: ValueStructure)] = [
-        ("linear", .object(ObjectStructure(
+        ("kind:linear", .object(ObjectStructure(
             [("from", .leaf(.numbers(count: 2))), ("to", .leaf(.numbers(count: 2))), ("stops", stops)],
             required: ["from", "to", "stops"]
         ))),
-        ("radial", .object(ObjectStructure(
+        ("kind:radial", .object(ObjectStructure(
             [("center", .leaf(.numbers(count: 2))), ("radius", .leaf(.number(.positive))), ("stops", stops)],
             required: ["center", "stops"],
             plain: ["radius": .number(1)]
@@ -27,7 +27,8 @@ enum LookStructureTable {
 
     static let solid = ValueStructure.leaf(.color)
 
-    static let fill = ValueStructure.forms([(ValueStructure.colorForm, .leaf(.color))] + gradientForms)
+    // A shape's `fill` and its stroke's `paint`: a colour or a gradient.
+    static let paint = ValueStructure.forms([(ValueStructure.colorForm, .leaf(.color))] + gradientForms)
 
     // A stroke's `start` or `end` as a document or a theme writes it: the head preset it names, `none` for no head, is
     // static and its `scale` a timed number, 1 where no layer writes it, and a name names the preset alone.
@@ -172,7 +173,7 @@ enum LookStructureTable {
     ]))
 
     static let shapeStyle = ObjectStructure([
-        ("fill", fill),
+        ("fill", paint),
         ("stroke", stroke),
         ("radius", radius),
         ("outset", length),
@@ -202,8 +203,8 @@ enum LookStructureTable {
 
     static let animation = ValueStructure.choice(offNames: ["none"])
 
-    // A path's vertex (FRAMES-11 Paths): its point and each of its tangents move as one leaf, and a vertex written as a
-    // point names its point alone, its tangents `[0, 0]` where nothing writes them.
+    // A path's vertex (FRAMES-11 Paths): its point and each of its tangents move as one leaf, and a vertex written as
+    // `[x, y]` names its point alone, its tangents `[0, 0]` where nothing writes them.
     static let pathVertex = ValueStructure.object(ObjectStructure(
         [
             ("vertex", .leaf(.numbers(count: 2))),
@@ -217,10 +218,10 @@ enum LookStructureTable {
 
     // A clip's masks in order. Each mask's geometry is one form, `area`, the box `width`, `height` and `position`, or
     // `points`, which a keyframe may not change; an area and a position move as one leaf, and a path's vertices as
-    // `pathVertex` says. Its `shape`, `invert` and `mode` are static.
+    // `pathVertex` says. Its `kind`, `invert` and `mode` are static.
     static let mask = ValueStructure.list(.object(ObjectStructure(
         [
-            ("shape", .leaf(.name(among: VocabularyTable.shapes))),
+            ("kind", .leaf(.name(among: VocabularyTable.shapes))),
             ("area", .leaf(.numbers(count: 4))),
             ("width", .leaf(.number(.positive))),
             ("height", .leaf(.number(.positive))),
@@ -231,7 +232,7 @@ enum LookStructureTable {
             ("invert", .leaf(.boolean)),
             ("mode", .leaf(.name(among: MaskMode.allCases.map(\.rawValue))))
         ],
-        required: ["shape"],
+        required: ["kind"],
         exclusive: [
             ["area", "width"], ["area", "height"], ["area", "position"], ["area", "points"],
             ["points", "width"], ["points", "height"], ["points", "position"]
@@ -477,8 +478,7 @@ enum LookStructureTable {
     private static func strokeStructure(end: ValueStructure) -> ValueStructure {
         .object(ObjectStructure(
             [
-                ("color", .leaf(.color)),
-                ("gradient", .forms(gradientForms)),
+                ("paint", paint),
                 ("width", .leaf(.length(.positive))),
                 ("align", .leaf(.name(among: StrokeAlign.allCases.map(\.rawValue)))),
                 ("join", .leaf(.name(among: StrokeJoin.allCases.map(\.rawValue)))),
@@ -489,8 +489,7 @@ enum LookStructureTable {
                 ("dashOffset", .leaf(.length(.any)))
             ],
             required: ["width"],
-            nonZero: ["dash"],
-            exclusive: [["color", "gradient"]]
+            nonZero: ["dash"]
         ))
     }
 }

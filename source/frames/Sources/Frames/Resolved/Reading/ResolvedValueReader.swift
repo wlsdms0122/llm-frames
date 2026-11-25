@@ -367,7 +367,8 @@ struct ResolvedValueReader: Sendable {
     }
 
     // A timed value as the writer writes it, read by its structure: `null` is `off`, a timed leaf a keyframe list, and
-    // a name, a boolean or a file its value. A form is the colour form where its value is not an object of one name.
+    // a name, a boolean or a file its value. A form is the colour form where its value is not an object, and the form
+    // its `kind` names where it is.
     // `kind` names the entry an object is, which its stops name.
     func timed(
         _ value: PlacedJSONValue,
@@ -425,10 +426,9 @@ struct ResolvedValueReader: Sendable {
             return .list(try zip(elements, structures).map { try timed($0, as: $1) })
 
         case let .forms(forms):
-            if let object = value.value.objectValue, object.members.count == 1,
-                let form = forms.first(where: { $0.name == object.members[0].key }) {
-                let body = try value.object(keys: [form.name]).member(form.name)
-                return .form(form.name, try timed(body, as: form.structure))
+            if value.value.objectValue != nil {
+                let named = forms.filter { $0.name != ValueStructure.colorForm }
+                return try choice(value, forms: named, as: structure, kind: kind)
             }
             guard let form = forms.first(where: { $0.name == ValueStructure.colorForm }) else {
                 throw value.wrongType("one of the forms \(forms.map(\.name).joined(separator: ", "))")
@@ -444,7 +444,7 @@ struct ResolvedValueReader: Sendable {
         let stroke = try timed(value, as: LookStructureTable.resolvedStroke, kind: "stroke")
         guard !value.isNull else { return stroke }
 
-        let keys = ["color", "gradient", "width", "align", "join", "cap", "start", "end", "dash", "dashOffset"]
+        let keys = ["paint", "width", "align", "join", "cap", "start", "end", "dash", "dashOffset"]
         let members = try value.object(kind: "stroke", keys: keys)
         for key in ["start", "end"] {
             guard let end = members.optionalMember(key), !end.isNull else { continue }
@@ -464,7 +464,8 @@ struct ResolvedValueReader: Sendable {
         return stroke
     }
 
-    // A form of a choice as the writer writes it: its form key naming it, beside the keys of its body.
+    // A form of a choice or of a `forms` value as the writer writes it: its form key naming it, beside the keys of its
+    // body.
     private func choice(
         _ value: PlacedJSONValue,
         forms: [(name: String, structure: ValueStructure)],

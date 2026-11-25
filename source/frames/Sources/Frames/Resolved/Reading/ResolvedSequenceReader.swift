@@ -554,7 +554,7 @@ struct ResolvedSequenceReader: Sendable {
 
                 return Trim(start: ends[0], end: ends[1])
             },
-            fill: try values.timed(clip.member("fill"), as: LookStructureTable.fill),
+            fill: try values.timed(clip.member("fill"), as: LookStructureTable.paint),
             stroke: try values.stroke(clip.member("stroke")),
             shadow: try values.timed(clip.member("shadow"), as: LookStructureTable.shadow, kind: "shadow")
         )

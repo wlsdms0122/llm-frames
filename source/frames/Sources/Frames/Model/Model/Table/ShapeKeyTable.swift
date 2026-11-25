@@ -9,9 +9,8 @@
 // shape style itself, read from their look structures. A gradient's points and stops are required of the merged value,
 // so a clip may change one leaf of its style's gradient.
 enum ShapeKeyTable {
-    static let gradient = ValueType(structure: .forms(LookStructureTable.gradientForms), kind: "gradient")
     // A fill's object form is its gradient.
-    static let fill = ValueType(written: LookStructureTable.fill, kind: "gradient")
+    static let fill = ValueType(written: LookStructureTable.paint, kind: "gradient")
     static let stroke = ValueType(written: LookStructureTable.stroke, kind: "stroke")
     static let shadow = ValueType(written: LookStructureTable.shadow, kind: "shadow")
     static let style = ObjectTable(

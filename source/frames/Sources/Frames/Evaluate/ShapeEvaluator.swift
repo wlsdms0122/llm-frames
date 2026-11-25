@@ -102,7 +102,7 @@ struct ShapeEvaluator: Sendable {
 
         return PathItem(
             geometry: geometry,
-            fill: Paint(sampled: shape.fill.sampled(at: time, as: LookStructureTable.fill), box: box),
+            fill: Paint(sampled: shape.fill.sampled(at: time, as: LookStructureTable.paint), box: box),
             stroke: PathStroke(
                 sampled: shape.stroke.sampled(at: time, as: LookStructureTable.resolvedStroke),
                 factor: factor,

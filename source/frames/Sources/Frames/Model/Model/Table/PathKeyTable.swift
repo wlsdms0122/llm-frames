@@ -5,9 +5,10 @@
 //  Created by JSilver on 11/23/26.
 //
 
-// A vertex of a path's `points` (FRAMES-11 Paths): a point as `position` takes it, or `{vertex, inTangent,
-// outTangent}`, its tangents offsets of two numbers that take no form of an area. A point is a vertex that names its
-// point alone, so its one leaf is `vertex`, and a vertex object's leaves are the keys it writes.
+// A vertex of a path's `points` (FRAMES-11 Paths): `[x, y]`, or the vertex object `{vertex, inTangent, outTangent}`,
+// the one object form there, whose `vertex` is a point as `position` takes it and whose tangents are offsets of two
+// numbers that take no form of an area. `[x, y]` is a vertex that names its point alone, so its one leaf is `vertex`,
+// and a vertex object's leaves are the keys it writes.
 enum PathKeyTable {
     // MARK: - Property
     static let leafKeys = ["vertex", "inTangent", "outTangent"]
@@ -20,7 +21,6 @@ enum PathKeyTable {
     static func vertex(isKeyframed: Bool) -> ValueType {
         .oneOf([
             .numbers(2, .any),
-            .object(AreaKeyTable.namedPoint),
             .object(ObjectTable(
                 kind: "path vertex",
                 rules: [
@@ -32,13 +32,13 @@ enum PathKeyTable {
         ])
     }
 
-    // Whether a vertex is written as a vertex object and not as a point.
+    // Whether a vertex is written as a vertex object and not as `[x, y]`.
     static func isVertexObject(_ vertex: JSONValue) -> Bool {
-        vertex.objectValue.map { object in leafKeys.contains(where: object.contains) || object.keys.isEmpty } ?? false
+        vertex.objectValue != nil
     }
 
-    // The point a vertex writes, and where it is written from where the vertex is: the vertex itself where it is a
-    // point, and its `vertex` where it is a vertex object.
+    // The point a vertex writes, and where it is written from where the vertex is: the vertex itself where it is
+    // `[x, y]`, and its `vertex` where it is a vertex object.
     static func point(of vertex: JSONValue) -> JSONValue? {
         isVertexObject(vertex) ? vertex.objectValue?["vertex"] : vertex
     }

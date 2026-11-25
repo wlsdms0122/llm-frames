@@ -207,8 +207,8 @@ struct ClipAreaEndToEndTests {
     @Test(
         "a mask of a shape placed by its area or of an adjustment clip takes its clip area at each instant",
         arguments: [
-            ##"{ "id": "cut", "kind": "rect", "fill": "#000000", "at": [0, 4], "area": [0, 0, 1920, 1080], "mask": { "shape": "rect", "area": { "clip": "name", "padding": 24 } } }"##,
-            ##"{ "id": "cut", "kind": "adjustment", "adjust": "frames/warm", "at": [0, 4], "mask": [ { "shape": "rect", "area": { "clip": "name", "padding": 24 } } ] }"##
+            ##"{ "id": "cut", "kind": "rect", "fill": "#000000", "at": [0, 4], "area": [0, 0, 1920, 1080], "mask": { "kind": "rect", "area": { "clip": "name", "padding": 24 } } }"##,
+            ##"{ "id": "cut", "kind": "adjustment", "adjust": "frames/warm", "at": [0, 4], "mask": [ { "kind": "rect", "area": { "clip": "name", "padding": 24 } } ] }"##
         ]
     )
     func masksByClipArea(clip: String) throws {
@@ -231,13 +231,13 @@ struct ClipAreaEndToEndTests {
         // Given
         let box = ##"""
             { "id": "box", "kind": "rect", "fill": "#000000", "at": [0, 4], "area": [0, 0, 1920, 1080],
-              "mask": { "shape": "ellipse", "width": 40, "height": 20, "position": { "area": { "clip": "name" }, "point": "center" } } }
+              "mask": { "kind": "ellipse", "width": 40, "height": 20, "position": { "area": { "clip": "name" }, "point": "center" } } }
             """##
         let path = ##"""
             { "id": "path", "kind": "rect", "fill": "#000000", "at": [0, 4], "area": [0, 0, 1920, 1080],
-              "mask": { "shape": "path", "points": [ { "area": { "clip": "name" }, "point": "top-left" },
-                                                     { "area": { "clip": "name" }, "point": "top-right" },
-                                                     { "area": { "clip": "name" }, "point": "bottom-left" } ] } }
+              "mask": { "kind": "path", "points": [ { "vertex": { "area": { "clip": "name" }, "point": "top-left" } },
+                                                     { "vertex": { "area": { "clip": "name" }, "point": "top-right" } },
+                                                     { "vertex": { "area": { "clip": "name" }, "point": "bottom-left" } } ] } }
             """##
         let sut = try resolved(clips: [movingTitle, box, path])
 
@@ -257,8 +257,8 @@ struct ClipAreaEndToEndTests {
         // Given
         let clip = ##"""
             { "id": "cut", "kind": "rect", "fill": "#000000", "at": [0, 4], "area": [0, 0, 1920, 1080],
-              "mask": [ { "shape": "rect", "area": { "clip": "name", "padding": 24 } },
-                        { "shape": "path", "points": [ [0, 0], { "area": { "clip": "name" }, "point": "top-right" }, [0, 10] ] } ] }
+              "mask": [ { "kind": "rect", "area": { "clip": "name", "padding": 24 } },
+                        { "kind": "path", "points": [ [0, 0], { "vertex": { "area": { "clip": "name" }, "point": "top-right" } }, [0, 10] ] } ] }
             """##
         let masks = try resolved(clips: [movingTitle, clip]).clips[1].mask
         let place = Place.root.appending(key: "clips").appending(index: 1).appending(key: "mask")
@@ -346,21 +346,21 @@ struct ClipAreaEndToEndTests {
             (
                 [
                     #"{ "id": "name", "kind": "title", "text": "a", "style": "title", "at": [0, 4] }"#,
-                    #"{ "kind": "title", "text": "b", "style": "title", "at": [0, 4], "mask": { "shape": "rect", "area": { "clip": "name" } } }"#
+                    #"{ "kind": "title", "text": "b", "style": "title", "at": [0, 4], "mask": { "kind": "rect", "area": { "clip": "name" } } }"#
                 ],
                 "clips[1].mask"
             ),
             (
                 [
                     #"{ "id": "name", "kind": "title", "text": "a", "style": "title", "at": [0, 4] }"#,
-                    ##"{ "kind": "rect", "fill": "#000000", "at": [0, 4], "area": [0, 0, 10, 10], "mask": { "shape": "rect", "area": { "clip": "nobody" } } }"##
+                    ##"{ "kind": "rect", "fill": "#000000", "at": [0, 4], "area": [0, 0, 10, 10], "mask": { "kind": "rect", "area": { "clip": "nobody" } } }"##
                 ],
                 "clips[1].mask.area (rect): no clip of this document has the id \"nobody\""
             ),
             (
                 [
                     #"{ "id": "name", "kind": "title", "text": "a", "style": "title", "at": [0, 4] }"#,
-                    ##"{ "kind": "adjustment", "adjust": "frames/warm", "at": [0, 4], "mask": [ { "shape": "rect", "area": [0, 0, 10, 10] }, { "shape": "ellipse", "width": 10, "height": 10, "position": { "area": { "clip": "back" }, "point": "center" } } ] }"##
+                    ##"{ "kind": "adjustment", "adjust": "frames/warm", "at": [0, 4], "mask": [ { "kind": "rect", "area": [0, 0, 10, 10] }, { "kind": "ellipse", "width": 10, "height": 10, "position": { "area": { "clip": "back" }, "point": "center" } } ] }"##
                 ],
                 "clips[1].mask[1].position.area"
             ),

@@ -75,13 +75,13 @@ struct ThemeMergerTests {
     func keepsWeakerStrokeWidth() throws {
         // Given
         let weaker = ThemeLayer(value: try Fixture.json(##"{ "shapes": { "bar": { "stroke": { "width": 6, "cap": "round" } } } }"##), place: .root)
-        let stronger = ThemeLayer(value: try Fixture.json(##"{ "shapes": { "bar": { "stroke": { "color": "#FF0000" } } } }"##), place: .root)
+        let stronger = ThemeLayer(value: try Fixture.json(##"{ "shapes": { "bar": { "stroke": { "paint": "#FF0000" } } } }"##), place: .root)
 
         // When
         let theme = try sut.merge([weaker, stronger])
 
         // Then
-        #expect(theme.shapeStyle(named: "bar")?["stroke"] == (try Fixture.json(##"{ "width": 6, "cap": "round", "color": "#FF0000" }"##)))
+        #expect(theme.shapeStyle(named: "bar")?["stroke"] == (try Fixture.json(##"{ "width": 6, "cap": "round", "paint": "#FF0000" }"##)))
     }
 
     @Test("a shadow of true in a style is the weaker theme's shadow for that style")
@@ -193,7 +193,7 @@ struct ThemeMergerTests {
     func resolvesReferencesAfterMerging() throws {
         // Given
         let file = try Fixture.json(##"{ "colors": { "brand": "#123456" } }"##)
-        let document = try Fixture.json(#"{ "shapes": { "pointer": { "stroke": { "width": 4, "color": "brand" } } } }"#)
+        let document = try Fixture.json(#"{ "shapes": { "pointer": { "stroke": { "width": 4, "paint": "brand" } } } }"#)
 
         // When, Then
         _ = try sut.merge([ThemeLayer(value: file, place: .root), ThemeLayer(value: document, place: .root)])
@@ -203,9 +203,9 @@ struct ThemeMergerTests {
         "a shape style takes only fill, stroke, radius, outset and shadow, and the colours it names are the theme's",
         arguments: [
             (#"{ "shapes": { "box": { "width": 8, "radius": 18 } } }"#, #"shapes.box (shape style): unknown key "width". Allowed: fill, stroke, radius, outset, shadow"#),
-            (#"{ "shapes": { "outline": { "stroke": { "color": "accent" } } } }"#, #"shapes.outline.stroke: missing key "width", which no layer gives"#),
+            (#"{ "shapes": { "outline": { "stroke": { "paint": "accent" } } } }"#, #"shapes.outline.stroke: missing key "width", which no layer gives"#),
             (#"{ "shapes": { "outline": { "fill": "brand" } } }"#, #"shapes.outline.fill (shape style): colour "brand" is not in colors"#),
-            (#"{ "shapes": { "outline": { "stroke": { "width": 2, "color": "brand" } } } }"#, #"shapes.outline.stroke.color (stroke): colour "brand" is not in colors"#),
+            (#"{ "shapes": { "outline": { "stroke": { "width": 2, "paint": "brand" } } } }"#, #"shapes.outline.stroke.paint (stroke): colour "brand" is not in colors"#),
             (#"{ "shapes": { "outline": { "shadow": { "color": "brand" } } } }"#, #"shapes.outline.shadow.color (shadow): colour "brand" is not in colors"#)
         ]
     )

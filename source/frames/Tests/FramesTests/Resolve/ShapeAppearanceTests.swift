@@ -19,7 +19,7 @@ struct ShapeAppearanceTests {
         { "colors": { "brand": "#123456" },
           "shadow": { "radius": 20, "offset": [0, 8], "color": "#00000080" },
           "shapes": {
-            "outline": { "fill": "brand", "stroke": { "width": 8, "color": "#ED2929", "end": "frames/arrow" }, "radius": 18,
+            "outline": { "fill": "brand", "stroke": { "width": 8, "paint": "#ED2929", "end": "frames/arrow" }, "radius": 18,
                          "outset": 6, "shadow": true },
             "pointer": { "stroke": { "width": 10 } } } }
         """##
@@ -108,8 +108,8 @@ struct ShapeAppearanceTests {
                 #"clips[0].fill (rect): colour "ink" is not in colors"#
             ),
             (
-                #"{ "kind": "path", "points": [[0, 0], [1, 1]], "stroke": { "width": 2, "color": "ink" } }"#,
-                #"clips[0].stroke.color (path): colour "ink" is not in colors"#
+                #"{ "kind": "path", "points": [[0, 0], [1, 1]], "stroke": { "width": 2, "paint": "ink" } }"#,
+                #"clips[0].stroke.paint (path): colour "ink" is not in colors"#
             ),
             (
                 #"{ "kind": "rect", "area": [0, 0, 10, 10], "placement": "top", "fill": "accent" }"#,
@@ -201,7 +201,7 @@ struct ShapeAppearanceTests {
             { "kind": "sequence", "format": { "size": [960, 540] },
               "theme": { "shapes": { "bar": { "stroke": false, "fill": "#FFFFFF" } } },
               "storyline": [ { "kind": "media", "media": "/abs/screen.mp4" } ],
-              "clips": [ { "kind": "rect", "area": [0, 0, 10, 10], "style": "bar", "stroke": { "color": "#FF0000" }, "at": [0, 1] } ] }
+              "clips": [ { "kind": "rect", "area": [0, 0, 10, 10], "style": "bar", "stroke": { "paint": "#FF0000" }, "at": [0, 1] } ] }
             """##
 
         // When, Then
@@ -213,7 +213,7 @@ struct ShapeAppearanceTests {
     func refusesPartialStrokeWithoutStyle() throws {
         // When, Then
         let error = #expect(throws: (any Error).self) {
-            try plan(document(##"{ "kind": "rect", "area": [0, 0, 10, 10], "stroke": { "color": "#FF0000" } }"##))
+            try plan(document(##"{ "kind": "rect", "area": [0, 0, 10, 10], "stroke": { "paint": "#FF0000" } }"##))
         }
         #expect(error.map { "\($0)" } == #"clips[0].stroke (rect): missing key "width", which the clip does not write and no theme layer gives"#)
     }
@@ -339,7 +339,7 @@ struct ShapeAppearanceTests {
         let document = #"""
             { "kind": "sequence", "storyline": [ { "id": "screen", "kind": "media", "media": "/abs/screen.mp4", "connected": [
                 { "kind": "rect", "area": [100, 100, 200, 40], "parent": "screen", "fill": "accent" },
-                { "kind": "path", "parent": "screen", "points": [[10, 20], { "area": [100, 100, 200, 40], "point": "left" }],
+                { "kind": "path", "parent": "screen", "points": [[10, 20], { "vertex": { "area": [100, 100, 200, 40], "point": "left" } }],
                   "closed": true, "stroke": { "width": 4, "end": "frames/arrow" } } ] } ] }
             """#
 

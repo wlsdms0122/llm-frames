@@ -111,8 +111,8 @@ struct MotionBlurRenderTests {
     @Test(
         "an adjustment whose wipe is complete is the same picture, value for value, as the frame without motion blur when nothing moves",
         arguments: [
-            #"{ "shape": "rect", "area": [12.3, 8.6, 30.2, 17.1], "feather": 3 }"#,
-            #"{ "shape": "ellipse", "area": [12.3, 8.6, 30.2, 17.1], "feather": 2, "invert": true }"#
+            #"{ "kind": "rect", "area": [12.3, 8.6, 30.2, 17.1], "feather": 3 }"#,
+            #"{ "kind": "ellipse", "area": [12.3, 8.6, 30.2, 17.1], "feather": 2, "invert": true }"#
         ]
     )
     func keepsCompleteAdjustmentWipeExact(mask: String) throws {

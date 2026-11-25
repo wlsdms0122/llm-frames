@@ -16,13 +16,12 @@ A look must change without touching the edit. An editor swaps a series' typeface
 
 **Every layer of a look merges over the one below it leaf by leaf**: a stronger theme over a weaker one, a clip's choice over the theme's default choice ([Defaults](#defaults)), a clip's own layer over its style ([FRAMES-11](../FRAMES-11/SPEC.md)), and a title's `character` and `paragraph` over its runs' styles and its clip style's paragraph attributes ([FRAMES-11](../FRAMES-11/SPEC.md)). A clip's own layer is its static value together with the structure its keyframes give, and keyframes are no layer: they time the leaves of the merged value ([FRAMES-4](../FRAMES-4/SPEC.md)). The layer below gives defaults, and whatever writes over it changes only what it writes.
 
-- An object takes the upper layer's keys over the lower one's, key by key and inside nested objects: the top-level groups, each colour, each text style and shape style and each of their properties, a `stroke`, a `shadow`, a `background`, a `highlight`, an `underline`, a style's `features`, each entry of `defaults` and of `defaults.animation`, and each style in its `title` map. So a stronger theme that writes `{"stroke": {"color": "red"}}` for a shape style keeps the weaker theme's stroke `width`.
+- An object takes the upper layer's keys over the lower one's, key by key and inside nested objects: the top-level groups, each colour, each text style and shape style and each of their properties, a `stroke`, a `shadow`, a `background`, a `highlight`, an `underline`, a style's `features`, each entry of `defaults` and of `defaults.animation`, and each style in its `title` map. So a stronger theme that writes `{"stroke": {"paint": "red"}}` for a shape style keeps the weaker theme's stroke `width`.
 - Every other value replaces the one under it: a number, a colour, a name, a list such as `font`, a `dash` or a gradient's `stops`.
 - **A shorthand expands to the leaves it names, over the value below, and nothing more**, statically and in a keyframe alike, before it merges and before its structure is compared ([FRAMES-4](../FRAMES-4/SPEC.md)). `true` names every leaf of its value as the value below, each leaf `null`, so it turns a `shadow`, a `border` or an `underline` on with the look's leaves: over a style's shadow object it is that shadow, and over `false` or no value its leaves are the value's defaults (the theme `shadow`, the theme `border`, the face's underline in the run's colour). A media clip's `border` colour names only `color`, as `{"color": "#F00"}`, over the theme's border.
 - A value of another form replaces the one under it whole: a colour over a gradient, a linear gradient over a radial one, a preset name over a preset choice object, and a choice of one preset over a choice of another, whose arguments are another preset's parameters. Over `false`, or where the layer below has no value, the upper value stands alone.
-- A stroke's `color` and `gradient` are one paint leaf: writing either replaces the other.
 - `false` turns the value below off.
-- A leaf a key requires is required of the merged value, so a stroke whose layers together give no `width` stops. **A clip's partial value over a layer that gives none (`false`, or no value) stands alone, and a leaf it requires that is still missing stops, naming the clip and the theme layer that gave none**, since a value that cannot do what it says stops (README): a stroke recoloured where the look has no stroke has no stroke to recolour, and a width frames chose for it would draw a line the look does not hold. So a rect that writes `stroke: {"color": "red"}` over a shape style whose stroke a `--theme` file turns `false` stops under that theme, naming the clip and the file.
+- A leaf a key requires is required of the merged value, so a stroke whose layers together give no `width` stops. **A clip's partial value over a layer that gives none (`false`, or no value) stands alone, and a leaf it requires that is still missing stops, naming the clip and the theme layer that gave none**, since a value that cannot do what it says stops (README): a stroke recoloured where the look has no stroke has no stroke to recolour, and a width frames chose for it would draw a line the look does not hold. So a rect that writes `stroke: {"paint": "red"}` over a shape style whose stroke a `--theme` file turns `false` stops under that theme, naming the clip and the file.
 
 Precedence, from weakest:
 
@@ -110,7 +109,7 @@ A shape style is a named set of defaults for a shape clip, as a text style is fo
 | Property | Form |
 | --- | --- |
 | `fill` | a colour, a gradient ([FRAMES-11](../FRAMES-11/SPEC.md)), or `false` for none |
-| `stroke` | `{color, gradient, width, align, join, cap, start, end, dash, dashOffset}`, its `color` a colour and its `gradient` a gradient, at most one of the two, and its `start` and `end` each `none`, a head preset's name or `{preset, scale}` ([FRAMES-11](../FRAMES-11/SPEC.md#shapes)), or `false` for none |
+| `stroke` | `{paint, width, align, join, cap, start, end, dash, dashOffset}`, its `paint` a colour or a gradient, and its `start` and `end` each `none`, a head preset's name or `{preset, scale}` ([FRAMES-11](../FRAMES-11/SPEC.md#shapes)), or `false` for none |
 | `radius` | a theme length, or a list of four `[topLeft, topRight, bottomRight, bottomLeft]`: the corner radii of a `rect` ([FRAMES-11](../FRAMES-11/SPEC.md#shapes)) |
 | `outset` | a theme length: how far the outline a `rect` or `ellipse` draws grows on every side, its box staying as written |
 | `shadow` | `true` for on, with a weaker theme's shadow for this style or else the theme `shadow`, `false` for none, or `{radius, offset, color}`, whose missing keys come from the theme `shadow` |
@@ -150,8 +149,8 @@ A pack's theme lives in its `themes/` ([FRAMES-17](../FRAMES-17/SPEC.md)) and ho
     "keyword":  { "size": 44, "color": "ink", "highlight": { "color": "accent", "padding": [2, 8], "radius": 4 } } },
   "shapes": {
     "bar":     { "fill": "accent", "radius": 4 },
-    "outline": { "stroke": { "width": 6, "color": "accent" }, "radius": 12, "outset": 8 },
-    "pointer": { "stroke": { "width": 6, "color": "accent", "cap": "round", "end": { "preset": "frames/line-arrow", "scale": 1.5 } } } },
+    "outline": { "stroke": { "width": 6, "paint": "accent" }, "radius": 12, "outset": 8 },
+    "pointer": { "stroke": { "width": 6, "paint": "accent", "cap": "round", "end": { "preset": "frames/line-arrow", "scale": 1.5 } } } },
   "border": { "width": 6, "color": "ink" },
   "defaults": { "transition": { "preset": "frames/fade", "seconds": 0.5 }, "filter": "frames/warm",
                 "animation": { "title": { "subtitle": "frames/fade", "name": "frames/slide-left" }, "media": "frames/fade" } } }

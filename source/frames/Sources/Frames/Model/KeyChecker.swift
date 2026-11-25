@@ -438,8 +438,29 @@ struct KeyChecker: Sendable {
         }
 
         // When only one alternative takes this kind of value, its own error says more than a list of every form.
-        // Objects of several forms are told apart by the keys they hold: the form that knows the most of them.
+        // Objects of several forms are told apart by the `kind` they write where each form names one, and otherwise
+        // by the keys they hold: the form that knows the most of them.
         var admitting = types.indices.filter { admits(types[$0], value) }
+        let kinds = admitting.compactMap { index -> (index: Int, name: String)? in
+            guard
+                case let .object(table) = types[index],
+                case let .exactly(.string(name))? = table.rule(named: "kind")?.type
+            else { return nil }
+
+            return (index, name)
+        }
+        if admitting.count > 1, kinds.count == admitting.count, let object = value.objectValue {
+            guard let written = object["kind"] else {
+                throw ModelError.missingKey(place: place, kind: kind, keys: ["kind"])
+            }
+
+            var trial = scope
+            let names = ValueType.literal(kinds.map(\.name))
+            try check(written, as: names, place: place.appending(key: "kind"), kind: kind, scope: &trial)
+            // `kind` names one of the forms, so its form's own error is the one to give.
+            let form = kinds.first { written.stringValue == $0.name }
+            throw failures[form?.index ?? admitting[0]]
+        }
         if admitting.count > 1, let object = value.objectValue {
             let known = admitting.map { index -> (index: Int, count: Int) in
                 guard case let .object(table) = types[index] else { return (index, 0) }
@@ -626,7 +647,7 @@ struct KeyChecker: Sendable {
         }
     }
 
-    // A mask is checked as each shape its `shape` can be.
+    // A mask is checked as each shape its `kind` can be.
     private func checkMask(
         _ value: JSONValue,
         place: Place,
@@ -634,7 +655,7 @@ struct KeyChecker: Sendable {
         scope: inout DocumentScope
     ) throws {
         guard let object = value.objectValue else { throw wrongType(value, .masks, place, kind) }
-        guard object.contains("shape") else { throw ModelError.missingKey(place: place, kind: "mask", keys: ["shape"]) }
+        guard object.contains("kind") else { throw ModelError.missingKey(place: place, kind: "mask", keys: ["kind"]) }
 
         let shapes = try shapes(of: object, place: place, kind: "mask", scope: &scope)
         try checkEach(shapes, scope: &scope) { shape, scope in
@@ -650,7 +671,7 @@ struct KeyChecker: Sendable {
         scope: inout DocumentScope
     ) throws {
         let table = MaskKeyTable.table(for: shape)
-        try checkObject(object, as: table, place: place, skipping: ["shape"], scope: &scope)
+        try checkObject(object, as: table, place: place, skipping: ["kind"], scope: &scope)
     }
 
     // A mask's geometry is given by the clip's `mask` and its keyframes together: a rect or an ellipse takes `area`
@@ -1245,11 +1266,11 @@ struct KeyChecker: Sendable {
         kind: String,
         scope: inout DocumentScope
     ) throws -> [ShapeKind] {
-        let value = object["shape"] ?? .null
+        let value = object["kind"] ?? .null
         try check(
             value,
             as: .literal(VocabularyTable.shapes),
-            place: place.appending(key: "shape"),
+            place: place.appending(key: "kind"),
             kind: kind,
             scope: &scope
         )
@@ -1759,7 +1780,7 @@ struct KeyChecker: Sendable {
                 : "a list of at least two [offset, colour], each offset from 0 to 1 and at least the one before it"
 
         case .points:
-            "a list of at least two vertices, each a point or {vertex, inTangent, outTangent}"
+            "a list of at least two vertices, each [x, y] or {vertex, inTangent, outTangent}"
 
         case .quad:
             "a list of four points"

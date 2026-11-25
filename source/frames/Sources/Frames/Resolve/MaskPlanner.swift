@@ -6,7 +6,7 @@
 //
 
 // Plans a clip's masks as timed values: the clip's `mask` is its own layer with the structure its keyframes give, and
-// no style lies below it, so the merged value is that layer; `shape` must be given there. Each leaf is then timed over
+// no style lies below it, so the merged value is that layer; `kind` must be given there. Each leaf is then timed over
 // it, a clip area kept for evaluation where the masks take one, and `feather` and a clip area's padding theme lengths times
 // `lengthScale`. A mask written alone is read as a list of one, and a stop names it as
 // the document wrote it, `mask.<key>` for a mask alone and `mask[i].<key>` in a list.
@@ -78,7 +78,7 @@ struct MaskPlanner: Sendable {
             let own = try builder.ownLayer(written: written, keyframes: keyframes, as: structure, place: lookPlace)
             guard let merged = own else { return nil }
 
-            // A mask's `shape` is static, and a path's vertex may take its point from its keyframes.
+            // A mask's `kind` is static, and a path's vertex may take its point from its keyframes.
             try merger.checkRequired(in: merged, keyframes: keyframes, as: structure, place: lookPlace)
 
             timed = try builder.timed(

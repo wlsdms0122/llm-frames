@@ -25,7 +25,7 @@ struct MaskEndToEndTests {
         // Given
         let sut = try resolved(#"""
             { "kind": "sequence", "format": { "size": [1920, 1080] }, "storyline": [ { "kind": "solid", "color": "#202020", "duration": 4 } ],
-              "clips": [ { "kind": "adjustment", "adjust": "frames/warm", "at": [0, 4], "mask": [ { "shape": "rect", "invert": true }, { "shape": "path", "mode": "subtract" } ],
+              "clips": [ { "kind": "adjustment", "adjust": "frames/warm", "at": [0, 4], "mask": [ { "kind": "rect", "invert": true }, { "kind": "path", "mode": "subtract" } ],
                 "keyframes": [
                   { "at": 1, "mask": [ { "area": [0, 0, 100, 100], "radius": 4 }, { "points": [[0, 0], [100, 0], [50, 100]] } ] },
                   { "at": 2, "mask": [ { "feather": 2 }, { } ] },
@@ -62,7 +62,7 @@ struct MaskEndToEndTests {
         // Each segment's control points lie 40 above or below its ends at y = 50, so its middle lies 30 past them.
         let sut = try resolved(#"""
             { "kind": "sequence", "format": { "size": [1920, 1080] }, "storyline": [ { "kind": "solid", "color": "#202020", "duration": 4 } ],
-              "clips": [ { "kind": "adjustment", "adjust": "frames/warm", "at": [0, 4], "mask": { "shape": "path", "points": [
+              "clips": [ { "kind": "adjustment", "adjust": "frames/warm", "at": [0, 4], "mask": { "kind": "path", "points": [
                 { "vertex": [0, 50], "inTangent": [0, 40], "outTangent": [0, -40] },
                 { "vertex": [100, 50], "inTangent": [0, -40], "outTangent": [0, 40] } ] } } ] }
             """#)
@@ -86,7 +86,7 @@ struct MaskEndToEndTests {
         // Given
         let sut = try resolved(#"""
             { "kind": "sequence", "format": { "size": [1920, 1080] }, "storyline": [ { "kind": "solid", "color": "#202020", "duration": 4 } ],
-              "clips": [ { "kind": "adjustment", "adjust": "frames/warm", "at": [0, 4], "mask": { "shape": "ellipse", "height": 40, "position": [500, 300] },
+              "clips": [ { "kind": "adjustment", "adjust": "frames/warm", "at": [0, 4], "mask": { "kind": "ellipse", "height": 40, "position": [500, 300] },
                 "keyframes": [ { "at": 0, "ease": "ease-in", "mask": { "width": 100 } }, { "at": 2, "mask": { "width": 300 } } ] } ] }
             """#)
 
@@ -113,7 +113,7 @@ struct MaskEndToEndTests {
         let sut = try resolved(#"""
             { "kind": "sequence", "storyline": [ { "id": "screen", "kind": "media", "media": "/abs/screen.mp4", "connected": [
                 { "id": "box", "kind": "rect", "stroke": { "width": 8 }, "parent": "screen", "area": [0, 0, 600, 600], "scale": 2, "at": [0, 4] },
-                { "kind": "adjustment", "adjust": "frames/warm", "parent": "box", "at": [0, 4], "mask": { "shape": "rect" }, "keyframes": [
+                { "kind": "adjustment", "adjust": "frames/warm", "parent": "box", "at": [0, 4], "mask": { "kind": "rect" }, "keyframes": [
                     { "at": 0, "mask": { "area": [0, 0, 100, 100] } },
                     { "at": 2, "mask": { "area": [0, 0, 50, 50] } } ] } ] } ] }
             """#)
@@ -134,20 +134,20 @@ struct MaskEndToEndTests {
         "a stop on a mask written alone names it without an index, and one in a list with its index",
         arguments: [
             (
-                #""mask": { "shape": "rect" }, "keyframes": [ { "at": 0, "mask": { "area": [0, 0, 10, 10] } }, { "at": 1, "mask": { "width": 10 } } ]"#,
+                #""mask": { "kind": "rect" }, "keyframes": [ { "at": 0, "mask": { "area": [0, 0, 10, 10] } }, { "at": 1, "mask": { "width": 10 } } ]"#,
                 "clips[0].keyframes[1].mask.width (keyframe): the clip and its keyframes write different forms: area, width"
             ),
             (
-                #""mask": [ { "shape": "rect" } ], "keyframes": [ { "at": 0, "mask": { "area": [0, 0, 10, 10] } }, { "at": 1, "mask": [ { "width": 10 } ] } ]"#,
+                #""mask": [ { "kind": "rect" } ], "keyframes": [ { "at": 0, "mask": { "area": [0, 0, 10, 10] } }, { "at": 1, "mask": [ { "width": 10 } ] } ]"#,
                 "clips[0].keyframes[1].mask[0].width (keyframe): the clip and its keyframes write different forms: area, width"
             ),
             (
-                #""mask": { "shape": "rect", "area": [0, 0, 10, 10] }, "keyframes": [ { "at": 0, "mask": [ { "area": [0, 0, 20, 20] } ] } ]"#,
+                #""mask": { "kind": "rect", "area": [0, 0, 10, 10] }, "keyframes": [ { "at": 0, "mask": [ { "area": [0, 0, 20, 20] } ] } ]"#,
                 "clips[0].mask.area: written as a static value and in every keyframe that writes it, so the static value never shows"
             ),
             (
                 #""keyframes": [ { "at": 0, "mask": { "area": [0, 0, 10, 10] } } ]"#,
-                #"clips[0].mask (adjustment): missing key "shape", which the clip does not write and no theme layer gives"#
+                #"clips[0].mask (adjustment): missing key "kind", which the clip does not write and no theme layer gives"#
             )
         ]
     )
