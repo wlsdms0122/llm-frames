@@ -230,7 +230,8 @@ struct QuartzRendererTests {
     @Test("check accepts a displace op, whose map the decoder checks and drawing reads")
     func acceptsDisplace() throws {
         // Given
-        let sut = QuartzRenderer(decoder: AVFoundationDecoder())
+        let decoder = ReadingDecoder()
+        let sut = QuartzRenderer(decoder: decoder)
         let map = PinnedFile(path: "/abs/ripple.png", sha256: String(repeating: "a", count: 64))
         let adjust = AdjustItem(filter: [FilterEntry(operations: [
             .exposure(ev: 1),
@@ -242,6 +243,7 @@ struct QuartzRendererTests {
 
         // Then
         #expect(throws: Never.self) { try checking() }
+        #expect(decoder.readings(of: "/abs/ripple.png").isEmpty)
     }
 
     @Test("check accepts a corner pin on a picture of a nested list, as a clip's group carries it")

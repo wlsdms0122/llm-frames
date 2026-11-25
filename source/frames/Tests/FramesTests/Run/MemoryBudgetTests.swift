@@ -55,23 +55,23 @@ struct MemoryBudgetTests {
         #expect(sut.usage.peak == 10 * megabyte)
     }
 
-    @Test("a hold is granted whatever the total, and a holder that gives way then finds no room")
-    func grantsHold() throws {
+    @Test("a hold within its holder's floor leaves a holder that gives way the room beside the floors")
+    func grantsHoldWithinFloor() throws {
         // Given
         let sut = MemoryBudget(limit: try #require(MemorySize("10MB")))
         sut.require(4 * megabyte, for: .readers)
+        sut.require(4 * megabyte, for: .pictures)
 
         // When
-        sut.hold(8 * megabyte, for: .pictures)
-        let refused = sut.take(megabyte, for: .readAhead)
-        sut.give(8 * megabyte, for: .pictures)
-        let granted = sut.take(megabyte, for: .readAhead)
+        sut.hold(4 * megabyte, for: .pictures)
+        let refused = sut.take(3 * megabyte, for: .readAhead)
+        let granted = sut.take(2 * megabyte, for: .readAhead)
 
         // Then
         #expect(!refused && granted)
         let pictures = try #require(sut.usage.holders.first { $0.holder == .pictures })
-        #expect(pictures.peak == 8 * megabyte && pictures.refused == 0)
-        #expect(sut.usage.peak == 12 * megabyte)
+        #expect(pictures.peak == 4 * megabyte && pictures.refused == 0)
+        #expect(sut.usage.peak == 10 * megabyte)
     }
 
     @Test("a limit under the sum of the floors is refused, naming the limit, the floor and each holder's")
