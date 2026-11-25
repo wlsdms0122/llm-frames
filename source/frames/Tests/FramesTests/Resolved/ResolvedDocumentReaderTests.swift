@@ -791,6 +791,45 @@ struct ResolvedDocumentReaderTests {
         )
     }
 
+    @Test("a path with a corner pin stops, since a path is placed by its points")
+    func refusesPathCornerPin() throws {
+        // Given
+        var text = try replacing(
+            "cornerPin",
+            ofClip: 5,
+            with: #"[ { "at": 0, "value": [[0, 0], [100, 0], [100, 100], [0, 100]], "ease": "linear" } ]"#,
+            in: written(Self.documents[3])
+        )
+        for key in ["position", "anchor", "scale", "rotation"] {
+            text = try replacing(key, ofClip: 5, with: "null", in: text)
+        }
+        text = try replacing("size", ofClip: 5, with: "[100, 100]", in: text)
+
+        // When
+        let error = #expect(throws: ModelError.self) { try sut.read(text) }
+
+        // Then
+        #expect(
+            error?.description
+                == #"clips[5].cornerPin (clip): a path is placed by its points, so its corner pin is null, found [{"at": 0, "value": [[0, 0], [100, 0], [100, 100], [0, 100]], "ease": "linear"}]"#
+        )
+    }
+
+    @Test("a title or a media clip without a box stops, since each always has one", arguments: [0, 1])
+    func refusesPictureWithoutBox(clip index: Int) throws {
+        // Given
+        var text = try written(Self.documents[0])
+        for key in ["size", "position", "anchor"] {
+            text = try replacing(key, ofClip: index, with: "null", in: text)
+        }
+
+        // When
+        let error = #expect(throws: ModelError.self) { try sut.read(text) }
+
+        // Then
+        #expect(error?.description == "clips[\(index)].size (clip): expected a list of 2 numbers, found null")
+    }
+
     @Test("a media clip's null crop stops, since a media clip carries its crops, the whole picture where none is written")
     func refusesNullMediaCrop() throws {
         // Given
