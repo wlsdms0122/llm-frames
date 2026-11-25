@@ -1317,8 +1317,11 @@ struct EvaluatorTests {
         border: MediaBorder? = nil,
         shadow: DropShadow? = nil
     ) -> ResolvedStorylineClip {
-        // The entries restyled here have a box.
-        let box = entry.box!
+        // The entries restyled here are placed by their box.
+        guard case let .transform(box, ownScale, rotation) = entry.placement else {
+            preconditionFailure("\(entry.place) is placed by a corner pin")
+        }
+
         return ResolvedStorylineClip(
             place: entry.place,
             id: entry.id,
@@ -1333,16 +1336,18 @@ struct EvaluatorTests {
             trackMatte: nil,
             track: entry.track,
             filter: entry.filter,
-            box: ResolvedBox(
-                size: box.size,
-                position: topLeft.map { keyframes in
-                    .keyframes(keyframes.map { $0.map { .point(Point(x: $0.x + box.anchor.x, y: $0.y + box.anchor.y)) } })
-                } ?? box.position,
-                anchor: box.anchor
+            placement: .transform(
+                box: ResolvedBox(
+                    size: box.size,
+                    position: topLeft.map { keyframes in
+                        .keyframes(keyframes.map { $0.map { .point(Point(x: $0.x + box.anchor.x, y: $0.y + box.anchor.y)) } })
+                    } ?? box.position,
+                    anchor: box.anchor
+                ),
+                scale: scale ?? ownScale,
+                rotation: rotation
             ),
             opacity: [Keyframe(at: entry.start, value: opacity)],
-            scale: scale ?? entry.scale,
-            rotation: entry.rotation,
             blend: blend,
             radius: radius,
             border: .border(border),

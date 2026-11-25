@@ -58,10 +58,23 @@ struct ResolvedSequenceWriter: Sendable {
     // corner pin writes its box's size and its position, anchor, scale and rotation as null. A solid writes no corner
     // pin.
     private func storyline(_ entry: ResolvedStorylineClip) -> JSONValue {
-        let cornerPin = entry.cornerPin.map { pin in
-            values.followed(pin.points) { points in .array(points.corners.map(values.geometryPoint)) }
+        let box: ResolvedBox?
+        let cornerPin: JSONValue
+        let scale: JSONValue
+        let rotation: JSONValue
+        switch entry.placement {
+        case let .transform(placed, scales, rotations):
+            box = placed
+            cornerPin = .null
+            scale = values.scales(scales)
+            rotation = values.numbers(rotations)
+
+        case let .cornerPin(pin):
+            box = nil
+            cornerPin = values.followed(pin.points) { points in .array(points.corners.map(values.geometryPoint)) }
+            scale = .null
+            rotation = .null
         }
-        let size = entry.box?.size ?? entry.cornerPin?.size
         let shown: ResolvedStorylineMedia? = if case let .media(media) = entry.content { media } else { nil }
         let color: [Keyframe<Color>]? = if case let .solid(color) = entry.content { color } else { nil }
 
@@ -79,20 +92,20 @@ struct ResolvedSequenceWriter: Sendable {
             JSONMember(key: "timeRemap", value: shown?.timeRemap.map(values.numbers) ?? .null),
             JSONMember(key: "start", value: .number(entry.start)),
             JSONMember(key: "end", value: .number(entry.end)),
-            JSONMember(key: "size", value: size.map(values.size) ?? .null),
+            JSONMember(key: "size", value: values.size(entry.placement.size)),
             JSONMember(
                 key: "position",
-                value: entry.box.map { values.followed($0.position, value: values.geometryPoint) } ?? .null
+                value: box.map { values.followed($0.position, value: values.geometryPoint) } ?? .null
             ),
-            JSONMember(key: "anchor", value: entry.box.map { values.point($0.anchor) } ?? .null)
-        ] + (shown == nil ? [] : [JSONMember(key: "cornerPin", value: cornerPin ?? .null)]) + [
+            JSONMember(key: "anchor", value: box.map { values.point($0.anchor) } ?? .null)
+        ] + (shown == nil ? [] : [JSONMember(key: "cornerPin", value: cornerPin)]) + [
             JSONMember(key: "crop", value: crops(entry.crop)),
             JSONMember(key: "mask", value: values.masks(entry.mask)),
             JSONMember(key: "trackMatte", value: entry.trackMatte.map(trackMatte) ?? .null),
             JSONMember(key: "track", value: entry.track.map(track) ?? .null),
             JSONMember(key: "opacity", value: values.numbers(entry.opacity)),
-            JSONMember(key: "scale", value: entry.scale.map(values.scales) ?? .null),
-            JSONMember(key: "rotation", value: entry.rotation.map { values.numbers($0) } ?? .null),
+            JSONMember(key: "scale", value: scale),
+            JSONMember(key: "rotation", value: rotation),
             JSONMember(key: "blend", value: .string(entry.blend)),
             JSONMember(key: "motionBlur", value: .bool(entry.isMotionBlurred)),
             JSONMember(key: "filter", value: values.timed(entry.filter)),

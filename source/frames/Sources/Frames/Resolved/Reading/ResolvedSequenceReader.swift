@@ -338,17 +338,8 @@ struct ResolvedSequenceReader: Sendable {
             trackMatte: try entry.member("trackMatte").optional(trackMatte),
             track: try entry.member("track").optional(track),
             filter: try values.timed(entry.member("filter"), as: LookStructureTable.resolvedFilter),
-            box: cornerPin == nil
-                ? ResolvedBox(
-                    size: try values.size(entry.member("size")),
-                    position: .keyframes(try values.keyframes(entry.member("position")) { GeometryPoint.point(try values.point($0)) }),
-                    anchor: try values.point(entry.member("anchor"))
-                )
-                : nil,
-            cornerPin: cornerPin,
+            placement: try placement(of: entry, cornerPin: cornerPin),
             opacity: try values.numbers(entry.member("opacity")),
-            scale: cornerPin == nil ? try values.scales(entry.member("scale")) : nil,
-            rotation: cornerPin == nil ? try values.numbers(entry.member("rotation")) : nil,
             blend: try entry.member("blend").string(),
             isMotionBlurred: try entry.member("motionBlur").bool(),
             radius: try values.timed(entry.member("radius"), as: LookStructureTable.radius),
@@ -436,6 +427,26 @@ struct ResolvedSequenceReader: Sendable {
             track: try clip.member("track").optional(track),
             isMotionBlurred: try clip.member("motionBlur").bool(),
             animation: try values.animation(clip.member("animation"))
+        )
+    }
+
+    // A storyline entry without a corner pin is placed by its box, scale and rotation.
+    private func placement(
+        of entry: PlacedJSONObject,
+        cornerPin: ResolvedCornerPin?
+    ) throws -> ResolvedStorylinePlacement {
+        if let cornerPin {
+            return .cornerPin(cornerPin)
+        }
+
+        return .transform(
+            box: ResolvedBox(
+                size: try values.size(entry.member("size")),
+                position: .keyframes(try values.keyframes(entry.member("position")) { GeometryPoint.point(try values.point($0)) }),
+                anchor: try values.point(entry.member("anchor"))
+            ),
+            scale: try values.scales(entry.member("scale")),
+            rotation: try values.numbers(entry.member("rotation"))
         )
     }
 

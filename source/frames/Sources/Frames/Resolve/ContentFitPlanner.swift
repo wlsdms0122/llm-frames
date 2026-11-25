@@ -92,11 +92,8 @@ struct ContentFitPlanner: Sendable {
                     trackMatte: entry.trackMatte,
                     track: entry.track,
                     filter: entry.filter,
-                    box: entry.box,
-                    cornerPin: entry.cornerPin,
+                    placement: entry.placement,
                     opacity: entry.opacity,
-                    scale: entry.scale,
-                    rotation: entry.rotation,
                     blend: entry.blend,
                     isMotionBlurred: entry.isMotionBlurred,
                     radius: entry.radius,
@@ -166,13 +163,14 @@ struct ContentFitPlanner: Sendable {
         let storyline = sequence.storyline.compactMap { entry -> Rectangle? in
             guard case .media = entry.content else { return nil }
 
-            if let pin = entry.cornerPin {
+            switch entry.placement {
+            case let .cornerPin(pin):
                 return Rectangle(bounding: pin.points.mapValues { $0.sampled(\.fixed) }.value(at: SampleTime(0)).corners)
-            }
-            guard let box = entry.box else { return nil }
 
-            let rectangle = Rectangle(x: 0, y: 0, width: box.size.width, height: box.size.height)
-            return bounds(of: rectangle, by: entry.presentation(at: SampleTime(0)).transform)
+            case let .transform(box, _, _):
+                let rectangle = Rectangle(x: 0, y: 0, width: box.size.width, height: box.size.height)
+                return bounds(of: rectangle, by: entry.presentation(at: SampleTime(0)).transform)
+            }
         }
         let clips = sequence.clips.filter { !sequence.isMatte($0) && !placed.contains($0.place) }.compactMap { clip in
             extent(of: clip, in: parents.space(of: clip, at: SampleTime(0)))

@@ -15,7 +15,7 @@ extension ResolvedStorylineClip {
     func masks(at time: SampleTime) -> [ItemMask] {
         guard let mask else { return [] }
 
-        let factor = scale?.value(at: time).factor ?? 1
+        let factor = if case let .transform(_, scale, _) = placement { scale.value(at: time).factor } else { 1.0 }
         guard let track, let clock else {
             let transform = pictureTransform(at: time)
             return mask.map { ItemMask(mask: $0.sampled(at: time), transform: transform, factor: factor) }
