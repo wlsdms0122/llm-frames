@@ -33,7 +33,7 @@ struct TrackMatteDrawerTests {
         let source = [fill(top, color: "#00000080")]
 
         // When
-        let bitmap = try sut.frame(of: list(matte: ItemTrackMatte(source: list(source), mode: .alpha, isInverted: false)))
+        let bitmap = try sut.bitmap(of: list(matte: ItemTrackMatte(source: list(source), mode: .alpha, isInverted: false)))
 
         // Then
         expect(alpha(of: bitmap, x: 20, y: 5), equals: 128.0 / 255)
@@ -48,7 +48,7 @@ struct TrackMatteDrawerTests {
         let source = [fill(top, color: "#808080FF"), fill(bottomLeft, color: "#FF000080")]
 
         // When
-        let bitmap = try sut.frame(of: list(matte: ItemTrackMatte(source: list(source), mode: .luma, isInverted: false)))
+        let bitmap = try sut.bitmap(of: list(matte: ItemTrackMatte(source: list(source), mode: .luma, isInverted: false)))
 
         // Then
         expect(alpha(of: bitmap, x: 20, y: 10), equals: 128.0 / 255)
@@ -72,7 +72,7 @@ struct TrackMatteDrawerTests {
         )
 
         // When
-        let bitmap = try sut.frame(of: list(matte: ItemTrackMatte(source: source, mode: .luma, isInverted: false)))
+        let bitmap = try sut.bitmap(of: list(matte: ItemTrackMatte(source: source, mode: .luma, isInverted: false)))
 
         // Then
         expect(alpha(of: bitmap, x: 20, y: 10), equals: 0.5)
@@ -85,8 +85,8 @@ struct TrackMatteDrawerTests {
         let source = [fill(top, color: "#80808080")]
 
         // When
-        let alphaMatte = try sut.frame(of: list(matte: ItemTrackMatte(source: list(source), mode: .alpha, isInverted: true)))
-        let lumaMatte = try sut.frame(of: list(matte: ItemTrackMatte(source: list(source), mode: .luma, isInverted: true)))
+        let alphaMatte = try sut.bitmap(of: list(matte: ItemTrackMatte(source: list(source), mode: .alpha, isInverted: true)))
+        let lumaMatte = try sut.bitmap(of: list(matte: ItemTrackMatte(source: list(source), mode: .luma, isInverted: true)))
 
         // Then
         expect(alpha(of: alphaMatte, x: 20, y: 10), equals: 1 - 128.0 / 255)
@@ -108,7 +108,7 @@ struct TrackMatteDrawerTests {
         )
 
         // When
-        let bitmap = try sut.frame(of: list([item]))
+        let bitmap = try sut.bitmap(of: list([item]))
 
         // Then
         expect(alpha(of: bitmap, x: 10, y: 10), equals: 0.5)
@@ -125,7 +125,7 @@ struct TrackMatteDrawerTests {
         let item = DisplayItem(trackMatte: matte, content: .path(path))
 
         // When
-        let bitmap = try sut.frame(of: list([item]))
+        let bitmap = try sut.bitmap(of: list([item]))
 
         // Then
         // The shadow shows right of the fill, from x 20 to 30, where the matte keeps the fill above y 20.

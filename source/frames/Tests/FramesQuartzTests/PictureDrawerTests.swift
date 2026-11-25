@@ -41,7 +41,7 @@ struct PictureDrawerTests {
         )
 
         // When
-        let bitmap = try sut.frame(of: list(size: Size(width: 16, height: 8), items: [DisplayItem(content: .picture(picture))]))
+        let bitmap = try sut.bitmap(of: list(size: Size(width: 16, height: 8), items: [DisplayItem(content: .picture(picture))]))
 
         // Then
         // Output column i covers source columns 16 + 2i and 17 + 2i, whose mean is 16.5 + 2i steps. The values are
@@ -70,7 +70,7 @@ struct PictureDrawerTests {
         )
 
         // When
-        let bitmap = try sut.frame(of: list(size: Size(width: 24, height: 24), items: [DisplayItem(content: .picture(picture))]))
+        let bitmap = try sut.bitmap(of: list(size: Size(width: 24, height: 24), items: [DisplayItem(content: .picture(picture))]))
 
         // Then
         let source = try decoder.picture(of: MediaFile(media: frame.media), atFrame: 0).bitmap
@@ -103,7 +103,7 @@ struct PictureDrawerTests {
 
         // When
         let item = DisplayItem(mask: mask(content), content: .picture(picture))
-        let bitmap = try sut.frame(of: list(size: Size(width: 24, height: 24), items: [item]))
+        let bitmap = try sut.bitmap(of: list(size: Size(width: 24, height: 24), items: [item]))
 
         // Then
         let source = try decoder.picture(of: MediaFile(media: frame.media), atFrame: 0).bitmap
@@ -122,7 +122,7 @@ struct PictureDrawerTests {
         )
 
         // When
-        let bitmap = try sut.frame(of: list(size: Size(width: 40, height: 40), items: [DisplayItem(content: .picture(picture))]))
+        let bitmap = try sut.bitmap(of: list(size: Size(width: 40, height: 40), items: [DisplayItem(content: .picture(picture))]))
 
         // Then
         // Pixel (1, 1) has its centre 12 from the corner arc's centre (10, 10), outside the radius of 10.
@@ -145,7 +145,7 @@ struct PictureDrawerTests {
         )
 
         // When
-        let bitmap = try sut.frame(of: list(size: Size(width: 40, height: 40), items: [DisplayItem(content: .picture(picture))]))
+        let bitmap = try sut.bitmap(of: list(size: Size(width: 40, height: 40), items: [DisplayItem(content: .picture(picture))]))
 
         // Then
         #expect(bitmap.pixel(x: 0, y: 20) == [1, 0, 0, 1])
@@ -178,7 +178,7 @@ struct PictureDrawerTests {
         )
 
         // When
-        let bitmap = try sut.frame(of: list(size: Size(width: 60, height: 60), items: [DisplayItem(content: .picture(picture))]))
+        let bitmap = try sut.bitmap(of: list(size: Size(width: 60, height: 60), items: [DisplayItem(content: .picture(picture))]))
 
         // Then
         // `nil` is a pixel nothing is drawn on, `true` a red one and `false` a white one.
@@ -210,7 +210,7 @@ struct PictureDrawerTests {
         )
 
         // When
-        let bitmap = try sut.frame(of: list(size: Size(width: 60, height: 60), items: [DisplayItem(content: .picture(picture))]))
+        let bitmap = try sut.bitmap(of: list(size: Size(width: 60, height: 60), items: [DisplayItem(content: .picture(picture))]))
 
         // Then
         #expect(bitmap.pixel(x: 11, y: 11) == [1, 0, 0, 1])
@@ -232,7 +232,7 @@ struct PictureDrawerTests {
         )
 
         // When
-        let bitmap = try sut.frame(of: list(size: Size(width: 32, height: 32), items: [DisplayItem(content: .picture(picture))]))
+        let bitmap = try sut.bitmap(of: list(size: Size(width: 32, height: 32), items: [DisplayItem(content: .picture(picture))]))
 
         // Then
         #expect(bitmap.pixel(x: 6, y: 16) == [1, 0, 0, 1])
@@ -253,7 +253,7 @@ struct PictureDrawerTests {
         )
 
         // When
-        let bitmap = try sut.frame(of: list(size: Size(width: 40, height: 40), items: [DisplayItem(content: .picture(picture))]))
+        let bitmap = try sut.bitmap(of: list(size: Size(width: 40, height: 40), items: [DisplayItem(content: .picture(picture))]))
 
         // Then
         #expect(bitmap.pixel(x: 0, y: 20) == [1, 0, 0, 1])
@@ -277,7 +277,7 @@ struct PictureDrawerTests {
         )
 
         // When
-        let bitmap = try sut.frame(of: list(size: Size(width: 120, height: 120), items: [DisplayItem(content: .picture(picture))]))
+        let bitmap = try sut.bitmap(of: list(size: Size(width: 120, height: 120), items: [DisplayItem(content: .picture(picture))]))
 
         // Then
         // Right of x = 62 lies only the shadow: the box (75, 65, 10, 10) blurred, its alpha centred on (80, 70) with
@@ -321,7 +321,7 @@ struct PictureDrawerTests {
         )
 
         // When
-        let bitmap = try sut.frame(of: list(size: Size(width: 8, height: 8), items: [item]))
+        let bitmap = try sut.bitmap(of: list(size: Size(width: 8, height: 8), items: [item]))
 
         // Then
         // Each output pixel averages two black and two white source pixels to 0.5, which the table maps to 0.1.
@@ -351,7 +351,7 @@ struct PictureDrawerTests {
         )
 
         // When
-        let bitmap = try sut.frame(of: list(size: Size(width: 16, height: 16), items: [item]))
+        let bitmap = try sut.bitmap(of: list(size: Size(width: 16, height: 16), items: [item]))
 
         // Then
         for y in 0..<16 {
@@ -382,7 +382,7 @@ struct PictureDrawerTests {
         )
 
         // When
-        let bitmap = try sut.frame(of: list(size: Size(width: 16, height: 16), items: [item]))
+        let bitmap = try sut.bitmap(of: list(size: Size(width: 16, height: 16), items: [item]))
 
         // Then
         for y in 1..<15 {

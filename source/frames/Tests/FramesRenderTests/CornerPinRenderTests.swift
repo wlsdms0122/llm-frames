@@ -56,7 +56,7 @@ struct CornerPinRenderTests {
         let sut = QuartzRenderer(decoder: AVFoundationDecoder())
 
         // When
-        let bitmap = try sut.frame(of: Evaluator().displayList(of: document, at: 0))
+        let bitmap = try sut.bitmap(of: Evaluator().displayList(of: document, at: 0))
 
         // Then
         let homography = try #require(Homography(from: Self.box, to: cornerPin))
@@ -102,8 +102,8 @@ struct CornerPinRenderTests {
         let sut = QuartzRenderer(decoder: AVFoundationDecoder())
 
         // When
-        let pinnedBitmap = try sut.frame(of: Evaluator().displayList(of: pinned, at: 0))
-        let unpinnedBitmap = try sut.frame(of: Evaluator().displayList(of: unpinned, at: 0))
+        let pinnedBitmap = try sut.bitmap(of: Evaluator().displayList(of: pinned, at: 0))
+        let unpinnedBitmap = try sut.bitmap(of: Evaluator().displayList(of: unpinned, at: 0))
 
         // Then
         // The mean over a pixel of the bilinear reconstruction is the pixel's value where its neighbours carry the
@@ -140,9 +140,9 @@ struct CornerPinRenderTests {
         let sut = QuartzRenderer(decoder: AVFoundationDecoder())
 
         // When
-        let before = try sut.frame(of: Evaluator().displayList(of: document, at: 0.2))
-        let crossed = try sut.frame(of: Evaluator().displayList(of: document, at: 0.6))
-        let after = try sut.frame(of: Evaluator().displayList(of: document, at: 0.9))
+        let before = try sut.bitmap(of: Evaluator().displayList(of: document, at: 0.2))
+        let crossed = try sut.bitmap(of: Evaluator().displayList(of: document, at: 0.6))
+        let after = try sut.bitmap(of: Evaluator().displayList(of: document, at: 0.9))
 
         // Then
         #expect(before.pixel(x: 512, y: 500)[3] > 0.999)
@@ -165,7 +165,7 @@ struct CornerPinRenderTests {
         let sut = QuartzRenderer(decoder: AVFoundationDecoder())
 
         // When
-        let bitmap = try sut.frame(of: Evaluator().displayList(of: document, at: 0.5))
+        let bitmap = try sut.bitmap(of: Evaluator().displayList(of: document, at: 0.5))
 
         // Then
         // The dot lies to the right of the steep corner pin's far edge, as written in the frame.
@@ -191,8 +191,8 @@ struct CornerPinRenderTests {
         let sut = QuartzRenderer(decoder: AVFoundationDecoder())
 
         // When
-        let pinnedBitmap = try sut.frame(of: Evaluator().displayList(of: pinned, at: 0))
-        let scaledBitmap = try sut.frame(of: Evaluator().displayList(of: scaled, at: 0))
+        let pinnedBitmap = try sut.bitmap(of: Evaluator().displayList(of: pinned, at: 0))
+        let scaledBitmap = try sut.bitmap(of: Evaluator().displayList(of: scaled, at: 0))
 
         // Then
         // The title scaled without a pin is drawn at its scale, an edge at most one pixel of partial coverage. The
@@ -220,7 +220,7 @@ struct CornerPinRenderTests {
         let sut = QuartzRenderer(decoder: AVFoundationDecoder())
 
         // When
-        let bitmap = try sut.frame(of: Evaluator().displayList(of: pinned, at: 0))
+        let bitmap = try sut.bitmap(of: Evaluator().displayList(of: pinned, at: 0))
 
         // Then
         // The page is asked for at the scale its pinned list is drawn at, so its square's edges spread over at most

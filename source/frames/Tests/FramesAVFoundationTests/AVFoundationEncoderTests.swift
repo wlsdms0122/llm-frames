@@ -211,16 +211,16 @@ struct AVFoundationEncoderTests {
         let abandoned = directory.file("abandoned.mov")
         let sut = AVFoundationEncoder(deadline: Self.deadline)
         let writer = try sut.videoWriter(for: .master(path: failed, alpha: false), size: size, fps: 30, sound: nil)
-        try writer.append(frame())
+        try writer.append(.bitmap(frame()))
 
         // When
         #expect(throws: EncoderError.self) {
-            try writer.append(Bitmap(width: 8, height: 8, depth: .sixteen, bytesPerRow: 64, pixels: Data(count: 512)))
+            try writer.append(.bitmap(Bitmap(width: 8, height: 8, depth: .sixteen, bytesPerRow: 64, pixels: Data(count: 512))))
         }
         do {
             let target = EncodeTarget.master(path: abandoned, alpha: false)
             let dropped = try sut.videoWriter(for: target, size: size, fps: 30, sound: nil)
-            try dropped.append(frame())
+            try dropped.append(.bitmap(frame()))
         }
 
         // Then
@@ -504,7 +504,7 @@ struct AVFoundationEncoderTests {
         // When
         let writer = try sut.videoWriter(for: target, size: large, fps: 30, sound: tone(seconds: 16.0 / 30))
         for _ in 0..<frameCount {
-            try writer.append(frame(width: 128, height: 96))
+            try writer.append(.bitmap(frame(width: 128, height: 96)))
         }
         try writer.finish()
 
@@ -551,7 +551,7 @@ struct AVFoundationEncoderTests {
             let target = EncodeTarget.compressed(path: path, codec: codec, quality: quality, size: noiseSize)
             let writer = try sut.videoWriter(for: target, size: noiseSize, fps: 30, sound: nil)
             for index in 0..<8 {
-                try writer.append(noise(width: 128, height: 96, seed: index))
+                try writer.append(.bitmap(noise(width: 128, height: 96, seed: index)))
             }
             try writer.finish()
 
@@ -577,7 +577,7 @@ struct AVFoundationEncoderTests {
         }
         for writer in writers {
             for _ in 0..<frameCount {
-                try writer.append(frame())
+                try writer.append(.bitmap(frame()))
             }
             try writer.finish()
         }
@@ -672,7 +672,7 @@ struct AVFoundationEncoderTests {
     ) throws {
         let writer = try encoder.videoWriter(for: target, size: size, fps: fps, sound: sound)
         for _ in 0..<(frameCount ?? self.frameCount) {
-            try writer.append(frame())
+            try writer.append(.bitmap(frame()))
         }
         try writer.finish()
     }

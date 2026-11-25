@@ -34,7 +34,7 @@ struct TitleStrokeRenderTests {
         let sequence = try DocumentResolver().resolve(document(title: #""scale": [2, 1]"#))
 
         // When
-        let bitmap = try sut.frame(of: Evaluator().displayList(of: sequence, at: 1))
+        let bitmap = try sut.bitmap(of: Evaluator().displayList(of: sequence, at: 1))
 
         // Then
         let (across, down) = redWidths(in: bitmap)
@@ -52,7 +52,7 @@ struct TitleStrokeRenderTests {
         let sequence = try resolver.resolve(document(title: #""animation": { "preset": "mine/grow", "by": "word" }"#))
 
         // When
-        let bitmap = try sut.frame(of: Evaluator().displayList(of: sequence, at: time))
+        let bitmap = try sut.bitmap(of: Evaluator().displayList(of: sequence, at: time))
 
         // Then
         let (across, down) = redWidths(in: bitmap)
@@ -68,7 +68,7 @@ struct TitleStrokeRenderTests {
         let sequence = try DocumentResolver().resolve(document(title: title, before: parent))
 
         // When
-        let bitmap = try sut.frame(of: Evaluator().displayList(of: sequence, at: 1))
+        let bitmap = try sut.bitmap(of: Evaluator().displayList(of: sequence, at: 1))
 
         // Then
         let (across, down) = redWidths(in: bitmap)

@@ -70,7 +70,7 @@ struct ConnectedClipRenderTests {
 
         // When
         let lists = (0..<20).map { index in Evaluator().displayList(of: document, at: Double(index) / 10) }
-        let frames = try lists.map { list in try sut.frame(of: list) }
+        let frames = try lists.map { list in try sut.bitmap(of: list) }
 
         // Then
         let box = try #require(lists[5].placedPictures(named: "code.mov").first)
@@ -113,7 +113,7 @@ struct ConnectedClipRenderTests {
 
         // When
         // The middle of the transition, which runs from 0.5 to 1.5.
-        let frame = try sut.frame(of: Evaluator().displayList(of: document, at: 1))
+        let frame = try sut.bitmap(of: Evaluator().displayList(of: document, at: 1))
 
         // Then
         for (x, y, color) in probes {
@@ -144,7 +144,7 @@ struct ConnectedClipRenderTests {
 
         // When
         let lists = [0, 3, 6, 9].map { index in Evaluator().displayList(of: document, at: Double(index) / 10) }
-        let frames = try lists.map { list in try sut.frame(of: list) }
+        let frames = try lists.map { list in try sut.bitmap(of: list) }
 
         // Then
         for (list, frame) in zip(lists, frames) {
@@ -193,7 +193,7 @@ struct ConnectedClipRenderTests {
 
         // When
         let lists = ScreenRecording.frameTimes.map { time in Evaluator().displayList(of: document, at: time) }
-        let frames = try lists.map { list in try sut.frame(of: list) }
+        let frames = try lists.map { list in try sut.bitmap(of: list) }
 
         // Then
         // The box is the line box drawn on the first frame grown by 4 media pixels, and the tracker keeps it within a
@@ -269,8 +269,8 @@ struct ConnectedClipRenderTests {
         let sut = QuartzRenderer(decoder: AVFoundationDecoder())
 
         // When
-        let stroked = try sut.frame(of: list)
-        let filled = try sut.frame(of: unstroked)
+        let stroked = try sut.bitmap(of: list)
+        let filled = try sut.bitmap(of: unstroked)
 
         // Then
         let background = [51.0, 102, 204]
@@ -327,7 +327,7 @@ struct ConnectedClipRenderTests {
         let sut = QuartzRenderer(decoder: AVFoundationDecoder())
 
         // When
-        let frame = try sut.frame(of: Evaluator().displayList(of: document, at: 0.5))
+        let frame = try sut.bitmap(of: Evaluator().displayList(of: document, at: 0.5))
 
         // Then
         let isBlank = { (x: Int, y: Int) in frame.isPixel(x: x, y: y, [0, 0, 0], tolerance: self.tolerance) }
@@ -353,7 +353,7 @@ struct ConnectedClipRenderTests {
         let sut = QuartzRenderer(decoder: AVFoundationDecoder())
 
         // When
-        let frame = try sut.frame(of: Evaluator().displayList(of: document, at: 0.5))
+        let frame = try sut.bitmap(of: Evaluator().displayList(of: document, at: 0.5))
 
         // Then
         // Half black over white outside the ellipse, untouched inside it, on either side of its left edge at x 40.
@@ -382,7 +382,7 @@ struct ConnectedClipRenderTests {
         let sut = QuartzRenderer(decoder: AVFoundationDecoder())
 
         // When
-        let frame = try sut.frame(of: Evaluator().displayList(of: document, at: 0.5))
+        let frame = try sut.bitmap(of: Evaluator().displayList(of: document, at: 0.5))
 
         // Then
         // Inside the circle the picture shows whole, across its edge in part, and in the box's corner not at all. The

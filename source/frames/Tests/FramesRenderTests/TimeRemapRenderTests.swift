@@ -41,7 +41,7 @@ struct TimeRemapRenderTests {
 
         // When
         let frames = try (0..<20).map { index in
-            try sut.frame(of: Evaluator().displayList(of: document, at: Double(index) / 10))
+            try sut.bitmap(of: Evaluator().displayList(of: document, at: Double(index) / 10))
         }
 
         // Then
@@ -66,7 +66,7 @@ struct TimeRemapRenderTests {
 
         // When
         let codes = try [0, 0.05, 1.5, 2.5].map { time in
-            try self.code(in: sut.frame(of: Evaluator().displayList(of: document, at: time)))
+            try self.code(in: sut.bitmap(of: Evaluator().displayList(of: document, at: time)))
         }
 
         // Then
@@ -90,7 +90,7 @@ struct TimeRemapRenderTests {
 
         // When
         let codes = try (0..<10).map { index in
-            try self.code(in: sut.frame(of: Evaluator().displayList(of: document, at: Double(index) / 10)))
+            try self.code(in: sut.bitmap(of: Evaluator().displayList(of: document, at: Double(index) / 10)))
         }
 
         // Then

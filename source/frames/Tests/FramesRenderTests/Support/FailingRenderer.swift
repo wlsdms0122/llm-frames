@@ -30,7 +30,7 @@ final class FailingRenderer: Renderer, @unchecked Sendable {
         try renderer.check(list)
     }
 
-    func frame(of list: DisplayList) throws -> Bitmap {
+    func frame(of list: DisplayList) throws -> Pixels {
         let index = lock.withLock {
             defer { frameCount += 1 }
 

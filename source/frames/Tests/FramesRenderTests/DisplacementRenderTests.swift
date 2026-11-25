@@ -48,7 +48,7 @@ struct DisplacementRenderTests {
         let sut = QuartzRenderer(decoder: AVFoundationDecoder())
 
         // When
-        let frame = try sut.frame(of: Evaluator().displayList(of: document, at: 0.5))
+        let frame = try sut.bitmap(of: Evaluator().displayList(of: document, at: 0.5))
 
         // Then
         // Red 1 reads from 3 pixels to the right and green 0 from 3 above.
@@ -77,7 +77,7 @@ struct DisplacementRenderTests {
         let sut = QuartzRenderer(decoder: AVFoundationDecoder())
 
         // When
-        let frame = try sut.frame(of: Evaluator().displayList(of: document, at: 0.5))
+        let frame = try sut.bitmap(of: Evaluator().displayList(of: document, at: 0.5))
 
         // Then
         // The picture covers [40, 120) by [22.5, 67.5), its halves meeting at 80, which a move of 8 pixels of the
@@ -101,7 +101,7 @@ struct DisplacementRenderTests {
         let sut = QuartzRenderer(decoder: AVFoundationDecoder())
 
         // When
-        let frame = try sut.frame(of: Evaluator().displayList(of: document, at: 0.5))
+        let frame = try sut.bitmap(of: Evaluator().displayList(of: document, at: 0.5))
 
         // Then
         // Red 0 reads from 5 pixels to the left, so the halves meet at 85.

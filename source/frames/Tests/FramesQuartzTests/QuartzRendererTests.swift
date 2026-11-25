@@ -28,7 +28,7 @@ struct QuartzRendererTests {
         let list = DisplayList(size: Size(width: 6, height: 4), background: Color(written: "#3366CC80"), seed: 0, items: [])
 
         // When
-        let bitmap = try sut.frame(of: list)
+        let bitmap = try sut.bitmap(of: list)
 
         // Then
         #expect(bitmap.width == 6 && bitmap.height == 4 && bitmap.depth == .halfFloat)
@@ -44,7 +44,7 @@ struct QuartzRendererTests {
         let list = list(size: 10, items: [DisplayItem(opacity: 0.5, content: .path(fill))])
 
         // When
-        let bitmap = try sut.frame(of: list)
+        let bitmap = try sut.bitmap(of: list)
 
         // Then
         expect(bitmap.pixel(x: 5, y: 5), equals: [1, 0.5, 0.5, 1])
@@ -63,7 +63,7 @@ struct QuartzRendererTests {
         let list = list(size: 20, items: [item])
 
         // When
-        let bitmap = try sut.frame(of: list)
+        let bitmap = try sut.bitmap(of: list)
 
         // Then
         expect(bitmap.pixel(x: 2, y: 15), equals: [1, 0, 0, 1])
@@ -84,7 +84,7 @@ struct QuartzRendererTests {
         let list = list(size: 40, items: [item])
 
         // When
-        let bitmap = try sut.frame(of: list)
+        let bitmap = try sut.bitmap(of: list)
 
         // Then
         expect(bitmap.pixel(x: 25, y: 5), equals: [1, 0, 0, 1])
@@ -110,7 +110,7 @@ struct QuartzRendererTests {
         let list = list(size: 50, items: [DisplayItem(content: .picture(picture))])
 
         // When
-        let bitmap = try sut.frame(of: list)
+        let bitmap = try sut.bitmap(of: list)
 
         // Then
         expect(bitmap.pixel(x: 25, y: 30), equals: [1, 0, 0, 1])
@@ -130,7 +130,7 @@ struct QuartzRendererTests {
         )
 
         // When
-        let bitmap = try sut.frame(of: list(size: 16, items: [DisplayItem(content: .path(fill)), adjust]))
+        let bitmap = try sut.bitmap(of: list(size: 16, items: [DisplayItem(content: .path(fill)), adjust]))
 
         // Then
         // Saturation 0 turns the backdrop into its Rec. 709 luma, composited over it at half opacity.
@@ -337,7 +337,7 @@ struct QuartzRendererTests {
         let list = samplesList(size: 4, background: "#00000000", samples: [[cornerPinned(.collapsed)], [cornerPinned(full)]])
 
         // When
-        let bitmap = try sut.frame(of: list)
+        let bitmap = try sut.bitmap(of: list)
 
         // Then
         expect(bitmap.pixel(x: 2, y: 2), equals: [0.5, 0, 0, 0.5])
@@ -429,7 +429,7 @@ struct QuartzRendererTests {
         )
 
         // When
-        _ = try sut.frame(of: list)
+        _ = try sut.bitmap(of: list)
 
         // Then
         #expect(decoder.readings(of: "/picture.png") == [.working(colorSpace: .rec2100HLG, targetPeak: 203)])
@@ -454,7 +454,7 @@ struct QuartzRendererTests {
         try FileManager.default.removeItem(atPath: path)
 
         // When
-        let bitmap = try sut.frame(of: list)
+        let bitmap = try sut.bitmap(of: list)
 
         // Then
         expect(bitmap.pixel(x: 2, y: 2), equals: [0, 0, 0, 1])
@@ -476,7 +476,7 @@ struct QuartzRendererTests {
         let list = samplesList(size: 4, compositing: compositing, samples: samples)
 
         // When
-        let bitmap = try sut.frame(of: list)
+        let bitmap = try sut.bitmap(of: list)
 
         // Then
         expect(bitmap.pixel(x: 2, y: 2), equals: [mean, mean, mean, 1])
@@ -502,10 +502,10 @@ struct QuartzRendererTests {
                 )))
             ]
         }
-        let picture = try sut.frame(of: list(size: 6, items: samples[0]))
+        let picture = try sut.bitmap(of: list(size: 6, items: samples[0]))
 
         // When
-        let bitmap = try sut.frame(of: samplesList(size: 6, samples: samples))
+        let bitmap = try sut.bitmap(of: samplesList(size: 6, samples: samples))
 
         // Then
         #expect(components(of: bitmap) == components(of: picture))
@@ -526,7 +526,7 @@ struct QuartzRendererTests {
                 ))
             )]
         }
-        let pictures = try samples.map { try sut.frame(of: list(size: 8, items: $0)) }
+        let pictures = try samples.map { try sut.bitmap(of: list(size: 8, items: $0)) }
         var sums = [Float](repeating: 0, count: 8 * 8 * 4)
         for picture in pictures {
             for (index, half) in halves(of: picture).enumerated() {
@@ -536,8 +536,8 @@ struct QuartzRendererTests {
         let expected = sums.map { Float16($0 / Float(samples.count)) }
 
         // When
-        let bitmap = try sut.frame(of: samplesList(size: 8, samples: samples))
-        let again = try QuartzRenderer(decoder: AVFoundationDecoder()).frame(of: samplesList(size: 8, samples: samples))
+        let bitmap = try sut.bitmap(of: samplesList(size: 8, samples: samples))
+        let again = try QuartzRenderer(decoder: AVFoundationDecoder()).bitmap(of: samplesList(size: 8, samples: samples))
 
         // Then
         #expect(halves(of: bitmap) == expected)
@@ -559,7 +559,7 @@ struct QuartzRendererTests {
         let list = samplesList(size: 8, background: "#00000000", samples: samples)
 
         // When
-        let bitmap = try sut.frame(of: list)
+        let bitmap = try sut.bitmap(of: list)
 
         // Then
         #expect((0..<8).allSatisfy { x in bitmap.pixel(x: x, y: 1)[3] == 1 })

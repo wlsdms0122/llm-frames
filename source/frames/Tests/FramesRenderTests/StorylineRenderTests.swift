@@ -77,7 +77,7 @@ struct StorylineRenderTests {
         let sut = QuartzRenderer(decoder: AVFoundationDecoder())
 
         // When
-        let frame = try sut.frame(of: Evaluator().displayList(of: document, at: 1))
+        let frame = try sut.bitmap(of: Evaluator().displayList(of: document, at: 1))
 
         // Then
         // The picture at half size covers [40, 120) by [22.5, 67.5) around the centre of the frame.
@@ -107,7 +107,7 @@ struct StorylineRenderTests {
         let sut = QuartzRenderer(decoder: AVFoundationDecoder())
 
         // When
-        let frame = try sut.frame(of: Evaluator().displayList(of: document, at: 0.5))
+        let frame = try sut.bitmap(of: Evaluator().displayList(of: document, at: 0.5))
 
         // Then
         #expect(frame.width == 160 && frame.height == 90)
@@ -138,8 +138,8 @@ struct StorylineRenderTests {
 
         // When
         let lists = (0..<2).map { _ in Evaluator().displayList(of: document, at: 1.1) }
-        let frames = try (0..<2).map { _ in try sut.frame(of: lists[0]) }
-        let fresh = try QuartzRenderer(decoder: AVFoundationDecoder()).frame(of: lists[0])
+        let frames = try (0..<2).map { _ in try sut.bitmap(of: lists[0]) }
+        let fresh = try QuartzRenderer(decoder: AVFoundationDecoder()).bitmap(of: lists[0])
 
         // Then
         #expect(lists[0] == lists[1])

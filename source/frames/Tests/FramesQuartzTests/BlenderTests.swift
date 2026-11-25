@@ -39,7 +39,7 @@ struct BlenderTests {
             let list = list(backdrop: pair.backdrop, source: pair.source, mode: mode, compositing: compositing)
 
             // When
-            let pixel = try QuartzRenderer(decoder: AVFoundationDecoder()).frame(of: list).pixel(x: 2, y: 2)
+            let pixel = try QuartzRenderer(decoder: AVFoundationDecoder()).bitmap(of: list).pixel(x: 2, y: 2)
 
             // Then
             let expected = BlendFormula().composite(
@@ -77,7 +77,7 @@ struct BlenderTests {
         let list = list(backdrop: backdrop, source: source, mode: mode, compositing: compositing)
 
         // When
-        let pixel = try QuartzRenderer(decoder: AVFoundationDecoder()).frame(of: list).pixel(x: 2, y: 2)
+        let pixel = try QuartzRenderer(decoder: AVFoundationDecoder()).bitmap(of: list).pixel(x: 2, y: 2)
 
         // Then
         for channel in 0..<3 {
@@ -100,7 +100,7 @@ struct BlenderTests {
             let list = list(backdrop: "color(srgb 0.8 0.8 0.8)", source: "color(srgb 0.3 0.3 0.3)", mode: mode, compositing: compositing)
 
             // When
-            let pixel = try QuartzRenderer(decoder: AVFoundationDecoder()).frame(of: list).pixel(x: 2, y: 2)
+            let pixel = try QuartzRenderer(decoder: AVFoundationDecoder()).bitmap(of: list).pixel(x: 2, y: 2)
 
             // Then
             for channel in 0..<3 {
@@ -121,7 +121,7 @@ struct BlenderTests {
         let list = list(backdrop: "#FF0000", source: "#0000FF80", mode: .normal, compositing: compositing)
 
         // When
-        let pixel = try QuartzRenderer(decoder: AVFoundationDecoder()).frame(of: list).pixel(x: 2, y: 2)
+        let pixel = try QuartzRenderer(decoder: AVFoundationDecoder()).bitmap(of: list).pixel(x: 2, y: 2)
 
         // Then
         // #80 is an alpha of 128 / 255, so half blue over red is a little bluer than half.

@@ -57,7 +57,7 @@ struct MatteApplierTests {
         )
 
         // When
-        let bitmap = try sut.frame(of: list)
+        let bitmap = try sut.bitmap(of: list)
 
         // Then
         for (band, level) in Self.levels.enumerated() {
@@ -91,7 +91,7 @@ struct MatteApplierTests {
         )
 
         // When
-        let bitmap = try sut.frame(of: list)
+        let bitmap = try sut.bitmap(of: list)
 
         // Then
         for x in [5, 15] {
@@ -124,7 +124,7 @@ struct MatteApplierTests {
         )
 
         // When
-        let bitmap = try sut.frame(of: list)
+        let bitmap = try sut.bitmap(of: list)
 
         // Then
         // The outermost pixels the destination covers whole.
@@ -155,7 +155,7 @@ struct MatteApplierTests {
         )
 
         // When
-        _ = try sut.frame(of: list)
+        _ = try sut.bitmap(of: list)
 
         // Then
         #expect(decoder.readings(of: "/matte.png") == [.analysis(colorSpace: .rec2100PQ)])

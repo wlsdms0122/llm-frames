@@ -37,7 +37,7 @@ struct PageDrawingTests {
         )
 
         // When
-        _ = try sut.frame(of: list(size: 300, items: [item]))
+        _ = try sut.bitmap(of: list(size: 300, items: [item]))
 
         // Then
         #expect(decoder.regions(of: "/abs/deck.pdf") == [
@@ -59,7 +59,7 @@ struct PageDrawingTests {
 
         // When
         for frame in frames.reversed() {
-            _ = try sut.frame(of: frame)
+            _ = try sut.bitmap(of: frame)
         }
 
         // Then
@@ -91,7 +91,7 @@ struct PageDrawingTests {
         let frame = DisplayList(size: Size(width: 200, height: 200), background: Self.clear, seed: 0, samples: samples)
 
         // When
-        _ = try sut.frame(of: frame)
+        _ = try sut.bitmap(of: frame)
 
         // Then
         #expect(decoder.regions(of: "/abs/deck.pdf") == scales.map { scale in
@@ -112,7 +112,7 @@ struct PageDrawingTests {
         let item = DisplayItem(transform: Frames.AffineTransform(a: 4, b: 0, c: 0, d: 4, tx: 0, ty: 0), content: .picture(picture))
 
         // When
-        _ = try sut.frame(of: list(size: 100, items: [item]))
+        _ = try sut.bitmap(of: list(size: 100, items: [item]))
 
         // Then
         #expect(decoder.regions(of: "/abs/deck.pdf") == [
@@ -130,7 +130,7 @@ struct PageDrawingTests {
         )
 
         // When
-        _ = try sut.frame(of: list(size: 100, items: [item]))
+        _ = try sut.bitmap(of: list(size: 100, items: [item]))
 
         // Then
         #expect(decoder.regions(of: "/abs/deck.pdf") == [
@@ -154,7 +154,7 @@ struct PageDrawingTests {
         )
 
         // When
-        _ = try sut.frame(of: list(size: 100, items: [item]))
+        _ = try sut.bitmap(of: list(size: 100, items: [item]))
 
         // Then
         let requests = decoder.regions(of: "/abs/deck.pdf")
@@ -178,8 +178,8 @@ struct PageDrawingTests {
         )
 
         // When
-        let drawn = try sut.frame(of: list(size: 100, items: [page]))
-        let inPlace = try sut.frame(of: list(size: 100, items: [square]))
+        let drawn = try sut.bitmap(of: list(size: 100, items: [page]))
+        let inPlace = try sut.bitmap(of: list(size: 100, items: [square]))
 
         // Then
         #expect(largestAlphaDifference(drawn, inPlace, size: 100) < 0.05)
@@ -200,7 +200,7 @@ struct PageDrawingTests {
         let item = DisplayItem(transform: Frames.AffineTransform(a: 4, b: 0, c: 0, d: 4, tx: 0, ty: 0), content: .picture(picture))
 
         // When
-        let drawn = try sut.frame(of: list(size: 40, items: [item]))
+        let drawn = try sut.bitmap(of: list(size: 40, items: [item]))
 
         // Then
         let alphas = (0..<40).flatMap { y in (0..<40).map { x in drawn.pixel(x: x, y: y)[3] } }
@@ -228,7 +228,7 @@ struct PageDrawingTests {
         )
 
         // When
-        let drawn = try sut.frame(of: list(size: 100, items: [item]))
+        let drawn = try sut.bitmap(of: list(size: 100, items: [item]))
 
         // Then
         let expected: [(x: Int, y: Int, alpha: Double)] = [
@@ -267,7 +267,7 @@ struct PageDrawingTests {
         )
 
         // When
-        let drawn = try sut.frame(of: list(size: 100, items: [item]))
+        let drawn = try sut.bitmap(of: list(size: 100, items: [item]))
 
         // Then
         // The quadrants meet at 5 points, output pixel 70.
@@ -297,7 +297,7 @@ struct PageDrawingTests {
         )
 
         // When
-        _ = try sut.frame(of: list(size: 100, items: [item]))
+        _ = try sut.bitmap(of: list(size: 100, items: [item]))
 
         // Then
         // The matte is shown at scale 2 over 100 output pixels, and its resampling reads 3 output pixels past them.
@@ -323,7 +323,7 @@ struct PageDrawingTests {
         )
 
         // When
-        _ = try sut.frame(of: list(size: 100, items: [item]))
+        _ = try sut.bitmap(of: list(size: 100, items: [item]))
 
         // Then
         #expect(decoder.regions(of: "/abs/matte.pdf").isEmpty)

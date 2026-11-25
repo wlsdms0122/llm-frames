@@ -44,7 +44,7 @@ struct MotionBlurRenderTests {
         let sut = QuartzRenderer(decoder: AVFoundationDecoder())
 
         // When
-        let frame = try sut.frame(of: Evaluator().displayList(of: document, at: 0.08))
+        let frame = try sut.bitmap(of: Evaluator().displayList(of: document, at: 0.08))
 
         // Then
         let reds = (0..<frame.width).map { frame.pixel(x: $0, y: 10)[0] }
@@ -73,8 +73,8 @@ struct MotionBlurRenderTests {
         let sut = QuartzRenderer(decoder: AVFoundationDecoder())
 
         // When
-        let blurred = try sut.frame(of: Evaluator().displayList(of: document(true), at: 0.08))
-        let sharp = try sut.frame(of: Evaluator().displayList(of: document(false), at: 0.08))
+        let blurred = try sut.bitmap(of: Evaluator().displayList(of: document(true), at: 0.08))
+        let sharp = try sut.bitmap(of: Evaluator().displayList(of: document(false), at: 0.08))
 
         // Then
         let partial = { (frame: Bitmap) in
@@ -98,8 +98,8 @@ struct MotionBlurRenderTests {
 
         // When
         let list = evaluator.displayList(of: document, at: 0.4)
-        let frame = try sut.frame(of: list)
-        let sharp = try sut.frame(of: evaluator.displayListWithoutMotionBlur(of: document, at: 0.4))
+        let frame = try sut.bitmap(of: list)
+        let sharp = try sut.bitmap(of: evaluator.displayListWithoutMotionBlur(of: document, at: 0.4))
 
         // Then
         guard case let .samples(samples) = list.content else { Issue.record("the list holds items"); return }
@@ -129,8 +129,8 @@ struct MotionBlurRenderTests {
 
         // When
         let list = evaluator.displayList(of: document, at: 0.6)
-        let frame = try sut.frame(of: list)
-        let sharp = try sut.frame(of: evaluator.displayListWithoutMotionBlur(of: document, at: 0.6))
+        let frame = try sut.bitmap(of: list)
+        let sharp = try sut.bitmap(of: evaluator.displayListWithoutMotionBlur(of: document, at: 0.6))
 
         // Then
         guard case let .samples(samples) = list.content else { Issue.record("the list holds items"); return }
@@ -153,7 +153,7 @@ struct MotionBlurRenderTests {
 
         // When
         let list = Evaluator().displayList(of: document, at: time)
-        let frame = try sut.frame(of: list)
+        let frame = try sut.bitmap(of: list)
 
         // Then
         guard case .samples = list.content else { Issue.record("the list holds items"); return }
@@ -173,8 +173,8 @@ struct MotionBlurRenderTests {
         let sut = QuartzRenderer(decoder: AVFoundationDecoder())
 
         // When
-        let before = try sut.frame(of: Evaluator().displayList(of: document, at: 1.52))
-        let after = try sut.frame(of: Evaluator().displayList(of: document, at: 1.56))
+        let before = try sut.bitmap(of: Evaluator().displayList(of: document, at: 1.52))
+        let after = try sut.bitmap(of: Evaluator().displayList(of: document, at: 1.56))
 
         // Then
         let lit = { (frame: Bitmap) in (0..<frame.width).filter { frame.pixel(x: $0, y: 10)[0] > 0.001 } }
@@ -195,7 +195,7 @@ struct MotionBlurRenderTests {
         let sut = QuartzRenderer(decoder: AVFoundationDecoder())
 
         // When
-        let frame = try sut.frame(of: Evaluator().displayList(of: document, at: 0.4))
+        let frame = try sut.bitmap(of: Evaluator().displayList(of: document, at: 0.4))
 
         // Then
         let reds = (0..<frame.width).map { frame.pixel(x: $0, y: 10)[0] }
@@ -220,8 +220,8 @@ struct MotionBlurRenderTests {
         let sut = QuartzRenderer(decoder: AVFoundationDecoder())
 
         // When
-        let seam = try sut.frame(of: Evaluator().displayList(of: document, at: 0.99))
-        let middle = try sut.frame(of: Evaluator().displayList(of: document, at: 0.49))
+        let seam = try sut.bitmap(of: Evaluator().displayList(of: document, at: 0.99))
+        let middle = try sut.bitmap(of: Evaluator().displayList(of: document, at: 0.49))
 
         // Then
         let points = (0..<200).flatMap { y in (0..<200).map { x in (x: x, y: y) } }
