@@ -169,6 +169,29 @@ struct TrackPlannerTests {
         #expect(plan.time.clips[0].visible == TimeRange(start: 0.5, end: 1.5))
     }
 
+    @Test("a clip whose instant shows a followed frame and whose window from it shows none stops as never visible")
+    func refusesWindowNeverFollowed() throws {
+        // Given
+        // The media time is 1 + 2s at sequence time s, and the target is followed from media second 1.6. The clip's
+        // instant 0.31 shows media time 1.62, a followed frame, and the 24 fps frame its window is walked from, frame 7
+        // at 0.2917, shows media time 1.583, the frame at 1.5, which is not followed.
+        let sut = TrackPlanner()
+        let trackData = data(atMediaTime: 1.6, followed: 1.6...3.9)
+        let time = try plan(
+            storyline: #""keyframes": [ { "at": 1, "timeRemap": 1 }, { "at": 3, "timeRemap": 5 } ]"#,
+            connected: #"""
+                { "shape": "rect", "stroke": { "width": 8 }, "parent": "screen", "area": [100, 100, 200, 40], "at": [1.31, 2.5], "track": \#(trackData) }
+                """#
+        )
+
+        // When, Then
+        let error = #expect(throws: ResolveError.self) { try sut.plan(time) }
+        #expect(error?.description == #"""
+            storyline[0]#screen.connected[0] (rect): never visible, since the track data follows its target on none of \#
+            the frames of its visible range [0.31, 1.5)
+            """#)
+    }
+
     @Test("a clip parented to its storyline clip follows that clip's media from its instant, and is visible only where followed")
     func narrowsConnectedWindow() throws {
         // Given
