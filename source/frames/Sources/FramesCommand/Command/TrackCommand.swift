@@ -27,8 +27,6 @@ struct TrackCommand: Command {
         let roles = context.roles
         let reporter = TrackReporter(
             mediaFacts: roles.decoder,
-            ocr: roles.ocr,
-            languages: context.options.ocrLanguages,
             tracker: roles.tracker
         )
         let report = try reporter.report(

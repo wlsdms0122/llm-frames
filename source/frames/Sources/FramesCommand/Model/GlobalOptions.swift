@@ -7,8 +7,8 @@
 
 import Frames
 
-// The options given before the command: the theme, the name of each role and provider and the recognition languages,
-// nil where the default is taken, and all of them as written, which an extension is given unchanged.
+// The options given before the command: the theme and the name of each role and provider, nil where the default is
+// taken, and all of them as written, which an extension is given unchanged.
 struct GlobalOptions: Equatable, Sendable {
     // MARK: - Property
     static let none = GlobalOptions(
@@ -18,7 +18,6 @@ struct GlobalOptions: Equatable, Sendable {
         mixer: nil,
         encoder: nil,
         ocr: nil,
-        ocrLanguages: nil,
         shaper: nil,
         tracker: nil,
         written: []
@@ -30,7 +29,6 @@ struct GlobalOptions: Equatable, Sendable {
     let mixer: String?
     let encoder: String?
     let ocr: String?
-    let ocrLanguages: [LanguageTag]?
     let shaper: String?
     let tracker: String?
     let written: [String]
@@ -43,7 +41,6 @@ struct GlobalOptions: Equatable, Sendable {
         mixer: String?,
         encoder: String?,
         ocr: String?,
-        ocrLanguages: [LanguageTag]?,
         shaper: String?,
         tracker: String?,
         written: [String]
@@ -54,7 +51,6 @@ struct GlobalOptions: Equatable, Sendable {
         self.mixer = mixer
         self.encoder = encoder
         self.ocr = ocr
-        self.ocrLanguages = ocrLanguages
         self.shaper = shaper
         self.tracker = tracker
         self.written = written

@@ -5,11 +5,10 @@
 //  Created by JSilver on 11/21/26.
 //
 
-// The values a tracked clip's track carries, as its placement decides them (FRAMES-12 What is tracked), the clock each
-// of its values is searched on, and those followed values it writes without keyframes that are true on the track's
-// frame, which the resolved document writes as values. Which of a mask's or a path's leaves are written without
-// keyframes, and which of them a text form found, is decided where its masks are found and where its vertices are
-// brought into its parent's space, so a followed mask and a path's `points` are taken whole here.
+// The values a tracked clip's track carries, as its placement decides them (FRAMES-12 What is tracked), and those
+// followed values it writes without keyframes, which are true on the track's frame and which the resolved document
+// writes as values. Which of a mask's or a path's leaves are written without keyframes is decided where its masks and
+// vertices are planned, so a followed mask and a path's `points` are taken whole here.
 extension ClipPlan {
     // MARK: - Property
     var followedKeys: Set<FollowedKey> {
@@ -25,38 +24,24 @@ extension ClipPlan {
 
     // MARK: - Initializer
     // MARK: - Public
-    // The clock a value of the clip under `value` is searched on, `clock` being the one of its instant: the track's
-    // frame for a followed value its track searches there, and `clock` for every other.
-    func clock(
-        of value: FollowedKey,
-        on clock: PictureClock,
-        track: TrackTarget?
-    ) -> PictureClock {
-        guard followedKeys.contains(value), let track else { return clock }
-
-        return track.clock(of: value, on: clock)
-    }
-
     func onTrackFrame(of written: Clip) -> Set<FollowedKey> {
-        guard let target = written.track else { return [] }
+        guard written.track != nil else { return [] }
 
         return followedKeys.filter { value in
-            isOnTrackFrame(value, of: written, target: target)
+            isOnTrackFrame(value, of: written)
         }
     }
 
     // MARK: - Private
     private func isOnTrackFrame(
         _ value: FollowedKey,
-        of written: Clip,
-        target: TrackTarget
+        of written: Clip
     ) -> Bool {
-        let isFoundByText: Bool
         switch value {
         case .area:
-            guard case let .value(area) = written.area else { return false }
+            guard case .value = written.area else { return false }
 
-            isFoundByText = area.isFoundByText
+            return true
 
         case .points:
             guard case let .shape(shape) = written.content else { return false }
@@ -64,24 +49,22 @@ extension ClipPlan {
             return shape.points != nil
 
         case .position:
-            guard case let .value(position) = written.position else { return false }
+            guard case .value = written.position else { return false }
 
-            isFoundByText = position.isFoundByText
+            return true
 
         case .cornerPin:
-            guard case let .value(points) = written.cornerPin else { return false }
+            guard case .value = written.cornerPin else { return false }
 
-            isFoundByText = points.contains(where: \.isFoundByText)
+            return true
 
         case .crop:
-            guard case let .value(crop) = written.crop else { return false }
+            guard case .value = written.crop else { return false }
 
-            isFoundByText = crop.isFoundByText
+            return true
 
         case .mask:
             return written.mask != nil
         }
-
-        return target.isOnTrackFrame(value, isFoundByText: isFoundByText)
     }
 }

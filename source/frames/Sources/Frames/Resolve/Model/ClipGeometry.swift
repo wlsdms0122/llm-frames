@@ -20,7 +20,7 @@ struct ClipGeometry: Equatable, Sendable {
     let position: PropertyValue<GeometryPoint>?
     let box: ClipBox?
     let cornerPin: ClipCornerPin?
-    let crop: PropertyValue<FoundArea>?
+    let crop: PropertyValue<Rectangle>?
     let mask: [ResolvedMask]?
     let track: TrackedMedia?
     let onTrackFrame: Set<FollowedKey>
@@ -36,7 +36,7 @@ struct ClipGeometry: Equatable, Sendable {
         position: PropertyValue<GeometryPoint>?,
         box: ClipBox?,
         cornerPin: ClipCornerPin? = nil,
-        crop: PropertyValue<FoundArea>?,
+        crop: PropertyValue<Rectangle>?,
         mask: [ResolvedMask]?,
         track: TrackedMedia?,
         onTrackFrame: Set<FollowedKey> = [],

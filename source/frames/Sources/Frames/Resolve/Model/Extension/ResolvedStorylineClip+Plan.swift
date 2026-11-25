@@ -35,7 +35,7 @@ extension ResolvedStorylineClip {
         let file: MediaFile? = if case let .file(file) = plan.source.media?.source { file } else { nil }
         let whole = geometry.nested?.format.size ?? file?.size ?? format.size
         let crop = geometry.crop?
-            .followed(at: plan.instant, isOnTrackFrame: geometry.isCropOnTrackFrame) { conform($0.rectangle) }
+            .followed(at: plan.instant, isOnTrackFrame: geometry.isCropOnTrackFrame) { conform($0) }
             ?? .keyframes([Keyframe(at: plan.instant, value: conform(Rectangle(x: 0, y: 0, width: whole.width, height: whole.height)))])
 
         self.init(

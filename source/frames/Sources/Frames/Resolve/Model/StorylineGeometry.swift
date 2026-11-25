@@ -11,7 +11,7 @@
 // keyframes and true on the track's frame.
 struct StorylineGeometry: Equatable, Sendable {
     // MARK: - Property
-    let crop: PropertyValue<FoundArea>?
+    let crop: PropertyValue<Rectangle>?
     let mask: [ResolvedMask]?
     let track: Track?
     let isCropOnTrackFrame: Bool
@@ -22,7 +22,7 @@ struct StorylineGeometry: Equatable, Sendable {
 
     // MARK: - Initializer
     init(
-        crop: PropertyValue<FoundArea>?,
+        crop: PropertyValue<Rectangle>?,
         mask: [ResolvedMask]?,
         track: Track?,
         isCropOnTrackFrame: Bool = false,

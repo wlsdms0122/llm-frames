@@ -5,23 +5,22 @@
 //  Created by JSilver on 11/19/26.
 //
 
-// A clip's `area` as resolve finds it: an area found in its picture, or a clip area, which evaluation takes at each
-// instant.
+// A clip's `area` as resolve keeps it: a rectangle, or a clip area, which evaluation takes at each instant.
 enum AreaValue: Equatable, Sendable {
-    case found(FoundArea)
+    case rectangle(Rectangle)
     case clip(ClipArea)
 
     // MARK: - Property
-    var found: FoundArea? {
-        guard case let .found(area) = self else { return nil }
+    var rectangle: Rectangle? {
+        guard case let .rectangle(rectangle) = self else { return nil }
 
-        return area
+        return rectangle
     }
 
     var geometry: GeometryArea {
         switch self {
-        case let .found(area):
-            .rectangle(area.rectangle)
+        case let .rectangle(rectangle):
+            .rectangle(rectangle)
 
         case let .clip(area):
             .clip(area)
@@ -30,10 +29,10 @@ enum AreaValue: Equatable, Sendable {
 
     // MARK: - Initializer
     // MARK: - Public
-    func map(_ transform: (FoundArea) -> FoundArea) -> AreaValue {
-        guard case let .found(area) = self else { return self }
+    func map(_ transform: (Rectangle) -> Rectangle) -> AreaValue {
+        guard case let .rectangle(rectangle) = self else { return self }
 
-        return .found(transform(area))
+        return .rectangle(transform(rectangle))
     }
 
     // MARK: - Private

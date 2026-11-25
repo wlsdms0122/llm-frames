@@ -17,14 +17,7 @@ struct CommandLineParser: Sendable {
             value: "<pack/name | /abs/theme.json>",
             help: "A theme merged under every document's own theme: a pack theme or a JSON file as an absolute path."
         )
-    ] + RoleFactory().rules + [
-        OptionRule(
-            "--ocr-languages",
-            value: "<tag>[,<tag>...]",
-            help: "The OCR provider's recognition languages, BCP 47 tags in order of preference. "
-                + "Without it the provider detects the language of each picture."
-        )
-    ]
+    ] + RoleFactory().rules
 
     static let help = "--help"
     private static let version = "--version"
@@ -69,7 +62,6 @@ struct CommandLineParser: Sendable {
             mixer: values["--mixer"],
             encoder: values["--encoder"],
             ocr: values["--ocr"],
-            ocrLanguages: try values["--ocr-languages"].map(languages),
             shaper: values["--shaper"],
             tracker: values["--tracker"],
             written: Array(arguments[..<index])
@@ -84,16 +76,4 @@ struct CommandLineParser: Sendable {
     }
 
     // MARK: - Private
-    private func languages(_ value: String) throws -> [LanguageTag] {
-        guard let languages = [LanguageTag](commaSeparated: value) else {
-            throw CommandError.invalidValue(
-                command: nil,
-                option: "--ocr-languages",
-                value: value,
-                expected: "BCP 47 tags separated by commas"
-            )
-        }
-
-        return languages
-    }
 }
