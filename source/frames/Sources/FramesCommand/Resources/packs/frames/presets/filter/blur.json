@@ -1,6 +1,6 @@
 {
   "description": "Evenly blurred.",
   "ops": [
-    { "op": "blur", "radius": 10 }
+    { "kind": "blur", "radius": 10 }
   ]
 }

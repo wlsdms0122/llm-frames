@@ -60,9 +60,9 @@ indirect enum ValueType: Equatable, Sendable {
     // An argument a preset choice passes, whose type is the preset's to say. It is a number, a colour or an ease,
     // and a template's parameter stands for it.
     case presetArgument
-    // A preset name, `{preset, args}`, or a list of at least one of those without `"none"`.
+    // `"none"`, a preset name, a preset entry, a filter op, or a list of at least one of those but `"none"`.
     case filterChoice
-    // An audio preset name, `{preset, args, mix}`, an audio op, or a list of at least one of those.
+    // An audio preset name, a preset entry, an audio op, or a list of at least one of those.
     case audioFilterChoice
     case filterOperation
     case audioOperation

@@ -22,7 +22,7 @@ extension TimedValue {
         case let .list(elements):
             return .list(try elements.map { try $0.pinningFiles(hashes: hashes) })
 
-        case let .form(name, .object(members)) where ["op:lut", "op:displace", "op:convolve"].contains(name):
+        case let .form(name, .object(members)) where ["kind:lut", "kind:displace", "kind:convolve"].contains(name):
             return .form(name, .object(try members.flatMap { member -> [TimedMember] in
                 guard member.key == "file", case let .fixed(.string(path)) = member.value else { return [member] }
 

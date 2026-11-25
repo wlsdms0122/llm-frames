@@ -51,7 +51,7 @@ struct LookReader: Sendable {
         case let .forms(forms):
             return self.forms(json, as: forms)
 
-        case let .choice(offNames, forms):
+        case let .choice(offNames, forms, _):
             return choice(json, offNames: offNames, forms: forms, as: structure)
         }
     }
@@ -132,7 +132,8 @@ struct LookReader: Sendable {
     }
 
     // A form's body is read by the structure its form declares, and a partial choice's keys by the structure of the
-    // first form that declares each, so a list in it is a list wherever it is written.
+    // first form that declares each, so a list in it is a list wherever it is written. A preset entry that names no
+    // preset is the partial form `preset`, which changes only a preset entry.
     private func choice(
         _ json: JSONValue,
         offNames: [String],
@@ -151,18 +152,18 @@ struct LookReader: Sendable {
                 let body = structure.structure(ofForm: form.name) ?? .anyValue
                 return .form(form.name, value(of: .object(form.body), as: body))
             }
-            guard !object.contains("entrance"), !object.contains("exit") else {
-                return .form("sides", free(json))
-            }
 
-            return .object(object.members.map { member in
+            let members = object.members.filter { $0.key != "kind" }.map { member in
                 let structure = forms.lazy.compactMap { form -> ValueStructure? in
                     guard case let .object(body) = form.structure else { return nil }
 
                     return body.structure(of: member.key)
                 }.first
                 return LookMember(key: member.key, value: value(of: member.value, as: structure ?? .anyValue))
-            })
+            }
+            guard object["kind"] == .string(ValueStructure.presetKind) else { return .object(members) }
+
+            return .form(ValueStructure.presetKind, .object(members))
 
         default:
             return .leaf(json)

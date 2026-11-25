@@ -756,42 +756,26 @@ struct TimePlanner: Sendable {
         place: Place,
         kind: ClipKind
     ) throws -> AnimationPlan {
-        let spans: (entrance: PresetSpan?, loop: PresetSpan?, exit: PresetSpan?)
-        let unit: (by: TextUnit?, stagger: Double?, order: UnitOrder?)
-        switch choice {
-        case .none:
-            return .none
+        guard choice != .none else { return .none }
 
-        case let .preset(instance, by, stagger, order):
-            let preset = try animationPreset(instance, place: place, kind: kind)
-            spans = (
-                preset.entrance.map { PresetSpan(preset: instance.name, span: $0) },
-                preset.loop.map { PresetSpan(preset: instance.name, span: $0) },
-                preset.exit.map { PresetSpan(preset: instance.name, span: $0) }
-            )
-            unit = (by, stagger, order)
+        let span = { (instance: PresetInstance?, span: KeyPath<AnimationPreset, AnimationSpan?>) throws -> PresetSpan? in
+            guard let instance else { return nil }
 
-        case let .split(entrance, exit, by, stagger, order):
-            let entrancePreset = try entrance.map { try animationPreset($0, place: place, kind: kind) }
-            let exitPreset = try exit.map { try animationPreset($0, place: place, kind: kind) }
-            spans = (
-                entrance.flatMap { instance in
-                    entrancePreset?.entrance.map { PresetSpan(preset: instance.name, span: $0) }
-                },
-                nil,
-                exit.flatMap { instance in
-                    exitPreset?.exit.map { PresetSpan(preset: instance.name, span: $0) }
-                }
-            )
-            unit = (by, stagger, order)
+            return try self.animationPreset(instance, place: place, kind: kind)[keyPath: span]
+                .map { PresetSpan(preset: instance.name, span: $0) }
         }
+        let spans = (
+            entrance: try span(choice.entrance, \.entrance),
+            loop: try span(choice.loop, \.loop),
+            exit: try span(choice.exit, \.exit)
+        )
 
         // A theme default the clip takes is not written at the clip, so its stops name the clip.
         let unitPlace = clip.animation == nil ? place : place.appending(key: "animation")
         let units = try units(
-            by: unit.by,
-            stagger: unit.stagger,
-            order: unit.order,
+            by: choice.by,
+            stagger: choice.stagger,
+            order: choice.order,
             of: clip,
             place: unitPlace,
             kind: kind

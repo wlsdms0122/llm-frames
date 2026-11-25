@@ -1,6 +1,6 @@
 {
   "description": "Half a stop darker.",
   "ops": [
-    { "op": "exposure", "ev": -0.5 }
+    { "kind": "exposure", "ev": -0.5 }
   ]
 }

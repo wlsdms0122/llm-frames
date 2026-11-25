@@ -194,7 +194,7 @@ struct ThemeValidator: Sendable {
         }
     }
 
-    // A side of a split that is `none` names no preset.
+    // Each preset the choice takes a span from is there.
     private func animationChoice(
         _ key: String,
         in object: JSONObject,
@@ -211,18 +211,7 @@ struct ThemeValidator: Sendable {
             theme: theme,
             reading: AnimationChoice.init(value:place:)
         )
-        let instances: [PresetInstance] = switch choice {
-        case .none:
-            []
-
-        case let .preset(instance, _, _, _):
-            [instance]
-
-        case let .split(entrance, exit, _, _, _):
-            [entrance, exit].compactMap(\.self)
-        }
-
-        for instance in instances {
+        for instance in choice.instances {
             guard try presets.animation(instance) != nil else {
                 throw ThemeError.unknownPreset(
                     place: theme.place(of: place.appending(key: key)),

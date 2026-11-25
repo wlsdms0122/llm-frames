@@ -288,7 +288,7 @@ struct ResolvedValueReader: Sendable {
     }
 
     func ease(_ value: PlacedJSONValue) throws -> Ease {
-        guard let ease = Ease(value: value.value) else { throw value.wrongType("an ease name, [x1, y1, x2, y2] or {spring}") }
+        guard let ease = Ease(value: value.value) else { throw value.wrongType("an ease name, [x1, y1, x2, y2] or {\"kind\": \"spring\", \"bounce\": b}") }
 
         return ease
     }
@@ -395,7 +395,7 @@ struct ResolvedValueReader: Sendable {
             }
             return .fixed(value.value)
 
-        case let .choice(_, forms) where !forms.isEmpty:
+        case let .choice(_, forms, _) where !forms.isEmpty:
             return try choice(value, forms: forms, as: structure, kind: kind)
 
         case .anyValue, .choice:

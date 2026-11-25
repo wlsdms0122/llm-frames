@@ -138,7 +138,7 @@ struct PresetReader: Sendable {
         place: Place,
         sampled: Set<String> = []
     ) throws {
-        let name = operation["op"]?.stringValue ?? ""
+        let name = operation["kind"]?.stringValue ?? ""
         guard case let .object(structure) = LookStructureTable.filterOperation(name) else { return }
 
         for parameter in structure.keys {
@@ -281,7 +281,7 @@ struct PresetReader: Sendable {
         for (index, operation) in objects.enumerated() {
             let operationPlace = place.appending(key: "ops").appending(index: index)
             let parameters = operation.keys.filter { sampled.contains(operationPlace.appending(key: $0)) }
-            let structure = LookStructureTable.filterOperation(operation["op"]?.stringValue ?? "")
+            let structure = LookStructureTable.filterOperation(operation["kind"]?.stringValue ?? "")
             try checkRanges(of: operation, place: operationPlace, sampled: Set(parameters))
             try checkRequired(of: operation, as: structure, place: operationPlace)
         }
@@ -302,7 +302,7 @@ struct PresetReader: Sendable {
         let object = value.objectValue ?? JSONObject()
         let operations = (object["ops"]?.arrayValue ?? []).compactMap(\.objectValue)
         for (index, operation) in operations.enumerated() {
-            let structure = LookStructureTable.audioOperation(operation["op"]?.stringValue ?? "")
+            let structure = LookStructureTable.audioOperation(operation["kind"]?.stringValue ?? "")
             let operationPlace = place.appending(key: "ops").appending(index: index)
             try structure.checkDomains(of: .object(operation), place: operationPlace, sampled: sampled)
             try checkRequired(of: operation, as: structure, place: operationPlace)
@@ -322,7 +322,7 @@ struct PresetReader: Sendable {
             let value = lookReader.value(of: .object(operation), as: structure)
             try merger.checkRequired(in: value, as: structure, place: operationPlace)
         } catch let LookError.missingLeaf(place, key) {
-            let kind = place == operationPlace ? operation["op"]?.stringValue ?? "operation" : "band"
+            let kind = place == operationPlace ? operation["kind"]?.stringValue ?? "operation" : "band"
             throw ModelError.missingKey(place: place, kind: kind, keys: [key])
         }
     }
@@ -419,7 +419,7 @@ struct PresetReader: Sendable {
         let number = { (key: String) in object[key]?.numberValue ?? 0 }
         let numbers = { (key: String) in object[key]?.arrayValue?.compactMap(\.numberValue) ?? [] }
 
-        switch object["op"]?.stringValue {
+        switch object["kind"]?.stringValue {
         case "exposure":
             return .exposure(ev: number("ev"))
 

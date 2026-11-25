@@ -179,9 +179,9 @@ enum LookStructureTable {
         ("shadow", shadow)
     ])
 
-    static let transition = ValueStructure.choice(offNames: ["cut"])
+    static let transition = ValueStructure.choice(offNames: ["cut"], naming: .preset)
 
-    static let filter = ValueStructure.choice(offNames: ["none"])
+    static let filter = ValueStructure.choice(offNames: ["none"], naming: .kind)
 
     // A filter as resolve gives it: its entries in order, each the ops of a preset or the one op written in place, and
     // the `mix` it is drawn with. A LUT's and a displacement map's file is pinned, its SHA-256 beside it.
@@ -189,18 +189,18 @@ enum LookStructureTable {
         ("ops", .list(.choice(offNames: [], forms: FilterKeyTable.operations.map { name in
             guard case let .object(operation) = filterOperation(name), operation.keys.contains(where: { $0.name == "file" })
             else {
-                return ("op:" + name, filterOperation(name))
+                return ("kind:" + name, filterOperation(name))
             }
 
             let keys = operation.keys.flatMap { key in key.name == "file" ? [key, ("sha256", .leaf(.name))] : [key] }
-            return ("op:" + name, .object(ObjectStructure(keys)))
-        }))),
+            return ("kind:" + name, .object(ObjectStructure(keys)))
+        }, naming: .kind))),
         ("mix", mix)
     ])))
 
     static let mix = ValueStructure.leaf(.number(.range(0...1)))
 
-    static let animation = ValueStructure.choice(offNames: ["none"])
+    static let animation = ValueStructure.choice(offNames: ["none"], naming: .presetOverNone)
 
     // A path's vertex (FRAMES-11 Paths): its point and each of its tangents move as one leaf, and a vertex written as a
     // point names its point alone, its tangents `[0, 0]` where nothing writes them.
@@ -286,10 +286,10 @@ enum LookStructureTable {
             return ("preset:" + preset.name, ValueStructure.object(body))
         }
         let operationForms = FilterKeyTable.operations.map { name in
-            ("op:" + name, filterOperation(name, mixed: true))
+            ("kind:" + name, filterOperation(name, mixed: true))
         }
 
-        return .choice(offNames: ["none"], forms: presetForms + operationForms)
+        return .choice(offNames: ["none"], forms: presetForms + operationForms, naming: .kind)
     }
 
     // An op's parameters, in the order of the op table, a length a theme length, each required but a bloom's `color`,
@@ -349,7 +349,7 @@ enum LookStructureTable {
 
     // An audio filter choice whose presets are known, each entry with its `mix`. A preset entry's arguments are
     // numbers, each taking its default where no layer writes it. Its structure is static, so its presets, its ops, the
-    // number and types of its bands and a limiter's `lookahead` are as the clip or the sequence writes them, and an
+    // number and kinds of its bands and a limiter's `lookahead` are as the clip or the sequence writes them, and an
     // argument named in a preset's `staticArguments`, one a static parameter such as a `lookahead` reads, is static too.
     static func audioFilter(
         presets: [(name: String, parameters: [Parameter], staticArguments: Set<String>)]
@@ -369,10 +369,10 @@ enum LookStructureTable {
             return ("preset:" + preset.name, ValueStructure.object(body))
         }
         let operationForms = AudioFilterKeyTable.operations.map { name in
-            ("op:" + name, audioOperation(name, mixed: true))
+            ("kind:" + name, audioOperation(name, mixed: true))
         }
 
-        return .choice(offNames: [], forms: presetForms + operationForms)
+        return .choice(offNames: [], forms: presetForms + operationForms, naming: .kind)
     }
 
     // An audio filter as resolve gives it: its entries in order, each its ops and the `mix` it is heard with. An
@@ -383,12 +383,12 @@ enum LookStructureTable {
                 case let .object(operation) = audioOperation(name),
                 operation.keys.contains(where: { $0.name == "file" })
             else {
-                return ("op:" + name, audioOperation(name))
+                return ("kind:" + name, audioOperation(name))
             }
 
             let keys = operation.keys.flatMap { key in key.name == "file" ? [key, ("sha256", .leaf(.name))] : [key] }
-            return ("op:" + name, .object(ObjectStructure(keys)))
-        }))),
+            return ("kind:" + name, .object(ObjectStructure(keys)))
+        }, naming: .kind))),
         ("mix", mix)
     ])))
 
@@ -456,7 +456,7 @@ enum LookStructureTable {
             : .object(ObjectStructure(parameters, required: required, plain: defaults))
     }
 
-    // A band is a form by its `type`, each requiring the keys its type takes but `q`, which defaults to 1/√2. A band's
+    // A band is a form by its `kind`, each requiring the keys its kind takes but `q`, which defaults to 1/√2. A band's
     // `frequency` lies above 0 and below half of 48 kHz.
     static let band = ValueStructure.choice(offNames: [], forms: MixBandType.allCases.map { type in
         let keys: [(name: String, structure: ValueStructure)] = [
@@ -470,8 +470,8 @@ enum LookStructureTable {
             required: taken.map(\.name).filter { $0 != "q" },
             plain: ["q": .number(0.7071)]
         )
-        return ("type:" + type.rawValue, .object(body))
-    })
+        return ("kind:" + type.rawValue, .object(body))
+    }, naming: .kind)
 
     // A stroke whose `start` and `end` take `end`.
     private static func strokeStructure(end: ValueStructure) -> ValueStructure {

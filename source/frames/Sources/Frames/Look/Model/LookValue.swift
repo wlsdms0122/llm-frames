@@ -7,8 +7,8 @@
 
 // One layer's value of a look, read by its structure with its shorthands expanded. `unset` is a leaf that takes the
 // value below (`null`, or a leaf `true` names), and `off` turns the value below off (`false`, `"none"`). A form holds
-// its name: a `forms` value's (`color`, `linear`), or a choice's `preset:<name>`, `op:<name>` or `sides`; a choice
-// object that names no form is a partial `object`.
+// its name: a `forms` value's (`color`, `linear`), or a choice's `preset:<name>`, `kind:<name>` or `preset` for a
+// preset entry that names no preset; a choice object that names no form is a partial `object`.
 indirect enum LookValue: Equatable, Sendable {
     case unset
     case off
@@ -22,6 +22,18 @@ indirect enum LookValue: Equatable, Sendable {
         guard case let .object(members) = self else { return [] }
 
         return members
+    }
+
+    // A choice's value that changes the form below it: an object that names no form, or a preset entry that names no
+    // preset.
+    var isPartialChoice: Bool {
+        switch self {
+        case .object, .form(ValueStructure.presetKind, _):
+            true
+
+        case .unset, .off, .leaf, .list, .form:
+            false
+        }
     }
 
     // MARK: - Initializer
@@ -60,7 +72,7 @@ indirect enum LookValue: Equatable, Sendable {
         case (.unset, _):
             return nil
 
-        case let (.off, .choice(offNames, _)):
+        case let (.off, .choice(offNames, _, _)):
             return .string(offNames.first ?? "none")
 
         case (.off, _):
@@ -85,8 +97,8 @@ indirect enum LookValue: Equatable, Sendable {
                 }
             }))
 
-        case let (.form(name, body), .choice):
-            return choiceJSON(name: name, body: body)
+        case let (.form(name, body), .choice(_, _, naming)):
+            return choiceJSON(name: name, body: body, naming: naming)
 
         case let (.form(name, body), _):
             let inner = body.json(as: structure.structure(ofForm: name) ?? .anyValue) ?? .null
@@ -99,17 +111,23 @@ indirect enum LookValue: Equatable, Sendable {
     // MARK: - Private
     private func choiceJSON(
         name: String,
-        body: LookValue
+        body: LookValue,
+        naming: ChoiceNaming
     ) -> JSONValue {
         let members = body.json(as: .anyValue)?.objectValue?.members ?? []
+        let presetKind = naming == .kind ? [JSONMember(key: "kind", value: .string(ValueStructure.presetKind))] : []
         guard let separator = name.firstIndex(of: ":") else {
-            return .object(JSONObject(members: members))
+            let kind = name == ValueStructure.presetKind ? presetKind : []
+            return .object(JSONObject(members: kind + members))
         }
 
         let key = String(name[..<separator])
         let value = String(name[name.index(after: separator)...])
-        guard key != "preset" || !members.isEmpty else { return .string(value) }
+        guard key == "preset" else {
+            return .object(JSONObject(members: [JSONMember(key: key, value: .string(value))] + members))
+        }
+        guard !members.isEmpty else { return .string(value) }
 
-        return .object(JSONObject(members: [JSONMember(key: key, value: .string(value))] + members))
+        return .object(JSONObject(members: presetKind + [JSONMember(key: key, value: .string(value))] + members))
     }
 }

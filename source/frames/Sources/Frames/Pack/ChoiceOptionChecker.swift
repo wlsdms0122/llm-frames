@@ -135,40 +135,47 @@ struct ChoiceOptionChecker: Sendable {
             }
             return true
 
-        case let .object(object) where object.contains("entrance"):
+        // An animation choice names a preset in `preset` and in each side it writes.
+        case let .object(object) where kind == .animation:
             for side in ["entrance", "exit"] {
-                guard
-                    try presetsAreThere(object[side] ?? .null, kind: kind, place: place.appending(key: side))
-                else {
-                    return false
-                }
+                guard let written = object[side] else { continue }
+                guard try presetsAreThere(written, kind: kind, place: place.appending(key: side)) else { return false }
             }
-            return true
+            return try presetIsThere(choice, kind: kind, place: place)
 
         default:
-            guard var instance = PresetInstance(value: choice, place: place) else { return true }
+            return try presetIsThere(choice, kind: kind, place: place)
+        }
+    }
 
-            instance = PresetInstance(
-                name: instance.name,
-                arguments: JSONObject(members: instance.arguments.members.filter { $0.value.objectValue?["param"] == nil }),
-                place: place
-            )
-            switch kind {
-            case .transition:
-                return try presets.transition(instance) != nil
+    // The preset a name or an object's `preset` names, true where it names none.
+    private func presetIsThere(
+        _ choice: JSONValue,
+        kind: PresetKind,
+        place: Place
+    ) throws -> Bool {
+        guard var instance = PresetInstance(value: choice, place: place) else { return true }
 
-            case .animation:
-                return try presets.animation(instance) != nil
+        instance = PresetInstance(
+            name: instance.name,
+            arguments: JSONObject(members: instance.arguments.members.filter { $0.value.objectValue?["param"] == nil }),
+            place: place
+        )
+        switch kind {
+        case .transition:
+            return try presets.transition(instance) != nil
 
-            case .filter:
-                return try presets.filter(instance) != nil
+        case .animation:
+            return try presets.animation(instance) != nil
 
-            case .audio:
-                return try presets.audio(instance) != nil
+        case .filter:
+            return try presets.filter(instance) != nil
 
-            case .head:
-                return try presets.head(named: instance.name) != nil
-            }
+        case .audio:
+            return try presets.audio(instance) != nil
+
+        case .head:
+            return try presets.head(named: instance.name) != nil
         }
     }
 

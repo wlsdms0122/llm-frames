@@ -10,7 +10,9 @@
 // by key at every depth; every other value replaces the one under it; a value of another form, or a choice of another
 // preset, replaces it whole; keys that are one leaf replace each other; `unset` keeps the value below and `off` turns
 // it off. Over `off` or no value an upper value stands alone, and a partial choice there stops, since it has nothing
-// to change.
+// to change, but one named `presetOverNone`, whose off name is the choice of nothing, stands for what it writes
+// without `args`. A preset entry that names no preset changes a preset entry, and over an entry of another kind it
+// stops.
 struct LookMerger: Sendable {
     // MARK: - Property
     // MARK: - Initializer
@@ -171,8 +173,8 @@ struct LookMerger: Sendable {
         }
 
         guard let under, under != .unset, under != .off else {
-            if case .choice = structure, case .object = over {
-                throw LookError.nothingBelow(place: place)
+            if case let .choice(_, _, naming) = structure, over.isPartialChoice {
+                guard naming == .presetOverNone, over["args"] == nil else { throw LookError.nothingBelow(place: place) }
             }
             return over
         }
@@ -182,7 +184,15 @@ struct LookMerger: Sendable {
             let form = structure.structure(ofForm: name) ?? .anyValue
             return .form(name, try mergeObjects(body, over, as: form, place: place, byElement: byElement))
 
-        case (.choice, .list, .object):
+        case let (.choice, .form(name, body), .form(ValueStructure.presetKind, changes)):
+            guard name.hasPrefix(ValueStructure.presetKind + ":") else {
+                throw LookError.presetEntryOverKind(place: place, kind: String(name.drop { $0 != ":" }.dropFirst()))
+            }
+
+            let form = structure.structure(ofForm: name) ?? .anyValue
+            return .form(name, try mergeObjects(body, changes, as: form, place: place, byElement: byElement))
+
+        case (.choice, .list, _) where over.isPartialChoice:
             throw LookError.partialOverList(place: place)
 
         case let (_, .form(underName, underBody), .form(overName, overBody)):

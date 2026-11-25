@@ -197,7 +197,8 @@ struct ResolvedValueWriter: Sendable {
 
         case let .spring(bounce):
             .object(JSONObject(members: [
-                JSONMember(key: "spring", value: .object(JSONObject(members: [JSONMember(key: "bounce", value: .number(bounce))])))
+                JSONMember(key: "kind", value: .string("spring")),
+                JSONMember(key: "bounce", value: .number(bounce))
             ]))
         }
     }
@@ -259,7 +260,7 @@ struct ResolvedValueWriter: Sendable {
     }
 
     // A timed value: each timed leaf as its keyframe list, each static leaf as its value, `off` as `null`, the colour
-    // form as its colour, a choice's form as the choice writes it, its name beside its body (`{"op": "blur", ...}`),
+    // form as its colour, a choice's form as the choice writes it, its name beside its body (`{"kind": "blur", ...}`),
     // and any other form as an object of its one name.
     func timed(_ value: TimedValue) -> JSONValue {
         switch value {

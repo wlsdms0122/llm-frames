@@ -110,7 +110,9 @@ struct FilterResolver: Sendable {
     ) throws {
         let keyframes = property?.keyframes ?? []
         for (index, entry) in entries.enumerated() {
-            let operation = entry.objectValue.flatMap { $0["op"] == nil ? nil : $0 }
+            let operation = entry.objectValue.flatMap { object in
+                object["kind"].flatMap { $0 == .string(ValueStructure.presetKind) ? nil : object }
+            }
             let instance = PresetInstance(value: entry, place: looks.place)
             if let operation {
                 try reader.checkRanges(of: operation, place: isList ? place.appending(index: index) : place)
@@ -122,7 +124,7 @@ struct FilterResolver: Sendable {
 
                 let given = operation == nil
                     ? object["args"]?.objectValue ?? JSONObject()
-                    : JSONObject(members: object.members.filter { $0.key != "op" && $0.key != "mix" })
+                    : JSONObject(members: object.members.filter { $0.key != "kind" && $0.key != "mix" })
                 guard !given.members.isEmpty else { return nil }
 
                 let place = looks.place.appending(key: "keyframes").appending(index: keyframe.index).appending(key: key)
@@ -157,7 +159,7 @@ struct FilterResolver: Sendable {
 
         let mix = body["mix"] ?? .off
         let operations: [TimedValue]
-        if name.hasPrefix("op:") {
+        if name.hasPrefix("kind:") {
             let parameters = members.filter { $0.key != "mix" }
             operations = [.form(name, .object(try parameters.map { member in
                 try file(member, operation: name, place: place, kind: kind)
@@ -182,8 +184,8 @@ struct FilterResolver: Sendable {
         let objects = preset.value.objectValue?["ops"]?.arrayValue?.compactMap(\.objectValue) ?? []
 
         return try objects.enumerated().map { index, object in
-            let name = object["op"]?.stringValue ?? ""
-            let form = "op:" + name
+            let name = object["kind"]?.stringValue ?? ""
+            let form = "kind:" + name
             guard case let .object(structure) = LookStructureTable.filterOperation(name) else { return .off }
 
             let opPlace = preset.place.appending(key: "ops").appending(index: index)
@@ -250,10 +252,10 @@ struct FilterResolver: Sendable {
         guard member.key == "file", case let .fixed(.string(name)) = member.value else { return member }
 
         let path = switch operation {
-        case "op:lut":
+        case "kind:lut":
             try values.lutFile(name, place: place, kind: kind)
 
-        case "op:displace":
+        case "kind:displace":
             try values.displacementMap(name, place: place, kind: kind)
 
         default:

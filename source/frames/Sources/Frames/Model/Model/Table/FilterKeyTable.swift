@@ -5,7 +5,7 @@
 //  Created by JSilver on 11/15/26.
 //
 
-// The keys of a filter op, read from its look structure. Only `op` is required here: the parameters an op requires are
+// The keys of a filter op, read from its look structure. Only `kind` is required here: the parameters an op requires are
 // required of the merged value, since keyframes may give them in place of the clip. Their ranges are checked by
 // `PresetReader.checkRanges`, which lets a length a sampled argument fills be 0, so every number here is any number.
 enum FilterKeyTable {
@@ -21,6 +21,6 @@ enum FilterKeyTable {
             [KeyRule]()
         }
 
-        return ObjectTable(kind: operation, rules: [KeyRule("op", .literal(operations), isRequired: true)] + parameters)
+        return ObjectTable(kind: operation, rules: [KeyRule("kind", .literal(operations), isRequired: true)] + parameters)
     }
 }

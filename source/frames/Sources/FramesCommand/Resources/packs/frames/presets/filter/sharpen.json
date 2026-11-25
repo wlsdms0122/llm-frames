@@ -1,6 +1,6 @@
 {
   "description": "Crisper edges and fine detail.",
   "ops": [
-    { "op": "sharpen", "amount": 0.6, "radius": 1 }
+    { "kind": "sharpen", "amount": 0.6, "radius": 1 }
   ]
 }

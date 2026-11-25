@@ -42,7 +42,7 @@ struct AudioFilterResolver: Sendable {
             if let instance = PresetInstance(value: entry, place: entryPlace) {
                 published[instance.name] = try preset(instance, kind: looks.kind)
             } else {
-                let name = entry.objectValue?["op"]?.stringValue ?? ""
+                let name = entry.objectValue?["kind"]?.stringValue ?? ""
                 try LookStructureTable.audioOperation(name, mixed: true).checkDomains(of: entry, place: entryPlace)
             }
         }
@@ -82,7 +82,7 @@ struct AudioFilterResolver: Sendable {
     private func staticArguments(of preset: PublishedPreset<AudioPreset>) -> Set<String> {
         let objects = preset.value.objectValue?["ops"]?.arrayValue?.compactMap(\.objectValue) ?? []
         let places = objects.enumerated().flatMap { index, object -> [Place] in
-            guard case let .object(structure) = LookStructureTable.audioOperation(object["op"]?.stringValue ?? "") else {
+            guard case let .object(structure) = LookStructureTable.audioOperation(object["kind"]?.stringValue ?? "") else {
                 return []
             }
 
@@ -141,7 +141,7 @@ struct AudioFilterResolver: Sendable {
         guard case let .form(name, .object(members)) = value else { return value }
 
         let operations: [TimedValue]
-        if name.hasPrefix("op:") {
+        if name.hasPrefix("kind:") {
             operations = [.form(name, .object(members.filter { $0.key != "mix" }))]
         } else if let preset = published[String(name.dropFirst("preset:".count))] {
             let arguments = members.first { $0.key == "args" }?.value
@@ -166,7 +166,7 @@ struct AudioFilterResolver: Sendable {
         let objects = preset.value.objectValue?["ops"]?.arrayValue?.compactMap(\.objectValue) ?? []
 
         return try objects.enumerated().map { index, object in
-            let name = object["op"]?.stringValue ?? ""
+            let name = object["kind"]?.stringValue ?? ""
             let body = try timed(
                 .object(object),
                 as: LookStructureTable.audioOperation(name),
@@ -175,7 +175,7 @@ struct AudioFilterResolver: Sendable {
                 arguments: arguments,
                 looks: looks
             )
-            return .form("op:" + name, body)
+            return .form("kind:" + name, body)
         }
     }
 
@@ -185,7 +185,7 @@ struct AudioFilterResolver: Sendable {
         place: Place,
         kind: PlaceKind
     ) throws -> TimedValue {
-        guard case let .form(name, .object(members)) = operation, name == "op:convolve" else { return operation }
+        guard case let .form(name, .object(members)) = operation, name == "kind:convolve" else { return operation }
 
         return .form(name, .object(try members.map { member in
             guard member.key == "file", case let .fixed(.string(reference)) = member.value else { return member }

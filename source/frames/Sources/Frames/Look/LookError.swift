@@ -10,6 +10,8 @@
 enum LookError: Error, Equatable, CustomStringConvertible, Sendable {
     case nothingBelow(place: Place)
     case partialOverList(place: Place)
+    // `kind` is the kind of the entry below, an op's name.
+    case presetEntryOverKind(place: Place, kind: String)
     case missingLeaf(place: Place, key: String)
     case allZero(place: Place)
     case keyframedStatic(place: Place)
@@ -31,6 +33,9 @@ enum LookError: Error, Equatable, CustomStringConvertible, Sendable {
 
         case let .partialOverList(place):
             "\(place): a partial choice over a list, where which entry it changes is ambiguous"
+
+        case let .presetEntryOverKind(place, kind):
+            "\(place): a preset entry without \"preset\" changes the preset entry below it, and the entry below is of kind \"\(kind)\""
 
         case let .missingLeaf(place, key):
             "\(place): missing key \"\(key)\", which no layer gives"
@@ -86,6 +91,9 @@ enum LookError: Error, Equatable, CustomStringConvertible, Sendable {
 
         case let .partialOverList(place):
             .partialOverList(place: moved(place))
+
+        case let .presetEntryOverKind(place, kind):
+            .presetEntryOverKind(place: moved(place), kind: kind)
 
         case let .missingLeaf(place, key):
             .missingLeaf(place: moved(place), key: key)

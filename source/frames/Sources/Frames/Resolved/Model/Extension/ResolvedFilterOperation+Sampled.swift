@@ -11,11 +11,11 @@ extension ResolvedFilterOperation {
     // MARK: - Property
     // MARK: - Initializer
     init?(sampled: SampledValue) {
-        guard case let .form(form, body) = sampled, form.hasPrefix("op:") else { return nil }
+        guard case let .form(form, body) = sampled, form.hasPrefix("kind:") else { return nil }
 
         let number = { (key: String) in body[key]?.number ?? 0 }
         let numbers = { (key: String) in body[key]?.numbers ?? [0, 1] }
-        switch String(form.dropFirst("op:".count)) {
+        switch String(form.dropFirst("kind:".count)) {
         case "exposure":
             self = .exposure(ev: number("ev"))
 

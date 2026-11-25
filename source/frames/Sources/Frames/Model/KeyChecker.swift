@@ -522,7 +522,7 @@ struct KeyChecker: Sendable {
                     place: place,
                     kind: kind,
                     value: name,
-                    allowed: VocabularyTable.easeNames + ["[x1, y1, x2, y2]", "{spring}"]
+                    allowed: VocabularyTable.easeNames + ["[x1, y1, x2, y2]", "{\"kind\": \"spring\", \"bounce\": b}"]
                 )
             }
 
@@ -1363,8 +1363,9 @@ struct KeyChecker: Sendable {
         return mediaKind
     }
 
-    // `"none"` turns the filter off, so it is written alone, and a list applies at least one entry. An object naming
-    // `op` is an op written in place, which takes `mix` beside its parameters.
+    // `"none"` turns the filter off, so it is written alone, and a list applies at least one entry. An entry written as
+    // an object names its kind: `preset` for a preset entry, or an op written in place, which takes `mix` beside its
+    // parameters.
     private func checkFilterChoice(
         _ value: JSONValue,
         place: Place,
@@ -1403,7 +1404,15 @@ struct KeyChecker: Sendable {
         kind: String,
         scope: inout DocumentScope
     ) throws {
-        guard let object = value.objectValue, object.contains("op") else {
+        guard
+            let object = value.objectValue,
+            try entryKind(
+                of: object,
+                operations: FilterKeyTable.operations,
+                place: place,
+                label: ChoiceKeyTable.filterKind
+            ) != ValueStructure.presetKind
+        else {
             try check(value, as: ChoiceKeyTable.filterPreset, place: place, kind: kind, scope: &scope)
             return
         }
@@ -1416,7 +1425,8 @@ struct KeyChecker: Sendable {
         }
     }
 
-    // A list applies at least one entry, and an object naming `op` is an op written in place.
+    // A list applies at least one entry, and an entry written as an object names its kind, `preset` or an op written in
+    // place.
     private func checkAudioFilterChoice(
         _ value: JSONValue,
         place: Place,
@@ -1446,7 +1456,15 @@ struct KeyChecker: Sendable {
         kind: String,
         scope: inout DocumentScope
     ) throws {
-        guard let object = value.objectValue, object.contains("op") else {
+        guard
+            let object = value.objectValue,
+            try entryKind(
+                of: object,
+                operations: AudioFilterKeyTable.operations,
+                place: place,
+                label: AudioFilterKeyTable.kind
+            ) != ValueStructure.presetKind
+        else {
             try check(value, as: ChoiceKeyTable.audioFilterPreset, place: place, kind: kind, scope: &scope)
             return
         }
@@ -1454,21 +1472,46 @@ struct KeyChecker: Sendable {
         try checkAudioOperation(object, place: place, mixed: true, scope: &scope)
     }
 
+    // The `kind` of an entry written as an object: `preset` or one of `operations`. `label` is the kind of choice a stop
+    // names.
+    private func entryKind(
+        of object: JSONObject,
+        operations: [String],
+        place: Place,
+        label: String
+    ) throws -> String {
+        guard let value = object["kind"] else {
+            throw ModelError.missingKey(place: place, kind: label, keys: ["kind"])
+        }
+        guard let kind = value.stringValue else {
+            throw wrongType(value, .name, place.appending(key: "kind"), label)
+        }
+
+        let allowed = [ValueStructure.presetKind] + operations
+        guard allowed.contains(kind) else {
+            throw ModelError.unknownValue(place: place.appending(key: "kind"), kind: label, value: kind, allowed: allowed)
+        }
+
+        return kind
+    }
+
     // An op written in place takes `mix` beside its parameters, and a preset's op does not. An `eq` holds at least one
-    // band, each taking the keys of its `type`.
+    // band, each taking the keys of its `kind`.
     private func checkAudioOperation(
         _ object: JSONObject,
         place: Place,
         mixed: Bool,
         scope: inout DocumentScope
     ) throws {
-        let operationValue = object["op"] ?? .null
+        guard let operationValue = object["kind"] else {
+            throw ModelError.missingKey(place: place, kind: "audio operation", keys: ["kind"])
+        }
         guard let operation = operationValue.stringValue else {
-            throw wrongType(operationValue, .name, place.appending(key: "op"), "audio operation")
+            throw wrongType(operationValue, .name, place.appending(key: "kind"), "audio operation")
         }
         guard AudioFilterKeyTable.operations.contains(operation) else {
             throw ModelError.unknownValue(
-                place: place.appending(key: "op"),
+                place: place.appending(key: "kind"),
                 kind: "audio operation",
                 value: operation,
                 allowed: AudioFilterKeyTable.operations
@@ -1495,15 +1538,15 @@ struct KeyChecker: Sendable {
         for (index, band) in bands.enumerated() {
             let bandPlace = place.appending(key: "bands").appending(index: index)
             let bandObject = band.objectValue ?? JSONObject()
-            guard let type = bandObject["type"] else {
-                throw ModelError.missingKey(place: bandPlace, kind: "band", keys: ["type"])
+            guard let bandKind = bandObject["kind"] else {
+                throw ModelError.missingKey(place: bandPlace, kind: "band", keys: ["kind"])
             }
 
-            let types = ValueType.literal(AudioFilterKeyTable.bandTypes)
-            try check(type, as: types, place: bandPlace.appending(key: "type"), kind: "band", scope: &scope)
+            let kinds = ValueType.literal(AudioFilterKeyTable.bandKinds)
+            try check(bandKind, as: kinds, place: bandPlace.appending(key: "kind"), kind: "band", scope: &scope)
             try checkObject(
                 bandObject,
-                as: AudioFilterKeyTable.band(of: type.stringValue ?? ""),
+                as: AudioFilterKeyTable.band(of: bandKind.stringValue ?? ""),
                 place: bandPlace,
                 scope: &scope
             )
@@ -1517,15 +1560,15 @@ struct KeyChecker: Sendable {
         scope: inout DocumentScope
     ) throws {
         guard let object = value.objectValue else { throw wrongType(value, .filterOperation, place, kind) }
-        guard let operationValue = object["op"] else {
-            throw ModelError.missingKey(place: place, kind: "filter operation", keys: ["op"])
+        guard let operationValue = object["kind"] else {
+            throw ModelError.missingKey(place: place, kind: "filter operation", keys: ["kind"])
         }
         guard let operation = operationValue.stringValue else {
-            throw wrongType(operationValue, .name, place.appending(key: "op"), "filter operation")
+            throw wrongType(operationValue, .name, place.appending(key: "kind"), "filter operation")
         }
         guard FilterKeyTable.operations.contains(operation) else {
             throw ModelError.unknownValue(
-                place: place.appending(key: "op"),
+                place: place.appending(key: "kind"),
                 kind: "filter operation",
                 value: operation,
                 allowed: FilterKeyTable.operations
@@ -1689,7 +1732,7 @@ struct KeyChecker: Sendable {
             "a colour"
 
         case .ease:
-            "an ease name, [x1, y1, x2, y2] or {spring}"
+            "an ease name, [x1, y1, x2, y2] or {\"kind\": \"spring\", \"bounce\": b}"
 
         case let .literal(names):
             "one of \(names.joined(separator: ", "))"
@@ -1753,10 +1796,10 @@ struct KeyChecker: Sendable {
             "a number, a colour or an ease"
 
         case .filterChoice:
-            "a preset name, {preset, args} or a list of them"
+            "a preset name, a preset entry, a filter op or a list of them"
 
         case .audioFilterChoice:
-            "an audio preset name, {preset, args, mix}, an audio op or a list of them"
+            "an audio preset name, a preset entry, an audio op or a list of them"
 
         case .audioOperation:
             "an audio operation"

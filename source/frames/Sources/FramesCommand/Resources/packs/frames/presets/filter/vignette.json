@@ -1,6 +1,6 @@
 {
   "description": "Darker towards the edges and corners.",
   "ops": [
-    { "op": "vignette", "amount": 0.4, "radius": 0.45 }
+    { "kind": "vignette", "amount": 0.4, "radius": 0.45 }
   ]
 }

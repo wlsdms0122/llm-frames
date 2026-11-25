@@ -122,7 +122,7 @@ extension ResolvedSequence {
             return operations.compactMap { operation in
                 guard
                     case let .form(name, body) = operation,
-                    name == "op:convolve",
+                    name == "kind:convolve",
                     case let .fixed(.string(path))? = body["file"],
                     case let .fixed(.string(sha256))? = body["sha256"]
                 else {
