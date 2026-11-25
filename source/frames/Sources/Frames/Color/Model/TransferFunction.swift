@@ -11,7 +11,7 @@ import Foundation
 // the transfers of the table's spaces, and the others those of ITU-T H.273's transfer characteristics outside it, each
 // encoded by the function H.273 gives and decoded by its inverse. A function H.273 defines for light from 0 up is
 // carried to negative values with the sign kept, and a logarithmic one gives 0 below its range.
-package enum TransferFunction: Equatable, Sendable {
+package enum TransferFunction: Hashable, Sendable {
     // The sRGB transfer of IEC 61966-2-1, extended to all real numbers as CSS Color 4 extends it. It is also the
     // transfer between the linear and the encoded form of a working value.
     case sRGB

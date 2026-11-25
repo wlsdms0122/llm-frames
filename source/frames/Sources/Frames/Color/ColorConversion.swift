@@ -22,6 +22,8 @@ package struct ColorConversion: Equatable, Sendable {
     package let peak: Double
     private let toSpace: ColorMatrix
     private let fromSpace: ColorMatrix
+    // The decode of an SDR space's transfer; only SDR spaces reach it.
+    private let decodeTable: TransferDecodeTable
 
     // MARK: - Initializer
     // `peak` is the space's own where none is given.
@@ -33,6 +35,7 @@ package struct ColorConversion: Equatable, Sendable {
         self.peak = peak ?? space.peakLuminance
         self.toSpace = ColorMatrix(from: .bt709, to: space.primaries)
         self.fromSpace = ColorMatrix(from: space.primaries, to: .bt709)
+        self.decodeTable = TransferDecodeTable(space.transferFunction ?? .sRGB)
     }
 
     // MARK: - Public
@@ -87,7 +90,7 @@ package struct ColorConversion: Equatable, Sendable {
             return encoded
 
         case .displayP3, .rec2020, .rec709:
-            return TransferFunction.sRGB.encode(fromSpace.applied(to: transferFunction.decode(encoded)))
+            return TransferFunction.sRGB.encode(fromSpace.applied(to: decodeTable.decode(encoded)))
 
         case .rec2100PQ, .rec2100HLG:
             return working(displayLight: displayLight(encoded))
