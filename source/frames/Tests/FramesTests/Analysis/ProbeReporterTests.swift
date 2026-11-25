@@ -31,7 +31,7 @@ struct ProbeReporterTests {
                 fps: 29.97,
                 size: Size(width: 1080, height: 1920),
                 colorSpace: ProbedColorSpace(
-                    reading: .formulas(.rec2100PQ),
+                    conversion: .space(.rec2100PQ),
                     primaries: 9,
                     transfer: 16,
                     matrix: 9,
@@ -50,7 +50,7 @@ struct ProbeReporterTests {
         let expected = #"""
             {"probe": "0.1.0", "kind": "video", "size": [1080, 1920], "duration": 2, "fps": 29.97, "alpha": false, \#
             "colorSpace": {"name": "rec2100-pq", "primaries": 9, "transfer": 16, "matrix": 9, "bitDepth": 10, \#
-            "hdr": true}, "audio": {"channels": 2, "sampleRate": 48000}, "pages": null}
+            "hdr": true, "conversion": "space"}, "audio": {"channels": 2, "sampleRate": 48000}, "pages": null}
             """#
         #expect(report.machineOutput.written == expected)
     }
@@ -105,7 +105,7 @@ struct ProbeReporterTests {
         let expected = #"""
             {"probe": "0.1.0", "kind": "page", "size": [595.2756, 841.8898], "duration": null, "fps": null, \#
             "alpha": true, "colorSpace": {"name": "srgb", "primaries": 1, "transfer": 13, "matrix": null, \#
-            "bitDepth": null, "hdr": false}, "audio": null, "pages": 2}
+            "bitDepth": null, "hdr": false, "conversion": "none"}, "audio": null, "pages": 2}
             """#
         #expect(report.machineOutput.written == expected)
         #expect(report.text.contains("color space srgb\naudio none\npages 2"))
@@ -229,7 +229,7 @@ struct ProbeReporterTests {
         }
         let sut = ProbeReporter(mediaFacts: AVFoundationDecoder())
         let taggedSRGB = ProbedColorSpace(
-            reading: .formulas(.srgb),
+            conversion: .identity,
             primaries: 1,
             transfer: 13,
             matrix: nil,
@@ -250,7 +250,7 @@ struct ProbeReporterTests {
             fps: 2,
             hasAlpha: false,
             colorSpace: ProbedColorSpace(
-                reading: .formulas(.srgb),
+                conversion: .identity,
                 primaries: 1,
                 transfer: 13,
                 matrix: 1,
@@ -277,6 +277,46 @@ struct ProbeReporterTests {
             colorSpace: taggedSRGB,
             sound: nil
         ))
+    }
+
+    @Test("conversion names the form by which the decoder takes the picture to working values by its tags, null for a picture only the platform reads", arguments: [
+        (WorkingConversion.identity as WorkingConversion?, "\"none\""),
+        (.space(.displayP3), "\"space\""),
+        (.transfer, "\"transfer\""),
+        (.perceptualQuantizer, "\"pq\""),
+        (.hybridLogGamma, "\"hlg\""),
+        (.profile, "\"profile\""),
+        (nil, "null")
+    ])
+    func writesConversion(
+        conversion: WorkingConversion?,
+        written: String
+    ) throws {
+        // Given
+        let facts = MediaFactTable(files: [
+            "/abs/run.mov": ProbedMedia(
+                kind: .video,
+                duration: 1,
+                fps: 25,
+                size: Size(width: 16, height: 9),
+                colorSpace: ProbedColorSpace(
+                    conversion: conversion,
+                    primaries: 1,
+                    transfer: 1,
+                    matrix: 1,
+                    bitDepth: 8,
+                    isHighDynamicRange: false
+                ),
+                sound: nil
+            )
+        ])
+        let sut = ProbeReporter(mediaFacts: facts)
+
+        // When
+        let report = try sut.report(of: "/abs/run.mov")
+
+        // Then
+        #expect(report.machineOutput.written.contains(#""hdr": false, "conversion": \#(written)}"#))
     }
 
     // MARK: - Private

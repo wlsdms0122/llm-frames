@@ -562,6 +562,38 @@ struct AVFoundationEncoderTests {
         #expect(sizes[0] < sizes[1])
     }
 
+    @Test("a finished video writer gives its codec, whether a hardware encoder wrote it, and its time converting and encoding, and a PNG is written on the processor")
+    func reportsEncoding() throws {
+        // Given
+        let directory = try TemporaryDirectory()
+        let master = directory.file("master.mov")
+        let delivery = directory.file("delivery.mp4")
+        let image = directory.file("frame.png")
+        let sut = AVFoundationEncoder(deadline: Self.deadline)
+
+        // When
+        let writers = try [EncodeTarget.master(path: master, alpha: false), .delivery(path: delivery)].map { target in
+            try sut.videoWriter(for: target, size: size, fps: 30, sound: nil)
+        }
+        for writer in writers {
+            for _ in 0..<frameCount {
+                try writer.append(frame())
+            }
+            try writer.finish()
+        }
+        let png = try sut.writeImage(frame(), for: .png(path: image, size: size, depth: .eight))
+
+        // Then
+        let encodings = writers.map(\.encoding)
+        #expect(encodings.map(\.path) == [master, delivery])
+        #expect(encodings.map(\.codec) == ["ProRes 422 HQ", "H.264"])
+        #expect(encodings[1].usesHardware)
+        #expect(encodings.allSatisfy { $0.seconds[.outputConversion] > 0 && $0.seconds[.encode] > 0 })
+        #expect(encodings.allSatisfy { $0.seconds.renderThreadSeconds == 0 })
+        #expect(png.path == image && png.codec == "PNG" && !png.usesHardware)
+        #expect(png.seconds[.outputConversion] > 0 && png.seconds[.encode] > 0)
+    }
+
     // MARK: - Private
     private var size: Size {
         Size(width: Double(width), height: Double(height))

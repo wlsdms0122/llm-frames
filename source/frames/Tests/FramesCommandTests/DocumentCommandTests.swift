@@ -186,7 +186,7 @@ struct DocumentCommandTests {
 
         // Then
         #expect(code == 0)
-        #expect(sut.standardError.isEmpty)
+        #expect(sut.standardError == "frame 1/1\n")
         #expect(try sut.standardOutput == line(of: output))
     }
 
@@ -237,6 +237,91 @@ struct DocumentCommandTests {
         #expect(code == 1)
         #expect(sut.standardError == "frames: \"\(output)\": \(reason)\n")
         #expect(!FileManager.default.fileExists(atPath: output))
+    }
+
+    @Test("render --report writes the run's report with every field, its stages adding up to its seconds, and prints its line after the video's")
+    func writesReport() throws {
+        // Given
+        let image = try picture(named: "frame.png")
+        let document = try sut.write(
+            #"{ "kind": "sequence", "format": { "fps": 10 }, "storyline": [ { "media": "\#(image)", "duration": 0.3 } ] }"#,
+            named: "doc.json"
+        )
+        let master = sut.directory.file("out.mov")
+        let report = sut.directory.file("run.JSON")
+
+        // When
+        let code = sut.run(["render", document, "-o", master, "--report", report, "--progress", "none"])
+
+        // Then
+        #expect(code == 0)
+        #expect(sut.standardError.isEmpty)
+        #expect(try sut.standardOutput == line(of: master) + line(of: report))
+        let text = try String(contentsOfFile: report, encoding: .utf8)
+        let object = try #require(JSONSerialization.jsonObject(with: Data(text.utf8)) as? [String: Any])
+        let keys = ["render", "frames", "seconds", "cpuSeconds", "fps", "cores", "peakMemory", "machine", "roles", "stages", "waiting", "other", "media", "files"]
+        #expect(Set(object.keys) == Set(keys))
+        #expect(keys.map { text.range(of: "\"\($0)\":")!.lowerBound } == keys.map { text.range(of: "\"\($0)\":")!.lowerBound }.sorted())
+        #expect(object["frames"] as? Int == 3)
+        let stages = try #require(object["stages"] as? [String: Double])
+        #expect(Set(stages.keys) == Set(RunStage.allCases.map(\.rawValue)))
+        let seconds = try #require(object["seconds"] as? Double)
+        let renderThread = RunStage.allCases.filter(\.isOnRenderThread).reduce(0) { $0 + stages[$1.rawValue]! }
+        let waiting = try #require(object["waiting"] as? Double)
+        let other = try #require(object["other"] as? Double)
+        #expect(abs(renderThread + waiting + other - seconds) < 1e-5)
+        #expect(other >= 0)
+        let roles = try #require(object["roles"] as? [String: String])
+        #expect(roles == ["decoder": "avfoundation", "renderer": "quartz", "mixer": "avfoundation", "encoder": "avfoundation"])
+        let media = try #require(object["media"] as? [[String: Any]])
+        #expect(media.count == 1)
+        #expect(media.first?["path"] as? String == image)
+        #expect(media.first?["conversion"] as? String == "none")
+        #expect(media.first?["colorSpace"] as? String == "srgb")
+        #expect((media.first?["framesRead"] as? Int ?? 0) >= 1)
+        let files = try #require(object["files"] as? [[String: Any]])
+        #expect(files.map { $0["path"] as? String } == [master])
+        #expect(files.first?["codec"] as? String == "ProRes 422 HQ")
+        #expect(files.first?["hardware"] is Bool)
+    }
+
+    @Test("render --progress json writes one progress object a line on standard error, the last for the last frame")
+    func writesJSONProgress() throws {
+        // Given
+        let document = try sut.write(sequence, named: "doc.json")
+        let master = sut.directory.file("out.mov")
+
+        // When
+        let code = sut.run(["render", document, "-o", master, "--progress", "json"])
+
+        // Then
+        #expect(code == 0)
+        let lines = sut.standardError.split(separator: "\n").map(String.init)
+        let last = try #require(lines.last.flatMap { try JSONSerialization.jsonObject(with: Data($0.utf8)) as? [String: Any] })
+        #expect(lines.allSatisfy { $0.hasPrefix(#"{"progress": "0.1.0", "frame": "#) })
+        #expect(last["frame"] as? Int == 15)
+        #expect(last["frames"] as? Int == 15)
+    }
+
+    @Test("render --report to another extension, or to the output's file by another spelling, stops before the document is read", arguments: [
+        ("run.txt", "a run's report is written to a .json file"),
+        ("out.json", "the report would be written over a file the render writes")
+    ])
+    func stopsOnReport(
+        name: String,
+        reason: String
+    ) throws {
+        // Given
+        let output = sut.directory.file("out.json")
+        let report = sut.directory.file("./" + name)
+        let missing = sut.directory.file("missing.json")
+
+        // When
+        let code = sut.run(["render", missing, "-o", output, "--report", report])
+
+        // Then
+        #expect(code == 1)
+        #expect(sut.standardError == "frames: render: --report \"\(report)\": \(reason)\n")
     }
 
     // MARK: - Private
