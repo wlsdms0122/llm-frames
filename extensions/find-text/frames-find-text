@@ -172,19 +172,11 @@ def bounding(rects):
 # MARK: - Walking the document
 
 class Clip:
-    """A clip of the outermost document, with what places and times it."""
+    """A clip of the outermost document at its place, as reports name it."""
 
-    def __init__(self, value, place, role, storyline_place):
+    def __init__(self, value, place):
         self.value = value
         self.place = place
-        self.role = role
-        self.storyline_place = storyline_place
-
-    def kind(self):
-        for key in ("media", "title", "shape", "adjust", "solid"):
-            if key in self.value:
-                return key
-        return None
 
     def written(self, key):
         """Whether the clip writes the key, on the clip or in a keyframe."""
@@ -226,13 +218,13 @@ def clips_of(document):
         if not isinstance(value, dict):
             continue
         place = place_name(f"storyline[{index}]", value)
-        clips.append(Clip(value, place, "storyline", place))
+        clips.append(Clip(value, place))
         for inner, connected in enumerate(value.get("connected") or []):
             if isinstance(connected, dict):
-                clips.append(Clip(connected, place_name(f"{place}.connected[{inner}]", connected), "connected", place))
+                clips.append(Clip(connected, place_name(f"{place}.connected[{inner}]", connected)))
     for index, value in enumerate(document.get("clips") or []):
         if isinstance(value, dict):
-            clips.append(Clip(value, place_name(f"clips[{index}]", value), "sequence", None))
+            clips.append(Clip(value, place_name(f"clips[{index}]", value)))
     return clips
 
 
@@ -312,79 +304,43 @@ def nested_text_forms(document, place):
 
 # MARK: - Where a text form is searched
 
-def described(kind):
-    """A timeline `kind` as a message names it."""
-    return {
-        "title": "title",
-        "adjustment": "adjustment clip",
-        "solid": "solid",
-        "compound": "compound clip or template instance",
-    }.get(kind, kind if kind in ("video", "image", "page", "audio") else f"{kind} shape")
-
-
 def refuse(found, reason):
     raise Stop(f"{found.where}: the place is not in a medium's pixels, so its text cannot be searched: {reason}")
 
 
-def own_media(found, clip, times):
-    kind = times.entry(clip.place)["kind"]
-    if kind == "compound":
-        refuse(found, "a compound clip or template instance is drawn, not read")
-    if times.entry(clip.place)["media"] is None:
-        refuse(found, f"a {described(kind)} has no media of its own")
-    return clip
-
-
-def parent_media(found, clips_by_id, times):
-    clip = found.clip
-    parent_id = clip.value.get("parent")
-    if clip.role == "storyline":
-        refuse(found, "a storyline clip's coordinates are output pixels")
-    if parent_id is None:
-        refuse(found, "an unparented clip's coordinates are output pixels")
-    parent = clips_by_id.get(parent_id)
-    if parent is None:
-        raise Stop(f"{found.where}: parent {json.dumps(parent_id)} names no clip")
-    if parent.written("cornerPin"):
-        refuse(found, f"its parent {parent.place} has a corner pin, whose space is the one its corner pin is written in")
-    entry = times.entry(parent.place)
-    kind = entry["kind"]
-    if kind == "compound":
-        refuse(found, f"its parent {parent.place} is a compound clip or template instance, whose picture is drawn, not read")
-    if entry["media"] is None:
-        space = {
-            "title": "a title's space is its text box",
-            "adjustment": "an adjustment clip's space is the space its mask is written in",
-            "solid": "a solid's space is output pixels",
-        }.get(kind, "a shape's space is its box or the space its geometry is written in")
-        refuse(found, f"its parent {parent.place} is a {described(kind)}, and {space}")
-    return parent
-
-
-def tracks_own_media(clip, times):
-    """Whether a clip's `track` follows its own media: a video or an image sequence without a corner pin."""
-    return times.entry(clip.place)["kind"] == "video" and not clip.written("cornerPin")
-
-
-def searched_clip(found, clips_by_id, times):
-    """The clip whose media the text form is searched in."""
-    clip = found.clip
-    kind = clip.kind()
-    if found.role == "crop":
-        return own_media(found, clip, times)
-    if found.role == "mask":
-        if kind == "media":
-            return own_media(found, clip, times)
-        if kind == "title":
-            refuse(found, "a title's mask is in its text box")
-        if kind == "shape" and not (clip.written("area") or clip.written("points")):
-            refuse(found, "the mask of a shape placed by width and height is in its box")
-        return parent_media(found, clips_by_id, times)
+def searched_place(found, times):
+    """The place of the clip whose media a text form is searched in: the clip whose media pixels its entry reports as
+    the space the key is written in, `ownSpace` for a crop and a mask and `space` for every other key."""
+    entry = times.entry(found.clip.place)
     if found.role == "track":
-        if tracks_own_media(clip, times):
-            return clip
-        return parent_media(found, clips_by_id, times)
-    return parent_media(found, clips_by_id, times)
+        return tracked_place(found, times)
+    space = entry["ownSpace"] if found.role in ("crop", "mask") else entry["space"]
+    if space is None:
+        refuse(found, "an audio clip has no picture")
+    if space["kind"] == "output":
+        refuse(found, "it is written in output pixels")
+    if space["kind"] == "box":
+        refuse(found, f"it is written in the box of {space['clip']}")
+    if times.entry(space["clip"])["kind"] == "compound":
+        refuse(found, f"it is written in the media pixels of {space['clip']}, a compound clip or template instance, whose picture is drawn, not read")
+    return space["clip"]
+
+
+def tracked_place(found, times):
+    """The place of the clip whose media a `track` follows: its own media for a video or an image sequence without a
+    corner pin, and its parent's media otherwise, a parent with a corner pin giving none (FRAMES-12)."""
+    clip = found.clip
+    entry = times.entry(clip.place)
+    if entry["kind"] == "video" and not clip.written("cornerPin"):
+        return clip.place
+    parent = entry.get("parent")
+    if parent is None:
+        refuse(found, "a clip without a parent tracks nothing but its own video")
+    if times.written(parent).written("cornerPin"):
+        refuse(found, f"its parent {parent} has a corner pin, which gives no media to track")
+    if times.entry(parent)["media"] is None:
+        refuse(found, f"its parent {parent} has no media of its own")
+    return parent
 
 
 # MARK: - The frame searched
@@ -392,35 +348,22 @@ def searched_clip(found, clips_by_id, times):
 class Times:
     """Reads each clip's entry from `timeline`, and from `timeline --at` the frame its time map shows at an instant."""
 
-    def __init__(self, frames, probe_path):
+    def __init__(self, frames, probe_path, clips):
         self.frames = frames
         self.probe_path = probe_path
+        self.clips = {clip.place: clip for clip in clips}
         self.entries = None
         self.shown_at = {}
 
     def entry(self, place):
-        """A clip's `timeline` entry: its ranges, kind, media and page."""
+        """A clip's `timeline` entry: its kind, media, instant, clock and spaces."""
         if self.entries is None:
             self.entries = entries_by_place(self.frames.report(["timeline", self.probe_path, "--json"]))
         return self.entries[place]
 
-    def storyline_entry(self, clip):
-        return self.entry(clip.place if clip.role == "storyline" else clip.storyline_place)
-
-    def sequence_time(self, clip, instant):
-        """An instant on a clip's clock (its `at` and keyframes) in sequence time."""
-        if clip.role == "sequence":
-            return instant
-        entry = self.storyline_entry(clip)
-        return rounded(entry["edit"][0] + (instant - entry["clip"][0]) / entry["speed"])
-
-    def start(self, clip):
-        """The sequence time a clip starts at."""
-        at = clip.value.get("at")
-        begin = at[0] if isinstance(at, list) and at else at
-        if clip.role == "storyline" or (clip.role == "connected" and begin is None):
-            return self.storyline_entry(clip)["edit"][0]
-        return self.sequence_time(clip, begin if begin is not None else 0)
+    def written(self, place):
+        """The clip of the document at a place a report names."""
+        return self.clips[place]
 
     def shown(self, place, time):
         """A clip's `timeline --at` entry at a sequence time, whose `mediaTime` is the frame its time map shows."""
@@ -451,29 +394,29 @@ class Picture:
 
 def picture_of(found, searched, times):
     """The picture a text form is searched in: the frame of the searched clip's media its time map shows at the
-    instant, or for a `track` object's `area` the frame shown at the media time its `time` names."""
-    clip = found.clip
+    sequence time the form takes effect at, the clip's instant or a keyframe's `at` carried by the clip's clock, or for
+    a `track` object's `area` the frame shown at the media time its `time` names."""
     if found.track_time is not None:
-        return picture(searched, times.entry(searched.place), found.track_time)
+        return picture(times.entry(searched), found.track_time)
+    entry = times.entry(found.clip.place)
     if found.keyframe is None:
-        instant = times.start(clip)
+        instant = entry["instant"]
     else:
-        at = clip.value["keyframes"][found.keyframe].get("at")
+        at = found.clip.value["keyframes"][found.keyframe].get("at")
         if not isinstance(at, (int, float)) or isinstance(at, bool):
             raise Stop(f"{found.clip.place}: keyframes[{found.keyframe}] needs a number at")
-        instant = times.sequence_time(clip, at)
-    shown = times.shown(searched.place, instant)
-    return picture(searched, shown, shown["mediaTime"])
+        clock = entry["clock"]
+        instant = rounded(clock["origin"] + at / clock["speed"])
+    shown = times.shown(searched, instant)
+    return picture(shown, shown["mediaTime"])
 
 
-def picture(clip, entry, time):
-    """A clip's media read at a media time: a still or a page as it is, a video or an image sequence at the time,
-    an image sequence at the rate its media form writes, since its files hold none."""
+def picture(entry, time):
+    """A clip's media read at a media time: a still or a page as it is, and a video or an image sequence, at the rate
+    its entry reports, at the time."""
     if entry["kind"] in ("image", "page"):
         return Picture(entry["media"], None, entry["page"], None)
-    media = clip.value.get("media")
-    fps = media.get("fps") if isinstance(media, dict) and "imageSequence" in media else None
-    return Picture(entry["media"], time, None, fps)
+    return Picture(entry["media"], time, None, entry["fps"])
 
 
 # MARK: - The extension
@@ -554,7 +497,11 @@ def parse(arguments):
 
 def load(document):
     try:
-        text = sys.stdin.read() if document == "-" else open(document, encoding="utf-8").read()
+        if document == "-":
+            text = sys.stdin.read()
+        else:
+            with open(document, encoding="utf-8") as file:
+                text = file.read()
     except OSError as error:
         raise Stop(f"cannot read {document}: {error.strerror}")
     try:
@@ -576,7 +523,7 @@ def run(arguments):
         if isinstance(media, dict) and media.get("kind") == "sequence":
             inner = nested_text_forms(media, f"{clip.place}.media")
             if inner:
-                raise Stop(f"{inner}: the place is not in a medium's pixels, so its text cannot be searched: it is inside a compound clip, whose picture is drawn, not read")
+                raise Stop(f"{inner}: its text cannot be searched: it is inside a compound clip or template instance, and timeline --at gives a nested document's clips at the outer sequence's times only")
     for entry in found:
         check_text_form(entry.form, entry.where)
     if not found:
@@ -584,18 +531,17 @@ def run(arguments):
 
     frames = Frames(os.environ.get("FRAMES_EXECUTABLE") or "frames", options)
     frames.check_version()
-    clips_by_id = {clip.value["id"]: clip for clip in clips if isinstance(clip.value.get("id"), str)}
 
     with tempfile.TemporaryDirectory(prefix="frames-find-text-") as directory:
         probe_path = os.path.join(directory, "document.json")
         with open(probe_path, "w", encoding="utf-8") as file:
             json.dump(probe_document(document, found), file)
-        times = Times(frames, probe_path)
-        searched = [searched_clip(entry, clips_by_id, times) for entry in found]
+        times = Times(frames, probe_path, clips)
+        searched = [searched_place(entry, times) for entry in found]
         rects = []
-        for entry, clip in zip(found, searched):
-            read = picture_of(entry, clip, times)
-            lines = frames.ocr(read, clip.value.get("colorSpace"), languages)
+        for entry, place in zip(found, searched):
+            read = picture_of(entry, place, times)
+            lines = frames.ocr(read, times.written(place).value.get("colorSpace"), languages)
             rects.append(find(entry.form, lines, entry.where, read.describe()))
     for entry, rect in zip(found, rects):
         entry.holder[entry.key] = rect
