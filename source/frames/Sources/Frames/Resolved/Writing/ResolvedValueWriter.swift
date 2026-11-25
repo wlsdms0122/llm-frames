@@ -21,22 +21,30 @@ struct ResolvedValueWriter: Sendable {
         ]
     }
 
-    // A video or image file with its frame times, none for a still or sound. An image sequence is its frame files in
-    // order, each pinned, and a page of a PDF its file with `page`.
-    func media(_ media: PinnedMedia) -> [JSONMember] {
-        let pinned = switch media.source {
+    // Pinned media named by its `kind`: a file with its frame times, null for an image or a sound file, an image
+    // sequence as its frame files in order, each pinned, with their frame times, and a page of a PDF as its file with
+    // `page`.
+    func media(_ media: PinnedMedia) -> JSONValue {
+        let members = switch media.source {
         case let .file(file):
-            self.pinned(file)
+            [JSONMember(key: "kind", value: .string("file"))] + pinned(file) + [
+                JSONMember(key: "frames", value: media.frameTimes.isEmpty ? .null : numbers(media.frameTimes))
+            ]
 
         case let .imageSequence(files):
-            [JSONMember(key: "imageSequence", value: .array(files.map { .object(JSONObject(members: self.pinned($0))) }))]
+            [
+                JSONMember(key: "kind", value: .string("imageSequence")),
+                JSONMember(key: "files", value: .array(files.map { .object(JSONObject(members: pinned($0))) })),
+                JSONMember(key: "frames", value: numbers(media.frameTimes))
+            ]
 
         case let .page(file, page):
-            self.pinned(file) + [JSONMember(key: "page", value: .number(Double(page)))]
+            [JSONMember(key: "kind", value: .string("page"))] + pinned(file) + [
+                JSONMember(key: "page", value: .number(Double(page)))
+            ]
         }
-        let frames = media.frameTimes.isEmpty ? [] : [JSONMember(key: "frames", value: numbers(media.frameTimes))]
 
-        return pinned + frames
+        return .object(JSONObject(members: members))
     }
 
     func numbers(_ numbers: [Double]) -> JSONValue {

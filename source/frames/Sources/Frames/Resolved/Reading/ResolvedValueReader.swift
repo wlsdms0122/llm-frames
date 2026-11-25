@@ -10,8 +10,8 @@
 // files.
 struct ResolvedValueReader: Sendable {
     // MARK: - Property
-    // The keys of pinned media, which an object holding it carries beside its own.
-    static let mediaKeys = ["file", "sha256", "page", "imageSequence", "frames"]
+    // The kinds pinned media names, which a nested sequence's `kind` is not.
+    static let mediaKinds = ["file", "imageSequence", "page"]
     static let spanKeys = ["ease", "revealFrom", "keys"]
     static let geometryForms = ["rect", "ellipse", "path"]
 
@@ -43,24 +43,34 @@ struct ResolvedValueReader: Sendable {
         PinnedFile(path: try object.member("file").string(), sha256: try object.member("sha256").string())
     }
 
-    // An image sequence is its frame files in order, a page of a PDF its file with its number from 1, and the frame
-    // times are written only for a video or image sequence.
-    func media(_ object: PlacedJSONObject) throws -> PinnedMedia {
-        let source: PinnedSource = if object.contains("imageSequence") {
-            .imageSequence(try object.member("imageSequence").elements().map { element in
-                try pinned(element.object(keys: ["file", "sha256"]))
-            })
-        } else if let page = object.optionalMember("page") {
-            .page(try pinned(object), page: try pageNumber(page))
-        } else {
-            .file(try pinned(object))
-        }
-
-        return PinnedMedia(source: source, frameTimes: try object.optionalMember("frames")?.numbers() ?? [])
-    }
-
+    // Pinned media by its `kind`: a file with its frame times, null for an image or a sound file, an image sequence as
+    // its frame files in order with their frame times, and a page of a PDF as its file with its number from 1.
     func media(_ value: PlacedJSONValue) throws -> PinnedMedia {
-        try media(value.object(keys: Self.mediaKeys))
+        let kind = try member("kind", of: value, kind: value.kind)
+            .name(among: Self.mediaKinds) { Self.mediaKinds.contains($0) ? $0 : nil }
+
+        switch kind {
+        case "imageSequence":
+            let media = try value.object(keys: ["kind", "files", "frames"])
+            let files = try media.member("files").elements().map { element in
+                try pinned(element.object(keys: ["file", "sha256"]))
+            }
+
+            return PinnedMedia(source: .imageSequence(files), frameTimes: try media.member("frames").numbers())
+
+        case "page":
+            let media = try value.object(keys: ["kind", "file", "sha256", "page"])
+
+            return PinnedMedia(source: .page(try pinned(media), page: try pageNumber(media.member("page"))))
+
+        default:
+            let media = try value.object(keys: ["kind", "file", "sha256", "frames"])
+
+            return PinnedMedia(
+                source: .file(try pinned(media)),
+                frameTimes: try media.member("frames").optional { try $0.numbers() } ?? []
+            )
+        }
     }
 
     func rectangle(_ value: PlacedJSONValue) throws -> Rectangle {

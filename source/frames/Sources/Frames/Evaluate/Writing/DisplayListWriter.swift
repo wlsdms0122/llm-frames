@@ -144,7 +144,7 @@ package struct DisplayListWriter: Sendable {
         }
         let matte = picture.matte.map { matte in
             JSONValue.object(JSONObject(members: [
-                JSONMember(key: "source", value: .object(JSONObject(members: values.media(matte.frame.media)))),
+                JSONMember(key: "source", value: values.media(matte.frame.media)),
                 JSONMember(key: "frame", value: frame(of: matte.frame)),
                 JSONMember(key: "colorSpace", value: colorSpace(of: matte.frame.reading)),
                 JSONMember(key: "progress", value: .number(matte.progress)),
@@ -242,7 +242,7 @@ package struct DisplayListWriter: Sendable {
         case let .media(frame):
             .object(JSONObject(members: [
                 JSONMember(key: "kind", value: .string("media")),
-                JSONMember(key: "media", value: .object(JSONObject(members: values.media(frame.media)))),
+                JSONMember(key: "media", value: values.media(frame.media)),
                 JSONMember(key: "frame", value: self.frame(of: frame)),
                 JSONMember(key: "colorSpace", value: colorSpace(of: frame.reading)),
                 JSONMember(key: "targetPeak", value: targetPeak(of: frame.reading))

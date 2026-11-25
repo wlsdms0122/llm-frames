@@ -645,9 +645,12 @@ struct ResolvedSequenceReader: Sendable {
         try value.name(among: CrossfadeCurve.allCases.map(\.rawValue), CrossfadeCurve.init)
     }
 
-    // Pinned media, or a nested sequence, which names its `kind`.
+    // Pinned media, or a nested sequence, told apart by their `kind`.
     private func media(_ value: PlacedJSONValue) throws -> ResolvedMediaContent {
-        guard value.value.objectValue?.contains("kind") == true else { return .pinned(try values.media(value)) }
+        let kinds = ResolvedValueReader.mediaKinds + ["sequence"]
+        let kind = try values.member("kind", of: value, kind: value.kind)
+            .name(among: kinds) { kinds.contains($0) ? $0 : nil }
+        guard kind == "sequence" else { return .pinned(try values.media(value)) }
 
         return .nested(try document(value))
     }
@@ -716,12 +719,15 @@ struct ResolvedSequenceReader: Sendable {
         )
     }
 
-    // A colour, or media with its length, then the span.
+    // A cover by its `kind`: a solid's colour, or media with its length, then the span.
     private func cover(_ value: PlacedJSONValue) throws -> ResolvedCover {
-        let isColor = value.value.objectValue?.contains("color") == true
-        let sourceKeys = isColor ? ["color"] : ResolvedValueReader.mediaKeys + ["colorSpace", "duration"]
+        let kinds = ["solid", "media"]
+        let kind = try values.member("kind", of: value, kind: "cover")
+            .name(among: kinds) { kinds.contains($0) ? $0 : nil }
+        let isSolid = kind == "solid"
+        let sourceKeys = isSolid ? ["kind", "color"] : ["kind", "media", "colorSpace", "duration"]
         let cover = try value.object(kind: "cover", keys: sourceKeys + ResolvedValueReader.spanKeys)
-        let source: ResolvedCoverSource = isColor
+        let source: ResolvedCoverSource = isSolid
             ? .color(try values.color(cover.member("color")))
             : .media(try transitionMedia(cover))
 
@@ -731,7 +737,7 @@ struct ResolvedSequenceReader: Sendable {
     private func matte(_ value: PlacedJSONValue) throws -> ResolvedMatte {
         let matte = try value.object(
             kind: "matte",
-            keys: ResolvedValueReader.mediaKeys + ["colorSpace", "duration", "softness", "invert", "ease"]
+            keys: ["media", "colorSpace", "duration", "softness", "invert", "ease"]
         )
 
         return ResolvedMatte(
@@ -743,7 +749,7 @@ struct ResolvedSequenceReader: Sendable {
     }
 
     private func transitionMedia(_ object: PlacedJSONObject) throws -> ResolvedTransitionMedia {
-        let media = try values.media(object)
+        let media = try values.media(object.member("media"))
         let colorSpace = try object.member("colorSpace")
         let read = try colorSpace.optional { value in
             try value.name(among: VocabularyTable.colorSpaces, ColorSpace.init)
