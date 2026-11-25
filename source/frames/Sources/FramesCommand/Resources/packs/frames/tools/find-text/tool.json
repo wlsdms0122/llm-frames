@@ -1,0 +1,4 @@
+{
+  "description": "Fills each frames/find-text request, an area named by its text on screen, with the rectangle ocr finds for it",
+  "run": "find-text"
+}

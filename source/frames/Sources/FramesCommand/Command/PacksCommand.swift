@@ -9,13 +9,14 @@ import Foundation
 import Frames
 
 // Lists the shipped and installed packs with what their `pack.json` says, or what one pack holds, by kind, each thing
-// by the name a document gives it, and under each preset and template the parameters it publishes.
+// by the name a document or a command gives it, under each preset and template the parameters it publishes, and each
+// tool with its description.
 struct PacksCommand: Command {
     // MARK: - Property
     let name = "packs"
     let synopsis = "[<pack>]"
     let summary = "Lists the packs, the one that ships with frames and the installed ones, or what one pack holds, "
-        + "with the parameters each preset and template publishes."
+        + "with the parameters each preset and template publishes and the tools it holds."
 
     // MARK: - Initializer
     init() { }
@@ -47,7 +48,9 @@ struct PacksCommand: Command {
             }
         }
 
-        context.output.write(([line(of: pack)] + presets + files).map { $0 + "\n" }.joined())
+        let tools = try context.tools.tools(in: pack).map { "tool  \($0.name)  \($0.description)" }
+
+        context.output.write(([line(of: pack)] + presets + files + tools).map { $0 + "\n" }.joined())
     }
 
     // MARK: - Public

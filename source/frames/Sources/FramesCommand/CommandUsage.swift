@@ -27,6 +27,7 @@ struct CommandUsage: Sendable {
             + "\nGlobal options:\n"
             + HelpTable(rows: CommandLineParser.rules.map(HelpRow.init)).text
             + "\nframes <command> --help describes a command, its arguments and its options.\n"
+            + "frames <pack>/<name> ... runs a tool of a pack, and frames packs <pack> lists the tools it holds.\n"
     }
 
     // MARK: - Initializer

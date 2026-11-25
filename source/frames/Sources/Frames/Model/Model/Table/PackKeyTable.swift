@@ -15,4 +15,11 @@ enum PackKeyTable {
             KeyRule("description", .text)
         ]
     )
+    static let tool = ObjectTable(
+        kind: "tool",
+        rules: [
+            KeyRule("description", .text, isRequired: true),
+            KeyRule("run", .text, isRequired: true)
+        ]
+    )
 }

@@ -8,8 +8,8 @@
 import Foundation
 import Frames
 
-// What a command runs with: the global options, the roles they pick, where packs and presets are found, and where
-// the command writes.
+// What a command runs with: the global options, the roles they pick, where packs, presets and tools are found, and
+// where the command writes.
 struct CommandContext: Sendable {
     // MARK: - Property
     // The face of the time labels of `still` and `sheet`, in a font file macOS installs.
@@ -27,6 +27,10 @@ struct CommandContext: Sendable {
 
     var presets: PresetLibrary {
         PresetLibrary(packs: packs)
+    }
+
+    var tools: ToolLibrary {
+        ToolLibrary(packs: packs)
     }
 
     var library: ReferenceLibrary {

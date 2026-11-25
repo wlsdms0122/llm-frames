@@ -7,9 +7,10 @@
 
 import Frames
 
-// Runs a command line: the global options, then a command frames has or an extension on `PATH`. It returns the exit
-// code: 0 on success and for help asked for, 1 with `frames: <reason>` on standard error when anything stops, and 64
-// with usage on standard error when no command is given.
+// Runs a command line: the global options, then a command frames has or, for a command word with a `/`, a pack's tool
+// (FRAMES-25 Tools). It returns the exit code: 0 on success and for help asked for, the tool's own code for a tool, 1
+// with `frames: <reason>` on standard error when anything stops, and 64 with usage on standard error when no command is
+// given.
 package struct CommandShell: Sendable {
     // MARK: - Property
     private static let usageCode: Int32 = 64
@@ -57,31 +58,45 @@ package struct CommandShell: Sendable {
     }
 
     // MARK: - Private
-    // The roles are built before anything runs, so a mistyped name stops the same way for an extension and for help.
-    // A built-in command given `--help` anywhere among its arguments prints its help and reads none of them.
+    // The roles are built before anything runs, so a mistyped name stops the same way for a tool and for help. A
+    // built-in command given `--help` anywhere among its arguments prints its help and reads none of them.
     private func run(
         _ name: String,
         arguments: [String],
         options: GlobalOptions
     ) throws -> Int32 {
         let roles = try factory.roles(for: options)
+        let context = CommandContext(options: options, roles: roles, output: output, environment: environment)
+        guard !name.contains("/") else {
+            return try runTool(name, arguments: arguments, in: context)
+        }
         guard let command = CommandTable.commands.first(where: { $0.name == name }) else {
-            let launcher = ExtensionLauncher(variables: environment.variables)
-            guard let code = try launcher.run(name, options: options.written, arguments: arguments) else {
-                throw CommandError.unknownCommand(name: name)
-            }
-
-            return code
+            throw CommandError.unknownCommand(name: name)
         }
         guard !arguments.contains(CommandLineParser.help) else {
             output.write(CommandHelp(command).text)
             return 0
         }
 
-        let context = CommandContext(options: options, roles: roles, output: output, environment: environment)
         try run(command, arguments: arguments, in: context)
 
         return 0
+    }
+
+    // A tool is given its arguments unchanged, `--help` among them, so its help is its own.
+    private func runTool(
+        _ name: String,
+        arguments: [String],
+        in context: CommandContext
+    ) throws -> Int32 {
+        let tools = context.tools
+        guard let tool = try tools.tool(named: name) else {
+            throw CommandError.unknownTool(try tools.unknown(named: name))
+        }
+
+        let launcher = ToolLauncher(variables: environment.variables, framesExecutable: environment.executable)
+
+        return try launcher.run(tool, options: context.options.written, arguments: arguments)
     }
 
     private func run<Selected: Command>(

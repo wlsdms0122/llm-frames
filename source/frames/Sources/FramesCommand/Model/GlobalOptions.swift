@@ -8,7 +8,7 @@
 import Frames
 
 // The options given before the command: the theme and the name of each role and provider, nil where the default is
-// taken, and all of them as written, which an extension is given unchanged.
+// taken, and all of them as written, which a tool is given unchanged.
 struct GlobalOptions: Equatable, Sendable {
     // MARK: - Property
     static let none = GlobalOptions(

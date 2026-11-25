@@ -11,7 +11,7 @@ struct PacksOptions: CommandOptions, Equatable {
     static let positionals = [
         PositionalRule(
             "<pack>",
-            help: "The pack whose themes, presets, templates and files are listed."
+            help: "The pack whose themes, presets, templates, files and tools are listed."
         )
     ]
 
