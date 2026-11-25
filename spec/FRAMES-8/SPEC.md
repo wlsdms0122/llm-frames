@@ -84,7 +84,7 @@ A clip's **time map** takes sequence time to the media time the clip shows: a st
 - A connected or sequence media clip's media time is `in + (s - s0) × speed` at every sequence time s, before its window's start s0 as well, where it lies before `in`. Past `out` it repeats from `in` when `loop` is true and holds the last frame before `out` otherwise, after the window's end as within it. With `timeRemap` it is the keys' value at s, held at their edge values.
 - Every media time is clamped to the media's first and last frame, a nested sequence's `[0, duration)`, before a frame is picked. A still and a page show their one picture at every instant, at media time 0, and a solid, a title, a shape and an adjustment clip have no media time.
 - A connected clip has no clip time of its own: its instants are on its storyline clip's clip time.
-- `timeline --at` reports the clip time and the media time at any sequence time ([FRAMES-23](../FRAMES-23/SPEC.md)), so a program reads a frame a clip shows where the clip draws nothing and computes no time map itself.
+- `timeline --at` reports the clip time and the media time of the frame shown at any sequence time ([FRAMES-23](../FRAMES-23/SPEC.md)), so a program reads a frame a clip shows where the clip draws nothing and computes no time map itself.
 
 ### A clip's instant
 
