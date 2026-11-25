@@ -7,7 +7,7 @@
 
 import Foundation
 
-// Takes frames out of a video or a resolved document without encoding a video. `still` draws sequence frames side by
+// Takes frames out of a video, an image sequence or a resolved document without encoding a video. `still` draws sequence frames side by
 // side at full size, `sheet` lays frames out on a grid, and `extract` writes each frame to a PNG of its own, named by
 // its index. Everything that can refuse does before the first file is written, in this order: the output, the times,
 // every pinned file's hash and the decoder on every pinned media (for a video, the decoder on it), and the renderer on
@@ -205,6 +205,18 @@ package struct FrameExporter: Sendable {
         case let .video(path):
             return try frames(ofVideo: path, range: range)
 
+        case let .imageSequence(directory, fps):
+            guard let probed = try mediaFacts.probedImageSequence(at: directory) else {
+                throw ExportError.missingMedia(path: directory)
+            }
+            let sequence = ImageSequence(probed: probed, directory: directory, fps: fps)
+
+            return try frames(
+                of: sequence.file,
+                size: probed.size,
+                times: try range.times(end: sequence.duration, kind: "image sequence")
+            )
+
         case let .document(sequence):
             let times = try range.times(end: sequence.format.duration, kind: "sequence")
 
@@ -227,8 +239,7 @@ package struct FrameExporter: Sendable {
         )
     }
 
-    // The frames shown at media times, as a storyline clip shows them, each read as an analysis picture, once the
-    // decoder has checked it reads the file's pictures so.
+    // The frames of a video file at media times.
     private func frames(
         ofVideo path: String,
         range: FrameRange
@@ -240,6 +251,17 @@ package struct FrameExporter: Sendable {
 
         let times = try range.times(end: probed.duration, kind: "video")
         let file = MediaFile(path: path, fps: probed.fps, size: size, frameTimes: probed.frames)
+
+        return try frames(of: file, size: size, times: times)
+    }
+
+    // The frames of a video or an image sequence shown at media times, as a storyline clip shows them, each read as an
+    // analysis picture, once the decoder has checked it reads the file's pictures so.
+    private func frames(
+        of file: MediaFile,
+        size: Size,
+        times: [Double]
+    ) throws -> SampledFrames {
         try decoder.check(file, reading: .analysis(colorSpace: nil))
 
         let media = try PinnedMedia(file: file, hashes: hasher)
@@ -266,11 +288,11 @@ package struct FrameExporter: Sendable {
         }
     }
 
-    // The output a source's frames are written by: a sequence's, and `srgb` for a video's, which the decoder reads as
-    // analysis pictures.
+    // The output a source's frames are written by: a sequence's, and `srgb` for a video's or an image sequence's, which
+    // the decoder reads as analysis pictures.
     private func output(of source: FrameSource) -> ColorConversion {
         switch source {
-        case .video:
+        case .video, .imageSequence:
             ColorConversion(space: .srgb)
 
         case let .document(sequence):

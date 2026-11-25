@@ -20,6 +20,12 @@ struct OptionRule: Equatable, Sendable {
         value: "<n>",
         help: "The page of a PDF, from 1. Default: the one page of a PDF of one page."
     )
+    static let fps = OptionRule(
+        "--fps",
+        value: "<rate>",
+        help: "The rate of an image sequence, named by its directory, as its media form's fps, above 0. An image "
+            + "sequence needs it, and nothing else takes it."
+    )
     static let from = OptionRule("--from", value: "<t>", help: "The time of the first frame. Default: 0.")
     static let to = OptionRule(
         "--to",

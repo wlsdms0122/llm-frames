@@ -87,16 +87,26 @@ struct CommandContext: Sendable {
     }
 
     // The frames of `sheet` and `extract` that `argument` names, a document used resolved.
+    // `fps` is the rate `--fps` gives an image sequence, which a document and a video file take none of.
     func frameSource(
         _ argument: FrameSourceArgument,
+        fps: Double?,
         command: String
     ) throws -> FrameSource {
         switch argument {
         case let .document(document):
-            .document(try self.document(document, arguments: nil, command: command).resolved(in: self))
+            guard fps == nil else { throw CommandError.rateOfDocument(command: command) }
 
-        case let .video(path):
-            .video(path: path)
+            return .document(try self.document(document, arguments: nil, command: command).resolved(in: self))
+
+        case let .medium(path):
+            switch try MediaArgument(path: path, fps: fps) {
+            case let .file(file):
+                return .video(path: file)
+
+            case let .imageSequence(directory, fps):
+                return .imageSequence(directory: directory, fps: fps)
+            }
         }
     }
 

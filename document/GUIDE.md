@@ -1,6 +1,6 @@
 # Guide
 
-How an edit is made with frames, how to write a guide, a how-to and an extension, and how to change a document without changing what it shows. The rules are in the [specification](../spec/README.md), packs and templates in [PACK.md](PACK.md), presets in [PRESET.md](PRESET.md), and the commands and keys in the [README](../README.md).
+How an edit is made with frames, how to write a guide, a how-to and an extension, and how to change a document without changing what it shows. frames' engine turns a document written out in values, with its media, into a result, and finds no value itself: a pack gives values names, and an extension is a tool that reads media and frames' reports and writes values into the document before resolve ([FRAMES-25](../spec/FRAMES-25/SPEC.md#layers)). The rules are in the [specification](../spec/README.md), packs and templates in [PACK.md](PACK.md), presets in [PRESET.md](PRESET.md), and the commands and keys in the [README](../README.md).
 
 ## How an edit is made
 
@@ -89,9 +89,9 @@ storyline[1]#demo.connected[1]#note  title  visible [2.2, 3.4)  animation none
 storyline[1]#demo.connected[2]#badge  title  visible [1, 4)  animation none
 ```
 
-- `timeline` gives every storyline clip's edit range, drawn range and clip range, and every other clip's visible range on the sequence clock. It stops on what resolve stops on: an unknown preset, a clip that is never visible, a parent chain with a cycle. Fix those first.
+- `timeline` gives every storyline clip's edit range, drawn range and clip range, and every other clip's visible range on the sequence clock. With `--json` it also gives each clip's instant, the map of the times it writes to sequence time and the pixels its coordinates are written in, and with `--at <t>` the media time of the frame each clip shows at t, drawn or not. It stops on what resolve stops on: an unknown preset, a clip that is never visible, a parent chain with a cycle. Fix those first.
 - `still` draws frames at the instants you name, side by side with their times. Put one at each entrance, each edit point, the middle of each transition and the last frame.
-- `sheet` given a document lays out a range of composite frames, as `still` draws them.
+- `sheet` given a document lays out a range of composite frames, as `still` draws them. Given a video or an image sequence, with its rate as `--fps`, `sheet`, `extract` and `ocr` read the frames shown at media times.
 - Where a check needs numbers, `evaluate --at` prints every item drawn at that instant with its bounds and opacity, and `locate --at --point` says which clip drew a point of the output and which media pixel it shows.
 
 Go back to step 2 until it holds.
@@ -169,10 +169,10 @@ A how-to shows the steps with real commands, says what frames expects of the mat
 
 ## Writing an extension
 
-An extension is a program that takes a document and gives a document. It cuts silence out of an interview, cuts B-roll to the beats of a track, places captions from a transcript, translates titles, or bakes an effect frames has no op for. frames has no extension API: an extension reads what frames reports ([FRAMES-23](../spec/FRAMES-23/SPEC.md)) and writes JSON.
+An extension is a program that takes a document and gives a document, a tool in the layers of [FRAMES-25](../spec/FRAMES-25/SPEC.md#layers): it decides values by reading media and what frames reports, and writes them into the document before resolve, so nothing of it runs while a result is made. It cuts silence out of an interview, cuts B-roll to the beats of a track, places captions from a transcript, translates titles, or bakes an effect frames has no op for. frames has no extension API: an extension reads what frames reports ([FRAMES-23](../spec/FRAMES-23/SPEC.md)) and writes JSON.
 
 - `frames <name>` runs `frames-<name>` from `PATH`, with the global options frames was given first and then the arguments written after the name, unchanged. Standard input and output pass through. Installing an extension is putting it on `PATH`.
-- It finds clips by `id` and with `timeline --json`, where things are with `evaluate` and `locate`, and what is drawn with `still`, `extract` and `sheet`. All of these take the document itself, so what it sees is what frames draws from the same resolve.
+- It finds clips by `id` and with `timeline --json`, which also gives the sequence time a clip's values take effect at and the pixels they are written in, the frame a clip shows at any sequence time with `timeline --at`, where things are with `evaluate` and `locate`, and what is drawn with `still`, `extract` and `sheet`. All of these take the document itself, so what it sees is what frames draws from the same resolve.
 - It writes its document to standard output, and `timeline` checks the result like any other document. Extensions chain: `frames autocut /path/to/interview.json | frames captions - | frames render - -o /path/to/out/interview.mov`.
 - It keeps what it knows about a clip in the clip's `metadata`, which frames does not read: which extension added the clip and why.
 - It checks `frames --version` against the versions it is written for, as a pack does with `engine`.

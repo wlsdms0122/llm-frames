@@ -10,6 +10,7 @@ import Frames
 struct ExtractOptions: CommandOptions, Equatable {
     // MARK: - Property
     static let rules = [
+        OptionRule.fps,
         OptionRule.from,
         OptionRule.to,
         OptionRule.step
@@ -23,12 +24,14 @@ struct ExtractOptions: CommandOptions, Equatable {
     ]
 
     let source: String
+    let fps: Double?
     let directory: String
     let range: FrameRange
 
     // MARK: - Initializer
     init(_ arguments: ScannedArguments) throws {
         self.source = try arguments.requiredPositional(at: 0)
+        self.fps = try arguments.positiveNumber(of: "--fps")
         self.directory = try arguments.requiredPositionalPath(at: 1)
         self.range = try arguments.frameRange()
     }

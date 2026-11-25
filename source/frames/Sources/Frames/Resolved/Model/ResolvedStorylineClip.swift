@@ -49,13 +49,17 @@ struct ResolvedStorylineClip: Equatable, Sendable {
     let shadow: TimedValue
     let transition: ResolvedTransition?
 
-    // The media time it shows at a sequence time, nil for a solid: `in` at `start`, at `speed`, on the same line in the
-    // handles, or its `timeRemap`, held to its media's first and last frame.
+    // Its clip time at a sequence time: `in` at `start`, at `speed`, on the same line in the handles.
+    var map: TimeMap {
+        TimeMap(origin: start, in: `in`, speed: speed)
+    }
+
+    // The media time it shows at a sequence time, nil for a solid: its line, or its `timeRemap`, held to its media's
+    // first and last frame.
     var clock: MediaClock? {
         guard let media else { return nil }
 
-        let line = TimeMap(origin: start, in: `in`, speed: speed)
-        return MediaClock(line: line, timeRemap: timeRemap, frames: media.frames)
+        return MediaClock(line: map, timeRemap: timeRemap, frames: media.frames)
     }
 
     // MARK: - Initializer

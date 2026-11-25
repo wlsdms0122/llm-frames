@@ -15,14 +15,14 @@ struct FrameSourceArgumentTests {
     // MARK: - Initializer
     // MARK: - Test
     @Test(
-        "a .json file in any case, a pack template or - names a document, and any other absolute path a video",
+        "a .json file in any case, a pack template or - names a document, and any other absolute path a medium",
         arguments: [
             ("/abs/intro.json", FrameSourceArgument.document("/abs/intro.json")),
             ("/abs/intro.JSON", .document("/abs/intro.JSON")),
             ("shorts/intro", .document("shorts/intro")),
             ("-", .document("-")),
-            ("/abs/clip.mov", .video(path: "/abs/clip.mov")),
-            ("/abs/clip", .video(path: "/abs/clip"))
+            ("/abs/clip.mov", .medium(path: "/abs/clip.mov")),
+            ("/abs/clip", .medium(path: "/abs/clip"))
         ]
     )
     func namesSource(

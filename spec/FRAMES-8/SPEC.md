@@ -76,9 +76,21 @@ media time at clip time c (timed media clip):
 - A connected audio clip is only anchored by its start. It plays its window, or its natural length, across transitions. One whose start lies outside its storyline clip's drawn range stops.
 - A window `[start, end]` needs its start before its end. One that does not stops.
 
+### The time map at every instant
+
+A clip's **time map** takes sequence time to the media time the clip shows: a storyline clip's through its clip time, and a connected or sequence media clip's through its window. **A time map is defined at every sequence time, inside the clip's window and outside it**, since the instants that read it lie anywhere: a clip's own keyframes, a keyframe before `in` or past `out`, and the instant of a clip parented to it ([A clip's instant](#a-clips-instant)), which need not lie in its window.
+
+- A storyline clip's clip time is its line at every sequence time, and its media time `timeRemap` of that clip time, held at its edge values, or that clip time without `timeRemap` ([above](#storyline-clips-on-the-sequence-clock)).
+- A connected or sequence media clip's media time is `in + (s - s0) × speed` at every sequence time s, before its window's start s0 as well, where it lies before `in`. Past `out` it repeats from `in` when `loop` is true and holds the last frame before `out` otherwise, after the window's end as within it. With `timeRemap` it is the keys' value at s, held at their edge values.
+- Every media time is clamped to the media's first and last frame, a nested sequence's `[0, duration)`, before a frame is picked. A still and a page show their one picture at every instant, at media time 0, and a solid, a title, a shape and an adjustment clip have no media time.
+- A connected clip has no clip time of its own: its instants are on its storyline clip's clip time.
+- `timeline --at` reports the clip time and the media time of the frame shown at any sequence time ([FRAMES-23](../FRAMES-23/SPEC.md)), so a program reads a frame a clip shows where the clip draws nothing and computes no time map itself.
+
 ### A clip's instant
 
 A clip's **instant** is where a value it writes without keyframes takes effect: a connected or sequence clip's start (a connected clip without `at` starts at its storyline clip's `in`, a sequence clip without `at` at 0), and a storyline clip's `in`. It is on the clip's own clock. The frame of a media that the instant shows is found by carrying the instant to the clip time of the clip whose media it is, and turning that into media time through that clip's time map: its `timeRemap` when it has one, otherwise clip time is media time. So a clip parented to a time-remapped clip shows, at its instant, the frame its parent shows at that clip's start.
+
+`timeline` gives every clip's instant in sequence time and the map from the times it writes to sequence time ([FRAMES-23](../FRAMES-23/SPEC.md#a-clips-times-and-spaces)), so a program finds the sequence time a value takes effect at, and with `timeline --at` the frame it lies on, and computes no clock.
 
 ## Interactions
 
@@ -87,5 +99,7 @@ Keyframes and eases are [FRAMES-4](../FRAMES-4/SPEC.md). A media time picks a fr
 ## Alternatives considered
 
 Keyframes and connected clips on the sequence clock: trimming a clip, or one before it, would slide them off the content they were placed on. Separate keys for an instant and a window: the form already says which. Retiming as speed segments, as a retime editor shows them: one keyframable map from clip time to media time gives holds, reverse and ramps with the eases keyframes already have, and leaves clip time equal to media time wherever it is not written. Pitch-corrected sound under remapping: a hold or a reverse has no sound worth keeping, and a sound placed as its own clip is cut as the edit needs.
+
+A connected or sequence clip's time map defined on its window alone, with no media time outside it: resolve and evaluation read it outside the window wherever a clip parented to it takes effect or a keyframe of a clip tracked in its media lies there, so a map cut at the window would leave those values on a frame that no rule names.
 
 ## Notes

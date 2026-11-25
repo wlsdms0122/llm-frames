@@ -36,7 +36,7 @@ struct LoudnessCommand: Command {
             let document = try context.document(argument, arguments: options.arguments, command: name)
             loudness = try reporter.loudness(of: try document.resolved(in: context), from: options.from, to: options.to)
 
-        case let .video(path):
+        case let .medium(path):
             guard options.arguments == nil else { throw CommandError.argumentsOfMedium(command: name, path: path) }
             loudness = try reporter.loudness(ofMedium: path, from: options.from, to: options.to)
         }

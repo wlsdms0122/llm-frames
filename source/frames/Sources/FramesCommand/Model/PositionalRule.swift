@@ -14,9 +14,9 @@ struct PositionalRule: Equatable, Sendable {
             + "or - for standard input."
     )
     static let frameSource = PositionalRule(
-        "<video | document.json>",
-        help: "A video as an absolute path, or a document: a .json file, a pack template <pack>/<name>, "
-            + "or - for standard input."
+        "<video | image sequence | document.json>",
+        help: "A video as an absolute path, an image sequence as the absolute path of its directory, or a "
+            + "document: a .json file, a pack template <pack>/<name>, or - for standard input."
     )
 
     let placeholder: String

@@ -10,7 +10,7 @@
 // `null` where it covers nothing, `transform` as `[a, b, c, d, tx, ty]`, `rect` as `[x, y, w, h]` in the item's own
 // coordinates, `cornerPins` a list of `{dest, cornerPin}`, each four points `[x, y]`, or `null` on an item no corner
 // pin carries, and `characters` a list of `{text, range, level, rect, baseline}`, or `null` on an item that reports
-// none. Each text is `{place, id, text, writingMode, direction, size, box, transform, cornerPins, lines, words}`,
+// none, and a picture of a media file also has the frame it draws, `media`, `mediaTime` and `page`. Each text is `{place, id, text, writingMode, direction, size, box, transform, cornerPins, lines, words}`,
 // `writingMode` `horizontal-tb`, `vertical-rl` or `vertical-lr`, `direction` `ltr` or `rtl`, each line `{text, range, baseline, ascent, descent}` and each word `{text, range}`. A range is
 // `[start, end]` in whole Unicode scalars.
 extension EvaluationReport {
@@ -37,7 +37,7 @@ extension EvaluationReport {
             JSONMember(key: "rect", value: output(item.rect)),
             JSONMember(key: "cornerPins", value: output(item.cornerPins)),
             JSONMember(key: "characters", value: item.characters.map { .array($0.map(output)) } ?? .null)
-        ]))
+        ] + (item.frame?.machineOutput() ?? [])))
     }
 
     private func output(_ character: EvaluationCharacter) -> JSONValue {
