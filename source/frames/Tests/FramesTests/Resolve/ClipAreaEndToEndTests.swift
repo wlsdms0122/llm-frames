@@ -268,7 +268,7 @@ struct ClipAreaEndToEndTests {
         let read = try ResolvedValueReader().masks(PlacedJSONValue(written, place: place, kind: "rect"))
 
         // Then
-        let area = written.arrayValue?.first?.objectValue?["geometry"]?.objectValue?["rect"]?.objectValue?["rect"]
+        let area = written.arrayValue?.first?.objectValue?["geometry"]?.objectValue?["rect"]
         let padding = 24 * MergedTheme.base.lengthScale(at: 1920)
         #expect(area?.arrayValue?.first?.objectValue?["value"]?.objectValue?["clip"] == .string("name"))
         #expect(area?.arrayValue?.first?.objectValue?["value"]?.objectValue?["padding"] == .number(padding))

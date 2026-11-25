@@ -660,31 +660,39 @@ struct ResolvedDocumentReaderTests {
     private static let rect = #"[ { "at": 0, "value": [0, 0, 10, 10], "ease": "linear" } ]"#
 
     @Test(
-        "a mask that is not a closed path through two vertices with a tangent of each kind for each, has a negative feather, an unknown mode or both a rect and a box stops",
+        "a mask that is not a closed path through two vertices with a tangent of each kind for each, has a negative feather, an unknown mode, both a rect and a box, or a geometry without its kind stops",
         arguments: [
             (
-                #"{ "path": { "vertices": [\#(Self.point), \#(Self.point)], "inTangents": [\#(Self.point), \#(Self.point)], "outTangents": [\#(Self.point), \#(Self.point)], "closed": false } }"#, "0", #""add""#,
+                #"{ "kind": "path", "vertices": [\#(Self.point), \#(Self.point)], "inTangents": [\#(Self.point), \#(Self.point)], "outTangents": [\#(Self.point), \#(Self.point)], "closed": false }"#, "0", #""add""#,
                 "clips[0].mask[0].geometry (mask): a path mask is a closed path through at least two vertices, with an in and an out tangent for each"
             ),
             (
-                #"{ "path": { "vertices": [\#(Self.point)], "inTangents": [\#(Self.point)], "outTangents": [\#(Self.point)], "closed": true } }"#, "0", #""add""#,
+                #"{ "kind": "path", "vertices": [\#(Self.point)], "inTangents": [\#(Self.point)], "outTangents": [\#(Self.point)], "closed": true }"#, "0", #""add""#,
                 "clips[0].mask[0].geometry (mask): a path mask is a closed path through at least two vertices, with an in and an out tangent for each"
             ),
             (
-                #"{ "path": { "vertices": [\#(Self.point), \#(Self.point)], "inTangents": [\#(Self.point)], "outTangents": [\#(Self.point), \#(Self.point)], "closed": true } }"#, "0", #""add""#,
+                #"{ "kind": "path", "vertices": [\#(Self.point), \#(Self.point)], "inTangents": [\#(Self.point)], "outTangents": [\#(Self.point), \#(Self.point)], "closed": true }"#, "0", #""add""#,
                 "clips[0].mask[0].geometry (mask): a path mask is a closed path through at least two vertices, with an in and an out tangent for each"
             ),
             (
-                #"{ "rect": { "rect": \#(Self.rect), "radius": [ { "at": 0, "value": [0, 0, 0, 0], "ease": "linear" } ] } }"#, "-1", #""add""#,
+                #"{ "kind": "rect", "rect": \#(Self.rect), "radius": [ { "at": 0, "value": [0, 0, 0, 0], "ease": "linear" } ] }"#, "-1", #""add""#,
                 "clips[0].mask[0].feather[0].value (mask): a feather is 0 or more, found -1"
             ),
             (
-                #"{ "ellipse": { "rect": \#(Self.rect) } }"#, "0", #""multiply""#,
+                #"{ "kind": "ellipse", "rect": \#(Self.rect) }"#, "0", #""multiply""#,
                 #"clips[0].mask[0].mode (mask): unknown value "multiply". Allowed: add, subtract, intersect"#
             ),
             (
-                #"{ "ellipse": { "rect": \#(Self.rect), "width": [ { "at": 0, "value": 10, "ease": "linear" } ] } }"#, "0", #""add""#,
-                #"clips[0].mask[0].geometry.ellipse (mask): takes only one of "rect", "width""#
+                #"{ "kind": "ellipse", "rect": \#(Self.rect), "width": [ { "at": 0, "value": 10, "ease": "linear" } ] }"#, "0", #""add""#,
+                #"clips[0].mask[0].geometry (mask): takes only one of "rect", "width""#
+            ),
+            (
+                #"{ "ellipse": { "rect": \#(Self.rect) } }"#, "0", #""add""#,
+                #"clips[0].mask[0].geometry (mask): missing key "kind""#
+            ),
+            (
+                #"{ "kind": "circle", "rect": \#(Self.rect) }"#, "0", #""add""#,
+                #"clips[0].mask[0].geometry.kind (mask): unknown value "circle". Allowed: rect, ellipse, path"#
             )
         ]
     )
