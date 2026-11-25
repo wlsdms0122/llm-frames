@@ -6,7 +6,7 @@
 frames find-text /path/to/edit.json | frames render - -o /path/to/out/edit.mp4
 ```
 
-frames itself takes areas as rectangles `[x, y, w, h]` and clip areas `{"clip": "<id>", "padding": p}`, and `frames ocr --json` reports every line it recognises with its rectangle. This extension joins the two: it reads only frames' machine output (`timeline`, `evaluate`, `locate`, `probe`, `ocr`, all with `--json` or as JSON), never a resolved document, and links no frames code.
+frames itself takes areas as rectangles `[x, y, w, h]` and clip areas `{"clip": "<id>", "padding": p}`, and `frames ocr --json` reports every line it recognises with its rectangle. This extension joins the two: it reads only frames' machine output (`timeline` and `ocr`, with `--json`), never a resolved document, and links no frames code.
 
 ## Install
 
@@ -42,33 +42,34 @@ frames find-text <document.json | -> [--languages <tag>[,<tag>...]]
 
 ## Where it works
 
-A form is searched only where its coordinates are the media pixels of a video, an image, an image sequence or a page of a PDF, with no map between:
+A form is searched in the pixels its key is written in, which `timeline --json` reports for every clip ([FRAMES-23](../../spec/FRAMES-23/SPEC.md#a-clips-times-and-spaces)): a `crop` or a `mask` in the clip's `ownSpace`, and a `position`, `area`, `points` or `cornerPin` in its `space`. Where that space is the media pixels of a clip whose media is a video, an image, an image sequence or a page of a PDF, the form is searched in that clip's media. So a child of a storyline clip or a media clip is searched in its parent's media, and so is a child of a shape placed by `area` or `points`, of an adjustment clip or of a clip with a corner pin that is itself written in such media, as frames places it.
 
-- a storyline clip's or media clip's own `crop` and `mask`, searched in its own media, and its `track` target when it tracks its own media (a video or an image sequence without a corner pin);
-- the `area`, `points`, `position` and `cornerPin` of a clip parented directly to a storyline clip or media clip of such media without a corner pin, the `mask` of such a child when it is a shape placed by `area` or `points` or an adjustment clip, and its `track` target when it tracks its parent's media, all searched in the parent's media.
+Anywhere else it stops, naming the place and the space its entry reports:
 
-Anywhere else it stops, naming the clip and saying the place is not in a medium's pixels: an unparented clip, whose coordinates are output pixels; a storyline clip's `position` or `cornerPin`; a clip parented to a title, a shape, an adjustment clip, a solid, a clip with a corner pin or a compound clip; the mask of a title or of a shape placed by `width` and `height`; and any place inside a compound clip or template instance, whose picture is drawn and not read.
+- output pixels: an unparented clip, a storyline clip's `position` and `cornerPin`, and a child of a solid or of a storyline clip with a corner pin;
+- a box: a child of a title or of a rect or ellipse placed by `width` and `height`, and such a clip's own `mask`;
+- the media pixels of a compound clip or a template instance, whose picture is drawn and not read.
+
+A `track` target is searched in the clip's own media when it tracks its own media (a video or an image sequence without a corner pin), and otherwise in its parent's media, which a parent with a corner pin or without media of its own does not give ([FRAMES-12](../../spec/FRAMES-12/SPEC.md)).
 
 ## The frame searched
 
-A still or a page has one picture. On video and image sequences the form is searched on the frame shown at the instant it takes effect:
+A still or a page has one picture. On a video or an image sequence the form is searched on the frame the searched clip shows at the sequence time the form takes effect at, read from the entry of the clip that writes it:
 
-| Form | Instant |
+| Form | Sequence time |
 | --- | --- |
-| a static value | the clip's start: a storyline clip's `in`, a connected clip's `at` (its storyline clip's `in` without one), a sequence clip's `at` (0 without one) |
-| a keyframe's value | that keyframe's `at`, on the clip's own clock |
-| a `track` object's `area` | the media time its `time` names |
+| a static value | the clip's `instant` |
+| a keyframe's value | its `at` carried by the clip's `clock`, `origin + at / speed` |
+| a `track` object's `area` | none: the frame shown at the media time its `time` names |
 
-The extension asks frames which frame that is. It writes a copy of the document with each form in a placeholder rectangle (and without the masks that hold one and without `track`, which do not move a clip in time), carries the instant to sequence time with `timeline --json`, finds where the searched clip's picture lies with `evaluate`, and asks `locate` for the media file, the media time and the page of the frame under that point. So `speed`, `in`, `loop`, `timeRemap` and transitions are applied by frames. Where frames draws none of the searched clip at the instant (a keyframe outside its window, or past the end of the sequence), it reads a still as it is and a video whose clip has no `speed`, `loop` or `timeRemap` at `in` plus the clip time, and stops otherwise.
+The extension writes a copy of the document with each form in a placeholder rectangle and without `track`, so frames resolves it without searching or tracking and times its clips as it times the document. It reads `timeline --json` once, and `timeline --at <t> --json` once for each sequence time, whose entry for the searched clip gives the `mediaTime` of the frame its time map shows there, whether the clip draws anything at t or not and inside the sequence or outside it. So `speed`, `in`, `loop`, `timeRemap` and transitions are applied by frames, and the extension computes no time and follows no parent.
 
-The media are read with `frames ocr --json`: a clip's `colorSpace` is passed as `--color-space`, a page of a PDF as `--page`, and `--languages` as given. Each distinct media file, time, page, colour space and languages is read once.
+The media are read with `frames ocr --json` at that media time: the searched clip's `media`, its `page` as `--page`, an image sequence's directory with the `fps` its entry reports as `--fps`, the searched clip's `colorSpace` as `--color-space`, and `--languages` as given. Each distinct media file, time, page, rate, colour space and languages is read once.
 
 ## What it does not cover
 
-- A place whose coordinates reach the media through a map: a clip parented to a shape, an adjustment clip or a clip with a corner pin, or a grandchild of the media clip. Write those as rectangles found with `frames ocr`.
 - Text drawn by frames (titles), which `evaluate` reports exactly in `texts` and `characters`.
-- Places inside a compound clip or template instance, or inside a sequence document named as media by its file. Run the extension on the nested document first.
-- A `track` object's `area` on an image sequence or on media named by a pack, whose file at a media time no report gives.
+- Places inside a compound clip or template instance, or inside a sequence document named as media by its file: their instants are on the nested sequence's time, and `timeline --at` gives a nested document's clips only at the outer sequence's times. Run the extension on the nested document first.
 - A template with `--args`.
 
 ## Example
