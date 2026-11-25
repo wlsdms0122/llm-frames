@@ -42,7 +42,9 @@ final class VideoReader: Sendable {
     private let asset: AVURLAsset
     // A track is only read once it is loaded, which AVFoundation allows from any thread.
     nonisolated(unsafe) private let track: AVAssetTrack
-    private let open = OSAllocatedUnfairLock<FrameReader?>(uncheckedState: nil)
+    private let state = OSAllocatedUnfairLock<ReadState>(uncheckedState: ReadState())
+    // The frames whose buffers `state` holds, read without its lock while a frame is being read.
+    private let heldFrames = OSAllocatedUnfairLock<Set<Int>>(initialState: [])
 
     // MARK: - Initializer
     // Nil for a file without a picture track.
@@ -74,7 +76,7 @@ final class VideoReader: Sendable {
     }
 
     // MARK: - Public
-    // A buffer `buffer(atFrame:path:)` gave as it is displayed, with no colour matched: its R'G'B', taken from its
+    // A buffer `buffer(atFrame:path:turn:)` gave as it is displayed, with no colour matched: its R'G'B', taken from its
     // Y'CbCr by the formulas in double precision where it holds Y'CbCr, a value beyond the nominal range kept.
     func image(of buffer: CVImageBuffer) -> CIImage {
         guard case let .yCbCr(layout) = decodedFormat else {
@@ -98,28 +100,49 @@ final class VideoReader: Sendable {
     // colour management converts from.
     func taggedImage(
         atFrame index: Int,
-        path: String
+        path: String,
+        turn: Int
     ) throws -> CIImage {
-        displayed(CIImage(cvImageBuffer: try buffer(atFrame: index, path: path).buffer))
+        displayed(CIImage(cvImageBuffer: try buffer(atFrame: index, path: path, turn: turn).buffer))
     }
 
-    // The buffer of frame `index` as the file stores it, in `decodedFormat`, the samples decoded to reach it, and whether a reader was opened again for it, which the first reader opened on the
-    // video is not.
+    // Whether the buffer of a frame a reader read past the frame it was opened for is held.
+    var holdsFrames: Bool {
+        !heldFrames.withLock(\.isEmpty)
+    }
+
+    // Whether the buffer of frame `index` is held.
+    func holds(frame index: Int) -> Bool {
+        heldFrames.withLock { $0.contains(index) }
+    }
+
+    // The buffer of frame `index` as the file stores it, in `decodedFormat`, the samples decoded to reach it, and
+    // whether a reader was opened again for it, which the first reader opened on the video is not. A reader opened for
+    // it reads `turn` frames, frame `index` and the frames after it by the step from the frame asked before, within
+    // `forwardReach` of it, and holds the buffers of the others, which later asks give with no reader. Every buffer
+    // held of a frame up to `index` is let go of.
     func buffer(
         atFrame index: Int,
-        path: String
+        path: String,
+        turn: Int
     ) throws -> (buffer: CVImageBuffer, decoded: Int, reopened: Bool) {
         let time = frames[index]
-        let (shown, decoded, reopened) = try open.withLockUnchecked { open -> (CVImageBuffer?, Int, Bool) in
-            if let reader = open, reader.index == index { return (reader.picture, 0, false) }
-            if let reader = open, reader.index < index, (time - reader.time).seconds <= Self.forwardReach {
+        let (shown, decoded, reopened) = try state.withLockUnchecked { state -> (CVImageBuffer?, Int, Bool) in
+            let step = state.asked.map { index - $0 }.flatMap { $0 > 0 ? $0 : nil } ?? 1
+            state.asked = index
+            let held = state.held.first { $0.index == index }
+            state.held.removeAll { $0.index <= index }
+            defer { heldFrames.withLock { [kept = Set(state.held.map(\.index))] in $0 = kept } }
+            if let held { return (held.buffer, 0, false) }
+            if let reader = state.reader, reader.index == index { return (reader.picture, 0, false) }
+            if let reader = state.reader, reader.index < index, (time - reader.time).seconds <= Self.forwardReach {
                 let before = reader.decoded
                 let picture = try reader.read(frame: index, at: time, path: path)
 
                 return (picture, reader.decoded - before, false)
             }
 
-            let reopened = open != nil
+            let reopened = state.hasOpened
             let reader = try FrameReader(
                 asset: asset,
                 track: track,
@@ -127,8 +150,17 @@ final class VideoReader: Sendable {
                 start: time,
                 path: path
             )
-            open = reader
+            state.reader = reader
+            state.hasOpened = true
             let picture = try reader.read(frame: index, at: time, path: path)
+            state.held = []
+            let following = stride(from: index + step, to: frames.count, by: step).prefix(turn - 1).prefix {
+                (frames[$0] - time).seconds <= Self.forwardReach
+            }
+            for next in following {
+                guard let buffer = try reader.read(frame: next, at: frames[next], path: path) else { break }
+                state.held.append((next, buffer))
+            }
 
             return (picture, reader.decoded, reopened)
         }
@@ -137,10 +169,10 @@ final class VideoReader: Sendable {
         return (shown, decoded, reopened)
     }
 
-    // Lets go of the reader open on the video, so the next frame read opens one at that frame. A read in progress
-    // ends first.
+    // Lets go of the reader open on the video, so the next frame read opens one at that frame, and keeps the buffers
+    // held. A read in progress ends first.
     func close() {
-        open.withLockUnchecked { $0 = nil }
+        state.withLockUnchecked { $0.reader = nil }
     }
 
     // MARK: - Private
@@ -264,5 +296,17 @@ final class VideoReader: Sendable {
         let displayFlip = CGAffineTransform(a: 1, b: 0, c: 0, d: -1, tx: 0, ty: displaySize.height)
 
         return image.transformed(by: storedFlip.concatenating(transform).concatenating(displayFlip))
+    }
+}
+
+extension VideoReader {
+    // The reader open on the video, none before the first frame is read and after it is closed, the frame asked last,
+    // the buffers of the frames the last reader opened read past the frame it was opened for, and whether a reader
+    // was ever opened.
+    private struct ReadState {
+        var reader: FrameReader?
+        var asked: Int?
+        var held: [(index: Int, buffer: CVImageBuffer)] = []
+        var hasOpened = false
     }
 }

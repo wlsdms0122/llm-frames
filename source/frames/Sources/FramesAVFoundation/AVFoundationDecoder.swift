@@ -17,11 +17,11 @@ import os
 // their colour by the fixed formulas of FRAMES-26: in the colour space a reading names, or the one its tags name. A
 // `platform` reading instead converts the picture from its file's colour by Core Image's colour management. A page of a
 // PDF is checked and drawn by `PageReader`. A video, a sound track and a PDF are loaded once and kept, and a video read
-// forward has its next frame read ahead by `PictureLookahead`. It keeps a reader open on the 48 videos read last, and
-// closes the reader of a video read longer ago. Made to convert on the GPU, on a machine with a Metal device, it takes
-// a video's frames read as working values to a surface by `MetalPictureConverter` wherever the conversion's steps and
-// the frame's placement allow, and every other picture on the CPU (FRAMES-21 Pictures). The largest picture it holds is
-// 16384 pixels on a side.
+// forward has its next frame read ahead by `PictureLookahead`. It keeps readers open within the count and the memory
+// `ReaderBound` holds them to, and a video past them takes turns. Made to convert on the GPU, on a machine with a Metal
+// device, it takes a video's frames read as working values to a surface by `MetalPictureConverter` wherever the
+// conversion's steps and the frame's placement allow, and every other picture on the CPU (FRAMES-21 Pictures). The
+// largest picture it holds is 16384 pixels on a side.
 // It times its reading of pictures and sound as `decode` and its conversion of them as `workingConversion`, that of a
 // frame read ahead apart as well, and tallies how it read each medium: a frame read ahead is decoded where it is read,
 // and read only when it is given (FRAMES-23 Runs). A page's draw is `decode` whole, any colour conversion included,
@@ -35,15 +35,19 @@ package final class AVFoundationDecoder: Sendable {
     // Nil for a decoder made to convert on the CPU, and on a machine with no Metal device.
     private let metal: MetalPictureConverter?
     private let managedConverter = ManagedPictureConverter()
-    // The most videos the decoder keeps a reader open on. AVFoundation decodes no frame for a 65th reader decoding at
-    // once in one process (FRAMES-21 Notes), and a video read by one of the reads ahead and callers at once may open a
-    // reader past this count.
+    // The most videos the decoder keeps a reader open on, since AVFoundation decodes no frame for a 65th reader
+    // decoding at once in one process (FRAMES-21 Notes), and a video read by one of the reads ahead and callers at once
+    // may open a reader past this count. The readers open hold at most a quarter of the machine's memory, each the
+    // cost `readerCost(of:)` gives, and a reader opened for a turn reads `turnFrames` frames.
     private static let openReaders = 48
+    private static let turnFrames = 8
 
     private let lookahead = PictureLookahead()
     private let videos = OSAllocatedUnfairLock<[String: VideoReader]>(initialState: [:])
-    // The videos a frame was read from, read longest ago first, of which only the last `openReaders` keep a reader.
-    private let readOrder = OSAllocatedUnfairLock<[String]>(initialState: [])
+    private let readers = ReaderBound(
+        count: openReaders,
+        memory: Int(clamping: ProcessInfo.processInfo.physicalMemory / 4)
+    )
     private let sounds = OSAllocatedUnfairLock<[String: SoundReader]>(initialState: [:])
     private let documents = OSAllocatedUnfairLock<[String: PageReader]>(initialState: [:])
     // The stages run on a caller's thread, and those run on the lookahead's threads reading ahead.
@@ -68,21 +72,45 @@ package final class AVFoundationDecoder: Sendable {
         return video
     }
 
-    // Counts the video at `path` read last, and closes the reader of each video read longer ago than the last
-    // `openReaders`, holding no video's lock while it does.
-    private func recordRead(of path: String) {
-        let closing = readOrder.withLock { order -> [String] in
-            order.removeAll { $0 == path }
-            order.append(path)
-            let closing = Array(order.prefix(max(order.count - Self.openReaders, 0)))
-            order.removeFirst(closing.count)
+    // Records a read of frame `index` of the video at `path`, which a held frame gives with no reader, and closes the
+    // readers the bound closes, holding no video's lock while it does. Gives the frames a reader opened for the read
+    // reads: `turnFrames` in a turn, and one otherwise.
+    private func recordRead(
+        of video: VideoReader,
+        at path: String,
+        frame index: Int
+    ) -> Int {
+        guard !video.holds(frame: index) else { return 1 }
 
-            return closing
+        let (closing, isTurn) = readers.admit(path, cost: Self.readerCost(of: video)) { [videos] path in
+            videos.withLock { $0[path] }?.holdsFrames ?? false
         }
-        let readers = videos.withLock { videos in closing.compactMap { videos[$0] } }
-        for reader in readers {
+        let closed = videos.withLock { videos in closing.compactMap { videos[$0] } }
+        for reader in closed {
             reader.close()
         }
+
+        return isTurn ? Self.turnFrames : 1
+    }
+
+    // The memory VideoToolbox's decoding service holds for a reader decoding the video, by the size of a frame as the
+    // file stores it in the form it is given in: 28 frames given as Y'CbCr and 19 given as half floats, the most
+    // measured on the reference machine (FRAMES-21 Notes).
+    private static func readerCost(of video: VideoReader) -> Int {
+        let pixels = Double(video.storedSize.width * video.storedSize.height)
+        // Y'CbCr is a plane of luma and one of chroma subsampled by the layout's factors, in bytes of 8 or 16 bits.
+        let (frames, bytesPerPixel): (Double, Double) = switch video.decodedFormat {
+        case let .yCbCr(layout):
+            (
+                28,
+                Double(layout.bitDepth > 8 ? 2 : 1) * (1 + 2 / Double(layout.sampling.horizontal * layout.sampling.vertical))
+            )
+
+        case .halfFloatRGBA:
+            (19, 8)
+        }
+
+        return Int(frames * pixels * bytesPerPixel)
     }
 
     // Nil for a file that is no PDF.
@@ -458,9 +486,9 @@ extension AVFoundationDecoder: MediaDecoder {
             reading: reading
         ) { [self] index, isAhead in
             let clock = isAhead ? self.aheadClock : self.clock
-            recordRead(of: path)
+            let turn = recordRead(of: video, at: path, frame: index)
             if case .platform = reading {
-                let image = try clock.measure(.decode) { try video.taggedImage(atFrame: index, path: path) }
+                let image = try clock.measure(.decode) { try video.taggedImage(atFrame: index, path: path, turn: turn) }
 
                 let (picture, _) = try picture(from: image, tagged: tagged, path: path, reading: reading, clock: clock)
 
@@ -468,7 +496,7 @@ extension AVFoundationDecoder: MediaDecoder {
             }
 
             let (buffer, decoded, reopened) = try clock.measure(.decode) {
-                try video.buffer(atFrame: index, path: path)
+                try video.buffer(atFrame: index, path: path, turn: turn)
             }
             let surface = try surface(of: buffer, in: video, tagged: tagged, path: path, reading: reading, clock: clock)
             if let surface {

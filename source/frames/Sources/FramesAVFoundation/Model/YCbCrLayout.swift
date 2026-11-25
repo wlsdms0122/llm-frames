@@ -113,7 +113,10 @@ struct YCbCrLayout: Equatable, Sendable {
             extensionKey: kCMFormatDescriptionExtension_ChromaLocationTopField
         ) as? String
         guard let siting = Self.siting(of: location, sampling: sampling) else { return nil }
-        let fullRange = CMFormatDescriptionGetExtension(format, extensionKey: kCMFormatDescriptionExtension_FullRangeVideo)
+        let fullRange = CMFormatDescriptionGetExtension(
+            format,
+            extensionKey: kCMFormatDescriptionExtension_FullRangeVideo
+        )
 
         self.init(
             bitDepth: bitDepth,
@@ -220,6 +223,7 @@ struct YCbCrLayout: Equatable, Sendable {
 
         return (min(max(first, 0), count - 1), min(max(first + 1, 0), count - 1), position - base)
     }
+
     // KR and KB of the H.273 matrices that have them, 2 (unspecified) standing for `srgb`'s, 1.
     private static func constants(ofMatrix matrix: Int) -> (red: Double, blue: Double)? {
         switch matrix {
@@ -232,34 +236,25 @@ struct YCbCrLayout: Equatable, Sendable {
         }
     }
 
-    // The depth and chroma sampling of H.264 of the 8-bit 4:2:0 profiles by its `avcC` box's profile, of HEVC by its
-    // `hvcC` box's chroma format and depths, and of ProRes 422, which is 10-bit 4:2:2.
+    // The depth and chroma sampling of H.264 by its first sequence parameter set, of HEVC by its `hvcC` box's chroma
+    // format and depths, and of ProRes 422, which is 10-bit 4:2:2.
     private static func samples(of format: CMFormatDescription) -> (bitDepth: Int, sampling: ChromaSampling)? {
-        let atoms = CMFormatDescriptionGetExtension(
-            format,
-            extensionKey: kCMFormatDescriptionExtension_SampleDescriptionExtensionAtoms
-        ) as? [String: Any]
-        let box = { (name: String) in (atoms?[name] as? Data).map { [UInt8]($0) } }
-
         switch CMFormatDescriptionGetMediaSubType(format) {
         case kCMVideoCodecType_H264:
-            guard let avcC = box("avcC"), avcC.count > 1, [66, 77, 88, 100].contains(avcC[1]) else { return nil }
-
-            return (8, .fourTwoZero)
+            return sequenceSamples(of: format)
 
         case kCMVideoCodecType_HEVC, FourCharCode(0x6865_7631):
             // `hev1` and `hvc1`: the chroma format at byte 16 and the depths less 8 at bytes 17 and 18.
-            guard let hvcC = box("hvcC"), hvcC.count > 18 else { return nil }
+            let atoms = CMFormatDescriptionGetExtension(
+                format,
+                extensionKey: kCMFormatDescriptionExtension_SampleDescriptionExtensionAtoms
+            ) as? [String: Any]
+            guard let hvcC = (atoms?["hvcC"] as? Data).map([UInt8].init), hvcC.count > 18 else { return nil }
             let lumaDepth = Int(hvcC[17] & 0x07) + 8
             let chromaDepth = Int(hvcC[18] & 0x07) + 8
             guard lumaDepth == chromaDepth, [8, 10].contains(lumaDepth) else { return nil }
 
-            switch hvcC[16] & 0x03 {
-            case 1: return (lumaDepth, .fourTwoZero)
-            case 2: return (lumaDepth, .fourTwoTwo)
-            case 3: return (lumaDepth, .fourFourFour)
-            default: return nil
-            }
+            return sampling(ofChromaFormat: Int(hvcC[16] & 0x03)).map { (lumaDepth, $0) }
 
         case kCMVideoCodecType_AppleProRes422, kCMVideoCodecType_AppleProRes422HQ, kCMVideoCodecType_AppleProRes422LT,
             kCMVideoCodecType_AppleProRes422Proxy:
@@ -267,6 +262,78 @@ struct YCbCrLayout: Equatable, Sendable {
 
         default:
             return nil
+        }
+    }
+
+    // The depth and chroma sampling an H.264 stream's first sequence parameter set gives: 8-bit 4:2:0 for a profile
+    // with no other, and otherwise its `chroma_format_idc`, `separate_colour_plane_flag` where that is 3, and its two
+    // depths less 8, after its header byte, profile, constraints, level and `seq_parameter_set_id`, each but the flag
+    // an Exp-Golomb code, read once the stream's emulation prevention bytes are taken out.
+    private static func sequenceSamples(of format: CMFormatDescription) -> (bitDepth: Int, sampling: ChromaSampling)? {
+        let profilesWithChromaFormat: Set<UInt8> = [44, 83, 86, 100, 110, 118, 122, 128, 134, 135, 138, 139, 244]
+        var pointer: UnsafePointer<UInt8>?
+        var size = 0
+        let status = CMVideoFormatDescriptionGetH264ParameterSetAtIndex(
+            format,
+            parameterSetIndex: 0,
+            parameterSetPointerOut: &pointer,
+            parameterSetSizeOut: &size,
+            parameterSetCountOut: nil,
+            nalUnitHeaderLengthOut: nil
+        )
+        guard status == noErr, let pointer, size > 4 else { return nil }
+
+        var payload: [UInt8] = []
+        var zeros = 0
+        for byte in UnsafeBufferPointer(start: pointer, count: size).dropFirst() {
+            if zeros >= 2, byte == 3 {
+                zeros = 0
+                continue
+            }
+            zeros = byte == 0 ? zeros + 1 : 0
+            payload.append(byte)
+        }
+        guard payload.count > 3 else { return nil }
+        guard profilesWithChromaFormat.contains(payload[0]) else { return (8, .fourTwoZero) }
+
+        var bit = 24
+        let next = { () -> Int? in
+            guard bit < payload.count * 8 else { return nil }
+            defer { bit += 1 }
+
+            return Int(payload[bit / 8] >> (7 - UInt8(bit % 8)) & 1)
+        }
+        let golomb = { () -> Int? in
+            var leadingZeros = 0
+            while true {
+                guard let value = next() else { return nil }
+                if value == 1 { break }
+                leadingZeros += 1
+                guard leadingZeros < 32 else { return nil }
+            }
+            var value = 0
+            for _ in 0..<leadingZeros {
+                guard let bit = next() else { return nil }
+                value = value << 1 | bit
+            }
+
+            return (1 << leadingZeros) - 1 + value
+        }
+        guard golomb() != nil, let chromaFormat = golomb() else { return nil }
+        if chromaFormat == 3, next() == nil { return nil }
+        guard let lumaDepth = golomb().map({ $0 + 8 }), let chromaDepth = golomb().map({ $0 + 8 }) else { return nil }
+        guard lumaDepth == chromaDepth, [8, 10].contains(lumaDepth) else { return nil }
+
+        return sampling(ofChromaFormat: chromaFormat).map { (lumaDepth, $0) }
+    }
+
+    // The sampling of H.264's and HEVC's `chroma_format_idc`, nil for 0, monochrome.
+    private static func sampling(ofChromaFormat format: Int) -> ChromaSampling? {
+        switch format {
+        case 1: .fourTwoZero
+        case 2: .fourTwoTwo
+        case 3: .fourFourFour
+        default: nil
         }
     }
 
