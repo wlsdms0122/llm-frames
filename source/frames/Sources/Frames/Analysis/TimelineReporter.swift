@@ -13,7 +13,8 @@ import Foundation
 // time and keeps no clip's instant, and it pins an image sequence's frame times and no rate. Media is named by its pinned
 // path in both. Asked at a sequence time, which may lie outside the sequence, every entry also gives what its time map
 // gives there (FRAMES-8) and where it lies there, which the sequence as resolve builds it gives, and a nested document is
-// reported at the media time its clip shows.
+// reported at the media time its clip shows. The sequence nested at a place is reported as it is planned or resolved
+// there, at a time on its own clock.
 package struct TimelineReporter: Sendable {
     // MARK: - Property
     private let planner: DocumentPlanner
@@ -29,9 +30,24 @@ package struct TimelineReporter: Sendable {
         of document: JSONValue,
         theme: String? = nil,
         arguments: ArgumentFile? = nil,
+        at time: Double? = nil,
+        nested place: String? = nil
+    ) throws -> TimelineReport {
+        let plan = try planner.plan(document, theme: theme, arguments: arguments)
+        guard let place else { return try report(of: plan, at: time) }
+        guard let nested = plan.nestedPlan(at: place) else { throw AnalysisError.notNested(place: place) }
+
+        return try report(of: nested, at: time)
+    }
+
+    package func report(
+        of sequence: ResolvedSequence,
+        nested place: String,
         at time: Double? = nil
     ) throws -> TimelineReport {
-        try report(of: planner.plan(document, theme: theme, arguments: arguments), at: time)
+        guard let nested = sequence.nestedSequence(at: place) else { throw AnalysisError.notNested(place: place) }
+
+        return report(of: nested, at: time)
     }
 
     // At a time the plan is built into the sequence resolve would write, without reading a file to pin it, to find where

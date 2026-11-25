@@ -32,6 +32,7 @@ enum AnalysisError: Error, Equatable, CustomStringConvertible, Sendable {
     case unknownUnit(place: String, kind: String, unit: Int, units: Int?)
     case imageSequenceWithoutRate(directory: String)
     case rateOfFile(file: String)
+    case notNested(place: String)
 
     // MARK: - Property
     var description: String {
@@ -118,6 +119,9 @@ enum AnalysisError: Error, Equatable, CustomStringConvertible, Sendable {
 
         case let .rateOfFile(file):
             "--fps: media \(quoted(file)) is no image sequence directory, and a file gives its own rate"
+
+        case let .notNested(place):
+            "--nested: no compound clip or template instance is at \(quoted(place))"
         }
     }
 
