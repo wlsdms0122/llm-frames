@@ -4,7 +4,7 @@ frames is a non-linear video editor driven by JSON documents and a command line,
 
 The same model edits a still and a video, since a still is a sequence rendered as one frame. Work goes as it does in any editor: write the document, look at it with `timeline`, `still` and `sheet`, change it, render, and use what was rendered as media in the next document.
 
-At its centre frames is an engine: it turns an edit written out in values, with the media it names, into a result, and decides no value by reading content. What a purpose needs (a lower third for a lecture, an annotation look, a vertical short with subtitles) is made above the engine, in vocabulary and tools installed beside frames: a pack carries vocabulary, the themes, presets, LUTs, fonts, media and templates with published parameters that a document names and resolve replaces by their values, and a tool, such as an extension, is a program that reads media and what frames reports and writes values into a document before it is resolved. [FRAMES-25](spec/FRAMES-25/SPEC.md#layers) defines the layers. frames composites media and does not generate it. Titles and shapes are built in, and motion graphics, illustrations and diagrams are made with other tools and come in as PNGs, PNG sequences, video with alpha, or pages of a PDF for vector artwork.
+At its centre frames is an engine: it turns an edit written out in values, with the media it names, into a result, and decides no value by reading content. What a purpose needs (a lower third for a lecture, an annotation look, a vertical short with subtitles) is made above the engine, in vocabulary and tools, and a pack is the one unit both are installed in. Vocabulary is the themes, presets, LUTs, fonts, media and templates with published parameters that a document names and resolve replaces by their values, and a tool is a program that reads media and what frames reports and writes values into a document before it is resolved. [FRAMES-25](spec/FRAMES-25/SPEC.md#layers) defines the layers. frames composites media and does not generate it. Titles and shapes are built in, and motion graphics, illustrations and diagrams are made in other software and come in as PNGs, PNG sequences, video with alpha, or pages of a PDF for vector artwork.
 
 A few rules hold everywhere:
 
@@ -14,7 +14,7 @@ A few rules hold everywhere:
 - The resolved document is a lockfile: tracks, text layout, themes, presets and templates are written into it as values, and the files it still needs are pinned by hash, so it makes the same result again.
 - `render` writes a master at full quality. Delivery files are made from the same frames (`--deliver`) or from the master (`transcode`), and a render made only to look at or hand over writes the delivery file alone (`-o` an `.mp4`).
 
-The specification in [`spec/`](spec/README.md) is the contract for every rule, and this page is the way in for someone who uses the tool. Each section below links to the spec that holds the full rules.
+The specification in [`spec/`](spec/README.md) is the contract for every rule, and this page is the way in for someone who uses frames. Each section below links to the spec that holds the full rules.
 
 - [Build](#build)
 - [A first edit](#a-first-edit)
@@ -31,11 +31,11 @@ swift build -c release --package-path source/frames
 source/frames/.build/release/frames --version
 ```
 
-The tool is `source/frames/.build/release/frames`, with `Frames_FramesCommand.bundle` beside it. The bundle holds `frames`, the pack of presets that ships with the tool, and the tool reads it from its own directory, so the two are copied together wherever the tool is put. `open-package build` runs the same build.
+The executable is `source/frames/.build/release/frames`, with `Frames_FramesCommand.bundle` beside it. The bundle holds `frames`, the pack of presets and tools that ships with frames, and the executable reads it from its own directory, so the two are copied together wherever the executable is put. `open-package build` runs the same build.
 
-`FRAMES_HOME` is where the tool looks for installed packs, in `$FRAMES_HOME/packs/`. It defaults to `~/.config/frames`, and setting it keeps a machine's packs wherever that machine keeps its work.
+`FRAMES_HOME` is where frames looks for installed packs, in `$FRAMES_HOME/packs/`. It defaults to `~/.config/frames`, and setting it keeps a machine's packs wherever that machine keeps its work.
 
-A pack is installed by copying its directory into `$FRAMES_HOME/packs/`:
+A pack is installed by copying its directory into `$FRAMES_HOME/packs/`, its tools with it, and installing a pack runs nothing:
 
 ```sh
 mkdir -p ~/.config/frames/packs
@@ -180,7 +180,7 @@ frames locate /path/to/edit.json --at 1 --point 1760,120
 | Command | What it prints |
 | --- | --- |
 | `presets [<kind>] [<name>]` | the presets of every pack by kind (`transition`, `animation`, `filter`), each with the name a document gives it and how it looks, or one preset's JSON with its parameters |
-| `packs [<pack>]` | the packs, the one that ships with frames and the installed ones, or what one pack holds, with the parameters each preset and template publishes |
+| `packs [<pack>]` | the packs, the one that ships with frames and the installed ones, or what one pack holds, with the parameters each preset and template publishes and the tools it holds |
 | `theme` | the base theme, which is also the list of every group a theme holds |
 | `--version` | the version of frames |
 | `--help`, `<command> --help` | the usage and the global options, or one command's help |
@@ -192,17 +192,17 @@ frames packs frames
 frames theme
 ```
 
-### Extensions
+### Tools
 
-A command frames does not have runs a program from `PATH`: `frames autocut ...` runs `frames-autocut ...`, with the global options before the name and the arguments after it passed through unchanged, standard input and output included, so `frames autocut --help` is the extension's own help. An extension reads documents and machine output and writes a document to standard output, so extensions chain into `render -`:
+A tool is a program a pack carries that takes a document and gives a document ([FRAMES-25](spec/FRAMES-25/SPEC.md#tools)). `frames <pack>/<name> [arguments]` runs the tool `<name>` of the pack `<pack>`, with the global options written before the name and the arguments after it passed through unchanged, standard input and output included, so `frames studio/autocut --help` is the tool's own help. A command word with a `/` names a tool, and any other word a command of frames. A tool reads documents and machine output and writes a document to standard output, so tools chain into `render -`:
 
 ```sh
-frames autocut /path/to/raw.json | frames captions - | frames render - -o /path/to/out/cut.mov
+frames studio/autocut /path/to/raw.json | frames studio/captions - | frames render - -o /path/to/out/cut.mov
 ```
 
-An extension checks `frames --version` against the versions it is written for. [document/GUIDE.md](document/GUIDE.md) shows how to write one.
+A tool is installed with its pack, and `frames packs <pack>` lists the tools a pack holds. frames checks the pack's `engine` against its own version before it runs the tool, and runs a tool only when a command names it: resolve and render run nothing from a pack. [document/PACK.md](document/PACK.md#a-tool) shows how a pack carries a tool, and [document/GUIDE.md](document/GUIDE.md#writing-a-tool) how to write one.
 
-The frames repository keeps first-party extensions under `extensions/`. An extension that fills requests takes a document that holds them, objects with the key `tool` that stand where a value is still to be found, and fills those that name it, leaving every other as written ([FRAMES-25](spec/FRAMES-25/SPEC.md#requests)); frames itself takes no request, and stops on one, naming its tool. `frames find-text` fills each area written as `{"tool": "find-text", "text": "Total", "padding": 8}` with the rectangle `frames ocr` finds for that text, so `frames find-text /path/to/edit.json | frames render - -o /path/to/out/edit.mp4` renders it ([extensions/find-text](extensions/find-text/README.md)). `frames track-motion` fills each `track` written as `{"tool": "track-motion", "target": "area"}` with the track data `frames track` prints for the target, one of the clip's own keys or an area, followed from the frame the clip's instant shows, so `frames find-text /path/to/edit.json | frames track-motion - | frames render - -o /path/to/out/edit.mp4` renders a document whose track targets are areas `find-text` fills ([extensions/track-motion](extensions/track-motion/README.md)).
+frames ships two tools in the pack `frames`, with nothing to install, and each fills requests. A request is an object with the key `tool` that stands where a value is still to be found, and names its tool as `<pack>/<name>`. A tool fills the requests that name it and leaves every other as written ([FRAMES-25](spec/FRAMES-25/SPEC.md#requests)), and frames itself takes no request and stops on one, naming its tool. `frames/find-text` fills each area written as `{"tool": "frames/find-text", "text": "Total", "padding": 8}` with the rectangle `frames ocr` finds for that text, so `frames frames/find-text /path/to/edit.json | frames render - -o /path/to/out/edit.mp4` renders it. A request's `"aspectRatio": [w, h]` makes its rectangle that ratio inside the picture, for a crop that fills its box, and `--report <report.json>` writes the text each rectangle came from ([frames/find-text](source/frames/Sources/FramesCommand/Resources/packs/frames/tools/find-text/README.md)). `frames/track-motion` fills each `track` written as `{"tool": "frames/track-motion", "target": "area"}` with the track data `frames track` prints for the target, one of the clip's own keys or an area, followed from the frame the clip's instant shows, so `frames frames/find-text /path/to/edit.json | frames frames/track-motion - | frames render - -o /path/to/out/edit.mp4` renders a document whose track targets are areas `frames/find-text` fills ([frames/track-motion](source/frames/Sources/FramesCommand/Resources/packs/frames/tools/track-motion/README.md)).
 
 ## Document reference
 
@@ -378,7 +378,7 @@ An area is a rectangle in the coordinate space of the clip that writes it. A poi
 | `[x, y, w, h]` | that rectangle |
 | `{"clip": "<id>", "padding": p}` | the box of that clip at the same instant, grown by `padding`, a theme length: a connected or sequence media clip, title or shape with the same parent or none, or the parent of the clip that writes it |
 
-An area keeps what is written, also past the picture's edges, and the part of a crop beyond the media is transparent. A place found in a picture is written as the rectangle it was found at. `frames ocr` prints every line of text it recognises in a medium with its rectangle in media pixels, which are the coordinates of a storyline or media clip's own `crop`, `mask` and `track` target and of a clip parented to it, and the extension `frames find-text` fills a document's requests that name lines by their text with those rectangles ([Extensions](#extensions)). A clip area makes a bar fit a title whatever its text, and a label sit at a point of the box it names. [FRAMES-2](spec/FRAMES-2/SPEC.md)
+An area keeps what is written, also past the picture's edges, and the part of a crop beyond the media is transparent. A place found in a picture is written as the rectangle it was found at. `frames ocr` prints every line of text it recognises in a medium with its rectangle in media pixels, which are the coordinates of a storyline or media clip's own `crop`, `mask` and `track` target and of a clip parented to it, and the tool `frames/find-text` fills a document's requests that name lines by their text with those rectangles ([Tools](#tools)). A clip area makes a bar fit a title whatever its text, and a label sit at a point of the box it names. [FRAMES-2](spec/FRAMES-2/SPEC.md)
 
 ### Titles and runs
 
@@ -603,7 +603,7 @@ From the bottom, a frame is the background, the clips on negative lanes, the sto
 
 `track` makes a clip follow something in a picture, as an NLE's tracker does. Its value is track data, `{"time": t, "frames": [...]}`: each frame `{time, quad}` gives a media time of the tracked media and the target's four corners on that frame in its media pixels, top left, top right, bottom right and bottom left, in time order, and `time` names the frame the clip's values are written on, whose quad is the target. So a trim of the clip's head moves nothing. What `track` follows is how the clip is placed: a clip placed by points in its parent's space (an area, points, a corner pin) follows its parent's media, and the motion carries those points as a moving parent would; a clip placed by its box follows inside its own media, and the motion moves its crop and mask; a title, still or compound clip, with no frames of its own, follows its parent's media by its position. A clip with a corner pin follows its parent's media, and its crop and mask ride its plane. Only a video or an image sequence has frames to follow, and `timeline --json` gives each clip's tracked media and the first and last frame of it the clip shows as `tracked`. A similarity motion (a move, a uniform scale and a rotation) is fitted to each frame's quad, and evaluation computes the homography the quads give. A clip with a corner pin rides the homography, so its corners stay on a screen's corners. The clip is visible only over the frames the data names.
 
-`frames track` follows a target in a video or an image sequence and prints its track data. The tracker is picked for each run by `--tracker`: `point` (the default) reports a move, scale and rotation of the target, and `planar` follows a quadrilateral in perspective, which a tracked corner pin needs. Resolve calls no tracker, so track data from any tracker, run by frames or outside it, drives a clip the same way. A `track` written as a request, `{"tool": "track-motion", "target": "area"}` for the clip's own area or an area `[x, y, w, h]` as its target, is filled with track data by the extension `frames track-motion` ([extensions/track-motion](extensions/track-motion/README.md)).
+`frames track` follows a target in a video or an image sequence and prints its track data. The tracker is picked for each run by `--tracker`: `point` (the default) reports a move, scale and rotation of the target, and `planar` follows a quadrilateral in perspective, which a tracked corner pin needs. Resolve calls no tracker, so track data from any tracker, run by frames or outside it, drives a clip the same way. A `track` written as a request, `{"tool": "frames/track-motion", "target": "area"}` for the clip's own area or an area `[x, y, w, h]` as its target, is filled with track data by the tool `frames/track-motion` ([Tools](#tools)).
 
 ```json
 {
@@ -801,7 +801,7 @@ A template instance is `{template, args}`. A template starts from the base theme
 
 ### Machine output
 
-With `--json`, and always for `evaluate`, `locate` and `track`, a command prints one JSON object whose first key is the command's name, set to the version of frames that printed it: `{"probe": "0.1.0", "kind": "video", ...}`. That output is the contract extensions build on. The text output is for people.
+With `--json`, and always for `evaluate`, `locate` and `track`, a command prints one JSON object whose first key is the command's name, set to the version of frames that printed it: `{"probe": "0.1.0", "kind": "video", ...}`. That output is the contract tools build on. The text output is for people.
 
 | Command | Object |
 | --- | --- |
@@ -819,9 +819,9 @@ Times are rounded to the microsecond and positions, sizes, opacities and the num
 
 ## More
 
-- [document/GUIDE.md](document/GUIDE.md): the editing loop from material to delivery, writing a guide, a how-to or an extension, and editing a document without changing what it shows.
+- [document/GUIDE.md](document/GUIDE.md): the editing loop from material to delivery, writing a guide, a how-to or a tool, and editing a document without changing what it shows.
 - [document/PRESET.md](document/PRESET.md): how to write a transition, an animation and a filter.
-- [document/PACK.md](document/PACK.md): what a pack holds, how to make one, a form and a template.
+- [document/PACK.md](document/PACK.md): what a pack holds, how to make one, a form, a template and a tool.
 - [document/howto/](document/howto/): techniques that belong to no form, such as [motion graphics](document/howto/motion-graphics.md), [effects](document/howto/effects.md) and [text on a path](document/howto/text-on-a-path.md).
 - [packs/](packs/): packs kept beside frames, each a directory to copy into `$FRAMES_HOME/packs/`. A form's guide is its `guide.md`, such as [packs/demo/guide.md](packs/demo/guide.md).
 - [document/ARCHITECTURE.md](document/ARCHITECTURE.md): how an implementation is laid out.
