@@ -69,7 +69,7 @@ An interview shot with a lower third and a logo, a still of a menu board that zo
     { "kind": "media", "media": "/path/to/broll.mov", "in": 0, "out": 4, "transition": "frames/push-left" }
   ],
   "clips": [
-    { "kind": "media", "media": "/path/to/music.m4a", "volume": 0.4, "fadeOut": 1.5 }
+    { "kind": "audio", "media": "/path/to/music.m4a", "volume": 0.4, "fadeOut": 1.5 }
   ]
 }
 ```
@@ -278,10 +278,10 @@ A clip says what it is with `kind`, which every clip writes: `media` (a media cl
 | --- | --- |
 | `"/abs/file"` | an image, video or audio file, judged by its contents, or a `.json` sequence document, which stands as if written there |
 | `"<pack>/<name.ext>"` | a file in a pack's `media/` |
-| `{"file": "/abs/deck.pdf", "page": 3}` | a page of a PDF, from 1 (the file may be `<pack>/<name.pdf>`). A PDF of one page may be named as a file, the same page, and one of more pages named as a file stops |
-| `{"imageSequence": "/abs/dir", "fps": 30}` | every PNG in the directory, in natural order, played like a video (the directory may be `<pack>/<dir>`) |
+| `{"kind": "page", "file": "/abs/deck.pdf", "page": 3}` | a page of a PDF, from 1 (the file may be `<pack>/<name.pdf>`). A PDF of one page may be named as a file, the same page, and one of more pages named as a file stops |
+| `{"kind": "imageSequence", "directory": "/abs/dir", "fps": 30}` | every PNG in the directory, in natural order, played like a video (the directory may be `<pack>/<dir>`) |
 | a sequence document object | a compound clip: the nested sequence plays as a video with sound, at its own frame size and with its own background |
-| `{"template": "<pack>/<name>", "args": {...}}` | a template instance ([Templates](#templates)) |
+| `{"kind": "template", "template": "<pack>/<name>", "args": {...}}` | a template instance ([Templates](#templates)) |
 
 Alpha is kept for PNG, PNG sequences, video codecs that carry it (ProRes 4444, HEVC with alpha), pages of a PDF and compound clips. That is how graphics made elsewhere come in. A page of a PDF is a still with no pixels of its own, taken wherever a still (an image or a page) is: its media pixels are its points, and it is drawn at the size it is shown at, so a logo scaled up or a map zoomed into stays sharp. What it paints nothing over is transparent in an edit, and white where it is read for its values (OCR, a matte's luma, a JPEG). frames fixes its boxes, that its content streams are drawn and not its annotations, its pixel grid and the colour space of its untagged colour (DeviceRGB and DeviceGray), and the rest of how it is drawn (the colour spaces it tags colour with, optional content, anti-aliasing, transparency, the resampling of an image inside it) is the decoder's PDF renderer. The decoder refuses a PDF that needs a password and a page that sets drawn text in a font its file does not embed, since that font would come from the machine. It refuses before it starts, in `probe` as in a render, and `transcode` turns a page refused for its fonts into a PNG. SVG is converted to PDF first, with `rsvg-convert -f pdf` or Inkscape. A compound clip is also how a group of clips acts as one: a picture-in-picture window with its own edit inside, a group that should leave together in a wipe, or an adjustment that should reach only some clips. [FRAMES-3](spec/FRAMES-3/SPEC.md), [FRAMES-9](spec/FRAMES-9/SPEC.md)
 
@@ -313,8 +313,8 @@ Three clocks meet on a sequence: **clip time**, a storyline clip's own timeline;
                      { "at": 3.5, "timeRemap": 6, "ease": "ease-in" }, { "at": 6, "timeRemap": 9 } ] }
   ],
   "clips": [
-    { "at": 2, "kind": "media", "media": "/path/to/whoosh.wav", "pan": -0.5 },
-    { "kind": "media", "media": "/path/to/music.m4a", "fadeIn": 1,
+    { "at": 2, "kind": "audio", "media": "/path/to/whoosh.wav", "pan": -0.5 },
+    { "kind": "audio", "media": "/path/to/music.m4a", "fadeIn": 1,
       "keyframes": [ { "at": 1, "volume": 0.6, "ease": "ease-in-out" }, { "at": 1.5, "volume": 0.15 } ] }
   ]
 }
@@ -349,8 +349,8 @@ A `crop` keyframes its size in log space, so a zoom keeps one speed. In `mask`, 
 
 ```json
 { "at": [0, 3], "kind": "media", "media": "/path/to/broll.mov", "width": 960, "position": [960, 540],
-  "mask": { "shape": "ellipse", "position": [640, 360] },
-  "filter": { "op": "blur", "radius": 12 },
+  "mask": { "kind": "ellipse", "position": [640, 360] },
+  "filter": { "kind": "blur", "radius": 12 },
   "keyframes": [ { "at": 0, "mask": [ { "width": 0, "height": 0, "feather": 0 } ], "filter": { "radius": 0 }, "ease": "ease-out" },
                  { "at": 1, "mask": [ { "width": 1400, "height": 1400, "feather": 40 } ], "filter": { "radius": null } } ] }
 ```
@@ -446,9 +446,9 @@ A path's vertex `{vertex, inTangent, outTangent}` carries its tangents as offset
   "storyline": [ { "kind": "solid", "color": "#101418", "duration": 4 } ],
   "clips": [
     { "kind": "rect", "width": 800, "height": 200, "position": [960, 300], "radius": 24,
-      "fill": { "linear": { "from": [0, 0], "to": [1, 0], "stops": [ [0, "accent"], [1, "#F2B33D00"] ] } } },
+      "fill": { "kind": "linear", "from": [0, 0], "to": [1, 0], "stops": [ [0, "accent"], [1, "#F2B33D00"] ] } },
     { "kind": "ellipse", "width": 300, "height": 300, "position": [1600, 300],
-      "fill": { "radial": { "center": [0.5, 0.5], "radius": 1, "stops": [ [0, "#FFFFFF"], [1, "#FFFFFF00"] ] } } },
+      "fill": { "kind": "radial", "center": [0.5, 0.5], "radius": 1, "stops": [ [0, "#FFFFFF"], [1, "#FFFFFF00"] ] } },
     { "kind": "path", "points": [ [400, 800], { "vertex": [1520, 800], "inTangent": [-300, -400] } ],
       "stroke": { "width": 6, "dash": [24, 12], "cap": "round", "end": "frames/arrow" },
       "keyframes": [ { "at": 0, "stroke": { "dashOffset": 0 } }, { "at": 4, "stroke": { "dashOffset": 144 } } ] }
@@ -490,7 +490,7 @@ A mask is in the clip's own space: its media's pixels for a storyline or media c
     { "id": "word", "kind": "title", "text": "BAKE", "style": "big", "placement": "center" },
     { "kind": "media", "media": "/path/to/broll.mov", "trackMatte": { "clip": "word", "mode": "alpha" } },
     { "kind": "media", "media": "/path/to/logo.png", "width": 200, "position": [1700, 900],
-      "mask": { "shape": "ellipse", "width": 400, "height": 400, "position": [256, 256] }, "blend": "screen" }
+      "mask": { "kind": "ellipse", "width": 400, "height": 400, "position": [256, 256] }, "blend": "screen" }
   ]
 }
 ```
@@ -514,7 +514,7 @@ The B-roll plays inside the letters of the word, and the logo, cut to a circle i
     { "id": "menu", "kind": "media", "media": "/path/to/board.png", "duration": 4,
       "connected": [
         { "parent": "menu", "kind": "rect", "area": [0, 0, 1600, 1000], "fill": "#000000A0",
-          "mask": { "shape": "rect", "area": [212, 548, 486, 64], "invert": true, "feather": 4 } },
+          "mask": { "kind": "rect", "area": [212, 548, 486, 64], "invert": true, "feather": 4 } },
         { "id": "box", "parent": "menu", "kind": "rect", "area": [212, 548, 486, 64], "style": "outline",
           "keyframes": [ { "at": 0.5, "trim": [0, 0], "ease": "ease-out" }, { "at": 1.2, "trim": [0, 1] } ] },
         { "at": [1.2, 4], "parent": "box", "kind": "title", "text": "New this week", "style": "note",
@@ -637,7 +637,7 @@ A clip with sound plays it at `volume` (default 1), following its `speed` with t
     { "kind": "media", "media": "/path/to/question.mov", "in": 0, "out": 2.5 },
     { "kind": "media", "media": "/path/to/answer.mov", "in": 1, "out": 3.5, "split": { "before": 1 } }
   ],
-  "clips": [ { "at": [0, 5], "kind": "media", "media": "/path/to/music-video.mov", "picture": false, "volume": 0.3, "loop": true } ]
+  "clips": [ { "at": [0, 5], "kind": "audio", "media": "/path/to/music-video.mov", "volume": 0.3, "loop": true } ]
 }
 ```
 
@@ -663,17 +663,17 @@ The answer is heard a second before it is seen, over the end of the question, an
 ```json
 {
   "kind": "sequence",
-  "audioFilter": [ { "op": "eq", "bands": [ { "type": "lowPass", "frequency": 20000 } ] }, { "op": "limiter", "gain": 3, "ceiling": -1 } ],
+  "audioFilter": [ { "kind": "eq", "bands": [ { "kind": "lowPass", "frequency": 20000 } ] }, { "kind": "limiter", "gain": 3, "ceiling": -1 } ],
   "keyframes": [ { "at": 0, "audioFilter": [ { "bands": [ { "frequency": 400 } ] }, {} ], "ease": "ease-in" },
                  { "at": 2, "audioFilter": [ { "bands": [ { "frequency": null } ] }, {} ] } ],
   "storyline": [
     { "kind": "media", "media": "/path/to/interview.mov", "in": 0, "out": 3.5,
-      "audioFilter": [ { "op": "eq", "bands": [ { "type": "highPass", "frequency": 80 }, { "type": "peak", "frequency": 3000, "gain": 3, "q": 1 } ] },
-                       { "op": "compressor", "threshold": -18, "ratio": 3, "knee": 6 },
-                       { "op": "gate", "threshold": -50 } ] }
+      "audioFilter": [ { "kind": "eq", "bands": [ { "kind": "highPass", "frequency": 80 }, { "kind": "peak", "frequency": 3000, "gain": 3, "q": 1 } ] },
+                       { "kind": "compressor", "threshold": -18, "ratio": 3, "knee": 6 },
+                       { "kind": "gate", "threshold": -50 } ] }
   ],
   "clips": [
-    { "at": [0.5, 3.5], "kind": "media", "media": "/path/to/tick.wav", "audioFilter": { "op": "convolve", "file": "/path/to/hall.wav", "mix": 0.4 } }
+    { "at": [0.5, 3.5], "kind": "audio", "media": "/path/to/tick.wav", "audioFilter": { "kind": "convolve", "file": "/path/to/hall.wav", "mix": 0.4 } }
   ]
 }
 ```
@@ -748,12 +748,12 @@ An object choice needs a key besides `preset`: `{"preset": "frames/warm"}` alone
 
 A preset may publish parameters, as an NLE effect publishes its controls. `args` gives them values: an unknown name or a value of the wrong type stops, and a missing one takes its default. `frames packs <pack>` and `frames presets <kind> <name>` print a preset's parameters.
 
-A filter op is `{"op": ..., ...}` with the parameters of its row in [FRAMES-15](spec/FRAMES-15/SPEC.md): `exposure`, `contrast`, `saturation`, `temperature`, `hue`, `sepia`, `levels`, `lut`, `blur`, `sharpen`, `bloom`, `vignette`, `displace`, `pixelate` and `grain`. Written in a `filter` list it stands beside presets. `displace` moves each pixel by a displacement map, a still whose red moves it along x and green along y, 0.5 moving nothing, by up to `amount` (a theme length), the map stretched over the clip's box and moved by `offset`: a ripple, a heat haze or a refraction as a file. An entry written as an object takes `mix`, from 0 to 1, which mixes its result with its input.
+A filter op is `{"kind": ..., ...}` with the parameters of its row in [FRAMES-15](spec/FRAMES-15/SPEC.md): `exposure`, `contrast`, `saturation`, `temperature`, `hue`, `sepia`, `levels`, `lut`, `blur`, `sharpen`, `bloom`, `vignette`, `displace`, `pixelate` and `grain`. Written in a `filter` list it stands beside presets. `displace` moves each pixel by a displacement map, a still whose red moves it along x and green along y, 0.5 moving nothing, by up to `amount` (a theme length), the map stretched over the clip's box and moved by `offset`: a ripple, a heat haze or a refraction as a file. An entry written as an object takes `mix`, from 0 to 1, which mixes its result with its input.
 
 ```json
 { "transition": { "preset": "frames/dip-black", "seconds": 1 },
   "animation": { "entrance": "frames/pop", "exit": "frames/fade" },
-  "filter": [ "frames/warm", { "op": "displace", "file": "/path/to/ripple.png", "amount": 12 }, { "preset": "frames/vignette", "mix": 0.5 } ] }
+  "filter": [ "frames/warm", { "kind": "displace", "file": "/path/to/ripple.png", "amount": 12 }, { "kind": "preset", "preset": "frames/vignette", "mix": 0.5 } ] }
 ```
 
 An animation preset holds an entrance, played at the start of a clip's window, a loop that repeats until the exit, and an exit, played at its end. `{entrance, exit}` takes each side from its own preset, with no loop. A filter applies at the clip's own size, before its transform. [FRAMES-14](spec/FRAMES-14/SPEC.md), [FRAMES-15](spec/FRAMES-15/SPEC.md), [FRAMES-16](spec/FRAMES-16/SPEC.md)
@@ -785,7 +785,7 @@ Saved as `templates/intro.json` in a pack `mine`, it is used as media with argum
 {
   "kind": "sequence",
   "storyline": [
-    { "kind": "media", "media": { "template": "mine/intro", "args": { "headline": "Morning bake", "entrance": "frames/pop" } } },
+    { "kind": "media", "media": { "kind": "template", "template": "mine/intro", "args": { "headline": "Morning bake", "entrance": "frames/pop" } } },
     { "kind": "media", "media": "/path/to/interview.mov", "in": 2, "out": 6, "transition": "frames/dip-black" }
   ]
 }

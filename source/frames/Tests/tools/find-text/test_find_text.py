@@ -422,7 +422,7 @@ class Places(Case):
         # Given a document with requests for another tool in an area, a mask's area and a track, and one in a point
         document = {"kind": "sequence", "storyline": [{"id": "b", "kind": "media", "media": self.board, "duration": 2, "connected": [
             {"parent": "b", "kind": "rect", "area": {"tool": "other", "name": "box"},
-             "mask": {"shape": "rect", "area": {"tool": "other", "name": "hole"}},
+             "mask": {"kind": "rect", "area": {"tool": "other", "name": "hole"}},
              "track": {"tool": "frames/track-motion", "target": "area"}}
         ]}]}
         pointed = copy.deepcopy(document)

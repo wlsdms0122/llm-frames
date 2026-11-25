@@ -1,8 +1,8 @@
 {
   "description": "Warm colour negative: soft contrast, warm highlights and fine grain, for people and daylight",
   "ops": [
-    { "op": "lut", "file": "film/warm-negative", "amount": 1 },
-    { "op": "grain", "amount": 0.015, "size": 2 },
-    { "op": "vignette", "amount": 0.15, "radius": 0.55 }
+    { "kind": "lut", "file": "film/warm-negative", "amount": 1 },
+    { "kind": "grain", "amount": 0.015, "size": 2 },
+    { "kind": "vignette", "amount": 0.15, "radius": 0.55 }
   ]
 }

@@ -52,7 +52,7 @@ python3 leak.py /path/to/leak 45
     { "kind": "media", "media": "/path/to/recording.mp4", "in": 0, "out": 3 }
   ],
   "clips": [
-    { "at": [0.5, 2], "kind": "media", "media": { "imageSequence": "/path/to/leak", "fps": 30 }, "blend": "screen", "lane": 2 }
+    { "at": [0.5, 2], "kind": "media", "media": { "kind": "imageSequence", "directory": "/path/to/leak", "fps": 30 }, "blend": "screen", "lane": 2 }
   ] }
 ```
 
@@ -124,8 +124,8 @@ The processed range becomes its own storyline clip, a blade as [GUIDE.md](../GUI
   "storyline": [
     { "id": "demo", "kind": "media", "media": "/path/to/recording.mp4", "in": 0, "out": 1,
       "connected": [ { "at": [0.4, 1], "parent": "demo", "kind": "rect", "area": { "tool": "frames/find-text", "text": "Total", "padding": 8 },
-                       "stroke": { "color": "#F59E0B", "width": 4 } } ] },
-    { "id": "demo-glitch", "kind": "media", "media": { "imageSequence": "/path/to/work/glitched", "fps": 30 }, "transition": "cut",
+                       "stroke": { "paint": "#F59E0B", "width": 4 } } ] },
+    { "id": "demo-glitch", "kind": "media", "media": { "kind": "imageSequence", "directory": "/path/to/work/glitched", "fps": 30 }, "transition": "cut",
       "connected": [ { "kind": "media", "media": "/path/to/recording.mp4", "in": 1, "out": 2, "opacity": 0 } ] },
     { "id": "demo-end", "kind": "media", "media": "/path/to/recording.mp4", "in": 2, "out": 3, "transition": "cut" }
   ] }

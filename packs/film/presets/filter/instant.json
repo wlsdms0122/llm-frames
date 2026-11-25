@@ -1,8 +1,8 @@
 {
   "description": "Instant film: low contrast, creamy highlights, green-cyan shadows and dark corners",
   "ops": [
-    { "op": "lut", "file": "film/instant", "amount": 1 },
-    { "op": "vignette", "amount": 0.3, "radius": 0.4 },
-    { "op": "grain", "amount": 0.02, "size": 2 }
+    { "kind": "lut", "file": "film/instant", "amount": 1 },
+    { "kind": "vignette", "amount": 0.3, "radius": 0.4 },
+    { "kind": "grain", "amount": 0.02, "size": 2 }
   ]
 }

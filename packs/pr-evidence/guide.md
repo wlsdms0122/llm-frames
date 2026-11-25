@@ -26,7 +26,7 @@ The frame is measured from the content: `"size": { "fit": "content" }` with a wh
 **The header.** The template `pr-evidence/header` is a white strip 1206 by 208 with the conclusion in `lead` and the reason in `body` below it, both 40 from its left edge. It is a sequence clip in `clips`, as wide as the picture and set on its top edge:
 
 ```json
-{ "kind": "media", "media": { "template": "pr-evidence/header",
+{ "kind": "media", "media": { "kind": "template", "template": "pr-evidence/header",
              "args": { "conclusion": "Total includes shipping", "reason": "42,000 is the item total plus 4,000 shipping" } },
   "width": 1206, "anchor": "bottom-left", "position": [0, 0] }
 ```

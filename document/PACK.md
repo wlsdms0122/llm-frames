@@ -76,7 +76,7 @@ FRAMES_HOME=/path/to/try frames packs mine
 - **Name a thing for what it looks like, not where it is used.** `dip`, `warm-screen` and `lower-third` say what you get, and `episode-3-intro` says nothing to the next reader. Use lowercase words joined by `-`, as the `frames` pack does.
 - **Pick a pack name that is unlikely to clash**, since two packs cannot share a directory. `frames` is taken: an installed pack of that name stops every command that reads packs.
 
-Media in `media/` is named with its extension (`"media": "mine/logo.png"`), and an image sequence by its folder (`{ "imageSequence": "mine/light-leak", "fps": 30 }`). The pack `film` in this repository's `packs/` holds five filter presets, each built on a LUT from its own `luts/`.
+Media in `media/` is named with its extension (`"media": "mine/logo.png"`), and an image sequence by its folder (`{ "kind": "imageSequence", "directory": "mine/light-leak", "fps": 30 }`). The pack `film` in this repository's `packs/` holds five filter presets, each built on a LUT from its own `luts/`.
 
 ## A theme
 
@@ -195,23 +195,23 @@ A parameter is a value left open for whoever uses a preset or a template, as an 
 - `{"param": "<name>"}` stands for a value of the parameter's type, never for a key. In a template it stands anywhere a value of that type is accepted. Where it may stand in a preset is in [PRESET.md](PRESET.md).
 - A `text` stands for text on screen: a title, given as a string or as a run's `text`.
 - A `choice` stands where one of its options is accepted. Names (presets, styles, shape styles, themes, templates) are taken only by a choice, so a template lists what its user may pick. In a template, a choice of animation presets may include `"none"`, as `intro` does.
-- A media argument (`video`, `sequence`, `image`, `audio`) is any media form: an absolute path, a pack file such as `mine/logo.png`, `{"imageSequence": ...}`, a sequence document, or `{"template": ..., "args": ...}`. An argument object is media only when it holds `kind`, `imageSequence` or `template`.
+- A media argument (`video`, `sequence`, `image`, `audio`) is any media form: an absolute path, a pack file such as `mine/logo.png`, `{"kind": "imageSequence", "directory": ...}`, a sequence document, or `{"kind": "template", "template": ..., "args": ...}`. An argument object is media only when it holds `kind`, `imageSequence` or `template`.
 - A parameter is the preset's or template's own. A template's arguments reach a preset only where the template passes them on in a choice's `args`.
 - Give every parameter a `description` written for whoever fills it in, and a `default` wherever there is a sensible one: a template whose parameters all have one renders on its own.
 
 ## Using a template
 
-A template is used as media, `{"template": "<pack>/<name>", "args": {...}}`, where it plays as a compound clip. On the storyline it lasts its own length, and connected or on a lane it sits over what is below wherever its background is transparent:
+A template is used as media, `{"kind": "template", "template": "<pack>/<name>", "args": {...}}`, where it plays as a compound clip. On the storyline it lasts its own length, and connected or on a lane it sits over what is below wherever its background is transparent:
 
 ```json
 { "kind": "sequence",
   "format": { "size": [1920, 1080], "fps": 30 },
   "storyline": [
-    { "kind": "media", "media": { "template": "mine/intro", "args": { "title": "Checkout, fixed", "entrance": "frames/zoom" } } },
+    { "kind": "media", "media": { "kind": "template", "template": "mine/intro", "args": { "title": "Checkout, fixed", "entrance": "frames/zoom" } } },
     { "kind": "media", "media": "/path/to/interview.mov", "in": 0, "out": 3, "filter": "mine/warm-screen",
       "transition": { "preset": "mine/dip", "args": { "color": "#F59E0B" } },
-      "connected": [ { "at": [0.5, 3], "kind": "media", "media": { "template": "mine/lower-third", "args": { "name": "Mina Park", "role": "Engineer", "length": 2.5 } } } ] },
-    { "kind": "media", "media": { "template": "mine/end-card", "args": { "logo": "mine/logo.png", "next": "/path/to/next.mov" } },
+      "connected": [ { "at": [0.5, 3], "kind": "media", "media": { "kind": "template", "template": "mine/lower-third", "args": { "name": "Mina Park", "role": "Engineer", "length": 2.5 } } } ] },
+    { "kind": "media", "media": { "kind": "template", "template": "mine/end-card", "args": { "logo": "mine/logo.png", "next": "/path/to/next.mov" } },
       "transition": "frames/fade" }
   ] }
 ```

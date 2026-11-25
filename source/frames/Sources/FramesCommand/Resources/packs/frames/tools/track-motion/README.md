@@ -85,7 +85,7 @@ The box of the worked example, kept on the moving card:
     { "id": "shot", "kind": "media", "media": "/path/to/shot.mp4",
       "connected": [
         { "at": [0.4, 2.6], "parent": "shot", "kind": "rect", "area": [150, 194, 132, 92],
-          "stroke": { "width": 4, "color": "#3DDC84" }, "track": { "tool": "frames/track-motion", "target": "area" } } ] }
+          "stroke": { "width": 4, "paint": "#3DDC84" }, "track": { "tool": "frames/track-motion", "target": "area" } } ] }
   ]
 }
 ```

@@ -35,7 +35,7 @@
             "style": "title",
             "placement": "center",
             "mask": {
-              "shape": "rect",
+              "kind": "rect",
               "area": {
                 "tool": "frames/find-text",
                 "text": "Total"

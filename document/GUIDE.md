@@ -290,7 +290,7 @@ Before: a recording after a title card. It comes in with a dissolve, pushes in s
       "keyframes": [ { "at": 0, "scale": 1, "ease": "ease-in-out" }, { "at": 3, "scale": 1.1 } ],
       "connected": [
         { "id": "ring", "at": [0.5, 1.4], "parent": "demo", "kind": "rect", "area": [150, 377, 196, 42],
-          "stroke": { "color": "#F59E0B", "width": 4 }, "radius": 6, "animation": "frames/fade" },
+          "stroke": { "paint": "#F59E0B", "width": 4 }, "radius": 6, "animation": "frames/fade" },
         { "id": "note", "at": [1.2, 2.4], "parent": "demo", "kind": "title", "text": "Shipping is added here", "style": "subtitle",
           "anchor": "top-left", "position": [420, 380] },
         { "id": "badge", "kind": "title", "text": "DEMO", "style": "subtitle", "placement": "top-right" } ] }
@@ -309,7 +309,7 @@ After a blade at clip second 1 of `demo`, which is sequence second 2:
       "keyframes": [ { "at": 0, "scale": 1, "ease": "ease-in-out" }, { "at": 3, "scale": 1.1 } ],
       "connected": [
         { "id": "ring", "at": [0.5, 1], "parent": "demo", "kind": "rect", "area": [150, 377, 196, 42],
-          "stroke": { "color": "#F59E0B", "width": 4 }, "radius": 6,
+          "stroke": { "paint": "#F59E0B", "width": 4 }, "radius": 6,
           "animation": { "entrance": "frames/fade", "exit": "none" } },
         { "id": "badge", "at": [0, 3], "kind": "title", "text": "DEMO", "style": "subtitle", "placement": "top-right" } ] },
     { "id": "demo-2", "kind": "media", "media": "/path/to/recording.mov", "in": 1, "out": 3,
@@ -317,7 +317,7 @@ After a blade at clip second 1 of `demo`, which is sequence second 2:
       "keyframes": [ { "at": 0, "scale": 1, "ease": "ease-in-out" }, { "at": 3, "scale": 1.1 } ],
       "connected": [
         { "id": "ring-2", "at": [1, 1.4], "parent": "demo-2", "kind": "rect", "area": [150, 377, 196, 42],
-          "stroke": { "color": "#F59E0B", "width": 4 }, "radius": 6,
+          "stroke": { "paint": "#F59E0B", "width": 4 }, "radius": 6,
           "animation": { "entrance": "none", "exit": "frames/fade" } },
         { "id": "note", "at": [1.2, 2.4], "parent": "demo-2", "kind": "title", "text": "Shipping is added here", "style": "subtitle",
           "anchor": "top-left", "position": [420, 380] } ] }

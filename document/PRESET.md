@@ -114,7 +114,7 @@ A transition plays across the edit point between two storyline clips. It moves t
     "curve": { "type": "choice", "options": ["linear", "ease-in-out"], "default": "linear", "description": "pace of the fade" } },
   "seconds": 0.7, "ease": { "param": "curve" },
   "incoming": { "keys": [ { "t": 0, "opacity": 0 }, { "t": 0.5, "opacity": 0 }, { "t": 0.5, "opacity": 1 } ] },
-  "cover": { "color": { "param": "color" },
+  "cover": { "kind": "solid", "color": { "param": "color" },
              "keys": [ { "t": 0, "opacity": 0 }, { "t": 0.4, "opacity": 1 }, { "t": 0.6, "opacity": 1 }, { "t": 1, "opacity": 0 } ] } }
 ```
 
@@ -144,7 +144,7 @@ An animation moves a clip as it comes in, while it stays, and as it goes. Titles
 ```json
 { "description": "Springs up a little from below as it fades in, breathes while it stays, and fades out.",
   "params": { "bounce": { "type": "number", "default": 0.3, "description": "how far it springs past its place" } },
-  "entrance": { "seconds": 0.5, "ease": { "spring": { "bounce": { "param": "bounce" } } },
+  "entrance": { "seconds": 0.5, "ease": { "kind": "spring", "bounce": { "param": "bounce" } },
                 "keys": [ { "t": 0, "y": 0.3, "opacity": 0 }, { "t": 0.3, "opacity": 1 }, { "t": 1, "y": 0 } ] },
   "loop":     { "period": 1.2,
                 "keys": [ { "t": 0, "scale": 1 }, { "t": 0.5, "scale": 1.04 }, { "t": 1, "scale": 1 } ] },
@@ -186,9 +186,9 @@ A filter is a chain of operations from a fixed table, applied in order. Each ope
   "params": {
     "lift":  { "type": "number", "default": 0.08, "description": "how far the blacks are lifted" },
     "grain": { "type": "number", "default": 0.05, "description": "strength of the grain" } },
-  "ops": [ { "op": "saturation", "amount": 0.8 },
-           { "op": "levels", "input": [0, 1], "output": [{ "param": "lift" }, 0.95] },
-           { "op": "grain", "amount": { "param": "grain" }, "size": 2 } ] }
+  "ops": [ { "kind": "saturation", "amount": 0.8 },
+           { "kind": "levels", "input": [0, 1], "output": [{ "param": "lift" }, 0.95] },
+           { "kind": "grain", "amount": { "param": "grain" }, "size": 2 } ] }
 ```
 
 | op | Parameters |
@@ -272,7 +272,7 @@ A document passes arguments in its preset choices. The same choice may be writte
 "transition": { "preset": "studio/dip", "seconds": 1, "args": { "color": "#1B3A6B", "curve": "ease-in-out" } },
 "animation": { "preset": "studio/lift", "args": { "bounce": 0.5 } },
 "animation": { "entrance": { "preset": "studio/type-on", "args": { "seconds": 1.2 } }, "exit": "frames/fade" },
-"adjust": [ "frames/warm", { "preset": "studio/film", "args": { "grain": 0.02 } } ]
+"adjust": [ "frames/warm", { "kind": "preset", "preset": "studio/film", "args": { "grain": 0.02 } } ]
 ```
 
 - In an object choice `preset` is required, and so is at least one other key, since the name alone is the plain form.
@@ -306,7 +306,7 @@ Then try the preset in a document small enough to read at a glance:
       "connected": [ { "kind": "title", "text": "After", "style": "title",
                        "animation": { "entrance": { "preset": "studio/type-on", "args": { "seconds": 1.2 } }, "exit": "frames/fade" } } ] },
     { "kind": "solid", "color": "#0F766E", "duration": 3, "transition": "studio/iris",
-      "connected": [ { "kind": "adjustment", "adjust": [ "frames/warm", { "preset": "studio/film", "args": { "grain": 0.02 } } ] } ] }
+      "connected": [ { "kind": "adjustment", "adjust": [ "frames/warm", { "kind": "preset", "preset": "studio/film", "args": { "grain": 0.02 } } ] } ] }
   ] }
 ```
 

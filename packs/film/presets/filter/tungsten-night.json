@@ -1,8 +1,8 @@
 {
   "description": "Night film balanced for tungsten: cool, with red halation around the lights and visible grain",
   "ops": [
-    { "op": "lut", "file": "film/tungsten-night", "amount": 1 },
-    { "op": "bloom", "amount": 0.15, "radius": 8, "color": "#FF3B1F" },
-    { "op": "grain", "amount": 0.025, "size": 2 }
+    { "kind": "lut", "file": "film/tungsten-night", "amount": 1 },
+    { "kind": "bloom", "amount": 0.15, "radius": 8, "color": "#FF3B1F" },
+    { "kind": "grain", "amount": 0.025, "size": 2 }
   ]
 }

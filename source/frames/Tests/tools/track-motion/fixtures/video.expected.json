@@ -29,7 +29,7 @@
           ],
           "stroke": {
             "width": 4,
-            "color": "#3DDC84"
+            "paint": "#3DDC84"
           },
           "track": {
             "time": 0.4,
@@ -3193,7 +3193,7 @@
           ],
           "stroke": {
             "width": 4,
-            "color": "#3DDC84"
+            "paint": "#3DDC84"
           },
           "track": {
             "time": 2,
@@ -4759,7 +4759,8 @@
       "id": "seq",
       "kind": "media",
       "media": {
-        "imageSequence": "/media/frames",
+        "kind": "imageSequence",
+        "directory": "/media/frames",
         "fps": 25
       },
       "in": 0,
