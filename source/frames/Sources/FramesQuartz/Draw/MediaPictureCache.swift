@@ -50,7 +50,7 @@ final class MediaPictureCache: Sendable {
         region: PageRegion,
         scale: Double
     ) throws -> CGImage {
-        let file = MediaFile(media: frame.media)
+        let file = MediaFile(picture: frame.media)
         let request = PageRequest(page: file.page, region: region, scale: scale, reading: frame.reading)
         let kept = pages.withLock { pages in pages[file.path]?.first { $0.request == request }?.image }
         if let kept { return kept }
@@ -66,14 +66,14 @@ final class MediaPictureCache: Sendable {
 
     // The size in media pixels of the frame's page.
     func pageSize(of frame: MediaFrame) throws -> Size {
-        try decoder.pageSize(of: MediaFile(media: frame.media))
+        try decoder.pageSize(of: MediaFile(picture: frame.media))
     }
 
     // MARK: - Private
     private func picture(of frame: MediaFrame) throws -> (pixels: Pixels, image: CGImage) {
         let picture = frame.picture
         let reading = frame.reading
-        let file = MediaFile(media: frame.media)
+        let file = MediaFile(picture: frame.media)
         let kept = pictures.withLock { pictures in
             pictures[file.path]?.first { $0.picture == picture && $0.reading == reading }
         }

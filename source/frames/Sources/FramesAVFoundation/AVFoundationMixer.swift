@@ -249,11 +249,11 @@ package final class AVFoundationMixer: Sendable {
         let file: MediaFile
         switch segment.media {
         case let .pinned(media):
-            file = MediaFile(media: media)
+            file = MediaFile(sound: media)
             guard case .file = media.source else { throw MixerError.noSound(place: place, file: file.path) }
 
         case let .unpinned(path):
-            file = MediaFile(path: path)
+            file = MediaFile(path: path, kind: .sound)
         }
 
         do {

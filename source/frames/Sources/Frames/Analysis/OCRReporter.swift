@@ -78,7 +78,7 @@ package struct OCRReporter: Sendable {
                 throw AnalysisError.missingMedia(file: path)
             }
             guard selection == .start else { throw AnalysisError.timeOnStill(file: path) }
-            let file = MediaFile(path: path, size: probed.size, colorReading: .formulas(.srgb), page: number)
+            let file = MediaFile(path: path, kind: .page(number, size: probed.size))
 
             return (file, probed.size, [0])
 

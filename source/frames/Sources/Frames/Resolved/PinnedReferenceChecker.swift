@@ -44,7 +44,7 @@ struct PinnedReferenceChecker: Sendable {
         for reference in references {
             switch reference {
             case let .media(media, _, colorSpace):
-                let file = MediaFile(media: media)
+                let file = MediaFile(picture: media)
                 guard checkedPictures.insert(CheckedPictures(path: file.path, page: file.page, colorSpace: colorSpace)).inserted else {
                     continue
                 }
@@ -54,7 +54,7 @@ struct PinnedReferenceChecker: Sendable {
                 try decoder.check(file, reading: .working(colorSpace: colorSpace, targetPeak: nil))
 
             case let .sound(media, _):
-                let file = MediaFile(media: media)
+                let file = MediaFile(sound: media)
                 guard checked.insert(file.path).inserted else { continue }
 
                 try decoder.check(file, reading: nil)

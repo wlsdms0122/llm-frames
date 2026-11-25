@@ -105,7 +105,7 @@ package struct Transcoder: Sendable {
         try checkNoCodec(in: request)
         guard let size = media.size else { throw TranscodeError.unsupportedInput(path: request.input) }
 
-        let file = MediaFile(path: request.input, size: size)
+        let file = MediaFile(path: request.input, probed: media)
         let fitted = outputSize(of: size, maximumSide: request.maximumSide, isVideo: false)
         try decoder.check(file, reading: nil)
         let reading = try decoder.colorReading(of: file)
@@ -147,7 +147,7 @@ package struct Transcoder: Sendable {
         try checkExtension(of: request, kind: .page, allowed: Self.imageExtensions)
         try checkNoCodec(in: request)
 
-        let file = MediaFile(path: request.input, colorReading: .formulas(.srgb), page: number)
+        let file = MediaFile(path: request.input, kind: .page(number, size: nil))
         let output = output(of: .formulas(.srgb), for: request)
         if request.outputExtension == "jpg", output.space.isHighDynamicRange {
             throw TranscodeError.highDynamicRangeJPEG(path: request.output, colorSpace: output.space)
@@ -195,7 +195,7 @@ package struct Transcoder: Sendable {
         try checkNoCodec(in: request)
         try checkNoColorSpace(in: request)
 
-        try writeSound(of: MediaFile(path: request.input), duration: media.duration, for: request)
+        try writeSound(of: MediaFile(path: request.input, probed: media), duration: media.duration, for: request)
 
         return .aac
     }
@@ -206,7 +206,7 @@ package struct Transcoder: Sendable {
     ) throws -> TranscodeFormat {
         try checkExtension(of: request, kind: .video, allowed: Self.videoExtensions)
         guard let size = media.size else { throw TranscodeError.unsupportedInput(path: request.input) }
-        let file = MediaFile(path: request.input, fps: media.fps, size: size, frameTimes: media.frames)
+        let file = MediaFile(path: request.input, probed: media)
 
         if request.outputExtension == "m4a" {
             try checkNoCodec(in: request)

@@ -196,7 +196,6 @@ struct MediaResolver: Sendable {
     }
 
     // MARK: - Private
-    // A page is a still, of no length and no sound.
     // The stop for media that is not there.
     private func missing(
         _ reference: String,
@@ -206,6 +205,7 @@ struct MediaResolver: Sendable {
         .unknownReference(place: place, kind: kind, reference: try library.unknown(.media, named: reference))
     }
 
+    // A page is a still, of no length and no sound.
     private func pagePlan(
         _ file: MediaFile,
         reference: String
@@ -276,7 +276,7 @@ struct MediaResolver: Sendable {
             throw try missing(reference, place: place, kind: kind)
         }
 
-        return MediaFile(path: path, size: probed.size, colorReading: .formulas(.srgb), page: number)
+        return MediaFile(path: path, kind: .page(number, size: probed.size))
     }
 
     // A document named by its file stands as if written there, so it starts from the theme in effect there. What it
