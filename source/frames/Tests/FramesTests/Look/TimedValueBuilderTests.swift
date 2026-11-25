@@ -22,7 +22,7 @@ struct TimedValueBuilderTests {
     @Test("a keyframe that writes only a stroke's colour keeps the style's width, and null points at it")
     func timesLeavesOverMergedValue() throws {
         // Given
-        let style = try Fixture.json(##"{ "width": 6, "color": "#000000", "cap": "round" }"##)
+        let style = try Fixture.json(##"{ "width": 6, "paint": "#000000", "cap": "round" }"##)
         let keyframes = try keyframes([(0, ##"{ "width": 0 }"##), (1, ##"{ "width": null }"##), (2, ##"{ "color": "#FF0000" }"##)])
 
         // When

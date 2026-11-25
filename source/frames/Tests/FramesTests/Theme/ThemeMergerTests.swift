@@ -81,7 +81,7 @@ struct ThemeMergerTests {
         let theme = try sut.merge([weaker, stronger])
 
         // Then
-        #expect(theme.shapeStyle(named: "bar")?["stroke"] == (try Fixture.json(##"{ "width": 6, "cap": "round", "color": "#FF0000" }"##)))
+        #expect(theme.shapeStyle(named: "bar")?["stroke"] == (try Fixture.json(##"{ "width": 6, "cap": "round", "paint": "#FF0000" }"##)))
     }
 
     @Test("a shadow of true in a style is the weaker theme's shadow for that style")

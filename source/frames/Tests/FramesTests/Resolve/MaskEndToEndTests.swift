@@ -25,7 +25,7 @@ struct MaskEndToEndTests {
         // Given
         let sut = try resolved(#"""
             { "kind": "sequence", "format": { "size": [1920, 1080] }, "storyline": [ { "kind": "solid", "color": "#202020", "duration": 4 } ],
-              "clips": [ { "kind": "adjustment", "adjust": "frames/warm", "at": [0, 4], "mask": [ { "shape": "rect", "invert": true }, { "shape": "path", "mode": "subtract" } ],
+              "clips": [ { "kind": "adjustment", "adjust": "frames/warm", "at": [0, 4], "mask": [ { "kind": "rect", "invert": true }, { "kind": "path", "mode": "subtract" } ],
                 "keyframes": [
                   { "at": 1, "mask": [ { "area": [0, 0, 100, 100], "radius": 4 }, { "points": [[0, 0], [100, 0], [50, 100]] } ] },
                   { "at": 2, "mask": [ { "feather": 2 }, { } ] },
@@ -62,7 +62,7 @@ struct MaskEndToEndTests {
         // Each segment's control points lie 40 above or below its ends at y = 50, so its middle lies 30 past them.
         let sut = try resolved(#"""
             { "kind": "sequence", "format": { "size": [1920, 1080] }, "storyline": [ { "kind": "solid", "color": "#202020", "duration": 4 } ],
-              "clips": [ { "kind": "adjustment", "adjust": "frames/warm", "at": [0, 4], "mask": { "shape": "path", "points": [
+              "clips": [ { "kind": "adjustment", "adjust": "frames/warm", "at": [0, 4], "mask": { "kind": "path", "points": [
                 { "vertex": [0, 50], "inTangent": [0, 40], "outTangent": [0, -40] },
                 { "vertex": [100, 50], "inTangent": [0, -40], "outTangent": [0, 40] } ] } } ] }
             """#)

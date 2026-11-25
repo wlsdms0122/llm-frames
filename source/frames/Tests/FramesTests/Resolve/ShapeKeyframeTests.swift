@@ -26,7 +26,7 @@ struct ShapeKeyframeTests {
         // When
         let shape = try resolvedShape(##"""
             { "kind": "rect", "area": [0, 0, 10, 10], "style": "bar",
-              "keyframes": [ { "at": 0, "stroke": { "color": "#000000" } }, { "at": 1, "stroke": { "color": "#FFFFFF" } } ] }
+              "keyframes": [ { "at": 0, "stroke": { "paint": "#000000" } }, { "at": 1, "stroke": { "paint": "#FFFFFF" } } ] }
             """##)
 
         // Then

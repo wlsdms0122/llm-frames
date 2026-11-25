@@ -19,7 +19,7 @@ struct ShapeAppearanceTests {
         { "colors": { "brand": "#123456" },
           "shadow": { "radius": 20, "offset": [0, 8], "color": "#00000080" },
           "shapes": {
-            "outline": { "fill": "brand", "stroke": { "width": 8, "color": "#ED2929", "end": "frames/arrow" }, "radius": 18,
+            "outline": { "fill": "brand", "stroke": { "width": 8, "paint": "#ED2929", "end": "frames/arrow" }, "radius": 18,
                          "outset": 6, "shadow": true },
             "pointer": { "stroke": { "width": 10 } } } }
         """##
@@ -213,7 +213,7 @@ struct ShapeAppearanceTests {
     func refusesPartialStrokeWithoutStyle() throws {
         // When, Then
         let error = #expect(throws: (any Error).self) {
-            try plan(document(##"{ "kind": "rect", "area": [0, 0, 10, 10], "stroke": { "color": "#FF0000" } }"##))
+            try plan(document(##"{ "kind": "rect", "area": [0, 0, 10, 10], "stroke": { "paint": "#FF0000" } }"##))
         }
         #expect(error.map { "\($0)" } == #"clips[0].stroke (rect): missing key "width", which the clip does not write and no theme layer gives"#)
     }

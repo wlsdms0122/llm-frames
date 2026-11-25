@@ -35,7 +35,7 @@ struct CurvedPathRenderTests {
             { "id": "curve", "parent": "frame", "kind": "path",
               "points": [ { "vertex": [100, 120], "outTangent": [0, 80] },
                           { "vertex": [220, 120], "inTangent": [0, 80] } ],
-              "stroke": { "color": "#FFFFFF", "width": 6 }, "fill": false, "at": [0, 2], "animation": "none" }
+              "stroke": { "paint": "#FFFFFF", "width": 6 }, "fill": false, "at": [0, 2], "animation": "none" }
             """##
         let sequence = try DocumentResolver().resolve(document(clips: [parent, curve]))
         let list = Evaluator().displayList(of: sequence, at: 1)
@@ -61,7 +61,7 @@ struct CurvedPathRenderTests {
         // Given
         let curve = ##"""
             { "id": "curve", "kind": "path", "points": [[60, 120], [260, 120]],
-              "stroke": { "color": "#FFFFFF", "width": 6 }, "fill": false, "at": [0, 2], "animation": "none",
+              "stroke": { "paint": "#FFFFFF", "width": 6 }, "fill": false, "at": [0, 2], "animation": "none",
               "keyframes": [
                 { "at": 0, "ease": "linear", "points": [ { "outTangent": [0, 0] }, { "inTangent": [0, 0] } ] },
                 { "at": 1, "points": [ { "outTangent": [0, 120] }, { "inTangent": [0, 120] } ] } ] }

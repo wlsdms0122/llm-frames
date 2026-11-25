@@ -34,7 +34,7 @@ struct CornerRadiusEndToEndTests {
               "clips": [
                 { "kind": "rect", "width": 400, "height": 300, "position": [960, 540], "fill": "accent", "radius": [0, 20, 60, 120], "at": [0, 4] },
                 { "kind": "media", "media": "/abs/card.png", "at": [0, 4], "width": 400, "radius": [0, 20, 60, 120] },
-                { "kind": "adjustment", "adjust": "frames/warm", "at": [0, 4], "mask": { "shape": "rect", "area": [0, 0, 400, 300], "radius": [0, 20, 60, 120] } } ] }
+                { "kind": "adjustment", "adjust": "frames/warm", "at": [0, 4], "mask": { "kind": "rect", "area": [0, 0, 400, 300], "radius": [0, 20, 60, 120] } } ] }
             """#)
 
         // When

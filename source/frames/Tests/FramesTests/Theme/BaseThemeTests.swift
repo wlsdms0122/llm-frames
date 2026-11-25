@@ -51,7 +51,7 @@ struct BaseThemeTests {
             """##
         )))
         #expect(theme["placement"] == (try Fixture.json(#"{ "padding": 96 }"#)))
-        #expect(theme["border"] == (try Fixture.json(#"{ "width": 4, "color": "accent", "align": "inside" }"#)))
+        #expect(theme["border"] == (try Fixture.json(#"{ "width": 4, "paint": "accent", "align": "inside" }"#)))
         #expect(theme["shadow"] == (try Fixture.json(#"{ "radius": 32, "offset": [0, 12], "color": "shadow" }"#)))
         #expect(defaults?["transition"] == .string("cut"))
         #expect(defaults?["filter"] == .string("none"))

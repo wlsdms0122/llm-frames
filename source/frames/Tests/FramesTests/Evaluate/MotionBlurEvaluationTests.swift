@@ -391,7 +391,7 @@ struct MotionBlurEvaluationTests {
         // Given
         let sequence = try resolved(clips: [#"""
             { "id": "grade", "kind": "adjustment", "adjust": "mine/grade", "at": [0, 4], "animation": "mine/wipe-in",
-              "mask": { "shape": "rect", "area": [100, 100, 400, 300], "feather": 8 } }
+              "mask": { "kind": "rect", "area": [100, 100, 400, 300], "feather": 8 } }
             """#])
 
         // When
