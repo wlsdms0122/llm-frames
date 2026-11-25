@@ -18,7 +18,7 @@
     { "id": "mobile", "media": "/path/to/checkout.png", "duration": 3, "transition": "frames/fade",
       "keyframes": [
         { "at": 0.6, "crop": { "scale": 1 }, "ease": "ease-in-out" },
-        { "at": 1.4, "crop": { "tool": "frames/find-text", "from": "Item total", "to": "42,000", "toNth": 0, "padding": 160 } }
+        { "at": 1.4, "crop": { "tool": "frames/find-text", "from": "Item total", "to": "42,000", "toNth": 0, "padding": 160, "aspectRatio": [1920, 1080] } }
       ],
       "connected": [
         { "at": [0, 3], "title": "The order summary on mobile shows the same total", "style": "subtitle" }
