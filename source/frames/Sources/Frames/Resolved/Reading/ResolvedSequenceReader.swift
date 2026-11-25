@@ -371,7 +371,9 @@ struct ResolvedSequenceReader: Sendable {
     // What a clip draws decides the keys it holds: its content's, then a corner pin, scale and rotation for anything but
     // an adjustment, and how a picture is drawn and composited for anything but a null. Only a media clip's `crop` is
     // other than null. A shape or a null without `size` is placed by its geometry, and its `position` and `anchor` are its
-    // own. A clip with a corner pin has `size`, and its `position`, `anchor`, `scale` and `rotation` are null.
+    // own, and an adjustment whose `size`, `position` and `anchor` are null applies over the whole frame. A title and a
+    // media clip have `size`. A clip with a corner pin has `size`, and its `position`, `anchor`, `scale` and `rotation`
+    // are null, and a path, placed by its points, has none.
     private func clip(_ value: PlacedJSONValue) throws -> ResolvedClip {
         let written = try value.object(kind: "clip", keys: Self.clipKeys + Self.contentKeys)
         let kind = try written.member("kind").name(among: Self.kinds) { Self.kinds.contains($0) ? $0 : nil }
@@ -390,8 +392,16 @@ struct ResolvedSequenceReader: Sendable {
         let shape = ShapeKind(rawValue: kind)
         let isPlacedByGeometry = shape != nil || isNull
         let cornerPin = isTransformed && !isNull ? try cornerPin(of: clip) : nil
+        if shape == .path, cornerPin != nil {
+            let written = try clip.member("cornerPin")
+            throw ModelError.invalidValue(
+                place: written.place,
+                kind: written.kind,
+                reason: "a path is placed by its points, so its corner pin is null, found \(written.value.written)"
+            )
+        }
         let box: ResolvedBox? = if
-            cornerPin != nil || size.isNull && (isPlacedByGeometry || position.isNull && anchor.isNull)
+            cornerPin != nil || size.isNull && (isPlacedByGeometry || !isTransformed && position.isNull && anchor.isNull)
         {
             nil
         } else {
