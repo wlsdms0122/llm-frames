@@ -34,7 +34,7 @@ A request is the value of a clip's `track`. It names a **target**, what is follo
 
 | `track` | Target | Track's frame |
 | --- | --- | --- |
-| `true` | the clip's own geometry | the frame the clip's instant shows |
+| `true` | the clip's own geometry | the frame the clip's instant shows, or where that geometry is keyframed, the frame its first keyframe's `at` shows |
 | an area `[x, y, w, h]` | that area | the frame the clip's instant shows |
 | `{"time": t}` | the clip's own geometry | the frame media time t names |
 | `{"time": t, "area": [x, y, w, h]}` | that area | the frame media time t names |
@@ -43,7 +43,9 @@ A request is the value of a clip's `track`. It names a **target**, what is follo
 - A target area is a rectangle in the media pixels the track follows. A place named by its text stops, naming `frames find-text`, which writes it as a rectangle, and a clip area `{"clip": ...}` stops, since no report gives another clip's box in those pixels.
 - A request object holds `time` and `area` alone, and any other key stops.
 - The clip's own geometry is the one of its `area` (a rect or ellipse placed by area), its `cornerPin`, its `crop` written as an area and its `mask` that lies in the media pixels its track follows. A clip with more than one of these there, or none, stops, since it must name its target. A crop written as `{"scale": s}` is no area.
+- A keyframed target of `true` is the value of its first keyframe, the one at the earliest `at` and, of those written at that `at`, the one written last, which the key takes there. With `{"time": t}` a keyframed target stops, since a keyframe's value is where it is at its own time and none is written on the frame t names: write `true`, or name the area and the frame with `{"time": t, "area": a}`.
 - A corner pin is followed from its quadrilateral, its four points in their order, with `frames track --quad`, so with `--tracker planar` it is followed in perspective. A corner pin with a point that names a clip area stops.
+
 ## Where it works
 
 Every fact the extension acts on is in a report of the document without its requests (it removes every `track`, since a request is no value frames takes):
@@ -52,6 +54,7 @@ Every fact the extension acts on is in a report of the document without its requ
 - `media` and `fps` of the entry at `tracked.clip`: the file or image sequence directory given to `frames track`, with `fps` as `--fps` for an image sequence.
 - `space` and `ownSpace` of the clip's entry: which of its own keys lie in the media pixels its track follows.
 - `instant` of the clip's entry, and the `mediaTime` of the entry at `tracked.clip` in `timeline --at <instant> --json`: the frame the clip's instant shows, `speed`, `in`, `loop`, `timeRemap` and a parent's time map applied by frames.
+- `clock` of the clip's entry, `{clip, origin, speed}`, the map frames reports from the times the clip writes to sequence time: a keyframed target's first keyframe lies at sequence time `origin + at / speed`, and the `mediaTime` of the entry at `tracked.clip` in `timeline --at` at that time is the frame it shows. The extension applies the map as reported and derives no rule of its own.
 
 The target is followed with `frames track` from the track's frame to `first`, and from it to `last`, as `--to`, and the frames of both are joined in time order, so it is followed over every frame the clip can show and no further. The tracked clip's `colorSpace`, as the document writes it, is given as `--color-space`. A `track` that stops (a target lost on its own frame, a time past the media) stops the extension with frames' message.
 
@@ -60,7 +63,6 @@ The target is followed with `frames track` from the track's frame to `first`, an
 Where a fact is in no report, the extension stops and names it:
 
 - The bounds of a clip's masks, which `true` would follow on a clip whose target is its `mask`: `evaluate` reports no masks, and a path mask, a mask placed by its size or a keyframed one has no rectangle written in the document. Name the area to follow.
-- A keyframed target of `true`: its track's frame is the one its first keyframe's time shows, and no report gives a keyframe's sequence time. Name the area and the frame with `{"time": t, "area": a}`. With `{"time": t}` a keyframed target stops as well, since a keyframe's value is where it is at its own time and none is written on the frame t names.
 - Requests inside a compound clip or template instance, or inside a sequence document named as media by its file: `timeline --at` gives a nested document's clips only at the outer sequence's times. Run the extension on the nested document first.
 
 ## Example
