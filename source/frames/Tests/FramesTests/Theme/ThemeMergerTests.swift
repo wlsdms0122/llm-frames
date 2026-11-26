@@ -183,7 +183,7 @@ struct ThemeMergerTests {
         // When, Then
         let colourError = #expect(throws: ThemeError.self) { try sut.merge([ThemeLayer(value: colour, place: .root)]) }
         let styleError = #expect(throws: ThemeError.self) { try sut.merge([ThemeLayer(value: style, place: .root)]) }
-        #expect(colourError?.description == #"styles.caption.color (style): colour "brand" is not in colors"#)
+        #expect(colourError?.description == #"styles.caption.color (style): colour "brand" is not in colors, which hold "accent", "background", "shadow", "text""#)
         #expect(styleError?.description == #"defaults.animation.title.caption (title animations): style "caption" is not in styles, "#
             + #"which hold "subtitle", "title""#)
         _ = try sut.merge([ThemeLayer(value: defined, place: .root)])
@@ -204,9 +204,9 @@ struct ThemeMergerTests {
         arguments: [
             (#"{ "shapes": { "box": { "width": 8, "radius": 18 } } }"#, #"shapes.box (shape style): unknown key "width". Allowed: fill, stroke, radius, outset, shadow"#),
             (#"{ "shapes": { "outline": { "stroke": { "paint": "accent" } } } }"#, #"shapes.outline.stroke: missing key "width", which no layer gives"#),
-            (#"{ "shapes": { "outline": { "fill": "brand" } } }"#, #"shapes.outline.fill (shape style): colour "brand" is not in colors"#),
-            (#"{ "shapes": { "outline": { "stroke": { "width": 2, "paint": "brand" } } } }"#, #"shapes.outline.stroke.paint (stroke): colour "brand" is not in colors"#),
-            (#"{ "shapes": { "outline": { "shadow": { "color": "brand" } } } }"#, #"shapes.outline.shadow.color (shadow): colour "brand" is not in colors"#)
+            (#"{ "shapes": { "outline": { "fill": "brand" } } }"#, #"shapes.outline.fill (shape style): colour "brand" is not in colors, which hold "accent", "background", "shadow", "text""#),
+            (#"{ "shapes": { "outline": { "stroke": { "width": 2, "paint": "brand" } } } }"#, #"shapes.outline.stroke.paint (stroke): colour "brand" is not in colors, which hold "accent", "background", "shadow", "text""#),
+            (#"{ "shapes": { "outline": { "shadow": { "color": "brand" } } } }"#, #"shapes.outline.shadow.color (shadow): colour "brand" is not in colors, which hold "accent", "background", "shadow", "text""#)
         ]
     )
     func checksShapeStyle(

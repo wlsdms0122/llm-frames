@@ -51,15 +51,30 @@ struct TemplateInstantiatorTests {
         #expect(instance.arguments.map(\.name) == ["clip"])
     }
 
-    @Test("an argument the template does not declare stops")
-    func refusesUnknownArgument() throws {
+    @Test(
+        "an argument the template does not declare stops, listing its parameters in declared order and naming the first in name order of those nearest it",
+        arguments: [
+            (
+                "colour",
+                #"storyline[0].media.args (template arguments): unknown argument "colour". Allowed: clip, title, tone, tint, size"#
+            ),
+            (
+                "tont",
+                #"storyline[0].media.args (template arguments): unknown argument "tont". Allowed: clip, title, tone, tint, size. Did you mean "tint"?"#
+            )
+        ]
+    )
+    func refusesUnknownArgument(
+        name: String,
+        message: String
+    ) throws {
         // Given
         let template = try template(template)
-        let arguments = try Fixture.object(##"{ "clip": "/abs/run.mp4", "colour": "#000000" }"##)
+        let arguments = try Fixture.object(##"{ "clip": "/abs/run.mp4", "\##(name)": "#000000" }"##)
 
         // When, Then
         let error = #expect(throws: ParameterError.self) { try sut.instance(of: template, arguments: arguments, place: place) }
-        #expect(error?.description == #"storyline[0].media.args (template arguments): unknown argument "colour". Allowed: clip, title, tone, tint, size"#)
+        #expect(error?.description == message)
     }
 
     @Test("a missing argument without a default stops")

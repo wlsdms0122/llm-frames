@@ -149,7 +149,7 @@ struct PresetReaderTests {
             (#"{ "description": "x", "seconds": 1, "outgoing": { "period": 0.5 } }"#, #"outgoing (outgoing): unknown key "period". Allowed: ease, revealFrom, keys"#),
             (#"{ "description": "x", "seconds": 1, "over": "outgoing", "matte": { "media": "/abs/m.png" } }"#, #"top level (transition): a matte reveals the incoming storyline picture, so it cannot play with "over": "outgoing""#),
             (#"{ "description": "x" }"#, #"top level (transition): missing key "seconds""#),
-            (##"{ "description": "x", "seconds": 1, "cover": { "color": "#000000", "keys": [] } }"##, #"cover (cover): missing key "kind""#),
+            (##"{ "description": "x", "seconds": 1, "cover": { "color": "#000000", "keys": [] } }"##, #"cover (cover): missing key "kind". Allowed: media, solid"#),
             (##"{ "description": "x", "seconds": 1, "cover": { "kind": "colour", "color": "#000000" } }"##, #"cover.kind (cover): unknown value "colour". Allowed: media, solid"#),
             (##"{ "description": "x", "seconds": 1, "cover": { "kind": "solid", "color": "#000000", "media": "/abs/s.mov" } }"##, #"cover (solid cover): unknown key "media". Allowed: kind, color, ease, keys"#),
             (#"{ "description": "x", "seconds": 1, "cover": { "kind": "media", "keys": [] } }"#, #"cover (media cover): missing key "media""#),
@@ -222,7 +222,7 @@ struct PresetReaderTests {
         "a filter preset with a broken rule stops",
         arguments: [
             (#"{ "description": "x", "ops": [ { "kind": "glow", "amount": 1 } ] }"#, #"ops[0].kind (filter operation): unknown value "glow". Allowed: bloom, blur, contrast, displace, exposure, grain, hue, levels, lut, pixelate, saturation, sepia, sharpen, temperature, vignette"#),
-            (#"{ "description": "x", "ops": [ { "amount": 1 } ] }"#, #"ops[0] (filter operation): missing key "kind""#),
+            (#"{ "description": "x", "ops": [ { "amount": 1 } ] }"#, #"ops[0] (filter operation): missing key "kind". Allowed: bloom, blur, contrast, displace, exposure, grain, hue, levels, lut, pixelate, saturation, sepia, sharpen, temperature, vignette"#),
             (#"{ "description": "x", "ops": [ { "kind": "preset", "preset": "frames/warm" } ] }"#, #"ops[0].kind (filter operation): unknown value "preset". Allowed: bloom, blur, contrast, displace, exposure, grain, hue, levels, lut, pixelate, saturation, sepia, sharpen, temperature, vignette"#),
             (#"{ "description": "x", "ops": [ { "kind": "blur", "radius": 2, "amount": 1 } ] }"#, #"ops[0] (blur): unknown key "amount". Allowed: kind, radius"#),
             (#"{ "description": "x", "ops": [ { "kind": "exposure" } ] }"#, #"ops[0] (exposure): missing key "ev""#),
@@ -424,7 +424,7 @@ struct PresetReaderTests {
             (#""seconds": 1, "over": { "param": "e" }"#, "over (transition): expected one of incoming, outgoing, found an object"),
             (#""seconds": 1, "audio": { "param": "e" }"#, "audio (transition): expected one of constant-power, constant-gain, found an object"),
             (#""seconds": 1, "incoming": { "revealFrom": { "param": "e" } }"#, "incoming.revealFrom (incoming): expected one of left, right, top, bottom, found an object"),
-            (#""seconds": 1, "matte": { "media": { "param": "n" } }"#, #"matte.media (media): missing key "kind""#),
+            (#""seconds": 1, "matte": { "media": { "param": "n" } }"#, #"matte.media (media): missing key "kind". Allowed: page"#),
             (#""seconds": 1, "matte": { "media": "/abs/m.png", "invert": { "param": "n" } }"#, "matte.invert (matte): expected true or false, found an object")
         ]
     )

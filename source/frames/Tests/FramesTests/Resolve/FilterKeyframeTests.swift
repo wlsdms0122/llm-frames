@@ -225,7 +225,7 @@ struct FilterKeyframeTests {
             (
                 #"[ { "at": 0, "filter": { "args": { "tint": "nope" } } } ]"#,
                 "glow",
-                "storyline[0].keyframes[0].filter (video): the preset names the colour \"nope\", which is not in the theme's colors"
+                "storyline[0].keyframes[0].filter (video): the preset names the colour \"nope\", which is not in the theme's colors, which hold \"accent\", \"background\", \"shadow\", \"text\""
             )
         ]
     )
@@ -345,7 +345,7 @@ struct FilterKeyframeTests {
 
         // When, Then
         let error = #expect(throws: (any Error).self) { try plan(clip, defaults: #""glow""#) }
-        #expect(error.map { "\($0)" } == "storyline[0].keyframes[0].filter (video): the preset names the colour \"nope\", which is not in the theme's colors")
+        #expect(error.map { "\($0)" } == "storyline[0].keyframes[0].filter (video): the preset names the colour \"nope\", which is not in the theme's colors, which hold \"accent\", \"background\", \"shadow\", \"text\"")
     }
 
     @Test(

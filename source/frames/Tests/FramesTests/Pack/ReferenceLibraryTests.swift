@@ -254,4 +254,22 @@ struct ReferenceLibraryTests {
         let error = #expect(throws: JSONError.self) { try sut.theme(named: "shorts/broken") }
         #expect(error?.description == "shorts/broken: line 1, column 15: unexpected character")
     }
+
+    @Test(
+        "media written as a path that names a directory stops, saying how a directory of frames is written as media, and a page's file the same way",
+        arguments: [
+            #"{ "kind": "media", "media": "@directory", "duration": 1 }"#,
+            #"{ "kind": "media", "media": { "kind": "page", "file": "@directory", "page": 1 }, "duration": 1 }"#
+        ]
+    )
+    func refusesDirectoryAsMedia(clip: String) throws {
+        // Given
+        let frame = try directory.write("", in: "loose", at: "frames/0000.png")
+        let frames = frame.deletingLastPathComponent().path
+        let document = try Fixture.json(#"{ "kind": "sequence", "storyline": [ \#(clip.replacingOccurrences(of: "@directory", with: frames)) ] }"#)
+
+        // When, Then
+        let error = #expect(throws: ModelError.self) { try KeyChecker(mediaKinds: sut).check(document: document) }
+        #expect(error?.description == #"storyline[0].media (storyline clip): media "\#(frames)" is a directory, and a directory of PNG frames is media as {"kind": "imageSequence", "directory": "\#(frames)", "fps": <rate>}"#)
+    }
 }

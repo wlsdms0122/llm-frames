@@ -132,7 +132,32 @@ struct ThemeValidatorTests {
 
         // When, Then
         let error = #expect(throws: ThemeError.self) { try ThemeMerger().merge([layer]) }
-        #expect(error?.description == #"styles.note.color (style): colour "\#(name)" is not in colors"#)
+        #expect(error?.description == #"styles.note.color (style): colour "\#(name)" is not in colors, which hold "accent", "background", "shadow", "text""#)
+    }
+
+    @Test(
+        "a name a theme looks up that is near one the merged theme holds names that one last",
+        arguments: [
+            (
+                #"{ "styles": { "note": { "size": 20, "color": "acent" } } }"#,
+                #"styles.note.color (style): colour "acent" is not in colors, which hold "accent", "background", "shadow", "text". Did you mean "accent"?"#
+            ),
+            (
+                #"{ "defaults": { "animation": { "title": { "titl": "frames/pop" } } } }"#,
+                #"defaults.animation.title.titl (title animations): style "titl" is not in styles, which hold "subtitle", "title". Did you mean "title"?"#
+            )
+        ]
+    )
+    func hintsNearName(
+        layer: String,
+        message: String
+    ) throws {
+        // Given
+        let theme = ThemeLayer(value: try Fixture.json(layer), place: .root)
+
+        // When, Then
+        let error = #expect(throws: ThemeError.self) { try ThemeMerger().merge([theme]) }
+        #expect(error?.description == message)
     }
 
     @Test(

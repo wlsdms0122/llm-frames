@@ -600,6 +600,7 @@ struct ResolvedDocumentReaderTests {
         arguments: [
             (#""parent": "a""#, #""parent": "ghost""#, #"clips[1].parent (clip): no clip in the document has the id "ghost""#),
             (#""parent": "a""#, #""parent": "sound""#, #"clips[1].parent (clip): no clip in the document has the id "sound""#),
+            (#""parent": "a""#, #""parent": "scren""#, #"clips[1].parent (clip): no clip in the document has the id "scren". Did you mean "screen"?"#),
             (
                 #""parent": "screen""#,
                 #""parent": "b""#,

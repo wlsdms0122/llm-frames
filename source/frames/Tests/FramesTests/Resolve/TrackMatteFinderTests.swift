@@ -61,6 +61,13 @@ struct TrackMatteFinderTests {
                 #"clips[0].trackMatte.clip (image): no clip in the document has the id "missing", and a track matte is a clip of the same document"#
             ),
             (
+                #"""
+                { "id": "word", "kind": "title", "text": "Hi", "style": "title", "at": [0, 1] },
+                { "kind": "media", "media": "/abs/card.png", "at": [0, 1], "trackMatte": { "clip": "wrd", "mode": "alpha" } }
+                """#,
+                #"clips[1].trackMatte.clip (image): no clip in the document has the id "wrd", and a track matte is a clip of the same document. Did you mean "word"?"#
+            ),
+            (
                 #"{ "kind": "media", "media": "/abs/card.png", "at": [0, 1], "trackMatte": { "clip": "screen", "mode": "alpha" } }"#,
                 #"clips[0].trackMatte.clip (image): "screen" is a storyline clip, and a track matte is a connected or sequence media clip, title or shape"#
             ),

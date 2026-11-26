@@ -141,7 +141,7 @@ struct PageMediaCheckTests {
 
         // When, Then
         let error = #expect(throws: ModelError.self) { try sut.check(document: document) }
-        #expect(error?.description == #"storyline[0].media (media): missing key "kind""#)
+        #expect(error?.description == #"storyline[0].media (media): missing key "kind". Allowed: sequence, page, imageSequence, template"#)
     }
 
     @Test("an argument object holding file is media, so its page is checked where it is written")

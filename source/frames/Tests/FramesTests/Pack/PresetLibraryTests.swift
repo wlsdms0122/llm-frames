@@ -123,6 +123,7 @@ struct PresetLibraryTests {
         "arguments a preset does not publish, of the wrong type, or that give a place a value it does not take stop, naming the choice",
         arguments: [
             (#"{ "size": 1 }"#, #"storyline[1].transition.args (preset arguments): unknown argument "size". Allowed: color, curve, length, peak"#),
+            (##"{ "colr": "#FFFFFF" }"##, #"storyline[1].transition.args (preset arguments): unknown argument "colr". Allowed: color, curve, length, peak. Did you mean "color"?"#),
             (#"{ "color": 3 }"#, "storyline[1].transition.args.color (preset arguments): expected a colour, found 3"),
             (#"{ "curve": "step" }"#, #"storyline[1].transition.args.curve (preset arguments): unknown value "step". Allowed: linear, ease-in-out"#),
             (#"{ "length": 0 }"#, #"storyline[1].transition (transition choice): its arguments give "studio/dip" a value it does not take: studio/dip: seconds (transition): a span runs for more than 0 seconds, found 0"#),

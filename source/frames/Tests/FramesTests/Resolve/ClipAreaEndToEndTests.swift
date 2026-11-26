@@ -390,6 +390,39 @@ struct ClipAreaEndToEndTests {
         #expect(description.hasPrefix(place), "\(description)")
     }
 
+    @Test(
+        "a clip area naming no clip of its document names a storyline or other clip whose id is near it last",
+        arguments: [
+            (
+                #"{ "kind": "title", "text": "a", "style": "title", "at": [0, 4] }"#,
+                "nobody",
+                #"clips[1].area (rect): no clip of this document has the id "nobody""#
+            ),
+            (
+                #"{ "id": "name", "kind": "title", "text": "a", "style": "title", "at": [0, 4] }"#,
+                "nme",
+                #"clips[1].area (rect): no clip of this document has the id "nme". Did you mean "name"?"#
+            ),
+            (
+                #"{ "id": "name", "kind": "title", "text": "a", "style": "title", "at": [0, 4] }"#,
+                "bak",
+                #"clips[1].area (rect): no clip of this document has the id "bak". Did you mean "back"?"#
+            )
+        ]
+    )
+    func hintsUnknownClipArea(
+        named: String,
+        id: String,
+        message: String
+    ) throws {
+        // Given
+        let area = ##"{ "kind": "rect", "fill": "#000000", "at": [0, 4], "area": { "clip": "\##(id)" } }"##
+
+        // When, Then
+        let error = #expect(throws: ResolveError.self) { try resolved(clips: [named, area]) }
+        #expect(error?.description == message)
+    }
+
     // `/abs/card.png` is 1080 by 1350. Under the default `fit` its crop is grown about its centre to the frame's 16:9,
     // `[-660, 0, 2400, 1350]`, and fills the storyline clip's box, the 1920 by 1080 frame (FRAMES-9).
     @Test(

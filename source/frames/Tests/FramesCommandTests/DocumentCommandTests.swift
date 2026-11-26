@@ -140,6 +140,55 @@ struct DocumentCommandTests {
         #expect(sut.standardOutput.hasPrefix("{\n  \"timeline\": \"0.1.0\",\n  \"duration\": 1.5,"))
     }
 
+    @Test("a document that is not JSON stops naming it by its path, as standard input, or as <pack>/<name>, then where reading it stops")
+    func namesBrokenDocument() throws {
+        // Given
+        let broken = #"{ "kind": "sequence", oops }"#
+        let document = try sut.write(broken, named: "broken.json")
+        let pack = try sut.addPack("shorts")
+        try sut.write(broken, to: pack.appendingPathComponent("templates/broken.json"))
+
+        // When
+        let pathCode = sut.run(["timeline", document])
+        let pathError = sut.standardError
+        let inputCode = sut.run(["timeline", "-"], input: broken)
+        let inputError = sut.standardError
+        let templateCode = sut.run(["timeline", "shorts/broken"])
+
+        // Then
+        #expect([pathCode, inputCode, templateCode] == [1, 1, 1])
+        #expect(pathError == "frames: \(document): line 1, column 23: expected a key in quotes\n")
+        #expect(inputError == "frames: standard input: line 1, column 23: expected a key in quotes\n")
+        #expect(sut.standardError == "frames: shorts/broken: line 1, column 23: expected a key in quotes\n")
+    }
+
+    @Test(
+        "a document whose first character other than white space is not { is said to be no frames document",
+        arguments: [
+            ("\u{0}\u{0}\u{0}\u{18}ftypmp42", "line 1, column 1: unexpected character"),
+            ("\n  hello", "line 2, column 3: unexpected character"),
+            ("", "line 1, column 1: unexpected end of input")
+        ]
+    )
+    func refusesNonDocument(
+        text: String,
+        reason: String
+    ) throws {
+        // Given
+        let media = try sut.write(text, named: "shot.mov")
+
+        // When
+        let pathCode = sut.run(["timeline", media])
+        let pathError = sut.standardError
+        let inputCode = sut.run(["timeline", "-"], input: text)
+
+        // Then
+        #expect(pathCode == 1)
+        #expect(inputCode == 1)
+        #expect(pathError == "frames: \(media): \(reason), so this is not a frames document, which is a JSON object\n")
+        #expect(sut.standardError == "frames: standard input: \(reason), so this is not a frames document, which is a JSON object\n")
+    }
+
     @Test("a pack template named <pack>/<name> takes its defaults, or the arguments --args gives")
     func readsPackTemplate() throws {
         // Given

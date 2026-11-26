@@ -359,18 +359,39 @@ struct PresetValueResolverTests {
         #expect(operation == .bloom(amount: 0.5, radius: 4, color: resolved))
     }
 
-    @Test("a colour a preset names that the theme does not hold stops")
-    func stopsOnUnknownColor() throws {
+    @Test(
+        "a colour a preset names that the theme does not hold stops, listing the theme's colours and naming one near it",
+        arguments: [
+            (
+                "glow",
+                #"top level (video): the preset names the colour "glow", which is not in the theme's colors, which hold "accent", "background", "shadow", "text""#
+            ),
+            (
+                "acent",
+                #"top level (video): the preset names the colour "acent", which is not in the theme's colors, which hold "accent", "background", "shadow", "text". Did you mean "accent"?"#
+            )
+        ]
+    )
+    func stopsOnUnknownColor(
+        color: String,
+        message: String
+    ) throws {
         // Given
         let sut = PresetValueResolver(library: directory.library())
 
         // When
         let error = #expect(throws: ResolveError.self) {
-            try sut.operation(.bloom(amount: 0.5, radius: 4, color: "glow"), theme: .base, place: .root, kind: .clip(.media(.video)))
+            try sut.operation(.bloom(amount: 0.5, radius: 4, color: color), theme: .base, place: .root, kind: .clip(.media(.video)))
         }
 
         // Then
-        #expect(error == .unknownPresetColor(place: .root, kind: .clip(.media(.video)), name: "glow"))
+        #expect(error == .unknownPresetColor(
+            place: .root,
+            kind: .clip(.media(.video)),
+            name: color,
+            colors: ["accent", "background", "shadow", "text"]
+        ))
+        #expect(error?.description == message)
     }
 
     // MARK: - Private

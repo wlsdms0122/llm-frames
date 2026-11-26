@@ -104,12 +104,20 @@ struct ShapeAppearanceTests {
                 #"clips[0].style (rect): shape style "box" is not in shapes, which hold "outline", "pointer""#
             ),
             (
+                #"{ "kind": "rect", "area": [0, 0, 10, 10], "style": "outlne" }"#,
+                #"clips[0].style (rect): shape style "outlne" is not in shapes, which hold "outline", "pointer". Did you mean "outline"?"#
+            ),
+            (
+                #"{ "kind": "rect", "area": [0, 0, 10, 10], "fill": "brnd" }"#,
+                #"clips[0].fill (rect): colour "brnd" is not in colors, which hold "accent", "background", "brand", "shadow", "text". Did you mean "brand"?"#
+            ),
+            (
                 #"{ "kind": "rect", "area": [0, 0, 10, 10], "fill": "ink" }"#,
-                #"clips[0].fill (rect): colour "ink" is not in colors"#
+                #"clips[0].fill (rect): colour "ink" is not in colors, which hold "accent", "background", "brand", "shadow", "text""#
             ),
             (
                 #"{ "kind": "path", "points": [[0, 0], [1, 1]], "stroke": { "width": 2, "paint": "ink" } }"#,
-                #"clips[0].stroke.paint (path): colour "ink" is not in colors"#
+                #"clips[0].stroke.paint (path): colour "ink" is not in colors, which hold "accent", "background", "brand", "shadow", "text""#
             ),
             (
                 #"{ "kind": "rect", "area": [0, 0, 10, 10], "placement": "top", "fill": "accent" }"#,

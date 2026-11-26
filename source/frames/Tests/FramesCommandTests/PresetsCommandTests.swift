@@ -123,6 +123,39 @@ struct PresetsCommandTests {
     }
 
     @Test(
+        "presets <kind> <name> reads the preset as a choice that names it does, so a preset that stops where it is used stops here and prints nothing",
+        arguments: [
+            (
+                ##"{ "description": "pushes", "seconds": 0.3, "colour": "#000000" }"##,
+                #"shorts/broken: top level (transition): unknown key "colour". Allowed: description, params, seconds, ease, over, audio, incoming, outgoing, cover, matte"#
+            ),
+            (
+                #"{ "description": "pushes", "seconds": 0 }"#,
+                "shorts/broken: seconds (transition): a span runs for more than 0 seconds, found 0"
+            ),
+            (
+                #"{ "description": "pushes", }"#,
+                "shorts/broken: line 1, column 28: expected a key in quotes"
+            )
+        ]
+    )
+    func stopsOnBrokenPreset(
+        text: String,
+        message: String
+    ) throws {
+        // Given
+        try sut.write(text, to: sut.installed.appendingPathComponent("shorts/presets/transition/broken.json"))
+
+        // When
+        let code = sut.run(["presets", "transition", "shorts/broken"])
+
+        // Then
+        #expect(code == 1)
+        #expect(sut.standardOutput.isEmpty)
+        #expect(sut.standardError == "frames: \(message)\n")
+    }
+
+    @Test(
         "an unknown kind or preset stops",
         arguments: [
             (["presets", "wipe"], #"presets: unknown kind "wipe". Known: transition, animation, filter, audio, head"#),

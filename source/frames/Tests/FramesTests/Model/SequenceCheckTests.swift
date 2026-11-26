@@ -292,8 +292,8 @@ struct SequenceCheckTests {
     @Test(
         "a clip is the kind its kind names, and a clip without one or of a kind its place does not take stops with the kinds it takes",
         arguments: [
-            (#"{ "storyline": [ { "duration": 2 } ] }"#, #"storyline[0] (storyline clip): missing key "kind""#),
-            (#"{ "clips": [ { "at": [0, 1] } ] }"#, #"clips[0] (clip): missing key "kind""#),
+            (#"{ "storyline": [ { "duration": 2 } ] }"#, #"storyline[0] (storyline clip): missing key "kind". Allowed: media, solid"#),
+            (#"{ "clips": [ { "at": [0, 1] } ] }"#, #"clips[0] (clip): missing key "kind". Allowed: media, audio, title, rect, ellipse, path, adjustment, null"#),
             (#"{ "storyline": [ { "kind": "title", "text": "a", "style": "headline" } ] }"#, #"storyline[0].kind (storyline clip): unknown value "title". Allowed: media, solid"#),
             (##"{ "clips": [ { "kind": "solid", "color": "#000000" } ] }"##, #"clips[0].kind (clip): unknown value "solid". Allowed: media, audio, title, rect, ellipse, path, adjustment, null"#),
             (#"{ "clips": [ { "kind": "circle" } ] }"#, #"clips[0].kind (clip): unknown value "circle". Allowed: media, audio, title, rect, ellipse, path, adjustment, null"#)
@@ -882,7 +882,7 @@ struct SequenceCheckTests {
 
         // When, Then
         let error = #expect(throws: ModelError.self) { try sut.check(document: document) }
-        #expect(error?.description == #"storyline[0]#screen.connected[0].area (clip area): unknown key "text". Allowed: clip, padding"#)
+        #expect(error?.description == #"storyline[0]#screen.connected[0].area (clip area): unknown key "text". Allowed: clip, padding. An area is a rectangle [x, y, w, h], a clip area {clip, padding}, or a request {"tool": "<pack>/<name>", ...} for a tool that fills it"#)
     }
 
     @Test(
@@ -967,9 +967,9 @@ struct SequenceCheckTests {
             (#"{ "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "transition": { "preset": "frames/push-up" } } ] }"#, #"storyline[0].transition (transition choice): needs one of seconds, args"#),
             (#"{ "theme": { "defaults": { "transition": { "preset": "frames/push-up" } } } }"#, #"theme.defaults.transition (transition choice): needs one of seconds, args"#),
             (#"{ "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "filter": { "kind": "preset", "preset": "frames/warm" } } ] }"#, #"storyline[0].filter (filter choice): needs one of args, mix"#),
-            (#"{ "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "filter": { "preset": "frames/warm", "mix": 0.5 } } ] }"#, #"storyline[0].filter (filter choice): missing key "kind""#),
+            (#"{ "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "filter": { "preset": "frames/warm", "mix": 0.5 } } ] }"#, #"storyline[0].filter (filter choice): missing key "kind". Allowed: bloom, blur, contrast, displace, exposure, grain, hue, levels, lut, pixelate, preset, saturation, sepia, sharpen, temperature, vignette"#),
             (#"{ "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "filter": ["frames/warm", { "kind": "glow", "amount": 1 }] } ] }"#, #"storyline[0].filter[1].kind (filter choice): unknown value "glow". Allowed: bloom, blur, contrast, displace, exposure, grain, hue, levels, lut, pixelate, preset, saturation, sepia, sharpen, temperature, vignette"#),
-            (#"{ "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "audioFilter": { "threshold": -50 } } ] }"#, #"storyline[0].audioFilter (audio filter choice): missing key "kind""#),
+            (#"{ "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "audioFilter": { "threshold": -50 } } ] }"#, #"storyline[0].audioFilter (audio filter choice): missing key "kind". Allowed: compressor, convolve, eq, gate, limiter, preset"#),
             (#"{ "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "filter": [] } ] }"#, #"storyline[0].filter (filter choice): a filter list holds at least one entry"#),
             (#"{ "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "filter": ["frames/warm", "none"] } ] }"#, #"storyline[0].filter[1] (filter choice): "none" turns the filter off, so it is written alone and never in a list"#)
         ]
@@ -1022,7 +1022,7 @@ struct SequenceCheckTests {
             (#"{ "kind": "spring", "bounce": -1 }"#, "clips[0].keyframes[0].ease.bounce (ease): -1 is not above -1 and below 1"),
             (#"{ "kind": "spring", "bounce": "0.5" }"#, #"clips[0].keyframes[0].ease.bounce (ease): expected a number above -1 and below 1, found "0.5""#),
             (#"{ "kind": "spring", "stiffness": 100 }"#, #"clips[0].keyframes[0].ease (ease): unknown key "stiffness". Allowed: kind, bounce"#),
-            (#"{ "bounce": 0.5 }"#, #"clips[0].keyframes[0].ease (ease): missing key "kind""#),
+            (#"{ "bounce": 0.5 }"#, #"clips[0].keyframes[0].ease (ease): missing key "kind". Allowed: spring"#),
             (#"{ "kind": "elastic", "bounce": 0.5 }"#, #"clips[0].keyframes[0].ease.kind (ease): unknown value "elastic". Allowed: spring"#)
         ]
     )
@@ -1060,7 +1060,7 @@ struct SequenceCheckTests {
 
         // When, Then
         let error = #expect(throws: ModelError.self) { try sut.check(document: document) }
-        #expect(error?.description == #"top level (document): missing key "kind""#)
+        #expect(error?.description == #"top level (document): missing key "kind". Allowed: sequence"#)
     }
 
     @Test(
@@ -1527,5 +1527,113 @@ struct SequenceCheckTests {
         // When, Then
         let error = #expect(throws: ModelError.self) { try sut.check(document: document) }
         #expect(error?.description.hasPrefix(message) == true, "\(error?.description ?? "no error")")
+    }
+
+    @Test("a storyline clip without kind stops as a missing key and lists the kinds the storyline takes")
+    func refusesStorylineClipWithoutKind() throws {
+        // Given
+        let document = try Fixture.json(#"{ "kind": "sequence", "storyline": [ { "duration": 1 } ] }"#)
+
+        // When, Then
+        let error = #expect(throws: ModelError.self) { try sut.check(document: document) }
+        #expect(error?.description == #"storyline[0] (storyline clip): missing key "kind". Allowed: media, solid"#)
+    }
+
+    // `@kind` is where the object writes its `kind`: nothing, then a kind no place takes.
+    @Test(
+        "an object of several kinds that writes no kind lists the kinds its place takes, as the message for a kind it does not take lists them",
+        arguments: [
+            (#"{ @kind "storyline": [ { "kind": "media", "media": "/abs/run.mp4" } ] }"#, "top level", "document"),
+            (#"{ "kind": "sequence", "storyline": [ { @kind "duration": 1 } ] }"#, "storyline[0]", "storyline clip"),
+            (#"{ "kind": "sequence", "clips": [ { @kind "at": [0, 1] } ] }"#, "clips[0]", "clip"),
+            (#"{ "kind": "sequence", "storyline": [ { "kind": "media", "media": { @kind "file": "/abs/deck.pdf", "page": 1 }, "duration": 1 } ] }"#, "storyline[0].media", "media"),
+            (#"{ "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "mask": { @kind "area": [0, 0, 10, 10] } } ] }"#, "storyline[0].mask", "mask"),
+            (##"{ "kind": "sequence", "clips": [ { "kind": "rect", "area": [0, 0, 10, 10], "at": [0, 1], "fill": { @kind "from": [0, 0], "to": [1, 1], "stops": [[0, "#000000"], [1, "#FFFFFF"]] } } ] }"##, "clips[0].fill", "gradient"),
+            (#"{ "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "keyframes": [ { "at": 0, "opacity": 0, "ease": { @kind "bounce": 0.2 } }, { "at": 1, "opacity": 1 } ] } ] }"#, "storyline[0].keyframes[0].ease", "ease"),
+            (#"{ "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "filter": { @kind "amount": 1 } } ] }"#, "storyline[0].filter", "filter choice"),
+            (#"{ "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "audioFilter": { @kind "gain": 1 } } ] }"#, "storyline[0].audioFilter", "audio filter choice"),
+            (#"{ "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/run.mp4", "audioFilter": { "kind": "eq", "bands": [ { @kind "frequency": 100, "gain": 3 } ] } } ] }"#, "storyline[0].audioFilter.bands[0]", "band")
+        ]
+    )
+    func listsKindsOfMissingKind(
+        document: String,
+        place: String,
+        kind: String
+    ) throws {
+        // Given
+        let missing = try Fixture.json(document.replacingOccurrences(of: "@kind", with: ""))
+        let unknown = try Fixture.json(document.replacingOccurrences(of: "@kind", with: #""kind": "nonsense","#))
+
+        // When
+        let missingError = #expect(throws: ModelError.self) { try sut.check(document: missing) }
+        let unknownError = #expect(throws: ModelError.self) { try sut.check(document: unknown) }
+
+        // Then
+        let missingLead = #"\#(place) (\#(kind)): missing key "kind". Allowed: "#
+        let kindPlace = place == "top level" ? "kind" : "\(place).kind"
+        let unknownLead = #"\#(kindPlace) (\#(kind)): unknown value "nonsense". Allowed: "#
+        let missingDescription = missingError?.description ?? ""
+        let unknownDescription = unknownError?.description ?? ""
+        #expect(missingDescription.hasPrefix(missingLead), "\(missingDescription)")
+        #expect(unknownDescription.hasPrefix(unknownLead), "\(unknownDescription)")
+        #expect(missingDescription.dropFirst(missingLead.count) == unknownDescription.dropFirst(unknownLead.count))
+    }
+
+    @Test(
+        "a track object that lacks a key track data requires, or holds one it does not take, says what a track takes",
+        arguments: [
+            (
+                #"{ "time": 0.5 }"#,
+                #"clips[0].track (track): missing key "frames". A track is track data {time, frames}, as frames track prints it, or a request {"tool": "<pack>/<name>", ...} for a tool that fills it"#
+            ),
+            (
+                #"{ "time": 0.5, "frames": [], "target": { "clip": "screen" } }"#,
+                #"clips[0].track (track): unknown key "target". Allowed: time, frames. A track is track data {time, frames}, as frames track prints it, or a request {"tool": "<pack>/<name>", ...} for a tool that fills it"#
+            ),
+            (
+                #"{ "time": 0.5, "frames": [ { "time": 0.5 } ] }"#,
+                #"clips[0].track.frames[0] (track data frame): missing key "quad""#
+            )
+        ]
+    )
+    func saysWhatTrackTakes(
+        track: String,
+        message: String
+    ) throws {
+        // Given
+        let document = try Fixture.json(#"""
+            { "kind": "sequence", "clips": [ { "kind": "rect", "area": [0, 0, 10, 10], "at": [0, 1], "track": \#(track) } ] }
+            """#)
+
+        // When, Then
+        let error = #expect(throws: ModelError.self) { try sut.check(document: document) }
+        #expect(error?.description == message)
+    }
+
+    @Test(
+        "an area object without clip, or with a key a clip area does not take, says what an area takes",
+        arguments: [
+            (
+                #"{ "text": "Total" }"#,
+                #"clips[0].area (clip area): unknown key "text". Allowed: clip, padding. An area is a rectangle [x, y, w, h], a clip area {clip, padding}, or a request {"tool": "<pack>/<name>", ...} for a tool that fills it"#
+            ),
+            (
+                #"{ "padding": 4 }"#,
+                #"clips[0].area (clip area): missing key "clip". An area is a rectangle [x, y, w, h], a clip area {clip, padding}, or a request {"tool": "<pack>/<name>", ...} for a tool that fills it"#
+            )
+        ]
+    )
+    func saysWhatAreaTakes(
+        area: String,
+        message: String
+    ) throws {
+        // Given
+        let document = try Fixture.json(#"""
+            { "kind": "sequence", "clips": [ { "kind": "rect", "at": [0, 1], "area": \#(area) } ] }
+            """#)
+
+        // When, Then
+        let error = #expect(throws: ModelError.self) { try sut.check(document: document) }
+        #expect(error?.description == message)
     }
 }
