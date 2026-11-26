@@ -70,7 +70,7 @@ struct OutlineSegmentTests {
         let middle = sut.point(at: length / 2)
 
         // Then
-        // The cubic strays from the circle by at most 2.7e-4 of its radius, so its length by as little.
+        // The cubic strays from the circle by less than 2.73e-4 of its radius, so its length by as little.
         #expect(abs(length - 50 * .pi) < 0.05)
         #expect(abs(middle.x - middle.y) < 1e-6)
         #expect(abs(hypot(middle.x, middle.y) - 100) < 0.03)

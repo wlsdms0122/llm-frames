@@ -11,7 +11,7 @@ import Foundation
 // of its own, and `append` waits while one frame is still being written, or two where the run's budget grants its
 // `frames` the second's bytes until it is written (FRAMES-30 The budget), so the frames held at once are bounded. The
 // budget counts each frame the queue holds as `frames`.
-// The queues are serial, so Dispatch runs each on a thread outside the 64 its concurrent queues share, which a writer
+// The queues are serial, so Dispatch runs each on a thread outside the pool its concurrent queues share, which a writer
 // waiting on AVFoundation would otherwise hold while AVFoundation finishes its work there. A slot is let go of on a
 // serial queue too, since `append` waits for it on a caller's thread, which may be one of the threads the concurrent
 // queues are given.
