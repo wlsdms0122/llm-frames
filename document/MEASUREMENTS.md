@@ -40,9 +40,9 @@ Numbers: the poster was followed to 30 % covered and lost at 32 %, within 0.3 pi
 
 ### AVFoundation's reads and the threads they need
 
-Supports: [Rules](../spec/FRAMES-21/SPEC.md#rules), the decoder paragraph's "waits on threads of either pool, or near 64 reads at once on any threads, hold every thread that work needs, and no read ends", and the Note that AVFoundation's reads stop finishing at 64 at once.
+Supports: [Rules](../spec/FRAMES-21/SPEC.md#rules), the decoder paragraph's "waits on threads of either pool, or as many reads at once on any threads as that pool has threads, hold every thread that work needs, and no read ends" and its pool of 64 threads, and the Note that AVFoundation's reads stop finishing at 64 at once.
 
-On: the reference machine (10 processors, macOS 27.2).
+On: the reference machine (10 processors, macOS 27.2), whose `sysctl kern.wq_max_constrained_threads` gives 64, the system's count of the threads Dispatch runs its concurrent queues on.
 
 Numbers: with every thread of Swift's shared pool blocked on a semaphore, one AVAssetReader read of a small video on a thread of its own did not finish in six minutes, and with one of the ten free it finished in 0.02 s. Sixty reads at once on a concurrent Dispatch queue held 60 of its 64 threads, AVFoundation's waits to make sample data ready held the other four, and none finished. With 64 threads of such a queue blocked, one read on a thread of its own waited until they were freed. Eighty reads on eighty serial queues finished in 0.3 s. A hundred reads on threads of their own finished in 0.5 s once, and once held 64 threads in those waits and none finished. VideoToolbox made forty H.264 or HEVC compression sessions of 1920 by 1080 at once and encoded a frame with each, 31 of them on a hardware encoder.
 
