@@ -783,7 +783,8 @@ extension AVFoundationDecoder: MediaDecoder {
 
     // The plays of videos none of `frames` is in end once the frames being read ahead for them are read: their readers
     // close, the frames their turns hold and their frames read ahead are given back to the budget, and the decoder,
-    // the bound and the lookahead keep no record of them.
+    // the bound and the lookahead keep no record of them. Each play shown takes the frame of it shown last as the one
+    // its next turn steps from, where that is later than the frame it asked last.
     package func frameRendered(showing frames: [MediaFrame]) {
         let shown = frames.compactMap { frame -> (play: VideoPlay, reading: PictureReading, index: Int)? in
             let file = MediaFile(picture: frame.media)
@@ -793,16 +794,19 @@ extension AVFoundationDecoder: MediaDecoder {
         }
         lookahead.frameRendered(showing: shown)
 
-        let shownPlays = Set(shown.map(\.play))
-        let over = plays.withLock { plays in
-            let over = plays.filter { !shownPlays.contains($0.key) }
-            plays = plays.filter { shownPlays.contains($0.key) }
+        let shownLast = shown.reduce(into: [VideoPlay: Int]()) { $0[$1.play] = $1.index }
+        let (over, kept) = plays.withLock { plays in
+            let over = plays.filter { shownLast[$0.key] == nil }
+            plays = plays.filter { shownLast[$0.key] != nil }
 
-            return over
+            return (over, plays.compactMap { play, reader in shownLast[play].map { (reader: reader, index: $0) } })
         }
         readers.end(Set(over.keys))
         for reader in over.values {
             reader.end()
+        }
+        for (reader, index) in kept {
+            reader.shown(frame: index)
         }
     }
 

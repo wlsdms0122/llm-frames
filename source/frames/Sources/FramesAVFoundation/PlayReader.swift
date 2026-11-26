@@ -25,6 +25,8 @@ final class PlayReader: Sendable {
     private let state = OSAllocatedUnfairLock<ReadState>(uncheckedState: ReadState())
     // The frames whose buffers `state` holds, read without its lock while a frame is being read.
     private let heldFrames = OSAllocatedUnfairLock<Set<Int>>(initialState: [])
+    // The frame of the play shown last, set without `state`'s lock, so a frame shown never waits on a read.
+    private let shownLast = OSAllocatedUnfairLock<Int?>(initialState: nil)
 
     // Whether the buffer of a frame a reader read past the frame it was opened for is held.
     var holdsFrames: Bool {
@@ -58,12 +60,12 @@ final class PlayReader: Sendable {
     // The buffer of frame `index` as the file stores it, in the video's `decodedFormat`, the samples decoded to reach
     // it, and whether a reader was opened again for it, which the first reader opened for the play is not. A reader
     // opened for it reads `turn` frames, frame `index` and the frames after it by the step from the frame the play
-    // asked before, within `forwardReach` of it, and holds the buffers of the others, which later asks give with no
-    // reader, as many as the budget grants room for: `room` is bytes the budget granted its `turns` for them, which
-    // they hold first, and what they do not hold of it is given back. Every buffer held of a frame up to `index` is let
-    // go of. A reader is opened only where `isAdmitted` holds, asked under the lock `close()` takes, so a close that
-    // follows the admission it asks about closes the reader it opens. Nil where the frame needs a reader opened and
-    // `isAdmitted` does not hold: nothing is read and nothing is let go of.
+    // asked before or showed last, whichever is later, within `forwardReach` of it, and holds the buffers of the
+    // others, which later asks give with no reader, as many as the budget grants room for: `room` is bytes the budget
+    // granted its `turns` for them, which they hold first, and what they do not hold of it is given back. Every buffer
+    // held of a frame up to `index` is let go of. A reader is opened only where `isAdmitted` holds, asked under the
+    // lock `close()` takes, so a close that follows the admission it asks about closes the reader it opens. Nil where
+    // the frame needs a reader opened and `isAdmitted` does not hold: nothing is read and nothing is let go of.
     func buffer(
         atFrame index: Int,
         path: String,
@@ -137,14 +139,22 @@ final class PlayReader: Sendable {
         }
     }
 
+    // Takes frame `index` as the frame of the play shown last, whoever read it: the renderer draws a frame from a
+    // picture it kept from another play's read without asking this play's reader (FRAMES-21 Rules).
+    func shown(frame index: Int) {
+        shownLast.withLock { $0 = index }
+    }
+
     // MARK: - Private
-    // The step from frame `asked`, the frame the play asked before, to frame `index`, 1 where there is none or it is
-    // not forward.
+    // The step to frame `index` from frame `asked`, the frame the play asked before, or from the frame it showed last
+    // where that is later, 1 where there is neither or the step is not forward.
     private func step(
         to index: Int,
         from asked: Int?
     ) -> Int {
-        asked.map { index - $0 }.flatMap { $0 > 0 ? $0 : nil } ?? 1
+        let before = [asked, shownLast.withLock { $0 }].compactMap { $0 }.max()
+
+        return before.map { index - $0 }.flatMap { $0 > 0 ? $0 : nil } ?? 1
     }
 
     // The frames after frame `index` by `step` that a reader opened for it in a turn of `turn` frames reads past it,
