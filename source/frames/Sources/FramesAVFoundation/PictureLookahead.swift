@@ -26,7 +26,9 @@ import os
 // `waitingSeconds` (FRAMES-23 Runs).
 final class PictureLookahead: Sendable {
     // MARK: - Property
-    private static let readsAtOnce = ProcessInfo.processInfo.activeProcessorCount
+    // As many as the machine has processors, and at most 32 whatever their number, so reads ahead never hold more
+    // than half of the system's pool of threads.
+    private static let readsAtOnce = min(ProcessInfo.processInfo.activeProcessorCount, 32)
 
     private let budget: MemoryBudget
     private let entries = OSAllocatedUnfairLock<[Entry]>(initialState: [])
