@@ -7,13 +7,14 @@
 
 import Foundation
 
-// Takes frames out of a video, an image sequence or a resolved document without encoding a video. `still` draws sequence frames side by
-// side at full size, `sheet` lays frames out on a grid, and `extract` writes each frame to a PNG of its own, named by
-// its index. Everything that can refuse does before the first file is written, in this order: the output, the times,
-// every pinned file's hash and the decoder on every pinned media (for a video, the decoder on it), the renderer on
-// every list it draws, a sheet's own among them, and the run's memory limit against the run's floor, which those
-// checks give (FRAMES-30 The budget). Every file is an analysis picture (FRAMES-26), an 8-bit sRGB PNG whatever the
-// sequence's colour space, and a label lies on the analysis picture of its frame.
+// Takes frames out of a video, an image sequence or a resolved document without encoding a video. `still` draws
+// sequence frames side by side at full size, `sheet` lays frames out on a grid, and `extract` writes each frame to a
+// PNG of its own, named by its index. Everything that can refuse does before the first file is written, in this order:
+// the output, the times, every pinned file's hash and the decoder on every pinned media (for a video, the decoder on
+// it), the renderer on every list it draws, a sheet's own among them, and the run's memory limit against the run's
+// floor, which those checks and the output frames the command holds give (FRAMES-30 The budget). Every file is an
+// analysis picture (FRAMES-26), an 8-bit sRGB PNG whatever the sequence's colour space, and a label lies on the
+// analysis picture of its frame.
 package struct FrameExporter: Sendable {
     // MARK: - Property
     // The longest side of a sheet's cell, so a sheet of many frames stays a picture one can open and read.
@@ -125,12 +126,13 @@ package struct FrameExporter: Sendable {
         range: FrameRange,
         to directory: String
     ) throws -> [String] {
-        let frames = try frames(of: source, range: range).frames
-        for frame in frames {
+        let sampled = try frames(of: source, range: range)
+        for frame in sampled.frames {
             guard case let .displayList(list) = frame.picture else { continue }
 
             try renderer.check(list, ofFrameAt: frame.time)
         }
+        budget.require(frameBytes(of: source, size: sampled.size), for: .frames)
         try budget.checkFloor()
 
         do {
@@ -141,7 +143,7 @@ package struct FrameExporter: Sendable {
 
         let folder = URL(fileURLWithPath: directory, isDirectory: true)
         let output = output(of: source)
-        return try frames.enumerated().map { index, frame in
+        return try sampled.frames.enumerated().map { index, frame in
             let path = folder.appendingPathComponent(String(format: "%04d.png", index)).path
             try encoder.writeAnalysisPicture(of: try bitmap(of: frame.picture), in: output, to: path)
 
@@ -191,6 +193,10 @@ package struct FrameExporter: Sendable {
         try renderer.check(layout)
         let drawnBytes = drawn.count * Int(frames.size.width) * Int(frames.size.height) * 4
         budget.require(2 * (try renderer.pictureBytes(of: layout) + drawnBytes), for: .pictures)
+        // The output frames are the sheet's own and each frame drawn first, of the frames' size, one at a time, each
+        // let go of once its analysis picture is written and all before the sheet is drawn.
+        let drawnFrameBytes = drawn.isEmpty ? 0 : Self.workingBytes(of: frames.size)
+        budget.require(max(Self.workingBytes(of: layout.size), drawnFrameBytes), for: .frames)
         try budget.checkFloor()
 
         let folder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
@@ -308,6 +314,26 @@ package struct FrameExporter: Sendable {
         case let .displayList(list):
             try renderer.frame(of: list).bitmap
         }
+    }
+
+    // The bytes of the frame `extract` writes: a document's frame as the renderer draws it, and a video's or an image
+    // sequence's as its analysis picture, at 4 bytes a pixel.
+    private func frameBytes(
+        of source: FrameSource,
+        size: Size
+    ) -> Int {
+        switch source {
+        case .video, .imageSequence:
+            Int(size.width.rounded(.up)) * Int(size.height.rounded(.up)) * 4
+
+        case .document:
+            Self.workingBytes(of: size)
+        }
+    }
+
+    // The bytes of a frame of `size` as a renderer draws it, working values in RGBA half floats.
+    private static func workingBytes(of size: Size) -> Int {
+        Int(size.width.rounded(.up)) * Int(size.height.rounded(.up)) * 4 * MemoryLayout<UInt16>.size
     }
 
     // The output a source's frames are written by: a sequence's, and `srgb` for a video's or an image sequence's, which

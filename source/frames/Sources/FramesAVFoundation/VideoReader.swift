@@ -82,8 +82,9 @@ final class VideoReader: Sendable {
     }
 
     // MARK: - Public
-    // A buffer `buffer(atFrame:path:turn:)` gave as it is displayed, with no colour matched: its R'G'B', taken from its
-    // Y'CbCr by the formulas in double precision where it holds Y'CbCr, a value beyond the nominal range kept.
+    // A buffer `buffer(atFrame:path:turn:isAdmitted:)` gave as it is displayed, with no colour matched: its R'G'B',
+    // taken from its Y'CbCr by the formulas in double precision where it holds Y'CbCr, a value beyond the nominal range
+    // kept.
     func image(of buffer: CVImageBuffer) -> CIImage {
         guard case let .yCbCr(layout) = decodedFormat else {
             return displayed(CIImage(cvImageBuffer: buffer, options: [.colorSpace: NSNull()]))

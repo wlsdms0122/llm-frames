@@ -13,15 +13,17 @@ import os
 // forward by a steady step, as a render reads a clip. Frames are kept apart for each file and reading. Once two frames
 // of one file and reading are read, the second forward of the first, the frame as far on again from the second is read
 // ahead on a thread made for that read by the same read, so it holds the same bits, while fewer frames than the machine
-// has processors are being read ahead and the run's budget grants its `readAhead` the frame's bytes until the frame is
-// given or let go of (FRAMES-30); past either the frame is read where it is asked. AVFoundation finishes a read's work
-// on Swift's shared pool and on the 64 threads Dispatch runs its concurrent queues on, and itself holds one of those 64
-// waiting for each read it makes sample data ready for, so reads on threads of either pool, or near 64 reads at once on
-// any threads, hold every thread that work needs. A frame asked for that is not the one read ahead is read where it is
-// asked, once every frame of the same file being read ahead is read, so the file's reader is where those reads left it.
-// A read ahead that fails is dropped, so its frame is read again where it is asked and fails there. `read` is told
-// whether it reads ahead, and the time callers wait on a frame being read ahead is kept as `waitingSeconds` (FRAMES-23
-// Runs).
+// has processors are being read ahead, so at most as many as it has are read ahead at once, and while the run's budget
+// grants its `readAhead` the frame's bytes until the frame is given or let go of (FRAMES-30); past either the frame is
+// read where it is asked. AVFoundation finishes a read's work on Swift's shared pool and on the pool of threads
+// Dispatch runs its concurrent queues on, as many as the system's `kern.wq_max_constrained_threads`, 64 on macOS 27.2,
+// and itself holds one thread of that pool waiting for each read it makes sample data ready for, so reads on threads of
+// either pool, or as many reads at once on any threads as that pool has threads, hold every thread that work needs
+// (FRAMES-21 Rules). The threads made here are of neither pool. A frame asked for that is not the one read ahead is
+// read where it is asked, once every frame of the same file being read ahead is read, so the file's reader is where
+// those reads left it. A read ahead that fails is dropped, so its frame is read again where it is asked and fails
+// there. `read` is told whether it reads ahead, and the time callers wait on a frame being read ahead is kept as
+// `waitingSeconds` (FRAMES-23 Runs).
 final class PictureLookahead: Sendable {
     // MARK: - Property
     private static let readsAtOnce = ProcessInfo.processInfo.activeProcessorCount
@@ -119,8 +121,8 @@ final class PictureLookahead: Sendable {
 
 extension PictureLookahead {
     // The frame read last of a file and reading, and the frame being read ahead of it, which is none when the step
-    // from the frame before it is not forward or leads past the last frame, or when as many frames as are read ahead
-    // at once were being read ahead.
+    // from the frame before it is not forward or leads past the last frame, when as many frames as are read ahead at
+    // once were being read ahead, or when the budget granted no room for it.
     private struct Entry: Sendable {
         let path: String
         let reading: PictureReading
