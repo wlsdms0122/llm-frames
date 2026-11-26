@@ -15,6 +15,9 @@ enum AreaKeyTable {
             KeyRule("padding", .number(.nonNegative))
         ]
     )
+    // What an area takes, as a message about an area object says it.
+    static let areaForms = "An area is a rectangle [x, y, w, h], a clip area {clip, padding}, or a request "
+        + "{\"tool\": \"<pack>/<name>\", ...} for a tool that fills it"
     static let cropScale = ObjectTable(
         kind: "crop",
         rules: [

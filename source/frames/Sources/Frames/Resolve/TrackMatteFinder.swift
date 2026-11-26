@@ -21,7 +21,12 @@ struct TrackMatteFinder: Sendable {
 
             let place = link.place.appending(key: "trackMatte").appending(key: "clip")
             guard let index = links.firstIndex(where: { $0.id == matte.clip }) else {
-                throw ResolveError.unknownTrackMatte(place: place, kind: link.kind, id: matte.clip)
+                throw ResolveError.unknownTrackMatte(
+                    place: place,
+                    kind: link.kind,
+                    id: matte.clip,
+                    ids: links.compactMap(\.id)
+                )
             }
             if let refusal = links[index].refusal {
                 throw ResolveError.trackMatteKind(place: place, kind: link.kind, id: matte.clip, matte: refusal)

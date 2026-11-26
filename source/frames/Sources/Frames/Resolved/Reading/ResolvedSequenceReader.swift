@@ -101,7 +101,8 @@ struct ResolvedSequenceReader: Sendable {
                 throw ResolveError.unknownParent(
                     place: places[index].appending(key: "parent"),
                     kind: kind(of: clips[index]),
-                    id: id
+                    id: id,
+                    ids: storyline.compactMap(\.id) + clips.compactMap(\.id)
                 )
             }
 

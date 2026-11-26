@@ -142,6 +142,10 @@ enum ClipKeyTable {
         ]
     )
 
+    // What `track` takes, as a message about a `track` object says it.
+    static let trackForms = "A track is track data {time, frames}, as frames track prints it, or a request "
+        + "{\"tool\": \"<pack>/<name>\", ...} for a tool that fills it"
+
     // A frame of track data: a media time, and the target's quad on the frame it names in media pixels.
     static let trackDataFrame = ObjectTable(
         kind: "track data frame",

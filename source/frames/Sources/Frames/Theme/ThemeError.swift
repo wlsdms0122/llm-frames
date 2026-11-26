@@ -6,7 +6,8 @@
 //
 
 enum ThemeError: Error, Equatable, CustomStringConvertible, Sendable {
-    case unknownColor(place: Place, kind: String, name: String)
+    // `colors` are the names of the theme's colours, in name order.
+    case unknownColor(place: Place, kind: String, name: String, colors: [String])
     case unknownStyle(place: Place, kind: String, name: String, styles: [String])
     case unknownShapeStyle(place: Place, kind: String, name: String, styles: [String])
     case unknownReference(place: Place, kind: String, reference: UnknownReference)
@@ -15,16 +16,17 @@ enum ThemeError: Error, Equatable, CustomStringConvertible, Sendable {
     // MARK: - Property
     var description: String {
         switch self {
-        case let .unknownColor(place, kind, name):
-            "\(place) (\(kind)): colour \"\(name)\" is not in colors"
+        case let .unknownColor(place, kind, name, colors):
+            "\(place) (\(kind)): colour \"\(name)\" is not in colors, which hold \(Self.listed(colors))"
+                + NameHint.suggestion(for: name, among: colors)
 
         case let .unknownStyle(place, kind, name, styles):
-            "\(place) (\(kind)): style \"\(name)\" is not in styles, which hold "
-                + styles.map { "\"\($0)\"" }.joined(separator: ", ")
+            "\(place) (\(kind)): style \"\(name)\" is not in styles, which hold \(Self.listed(styles))"
+                + NameHint.suggestion(for: name, among: styles)
 
         case let .unknownShapeStyle(place, kind, name, styles):
-            "\(place) (\(kind)): shape style \"\(name)\" is not in shapes, which hold "
-                + (styles.isEmpty ? "none" : styles.map { "\"\($0)\"" }.joined(separator: ", "))
+            "\(place) (\(kind)): shape style \"\(name)\" is not in shapes, which hold \(Self.listed(styles))"
+                + NameHint.suggestion(for: name, among: styles)
 
         case let .unknownReference(place, kind, reference):
             "\(place) (\(kind)): \(reference)"
@@ -37,4 +39,8 @@ enum ThemeError: Error, Equatable, CustomStringConvertible, Sendable {
     // MARK: - Initializer
     // MARK: - Public
     // MARK: - Private
+    // Names as a stop lists them, each in quotes, or `none`.
+    private static func listed(_ names: [String]) -> String {
+        names.isEmpty ? "none" : names.map { JSONValue.string($0).written }.joined(separator: ", ")
+    }
 }

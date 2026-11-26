@@ -8,7 +8,7 @@
 import Frames
 
 // Lists the presets of every pack with their descriptions, every kind or one, or prints one preset's JSON as its file
-// is written.
+// is written, once the preset is read as a choice that names it reads it.
 struct PresetsCommand: Command {
     // MARK: - Property
     let name = "presets"

@@ -38,6 +38,8 @@ enum CommandError: Error, Equatable, CustomStringConvertible, Sendable {
     case missingLabelFace(name: String, file: String)
     case argumentsOfMedium(command: String, path: String)
     case rateOfDocument(command: String)
+    // A document whose first character other than white space is not `{`, with where reading it as JSON stopped.
+    case notDocument(JSONError)
 
     // MARK: - Property
     var description: String {
@@ -129,6 +131,9 @@ enum CommandError: Error, Equatable, CustomStringConvertible, Sendable {
 
         case let .rateOfDocument(command):
             "\(command): --fps gives an image sequence its rate, and a document's frames are at sequence times"
+
+        case let .notDocument(error):
+            "\(error), so this is not a frames document, which is a JSON object"
         }
     }
 

@@ -253,6 +253,12 @@ struct KeyChecker: Sendable {
                 try check(member.value, as: valueType, place: place.appending(key: member.key), kind: mapKind, scope: &scope)
             }
 
+        case let .object(table) where table.kind == ClipKeyTable.track.kind:
+            guard let object = value.objectValue else { throw wrongType(value, type, place, kind) }
+            try checking(place, takes: ClipKeyTable.trackForms) {
+                try checkObject(object, as: table, place: place, scope: &scope)
+            }
+
         case let .object(table):
             guard let object = value.objectValue else { throw wrongType(value, type, place, kind) }
             try checkObject(object, as: table, place: place, scope: &scope)
@@ -350,6 +356,10 @@ struct KeyChecker: Sendable {
         }
 
         for rule in table.rules where rule.isRequired && !object.contains(rule.name) {
+            if rule.name == "kind", case let .literal(kinds) = rule.type {
+                throw ModelError.missingKind(place: place, kind: table.kind, allowed: kinds)
+            }
+
             throw ModelError.missingKey(place: place, kind: table.kind, keys: [rule.name])
         }
 
@@ -565,11 +575,39 @@ struct KeyChecker: Sendable {
                 try check(element, as: elementType, place: place.appending(index: index), kind: kind, scope: &scope)
             }
 
+        case let .object(object) where type == .area:
+            try checking(place, takes: AreaKeyTable.areaForms) {
+                try checkObject(object, as: AreaKeyTable.clip, place: place, scope: &scope)
+            }
+
         case let .object(object):
             try checkObject(object, as: AreaKeyTable.clip, place: place, scope: &scope)
 
         default:
             throw wrongType(value, type, place, kind)
+        }
+    }
+
+    // Checks an object at `place` and adds what the place takes, `forms`, to a stop for a key the object itself lacks
+    // or does not take.
+    private func checking(
+        _ place: Place,
+        takes forms: String,
+        _ check: () throws -> Void
+    ) throws {
+        do {
+            try check()
+        } catch let error as ModelError {
+            switch error {
+            case let .unknownKey(errorPlace, _, _, _) where errorPlace == place:
+                throw ModelError.misformed(error, takes: forms)
+
+            case let .missingKey(errorPlace, _, _) where errorPlace == place:
+                throw ModelError.misformed(error, takes: forms)
+
+            default:
+                throw error
+            }
         }
     }
 
@@ -630,7 +668,9 @@ struct KeyChecker: Sendable {
         scope: inout DocumentScope
     ) throws {
         guard let object = value.objectValue else { throw wrongType(value, .masks, place, kind) }
-        guard object.contains("kind") else { throw ModelError.missingKey(place: place, kind: "mask", keys: ["kind"]) }
+        guard object.contains("kind") else {
+            throw ModelError.missingKind(place: place, kind: "mask", allowed: VocabularyTable.shapes)
+        }
 
         let shapes = try shapes(of: object, place: place, kind: "mask", scope: &scope)
         try checkEach(shapes, scope: &scope) { shape, scope in
@@ -802,7 +842,7 @@ struct KeyChecker: Sendable {
         scope: inout DocumentScope
     ) throws -> String {
         guard let written = object["kind"] else {
-            throw ModelError.missingKey(place: place, kind: kind, keys: ["kind"])
+            throw ModelError.missingKind(place: place, kind: kind, allowed: names)
         }
 
         try check(written, as: .literal(names), place: place.appending(key: "kind"), kind: kind, scope: &scope)
@@ -953,6 +993,8 @@ struct KeyChecker: Sendable {
             found = try mediaKinds.mediaKind(of: reference)
         } catch let error as UnreadableMediaError {
             throw ModelError.unreadableMedia(place: place, kind: kind, reference: reference, reason: "\(error.reason)")
+        } catch is DirectoryMediaError {
+            throw ModelError.directoryAsMedia(place: place, kind: kind, reference: reference)
         }
         guard let found else {
             throw ModelError.unknownReference(
@@ -974,7 +1016,7 @@ struct KeyChecker: Sendable {
     ) throws {
         guard let object = value.objectValue else { throw wrongType(value, .document, place, kind) }
         guard let kindValue = object["kind"] else {
-            throw ModelError.missingKey(place: place, kind: kind, keys: ["kind"])
+            throw ModelError.missingKind(place: place, kind: kind, allowed: [DocumentKeyTable.sequence.kind])
         }
         guard let documentKind = kindValue.stringValue else {
             throw wrongType(kindValue, .text, place.appending(key: "kind"), "document")
@@ -1060,7 +1102,7 @@ struct KeyChecker: Sendable {
         }
 
         guard let written = object["kind"] else {
-            throw ModelError.missingKey(place: place, kind: generic, keys: ["kind"])
+            throw ModelError.missingKind(place: place, kind: generic, allowed: ClipKeyTable.kinds(in: clipPlace))
         }
 
         let clipKinds = try clipKinds(of: object, written: written, place: place, in: clipPlace, scope: &scope)
@@ -1361,7 +1403,12 @@ struct KeyChecker: Sendable {
             throw wrongType(nameValue, .name, place.appending(key: "param"), "parameter reference")
         }
         guard let parameter = scope.parameters[name] else {
-            throw ModelError.unknownParameter(place: place, kind: kind, name: name)
+            throw ModelError.unknownParameter(
+                place: place,
+                kind: kind,
+                name: name,
+                declared: scope.parameters.keys.sorted()
+            )
         }
 
         scope.usedParameters.insert(name)

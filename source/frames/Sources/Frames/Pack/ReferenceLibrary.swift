@@ -48,6 +48,8 @@ package struct ReferenceLibrary: MediaKindProvider {
         guard !isDocument(reference) else { return try document(named: reference).map { _ in .media(.sequence) } }
         guard let file = try mediaFile(named: reference) else { return nil }
 
+        guard !packs.isDirectory(URL(fileURLWithPath: file)) else { throw DirectoryMediaError() }
+
         let medium: ProbedMedium?
         do {
             medium = try mediaFacts.probedMedium(of: file)

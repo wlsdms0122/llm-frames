@@ -27,7 +27,8 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
     case rangeWithTimeRemap(place: Place, kind: PlaceKind, key: String)
     case singleStartWithTimeRemap(place: Place, kind: PlaceKind)
     case transitionOnFirstClip(place: Place, kind: PlaceKind)
-    case unknownPresetColor(place: Place, kind: PlaceKind, name: String)
+    // `colors` are the names of the theme's colours, in name order.
+    case unknownPresetColor(place: Place, kind: PlaceKind, name: String, colors: [String])
     case unusableDisplacementMap(place: Place, kind: PlaceKind, reference: String, refusal: DisplacementMapRefusal)
     case unusableImpulseResponse(place: Place, kind: PlaceKind, reference: String, refusal: ImpulseResponseRefusal)
     case emptyWindow(place: Place, kind: PlaceKind, start: Double, end: Double)
@@ -68,13 +69,14 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
     case staggerWithoutBy(place: Place, kind: PlaceKind)
     case orderWithoutBy(place: Place, kind: PlaceKind)
     case unitsWithoutSpan(place: Place, kind: PlaceKind)
-    case unknownParent(place: Place, kind: PlaceKind, id: String)
+    // `ids` are the ids of the document's clips, which the hint is found among.
+    case unknownParent(place: Place, kind: PlaceKind, id: String, ids: [String])
     case audioParent(place: Place, kind: PlaceKind, id: String)
     case parentCycle(place: Place, kind: PlaceKind, ids: [String])
-    case unknownTrackMatte(place: Place, kind: PlaceKind, id: String)
+    case unknownTrackMatte(place: Place, kind: PlaceKind, id: String, ids: [String])
     case trackMatteKind(place: Place, kind: PlaceKind, id: String, matte: TrackMatteRefusal)
     case trackMatteCycle(place: Place, kind: PlaceKind, ids: [String])
-    case unknownClipArea(place: Place, kind: PlaceKind, id: String)
+    case unknownClipArea(place: Place, kind: PlaceKind, id: String, ids: [String])
     case clipAreaKind(place: Place, kind: PlaceKind, id: String, named: ClipAreaRefusal)
     case clipAreaAcrossSpaces(place: Place, kind: PlaceKind, id: String, parent: String?, namedParent: String?)
     case clipAreaCycle(place: Place, kind: PlaceKind, ids: [String])
@@ -168,8 +170,10 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
             "\(place) (\(kind.label)): the first storyline clip has no transition. "
                 + "To open from black, put a solid clip first and give the clip after it the transition"
 
-        case let .unknownPresetColor(place, kind, name):
-            "\(place) (\(kind.label)): the preset names the colour \(quoted(name)), which is not in the theme's colors"
+        case let .unknownPresetColor(place, kind, name, colors):
+            "\(place) (\(kind.label)): the preset names the colour \(quoted(name)), which is not in the theme's colors, "
+                + "which hold \(colors.isEmpty ? "none" : colors.map(quoted).joined(separator: ", "))"
+                + NameHint.suggestion(for: name, among: colors)
 
         case let .unusableDisplacementMap(place, kind, reference, refusal):
             "\(place) (\(kind.label)): the displacement map \(quoted(reference)) \(words(of: refusal))"
@@ -307,8 +311,9 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
             "\(place) (\(kind.label)): a stroke \"\(align)\" its outline takes no arrowhead, which lies across the "
                 + "outline with its tip at the end while the stroke lies on one side of it"
 
-        case let .unknownParent(place, kind, id):
+        case let .unknownParent(place, kind, id, ids):
             "\(place) (\(kind.label)): no clip in the document has the id \(quoted(id))"
+                + NameHint.suggestion(for: id, among: ids)
 
         case let .audioParent(place, kind, id):
             "\(place) (\(kind.label)): \(quoted(id)) is an audio clip, which has no picture to be a parent"
@@ -317,9 +322,10 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
             "\(place) (\(kind.label)): the parent chain comes back to itself: "
                 + (ids + ids.prefix(1)).map(quoted).joined(separator: " > ")
 
-        case let .unknownTrackMatte(place, kind, id):
+        case let .unknownTrackMatte(place, kind, id, ids):
             "\(place) (\(kind.label)): no clip in the document has the id \(quoted(id)), "
                 + "and a track matte is a clip of the same document"
+                + NameHint.suggestion(for: id, among: ids)
 
         case let .trackMatteKind(place, kind, id, matte):
             "\(place) (\(kind.label)): \(quoted(id)) is \(words(of: matte)), "
@@ -329,8 +335,9 @@ enum ResolveError: Error, Equatable, CustomStringConvertible, Sendable {
             "\(place) (\(kind.label)): the track matte chain comes back to itself: "
                 + (ids + ids.prefix(1)).map(quoted).joined(separator: " > ")
 
-        case let .unknownClipArea(place, kind, id):
+        case let .unknownClipArea(place, kind, id, ids):
             "\(place) (\(kind.label)): no clip of this document has the id \(quoted(id))"
+                + NameHint.suggestion(for: id, among: ids)
 
         case let .clipAreaKind(place, kind, id, named):
             "\(place) (\(kind.label)): \(quoted(id)) is \(words(of: named)), and a clip area names a storyline "

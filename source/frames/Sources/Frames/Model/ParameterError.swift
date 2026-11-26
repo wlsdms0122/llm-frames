@@ -16,6 +16,7 @@ enum ParameterError: Error, Equatable, CustomStringConvertible, Sendable {
         case let .unknownArgument(place, kind, name, allowed):
             "\(place) (\(kind)): unknown argument \(quoted(name)). "
                 + (allowed.isEmpty ? "It publishes no parameters" : "Allowed: \(allowed.joined(separator: ", "))")
+                + NameHint.suggestion(for: name, among: allowed)
 
         case let .missingArgument(place, kind, name):
             "\(place) (\(kind)): missing argument \(quoted(name)), which has no default"

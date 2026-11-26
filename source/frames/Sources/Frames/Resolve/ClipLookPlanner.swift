@@ -198,7 +198,7 @@ struct ClipLookPlanner: Sendable {
         case .color:
             let name = value.stringValue ?? ""
             guard theme.isColor(name) else {
-                throw ThemeError.unknownColor(place: place, kind: kind.label, name: name)
+                throw ThemeError.unknownColor(place: place, kind: kind.label, name: name, colors: theme.colorNames)
             }
 
             return .color(theme.color(name))

@@ -55,7 +55,12 @@ struct ParentFinder: Sendable {
 
         let place = written.place.appending(key: "parent")
         guard let index = clips.firstIndex(where: { $0.id == id }) else {
-            throw ResolveError.unknownParent(place: place, kind: .clip(plan.kind), id: id)
+            throw ResolveError.unknownParent(
+                place: place,
+                kind: .clip(plan.kind),
+                id: id,
+                ids: storyline.compactMap(\.id) + clips.compactMap(\.id)
+            )
         }
         guard clips[index].kind != .media(.audio) else {
             throw ResolveError.audioParent(place: place, kind: .clip(plan.kind), id: id)
