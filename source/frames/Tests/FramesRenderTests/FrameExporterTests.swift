@@ -342,17 +342,46 @@ struct FrameExporterTests {
         // frames as analysis pictures at 4 bytes a pixel; the floor is twice the larger.
         let pictures = budget.usage.holders.first { $0.holder == .pictures }
         #expect(pictures?.floor == 2 * 4 * 1280 * 720 * 4)
+        // A frame drawn first, 1280 x 720 at 8 bytes a pixel, is larger than the sheet of four cells of 480 x 270, and
+        // the two are never held at once.
+        let frames = budget.usage.holders.first { $0.holder == .frames }
+        #expect(frames?.floor == 1280 * 720 * 8)
         #expect(try contents(of: output).isEmpty)
     }
 
-    @Test("a sheet runs whole at a limit of the floor its own list gives")
+    @Test("a still under the floor of its own picture is refused before a frame is drawn")
+    func refusesStillUnderFramesFloor() throws {
+        // Given
+        let media = try TemporaryDirectory()
+        let output = try TemporaryDirectory()
+        let document = try motionBlurSequence(in: media)
+        let face = try labelFace()
+        let budget = MemoryBudget(limit: try #require(MemorySize("20MB")))
+        let sut = exporter(budget: budget, failingFrame: 0)
+
+        // When
+        #expect(throws: MemoryError.self) {
+            try sut.still(document, at: [0, 0.5], labelFace: face, to: output.file("still.png"))
+        }
+
+        // Then
+        // Two frames of 1280 x 720 side by side with labels of 32 pixels make a still of 2656 x 784 at 8 bytes a
+        // pixel, larger than one frame drawn first; the pictures alone are within the limit.
+        let frames = budget.usage.holders.first { $0.holder == .frames }
+        let pictures = budget.usage.holders.first { $0.holder == .pictures }
+        #expect(frames?.floor == 2656 * 784 * 8)
+        #expect(pictures?.floor == 2 * 1280 * 720 * 8)
+        #expect(try contents(of: output).isEmpty)
+    }
+
+    @Test("a sheet runs whole at a limit of the floor its own list and its output frames give")
     func drawsSheetAtFloor() throws {
         // Given
         let media = try TemporaryDirectory()
         let output = try TemporaryDirectory()
         let document = try motionBlurSequence(in: media)
         let face = try labelFace()
-        let budget = MemoryBudget(limit: try #require(MemorySize("28.125MB")))
+        let budget = MemoryBudget(limit: try #require(MemorySize("35.15625MB")))
         let sut = exporter(budget: budget)
 
         // When
@@ -365,7 +394,7 @@ struct FrameExporterTests {
         )
 
         // Then
-        #expect(budget.usage.floor == 2 * 4 * 1280 * 720 * 4)
+        #expect(budget.usage.floor == 2 * 4 * 1280 * 720 * 4 + 1280 * 720 * 8)
         #expect(budget.usage.peak <= budget.limit.bytes)
         #expect(try contents(of: output) == ["sheet.png"])
     }
@@ -386,7 +415,28 @@ struct FrameExporterTests {
 
         // Then
         #expect(error?.description.hasPrefix("memory limit 1MB is under the ") == true)
+        // The frame being written is the video's analysis picture, 640 x 360 at 4 bytes a pixel.
+        let frames = budget.usage.holders.first { $0.holder == .frames }
+        #expect(frames?.floor == 640 * 360 * 4)
         #expect(try contents(of: output).isEmpty)
+    }
+
+    @Test("extract of a document counts the frame being written as the renderer draws it, at 8 bytes a pixel")
+    func countsExtractedDocumentFrame() throws {
+        // Given
+        let media = try TemporaryDirectory()
+        let output = try TemporaryDirectory()
+        let document = try sequence(in: media)
+        let budget = MemoryBudget(limit: .unlimited)
+        let sut = exporter(budget: budget)
+
+        // When
+        let files = try sut.extract(.document(document), range: FrameRange(step: 0.5), to: output.file("frames"))
+
+        // Then
+        let frames = budget.usage.holders.first { $0.holder == .frames }
+        #expect(files.count == 2)
+        #expect(frames?.floor == 160 * 90 * 8)
     }
 
     // MARK: - Private

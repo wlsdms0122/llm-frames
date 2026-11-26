@@ -19,9 +19,9 @@ import Foundation
 // Everything that can stop does before anything is written, in this order: `--max`, the input and its page, `--scale`
 // on a source with pixels of its own, the paths, `--max` on a page, the output extension, `--codec` and
 // `--color-space`, a video's sound or frame rate, the size `--max` gives a video, the decoder on the input, for a
-// video's frames the run's memory limit against the floor the decoder's check gives (FRAMES-30 The budget), the size
-// `--scale` gives a page, an HDR colour space for H.264 or JPEG, and the encoder on the target and on the sound read
-// for it. An existing output file is removed only then.
+// video's frames the run's memory limit against the floor the decoder's check and the frame read give (FRAMES-30 The
+// budget), the size `--scale` gives a page, an HDR colour space for H.264 or JPEG, and the encoder on the target and on
+// the sound read for it. An existing output file is removed only then.
 package struct Transcoder: Sendable {
     // MARK: - Property
     private static let imageExtensions = ["jpg", "heic", "png"]
@@ -34,7 +34,7 @@ package struct Transcoder: Sendable {
     private let budget: MemoryBudget
 
     // MARK: - Initializer
-    // `budget` is the run's, which the decoder's readers draw from.
+    // `budget` is the run's, which the decoder's readers and the frame read draw from.
     package init(
         decoder: any MediaDecoder,
         facts: any MediaFactProvider,
@@ -226,6 +226,9 @@ package struct Transcoder: Sendable {
         guard let fps = media.fps, fps > 0 else { throw TranscodeError.noFrameRate(path: request.input) }
         try checkVideoSize(of: size, for: request)
         try decoder.check(file, reading: nil)
+        // The frame read, working values in RGBA half floats of the video's displayed size, which the writer copies
+        // into a buffer of its own before the next is read.
+        budget.require(Int(size.width) * Int(size.height) * 4 * MemoryLayout<UInt16>.size, for: .frames)
         try budget.checkFloor()
         let reading = try decoder.colorReading(of: file)
         let output = output(of: reading, for: request)
