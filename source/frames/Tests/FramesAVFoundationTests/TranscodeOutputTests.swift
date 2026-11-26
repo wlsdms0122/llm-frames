@@ -267,6 +267,37 @@ struct TranscodeOutputTests {
         #expect(try Data(contentsOf: URL(fileURLWithPath: output)) == existing)
     }
 
+    @Test("a video under the run's memory floor is refused before its existing output is removed")
+    func refusesVideoUnderFloor() async throws {
+        // Given
+        let directory = try TemporaryDirectory()
+        let input = directory.file("in.mov")
+        try await MovieWriter(size: Size(width: 1280, height: 720), frameTimes: Self.frameTimes, end: 8.0 / 30)
+            .write(to: input) { canvas, _ in
+                canvas.fill(red: 0, green: 0, blue: 255)
+            }
+        let output = directory.file("out.mp4")
+        let existing = Data("not a video".utf8)
+        try existing.write(to: URL(fileURLWithPath: output))
+        let budget = MemoryBudget(limit: try #require(MemorySize("1MB")))
+        let decoder = AVFoundationDecoder(budget: budget)
+        let sut = Transcoder(
+            decoder: decoder,
+            facts: decoder,
+            encoder: AVFoundationEncoder(deadline: Self.deadline),
+            budget: budget
+        )
+
+        // When
+        let error = #expect(throws: MemoryError.self) {
+            try sut.transcode(TranscodeRequest(input: input, output: output))
+        }
+
+        // Then
+        #expect(error?.description.hasPrefix("memory limit 1MB is under the ") == true)
+        #expect(try Data(contentsOf: URL(fileURLWithPath: output)) == existing)
+    }
+
     // MARK: - Private
     private func transcoder() -> (Transcoder, AVFoundationDecoder) {
         let decoder = AVFoundationDecoder()

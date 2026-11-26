@@ -17,9 +17,16 @@ struct CommandLineParser: Sendable {
             value: "<pack/name | /abs/theme.json>",
             help: "A theme merged under every document's own theme: a pack theme or a JSON file as an absolute path."
         )
-    ] + RoleFactory().rules
+    ] + RoleFactory().rules + [
+        OptionRule(
+            memory,
+            value: "<size>",
+            help: "The most memory a run holds, as <n>MB or <n>GB of 2^20 and 2^30 bytes. Default: three eighths of the machine's memory."
+        )
+    ]
 
     static let help = "--help"
+    private static let memory = "--memory"
     private static let version = "--version"
 
     // MARK: - Initializer
@@ -64,6 +71,7 @@ struct CommandLineParser: Sendable {
             ocr: values["--ocr"],
             shaper: values["--shaper"],
             tracker: values["--tracker"],
+            memory: try values[Self.memory].map(memorySize),
             written: Array(arguments[..<index])
         )
         guard name != Self.help else {
@@ -76,4 +84,16 @@ struct CommandLineParser: Sendable {
     }
 
     // MARK: - Private
+    private func memorySize(_ text: String) throws -> MemorySize {
+        guard let size = MemorySize(text) else {
+            throw CommandError.invalidValue(
+                command: nil,
+                option: Self.memory,
+                value: text,
+                expected: "a size of at least 1MB, <n>MB or <n>GB"
+            )
+        }
+
+        return size
+    }
 }

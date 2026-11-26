@@ -63,6 +63,10 @@ struct RecordingDecoder: MediaDecoder {
         pageSize
     }
 
+    func pictureSize(of file: MediaFile) throws -> Size {
+        Size(width: 1, height: 1)
+    }
+
     func colorReading(of file: MediaFile) throws -> ColorReading {
         colorReading
     }

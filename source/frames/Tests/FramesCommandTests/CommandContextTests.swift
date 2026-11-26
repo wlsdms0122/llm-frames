@@ -23,6 +23,7 @@ struct CommandContextTests {
     init() throws {
         let real = try RoleFactory().roles(for: .none)
         let roles = Roles(
+            budget: real.budget,
             decoder: real.decoder,
             renderer: real.renderer,
             mixer: real.mixer,

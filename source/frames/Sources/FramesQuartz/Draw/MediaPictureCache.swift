@@ -14,25 +14,49 @@ import os
 // is shown on every frame of its clip. A frame is kept for each reading of it, and a page's picture for each region,
 // scale and reading, so a picture is reused only for the very request a frame makes (FRAMES-20 Pictures). Once a frame
 // is drawn, `frameDrawn()` lets go of every picture it did not use, so the pictures kept are those of the frame drawn
-// last and those the frame being drawn has read.
+// last and those the frame being drawn has read. The run's budget counts every picture of pixels kept, a frame's
+// picture of its displayed size at 8 bytes a pixel as working values and 4 as an analysis picture, as its `pictures`
+// hold, which is never refused and stays within the floor `reserve(for:)` gives for every list checked before it is
+// drawn. A page's pictures are not counted (FRAMES-30 The budget).
 final class MediaPictureCache: Sendable {
     // MARK: - Property
     private let decoder: any MediaDecoder
+    private let budget: MemoryBudget
     private let pictures = OSAllocatedUnfairLock<[Kept<PictureRequest, (pixels: Pixels, image: CGImage)>]>(
         uncheckedState: []
     )
     private let pages = OSAllocatedUnfairLock<[Kept<PageKey, CGImage>]>(uncheckedState: [])
+    private let sizes = OSAllocatedUnfairLock<[String: Size]>(initialState: [:])
 
     var largestPictureSide: Int {
         decoder.largestPictureSide
     }
 
     // MARK: - Initializer
-    init(decoder: any MediaDecoder) {
+    init(
+        decoder: any MediaDecoder,
+        budget: MemoryBudget
+    ) {
         self.decoder = decoder
+        self.budget = budget
     }
 
     // MARK: - Public
+    // Raises the budget's `pictures` floor to twice the bytes of the pictures of pixels `list` reads, each once, since
+    // the pictures of the frame drawn last are kept beside those of the frame being drawn.
+    func reserve(for list: DisplayList) throws {
+        budget.require(2 * (try bytes(of: list)), for: .pictures)
+    }
+
+    // The bytes the budget counts the pictures of pixels `list` reads at, each once.
+    func bytes(of list: DisplayList) throws -> Int {
+        try MediaPictureFinder().frames(of: list).reduce(0) { total, frame in
+            let size = try pictureSize(of: MediaFile(picture: frame.media))
+
+            return total + Self.bytes(width: Int(size.width), height: Int(size.height), reading: frame.reading)
+        }
+    }
+
     // The frame's picture as the decoder gives it for the frame, read as the frame says: working values, or an analysis
     // picture for a transition matte.
     func image(of frame: MediaFrame) throws -> CGImage {
@@ -65,7 +89,7 @@ final class MediaPictureCache: Sendable {
         if let kept = Self.use(key, in: pages) { return kept }
 
         let image = try decoder.picture(of: file, region: region, scale: scale, reading: frame.reading).bitmap.cgImage()
-        Self.keep(image, for: key, in: pages)
+        _ = keep(image, bytes: image.bytesPerRow * image.height, for: key, in: pages)
 
         return image
     }
@@ -77,8 +101,8 @@ final class MediaPictureCache: Sendable {
 
     // Lets go of every picture the frame drawn last did not use, and counts the rest unused by the next frame.
     func frameDrawn() {
-        Self.drop(in: pictures)
-        Self.drop(in: pages)
+        budget.give(drop(in: pictures), for: .pictures)
+        _ = drop(in: pages)
     }
 
     // MARK: - Private
@@ -89,9 +113,39 @@ final class MediaPictureCache: Sendable {
 
         let pixels = try decoder.picture(of: frame)
         let picture = (pixels: pixels, image: try pixels.bitmap.cgImage())
-        Self.keep(picture, for: request, in: pictures)
+        let bytes = Self.bytes(width: pixels.width, height: pixels.height, reading: frame.reading)
+        budget.give(keep(picture, bytes: bytes, for: request, in: pictures), for: .pictures)
+        budget.hold(bytes, for: .pictures)
 
         return picture
+    }
+
+    // The displayed size of the pictures of `file`, asked of the decoder once.
+    private func pictureSize(of file: MediaFile) throws -> Size {
+        if let size = sizes.withLock({ $0[file.path] }) { return size }
+
+        let size = try decoder.pictureSize(of: file)
+        sizes.withLock { $0[file.path] = size }
+
+        return size
+    }
+
+    // The bytes the budget counts a picture of pixels at: RGBA, half floats as working values and 8 bits as an analysis
+    // picture (FRAMES-21 Pictures).
+    private static func bytes(
+        width: Int,
+        height: Int,
+        reading: PictureReading
+    ) -> Int {
+        let depth: BitDepth = switch reading {
+        case .working, .platform:
+            .halfFloat
+
+        case .analysis:
+            .eight
+        }
+
+        return width * height * 4 * depth.bitsPerComponent / 8
     }
 
     // The value kept for `key`, counted used by the frame being drawn.
@@ -107,33 +161,43 @@ final class MediaPictureCache: Sendable {
         }
     }
 
-    // `value` kept for `key`, used by the frame being drawn, in place of any value kept for it before.
-    private static func keep<Key: Equatable, Value>(
+    // `value` of `bytes` kept for `key`, used by the frame being drawn, in place of any value kept for it before, whose
+    // bytes it gives.
+    private func keep<Key: Equatable, Value>(
         _ value: Value,
+        bytes: Int,
         for key: Key,
         in kept: OSAllocatedUnfairLock<[Kept<Key, Value>]>
-    ) {
+    ) -> Int {
         kept.withLockUnchecked { kept in
+            let replaced = kept.filter { $0.key == key }.reduce(0) { $0 + $1.bytes }
             kept.removeAll { $0.key == key }
-            kept.append(Kept(key: key, value: value, isUsed: true))
+            kept.append(Kept(key: key, value: value, bytes: bytes, isUsed: true))
+
+            return replaced
         }
     }
 
-    private static func drop<Key, Value>(in kept: OSAllocatedUnfairLock<[Kept<Key, Value>]>) {
+    // Lets go of every value the frame drawn last did not use, and gives their bytes.
+    private func drop<Key, Value>(in kept: OSAllocatedUnfairLock<[Kept<Key, Value>]>) -> Int {
         kept.withLockUnchecked { kept in
+            let dropped = kept.filter { !$0.isUsed }.reduce(0) { $0 + $1.bytes }
             kept.removeAll { !$0.isUsed }
             for index in kept.indices {
                 kept[index].isUsed = false
             }
+
+            return dropped
         }
     }
 }
 
 extension MediaPictureCache {
-    // A picture kept, and whether the frame being drawn has used it.
+    // A picture kept, its bytes, and whether the frame being drawn has used it.
     private struct Kept<Key, Value> {
         let key: Key
         let value: Value
+        let bytes: Int
         var isUsed: Bool
     }
 

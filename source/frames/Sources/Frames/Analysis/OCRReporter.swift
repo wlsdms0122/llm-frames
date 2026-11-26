@@ -97,7 +97,8 @@ package struct OCRReporter: Sendable {
         }
     }
 
-    // A failure names the option that chose the frame, or the command when none did.
+    // A failure names the option that chose the frame, or the command when none did. A limit under the run's memory
+    // floor is the run's refusal and not the provider's, so it stops in its own words (FRAMES-30 The budget).
     private func lines(
         in file: MediaFile,
         atMediaTime time: Double,
@@ -116,8 +117,10 @@ package struct OCRReporter: Sendable {
         }
 
         return try Result { try ocr.lines(in: file, atMediaTime: time, languages: languages, colorSpace: colorSpace) }
-            .mapError { error in
-                ProviderError.failed(
+            .mapError { error -> any Error in
+                if let refusal = error as? MemoryError { return refusal }
+
+                return ProviderError.failed(
                     provider: .ocr,
                     place: Place(components: [.key(option)]),
                     kind: nil,

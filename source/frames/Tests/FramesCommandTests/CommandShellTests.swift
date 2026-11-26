@@ -168,6 +168,7 @@ struct CommandShellTests {
             (["--tracker", "klt", "theme"], #"--tracker: unknown tracker provider "klt". Known: planar, point"#),
             (["--mixer", "core", "theme"], #"--mixer: unknown mixer "core". Known: avfoundation"#),
             (["--encoder", "ffmpeg", "theme"], #"--encoder: unknown encoder "ffmpeg". Known: avfoundation"#),
+            (["--memory", "8G", "theme"], #"--memory "8G" is not a size of at least 1MB, <n>MB or <n>GB"#),
             (["theme", "base"], #"theme: unexpected argument "base""#),
             (["frames-nowhere"], #"unknown command "frames-nowhere""#)
         ]

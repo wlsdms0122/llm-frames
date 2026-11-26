@@ -5,6 +5,7 @@
 //  Created by JSilver on 11/26/26.
 //
 
+import CoreVideo
 import Foundation
 import Frames
 @testable import FramesAVFoundation
@@ -27,12 +28,12 @@ struct VideoReaderTests {
         let sut = try #require(try VideoReader(path: movie))
 
         // When
-        let first = try sut.buffer(atFrame: 2, path: movie, turn: 4)
+        let first = try #require(try sut.buffer(atFrame: 2, path: movie, turn: 4) { true })
         let held = (0..<12).filter { sut.holds(frame: $0) }
-        let fromHeld = try sut.buffer(atFrame: 4, path: movie, turn: 1)
+        let fromHeld = try #require(try sut.buffer(atFrame: 4, path: movie, turn: 1) { true })
         let heldAfter = (0..<12).filter { sut.holds(frame: $0) }
         sut.close()
-        let again = try sut.buffer(atFrame: 9, path: movie, turn: 1)
+        let again = try #require(try sut.buffer(atFrame: 9, path: movie, turn: 1) { true })
 
         // Then
         #expect(!first.reopened)
@@ -49,17 +50,68 @@ struct VideoReaderTests {
         let directory = try TemporaryDirectory()
         let movie = try await Self.movie(in: directory)
         let sut = try #require(try VideoReader(path: movie))
-        _ = try sut.buffer(atFrame: 0, path: movie, turn: 1)
-        _ = try sut.buffer(atFrame: 2, path: movie, turn: 1)
+        _ = try sut.buffer(atFrame: 0, path: movie, turn: 1) { true }
+        _ = try sut.buffer(atFrame: 2, path: movie, turn: 1) { true }
         sut.close()
 
         // When
-        let turn = try sut.buffer(atFrame: 4, path: movie, turn: 4)
+        let turn = try #require(try sut.buffer(atFrame: 4, path: movie, turn: 4) { true })
         let held = (0..<12).filter { sut.holds(frame: $0) }
 
         // Then
         #expect(turn.reopened)
         #expect(held == [6, 8, 10])
+    }
+
+    @Test("a frame that needs a reader opened opens none where the reader is not admitted, and a held frame needs none")
+    func opensOnlyAdmittedReader() async throws {
+        // Given
+        let directory = try TemporaryDirectory()
+        let movie = try await Self.movie(in: directory)
+        let sut = try #require(try VideoReader(path: movie))
+        _ = try sut.buffer(atFrame: 0, path: movie, turn: 3) { true }
+        sut.close()
+
+        // When
+        let fromHeld = try sut.buffer(atFrame: 1, path: movie, turn: 1) { false }
+        let refused = try sut.buffer(atFrame: 6, path: movie, turn: 1) { false }
+        let heldAfterRefusal = (0..<12).filter { sut.holds(frame: $0) }
+        let admitted = try sut.buffer(atFrame: 6, path: movie, turn: 1) { true }
+
+        // Then
+        #expect(fromHeld?.decoded == 0)
+        #expect(refused == nil)
+        #expect(heldAfterRefusal == [2])
+        #expect(admitted?.reopened == true)
+    }
+
+    @Test("a turn holds as many of its frames as the budget grants its turns, gives them back as they are let go of, and a frame it does not hold is read from the reader")
+    func holdsTurnFramesWithinBudget() async throws {
+        // Given
+        let directory = try TemporaryDirectory()
+        let movie = try await Self.movie(in: directory)
+        let probe = try #require(try VideoReader(path: movie))
+        let bytes = CVPixelBufferGetDataSize(try #require(try probe.buffer(atFrame: 0, path: movie, turn: 1) { true }).buffer)
+        let budget = MemoryBudget(limit: .unlimited)
+        let limited = MemoryBudget(limit: try #require(MemorySize("1MB")))
+        limited.require(MemorySize.megabyte - 2 * bytes, for: .frames)
+        let sut = try #require(try VideoReader(path: movie, budget: limited))
+        let free = try #require(try VideoReader(path: movie, budget: budget))
+
+        // When
+        _ = try sut.buffer(atFrame: 2, path: movie, turn: 6) { true }
+        let held = (0..<12).filter { sut.holds(frame: $0) }
+        let past = try #require(try sut.buffer(atFrame: 5, path: movie, turn: 1) { true })
+        _ = try free.buffer(atFrame: 2, path: movie, turn: 6) { true }
+        _ = try free.buffer(atFrame: 9, path: movie, turn: 1) { true }
+
+        // Then
+        #expect(held == [3, 4])
+        #expect(!past.reopened)
+        let turns = try #require(limited.usage.holders.first { $0.holder == .turns })
+        #expect(turns.refused == 1 && turns.peak == 2 * bytes)
+        let freeTurns = try #require(budget.usage.holders.first { $0.holder == .turns })
+        #expect(freeTurns.peak == 5 * bytes && freeTurns.refused == 0)
     }
 
     // MARK: - Private

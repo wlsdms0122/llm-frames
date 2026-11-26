@@ -50,7 +50,8 @@ struct RenderCommand: Command {
             decoder: roles.decoder,
             renderer: roles.renderer,
             mixer: roles.mixer,
-            encoder: roles.encoder
+            encoder: roles.encoder,
+            budget: roles.budget
         )
 
         let run = try pipeline.render(
@@ -77,7 +78,8 @@ struct RenderCommand: Command {
             machine: .current,
             roles: RoleFactory().names(for: context.options),
             recorder: recorder,
-            readings: readings
+            readings: readings,
+            memory: roles.budget.usage
         )
         try context.write(JSONWriter().write(written.machineOutput), to: report)
         try context.reportWritten(report)

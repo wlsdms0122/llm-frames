@@ -289,7 +289,10 @@ extension FilterChainTests {
     }
 
     private func displaceChain() -> FilterChain {
-        FilterChain(tables: LookUpTableCache(), pictures: MediaPictureCache(decoder: AVFoundationDecoder()))
+        FilterChain(
+            tables: LookUpTableCache(),
+            pictures: MediaPictureCache(decoder: AVFoundationDecoder(), budget: MemoryBudget(limit: .unlimited))
+        )
     }
 
     private func mapFile(

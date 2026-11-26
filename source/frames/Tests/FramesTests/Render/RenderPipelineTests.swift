@@ -92,6 +92,7 @@ struct RenderPipelineTests {
             renderer: RecordingRenderer(log: log, refusesSamples: true),
             mixer: RecordingMixer(log: log),
             encoder: RecordingEncoder(log: log),
+            budget: MemoryBudget(limit: .unlimited),
             hasher: FileHashTable()
         )
         let sequence = try ResolvedSequence(plan: Fixture.documentPlanner.plan(Fixture.json(#"""
@@ -517,6 +518,7 @@ struct RenderPipelineTests {
             renderer: RecordingRenderer(log: log, refuses: refusal == .renderer),
             mixer: RecordingMixer(log: log, refuses: refusal == .mixer),
             encoder: RecordingEncoder(log: log, refuses: refusal == .encoder),
+            budget: MemoryBudget(limit: .unlimited),
             hasher: hasher
         )
     }

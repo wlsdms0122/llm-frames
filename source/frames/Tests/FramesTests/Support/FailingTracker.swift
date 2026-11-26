@@ -10,10 +10,10 @@
 // A fake tracker that fails on every target with `failure`.
 struct FailingTracker: TrackerProvider {
     // MARK: - Property
-    let failure: ProviderFailure
+    let failure: any Error
 
     // MARK: - Initializer
-    init(_ failure: ProviderFailure) {
+    init(_ failure: any Error) {
         self.failure = failure
     }
 

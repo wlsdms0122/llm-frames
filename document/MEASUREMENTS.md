@@ -48,7 +48,7 @@ Numbers: with every thread of Swift's shared pool blocked on a semaphore, one AV
 
 ### Readers, memory and swap
 
-Supports: [Rules](../spec/FRAMES-21/SPEC.md#rules), the decoder paragraph's bound of 48 readers and of a quarter of the machine's memory, and the Note on a reader opened while 64 decode.
+Supports: [Rules](../spec/FRAMES-21/SPEC.md#rules), the decoder paragraph's bound of 48 readers, and the Note on a reader opened while 64 decode and on a resolve that hashes its media.
 
 On: the reference machine (10 processors, 16 GB of memory, macOS 27.2), H.264 videos of 1206 by 2622 pixels and 258 MB each, High 4:4:4 Predictive profile streams of 8-bit 4:2:0, 180 frames by `quartz`.
 
@@ -58,7 +58,7 @@ Numbers, hashing: a resolve that hashed its media in chunks through FileHandle o
 
 Numbers, textures and kept pictures: with each chunk's pool drained, a texture kept with each surface and only the pictures of the frame drawn last kept, renders of 8 and 16 such videos shown at once took 19.7 and 31.3 s and peaked at 1.2 and 2.2 GB, against 19.7 and 49 s and 1.6 and 3.0 GB with a texture made for each conversion and four pictures kept for each file. The GPU ran each frame's conversion in 2.7 ms however many videos were shown, and the rest of a conversion's time was its command buffer's wait to be submitted. With 24 such videos the decoding service held 8.6 GB, the machine's free memory stayed under 100 MB and about 9 GB was swapped out during each render, which took 60 to 70 s with 3.0 GB peak in the process.
 
-Numbers, read as `8-bit integer Y'CbCr 4:2:0`: renders of 8, 16 and 24 such videos shown at once took 14.9, 28.7 and 44.3 s, the process's footprint peaked at 1.1, 2.0 and 2.8 GB, the decoding service's at 1.06, 1.91 and 2.78 GB, wired memory at 4.0, 5.4 and 6.7 GB, and no page was swapped out, against 15.5, 29.0 and 59.9 s, 2.9, 6.0 and 8.7 GB in the service and 8.9 GB swapped out during the render of 24 read as `16-bit float RGBA`. A render of 32 such videos took 39.4 s, the service peaked at 3.19 GB, the process at 3.76 GB and wired memory at 7.7 GB, no page was swapped out and no reader was closed: 32 readers of 133 MB each by the decoder's cost hold 4.25 GB, within a quarter of 16 GB, so the memory bound first closes a reader at 33 such videos, and the service held three quarters of what the cost gives.
+Numbers, read as `8-bit integer Y'CbCr 4:2:0`: renders of 8, 16 and 24 such videos shown at once took 14.9, 28.7 and 44.3 s, the process's footprint peaked at 1.1, 2.0 and 2.8 GB, the decoding service's at 1.06, 1.91 and 2.78 GB, wired memory at 4.0, 5.4 and 6.7 GB, and no page was swapped out, against 15.5, 29.0 and 59.9 s, 2.9, 6.0 and 8.7 GB in the service and 8.9 GB swapped out during the render of 24 read as `16-bit float RGBA`. A render of 32 such videos took 39.4 s, the service peaked at 3.19 GB, the process at 3.76 GB and wired memory at 7.7 GB, no page was swapped out and no reader was closed: 32 readers of 133 MB each by the decoder's cost hold 4.25 GB, and the service held three quarters of what the cost gives.
 
 ### Frames a reader holds in the decoding service
 
@@ -238,3 +238,34 @@ Supports: [The mean](../spec/FRAMES-29/SPEC.md#the-mean), the samples summed in 
 On: pictures of 16-bit floats summed in 32-bit floats and rounded to nearest into 16-bit floats.
 
 Numbers: the same 64 pictures summed in another order differed in a few values in a million by one unit in the last place. The mean of N equal pictures came back exactly for N of 2, 3, 16, 64 and 256, and the mean of pictures that differ lay within one unit in the last place of the exact mean. A sum carried in 16-bit floats went wrong from N of 64.
+
+## FRAMES-30
+
+### A ladder of limits
+
+Supports: the Note on the default of three eighths of the machine's memory in [The option](../spec/FRAMES-30/SPEC.md#the-option), and the model's error in [What it counts](../spec/FRAMES-30/SPEC.md#what-it-counts).
+
+On: the reference machine (10 processors, 16 GB of memory, macOS 27.2) with the programs of a working day open, `render` built for release, a render of N videos at once at a 1280 by 720 sequence, 6 seconds at 30 fps, each video ProRes 4444 of 1206 by 2622 pixels read as `16-bit float RGBA` from a file of its own. A step started only while `memory_pressure` gave at least 60 % free. The decoding service's and the process's footprints are the largest of a sample every 2 seconds, and a render was stopped where the system began to swap. The budget then granted the renderer's pictures whatever the total.
+
+Numbers:
+
+| Limit | Videos | Budget's peak | Decoding service | Process | Both over the peak | Readers closed | Seconds |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 2 GB | 8 | 2.05 GB | 1.90 GB | 0.89 GB | 1.36 | 321 | 13.6 |
+| 2 GB | 16 | 2.17 GB | 1.26 GB | 1.49 GB | 1.27 | 2310 | 47.1 |
+| 4 GB | 8 | 4.09 GB | 4.37 GB | 1.17 GB | 1.35 | 0 | 10.3 |
+| 4 GB | 16 | 4.03 GB | 3.45 GB | 1.76 GB | 1.29 | 549 | 22.1 |
+| 6 GB | 8 | 4.17 GB | 4.39 GB | 1.38 GB | 1.38 | 0 | 7.7 |
+| 6 GB | 16 | 6.20 GB | 5.43 GB | 2.01 GB | 1.20 | 295 | 19.5 |
+| 8 GB | 8 | 4.17 GB | 4.41 GB | 1.41 GB | 1.40 | 0 | 7.9 |
+| 8 GB | 16 | | 6.81 GB at 6 s | 2.13 GB | | | swapped, stopped |
+
+The decoding service and the process held together 1.2 to 1.4 times the budget's peak. The service alone held 0.6 to 1.1 times it, below it where many readers took turns. The budget's peak passed the limit by up to 0.2 GB, the renderer's pictures, granted whatever the total. At 6 GB, three eighths of the machine, 16 videos left a third of the memory free at its lowest, and at 8 GB, half of it, the system began to swap 6 seconds in.
+
+### A decoded frame read through a texture cache
+
+Supports: [Pictures](../spec/FRAMES-21/SPEC.md#pictures), the decoder reading a decoded frame through textures made on its own surface, and the alternative of a Core Video texture cache in [Alternatives considered](../spec/FRAMES-30/SPEC.md#alternatives-considered).
+
+On: the reference machine, the render of 8 videos of the ladder above at a limit of 2 GB, with the decoder reading each decoded frame through a Core Video texture cache.
+
+Numbers: the decoding service held 7.0 GB while the budget counted 1.98 GB.

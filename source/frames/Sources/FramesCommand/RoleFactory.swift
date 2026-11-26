@@ -5,6 +5,7 @@
 //  Created by JSilver on 11/17/26.
 //
 
+import Foundation
 import Frames
 import FramesAVFoundation
 import FramesCoreText
@@ -16,20 +17,26 @@ import FramesVision
 // everything that reads media, so a file is opened the same way by all of them.
 struct RoleFactory: Sendable {
     // MARK: - Property
-    private let decoders = RoleTable<@Sendable () -> any MediaDecoder & MediaFactProvider>(
+    // The share of the machine's memory a run holds at most where `--memory` is not written (FRAMES-30 The option).
+    private static let defaultMemoryFraction = 0.375
+
+    private let decoders = RoleTable<@Sendable (MemoryBudget) -> any MediaDecoder & MediaFactProvider>(
         role: "decoder",
         option: "--decoder",
         defaultName: "avfoundation",
         builders: [
-            "avfoundation": { AVFoundationDecoder(conversion: .gpu) },
-            "avfoundation-cpu": { AVFoundationDecoder(conversion: .cpu) }
+            "avfoundation": { AVFoundationDecoder(conversion: .gpu, budget: $0) },
+            "avfoundation-cpu": { AVFoundationDecoder(conversion: .cpu, budget: $0) }
         ]
     )
-    private let renderers = RoleTable<@Sendable (any MediaDecoder) -> any Renderer>(
+    private let renderers = RoleTable<@Sendable (any MediaDecoder, MemoryBudget) -> any Renderer>(
         role: "renderer",
         option: "--renderer",
         defaultName: "quartz",
-        builders: ["metal": { MetalRenderer(decoder: $0) }, "quartz": { QuartzRenderer(decoder: $0) }]
+        builders: [
+            "metal": { MetalRenderer(decoder: $0, budget: $1) },
+            "quartz": { QuartzRenderer(decoder: $0, budget: $1) }
+        ]
     )
     private let mixers = RoleTable<@Sendable (any MediaDecoder) -> any Mixer>(
         role: "mixer",
@@ -81,12 +88,19 @@ struct RoleFactory: Sendable {
         )
     }
 
+    // The roles of one invocation, which share its memory budget: `--memory`, or the default share of the machine's.
     func roles(for options: GlobalOptions) throws -> Roles {
-        let decoder = try decoders.builder(named: options.decoder)()
+        let limit = options.memory ?? MemorySize(
+            fraction: Self.defaultMemoryFraction,
+            of: ProcessInfo.processInfo.physicalMemory
+        )
+        let budget = MemoryBudget(limit: limit)
+        let decoder = try decoders.builder(named: options.decoder)(budget)
 
         return Roles(
+            budget: budget,
             decoder: decoder,
-            renderer: try renderers.builder(named: options.renderer)(decoder),
+            renderer: try renderers.builder(named: options.renderer)(decoder, budget),
             mixer: try mixers.builder(named: options.mixer)(decoder),
             encoder: try encoders.builder(named: options.encoder)(),
             ocr: try ocrs.builder(named: options.ocr)(decoder),

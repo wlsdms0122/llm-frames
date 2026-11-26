@@ -6,7 +6,7 @@
 //
 
 // `{"render": "0.1.0", frames, seconds, cpuSeconds, fps, cores, peakMemory, machine, roles, stages, readAhead,
-// waiting, other, media, files}`, the object `render --report` writes (FRAMES-23 Runs). Times are rounded to the
+// waiting, other, media, files, memory}`, the object `render --report` writes (FRAMES-23 Runs). Times are rounded to the
 // microsecond, `fps` and `cores` to the millionth.
 extension RunReport {
     // MARK: - Property
@@ -42,7 +42,15 @@ extension RunReport {
             ]))),
             JSONMember(key: "other", value: .time(other)),
             JSONMember(key: "media", value: .array(media.map(Self.written))),
-            JSONMember(key: "files", value: .array(files.map(Self.written)))
+            JSONMember(key: "files", value: .array(files.map(Self.written))),
+            JSONMember(key: "memory", value: .object(JSONObject(members: [
+                JSONMember(key: "limit", value: Self.count(memory.limit)),
+                JSONMember(key: "floor", value: Self.count(memory.floor)),
+                JSONMember(key: "peak", value: Self.count(memory.peak)),
+                JSONMember(key: "holders", value: .object(JSONObject(members: memory.holders.map { holder in
+                    JSONMember(key: holder.holder.name, value: Self.written(holder))
+                })))
+            ])))
         ]))
     }
 
@@ -64,6 +72,14 @@ extension RunReport {
             JSONMember(key: "framesRead", value: count(reading.framesRead)),
             JSONMember(key: "framesDecoded", value: count(reading.framesDecoded)),
             JSONMember(key: "reopened", value: count(reading.reopened))
+        ]))
+    }
+
+    private static func written(_ holder: MemoryHolderUsage) -> JSONValue {
+        .object(JSONObject(members: [
+            JSONMember(key: "floor", value: count(holder.floor)),
+            JSONMember(key: "peak", value: count(holder.peak)),
+            JSONMember(key: "refused", value: count(holder.refused))
         ]))
     }
 

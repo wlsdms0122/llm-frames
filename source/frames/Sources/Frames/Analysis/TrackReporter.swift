@@ -58,11 +58,15 @@ package struct TrackReporter: Sendable {
         let first = end.map { min(time, $0) } ?? 0
         let last = end.map { max(time, $0) } ?? duration
         let range = (file.frameTime(at: first) ?? first)...last
+        // A limit under the run's memory floor is the run's refusal and not the provider's, so it stops in its own words
+        // (FRAMES-30 The budget).
         let frames = try Result {
             try follower.follow(quad, in: file, atMediaTime: time, over: range, colorSpace: colorSpace)
         }
-        .mapError { error in
-            ProviderError.failed(
+        .mapError { error -> any Error in
+            if let refusal = error as? MemoryError { return refusal }
+
+            return ProviderError.failed(
                 provider: .tracker,
                 place: place,
                 kind: kind,

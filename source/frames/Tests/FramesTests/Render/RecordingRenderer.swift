@@ -32,6 +32,11 @@ struct RecordingRenderer: Renderer {
         guard !refuses, !refusesSamples || list.samples == nil else { throw RoleRefusal.renderer }
     }
 
+    // A list's bitmap carries its frame number and reads no media picture.
+    func pictureBytes(of list: DisplayList) throws -> Int {
+        0
+    }
+
     func frame(of list: DisplayList) throws -> Pixels {
         log.record(.draw(frame: list.seed))
 

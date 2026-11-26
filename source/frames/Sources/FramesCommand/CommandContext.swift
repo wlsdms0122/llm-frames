@@ -43,7 +43,8 @@ struct CommandContext: Sendable {
             renderer: roles.renderer,
             encoder: roles.encoder,
             mediaFacts: roles.decoder,
-            shaper: roles.shaper
+            shaper: roles.shaper,
+            budget: roles.budget
         )
     }
 

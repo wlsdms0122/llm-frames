@@ -27,7 +27,12 @@ struct TranscodeCommand: Command {
         in context: CommandContext
     ) throws {
         let roles = context.roles
-        let transcoder = Transcoder(decoder: roles.decoder, facts: roles.decoder, encoder: roles.encoder)
+        let transcoder = Transcoder(
+            decoder: roles.decoder,
+            facts: roles.decoder,
+            encoder: roles.encoder,
+            budget: roles.budget
+        )
 
         context.output.write(TranscodeLine(try transcoder.transcode(options.request)).description + "\n")
     }

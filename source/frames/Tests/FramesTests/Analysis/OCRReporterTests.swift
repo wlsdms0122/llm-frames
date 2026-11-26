@@ -267,6 +267,24 @@ struct OCRReporterTests {
         #expect(error?.description == message)
     }
 
+    @Test("a limit under the run's memory floor stops in the budget's words, not as the provider's failure")
+    func passesMemoryRefusal() throws {
+        // Given
+        let refusal = MemoryError.underFloor(
+            limit: try #require(MemorySize("1MB")),
+            floors: MemoryHolder.allCases.map { holder in
+                MemoryHolderUsage(holder: holder, floor: holder == .readers ? 2 << 20 : 0, peak: 0, refused: 0)
+            }
+        )
+        let sut = OCRReporter(mediaFacts: facts, ocr: FailingOCR(refusal), languages: nil)
+
+        // When
+        let error = #expect(throws: MemoryError.self) { try sut.report(of: "/abs/clip.mov", at: .at(0.5)) }
+
+        // Then
+        #expect(error == refusal)
+    }
+
     // MARK: - Private
     // Within 8 pixels of the drawn line box on every edge.
     private func isNear(

@@ -24,7 +24,7 @@ struct PictureLookaheadTests {
     @Test("seventy files read forward together are read ahead no more at once than the machine has processors")
     func boundsReadsAhead() throws {
         // Given
-        let sut = PictureLookahead()
+        let sut = PictureLookahead(budget: MemoryBudget(limit: .unlimited))
         let files = (0..<70).map { "/lookahead/\($0).mov" }
         let gate = DispatchSemaphore(value: 0)
         let reads = OSAllocatedUnfairLock(initialState: (running: 0, most: 0))
@@ -42,7 +42,7 @@ struct PictureLookaheadTests {
         // When
         for file in files {
             for index in 0..<2 {
-                _ = try sut.picture(atFrame: index, of: file, count: 3, reading: .tagged, read: read)
+                _ = try sut.picture(atFrame: index, of: file, count: 3, bytes: 8, reading: .tagged, read: read)
             }
         }
         let start = ContinuousClock.now
@@ -53,7 +53,7 @@ struct PictureLookaheadTests {
         let most = reads.withLock { $0.most }
         gate.signal()
         let pictures = try files.map { file in
-            try sut.picture(atFrame: 2, of: file, count: 3, reading: .tagged, read: read).bitmap
+            try sut.picture(atFrame: 2, of: file, count: 3, bytes: 8, reading: .tagged, read: read).bitmap
         }
 
         // Then

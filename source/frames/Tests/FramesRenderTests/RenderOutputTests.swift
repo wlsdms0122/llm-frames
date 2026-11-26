@@ -318,7 +318,8 @@ struct RenderOutputTests {
             decoder: decoder,
             renderer: failure.map { FailingRenderer(renderer: renderer, failingAt: $0) } ?? renderer,
             mixer: AVFoundationMixer(decoder: decoder),
-            encoder: AVFoundationEncoder(deadline: Self.deadline)
+            encoder: AVFoundationEncoder(deadline: Self.deadline),
+            budget: MemoryBudget(limit: .unlimited)
         )
     }
 

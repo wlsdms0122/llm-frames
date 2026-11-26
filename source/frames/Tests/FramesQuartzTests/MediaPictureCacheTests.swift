@@ -11,7 +11,8 @@ import Frames
 import Testing
 
 // A renderer keeps the media pictures of the frame it drew last for the next frame, and lets go of every other, so
-// the pictures it holds are bounded by what one frame shows, however many files a sequence shows in turn.
+// the pictures it holds are bounded by what one frame shows, however many files a sequence shows in turn, and the run's
+// budget counts them within the floor the renderer's check of each list gives (FRAMES-30 The budget).
 @Suite("MediaPictureCache Tests")
 struct MediaPictureCacheTests {
     // MARK: - Property
@@ -53,6 +54,55 @@ struct MediaPictureCacheTests {
 
         // Then
         #expect(paths.map { decoder.readings(of: $0).count } == Array(repeating: 2, count: paths.count))
+    }
+
+    @Test("checking a list raises the budget's pictures floor to twice the pictures of pixels it reads, each once")
+    func reservesPicturesOfList() throws {
+        // Given
+        let budget = MemoryBudget(limit: .unlimited)
+        let sut = QuartzRenderer(decoder: ReadingDecoder(), budget: budget)
+        let first = item(showing: "/cache/first.mov")
+        let page = MediaFrame(
+            media: PinnedMedia(source: .page(PinnedFile(path: "/cache/page.pdf", sha256: ""), page: 1)),
+            index: 0
+        )
+        let pageItem = DisplayItem(
+            content: .picture(
+                PictureItem(source: .media(page), rectangle: nil, destination: Rectangle(x: 0, y: 0, width: 2, height: 2))
+            )
+        )
+
+        // When
+        try sut.check(list(of: [first, item(showing: "/cache/second.mov"), first, pageItem]))
+
+        // Then
+        let pictures = try #require(budget.usage.holders.first { $0.holder == .pictures })
+        #expect(pictures.floor == 2 * 2 * 32)
+    }
+
+    @Test("the pictures kept over frames whose lists were checked are counted within the floor their checks give")
+    func countsPicturesWithinFloor() throws {
+        // Given
+        let budget = MemoryBudget(limit: .unlimited)
+        let sut = QuartzRenderer(decoder: ReadingDecoder(), budget: budget)
+        let lists = [
+            list(of: [item(showing: "/cache/a.mov"), item(showing: "/cache/b.mov")]),
+            list(of: [item(showing: "/cache/c.mov"), item(showing: "/cache/d.mov")]),
+            list(of: [item(showing: "/cache/a.mov")])
+        ]
+        for list in lists {
+            try sut.check(list)
+        }
+
+        // When
+        for list in lists {
+            _ = try sut.frame(of: list)
+        }
+
+        // Then
+        let pictures = try #require(budget.usage.holders.first { $0.holder == .pictures })
+        #expect(pictures.floor == 2 * 2 * 32)
+        #expect(pictures.peak == pictures.floor)
     }
 
     // MARK: - Private

@@ -48,7 +48,8 @@ struct LoudnessRenderTests {
             decoder: decoder,
             renderer: QuartzRenderer(decoder: decoder),
             mixer: mixer,
-            encoder: AVFoundationEncoder()
+            encoder: AVFoundationEncoder(),
+            budget: MemoryBudget(limit: .unlimited)
         )
         try pipeline.render(document, to: output.file("out.mov"), at: nil, delivery: nil)
         let sut = LoudnessReporter(decoder: decoder, mixer: mixer, mediaFacts: decoder)

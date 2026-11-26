@@ -182,6 +182,26 @@ struct TrackReporterTests {
         )
     }
 
+    @Test("a limit under the run's memory floor stops in the budget's words, not as the tracker's failure")
+    func passesMemoryRefusal() throws {
+        // Given
+        let refusal = MemoryError.underFloor(
+            limit: try #require(MemorySize("1MB")),
+            floors: MemoryHolder.allCases.map { holder in
+                MemoryHolderUsage(holder: holder, floor: holder == .readers ? 2 << 20 : 0, peak: 0, refused: 0)
+            }
+        )
+        let sut = TrackReporter(mediaFacts: facts, tracker: FailingTracker(refusal))
+
+        // When
+        let error = #expect(throws: MemoryError.self) {
+            try sut.report(of: "/abs/clip.mov", target: .area("[100, 100, 200, 40]"), at: 0.5)
+        }
+
+        // Then
+        #expect(error == refusal)
+    }
+
     @Test("a quadrilateral followed by a perspective tracker prints its quad in perspective on every frame followed")
     func followsQuadInPerspective() throws {
         // Given

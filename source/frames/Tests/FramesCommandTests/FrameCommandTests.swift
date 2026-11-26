@@ -66,6 +66,22 @@ struct FrameCommandTests {
         #expect(try sut.standardOutput == line(of: documentSheet))
     }
 
+    @Test("sheet with --memory under the run's floor stops before a cell is read, naming the floor and its holders")
+    func refusesSheetUnderFloor() async throws {
+        // Given
+        let video = try await movie(named: "clip.mov", size: Size(width: 1280, height: 720))
+        let output = sut.directory.file("sheet.png")
+
+        // When
+        let code = sut.run(["--memory", "1MB", "sheet", video, "-o", output, "--step", "0.01"])
+
+        // Then
+        #expect(code == 1)
+        #expect(sut.standardError.hasPrefix("frames: memory limit 1MB is under the "))
+        #expect(sut.standardError.contains(", pictures "))
+        #expect(!FileManager.default.fileExists(atPath: output))
+    }
+
     @Test("extract writes a video's frames as numbered PNGs in a directory it makes, one line for each")
     func extractsFrames() async throws {
         // Given
@@ -114,9 +130,12 @@ struct FrameCommandTests {
     }
 
     // One second at 2 frames a second, grey.
-    private func movie(named name: String) async throws -> String {
+    private func movie(
+        named name: String,
+        size: Size = Size(width: 64, height: 48)
+    ) async throws -> String {
         let file = sut.directory.file(name)
-        let writer = MovieWriter(size: Size(width: 64, height: 48), frameTimes: [0, 0.5], end: 1)
+        let writer = MovieWriter(size: size, frameTimes: [0, 0.5], end: 1)
         try await writer.write(to: file) { canvas, _ in
             canvas.fill(red: 128, green: 128, blue: 128)
         }

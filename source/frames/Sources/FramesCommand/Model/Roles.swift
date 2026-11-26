@@ -7,9 +7,11 @@
 
 import Frames
 
-// The roles and providers a command runs on, every one that reads media reading it through `decoder`.
+// The roles and providers a command runs on, every one that reads media reading it through `decoder`, and the memory
+// budget they and the command's run draw from.
 struct Roles: Sendable {
     // MARK: - Property
+    let budget: MemoryBudget
     let decoder: any MediaDecoder & MediaFactProvider
     let renderer: any Renderer
     let mixer: any Mixer
@@ -20,6 +22,7 @@ struct Roles: Sendable {
 
     // MARK: - Initializer
     init(
+        budget: MemoryBudget,
         decoder: any MediaDecoder & MediaFactProvider,
         renderer: any Renderer,
         mixer: any Mixer,
@@ -28,6 +31,7 @@ struct Roles: Sendable {
         shaper: any ShapingProvider,
         tracker: any TrackerProvider
     ) {
+        self.budget = budget
         self.decoder = decoder
         self.renderer = renderer
         self.mixer = mixer

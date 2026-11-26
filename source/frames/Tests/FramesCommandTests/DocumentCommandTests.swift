@@ -277,7 +277,7 @@ struct DocumentCommandTests {
         #expect(try sut.standardOutput == line(of: master) + line(of: report))
         let text = try String(contentsOfFile: report, encoding: .utf8)
         let object = try #require(JSONSerialization.jsonObject(with: Data(text.utf8)) as? [String: Any])
-        let keys = ["render", "frames", "seconds", "cpuSeconds", "fps", "cores", "peakMemory", "machine", "roles", "stages", "readAhead", "waiting", "other", "media", "files"]
+        let keys = ["render", "frames", "seconds", "cpuSeconds", "fps", "cores", "peakMemory", "machine", "roles", "stages", "readAhead", "waiting", "other", "media", "files", "memory"]
         #expect(Set(object.keys) == Set(keys))
         #expect(keys.map { text.range(of: "\"\($0)\":")!.lowerBound } == keys.map { text.range(of: "\"\($0)\":")!.lowerBound }.sorted())
         #expect(object["frames"] as? Int == 3)
@@ -305,6 +305,34 @@ struct DocumentCommandTests {
         #expect(files.map { $0["path"] as? String } == [master])
         #expect(files.first?["codec"] as? String == "ProRes 422 HQ")
         #expect(files.first?["hardware"] is Bool)
+        let memory = try #require(object["memory"] as? [String: Any])
+        #expect(memory["limit"] as? Int == Int(((ProcessInfo.processInfo.physicalMemory * 3 / 8) >> 20) << 20))
+        let holders = try #require(memory["holders"] as? [String: [String: Int]])
+        #expect(Set(holders.keys) == ["readers", "readAhead", "turns", "pictures", "frames", "sound"])
+        #expect(memory["floor"] as? Int == holders.values.reduce(0) { $0 + ($1["floor"] ?? 0) })
+    }
+
+    @Test("render with --memory under the run's floor stops before the first frame, naming the limit and the floor")
+    func refusesMemoryUnderFloor() throws {
+        // Given
+        let image = try picture(named: "frame.png")
+        let document = try sut.write(
+            #"{ "kind": "sequence", "format": { "size": [1280, 720], "fps": 10 }, "storyline": [ { "kind": "media", "media": "\#(image)", "duration": 0.3 } ] }"#,
+            named: "doc.json"
+        )
+        let master = sut.directory.file("out.mov")
+
+        // When
+        let code = sut.run(["--memory", "8MB", "render", document, "-o", master, "--progress", "none"])
+
+        // Then
+        #expect(code == 1)
+        #expect(sut.standardError == """
+            frames: memory limit 8MB is under the 14.2 MB this run needs: readers 0 MB, readAhead 0 MB, turns 0 MB, \
+            pictures 0 MB, frames 14.1 MB, sound 0.1 MB
+
+            """)
+        #expect(!FileManager.default.fileExists(atPath: master))
     }
 
     @Test("render --progress json writes one progress object a line on standard error, the last for the last frame")

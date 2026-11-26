@@ -57,6 +57,10 @@ final class ReadingDecoder: MediaDecoder {
         pageSize
     }
 
+    func pictureSize(of file: MediaFile) throws -> Size {
+        Size(width: 2, height: 2)
+    }
+
     func colorReading(of file: MediaFile) throws -> ColorReading {
         .formulas(.srgb)
     }

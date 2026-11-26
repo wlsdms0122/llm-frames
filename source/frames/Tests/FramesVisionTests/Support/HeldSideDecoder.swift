@@ -42,6 +42,10 @@ struct HeldSideDecoder: MediaDecoder {
         try decoder.pageSize(of: file)
     }
 
+    func pictureSize(of file: MediaFile) throws -> Size {
+        try decoder.pictureSize(of: file)
+    }
+
     func colorReading(of file: MediaFile) throws -> ColorReading {
         try decoder.colorReading(of: file)
     }
