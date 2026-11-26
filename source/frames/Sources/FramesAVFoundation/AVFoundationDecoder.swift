@@ -35,9 +35,10 @@ package final class AVFoundationDecoder: Sendable {
     // Nil for a decoder made to convert on the CPU, and on a machine with no Metal device.
     private let metal: MetalPictureConverter?
     private let managedConverter = ManagedPictureConverter()
-    // The most videos the decoder keeps a reader open on, since AVFoundation decodes no frame for a 65th reader
-    // decoding at once in one process (FRAMES-21 Notes), and a video read by one of the reads ahead and callers at once
-    // may open a reader past this count. The readers open hold no more than the budget grants them, each the cost
+    // The most videos the decoder keeps a reader open on, chosen under the 64 readers decoding at once in one process
+    // past which AVFoundation decoded no frame for another on macOS 27.2 (FRAMES-21 Notes), a count another system
+    // may set otherwise, and a video read by one of the reads ahead and callers at once may open a reader past this
+    // count. The readers open hold no more than the budget grants them, each the cost
     // `readerCost(of:)` gives, and a reader opened for a turn reads `turnFrames` frames.
     private static let openReaders = 48
     private static let turnFrames = 8
@@ -114,8 +115,9 @@ package final class AVFoundationDecoder: Sendable {
     }
 
     // The memory VideoToolbox's decoding service holds for a reader decoding the video, by the size of a frame as the
-    // file stores it in the form it is given in: 28 frames given as Y'CbCr and 19 given as half floats, the most
-    // measured on the reference machine (FRAMES-21 Notes).
+    // file stores it in the form it is given in: 28 frames given as Y'CbCr and 19 given as half floats, an estimate
+    // taken from the most measured on the reference machine, which a codec, a size or a system not measured may pass
+    // (FRAMES-21 Notes).
     private static func readerCost(of video: VideoReader) -> Int {
         let pixels = Double(video.storedSize.width * video.storedSize.height)
         // Y'CbCr is a plane of luma and one of chroma subsampled by the layout's factors, in bytes of 8 or 16 bits.
