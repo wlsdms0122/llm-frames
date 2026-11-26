@@ -310,6 +310,22 @@ Numbers:
 
 The same renders under the build that corrected the budget by the process's footprint, in the table above, took 27.7 and 21.0 s and had a real total of 4.54 and 6.18 GB, and another render at 4 GB under that build took 23.5 s. Under the build before the correction they took 76.0 and 37.7 s, with a real total of 5.20 and 7.02 GB and 46 and 35 % free at the lowest.
 
+### Renders of 16 videos with a turn's frames before an open reader
+
+Supports: the rule that a turn's frames come before another video's open reader in [The budget](../spec/FRAMES-30/SPEC.md#the-budget) and [FRAMES-21](../spec/FRAMES-21/SPEC.md#rules), and the alternative of keeping open readers first in [FRAMES-21](../spec/FRAMES-21/SPEC.md#alternatives-considered).
+
+On: the reference machine with the programs of a working day open, `render` built for release at commit b5614d3e, whose decoder admits a turn with room for the frames it keeps and closes readers of other videos for it, the render of 16 videos of the ladder above, 180 frames of each, at 4 GB twice and at the default, 6 GB, once. Each step started at 63 to 66 % free by `memory_pressure`, and is sampled as in the record above.
+
+Numbers:
+
+| Limit | Run | Seconds | Readers opened again | Frames decoded | Budget's `turns` peak | Readers closed | Real total | Lowest free | Swapped out |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 4 GB | 1 | 28.4 | 368 | 2880 | 2.14 GB | 310 | 4.80 GB | 43 % | 0 |
+| 4 GB | 2 | 30.9 | 369 | 2881 | 2.14 GB | 266 | 4.73 GB | 33 % | 0 |
+| 6 GB | 1 | 22.5 | 353 | 2880 | 2.30 GB | 284 | 6.97 GB | 29 % | 0 |
+
+Under the build of the record above the same renders opened a reader again 1536 and 1326 times, decoded 4112 and 3598 frames, their `turns` peaked at 0.40 and 0.26 GB, and they took 48.4 and 40.8 s. Each video opened a reader again 20 to 23 times, about once for each turn of 8 of its 180 frames, so every video took turns. Resolving and checking took 7.3 to 9.0 s of each render. A second render at 6 GB, started at 61 % free with 3.7 GB of pages free, began to swap 8 seconds in and was stopped, having swapped out 779 MB, so it gave no time.
+
 ### A decoded frame read through a texture cache
 
 Supports: [Pictures](../spec/FRAMES-21/SPEC.md#pictures), the decoder reading a decoded frame through textures made on its own surface, and the alternative of a Core Video texture cache in [Alternatives considered](../spec/FRAMES-30/SPEC.md#alternatives-considered).
