@@ -94,6 +94,24 @@ On: the reference machine, 8-bit narrow range Y'CbCr converted by VideoToolbox t
 
 Numbers: 100% white, Y' 235, came out 1.0039, and the 75% colour bars of BT.709 and of BT.601 up to 0.0039 from the formulas' values for their code values, mostly above them by a gain of about 1.0042, and black as 0. On the H.264 videos the decoder's conversion and VideoToolbox's differ by 0.0032 to 0.0040 in the mean and at most 0.0106 at the edges of colours, where the chroma filters differ as well.
 
+### Two clips of one file
+
+Supports: [Rules](../spec/FRAMES-21/SPEC.md#rules), a reader and the step of its reading ahead belonging to a play and not to its file, and the alternative of several readers on a file chosen by position in [Alternatives considered](../spec/FRAMES-21/SPEC.md#alternatives-considered).
+
+On: the reference machine with macOS 27.2, `render` built for release at commit 06372c29, whose decoder kept one reader and one reading ahead for each file, and at commit 46218959, whose decoder keeps them for each play, at the default limit. The documents are 195 frames at 30 fps of 1920 by 1080, showing tiles of 356 by 200 of videos of 640 by 360 pixels given as Y'CbCr: d1 two clips of one file at the same `in` and `at`, d2 two clips of one file at `in` 0 and 1.1 s, looped, d3 two at `in` 2.2 and 0 s, looped, d4 two at `in` 0 and 0.86 s for 3 s with no loop, d5 one clip, and a scene of 16 looped tiles of 8 files, each file in two clips, four of them at the same `in` and `at` in both and four at two `in`s. Each render started at 66 % free by `memory_pressure`, one at a time.
+
+Numbers:
+
+| Document | Frames read | Decoded, one reader a file | Opened again, one reader a file | Decoded, one reader a play | Opened again, one reader a play |
+| --- | --- | --- | --- | --- | --- |
+| d1 | 186 | 187 | 1 | 187 | 1 |
+| d2 | 364 | 5506 | 272 | 366 | 2 |
+| d3 | 357 | 1786 | 292 | 359 | 3 |
+| d4 | 180 | 4590 | 89 | 182 | 0 |
+| d5 | 186 | 187 | 1 | 187 | 1 |
+
+The scene of 16 tiles took 18.4 s with one reader a file and 6.0 s with one a play. Its four files shown at the same `in` and `at` in both clips decoded one frame more than they read under either build, and the four shown at two `in`s decoded 1786 to 5505 frames with one reader a file and 359 to 365 with one a play, opening a reader again 260 to 292 times against 2 or 3. The budget's `readers` peaked at 77 MB with one reader a file and 116 MB with one a play, 12 readers of 9.7 MB against 8, since a play whose frames the renderer holds from the other play opens none, and the process's peak footprint was 391 MB and 398 MB, its most resident 369 MB and 365 MB. What the decoding service held was not measured.
+
 ### Alternatives considered
 
 Supports: the reasons [Alternatives considered](../spec/FRAMES-21/SPEC.md#alternatives-considered) gives.
