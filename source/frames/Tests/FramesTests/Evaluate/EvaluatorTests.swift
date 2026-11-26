@@ -219,6 +219,50 @@ struct EvaluatorTests {
         ])
     }
 
+    @Test("a cover and a matte of one file show the same frame of it in two plays")
+    func playsCoverAndMatteApart() throws {
+        // Given
+        let stinger = PinnedMedia(
+            source: .file(PinnedFile(path: "/abs/stinger.mov", sha256: String(repeating: "c", count: 64)), frameTimes: [0, 0.5, 1, 1.5])
+        )
+        let media = ResolvedTransitionMedia(media: stinger, duration: 2)
+        let cover = ResolvedCover(
+            source: .media(media),
+            span: Span(ease: .linear, keys: [SpanKey(t: 0, values: [.opacity: 1])])
+        )
+        let matte = ResolvedMatte(media: media, softness: 0, isInverted: false, ease: .linear)
+        let sequence = transitionSequence(ResolvedTransition(
+            start: 1.5,
+            end: 2.5,
+            over: .incoming,
+            incoming: nil,
+            outgoing: nil,
+            cover: cover,
+            matte: matte
+        ))
+
+        // When
+        let list = sut.displayList(of: sequence, at: 1.75)
+
+        // Then
+        // Progress 0.25: the cover and the matte at 0.5 of the stinger's 2 seconds, its frame 1.
+        let pictures = list.items.compactMap { item -> PictureItem? in
+            guard case let .picture(picture) = item.content else { return nil }
+
+            return picture
+        }
+        let matteFrame = try #require(pictures.compactMap(\.matte).first).frame
+        let coverFrame = try #require(pictures.compactMap { picture -> MediaFrame? in
+            guard case let .media(frame) = picture.source else { return nil }
+
+            return frame
+        }.first)
+        #expect(coverFrame.media == stinger && matteFrame.media == stinger)
+        #expect(coverFrame.picture == .frame(1) && matteFrame.picture == .frame(1))
+        #expect(coverFrame.play == .place("storyline.transition.cover"))
+        #expect(matteFrame.play == .place("storyline.transition.matte"))
+    }
+
     @Test("an outgoing handle past the end of the media holds its last frame")
     func holdsLastFrameInHandle() {
         // Given

@@ -11,14 +11,17 @@ import Frames
 import FramesTestMedia
 import Testing
 
-// A reader for each play of a video: two clips of one file each read it forward from a reader of their own, and the
-// bound and the budget count both readers (FRAMES-21 Rules). Serialized, so that the tests running at once read far
-// fewer files with AVFoundation than the 64 at once at which its reads stop finishing (FRAMES-21 Notes).
+// A reader for each play of a video: two clips of one file each read it forward from a reader of their own, the
+// bound and the budget count both readers, and a play a rendered frame does not show ends (FRAMES-21 Rules).
+// Serialized, so that the tests running at once read far fewer files with AVFoundation than the 64 at once at which
+// its reads stop finishing (FRAMES-21 Notes).
 @Suite("Decoder Play Tests", .serialized, .ownThread)
 struct DecoderPlayTests {
     // MARK: - Property
     private static let size = Size(width: 320, height: 240)
     private static let times = (0..<40).map { Double($0) / 30 }
+    // The bytes the budget counts a frame read ahead of the code movie at, its displayed size at 8 bytes a pixel.
+    private static let frameBytes = Int(size.width * size.height) * 8
 
     // MARK: - Initializer
     // MARK: - Test
@@ -106,7 +109,105 @@ struct DecoderPlayTests {
         #expect(sut.isOpen(second) && sut.isOpen(other) && !sut.isOpen(first))
     }
 
+    @Test("a play a rendered frame does not show is over, and the budget counts only what the shown play holds")
+    func endsPlaysNotShown() async throws {
+        // Given
+        let directory = try TemporaryDirectory()
+        let media = try await Self.movie(in: directory)
+        let single = MemoryBudget(limit: .unlimited)
+        let budget = MemoryBudget(limit: try #require(MemorySize("1GB")))
+        _ = try AVFoundationDecoder(budget: single).picture(of: media, atFrame: 0, play: .file, reading: .tagged)
+        let reader = try #require(single.usage.holders.first { $0.holder == .readers }).peak
+        let sut = AVFoundationDecoder(budget: budget)
+        let first = MediaPlay.place("clips[0]")
+        let second = MediaPlay.place("clips[1]")
+        for index in 0..<4 {
+            _ = try sut.picture(of: media, atFrame: index, play: first, reading: .tagged)
+            _ = try sut.picture(of: media, atFrame: 20 + index, play: second, reading: .tagged)
+        }
+        let before = budget.counted
+
+        // When
+        sut.frameRendered(showing: [Self.frame(of: media, at: 23, play: second)])
+        let shown = budget.counted
+        sut.frameRendered(showing: [])
+
+        // Then
+        #expect(before == 2 * reader + 2 * Self.frameBytes)
+        #expect(shown == reader + Self.frameBytes)
+        #expect(budget.counted == reader)
+    }
+
+    @Test("fifty cuts of one file, each its own play, never hold more than the plays of two frames one after the other")
+    func boundsFiftyCuts() async throws {
+        // Given
+        let directory = try TemporaryDirectory()
+        let media = try await Self.movie(in: directory)
+        let single = MemoryBudget(limit: .unlimited)
+        let budget = MemoryBudget(limit: try #require(MemorySize("1GB")))
+        _ = try AVFoundationDecoder(budget: single).picture(of: media, atFrame: 0, play: .file, reading: .tagged)
+        let reader = try #require(single.usage.holders.first { $0.holder == .readers }).peak
+        let sut = AVFoundationDecoder(budget: budget)
+        let starts = (0..<50).map { $0 * 7 % 34 }
+        let shown: [Int] = starts.flatMap { Array($0..<($0 + 4)) }
+
+        // When
+        var codes: [Int] = []
+        for (cut, start) in starts.enumerated() {
+            let play = MediaPlay.place("storyline[\(cut)]")
+            for index in start..<(start + 4) {
+                codes.append(code(in: try sut.picture(of: media, atFrame: index, play: play, reading: .tagged).bitmap))
+                sut.frameRendered(showing: [Self.frame(of: media, at: index, play: play)])
+            }
+        }
+
+        // Then
+        #expect(codes == shown)
+        let peaks = Dictionary(uniqueKeysWithValues: budget.usage.holders.map { ($0.holder, $0.peak) })
+        #expect(peaks[.readers] == 2 * reader)
+        #expect(try #require(peaks[.readAhead]) <= 2 * Self.frameBytes)
+        #expect(peaks[.turns] == 0)
+        #expect(budget.counted <= reader + Self.frameBytes)
+    }
+
+    @Test("a clip hidden and shown again reads its frames as a new play, whose first reader is not one opened again")
+    func startsPlayShownAgain() async throws {
+        // Given
+        let directory = try TemporaryDirectory()
+        let media = try await Self.movie(in: directory)
+        let sut = AVFoundationDecoder()
+        let play = MediaPlay.place("clips[0]")
+        for index in 20..<24 {
+            _ = try sut.picture(of: media, atFrame: index, play: play, reading: .tagged)
+            sut.frameRendered(showing: [Self.frame(of: media, at: index, play: play)])
+        }
+        sut.frameRendered(showing: [])
+
+        // When
+        var codes: [Int] = []
+        for index in 2..<6 {
+            codes.append(code(in: try sut.picture(of: media, atFrame: index, play: play, reading: .tagged).bitmap))
+            sut.frameRendered(showing: [Self.frame(of: media, at: index, play: play)])
+        }
+
+        // Then
+        #expect(codes == [2, 3, 4, 5])
+        let reading = try #require(sut.readings().media.first)
+        #expect(reading.reopened == 0)
+    }
+
     // MARK: - Private
+    // Frame `index` of the code movie shown in `play`, as a display list names it.
+    private static func frame(
+        of media: MediaFile,
+        at index: Int,
+        play: MediaPlay
+    ) -> MediaFrame {
+        let file = PinnedFile(path: media.path, sha256: String(repeating: "0", count: 64))
+
+        return MediaFrame(media: PinnedMedia(source: .file(file, frameTimes: times)), index: index, play: play)
+    }
+
     // A video of 40 frames at 30 fps, each showing its index as a code.
     private static func movie(in directory: TemporaryDirectory) async throws -> MediaFile {
         let movie = directory.file("code.mp4")

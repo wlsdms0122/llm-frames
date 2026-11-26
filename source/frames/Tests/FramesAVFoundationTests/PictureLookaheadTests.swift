@@ -126,6 +126,57 @@ struct PictureLookaheadTests {
         #expect(codes == times.indices.map { Array(repeating: $0, count: files.count) })
     }
 
+    @Test("a play a rendered frame does not show is dropped, the frame read ahead for it given back")
+    func endsPlayNotShown() throws {
+        // Given
+        let budget = MemoryBudget(limit: try #require(MemorySize("1MB")))
+        let sut = PictureLookahead(budget: budget)
+        let first = VideoPlay(path: "/lookahead/tile.mov", play: .place("clips[0]"))
+        let second = VideoPlay(path: "/lookahead/tile.mov", play: .place("clips[1]"))
+        let read: @Sendable (Int, Bool) throws -> Pixels = { index, _ in .bitmap(Self.picture(index)) }
+        for index in 0..<2 {
+            _ = try sut.picture(atFrame: index, of: first, count: 40, bytes: 8, reading: .tagged, read: read)
+            _ = try sut.picture(atFrame: 20 + index, of: second, count: 40, bytes: 8, reading: .tagged, read: read)
+        }
+        let heldBefore = budget.counted
+
+        // When
+        sut.frameRendered(showing: [(play: second, reading: .tagged, index: 21)])
+        let heldShown = budget.counted
+        sut.frameRendered(showing: [])
+
+        // Then
+        #expect(heldBefore == 16)
+        #expect(heldShown == 8)
+        #expect(budget.counted == 0)
+    }
+
+    @Test("a play the renderer gave from its kept pictures reads ahead by the step between the frames it showed")
+    func readsAheadAfterKeptPictures() throws {
+        // Given
+        let sut = PictureLookahead(budget: MemoryBudget(limit: .unlimited))
+        let play = VideoPlay(path: "/lookahead/tile.mov", play: .place("clips[0]"))
+        let aheads = OSAllocatedUnfairLock<[Int]>(initialState: [])
+        let read: @Sendable (Int, Bool) throws -> Pixels = { index, isAhead in
+            if isAhead { aheads.withLock { $0.append(index) } }
+
+            return .bitmap(Self.picture(index))
+        }
+        _ = try sut.picture(atFrame: 0, of: play, count: 40, bytes: 8, reading: .tagged, read: read)
+        sut.frameRendered(showing: [(play: play, reading: .tagged, index: 0)])
+        for index in 1..<6 {
+            sut.frameRendered(showing: [(play: play, reading: .tagged, index: index)])
+        }
+
+        // When
+        _ = try sut.picture(atFrame: 6, of: play, count: 40, bytes: 8, reading: .tagged, read: read)
+        let next = try sut.picture(atFrame: 7, of: play, count: 40, bytes: 8, reading: .tagged, read: read).bitmap
+
+        // Then
+        #expect(next == Self.picture(7))
+        #expect(aheads.withLock { $0.first } == 7)
+    }
+
     // MARK: - Private
     // A picture of one pixel whose red is `index`.
     private static func picture(_ index: Int) -> Bitmap {

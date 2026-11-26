@@ -141,6 +141,27 @@ struct PlayReaderTests {
         #expect(!budget.take(1, for: .readAhead))
     }
 
+    @Test("an ended play lets go of its reader and gives back the frames its turn holds, so its next frame is decoded")
+    func endsPlay() async throws {
+        // Given
+        let directory = try TemporaryDirectory()
+        let movie = try await Self.movie(in: directory)
+        let budget = MemoryBudget(limit: try #require(MemorySize("1GB")))
+        let sut = PlayReader(video: try #require(try VideoReader(path: movie)), budget: budget)
+        _ = try sut.buffer(atFrame: 2, path: movie, turn: 4, room: 0) { true }
+        let heldBefore = budget.counted
+
+        // When
+        sut.end()
+        let next = try #require(try sut.buffer(atFrame: 3, path: movie, turn: 1, room: 0) { true })
+
+        // Then
+        #expect(heldBefore > 0)
+        #expect(budget.counted == 0)
+        #expect(!sut.holdsFrames)
+        #expect(next.decoded > 0)
+    }
+
     // MARK: - Private
     // A video of 12 frames at 30 fps, each showing its index as a code.
     private static func movie(in directory: TemporaryDirectory) async throws -> String {

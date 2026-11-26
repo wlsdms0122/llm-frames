@@ -152,6 +152,24 @@ struct ReaderBoundTests {
         #expect(!sut.isOpen("a") && sut.isOpen("b"))
     }
 
+    @Test("an ended play's reader is no longer open, its cost is given back, and its next read is a first read, not a turn")
+    func endsPlays() throws {
+        // Given
+        let budget = MemoryBudget(limit: try #require(MemorySize("5MB")))
+        let sut = ReaderBound<String>(count: 1, budget: budget)
+        _ = try sut.admit("a", cost: 3 * megabyte, turnRoom: 0) { _ in false }
+        _ = try sut.admit("b", cost: 5 * megabyte, turnRoom: 0) { _ in false }
+
+        // When
+        sut.end(["a", "b"])
+        let again = try sut.admit("a", cost: 3 * megabyte, turnRoom: megabyte) { _ in false }
+
+        // Then
+        #expect(again.closing.isEmpty && again.turnRoom == nil)
+        #expect(budget.usage.holders.first { $0.holder == .readers }?.refused == 0)
+        #expect(sut.isOpen("a") && !sut.isOpen("b"))
+    }
+
     // MARK: - Private
     private var megabyte: Int {
         MemorySize.megabyte
