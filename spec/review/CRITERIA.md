@@ -25,6 +25,7 @@ A no that shows the work is not this specification's rejects the spec, whatever 
 - **B5. The words are standard and single.** The field's term, one sense per word across the specification. No history, and no rule hidden in a **Note.**
 - **B6. Another could follow it.** Someone doing the work without the reference implementation, in another language or another team, could do it from the text alone.
 - **B7. A form is given whole and stated as what it is.** Every name, spelling, field and layout the spec adds or touches is a grammar or a table, not prose alone. No rule is phrased against the input that raised it where the form it belongs to can be stated instead.
+- **B8. A number says what it is.** Each number is exact by definition or mathematics, chosen by frames, or estimated from a measurement, and the text shows which. An estimate names what it was measured on and reads as one that may differ elsewhere. No rule is a count of observations, and no measurement stands as a rule.
 
 ## C. The cases are enough
 
