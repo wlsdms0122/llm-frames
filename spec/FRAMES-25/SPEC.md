@@ -123,7 +123,7 @@ A tool reads what frames reports ([FRAMES-23](../FRAMES-23/SPEC.md)) and writes 
 
 frames ships no form, since a form is a purpose. Forms are packs kept outside frames, such as those in the frames repository under `packs/`, and are installed like any other pack by copying one into `$FRAMES_HOME/packs/` ([FRAMES-17](../FRAMES-17/SPEC.md)). Their examples name media by absolute paths to change before they run. What a form's guide says binds only edits made from that form, never frames.
 
-First how-tos:
+Among the how-tos:
 
 - **motion-graphics:** making graphics outside frames. Write HTML, render it to a PNG sequence with alpha in a headless browser, and bring it in as `{"kind": "imageSequence", "directory": ..., "fps": ...}` media.
 - **effects:** an effect beyond the filter ops (particles, a glitch, a shader of one's own) is made outside. Render it as a video with alpha and lay it over with a `blend`, or `extract` the frames of the clip's media file over its range, process them, and point the clip's `media` at the result.
@@ -189,6 +189,6 @@ Forms built into the engine: every new kind of work would need a change to frame
 
 Forms that ship with frames, found as if installed: frames would carry purposes, and an installed pack could not take a shipped form's name.
 
-A form chosen first, before any edit, as the only way in: most edits start from material, not from a form, and a form is one starting point among others.
+A form chosen first, before any edit, as the only way in: an edit may start from material and no form, and a form is one starting point among others.
 
 ## Notes
