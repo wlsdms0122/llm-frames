@@ -38,8 +38,8 @@ package final class AVFoundationDecoder: Sendable {
     // The most videos the decoder keeps a reader open on, chosen under the 64 readers decoding at once in one process
     // past which AVFoundation decoded no frame for another on macOS 27.2 (FRAMES-21 Notes), a count another system
     // may set otherwise, and a video read by one of the reads ahead and callers at once may open a reader past this
-    // count. The readers open hold no more than the budget grants them, each the cost
-    // `readerCost(of:)` gives, and a reader opened for a turn reads `turnFrames` frames.
+    // count. The readers open are charged no more than the budget grants them, each the charge `readerCost(of:)`
+    // gives, and a reader opened for a turn reads `turnFrames` frames.
     private static let openReaders = 48
     private static let turnFrames = 8
 
@@ -114,9 +114,9 @@ package final class AVFoundationDecoder: Sendable {
         }
     }
 
-    // The memory VideoToolbox's decoding service holds for a reader decoding the video, by the size of a frame as the
-    // file stores it in the form it is given in: 28 frames given as Y'CbCr and 19 given as half floats, an estimate
-    // taken from the most measured on the reference machine, which a codec, a size or a system not measured may pass
+    // The budget's charge for a reader open on the video, a number of frames of the size the file stores them at in
+    // the form they are given in: 28 given as Y'CbCr and 19 given as half floats (FRAMES-21 Rules). The numbers are
+    // near the most VideoToolbox's decoding service was observed to hold for one reader on the reference machine
     // (FRAMES-21 Notes).
     private static func readerCost(of video: VideoReader) -> Int {
         let pixels = Double(video.storedSize.width * video.storedSize.height)

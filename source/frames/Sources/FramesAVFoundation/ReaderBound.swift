@@ -33,9 +33,9 @@ final class ReaderBound: Sendable {
     }
 
     // MARK: - Public
-    // Records a read of the video at `path` by its reader, which holds `cost` bytes while it is open, and gives the
-    // videos whose readers to close and whether the read is a turn. `holdsFrames` tells whether a video holds frames
-    // read in a turn. Refuses a limit under the floor the reader raises.
+    // Records a read of the video at `path` by its reader, which the budget charges `cost` bytes while it is open, and
+    // gives the videos whose readers to close and whether the read is a turn. `holdsFrames` tells whether a video holds
+    // frames read in a turn. Refuses a limit under the floor the reader raises.
     func admit(
         _ path: String,
         cost: Int,
