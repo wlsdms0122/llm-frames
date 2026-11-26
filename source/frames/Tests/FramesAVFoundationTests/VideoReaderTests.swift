@@ -93,7 +93,7 @@ struct VideoReaderTests {
         let probe = try #require(try VideoReader(path: movie))
         let bytes = CVPixelBufferGetDataSize(try #require(try probe.buffer(atFrame: 0, path: movie, turn: 1) { true }).buffer)
         let budget = MemoryBudget(limit: .unlimited)
-        let limited = MemoryBudget(limit: try #require(MemorySize("1MB")))
+        let limited = MemoryBudget(limit: try #require(MemorySize("1MB")), meter: SettableMemoryMeter())
         limited.require(MemorySize.megabyte - 2 * bytes, for: .frames)
         let sut = try #require(try VideoReader(path: movie, budget: limited))
         let free = try #require(try VideoReader(path: movie, budget: budget))

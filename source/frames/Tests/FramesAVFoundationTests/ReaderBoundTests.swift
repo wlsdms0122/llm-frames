@@ -7,6 +7,7 @@
 
 @testable import FramesAVFoundation
 import Frames
+import FramesTestMedia
 import Testing
 
 // The bound on the readers the decoder keeps open, and the turns of the videos past it (FRAMES-21 Rules).
@@ -74,7 +75,7 @@ struct ReaderBoundTests {
     @Test("readers open hold no more than the budget grants them, and the first lies within the floor")
     func boundsMemory() throws {
         // Given
-        let budget = MemoryBudget(limit: try #require(MemorySize("10MB")))
+        let budget = MemoryBudget(limit: try #require(MemorySize("10MB")), meter: SettableMemoryMeter())
         let sut = ReaderBound(count: 48, budget: budget)
 
         // When
