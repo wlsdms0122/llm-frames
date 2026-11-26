@@ -5,14 +5,15 @@
 //  Created by JSilver on 11/16/26.
 //
 
-// One picture of pinned media, a frame by its index in frame order or a page of a PDF, and how the decoder reads it: as
-// working values, in the colour space written where the media is named and tone mapped to the target peak, or as an
-// analysis picture, as a transition matte and a frame a command shows are read. A page has no target peak, since a
-// page is not HDR.
+// One picture of pinned media, a frame by its index in frame order or a page of a PDF, the play it is read in, and how
+// the decoder reads it: as working values, in the colour space written where the media is named and tone mapped to the
+// target peak, or as an analysis picture, as a transition matte and a frame a command shows are read. A page has no
+// target peak, since a page is not HDR.
 package struct MediaFrame: Equatable, Sendable {
     // MARK: - Property
     package let media: PinnedMedia
     package let picture: MediaPicture
+    package let play: MediaPlay
     package let reading: PictureReading
 
     var file: PinnedFile {
@@ -30,9 +31,11 @@ package struct MediaFrame: Equatable, Sendable {
     package init(
         media: PinnedMedia,
         index: Int,
+        play: MediaPlay,
         reading: PictureReading = .tagged
     ) {
         self.media = media
+        self.play = play
         guard media.page != nil else {
             self.picture = .frame(index)
             self.reading = reading
@@ -50,18 +53,20 @@ package struct MediaFrame: Equatable, Sendable {
     init(
         media: PinnedMedia,
         mediaTime: Double,
+        play: MediaPlay,
         reading: PictureReading = .tagged
     ) {
-        self.init(media: media, index: media.frameIndex(at: mediaTime), reading: reading)
+        self.init(media: media, index: media.frameIndex(at: mediaTime), play: play, reading: reading)
     }
 
-    // A transition's cover or matte at `progress` through the transition.
+    // A transition's cover or matte at `progress` through the transition, played at `place`.
     init(
         media: ResolvedTransitionMedia,
         progress: Double,
+        place: String,
         reading: PictureReading
     ) {
-        self.init(media: media.media, mediaTime: progress * media.duration, reading: reading)
+        self.init(media: media.media, mediaTime: progress * media.duration, play: .place(place), reading: reading)
     }
 
     // MARK: - Public

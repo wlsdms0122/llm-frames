@@ -335,7 +335,7 @@ package struct DisplayListReader: Sendable {
             destination: try values.rectangle(item.member("dest")),
             filter: try filter(item.member("filter"), seed: seed),
             matte: try item.member("matte").optional { value in
-                let matte = try value.object(keys: ["source", "frame", "colorSpace", "progress", "softness", "invert"])
+                let matte = try value.object(keys: ["source", "frame", "play", "colorSpace", "progress", "softness", "invert"])
                 let reading = PictureReading.analysis(colorSpace: try colorSpace(matte.member("colorSpace")))
 
                 return PictureMatte(
@@ -507,7 +507,7 @@ package struct DisplayListReader: Sendable {
             .name(among: kinds) { kinds.contains($0) ? $0 : nil }
 
         guard kind == "list" else {
-            let source = try value.object(keys: ["kind", "media", "frame", "colorSpace", "targetPeak"])
+            let source = try value.object(keys: ["kind", "media", "frame", "play", "colorSpace", "targetPeak"])
             let reading = PictureReading.working(
                 colorSpace: try colorSpace(source.member("colorSpace")),
                 targetPeak: try source.member("targetPeak").optional(targetPeak)
@@ -540,20 +540,21 @@ package struct DisplayListReader: Sendable {
     }
 
     // A frame index past the media's frames stops, since a role opens an image sequence's frame file by it. A page of a
-    // PDF has frame null.
+    // PDF has frame null. A play null is a file read on its own.
     private func frame(
         of object: PlacedJSONObject,
         mediaKey: String,
         reading: PictureReading
     ) throws -> MediaFrame {
         let media = try values.media(object.member(mediaKey))
+        let play = try object.member("play").optional { try MediaPlay.place($0.string()) } ?? .file
         let frame = try object.member("frame")
         guard media.page == nil else {
             guard frame.isNull else {
                 throw EvaluateError.frameOfPage(place: frame.place, kind: frame.kind, written: frame.value.written)
             }
 
-            return MediaFrame(media: media, index: 0, reading: reading)
+            return MediaFrame(media: media, index: 0, play: play, reading: reading)
         }
 
         let index = try frame.integer()
@@ -562,7 +563,7 @@ package struct DisplayListReader: Sendable {
             throw EvaluateError.frameOutOfRange(place: frame.place, kind: frame.kind, frame: index, count: count)
         }
 
-        return MediaFrame(media: media, index: index, reading: reading)
+        return MediaFrame(media: media, index: index, play: play, reading: reading)
     }
 
     // The space a picture is read in, null where its file's tags apply.

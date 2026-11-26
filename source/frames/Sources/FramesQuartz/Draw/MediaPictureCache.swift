@@ -11,8 +11,10 @@ import os
 
 // Media pictures read through the decoder, kept from the frame that read them to the next: a frame shows a file's
 // frame again where its clip is slower than the sequence's rate, a transition shows two frames of one file, and a page
-// is shown on every frame of its clip. A frame is kept for each reading of it, and a page's picture for each region,
-// scale and reading, so a picture is reused only for the very request a frame makes (FRAMES-20 Pictures). Once a frame
+// is shown on every frame of its clip. A frame is kept for each reading of it whichever play asks it, so a frame two
+// clips show is read once and the play that asks it second asks the decoder nothing (FRAMES-21 Rules), and a page's
+// picture for each region, scale and reading, so a picture is reused only for the very request a frame makes
+// (FRAMES-20 Pictures). Once a frame
 // is drawn, `frameDrawn()` lets go of every picture it did not use, so the pictures kept are those of the frame drawn
 // last and those the frame being drawn has read. The run's budget counts every picture of pixels kept, a frame's
 // picture of its displayed size at 8 bytes a pixel as working values and 4 as an analysis picture, as its `pictures`
@@ -201,7 +203,7 @@ extension MediaPictureCache {
         var isUsed: Bool
     }
 
-    // A frame's picture of a file, read as its frame says.
+    // A frame's picture of a file, read as its frame says, in any play.
     private struct PictureRequest: Equatable {
         let path: String
         let picture: MediaPicture

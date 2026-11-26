@@ -211,7 +211,7 @@ package struct FrameExporter: Sendable {
             try encoder.writeAnalysisPicture(of: renderer.frame(of: list).bitmap, in: sequenceOutput, to: path)
             let media = PinnedMedia(source: .file(try PinnedFile(path: path, hashes: hasher), frameTimes: nil))
 
-            let picture = MediaFrame(media: media, index: 0, reading: .analysis(colorSpace: nil))
+            let picture = MediaFrame(media: media, index: 0, play: .file, reading: .analysis(colorSpace: nil))
             return ContactSheetCell(SampledFrame(time: frame.time, picture: .media(picture)))
         }
         let sheet = try composer.sheet(
@@ -298,7 +298,7 @@ package struct FrameExporter: Sendable {
             frames: times.map { time in
                 SampledFrame(
                     time: time,
-                    picture: .media(MediaFrame(media: media, mediaTime: time, reading: .analysis(colorSpace: nil)))
+                    picture: .media(MediaFrame(media: media, mediaTime: time, play: .file, reading: .analysis(colorSpace: nil)))
                 )
             }
         )

@@ -160,7 +160,7 @@ struct FilterChain: Sendable {
         case let .displace(file, amount, offset):
             guard amount > 0 else { return image }
 
-            let map = try pictures.image(of: MediaFrame(media: PinnedMedia(source: .file(file, frameTimes: nil)), index: 0))
+            let map = try pictures.image(of: MediaFrame(media: PinnedMedia(source: .file(file, frameTimes: nil)), index: 0, play: .file))
             let move = Point(x: offset.x * scale, y: offset.y * scale)
 
             return try displaced(image, by: map, amount: amount * scale, offset: move, frame: frame, library: library)

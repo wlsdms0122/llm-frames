@@ -10,20 +10,20 @@ import Frames
 import os
 
 // Reads a video's next picture while its caller works on the one it has, for a caller that reads a file's frames
-// forward by a steady step, as a render reads a clip. Frames are kept apart for each file and reading. Once two frames
-// of one file and reading are read, the second forward of the first, the frame as far on again from the second is read
-// ahead on a thread made for that read by the same read, so it holds the same bits, while fewer frames than the machine
-// has processors are being read ahead, so at most as many as it has are read ahead at once, and while the run's budget
-// grants its `readAhead` the frame's bytes until the frame is given or let go of (FRAMES-30); past either the frame is
-// read where it is asked. AVFoundation finishes a read's work on Swift's shared pool and on the pool of threads
-// Dispatch runs its concurrent queues on, as many as the system's `kern.wq_max_constrained_threads`, 64 on macOS 27.2,
-// and itself holds one thread of that pool waiting for each read it makes sample data ready for, so reads on threads of
-// either pool, or as many reads at once on any threads as that pool has threads, hold every thread that work needs
-// (FRAMES-21 Rules). The threads made here are of neither pool. A frame asked for that is not the one read ahead is
-// read where it is asked, once every frame of the same file being read ahead is read, so the file's reader is where
-// those reads left it. A read ahead that fails is dropped, so its frame is read again where it is asked and fails
-// there. `read` is told whether it reads ahead, and the time callers wait on a frame being read ahead is kept as
-// `waitingSeconds` (FRAMES-23 Runs).
+// forward by a steady step, as a render reads a clip. Frames are kept apart for each play of a file and reading, so the
+// step followed is one play's (FRAMES-21 Rules). Once two frames of one play and reading are read, the second forward
+// of the first, the frame as far on again from the second is read ahead on a thread made for that read by the same
+// read, so it holds the same bits, while fewer frames than the machine has processors are being read ahead, so at most
+// as many as it has are read ahead at once, and while the run's budget grants its `readAhead` the frame's bytes until
+// the frame is given or let go of (FRAMES-30); past either the frame is read where it is asked. AVFoundation finishes a
+// read's work on Swift's shared pool and on the pool of threads Dispatch runs its concurrent queues on, as many as the
+// system's `kern.wq_max_constrained_threads`, 64 on macOS 27.2, and itself holds one thread of that pool waiting for
+// each read it makes sample data ready for, so reads on threads of either pool, or as many reads at once on any threads
+// as that pool has threads, hold every thread that work needs (FRAMES-21 Rules). The threads made here are of neither
+// pool. A frame asked for that is not the one read ahead is read where it is asked, once every frame of the same play
+// being read ahead is read, so the play's reader is where those reads left it. A read ahead that fails is dropped, so
+// its frame is read again where it is asked and fails there. `read` is told whether it reads ahead, and the time
+// callers wait on a frame being read ahead is kept as `waitingSeconds` (FRAMES-23 Runs).
 final class PictureLookahead: Sendable {
     // MARK: - Property
     // As many as the machine has processors, and at most 32 whatever their number, so reads ahead never hold more
@@ -46,10 +46,10 @@ final class PictureLookahead: Sendable {
     }
 
     // MARK: - Public
-    // Frame `index` of the file at `path`, of `count` frames, as `read` reads it, each picture of `bytes`.
+    // Frame `index` of `play`, of a file of `count` frames, as `read` reads it, each picture of `bytes`.
     func picture(
         atFrame index: Int,
-        of path: String,
+        of play: VideoPlay,
         count: Int,
         bytes: Int,
         reading: PictureReading,
@@ -57,8 +57,8 @@ final class PictureLookahead: Sendable {
     ) throws -> Pixels {
         let (entry, pending) = entries.withLock { entries in
             (
-                entries.first { $0.path == path && $0.reading == reading },
-                entries.filter { $0.path == path }.compactMap(\.ahead)
+                entries.first { $0.play == play && $0.reading == reading },
+                entries.filter { $0.play == play }.compactMap(\.ahead)
             )
         }
         let picture: Pixels
@@ -83,9 +83,9 @@ final class PictureLookahead: Sendable {
             }
         }
         let replaced = entries.withLock { entries in
-            let replaced = entries.filter { $0.path == path && $0.reading == reading }
-            entries.removeAll { $0.path == path && $0.reading == reading }
-            entries.append(Entry(path: path, reading: reading, index: index, ahead: ahead))
+            let replaced = entries.filter { $0.play == play && $0.reading == reading }
+            entries.removeAll { $0.play == play && $0.reading == reading }
+            entries.append(Entry(play: play, reading: reading, index: index, ahead: ahead))
 
             return replaced
         }
@@ -122,11 +122,11 @@ final class PictureLookahead: Sendable {
 }
 
 extension PictureLookahead {
-    // The frame read last of a file and reading, and the frame being read ahead of it, which is none when the step
+    // The frame read last of a play of a file and reading, and the frame being read ahead of it, which is none when the step
     // from the frame before it is not forward or leads past the last frame, when as many frames as are read ahead at
     // once were being read ahead, or when the budget granted no room for it.
     private struct Entry: Sendable {
-        let path: String
+        let play: VideoPlay
         let reading: PictureReading
         let index: Int
         let ahead: ReadAhead?
