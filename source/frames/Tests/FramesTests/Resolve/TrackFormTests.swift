@@ -39,15 +39,15 @@ struct TrackFormTests {
             ),
             (
                 #"{ "frames": [ { "time": 1, "quad": \#(target) } ] }"#,
-                #"storyline[0]#screen.connected[0].track (track): missing key "time""#
+                #"storyline[0]#screen.connected[0].track (track): missing key "time". A track is track data {time, frames}, as frames track prints it, or a request {"tool": "<pack>/<name>", ...} for a tool that fills it"#
             ),
             (
                 #"{ "time": 1 }"#,
-                #"storyline[0]#screen.connected[0].track (track): missing key "frames""#
+                #"storyline[0]#screen.connected[0].track (track): missing key "frames". A track is track data {time, frames}, as frames track prints it, or a request {"tool": "<pack>/<name>", ...} for a tool that fills it"#
             ),
             (
                 #"{ "time": 1, "frames": [ { "time": 1, "quad": \#(target) } ], "speed": 2 }"#,
-                #"storyline[0]#screen.connected[0].track (track): unknown key "speed". Allowed: time, frames"#
+                #"storyline[0]#screen.connected[0].track (track): unknown key "speed". Allowed: time, frames. A track is track data {time, frames}, as frames track prints it, or a request {"tool": "<pack>/<name>", ...} for a tool that fills it"#
             ),
             (
                 #"{ "time": 1, "frames": [ { "time": 1 } ] }"#,
