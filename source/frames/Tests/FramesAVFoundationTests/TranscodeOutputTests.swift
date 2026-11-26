@@ -295,6 +295,9 @@ struct TranscodeOutputTests {
 
         // Then
         #expect(error?.description.hasPrefix("memory limit 1MB is under the ") == true)
+        // The frame read is of the video's displayed size, 1280 x 720 in working values at 8 bytes a pixel.
+        let frames = budget.usage.holders.first { $0.holder == .frames }
+        #expect(frames?.floor == 1280 * 720 * 8)
         #expect(try Data(contentsOf: URL(fileURLWithPath: output)) == existing)
     }
 
