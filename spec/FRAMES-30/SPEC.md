@@ -26,7 +26,7 @@ unit   = "MB" | "GB"
 
 Without `--memory` the limit is three eighths of the machine's physical memory, rounded down to a whole MB.
 
-**Note.** Three eighths is a choice of frames whose basis is one measurement: on the reference machine, of 16 GB, with a working day's programs open, it was the largest share in eighths at which a render of 16 videos of ProRes 4444 read as half floats left a third of the memory free. On another machine, beside other programs or with other media, the same share can leave more or less free, all the more since what a run holds lies above what its budget counts ([What it counts](#what-it-counts)).
+**Note.** Three eighths is a choice of frames whose basis is one measurement: on the reference machine, of 16 GB, with a working day's programs open, it was the largest share in eighths at which a render of 16 videos of ProRes 4444 read as half floats left a third of the memory free. On another machine, beside other programs or with other media, the same share can leave more or less free, all the more since what a run holds can lie above the limit ([What it measures](#what-it-measures)).
 
 ### The budget
 
