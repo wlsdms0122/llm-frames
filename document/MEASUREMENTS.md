@@ -2,7 +2,7 @@
 
 This is not part of the specification. A spec states rules and requirements, and where a bound or a constant takes its value from a measurement, the spec gives that basis in one sentence. This page keeps the measurement itself: what was measured, on what, the numbers, and the spec sentence it supports, which each entry names on its Supports line. A measurement says what held on the runs made. It binds nothing, and no spec depends on this page or links to it.
 
-The reference machine is an Apple M1 Pro. A section is kept for each spec that has measurements, in the order of their numbers.
+The reference machine is an Apple M1 Pro. An entry that names no system version was measured on the macOS that machine ran then, which the entry does not record, and a measurement of a platform component (AVFoundation, VideoToolbox, Core Graphics, Core Image, Dispatch) holds for that system and may not hold for another. A section is kept for each spec that has measurements, in the order of their numbers.
 
 ## FRAMES-21
 
