@@ -20,7 +20,7 @@ A pack is the unit everything added to frames from outside is installed in: data
 | --- | --- | --- |
 | `presets/<transition, animation, filter, audio or head>/` | presets ([FRAMES-14](../FRAMES-14/SPEC.md), [FRAMES-15](../FRAMES-15/SPEC.md), [FRAMES-13](../FRAMES-13/SPEC.md)), heads among them a stroke's arrowheads ([FRAMES-11](../FRAMES-11/SPEC.md#shapes)) | `<pack>/<name>` in a preset choice, and a head in a stroke's `start` or `end` |
 | `themes/` | themes ([FRAMES-22](../FRAMES-22/SPEC.md)) | `<pack>/<name>` in `--theme` or a document `theme` |
-| `templates/` | templates ([Templates](#templates)) | `<pack>/<name>` in a template instance |
+| `templates/` | templates ([Templates](#templates)) | `<pack>/<name>` in a template instance, and as the document a command is given ([FRAMES-23](../FRAMES-23/SPEC.md)) |
 | `luts/` | `.cube` LUTs | `<pack>/<name>` in a `lut` op |
 | `media/` | mattes, displacement maps (named in a `displace` op), impulse responses (named in a `convolve` op), overlays, stingers, logos, music and other media, with image sequences as folders and sequence documents as `.json` files used by file (without `params`) | `<pack>/<name.ext>` for a file and `<pack>/<dir>` for an image sequence, wherever media is taken |
 | `fonts/` | font files | by family, in the `font` list of the pack's themes |
