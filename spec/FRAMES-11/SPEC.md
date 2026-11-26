@@ -201,7 +201,7 @@ SVG path data (`M`, `L`, `C`, `Q`, `A`, `Z`) as a path's form, as a string or as
 
 A path's tangents as two lists beside `points`, as After Effects' Shape object writes `vertices`, `inTangents` and `outTangents`: one vertex would be spread over three lists, an inserted vertex inserted at one index in each, and a path with one curved corner would write every other tangent as 0. The display list takes that form ([FRAMES-20](../FRAMES-20/SPEC.md#paths)), since evaluation writes it whole, and a document keeps a vertex in one place.
 
-Quadratic segments, arcs and smooth or automatic tangents (Illustrator's smooth point, After Effects' RotoBezier): a quadratic is exactly a cubic, an arc is a cubic within a few ten-thousandths of its radius, and a smooth vertex is two tangents written opposite, so each would be a second spelling of a cubic. Automatic tangents are a function of the points, which a tool computes and writes.
+Quadratic segments, arcs and smooth or automatic tangents (Illustrator's smooth point, After Effects' RotoBezier): a quadratic is exactly a cubic, an arc of a quarter turn or less is a cubic within 2.7e-4 of its radius, and a smooth vertex is two tangents written opposite, so each would be a second spelling of a cubic. Automatic tangents are a function of the points, which a tool computes and writes.
 
 A path's box as the bounding box of its control points, Core Graphics' `boundingBox`: it holds points nothing is drawn at, so a centred anchor, a gradient's ends and a child's space would lie off the curve, and the box would grow when a tangent lengthens past where the curve reaches.
 
@@ -229,7 +229,7 @@ A path mask of at least three points: two vertices enclose a region once a tange
 
 Masks as clips of their own: a mask belongs to the clip it cuts and moves with it, as in After Effects. A clip that shapes another clip's picture is a track matte, which names its matte by id.
 
-Trimming the fill with the stroke, as After Effects trims a whole shape: drawing on is a stroke's, and a fill that changes shape as it is trimmed is rarely wanted.
+Trimming the fill with the stroke, as After Effects trims a whole shape: drawing on is a stroke's, and a fill trimmed with it would change shape as the stroke draws on.
 
 Gradient points in the shape's coordinate space, as SVG's `userSpaceOnUse`: a gradient would stay where it was written while its shape moves or grows, and a template's bar would need its gradient written again for every size. Fractions of the box, as SVG's `objectBoundingBox` and CSS's gradients on an element, follow the shape. A radial radius as a fraction of the distance to the farthest corner keeps the gradient round, where `objectBoundingBox` stretches it over a box that is not square, and reaches the whole box at 1 whatever its shape. A fraction of the box's width would leave the top and bottom of a tall box outside a vignette written for a wide one.
 

@@ -311,7 +311,7 @@ Text placement carried on the display list's `glyphs` items: a renderer would ca
 
 `transform` without `rect`: a map with no domain, since `bounds` is cut by masks and reveal and cannot give back where a picture's `dest`, a path's geometry or a title's glyphs lie whole.
 
-`transform` as a 3 × 3 matrix, the whole map under a corner pin: it changes the form of every item's `transform`, a major change ([FRAMES-18](../FRAMES-18/SPEC.md)), for the few items a corner pin carries, and it composes a picture's corner pin into one matrix with the affine maps around it, so a program could not tell where an item lies on its plane. The plane's map with the corner pins as `{dest, cornerPin}` gives both, each corner pin in the terms the display list writes it.
+`transform` as a 3 × 3 matrix, the whole map under a corner pin: it changes the form of every item's `transform`, a major change ([FRAMES-18](../FRAMES-18/SPEC.md)), where only the items a corner pin carries need it, and it composes a picture's corner pin into one matrix with the affine maps around it, so a program could not tell where an item lies on its plane. The plane's map with the corner pins as `{dest, cornerPin}` gives both, each corner pin in the terms the display list writes it.
 
 A title's box left out of `texts`: a boxed title covers its background's padding as well as its text box, and a program that keeps captions clear of other text would know only half of what it covers.
 
