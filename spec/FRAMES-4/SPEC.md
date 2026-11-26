@@ -83,7 +83,7 @@ An ease is a name, a cubic Bézier, or a spring.
 
 An ease written as an object says which ease it is with `kind`, and holds that ease's parameters beside it. `spring` is the one such kind. An object without `kind` stops, and so does another kind, with the kinds it takes.
 
-**Spring.** `bounce` b is a number greater than -1 and less than 1. 0 settles with no overshoot, a bounce above 1 − √3/2 (0.13397 to five places) swings past 1 and back, more the higher it is, before it settles, and a lower one approaches 1 more slowly with no overshoot. A bounce of -1 or less, or of 1 or more, stops, since at -1 the spring never moves and at 1 it never settles (below). From b:
+**Spring.** `bounce` b is a number greater than -1 and less than 1. A bounce of 0 or less rises to 1 with no overshoot: 0 is critically damped and a bounce below 0 over-damped. A bounce above 0 and at most 1 − √3/2 (0.13397 to five places) is under-damped, but its first peak falls at or after the span's end, so it too rises to 1 with no overshoot. A bounce above 1 − √3/2 has its first peak inside the span, so it swings past 1, more the higher it is, and comes back to 1 at the span's end. A bounce of -1 or less, or of 1 or more, stops, since at -1 the spring never moves and at 1 it never settles (below). From b:
 
 ```
 damping ratio      ζ = 1 - b          when b ≥ 0
