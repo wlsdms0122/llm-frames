@@ -38,8 +38,8 @@ package final class AVFoundationDecoder: Sendable {
     // The most videos the decoder keeps a reader open on, chosen under the 64 readers decoding at once in one process
     // past which AVFoundation decoded no frame for another on macOS 27.2 (FRAMES-21 Notes), a count another system
     // may set otherwise, and a video read by one of the reads ahead and callers at once may open a reader past this
-    // count. The readers open hold no more than the budget grants them, each the cost
-    // `readerCost(of:)` gives, and a reader opened for a turn reads `turnFrames` frames.
+    // count. The readers open are charged no more than the budget grants them, each the charge `readerCost(of:)`
+    // gives, and a reader opened for a turn reads `turnFrames` frames, admitted with room for those it holds.
     private static let openReaders = 48
     private static let turnFrames = 8
 
@@ -80,15 +80,22 @@ package final class AVFoundationDecoder: Sendable {
 
     // Records a read of frame `index` of the video at `path`, which a held frame gives with no reader, and closes the
     // readers the bound closes, holding no video's lock while it does. Gives the frames a reader opened for the read
-    // reads: `turnFrames` in a turn, and one otherwise. Refuses a limit under the floor the reader raises.
+    // reads, `turnFrames` in a turn and one otherwise, and the bytes the budget granted its `turns` for the frames a
+    // turn holds, asked for each frame the turn would hold at a frame of the video's stored size, the measure of a
+    // reader's cost. Refuses a limit under the floor the reader raises.
     private func recordRead(
         of video: VideoReader,
         at path: String,
         frame index: Int
-    ) throws -> Int {
-        guard !video.holds(frame: index) else { return 1 }
+    ) throws -> (turn: Int, room: Int) {
+        guard !video.holds(frame: index) else { return (1, 0) }
 
-        let (closing, isTurn) = try readers.admit(path, cost: Self.readerCost(of: video)) { [videos] path in
+        let holds = video.turnHolds(atFrame: index, turn: Self.turnFrames)
+        let (closing, turnRoom) = try readers.admit(
+            path,
+            cost: Self.readerCost(of: video),
+            turnRoom: Int(Double(holds) * Self.frameBytes(of: video))
+        ) { [videos] path in
             videos.withLock { $0[path] }?.holdsFrames ?? false
         }
         let closed = videos.withLock { videos in closing.compactMap { videos[$0] } }
@@ -96,7 +103,7 @@ package final class AVFoundationDecoder: Sendable {
             reader.close()
         }
 
-        return isTurn ? Self.turnFrames : 1
+        return turnRoom.map { (Self.turnFrames, $0) } ?? (1, 0)
     }
 
     // The buffer of frame `index` of the video at `path` as `VideoReader` gives it, read by a reader the bound holds
@@ -108,31 +115,40 @@ package final class AVFoundationDecoder: Sendable {
         frame index: Int
     ) throws -> (buffer: CVImageBuffer, decoded: Int, reopened: Bool) {
         while true {
-            let turn = try recordRead(of: video, at: path, frame: index)
-            let read = try video.buffer(atFrame: index, path: path, turn: turn) { readers.isOpen(path) }
+            let (turn, room) = try recordRead(of: video, at: path, frame: index)
+            let read = try video.buffer(atFrame: index, path: path, turn: turn, room: room) { readers.isOpen(path) }
             if let read { return read }
         }
     }
 
-    // The memory VideoToolbox's decoding service holds for a reader decoding the video, by the size of a frame as the
-    // file stores it in the form it is given in: 28 frames given as Y'CbCr and 19 given as half floats, an estimate
-    // taken from the most measured on the reference machine, which a codec, a size or a system not measured may pass
-    // (FRAMES-21 Notes).
+    // The budget's charge for a reader open on the video, a number of its frames of `frameBytes(of:)`: 28 given as
+    // Y'CbCr and 19 given as half floats (FRAMES-21 Rules). The numbers are near the most VideoToolbox's decoding
+    // service was observed to hold for one reader on the reference machine (FRAMES-21 Notes).
     private static func readerCost(of video: VideoReader) -> Int {
-        let pixels = Double(video.storedSize.width * video.storedSize.height)
-        // Y'CbCr is a plane of luma and one of chroma subsampled by the layout's factors, in bytes of 8 or 16 bits.
-        let (frames, bytesPerPixel): (Double, Double) = switch video.decodedFormat {
-        case let .yCbCr(layout):
-            (
-                28,
-                Double(layout.bitDepth > 8 ? 2 : 1) * (1 + 2 / Double(layout.sampling.horizontal * layout.sampling.vertical))
-            )
+        let frames: Double = switch video.decodedFormat {
+        case .yCbCr:
+            28
 
         case .halfFloatRGBA:
-            (19, 8)
+            19
         }
 
-        return Int(frames * pixels * bytesPerPixel)
+        return Int(frames * frameBytes(of: video))
+    }
+
+    // The bytes of a frame of the video at the size the file stores it, in the form it is given in.
+    private static func frameBytes(of video: VideoReader) -> Double {
+        let pixels = Double(video.storedSize.width * video.storedSize.height)
+        // Y'CbCr is a plane of luma and one of chroma subsampled by the layout's factors, in bytes of 8 or 16 bits.
+        let bytesPerPixel: Double = switch video.decodedFormat {
+        case let .yCbCr(layout):
+            Double(layout.bitDepth > 8 ? 2 : 1) * (1 + 2 / Double(layout.sampling.horizontal * layout.sampling.vertical))
+
+        case .halfFloatRGBA:
+            8
+        }
+
+        return pixels * bytesPerPixel
     }
 
     // Nil for a file that is no PDF.

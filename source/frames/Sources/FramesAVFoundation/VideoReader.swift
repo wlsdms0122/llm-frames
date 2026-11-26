@@ -119,20 +119,32 @@ final class VideoReader: Sendable {
         heldFrames.withLock { $0.contains(index) }
     }
 
+    // The frames a reader opened for frame `index` in a turn of `turn` frames would hold, asked next.
+    func turnHolds(
+        atFrame index: Int,
+        turn: Int
+    ) -> Int {
+        state.withLockUnchecked { following(index, step: step(to: index, from: $0.asked), turn: turn).count }
+    }
+
     // The buffer of frame `index` as the file stores it, in `decodedFormat`, the samples decoded to reach it, and
     // whether a reader was opened again for it, which the first reader opened on the video is not. A reader opened for
     // it reads `turn` frames, frame `index` and the frames after it by the step from the frame asked before, within
     // `forwardReach` of it, and holds the buffers of the others, which later asks give with no reader, as many as the
-    // budget grants room for. Every buffer held of a frame up to `index` is let go of. A reader is opened only where
-    // `isAdmitted` holds, asked under the lock `close()` takes, so a close that follows the admission it asks about
-    // closes the reader it opens. Nil where the frame needs a reader opened and `isAdmitted` does not hold: nothing is
-    // read and nothing is let go of.
+    // budget grants room for: `room` is bytes the budget granted its `turns` for them, which they hold first, and what
+    // they do not hold of it is given back. Every buffer held of a frame up to `index` is let go of. A reader is opened
+    // only where `isAdmitted` holds, asked under the lock `close()` takes, so a close that follows the admission it asks
+    // about closes the reader it opens. Nil where the frame needs a reader opened and `isAdmitted` does not hold:
+    // nothing is read and nothing is let go of.
     func buffer(
         atFrame index: Int,
         path: String,
         turn: Int,
+        room: Int,
         isAdmitted: () -> Bool
     ) throws -> (buffer: CVImageBuffer, decoded: Int, reopened: Bool)? {
+        var room = room
+        defer { budget.give(room, for: .turns) }
         let time = frames[index]
         let read = try state.withLockUnchecked { state -> (CVImageBuffer?, Int, Bool)? in
             let readsOn = state.reader.map {
@@ -140,7 +152,7 @@ final class VideoReader: Sendable {
             } ?? false
             guard readsOn || state.held.contains(where: { $0.index == index }) || isAdmitted() else { return nil }
 
-            let step = state.asked.map { index - $0 }.flatMap { $0 > 0 ? $0 : nil } ?? 1
+            let step = self.step(to: index, from: state.asked)
             state.asked = index
             let held = state.held.first { $0.index == index }
             letGo(of: state.held.filter { $0.index <= index })
@@ -168,12 +180,12 @@ final class VideoReader: Sendable {
             let picture = try reader.read(frame: index, at: time, path: path)
             letGo(of: state.held)
             state.held = []
-            let following = stride(from: index + step, to: frames.count, by: step).prefix(turn - 1).prefix {
-                (frames[$0] - time).seconds <= Self.forwardReach
-            }
-            for next in following {
+            for next in following(index, step: step, turn: turn) {
                 guard let buffer = try reader.read(frame: next, at: frames[next], path: path) else { break }
-                guard budget.take(CVPixelBufferGetDataSize(buffer), for: .turns) else { break }
+                let bytes = CVPixelBufferGetDataSize(buffer)
+                let granted = min(bytes, room)
+                guard granted == bytes || budget.take(bytes - granted, for: .turns) else { break }
+                room -= granted
                 state.held.append((next, buffer))
             }
 
@@ -192,6 +204,26 @@ final class VideoReader: Sendable {
     }
 
     // MARK: - Private
+    // The step from frame `asked`, the frame asked before, to frame `index`, 1 where there is none or it is not forward.
+    private func step(
+        to index: Int,
+        from asked: Int?
+    ) -> Int {
+        asked.map { index - $0 }.flatMap { $0 > 0 ? $0 : nil } ?? 1
+    }
+
+    // The frames after frame `index` by `step` that a reader opened for it in a turn of `turn` frames reads past it,
+    // within `forwardReach` of it.
+    private func following(
+        _ index: Int,
+        step: Int,
+        turn: Int
+    ) -> [Int] {
+        Array(stride(from: index + step, to: frames.count, by: step).prefix(turn - 1).prefix {
+            (frames[$0] - frames[index]).seconds <= Self.forwardReach
+        })
+    }
+
     private func letGo(of held: [(index: Int, buffer: CVImageBuffer)]) {
         budget.give(held.reduce(0) { $0 + CVPixelBufferGetDataSize($1.buffer) }, for: .turns)
     }

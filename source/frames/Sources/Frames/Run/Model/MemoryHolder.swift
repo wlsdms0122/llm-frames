@@ -5,10 +5,10 @@
 //  Created by JSilver on 11/26/26.
 //
 
-// A holder of large memory that a run's budget counts, in the order the run report gives them (FRAMES-30 The budget):
-// the decoding service's memory for the decoder's open readers, the frames the decoder has read ahead and not given,
-// the decoded frames a turn holds for later asks, the media pictures the renderer keeps, the output frames in flight,
-// and the run's mixed sound.
+// A holder that a run's budget counts, in the order the run report gives them (FRAMES-30 The budget): the decoder's
+// open readers, each at the charge the decoder sets for it, the frames the decoder has read ahead and not given, the
+// decoded frames a turn holds for later asks, the media pictures the renderer keeps, the output frames in flight, and
+// the run's mixed sound.
 package enum MemoryHolder: String, CaseIterable, Equatable, Sendable {
     case readers
     case readAhead
@@ -21,17 +21,6 @@ package enum MemoryHolder: String, CaseIterable, Equatable, Sendable {
     // The holder's name in the run report and in messages.
     package var name: String {
         rawValue
-    }
-
-    // Where the memory the holder counts lies: a reader's decoded frames and those a turn holds are surfaces the
-    // decoding service makes, which the system charges to the service.
-    package var place: MemoryPlace {
-        switch self {
-        case .readers, .turns:
-            .decodingService
-        case .readAhead, .pictures, .frames, .sound:
-            .process
-        }
     }
 
     // MARK: - Initializer

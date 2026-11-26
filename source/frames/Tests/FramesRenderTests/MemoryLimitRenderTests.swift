@@ -14,25 +14,28 @@ import Testing
 
 // A run's memory limit, which the decoder's readers and reading ahead, the renderer's pictures and the pipeline's
 // frames and sound draw from, changes how a render reads its videos and never its frames, what the budget counts stays
-// within it, the process's measured footprint is reported, and a limit under the run's floor is refused before the
-// first frame (FRAMES-30).
+// within it, and a limit under the run's floor is refused before the first frame (FRAMES-30).
 @Suite("MemoryLimitRender Tests", .ownThread)
 struct MemoryLimitRenderTests {
     // MARK: - Property
     // Four videos of 160 by 120 pixels, read as 8-bit Y'CbCr 4:2:0, cost 806 400 bytes a reader; the renderer keeps
     // the four videos' pictures of two frames, 153 600 bytes each, 1 228 800 together; the two frames in flight of a
-    // 160 by 120 sequence cost 307 200 and its 0.4 s of sound 153 600, so a run's floor is 2 496 000 bytes, and at 3 MB
-    // the budget leaves no room for a second reader.
+    // 160 by 120 sequence cost 307 200 and its 0.4 s of sound 153 600, so a run's floor is 2 496 000 bytes. At 3 MB
+    // the budget leaves no room for a second reader, and at 3.2 MB it leaves room for a second reader and not for the
+    // frames of a turn beside it, so a turn closes the other reader for them.
     private static let videoCount = 4
 
     // MARK: - Initializer
     // MARK: - Test
-    @Test("a render at a limit where the readers take turns gives the same frames as one with no limit")
-    func givesSameFrames() async throws {
+    @Test(
+        "a render at a limit where the readers take turns gives the same frames as one with no limit",
+        arguments: ["3MB", "3.2MB"]
+    )
+    func givesSameFrames(limit: String) async throws {
         // Given
         let directory = try TemporaryDirectory()
         let document = try await document(in: directory)
-        let limited = MemoryBudget(limit: try #require(MemorySize("3MB")))
+        let limited = MemoryBudget(limit: try #require(MemorySize(limit)))
         let unlimited = MemoryBudget(limit: .unlimited)
 
         // When
@@ -45,7 +48,6 @@ struct MemoryLimitRenderTests {
         let pictures = try #require(limited.usage.holders.first { $0.holder == .pictures })
         #expect(pictures.peak == 8 * 153_600)
         #expect(limited.usage.peak <= limited.limit.bytes)
-        #expect(limited.usage.uncounted > 0)
         #expect(unlimited.usage.holders.first { $0.holder == .readers }?.refused == 0)
         #expect(limitedFrames.count == 12)
         #expect(limitedFrames == unlimitedFrames)
@@ -65,22 +67,6 @@ struct MemoryLimitRenderTests {
         let floors = sut.usage.holders.map(\.floor)
         #expect(floors == [806_400, 0, 0, 1_228_800, 307_200, 153_600])
         #expect(sut.usage.floor == 2_496_000)
-    }
-
-    @Test("a render reports the process's largest footprint, which holds the pictures the budget counted in the process")
-    func reportsProcessFootprint() async throws {
-        // Given
-        let directory = try TemporaryDirectory()
-        let document = try await document(in: directory)
-        let sut = MemoryBudget(limit: .unlimited)
-
-        // When
-        _ = try render(document, budget: sut, to: directory.file("out.mov"))
-
-        // Then
-        let pictures = try #require(sut.usage.holders.first { $0.holder == .pictures })
-        #expect(pictures.peak == 8 * 153_600)
-        #expect(sut.usage.process >= pictures.peak)
     }
 
     @Test("a limit under the run's floor is refused before the first frame, naming the limit, the floor and its holders")

@@ -47,8 +47,6 @@ extension RunReport {
                 JSONMember(key: "limit", value: Self.count(memory.limit)),
                 JSONMember(key: "floor", value: Self.count(memory.floor)),
                 JSONMember(key: "peak", value: Self.count(memory.peak)),
-                JSONMember(key: "process", value: Self.count(memory.process)),
-                JSONMember(key: "uncounted", value: Self.count(memory.uncounted)),
                 JSONMember(key: "holders", value: .object(JSONObject(members: memory.holders.map { holder in
                     JSONMember(key: holder.holder.name, value: Self.written(holder))
                 })))

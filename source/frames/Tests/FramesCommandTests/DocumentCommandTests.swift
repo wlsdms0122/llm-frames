@@ -310,8 +310,6 @@ struct DocumentCommandTests {
         let holders = try #require(memory["holders"] as? [String: [String: Int]])
         #expect(Set(holders.keys) == ["readers", "readAhead", "turns", "pictures", "frames", "sound"])
         #expect(memory["floor"] as? Int == holders.values.reduce(0) { $0 + ($1["floor"] ?? 0) })
-        #expect((memory["process"] as? Int ?? 0) > 0)
-        #expect(memory["uncounted"] is Int)
     }
 
     @Test("render with --memory under the run's floor stops before the first frame, naming the limit and the floor")

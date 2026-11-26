@@ -21,7 +21,7 @@ struct CommandLineParser: Sendable {
         OptionRule(
             memory,
             value: "<size>",
-            help: "The run's budget of memory, as <n>MB or <n>GB of 2^20 and 2^30 bytes: it bounds what frames counts of its own memory exactly and counts what the system holds for it to decode by an estimate, and does not bound what the run really uses. Default: three eighths of the machine's memory."
+            help: "The run's budget of memory, as <n>MB or <n>GB of 2^20 and 2^30 bytes: what frames holds of frames, pictures and sound, by their sizes, and each open video reader at a set number of its frames. It is not a bound on what the run really uses. Default: three eighths of the machine's memory."
         )
     ]
 
