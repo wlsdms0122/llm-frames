@@ -100,7 +100,7 @@ Their outlines, in the head's own coordinates with the tip at the origin and the
 | `diamond` | `[0, 0]`, `[-2, -2]`, `[-4, 0]`, `[-2, 2]` |
 | `bar` | `[0, 2]`, `[0, -2]`, `[-1, -2]`, `[-1, 2]` |
 
-**Note.** A circle has no exact form in cubic Bézier segments. Four segments whose tangents are 4/3 × (√2 - 1) of the radius long, the circle Core Graphics and Skia draw for an ellipse, lie at most 0.027% of the radius off it, under 6e-4 of a pixel for a head 4 pixels across, and pass through it at the four vertices.
+**Note.** A circle has no exact form in cubic Bézier segments. Four segments whose tangents are 4/3 × (√2 - 1) of the radius long, the circle Core Graphics and Skia draw for an ellipse, lie less than 0.0273% of the radius off it, under 6e-4 of a pixel for a head 4 pixels across, and pass through it at the four vertices.
 
 frames ships no audio preset. Audio filters are written in place or come from packs ([FRAMES-13](../FRAMES-13/SPEC.md)).
 

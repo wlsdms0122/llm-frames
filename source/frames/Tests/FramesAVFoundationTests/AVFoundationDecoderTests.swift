@@ -84,7 +84,7 @@ struct AVFoundationDecoderTests {
         #expect(pictures.allSatisfy { $0.width == 320 && $0.height == 240 && $0.depth == .halfFloat })
     }
 
-    @Test("seventy videos read in turn, past the 64 readers AVFoundation decodes at once, each give the frame asked for")
+    @Test("seventy videos read in turn, past the 64 readers AVFoundation decoded at once on macOS 27.2, each give the frame asked for")
     func readsMoreVideosThanReadersOpen() async throws {
         // Given
         let directory = try TemporaryDirectory()

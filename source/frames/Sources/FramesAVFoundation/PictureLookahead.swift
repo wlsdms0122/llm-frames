@@ -27,7 +27,7 @@ import os
 final class PictureLookahead: Sendable {
     // MARK: - Property
     // As many as the machine has processors, and at most 32 whatever their number, so reads ahead never hold more
-    // than half of the system's pool of threads.
+    // than half of the system's pool of threads where it has 64, as on macOS 27.2.
     private static let readsAtOnce = min(ProcessInfo.processInfo.activeProcessorCount, 32)
 
     private let budget: MemoryBudget

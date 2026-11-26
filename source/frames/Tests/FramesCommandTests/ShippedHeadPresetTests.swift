@@ -128,8 +128,8 @@ struct ShippedHeadPresetTests {
         #expect(abs(outline.lineEnd(of: drawn) - (100 - expected.inset * unit)) < 1e-9)
     }
 
-    // Four cubic segments lie up to 0.027% of the radius off a true circle (FRAMES-16), 0.004 px for this radius of
-    // 16, so the drawn curve is checked against the circle to 0.01 px.
+    // Four cubic segments lie less than 0.0273% of the radius off a true circle (FRAMES-16), under 0.0044 px for this
+    // radius of 16, so the drawn curve is checked against the circle to 0.01 px.
     @Test("the shipped circle on a straight end draws a circle 4u across within 0.01 px, its front at the end and its centre 2u back")
     func drawsCircleOnStraightEnd() throws {
         // Given
