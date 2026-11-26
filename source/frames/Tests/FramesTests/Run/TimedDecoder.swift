@@ -38,6 +38,7 @@ final class TimedDecoder: MediaDecoder, @unchecked Sendable {
     func picture(
         of file: MediaFile,
         atFrame index: Int,
+        play: MediaPlay,
         reading: PictureReading
     ) throws -> Pixels {
         clock.advance(by: readSeconds)
@@ -46,7 +47,7 @@ final class TimedDecoder: MediaDecoder, @unchecked Sendable {
             times.add(readSeconds, to: .decode)
         }
 
-        return try decoder.picture(of: file, atFrame: index, reading: reading)
+        return try decoder.picture(of: file, atFrame: index, play: play, reading: reading)
     }
 
     func picture(
@@ -83,6 +84,10 @@ final class TimedDecoder: MediaDecoder, @unchecked Sendable {
         to end: Double
     ) throws -> SoundBuffer {
         try decoder.sound(of: file, from: start, to: end)
+    }
+
+    func frameRendered(showing frames: [MediaFrame]) {
+        decoder.frameRendered(showing: frames)
     }
 
     func readings() -> MediaReadings {

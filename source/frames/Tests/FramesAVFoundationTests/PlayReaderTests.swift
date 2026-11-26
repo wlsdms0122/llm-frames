@@ -1,5 +1,5 @@
 //
-//  VideoReaderTests.swift
+//  PlayReaderTests.swift
 //  FramesAVFoundationTests
 //
 //  Created by JSilver on 11/26/26.
@@ -12,11 +12,11 @@ import Frames
 import FramesTestMedia
 import Testing
 
-// A video's reader reading frames in a turn and holding them (FRAMES-21 Rules). Serialized, so that the tests running
+// A play's reader reading frames in a turn and holding them (FRAMES-21 Rules). Serialized, so that the tests running
 // at once read far fewer files with AVFoundation than the 64 at once at which its reads stop finishing (FRAMES-21
 // Notes).
-@Suite("VideoReader Tests", .serialized, .ownThread)
-struct VideoReaderTests {
+@Suite("PlayReader Tests", .serialized, .ownThread)
+struct PlayReaderTests {
     // MARK: - Property
     // MARK: - Initializer
     // MARK: - Test
@@ -25,7 +25,7 @@ struct VideoReaderTests {
         // Given
         let directory = try TemporaryDirectory()
         let movie = try await Self.movie(in: directory)
-        let sut = try #require(try VideoReader(path: movie))
+        let sut = PlayReader(video: try #require(try VideoReader(path: movie)))
 
         // When
         let first = try #require(try sut.buffer(atFrame: 2, path: movie, turn: 4, room: 0) { true })
@@ -49,7 +49,7 @@ struct VideoReaderTests {
         // Given
         let directory = try TemporaryDirectory()
         let movie = try await Self.movie(in: directory)
-        let sut = try #require(try VideoReader(path: movie))
+        let sut = PlayReader(video: try #require(try VideoReader(path: movie)))
         _ = try sut.buffer(atFrame: 0, path: movie, turn: 1, room: 0) { true }
         _ = try sut.buffer(atFrame: 2, path: movie, turn: 1, room: 0) { true }
         sut.close()
@@ -68,7 +68,7 @@ struct VideoReaderTests {
         // Given
         let directory = try TemporaryDirectory()
         let movie = try await Self.movie(in: directory)
-        let sut = try #require(try VideoReader(path: movie))
+        let sut = PlayReader(video: try #require(try VideoReader(path: movie)))
         _ = try sut.buffer(atFrame: 0, path: movie, turn: 3, room: 0) { true }
         sut.close()
 
@@ -90,14 +90,14 @@ struct VideoReaderTests {
         // Given
         let directory = try TemporaryDirectory()
         let movie = try await Self.movie(in: directory)
-        let probe = try #require(try VideoReader(path: movie))
+        let probe = PlayReader(video: try #require(try VideoReader(path: movie)))
         let probed = try #require(try probe.buffer(atFrame: 0, path: movie, turn: 1, room: 0) { true })
         let bytes = CVPixelBufferGetDataSize(probed.buffer)
         let budget = MemoryBudget(limit: .unlimited)
         let limited = MemoryBudget(limit: try #require(MemorySize("1MB")))
         limited.require(MemorySize.megabyte - 2 * bytes, for: .frames)
-        let sut = try #require(try VideoReader(path: movie, budget: limited))
-        let free = try #require(try VideoReader(path: movie, budget: budget))
+        let sut = PlayReader(video: try #require(try VideoReader(path: movie)), budget: limited)
+        let free = PlayReader(video: try #require(try VideoReader(path: movie)), budget: budget)
 
         // When
         _ = try sut.buffer(atFrame: 2, path: movie, turn: 6, room: 0) { true }
@@ -120,13 +120,13 @@ struct VideoReaderTests {
         // Given
         let directory = try TemporaryDirectory()
         let movie = try await Self.movie(in: directory)
-        let probe = try #require(try VideoReader(path: movie))
+        let probe = PlayReader(video: try #require(try VideoReader(path: movie)))
         let probed = try #require(try probe.buffer(atFrame: 0, path: movie, turn: 1, room: 0) { true })
         let bytes = CVPixelBufferGetDataSize(probed.buffer)
         let budget = MemoryBudget(limit: try #require(MemorySize("1MB")))
         budget.require(MemorySize.megabyte - 5 * bytes, for: .frames)
         let granted = budget.take(5 * bytes, for: .turns)
-        let sut = try #require(try VideoReader(path: movie, budget: budget))
+        let sut = PlayReader(video: try #require(try VideoReader(path: movie)), budget: budget)
 
         // When
         _ = try sut.buffer(atFrame: 2, path: movie, turn: 3, room: 5 * bytes) { true }
@@ -139,6 +139,44 @@ struct VideoReaderTests {
         #expect(turns.refused == 0)
         #expect(budget.take(3 * bytes, for: .readAhead))
         #expect(!budget.take(1, for: .readAhead))
+    }
+
+    @Test("a turn after frames shown from pictures another play read reads by the step from the frame shown last")
+    func holdsTurnFramesByShownStep() async throws {
+        // Given
+        let directory = try TemporaryDirectory()
+        let movie = try await Self.movie(in: directory)
+        let sut = PlayReader(video: try #require(try VideoReader(path: movie)))
+        _ = try sut.buffer(atFrame: 0, path: movie, turn: 1, room: 0) { true }
+        sut.shown(frame: 4)
+        sut.close()
+
+        // When
+        _ = try sut.buffer(atFrame: 5, path: movie, turn: 4, room: 0) { true }
+
+        // Then
+        #expect((0..<12).filter { sut.holds(frame: $0) } == [6, 7, 8])
+    }
+
+    @Test("an ended play lets go of its reader and gives back the frames its turn holds, so its next frame is decoded")
+    func endsPlay() async throws {
+        // Given
+        let directory = try TemporaryDirectory()
+        let movie = try await Self.movie(in: directory)
+        let budget = MemoryBudget(limit: try #require(MemorySize("1GB")))
+        let sut = PlayReader(video: try #require(try VideoReader(path: movie)), budget: budget)
+        _ = try sut.buffer(atFrame: 2, path: movie, turn: 4, room: 0) { true }
+        let heldBefore = budget.counted
+
+        // When
+        sut.end()
+        let next = try #require(try sut.buffer(atFrame: 3, path: movie, turn: 1, room: 0) { true })
+
+        // Then
+        #expect(heldBefore > 0)
+        #expect(budget.counted == 0)
+        #expect(!sut.holdsFrames)
+        #expect(next.decoded > 0)
     }
 
     // MARK: - Private

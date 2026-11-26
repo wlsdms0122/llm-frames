@@ -28,9 +28,10 @@ struct EmptySoundDecoder: MediaDecoder {
     func picture(
         of file: MediaFile,
         atFrame index: Int,
+        play: MediaPlay,
         reading: PictureReading
     ) throws -> Pixels {
-        try decoder.picture(of: file, atFrame: index, reading: reading)
+        try decoder.picture(of: file, atFrame: index, play: play, reading: reading)
     }
 
     func picture(
@@ -70,6 +71,10 @@ struct EmptySoundDecoder: MediaDecoder {
         guard file.path == emptyFile else { return sound }
 
         return SoundBuffer(sampleRate: sound.sampleRate, channels: sound.channels, samples: [], layout: sound.layout)
+    }
+
+    func frameRendered(showing frames: [MediaFrame]) {
+        decoder.frameRendered(showing: frames)
     }
 
     // Reports no medium and no time, as a run's report of it would be empty.

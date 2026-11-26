@@ -16,9 +16,11 @@ import os
 // video with AVFoundation, its preferred transform applied. Each takes its samples as the file stores them and converts
 // their colour by the fixed formulas of FRAMES-26: in the colour space a reading names, or the one its tags name. A
 // `platform` reading instead converts the picture from its file's colour by Core Image's colour management. A page of a
-// PDF is checked and drawn by `PageReader`. A video, a sound track and a PDF are loaded once and kept, and a video read
-// forward has its next frame read ahead by `PictureLookahead`. It keeps readers open within the count `ReaderBound`
-// holds them to and the room the run's budget grants them, and a video past either takes turns (FRAMES-30). Made to
+// PDF is checked and drawn by `PageReader`. A video, a sound track and a PDF are loaded once and kept, a video's frames
+// are read by a `PlayReader` for each play of it, and a play read forward has its next frame read ahead by
+// `PictureLookahead`. It keeps readers open within the count `ReaderBound` holds them to and the room the run's budget
+// grants them, and a play past either takes turns (FRAMES-30). Once a frame is rendered, a play it did not show is over,
+// and the decoder keeps nothing of it: its reader, the frames held for it and its records go (FRAMES-21 Rules). Made to
 // convert on the GPU, on a machine with a Metal device, it takes a video's frames read as working values to a surface
 // by `MetalPictureConverter` wherever the conversion's steps and the frame's placement allow, and every other picture
 // on the CPU (FRAMES-21 Pictures). A frame those allow that Metal does not convert stops the read. The largest picture
@@ -35,10 +37,10 @@ package final class AVFoundationDecoder: Sendable {
     // Nil for a decoder made to convert on the CPU, and on a machine with no Metal device.
     private let metal: MetalPictureConverter?
     private let managedConverter = ManagedPictureConverter()
-    // The most videos the decoder keeps a reader open on, chosen under the 64 readers decoding at once in one process
-    // past which AVFoundation decoded no frame for another on macOS 27.2 (FRAMES-21 Notes), a count another system
-    // may set otherwise, and a video read by one of the reads ahead and callers at once may open a reader past this
-    // count. The readers open are charged no more than the budget grants them, each the charge `readerCost(of:)`
+    // The most readers the decoder keeps open, one for each play of a video, chosen under the 64 readers decoding at
+    // once in one process past which AVFoundation decoded no frame for another on macOS 27.2 (FRAMES-21 Notes), a
+    // count another system may set otherwise, and a play read by one of the reads ahead and callers at once may open a
+    // reader past this count. The readers open are charged no more than the budget grants them, each the charge `readerCost(of:)`
     // gives, and a reader opened for a turn reads `turnFrames` frames, admitted with room for those it holds.
     private static let openReaders = 48
     private static let turnFrames = 8
@@ -46,7 +48,8 @@ package final class AVFoundationDecoder: Sendable {
     private let budget: MemoryBudget
     private let lookahead: PictureLookahead
     private let videos = OSAllocatedUnfairLock<[String: VideoReader]>(initialState: [:])
-    private let readers: ReaderBound
+    private let plays = OSAllocatedUnfairLock<[VideoPlay: PlayReader]>(initialState: [:])
+    private let readers: ReaderBound<VideoPlay>
     private let sounds = OSAllocatedUnfairLock<[String: SoundReader]>(initialState: [:])
     private let documents = OSAllocatedUnfairLock<[String: PageReader]>(initialState: [:])
     // The stages run on a caller's thread, and those run on the lookahead's threads reading ahead.
@@ -72,33 +75,48 @@ package final class AVFoundationDecoder: Sendable {
     // MARK: - Private
     private func video(at path: String) throws -> VideoReader? {
         if let video = videos.withLock({ $0[path] }) { return video }
-        guard let video = try VideoReader(path: path, budget: budget) else { return nil }
+        guard let video = try VideoReader(path: path) else { return nil }
         videos.withLock { $0[path] = video }
 
         return video
     }
 
-    // Records a read of frame `index` of the video at `path`, which a held frame gives with no reader, and closes the
-    // readers the bound closes, holding no video's lock while it does. Gives the frames a reader opened for the read
+    // The reader of `play` of `video`, made at its first read.
+    private func reader(
+        of play: VideoPlay,
+        in video: VideoReader
+    ) -> PlayReader {
+        plays.withLock { plays in
+            if let reader = plays[play] { return reader }
+            let reader = PlayReader(video: video, budget: budget)
+            plays[play] = reader
+
+            return reader
+        }
+    }
+
+    // Records a read of frame `index` in `play` of `video`, which a held frame gives with no reader, and closes the
+    // readers the bound closes, holding no play's lock while it does. Gives the frames a reader opened for the read
     // reads, `turnFrames` in a turn and one otherwise, and the bytes the budget granted its `turns` for the frames a
     // turn holds, asked for each frame the turn would hold at a frame of the video's stored size, the measure of a
     // reader's cost. Refuses a limit under the floor the reader raises.
     private func recordRead(
-        of video: VideoReader,
-        at path: String,
+        of play: VideoPlay,
+        by reader: PlayReader,
+        in video: VideoReader,
         frame index: Int
     ) throws -> (turn: Int, room: Int) {
-        guard !video.holds(frame: index) else { return (1, 0) }
+        guard !reader.holds(frame: index) else { return (1, 0) }
 
-        let holds = video.turnHolds(atFrame: index, turn: Self.turnFrames)
+        let holds = reader.turnHolds(atFrame: index, turn: Self.turnFrames)
         let (closing, turnRoom) = try readers.admit(
-            path,
+            play,
             cost: Self.readerCost(of: video),
             turnRoom: Int(Double(holds) * Self.frameBytes(of: video))
-        ) { [videos] path in
-            videos.withLock { $0[path] }?.holdsFrames ?? false
+        ) { [plays] play in
+            plays.withLock { $0[play] }?.holdsFrames ?? false
         }
-        let closed = videos.withLock { videos in closing.compactMap { videos[$0] } }
+        let closed = plays.withLock { plays in closing.compactMap { plays[$0] } }
         for reader in closed {
             reader.close()
         }
@@ -106,22 +124,25 @@ package final class AVFoundationDecoder: Sendable {
         return turnRoom.map { (Self.turnFrames, $0) } ?? (1, 0)
     }
 
-    // The buffer of frame `index` of the video at `path` as `VideoReader` gives it, read by a reader the bound holds
+    // The buffer of frame `index` in `play` of `video` as `PlayReader` gives it, read by a reader the bound holds
     // open: a read whose reader the bound closed between its record and its read, from another thread, or whose held
     // frame a read ahead let go of in between, is recorded again, so every reader open is one the budget counts.
     private func admittedBuffer(
-        of video: VideoReader,
-        at path: String,
+        of play: VideoPlay,
+        in video: VideoReader,
         frame index: Int
     ) throws -> (buffer: CVImageBuffer, decoded: Int, reopened: Bool) {
+        let reader = reader(of: play, in: video)
         while true {
-            let (turn, room) = try recordRead(of: video, at: path, frame: index)
-            let read = try video.buffer(atFrame: index, path: path, turn: turn, room: room) { readers.isOpen(path) }
+            let (turn, room) = try recordRead(of: play, by: reader, in: video, frame: index)
+            let read = try reader.buffer(atFrame: index, path: play.path, turn: turn, room: room) {
+                readers.isOpen(play)
+            }
             if let read { return read }
         }
     }
 
-    // The budget's charge for a reader open on the video, a number of its frames of `frameBytes(of:)`: 28 given as
+    // The budget's charge for a reader open for a play of the video, a number of its frames of `frameBytes(of:)`: 28 given as
     // Y'CbCr and 19 given as half floats (FRAMES-21 Rules). The numbers are near the most VideoToolbox's decoding
     // service was observed to hold for one reader on the reference machine (FRAMES-21 Notes).
     private static func readerCost(of video: VideoReader) -> Int {
@@ -239,8 +260,8 @@ package final class AVFoundationDecoder: Sendable {
     }
 
     // `read` pictures of `file` given and `decoded` decoded by `conversion` on `device`, nil for a `platform` reading,
-    // which only `transcode` makes and no run reports. A video's reader opened again is `reopened`, and a still's or a
-    // frame's file read again is `readFile` read before.
+    // which only `transcode` makes and no run reports, summed over the file's plays. A play's reader opened again is
+    // `reopened`, and a still's or a frame's file read again is `readFile` read before.
     private func record(
         _ file: MediaFile,
         conversion: WorkingConversion?,
@@ -483,6 +504,7 @@ extension AVFoundationDecoder: MediaDecoder {
     package func picture(
         of file: MediaFile,
         atFrame index: Int,
+        play: MediaPlay,
         reading: PictureReading
     ) throws -> Pixels {
         let frameTimes: [Double]
@@ -529,16 +551,17 @@ extension AVFoundationDecoder: MediaDecoder {
 
         let path = file.path
         let tagged = video.taggedColor
+        let videoPlay = VideoPlay(path: path, play: play)
         let picture = try lookahead.picture(
             atFrame: index,
-            of: path,
+            of: videoPlay,
             count: count,
             bytes: Int(video.displaySize.width * video.displaySize.height) * 8,
             reading: reading
         ) { [self] index, isAhead in
             let clock = isAhead ? self.aheadClock : self.clock
             let (buffer, decoded, reopened) = try clock.measure(.decode) {
-                try admittedBuffer(of: video, at: path, frame: index)
+                try admittedBuffer(of: videoPlay, in: video, frame: index)
             }
             if case .platform = reading {
                 let image = video.taggedImage(of: buffer)
@@ -756,6 +779,35 @@ extension AVFoundationDecoder: MediaDecoder {
         guard let sound = try soundTrack(at: file.path) else { throw DecoderError.noSound(file: file.path) }
 
         return try clock.measure(.decode) { try sound.sound(from: start, to: end, path: file.path) }
+    }
+
+    // The plays of videos none of `frames` is in end once the frames being read ahead for them are read: their readers
+    // close, the frames their turns hold and their frames read ahead are given back to the budget, and the decoder,
+    // the bound and the lookahead keep no record of them. Each play shown takes the frame of it shown last as the one
+    // its next turn steps from, where that is later than the frame it asked last.
+    package func frameRendered(showing frames: [MediaFrame]) {
+        let shown = frames.compactMap { frame -> (play: VideoPlay, reading: PictureReading, index: Int)? in
+            let file = MediaFile(picture: frame.media)
+            guard case .video = file.kind, case let .frame(index) = frame.picture else { return nil }
+
+            return (VideoPlay(path: file.path, play: frame.play), frame.reading, index)
+        }
+        lookahead.frameRendered(showing: shown)
+
+        let shownLast = shown.reduce(into: [VideoPlay: Int]()) { $0[$1.play] = $1.index }
+        let (over, kept) = plays.withLock { plays in
+            let over = plays.filter { shownLast[$0.key] == nil }
+            plays = plays.filter { shownLast[$0.key] != nil }
+
+            return (over, plays.compactMap { play, reader in shownLast[play].map { (reader: reader, index: $0) } })
+        }
+        readers.end(Set(over.keys))
+        for reader in over.values {
+            reader.end()
+        }
+        for (reader, index) in kept {
+            reader.shown(frame: index)
+        }
     }
 
     package func readings() -> MediaReadings {

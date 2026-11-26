@@ -219,6 +219,7 @@ package struct Evaluator: Sendable {
 
         return source(
             of: media.media,
+            playedAt: clip.place,
             colorSpace: media.colorSpace,
             isToneMapped: media.isToneMapped,
             clock: media.clock,
@@ -259,7 +260,9 @@ package struct Evaluator: Sendable {
                     of: transition.incoming,
                     in: sequence,
                     parents: parents,
-                    matte: spans.matte.map { matte(of: $0, at: progress) },
+                    matte: spans.matte.map {
+                        matte(of: $0, playedAt: sequence.storyline[transition.incoming].place, at: progress)
+                    },
                     at: sample,
                     seed: seed
                 )
@@ -363,6 +366,7 @@ package struct Evaluator: Sendable {
             content = .picture(PictureItem(
                 source: source(
                     of: media.media,
+                    playedAt: entry.place,
                     colorSpace: media.colorSpace,
                     isToneMapped: media.isToneMapped,
                     clock: entry.clock,
@@ -424,6 +428,7 @@ package struct Evaluator: Sendable {
         let item = PictureItem(
             source: source(
                 of: media.media,
+                playedAt: entry.place,
                 colorSpace: media.colorSpace,
                 isToneMapped: media.isToneMapped,
                 clock: entry.clock,
@@ -475,9 +480,10 @@ package struct Evaluator: Sendable {
 
     // A nested sequence's list carries no colour space, since its pictures carry what the decoder needs. The media time
     // at the sample's T picks the media frame and a nested sequence's membership and content. A clip without a clock
-    // shows media time 0.
+    // shows media time 0. `place` is the clip's, whose play the media frame is read in.
     private func source(
         of media: ResolvedMediaContent,
+        playedAt place: String,
         colorSpace: ColorSpace?,
         isToneMapped: Bool?,
         clock: MediaClock?,
@@ -491,6 +497,7 @@ package struct Evaluator: Sendable {
             return .media(MediaFrame(
                 media: media,
                 mediaTime: mediaTime,
+                play: .place(place),
                 reading: .working(colorSpace: colorSpace, targetPeak: isToneMapped == true ? targetPeak : nil)
             ))
 
@@ -513,15 +520,18 @@ package struct Evaluator: Sendable {
         }
     }
 
-    // The matte's media frame is picked at the progress at T.
+    // The matte's media frame is picked at the progress at T, played at the matte's place in the transition of the
+    // incoming entry at `place`.
     private func matte(
         of matte: ResolvedMatte,
+        playedAt place: String,
         at progress: SampleProgress
     ) -> PictureMatte {
         PictureMatte(
             frame: MediaFrame(
                 media: matte.media,
                 progress: progress.frameProgress,
+                place: "\(place).transition.matte",
                 reading: .analysis(colorSpace: matte.media.colorSpace)
             ),
             progress: transitionSampler.matteProgress(easedBy: matte.ease, at: progress),
@@ -530,7 +540,8 @@ package struct Evaluator: Sendable {
         )
     }
 
-    // The cover's media frame is picked at the progress at T, and its opacity follows the incoming clip's progress.
+    // The cover's media frame is picked at the progress at T, played at the cover's place in the incoming entry's
+    // transition, and its opacity follows the incoming clip's progress.
     private func coverItems(
         of transition: ActiveTransition?,
         in storyline: [ResolvedStorylineClip],
@@ -555,6 +566,7 @@ package struct Evaluator: Sendable {
                 source: .media(MediaFrame(
                     media: media,
                     progress: progress.frameProgress,
+                    place: "\(storyline[transition.incoming].place).transition.cover",
                     reading: .working(colorSpace: media.colorSpace, targetPeak: targetPeak)
                 )),
                 rectangle: nil,

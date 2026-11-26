@@ -182,7 +182,7 @@ struct PageReaderTests {
             try sut.picture(of: file, region: large, scale: 1, reading: .tagged).bitmap
         }
         #expect(throws: DecoderError.pageFrame(file: path, page: 1)) {
-            try sut.picture(of: file, atFrame: 0, reading: .tagged).bitmap
+            try sut.picture(of: file, atFrame: 0, play: .file, reading: .tagged).bitmap
         }
     }
 

@@ -11,10 +11,13 @@ import os
 
 // Media pictures read through the decoder, kept from the frame that read them to the next: a frame shows a file's
 // frame again where its clip is slower than the sequence's rate, a transition shows two frames of one file, and a page
-// is shown on every frame of its clip. A frame is kept for each reading of it, and a page's picture for each region,
-// scale and reading, so a picture is reused only for the very request a frame makes (FRAMES-20 Pictures). Once a frame
-// is drawn, `frameDrawn()` lets go of every picture it did not use, so the pictures kept are those of the frame drawn
-// last and those the frame being drawn has read. The run's budget counts every picture of pixels kept, a frame's
+// is shown on every frame of its clip. A frame is kept for each reading of it whichever play asks it, so a frame two
+// clips show in one frame, or in two frames one after the other, is read once and the play that asks it second asks
+// the decoder nothing, while two clips that show it further apart read it each (FRAMES-21 Rules), and a page's picture
+// for each region, scale and reading, so a picture is reused only for the very request a frame makes (FRAMES-20
+// Pictures). Once a frame is drawn, `frameDrawn()` lets go of every picture it did not use, so the pictures kept are
+// those of the frame drawn last and those the frame being drawn has read, and gives the decoder the media frames the
+// frame asked for, those it took from the pictures kept among them, so the decoder ends the plays it did not show. The run's budget counts every picture of pixels kept, a frame's
 // picture of its displayed size at 8 bytes a pixel as working values and 4 as an analysis picture, as its `pictures`
 // hold, which is never refused and stays within the floor `reserve(for:)` gives for every list checked before it is
 // drawn. A page's pictures are not counted (FRAMES-30 The budget).
@@ -27,6 +30,8 @@ final class MediaPictureCache: Sendable {
     )
     private let pages = OSAllocatedUnfairLock<[Kept<PageKey, CGImage>]>(uncheckedState: [])
     private let sizes = OSAllocatedUnfairLock<[String: Size]>(initialState: [:])
+    // The media frames the frame being drawn has asked for, in the order it asked them.
+    private let shown = OSAllocatedUnfairLock<[MediaFrame]>(initialState: [])
 
     var largestPictureSide: Int {
         decoder.largestPictureSide
@@ -81,6 +86,7 @@ final class MediaPictureCache: Sendable {
         region: PageRegion,
         scale: Double
     ) throws -> CGImage {
+        shown.withLock { $0.append(frame) }
         let file = MediaFile(picture: frame.media)
         let key = PageKey(
             path: file.path,
@@ -99,14 +105,21 @@ final class MediaPictureCache: Sendable {
         try decoder.pageSize(of: MediaFile(picture: frame.media))
     }
 
-    // Lets go of every picture the frame drawn last did not use, and counts the rest unused by the next frame.
+    // Lets go of every picture the frame drawn last did not use, counts the rest unused by the next frame, and gives
+    // the decoder the media frames the frame drawn last asked for.
     func frameDrawn() {
         budget.give(drop(in: pictures), for: .pictures)
         _ = drop(in: pages)
+        decoder.frameRendered(showing: shown.withLock { shown in
+            defer { shown = [] }
+
+            return shown
+        })
     }
 
     // MARK: - Private
     private func picture(of frame: MediaFrame) throws -> (pixels: Pixels, image: CGImage) {
+        shown.withLock { $0.append(frame) }
         let file = MediaFile(picture: frame.media)
         let request = PictureRequest(path: file.path, picture: frame.picture, reading: frame.reading)
         if let kept = Self.use(request, in: pictures) { return kept }
@@ -201,7 +214,7 @@ extension MediaPictureCache {
         var isUsed: Bool
     }
 
-    // A frame's picture of a file, read as its frame says.
+    // A frame's picture of a file, read as its frame says, in any play.
     private struct PictureRequest: Equatable {
         let path: String
         let picture: MediaPicture

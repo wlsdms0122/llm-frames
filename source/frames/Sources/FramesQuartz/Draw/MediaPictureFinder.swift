@@ -7,10 +7,11 @@
 
 import Frames
 
-// Finds the media pictures of pixels a display list reads through the renderer's picture cache, each once: the media
-// frame of every picture item that is no page, every transition matte that is no page and the map of every `displace`
-// operation that moves a picture, in each of its sample lists, the lists nested in it and its track mattes' lists. A
-// page's pictures are not among them, since the renderer finds their regions and scales as it draws.
+// Finds the media pictures of pixels a display list reads through the renderer's picture cache, each once, as the
+// cache keeps it, whichever play reads it: the media frame of every picture item that is no page, every transition
+// matte that is no page and the map of every `displace` operation that moves a picture, in each of its sample lists,
+// the lists nested in it and its track mattes' lists. A page's pictures are not among them, since the renderer finds
+// their regions and scales as it draws.
 struct MediaPictureFinder {
     // MARK: - Property
     // MARK: - Initializer
@@ -79,7 +80,8 @@ struct MediaPictureFinder {
             for operation in entry.operations {
                 guard case let .displace(file, amount, _) = operation, amount > 0 else { continue }
 
-                add(MediaFrame(media: PinnedMedia(source: .file(file, frameTimes: nil)), index: 0), to: &frames)
+                let map = MediaFrame(media: PinnedMedia(source: .file(file, frameTimes: nil)), index: 0, play: .file)
+                add(map, to: &frames)
             }
         }
     }
@@ -88,7 +90,10 @@ struct MediaPictureFinder {
         _ frame: MediaFrame,
         to frames: inout [MediaFrame]
     ) {
-        guard frame.picture != .page, !frames.contains(frame) else { return }
+        let isFound = frames.contains {
+            $0.media == frame.media && $0.picture == frame.picture && $0.reading == frame.reading
+        }
+        guard frame.picture != .page, !isFound else { return }
 
         frames.append(frame)
     }

@@ -28,7 +28,7 @@ struct RunReportTests {
         recorder.measure(.resolve, reading: decoder) { clock.advance(by: 2) }
         try recorder.measure(.draw, reading: decoder) {
             clock.advance(by: 0.5)
-            _ = try decoder.picture(of: video, atFrame: 0, reading: .tagged).bitmap
+            _ = try decoder.picture(of: video, atFrame: 0, play: .file, reading: .tagged).bitmap
         }
         recorder.measureWaitingOnEncoder { clock.advance(by: 0.75) }
         clock.advance(by: 0.125)
@@ -75,7 +75,7 @@ struct RunReportTests {
         for index in 0..<2 {
             try recorder.measure(.draw, reading: decoder) {
                 clock.advance(by: 0.5)
-                _ = try decoder.picture(of: video, atFrame: index, reading: .tagged).bitmap
+                _ = try decoder.picture(of: video, atFrame: index, play: .file, reading: .tagged).bitmap
             }
         }
         recorder.measureWaitingOnEncoder { clock.advance(by: 0.75) }

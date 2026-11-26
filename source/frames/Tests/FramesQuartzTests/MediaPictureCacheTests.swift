@@ -64,7 +64,8 @@ struct MediaPictureCacheTests {
         let first = item(showing: "/cache/first.mov")
         let page = MediaFrame(
             media: PinnedMedia(source: .page(PinnedFile(path: "/cache/page.pdf", sha256: ""), page: 1)),
-            index: 0
+            index: 0,
+            play: .file
         )
         let pageItem = DisplayItem(
             content: .picture(
@@ -105,12 +106,70 @@ struct MediaPictureCacheTests {
         #expect(pictures.peak == pictures.floor)
     }
 
+    @Test("a frame two plays of one file show is read once, and a list's check counts its picture once")
+    func readsFrameOfTwoPlaysOnce() throws {
+        // Given
+        let budget = MemoryBudget(limit: .unlimited)
+        let decoder = ReadingDecoder()
+        let sut = QuartzRenderer(decoder: decoder, budget: budget)
+        let tiles = list(of: [
+            item(showing: "/cache/tile.mov", play: .place("clips[0]")),
+            item(showing: "/cache/tile.mov", play: .place("clips[1]"))
+        ])
+
+        // When
+        try sut.check(tiles)
+        _ = try sut.frame(of: tiles)
+
+        // Then
+        #expect(decoder.readings(of: "/cache/tile.mov").count == 1)
+        let pictures = try #require(budget.usage.holders.first { $0.holder == .pictures })
+        #expect(pictures.floor == 2 * 32)
+    }
+
+    @Test("each frame drawn gives the decoder the plays it showed, those drawn from a picture kept for another play among them")
+    func givesShownPlays() throws {
+        // Given
+        let decoder = ReadingDecoder()
+        let sut = QuartzRenderer(decoder: decoder)
+        let first = item(showing: "/cache/tile.mov", play: .place("clips[0]"))
+        let second = item(showing: "/cache/tile.mov", play: .place("clips[1]"))
+
+        // When
+        _ = try sut.frame(of: list(of: [first, second]))
+        _ = try sut.frame(of: list(of: [second]))
+        _ = try sut.frame(of: list(of: []))
+
+        // Then
+        #expect(decoder.plays == [.place("clips[0]")])
+        #expect(decoder.frames.map { $0.map(\.play) } == [[.place("clips[0]"), .place("clips[1]")], [.place("clips[1]")], []])
+    }
+
+    @Test("the metal renderer gives the decoder the plays each frame it drew showed, a frame it read twice among them")
+    func givesShownPlaysFromMetal() throws {
+        // Given
+        let decoder = ReadingDecoder()
+        let sut = MetalRenderer(decoder: decoder)
+        let first = item(showing: "/cache/tile.mov", play: .place("clips[0]"))
+
+        // When
+        _ = try sut.frame(of: list(of: [first]))
+        _ = try sut.frame(of: list(of: []))
+
+        // Then
+        #expect(decoder.frames.map { Set($0.map(\.play)) } == [[.place("clips[0]")], []])
+    }
+
     // MARK: - Private
-    // A picture item of frame 0 of the video at `path`, filling a 2 by 2 list.
-    private func item(showing path: String) -> DisplayItem {
+    // A picture item of frame 0 of the video at `path` in `play`, filling a 2 by 2 list.
+    private func item(
+        showing path: String,
+        play: MediaPlay = .file
+    ) -> DisplayItem {
         let frame = MediaFrame(
             media: PinnedMedia(source: .file(PinnedFile(path: path, sha256: ""), frameTimes: [0])),
-            index: 0
+            index: 0,
+            play: play
         )
         let picture = PictureItem(
             source: .media(frame),

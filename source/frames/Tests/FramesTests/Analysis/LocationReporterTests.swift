@@ -90,7 +90,7 @@ struct LocationReporterTests {
         // The 40 x 20 box shows the 400 x 200 picture, so one box pixel is ten media pixels. Doubled and turned a
         // quarter clockwise about the box's centre, it stands at (60, 10) to (100, 90), its x axis pointing down.
         let picture = PictureItem(
-            source: .media(MediaFrame(media: video, index: 2)),
+            source: .media(MediaFrame(media: video, index: 2, play: .file)),
             rectangle: Rectangle(x: 0, y: 0, width: 400, height: 200),
             destination: Rectangle(x: 0, y: 0, width: 40, height: 20)
         )
@@ -120,7 +120,7 @@ struct LocationReporterTests {
         // (97.5, 50), since its homography's w is 0.8 there.
         let media = DisplayItem(
             content: .picture(PictureItem(
-                source: .media(MediaFrame(media: video, index: 0)),
+                source: .media(MediaFrame(media: video, index: 0, play: .file)),
                 rectangle: Rectangle(x: 0, y: 0, width: 200, height: 200),
                 destination: Rectangle(x: 0, y: 0, width: 100, height: 100)
             )),
@@ -160,7 +160,7 @@ struct LocationReporterTests {
             source: .page(PinnedFile(path: "/abs/deck.pdf", sha256: String(repeating: "b", count: 64)), page: 3)
         )
         let picture = PictureItem(
-            source: .media(MediaFrame(media: page, index: 0)),
+            source: .media(MediaFrame(media: page, index: 0, play: .file)),
             rectangle: Rectangle(x: 0, y: 0, width: 200, height: 100),
             destination: Rectangle(x: 0, y: 0, width: 100, height: 50)
         )
@@ -180,7 +180,7 @@ struct LocationReporterTests {
         // A nested list of 100 x 50 drawn at (100, 50) scaled 1, holding the media's middle 200 x 100 over all of it.
         let media = DisplayItem(
             content: .picture(PictureItem(
-                source: .media(MediaFrame(media: video, index: 0)),
+                source: .media(MediaFrame(media: video, index: 0, play: .file)),
                 rectangle: Rectangle(x: 100, y: 50, width: 200, height: 100),
                 destination: Rectangle(x: 0, y: 0, width: 100, height: 50)
             )),
@@ -218,7 +218,7 @@ struct LocationReporterTests {
         )))
         let picture = DisplayItem(
             content: .picture(PictureItem(
-                source: .media(MediaFrame(media: video, index: 1)),
+                source: .media(MediaFrame(media: video, index: 1, play: .file)),
                 rectangle: Rectangle(x: 0, y: 0, width: 200, height: 100),
                 destination: frame
             )),
@@ -252,7 +252,7 @@ struct LocationReporterTests {
     func leavesWholePicturePointOut() throws {
         // Given
         let cover = DisplayItem(content: .picture(PictureItem(
-            source: .media(MediaFrame(media: video, index: 3)),
+            source: .media(MediaFrame(media: video, index: 3, play: .file)),
             rectangle: nil,
             destination: Rectangle(x: 0, y: 0, width: 200, height: 100)
         )))

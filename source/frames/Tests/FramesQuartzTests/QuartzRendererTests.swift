@@ -418,6 +418,7 @@ struct QuartzRendererTests {
             source: .media(MediaFrame(
                 media: media,
                 index: 0,
+                play: .file,
                 reading: .working(colorSpace: .rec2100HLG, targetPeak: 203)
             )),
             rectangle: nil,
@@ -575,7 +576,8 @@ struct QuartzRendererTests {
         let source: PictureItemSource = addition == .media
             ? .media(MediaFrame(
                 media: PinnedMedia(source: .file(PinnedFile(path: "/picture.png", sha256: ""), frameTimes: nil)),
-                index: 0
+                index: 0,
+                play: .file
             ))
             : .displayList(list(size: 4, items: [DisplayItem(content: .path(fill))]))
         let picture = PictureItem(

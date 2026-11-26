@@ -140,9 +140,9 @@ struct MatteApplierTests {
         // Given
         let decoder = ReadingDecoder()
         let sut = QuartzRenderer(decoder: decoder)
-        let matte = MediaFrame(media: pinned(at: "/matte.png"), index: 0, reading: .analysis(colorSpace: .rec2100PQ))
+        let matte = MediaFrame(media: pinned(at: "/matte.png"), index: 0, play: .file, reading: .analysis(colorSpace: .rec2100PQ))
         let picture = PictureItem(
-            source: .media(MediaFrame(media: pinned(at: "/picture.png"), index: 0)),
+            source: .media(MediaFrame(media: pinned(at: "/picture.png"), index: 0, play: .file)),
             rectangle: nil,
             destination: Rectangle(x: 0, y: 0, width: 4, height: 4),
             matte: PictureMatte(frame: matte, progress: 0.5, softness: 0, isInverted: false)
@@ -196,7 +196,7 @@ struct MatteApplierTests {
     }
 
     private func frame(at path: String) -> MediaFrame {
-        MediaFrame(media: pinned(at: path), index: 0)
+        MediaFrame(media: pinned(at: path), index: 0, play: .file)
     }
 
     private func pinned(at path: String) -> PinnedMedia {

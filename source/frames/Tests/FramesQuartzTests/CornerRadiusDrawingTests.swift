@@ -118,7 +118,7 @@ struct CornerRadiusDrawingTests {
             canvas.fill(red: 255, green: 255, blue: 255)
         }
 
-        return MediaFrame(media: PinnedMedia(source: .file(PinnedFile(path: path, sha256: ""), frameTimes: nil)), index: 0)
+        return MediaFrame(media: PinnedMedia(source: .file(PinnedFile(path: path, sha256: ""), frameTimes: nil)), index: 0, play: .file)
     }
 
     private func expect(

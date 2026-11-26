@@ -147,7 +147,7 @@ package struct PointTracker: Sendable {
         atFrame index: Int,
         reading: PictureReading
     ) throws -> GreyImage {
-        GreyImage(picture: try decoder.picture(of: file, atFrame: index, reading: reading).bitmap)
+        GreyImage(picture: try decoder.picture(of: file, atFrame: index, play: .file, reading: reading).bitmap)
     }
 }
 

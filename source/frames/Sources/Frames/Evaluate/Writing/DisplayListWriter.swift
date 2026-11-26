@@ -146,6 +146,7 @@ package struct DisplayListWriter: Sendable {
             JSONValue.object(JSONObject(members: [
                 JSONMember(key: "source", value: values.media(matte.frame.media)),
                 JSONMember(key: "frame", value: frame(of: matte.frame)),
+                JSONMember(key: "play", value: play(of: matte.frame)),
                 JSONMember(key: "colorSpace", value: colorSpace(of: matte.frame.reading)),
                 JSONMember(key: "progress", value: .number(matte.progress)),
                 JSONMember(key: "softness", value: .number(matte.softness)),
@@ -244,6 +245,7 @@ package struct DisplayListWriter: Sendable {
                 JSONMember(key: "kind", value: .string("media")),
                 JSONMember(key: "media", value: values.media(frame.media)),
                 JSONMember(key: "frame", value: self.frame(of: frame)),
+                JSONMember(key: "play", value: play(of: frame)),
                 JSONMember(key: "colorSpace", value: colorSpace(of: frame.reading)),
                 JSONMember(key: "targetPeak", value: targetPeak(of: frame.reading))
             ]))
@@ -263,6 +265,17 @@ package struct DisplayListWriter: Sendable {
             .number(Double(index))
 
         case .page:
+            .null
+        }
+    }
+
+    // The place of the play the frame is read in, null for a file read on its own.
+    private func play(of frame: MediaFrame) -> JSONValue {
+        switch frame.play {
+        case let .place(place):
+            .string(place)
+
+        case .file:
             .null
         }
     }

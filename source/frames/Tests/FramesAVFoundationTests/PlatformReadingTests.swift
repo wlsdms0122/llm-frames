@@ -56,6 +56,7 @@ struct PlatformReadingTests {
         let read = try AVFoundationDecoder().picture(
             of: MediaFile.still(path),
             atFrame: 0,
+            play: .file,
             reading: .platform(colorSpace: space)
         ).bitmap
 

@@ -22,7 +22,7 @@ struct MediaFrameTests {
         let media = PinnedMedia(source: .imageSequence(files, frameTimes: [0, 0.04, 0.08]))
 
         // When
-        let sut = MediaFrame(media: media, mediaTime: 0.05)
+        let sut = MediaFrame(media: media, mediaTime: 0.05, play: .file)
 
         // Then
         #expect(sut.picture == .frame(1))
@@ -35,7 +35,7 @@ struct MediaFrameTests {
         let media = PinnedMedia(source: .file(files[0], frameTimes: [0, 0.5, 1, 1.5]))
 
         // When
-        let sut = MediaFrame(media: media, mediaTime: 1.2)
+        let sut = MediaFrame(media: media, mediaTime: 1.2, play: .file)
 
         // Then
         #expect(sut.picture == .frame(2))
@@ -48,7 +48,7 @@ struct MediaFrameTests {
         let media = PinnedMedia(source: .file(files[2], frameTimes: nil))
 
         // When
-        let sut = MediaFrame(media: media, mediaTime: 3)
+        let sut = MediaFrame(media: media, mediaTime: 3, play: .file)
 
         // Then
         #expect(sut.picture == .frame(0))
@@ -61,7 +61,7 @@ struct MediaFrameTests {
         let media = PinnedMedia(source: .page(files[0], page: 2))
 
         // When
-        let sut = MediaFrame(media: media, index: 3, reading: .working(colorSpace: .srgb, targetPeak: 1000))
+        let sut = MediaFrame(media: media, index: 3, play: .file, reading: .working(colorSpace: .srgb, targetPeak: 1000))
 
         // Then
         #expect(sut.picture == .page)

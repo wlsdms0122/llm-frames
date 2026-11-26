@@ -119,7 +119,7 @@ package struct Transcoder: Sendable {
             throw TranscodeError.highDynamicRangeJPEG(path: request.output, colorSpace: output.space)
         }
 
-        let picture = try decoder.picture(of: file, atFrame: 0, reading: pictureReading(of: reading, for: output)).bitmap
+        let picture = try decoder.picture(of: file, atFrame: 0, play: .file, reading: pictureReading(of: reading, for: output)).bitmap
         // A PNG keeps the bit depth the source probes at, and takes 16 bits in an HDR colour space.
         let sourceDepth = BitDepth(holding: media.colorSpace?.bitDepth ?? 8)
         let depth: BitDepth = output.space.isHighDynamicRange ? .sixteen : sourceDepth
@@ -265,7 +265,7 @@ package struct Transcoder: Sendable {
         let pictureReading = pictureReading(of: reading, for: output)
         for index in 0..<frameCount {
             let frame = file.frameIndex(at: Double(index) / fps)
-            try writer.append(decoder.picture(of: file, atFrame: frame, reading: pictureReading))
+            try writer.append(decoder.picture(of: file, atFrame: frame, play: .file, reading: pictureReading))
         }
         try writer.finish()
 

@@ -12,7 +12,8 @@
 enum RoleCall: Equatable {
     case checkMedia(path: String)
     case readSound(path: String, from: Double, to: Double)
-    case readPicture(path: String, frame: Int, reading: PictureReading)
+    case readPicture(path: String, frame: Int, play: MediaPlay, reading: PictureReading)
+    case renderFrame(showing: [MediaFrame])
     case readPage(path: String, page: Int?, region: PageRegion, scale: Double, reading: PictureReading)
     case checkList(frame: Int)
     case checkPlan(MixPlan)

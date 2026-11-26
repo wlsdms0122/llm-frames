@@ -48,7 +48,7 @@ struct DecoderColorTests {
         let sut = AVFoundationDecoder()
 
         // When
-        let picture = try sut.picture(of: MediaFile.video(file, frameTimes: [0]), atFrame: 0, reading: .tagged).bitmap
+        let picture = try sut.picture(of: MediaFile.video(file, frameTimes: [0]), atFrame: 0, play: .file, reading: .tagged).bitmap
 
         // Then
         let value = workingValue(in: picture, x: 32, y: 32)
@@ -76,7 +76,7 @@ struct DecoderColorTests {
         let sut = AVFoundationDecoder()
 
         // When
-        let picture = try sut.picture(of: MediaFile.still(file), atFrame: 0, reading: .tagged).bitmap
+        let picture = try sut.picture(of: MediaFile.still(file), atFrame: 0, play: .file, reading: .tagged).bitmap
 
         // Then
         let value = workingValue(in: picture, x: 32, y: 32)
@@ -94,7 +94,7 @@ struct DecoderColorTests {
 
         // When
         let probed = try #require(try sut.probedMedia(of: file))
-        let picture = try sut.picture(of: MediaFile.still(file), atFrame: 0, reading: .tagged).bitmap
+        let picture = try sut.picture(of: MediaFile.still(file), atFrame: 0, play: .file, reading: .tagged).bitmap
 
         // Then
         let expected = TransferFunction.sRGB.encode(pow(128.0 / 255, 2.4))
@@ -117,9 +117,10 @@ struct DecoderColorTests {
         let mapped = try sut.picture(
             of: MediaFile.video(file, frameTimes: [0]),
             atFrame: 0,
+            play: .file,
             reading: .working(colorSpace: nil, targetPeak: 203)
         ).bitmap
-        let unmapped = try sut.picture(of: MediaFile.video(file, frameTimes: [0]), atFrame: 0, reading: .tagged).bitmap
+        let unmapped = try sut.picture(of: MediaFile.video(file, frameTimes: [0]), atFrame: 0, play: .file, reading: .tagged).bitmap
 
         // Then
         let light = ToneMapping(sourcePeak: 1000, targetPeak: 203).mapped(RGB(red: 1000, green: 1000, blue: 1000))
@@ -144,6 +145,7 @@ struct DecoderColorTests {
         let picture = try sut.picture(
             of: MediaFile.video(file, frameTimes: [0]),
             atFrame: 0,
+            play: .file,
             reading: .working(colorSpace: .rec709, targetPeak: nil)
         ).bitmap
 
@@ -167,11 +169,13 @@ struct DecoderColorTests {
         let named = try sut.picture(
             of: MediaFile.still(file),
             atFrame: 0,
+            play: .file,
             reading: .working(colorSpace: .rec2100PQ, targetPeak: 203)
         ).bitmap
         let tagged = try sut.picture(
             of: MediaFile.still(file),
             atFrame: 0,
+            play: .file,
             reading: .working(colorSpace: nil, targetPeak: 203)
         ).bitmap
 
@@ -206,11 +210,13 @@ struct DecoderColorTests {
         let widePicture = try sut.picture(
             of: MediaFile.video(wide, frameTimes: [0]),
             atFrame: 0,
+            play: .file,
             reading: .analysis(colorSpace: nil)
         ).bitmap
         let brightPicture = try sut.picture(
             of: MediaFile.video(bright, frameTimes: [0]),
             atFrame: 0,
+            play: .file,
             reading: .analysis(colorSpace: nil)
         ).bitmap
 
@@ -239,7 +245,7 @@ struct DecoderColorTests {
         #expect(probed.colorSpace?.name == nil)
         #expect(probed.colorSpace?.reading == .platform)
         let error = #expect(throws: DecoderError.self) {
-            try sut.picture(of: MediaFile.still(file), atFrame: 0, reading: .tagged).bitmap
+            try sut.picture(of: MediaFile.still(file), atFrame: 0, play: .file, reading: .tagged).bitmap
         }
         guard case let .unconvertibleColor(refused, _)? = error else {
             Issue.record("\(String(describing: error))")

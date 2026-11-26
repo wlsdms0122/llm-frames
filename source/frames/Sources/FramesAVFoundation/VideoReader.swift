@@ -9,18 +9,12 @@ import AVFoundation
 import CoreImage
 import Foundation
 import Frames
-import os
 
 // A video file's first picture track, loaded once. `frames` holds the time each presented frame is presented at, in
 // order, and frame i is `frames[i]`. `frameTimes` and `duration` are on the file's presentation timeline, which every
-// track of the file shares. One reader stays open after the last frame read, until it is closed, so frames in order
-// decode forward from it instead of from the previous sync sample each time. The buffers a turn holds for later asks
-// are the run's budget's `turns`, each held only where the budget grants it (FRAMES-30 The budget).
+// track of the file shares. Its frames are read by a `PlayReader` for each play of it (FRAMES-21 Rules).
 final class VideoReader: Sendable {
     // MARK: - Property
-    // A later frame further ahead than this, in seconds, restarts the reader at it rather than decoding up to it.
-    private static let forwardReach: Double = 1
-
     let frames: [CMTime]
     let displaySize: Size
     let fps: Double
@@ -41,19 +35,12 @@ final class VideoReader: Sendable {
     let transform: CGAffineTransform
 
     private let asset: AVURLAsset
-    private let budget: MemoryBudget
     // A track is only read once it is loaded, which AVFoundation allows from any thread.
     nonisolated(unsafe) private let track: AVAssetTrack
-    private let state = OSAllocatedUnfairLock<ReadState>(uncheckedState: ReadState())
-    // The frames whose buffers `state` holds, read without its lock while a frame is being read.
-    private let heldFrames = OSAllocatedUnfairLock<Set<Int>>(initialState: [])
 
     // MARK: - Initializer
-    // Nil for a file without a picture track. `budget` is the run's, which the buffers a turn holds draw from.
-    init?(
-        path: String,
-        budget: MemoryBudget = MemoryBudget(limit: .unlimited)
-    ) throws {
+    // Nil for a file without a picture track.
+    init?(path: String) throws {
         let asset = AVURLAsset(url: URL(fileURLWithPath: path))
         let waiter = LoadWaiter(file: path)
         guard let track = try waiter.tracks(of: asset, type: .video).first else { return nil }
@@ -62,7 +49,6 @@ final class VideoReader: Sendable {
         // The preferred transform is moved so the turned picture starts at the origin, as a player shows it.
         let turned = CGRect(origin: .zero, size: loaded.storedSize).applying(loaded.preferredTransform)
         self.asset = asset
-        self.budget = budget
         self.track = track
         self.storedSize = loaded.storedSize
         self.transform = loaded.preferredTransform.concatenating(
@@ -82,7 +68,7 @@ final class VideoReader: Sendable {
     }
 
     // MARK: - Public
-    // A buffer `buffer(atFrame:path:turn:isAdmitted:)` gave as it is displayed, with no colour matched: its R'G'B',
+    // A buffer a `PlayReader` of the video gave as it is displayed, with no colour matched: its R'G'B',
     // taken from its Y'CbCr by the formulas in double precision where it holds Y'CbCr, a value beyond the nominal range
     // kept.
     func image(of buffer: CVImageBuffer) -> CIImage {
@@ -103,131 +89,21 @@ final class VideoReader: Sendable {
         ))
     }
 
-    // A buffer `buffer(atFrame:path:turn:isAdmitted:)` gave as it is displayed, tagged with the colour its frame
-    // carries, which Core Image's colour management converts from.
+    // A buffer a `PlayReader` of the video gave as it is displayed, tagged with the colour its frame carries, which
+    // Core Image's colour management converts from.
     func taggedImage(of buffer: CVImageBuffer) -> CIImage {
         displayed(CIImage(cvImageBuffer: buffer))
     }
 
-    // Whether the buffer of a frame a reader read past the frame it was opened for is held.
-    var holdsFrames: Bool {
-        !heldFrames.withLock(\.isEmpty)
-    }
-
-    // Whether the buffer of frame `index` is held.
-    func holds(frame index: Int) -> Bool {
-        heldFrames.withLock { $0.contains(index) }
-    }
-
-    // The frames a reader opened for frame `index` in a turn of `turn` frames would hold, asked next.
-    func turnHolds(
-        atFrame index: Int,
-        turn: Int
-    ) -> Int {
-        state.withLockUnchecked { following(index, step: step(to: index, from: $0.asked), turn: turn).count }
-    }
-
-    // The buffer of frame `index` as the file stores it, in `decodedFormat`, the samples decoded to reach it, and
-    // whether a reader was opened again for it, which the first reader opened on the video is not. A reader opened for
-    // it reads `turn` frames, frame `index` and the frames after it by the step from the frame asked before, within
-    // `forwardReach` of it, and holds the buffers of the others, which later asks give with no reader, as many as the
-    // budget grants room for: `room` is bytes the budget granted its `turns` for them, which they hold first, and what
-    // they do not hold of it is given back. Every buffer held of a frame up to `index` is let go of. A reader is opened
-    // only where `isAdmitted` holds, asked under the lock `close()` takes, so a close that follows the admission it asks
-    // about closes the reader it opens. Nil where the frame needs a reader opened and `isAdmitted` does not hold:
-    // nothing is read and nothing is let go of.
-    func buffer(
-        atFrame index: Int,
-        path: String,
-        turn: Int,
-        room: Int,
-        isAdmitted: () -> Bool
-    ) throws -> (buffer: CVImageBuffer, decoded: Int, reopened: Bool)? {
-        var room = room
-        defer { budget.give(room, for: .turns) }
-        let time = frames[index]
-        let read = try state.withLockUnchecked { state -> (CVImageBuffer?, Int, Bool)? in
-            let readsOn = state.reader.map {
-                $0.index == index || $0.index < index && (time - $0.time).seconds <= Self.forwardReach
-            } ?? false
-            guard readsOn || state.held.contains(where: { $0.index == index }) || isAdmitted() else { return nil }
-
-            let step = self.step(to: index, from: state.asked)
-            state.asked = index
-            let held = state.held.first { $0.index == index }
-            letGo(of: state.held.filter { $0.index <= index })
-            state.held.removeAll { $0.index <= index }
-            defer { heldFrames.withLock { [kept = Set(state.held.map(\.index))] in $0 = kept } }
-            if let held { return (held.buffer, 0, false) }
-            if let reader = state.reader, reader.index == index { return (reader.picture, 0, false) }
-            if let reader = state.reader, reader.index < index, (time - reader.time).seconds <= Self.forwardReach {
-                let before = reader.decoded
-                let picture = try reader.read(frame: index, at: time, path: path)
-
-                return (picture, reader.decoded - before, false)
-            }
-
-            let reopened = state.hasOpened
-            let reader = try FrameReader(
-                asset: asset,
-                track: track,
-                pixelFormat: decodedFormat.pixelFormat,
-                start: time,
-                path: path
-            )
-            state.reader = reader
-            state.hasOpened = true
-            let picture = try reader.read(frame: index, at: time, path: path)
-            letGo(of: state.held)
-            state.held = []
-            for next in following(index, step: step, turn: turn) {
-                guard let buffer = try reader.read(frame: next, at: frames[next], path: path) else { break }
-                let bytes = CVPixelBufferGetDataSize(buffer)
-                let granted = min(bytes, room)
-                guard granted == bytes || budget.take(bytes - granted, for: .turns) else { break }
-                room -= granted
-                state.held.append((next, buffer))
-            }
-
-            return (picture, reader.decoded, reopened)
-        }
-        guard let (shown, decoded, reopened) = read else { return nil }
-        guard let shown else { throw DecoderError.noFrame(file: path, index: index, count: frames.count) }
-
-        return (shown, decoded, reopened)
-    }
-
-    // Lets go of the reader open on the video, so the next frame read opens one at that frame, and keeps the buffers
-    // held. A read in progress ends first.
-    func close() {
-        state.withLockUnchecked { $0.reader = nil }
+    // A reader open on the video's picture track from `time`, given its frames in `decodedFormat`.
+    func frameReader(
+        at time: CMTime,
+        path: String
+    ) throws -> FrameReader {
+        try FrameReader(asset: asset, track: track, pixelFormat: decodedFormat.pixelFormat, start: time, path: path)
     }
 
     // MARK: - Private
-    // The step from frame `asked`, the frame asked before, to frame `index`, 1 where there is none or it is not forward.
-    private func step(
-        to index: Int,
-        from asked: Int?
-    ) -> Int {
-        asked.map { index - $0 }.flatMap { $0 > 0 ? $0 : nil } ?? 1
-    }
-
-    // The frames after frame `index` by `step` that a reader opened for it in a turn of `turn` frames reads past it,
-    // within `forwardReach` of it.
-    private func following(
-        _ index: Int,
-        step: Int,
-        turn: Int
-    ) -> [Int] {
-        Array(stride(from: index + step, to: frames.count, by: step).prefix(turn - 1).prefix {
-            (frames[$0] - frames[index]).seconds <= Self.forwardReach
-        })
-    }
-
-    private func letGo(of held: [(index: Int, buffer: CVImageBuffer)]) {
-        budget.give(held.reduce(0) { $0 + CVPixelBufferGetDataSize($1.buffer) }, for: .turns)
-    }
-
     private static func facts(
         of track: AVAssetTrack,
         in asset: AVAsset,
@@ -348,17 +224,5 @@ final class VideoReader: Sendable {
         let displayFlip = CGAffineTransform(a: 1, b: 0, c: 0, d: -1, tx: 0, ty: displaySize.height)
 
         return image.transformed(by: storedFlip.concatenating(transform).concatenating(displayFlip))
-    }
-}
-
-extension VideoReader {
-    // The reader open on the video, none before the first frame is read and after it is closed, the frame asked last,
-    // the buffers of the frames the last reader opened read past the frame it was opened for, and whether a reader
-    // was ever opened.
-    private struct ReadState {
-        var reader: FrameReader?
-        var asked: Int?
-        var held: [(index: Int, buffer: CVImageBuffer)] = []
-        var hasOpened = false
     }
 }

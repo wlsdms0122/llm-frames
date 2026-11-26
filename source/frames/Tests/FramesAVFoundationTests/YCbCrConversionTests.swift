@@ -287,7 +287,7 @@ struct YCbCrConversionTests {
         let sut = AVFoundationDecoder(conversion: .cpu)
 
         // When
-        _ = try sut.picture(of: MediaFile.video(file, frameTimes: [0]), atFrame: 0, reading: .tagged)
+        _ = try sut.picture(of: MediaFile.video(file, frameTimes: [0]), atFrame: 0, play: .file, reading: .tagged)
 
         // Then
         #expect(sut.readings().media.first?.pixelFormat == pixelFormat)
@@ -306,8 +306,8 @@ struct YCbCrConversionTests {
         let media = MediaFile.video(file, frameTimes: [0])
 
         // When
-        let converted = try AVFoundationDecoder(conversion: .gpu).picture(of: media, atFrame: 0, reading: .tagged)
-        let expected = try AVFoundationDecoder(conversion: .cpu).picture(of: media, atFrame: 0, reading: .tagged)
+        let converted = try AVFoundationDecoder(conversion: .gpu).picture(of: media, atFrame: 0, play: .file, reading: .tagged)
+        let expected = try AVFoundationDecoder(conversion: .cpu).picture(of: media, atFrame: 0, play: .file, reading: .tagged)
 
         // Then
         guard case .surface = converted else {

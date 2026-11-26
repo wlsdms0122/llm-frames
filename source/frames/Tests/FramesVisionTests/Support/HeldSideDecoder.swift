@@ -24,9 +24,10 @@ struct HeldSideDecoder: MediaDecoder {
     func picture(
         of file: MediaFile,
         atFrame index: Int,
+        play: MediaPlay,
         reading: PictureReading
     ) throws -> Pixels {
-        try decoder.picture(of: file, atFrame: index, reading: reading)
+        try decoder.picture(of: file, atFrame: index, play: play, reading: reading)
     }
 
     func picture(
@@ -63,6 +64,10 @@ struct HeldSideDecoder: MediaDecoder {
         to end: Double
     ) throws -> SoundBuffer {
         try decoder.sound(of: file, from: start, to: end)
+    }
+
+    func frameRendered(showing frames: [MediaFrame]) {
+        decoder.frameRendered(showing: frames)
     }
 
     // Reports no medium and no time, as a run's report of it would be empty.
