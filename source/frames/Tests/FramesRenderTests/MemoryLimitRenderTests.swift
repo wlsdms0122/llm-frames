@@ -20,18 +20,22 @@ struct MemoryLimitRenderTests {
     // MARK: - Property
     // Four videos of 160 by 120 pixels, read as 8-bit Y'CbCr 4:2:0, cost 806 400 bytes a reader; the renderer keeps
     // the four videos' pictures of two frames, 153 600 bytes each, 1 228 800 together; the two frames in flight of a
-    // 160 by 120 sequence cost 307 200 and its 0.4 s of sound 153 600, so a run's floor is 2 496 000 bytes, and at 3 MB
-    // the budget leaves no room for a second reader.
+    // 160 by 120 sequence cost 307 200 and its 0.4 s of sound 153 600, so a run's floor is 2 496 000 bytes. At 3 MB
+    // the budget leaves no room for a second reader, and at 3.2 MB it leaves room for a second reader and not for the
+    // frames of a turn beside it, so a turn closes the other reader for them.
     private static let videoCount = 4
 
     // MARK: - Initializer
     // MARK: - Test
-    @Test("a render at a limit where the readers take turns gives the same frames as one with no limit")
-    func givesSameFrames() async throws {
+    @Test(
+        "a render at a limit where the readers take turns gives the same frames as one with no limit",
+        arguments: ["3MB", "3.2MB"]
+    )
+    func givesSameFrames(limit: String) async throws {
         // Given
         let directory = try TemporaryDirectory()
         let document = try await document(in: directory)
-        let limited = MemoryBudget(limit: try #require(MemorySize("3MB")))
+        let limited = MemoryBudget(limit: try #require(MemorySize(limit)))
         let unlimited = MemoryBudget(limit: .unlimited)
 
         // When
