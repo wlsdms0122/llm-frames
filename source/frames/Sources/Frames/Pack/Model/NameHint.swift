@@ -71,14 +71,36 @@ package enum NameHint: Equatable, Sendable {
         }
     }
 
-    // The first of `names` whose last part, its `<name>` or the whole of a pack's name, is near `written`: at an edit
-    // distance of at most 1, or a third of the longer of the two where that is more.
+    // The first of `names` whose last part, its `<name>` or the whole of a pack's name, is nearest `written`, where
+    // one is near.
     static func nearest(
         to written: String,
         among names: [String]
     ) -> String? {
+        nearest(to: written, among: names) { String($0.split(separator: "/").last ?? "") }
+    }
+
+    // The hint a stop on a name looked up in a set known where it stands ends with, `. Did you mean "<name>"?`, the
+    // first in name order of `names` whose whole name is nearest `written`, or nothing where none is near.
+    static func suggestion(
+        for written: String,
+        among names: [String]
+    ) -> String {
+        guard let near = nearest(to: written, among: names.sorted(), part: { $0 }) else { return "" }
+
+        return ". Did you mean \(JSONValue.string(near).written)?"
+    }
+
+    // MARK: - Private
+    // The first of `names` whose `part` is nearest `written`, where one is near: at an edit distance of at most 1, or
+    // a third of the longer of the two where that is more.
+    private static func nearest(
+        to written: String,
+        among names: [String],
+        part: (String) -> String
+    ) -> String? {
         let scored = names.map { name in
-            let part = String(name.split(separator: "/").last ?? "")
+            let part = part(name)
             let allowed = max(1, max(written.count, part.count) / 3)
             return (name: name, distance: editDistance(Array(written), Array(part)), allowed: allowed)
         }
@@ -88,7 +110,6 @@ package enum NameHint: Equatable, Sendable {
         return near.first { $0.distance == least }?.name
     }
 
-    // MARK: - Private
     // The fewest characters inserted, deleted or replaced to turn `source` into `target`.
     private static func editDistance(
         _ source: [Character],

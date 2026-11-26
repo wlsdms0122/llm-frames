@@ -22,6 +22,20 @@ enum DocumentArgument: Equatable, Sendable {
         return pack
     }
 
+    // The document as a message names it: its path, `<pack>/<name>`, or `standard input`.
+    var name: String {
+        switch self {
+        case let .path(path):
+            path
+
+        case let .template(pack, name):
+            "\(pack)/\(name)"
+
+        case .standardInput:
+            "standard input"
+        }
+    }
+
     // MARK: - Initializer
     init(
         _ argument: String,

@@ -107,7 +107,9 @@ struct TemplateCheckTests {
             (#"{ "where": { "type": "choice", "options": ["top", "middle"], "description": "the where" } }"#, #"{ "kind": "title", "text": "x", "style": "s", "placement": { "param": "where" } }"#,
              #"clips[0].placement (title): unknown value "middle". Allowed: top-left, top, top-right, left, center, right, bottom-left, bottom, bottom-right"#),
             (#"{ "name": { "type": "text", "description": "the name" } }"#, #"{ "kind": "title", "text": { "param": "nam" }, "style": "s" }"#,
-             #"clips[0].text (title): parameter "nam" is not declared in params"#),
+             #"clips[0].text (title): parameter "nam" is not declared in params, which hold "name". Did you mean "name"?"#),
+            (#"{ "name": { "type": "text", "description": "the name" }, "role": { "type": "text", "description": "the role" } }"#, #"{ "kind": "title", "text": { "param": "caption" }, "style": "s" }"#,
+             #"clips[0].text (title): parameter "caption" is not declared in params, which hold "name", "role""#),
             (#"{ "name": { "type": "text", "description": "the name" } }"#, #"{ "kind": "title", "text": [ { "text": "x", "style": { "param": "name" } } ], "style": "s" }"#,
              #"clips[0].text[0].style (run): parameter "name" of type text cannot stand where a string is expected"#)
         ]

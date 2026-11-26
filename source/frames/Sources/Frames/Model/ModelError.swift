@@ -5,9 +5,11 @@
 //  Created by JSilver on 11/15/26.
 //
 
-enum ModelError: Error, Equatable, CustomStringConvertible, Sendable {
+indirect enum ModelError: Error, Equatable, CustomStringConvertible, Sendable {
     case unknownKey(place: Place, kind: String, key: String, allowed: [String])
     case missingKey(place: Place, kind: String, keys: [String])
+    // An object of several kinds without `kind`, with the kinds its place takes.
+    case missingKind(place: Place, kind: String, allowed: [String])
     case conflictingKeys(place: Place, kind: String, keys: [String])
     case wrongType(place: Place, kind: String, expected: String, found: String)
     case outsideDomain(place: Place, kind: String, value: Double, domain: NumberDomain)
@@ -16,7 +18,8 @@ enum ModelError: Error, Equatable, CustomStringConvertible, Sendable {
     case duplicateIdentifier(place: Place, kind: String, id: String, first: Place)
     case staticAndKeyframed(place: Place, kind: String, property: String)
     case staticKeyframedOnly(place: Place, kind: String, property: String)
-    case unknownParameter(place: Place, kind: String, name: String)
+    // `declared` are the names of the parameters `params` declares, in name order.
+    case unknownParameter(place: Place, kind: String, name: String, declared: [String])
     case misplacedParameter(place: Place, kind: String, name: String, type: String, expected: String)
     case unusedParameter(place: Place, name: String)
     case nestedTemplate(place: Place, kind: String)
@@ -27,8 +30,11 @@ enum ModelError: Error, Equatable, CustomStringConvertible, Sendable {
     case pageOfNonPDF(place: Place, kind: String, reference: String)
     case highDynamicRangePage(place: Place, kind: String, reference: String, page: Int, colorSpace: ColorSpace)
     case misplacedMedia(place: Place, kind: String, reason: String)
+    case directoryAsMedia(place: Place, kind: String, reference: String)
     case easeWithoutFollowingKeyframe(place: Place, leaves: [Place])
     case request(place: Place, tool: String)
+    // A key an object lacks or does not take, at a place whose forms `takes` says.
+    case misformed(ModelError, takes: String)
 
     // MARK: - Property
     var description: String {
@@ -41,6 +47,9 @@ enum ModelError: Error, Equatable, CustomStringConvertible, Sendable {
 
         case let .missingKey(place, kind, keys):
             "\(place) (\(kind)): needs one of \(keys.joined(separator: ", "))"
+
+        case let .missingKind(place, kind, allowed):
+            "\(place) (\(kind)): missing key \"kind\". Allowed: \(allowed.joined(separator: ", "))"
 
         case let .conflictingKeys(place, kind, keys):
             "\(place) (\(kind)): takes only one of \(keys.map { "\"\($0)\"" }.joined(separator: ", "))"
@@ -66,8 +75,10 @@ enum ModelError: Error, Equatable, CustomStringConvertible, Sendable {
         case let .staticKeyframedOnly(place, kind, property):
             "\(place) (\(kind)): \"\(property)\" is written only in keyframes, so a static value has no meaning"
 
-        case let .unknownParameter(place, kind, name):
-            "\(place) (\(kind)): parameter \"\(name)\" is not declared in params"
+        case let .unknownParameter(place, kind, name, declared):
+            "\(place) (\(kind)): parameter \"\(name)\" is not declared in params, which hold "
+                + (declared.isEmpty ? "none" : declared.map { JSONValue.string($0).written }.joined(separator: ", "))
+                + NameHint.suggestion(for: name, among: declared)
 
         case let .misplacedParameter(place, kind, name, type, expected):
             "\(place) (\(kind)): parameter \"\(name)\" of type \(type) cannot stand where \(expected) is expected"
@@ -99,11 +110,19 @@ enum ModelError: Error, Equatable, CustomStringConvertible, Sendable {
         case let .misplacedMedia(place, kind, reason):
             "\(place) (\(kind)): \(reason)"
 
+        case let .directoryAsMedia(place, kind, reference):
+            "\(place) (\(kind)): media \(JSONValue.string(reference).written) is a directory, and a directory of PNG "
+                + "frames is media as {\"kind\": \"imageSequence\", \"directory\": \(JSONValue.string(reference).written), "
+                + "\"fps\": <rate>}"
+
         case let .easeWithoutFollowingKeyframe(place, leaves):
             "\(place) (keyframe): \"ease\" shapes no span, since no later keyframe names \(leaves.map(\.description).joined(separator: ", "))"
 
         case let .request(place, tool):
             "\(place) (request): this is a request for the tool \"\(tool)\", and a tool fills its requests before the document is given to frames"
+
+        case let .misformed(error, takes):
+            "\(error). \(takes)"
         }
     }
 

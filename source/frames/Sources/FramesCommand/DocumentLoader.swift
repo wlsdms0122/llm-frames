@@ -17,6 +17,8 @@ struct DocumentLoader: Sendable {
     private let packs: PackLibrary
     private let checker = ResolvedDocumentChecker()
     private let reader = ResolvedDocumentReader()
+    // The bytes JSON reads as white space.
+    private static let whiteSpace: Set<UInt8> = [0x20, 0x09, 0x0A, 0x0D]
 
     // MARK: - Initializer
     init(
@@ -36,7 +38,7 @@ struct DocumentLoader: Sendable {
         command: String
     ) throws -> DocumentInput {
         let source = try DocumentArgument(argument, command: command)
-        let document = try JSONReader().read(try data(of: source, command: command))
+        let document = try read(try data(of: source, command: command), of: source)
         let file = try arguments.map(argumentFile)
         guard try checker.version(of: document, theme: theme, arguments: file) == nil else {
             return .resolved(try reader.read(document))
@@ -46,6 +48,22 @@ struct DocumentLoader: Sendable {
     }
 
     // MARK: - Private
+    // A document that is not JSON stops naming the document, and one whose first character other than white space is
+    // not `{` is also said to be no frames document.
+    private func read(
+        _ data: Data,
+        of source: DocumentArgument
+    ) throws -> JSONValue {
+        do {
+            return try JSONReader(file: source.name).read(data)
+        } catch let error as JSONError {
+            let first = data.first { !Self.whiteSpace.contains($0) }
+            guard first == UInt8(ascii: "{") else { throw CommandError.notDocument(error) }
+
+            throw error
+        }
+    }
+
     private func data(
         of argument: DocumentArgument,
         command: String

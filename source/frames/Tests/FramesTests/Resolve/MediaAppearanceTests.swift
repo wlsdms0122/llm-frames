@@ -85,8 +85,8 @@ struct MediaAppearanceTests {
         // When, Then
         let clipError = #expect(throws: ThemeError.self) { try plan(clip) }
         let storylineError = #expect(throws: ThemeError.self) { try plan(storyline) }
-        #expect(clipError.map { "\($0)" } == #"clips[0].shadow.color (image): colour "ink" is not in colors"#)
-        #expect(storylineError.map { "\($0)" } == #"storyline[0].shadow.color (video): colour "ink" is not in colors"#)
+        #expect(clipError.map { "\($0)" } == #"clips[0].shadow.color (image): colour "ink" is not in colors, which hold "accent", "background", "shadow", "text""#)
+        #expect(storylineError.map { "\($0)" } == #"storyline[0].shadow.color (video): colour "ink" is not in colors, which hold "accent", "background", "shadow", "text""#)
     }
 
     @Test("a border colour that is not a theme colour stops at the leaf it is, where the clip writes it")
@@ -104,8 +104,8 @@ struct MediaAppearanceTests {
         // When, Then
         let clipError = #expect(throws: ThemeError.self) { try plan(clip) }
         let storylineError = #expect(throws: ThemeError.self) { try plan(storyline) }
-        #expect(clipError.map { "\($0)" } == #"clips[0].border.color (image): colour "ink" is not in colors"#)
-        #expect(storylineError.map { "\($0)" } == #"storyline[0].border.color (video): colour "ink" is not in colors"#)
+        #expect(clipError.map { "\($0)" } == #"clips[0].border.color (image): colour "ink" is not in colors, which hold "accent", "background", "shadow", "text""#)
+        #expect(storylineError.map { "\($0)" } == #"storyline[0].border.color (video): colour "ink" is not in colors, which hold "accent", "background", "shadow", "text""#)
     }
 
     // MARK: - Private

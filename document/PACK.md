@@ -8,11 +8,11 @@ A pack is a directory with a `pack.json` at its root and any of these folders:
 
 | Folder | Holds | Named as |
 | --- | --- | --- |
-| `presets/transition/`, `presets/animation/`, `presets/filter/`, `presets/head/` | presets ([PRESET.md](PRESET.md)) | `<pack>/<name>` in a transition, animation or filter choice, or a stroke's `start` or `end` |
+| `presets/transition/`, `presets/animation/`, `presets/filter/`, `presets/audio/`, `presets/head/` | presets ([PRESET.md](PRESET.md)) | `<pack>/<name>` in a transition, animation, filter or audio filter choice, or a stroke's `start` or `end` |
 | `themes/` | themes | `<pack>/<name>` in `--theme` or a document's `theme` |
-| `templates/` | templates ([A template](#a-template)) | `<pack>/<name>` in a template instance |
+| `templates/` | templates ([A template](#a-template)) | `<pack>/<name>` in a template instance, or as the document a command is given |
 | `luts/` | `.cube` LUTs | `<pack>/<name>` in a filter's `lut` op |
-| `media/` | mattes, overlays, stingers, logos, music and other media: image sequences as folders, sequence documents as `.json` files (without `params`) | `<pack>/<name.ext>` for a file, `<pack>/<dir>` for an image sequence |
+| `media/` | mattes, displacement maps, impulse responses, overlays, stingers, logos, music and other media: image sequences as folders, sequence documents as `.json` files (without `params`) | `<pack>/<name.ext>` for a file, `<pack>/<dir>` as an image sequence's `directory` |
 | `fonts/` | font files | by family, in the `font` list of the pack's themes |
 | `tools/<name>/` | a tool: a `tool.json` and the program it runs ([A tool](#a-tool)) | `<pack>/<name>` as the command word of `frames <pack>/<name>`, and in a request's `tool` |
 | `guide.md`, `examples/` | a form's guide and example documents | read by people and agents, not by frames |

@@ -187,11 +187,11 @@ struct ChoiceArgumentTests {
         arguments: [
             (
                 #"{ "transition": { "preset": "studio/dip", "args": { "color": "brand" } } }"#,
-                #"theme.defaults.transition (defaults): the preset names the colour "brand", which is not in the theme's colors"#
+                #"theme.defaults.transition (defaults): the preset names the colour "brand", which is not in the theme's colors, which hold "accent", "background", "shadow", "text""#
             ),
             (
                 #"{ "filter": [ "studio/film", { "kind": "preset", "preset": "studio/glow", "args": { "tint": "brand" } } ] }"#,
-                #"theme.defaults.filter[1] (defaults): the preset names the colour "brand", which is not in the theme's colors"#
+                #"theme.defaults.filter[1] (defaults): the preset names the colour "brand", which is not in the theme's colors, which hold "accent", "background", "shadow", "text""#
             )
         ]
     )

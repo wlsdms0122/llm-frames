@@ -135,5 +135,29 @@ struct NameHintTests {
         #expect(spelling == ". A preset is named <pack>/<name>")
     }
 
+    @Test(
+        "a name looked up in a set known where it stands is hinted on its whole name, the first in name order of the nearest, and not where none is near",
+        arguments: [
+            ("acent", ["text", "background", "accent"], #". Did you mean "accent"?"#),
+            ("logo-bg", ["logo_bg", "logo"], #". Did you mean "logo_bg"?"#),
+            ("tont", ["tone", "tint"], #". Did you mean "tint"?"#),
+            ("frames/arow", ["frames/arrow"], #". Did you mean "frames/arrow"?"#),
+            ("arow", ["frames/arrow"], ""),
+            ("ink", ["accent", "background", "shadow", "text"], ""),
+            ("name", [], "")
+        ]
+    )
+    func suggestsWholeName(
+        written: String,
+        names: [String],
+        suggestion: String
+    ) {
+        // Given, When
+        let sut = NameHint.suggestion(for: written, among: names)
+
+        // Then
+        #expect(sut == suggestion)
+    }
+
     // MARK: - Private
 }

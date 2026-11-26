@@ -55,7 +55,7 @@ Each frame of the data gives the target's quadrilateral (quad) on that frame: fo
 
 ### Track data
 
-Track data is the value of `track`: an object `{time, frames}`, both keys required and no other key, the object `track` prints without its first key, the version ([FRAMES-23](../FRAMES-23/SPEC.md)). Any other value of `track` stops at `resolve`, naming `...track`.
+Track data is the value of `track`: an object `{time, frames}`, both keys required and no other key, the object `track` prints without its first key, the version ([FRAMES-23](../FRAMES-23/SPEC.md)). Any other value of `track` stops at `resolve`, naming `...track`. An object there that lacks a key track data requires, or holds one it does not take, says what `track` takes: `clips[0].track (track): missing key "frames". A track is track data {time, frames}, as frames track prints it, or a request {"tool": "<pack>/<name>", ...} for a tool that fills it`.
 
 | Key | Form | Meaning |
 | --- | --- | --- |

@@ -18,14 +18,19 @@ extension MergedTheme {
         number(at: ["placement", "padding"])
     }
 
-    // The names of the styles the theme holds, in order, which a stop on a name it lacks lists.
+    // The names of the styles the theme holds, in name order, which a stop on a name it lacks lists.
     var styleNames: [String] {
         (value(at: ["styles"])?.objectValue?.keys ?? []).sorted()
     }
 
-    // The names of the shape styles the theme holds, in order, which a stop on a name it lacks lists.
+    // The names of the shape styles the theme holds, in name order, which a stop on a name it lacks lists.
     var shapeStyleNames: [String] {
         (value(at: ["shapes"])?.objectValue?.keys ?? []).sorted()
+    }
+
+    // The names of the colours the theme holds, in name order, which a stop on a name it lacks lists.
+    var colorNames: [String] {
+        (value(at: ["colors"])?.objectValue?.keys ?? []).sorted()
     }
 
     // MARK: - Initializer
@@ -62,7 +67,9 @@ extension MergedTheme {
         place: Place,
         kind: PlaceKind
     ) throws -> String {
-        guard isColor(written) else { throw ResolveError.unknownPresetColor(place: place, kind: kind, name: written) }
+        guard isColor(written) else {
+            throw ResolveError.unknownPresetColor(place: place, kind: kind, name: written, colors: colorNames)
+        }
 
         return color(written).resolvedForm
     }

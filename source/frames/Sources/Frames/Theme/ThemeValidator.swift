@@ -251,7 +251,12 @@ struct ThemeValidator: Sendable {
         switch (type, value) {
         case let (.color, .string(name)) where !name.hasPrefix("#"):
             guard colors.contains(name) else {
-                throw ThemeError.unknownColor(place: theme.place(of: place), kind: kind, name: name)
+                throw ThemeError.unknownColor(
+                    place: theme.place(of: place),
+                    kind: kind,
+                    name: name,
+                    colors: colors.sorted()
+                )
             }
 
         case let (.object(table), .object(object)):

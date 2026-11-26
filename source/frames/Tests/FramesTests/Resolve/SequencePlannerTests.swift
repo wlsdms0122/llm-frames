@@ -401,6 +401,20 @@ struct SequencePlannerTests {
             + #"which hold "subtitle", "title""#)
     }
 
+    @Test("a title naming a style near one the theme holds names that style last")
+    func hintsUnknownTitleStyle() throws {
+        // Given
+        let document = #"""
+            { "kind": "sequence", "storyline": [ { "kind": "media", "media": "/abs/screen.mp4" } ],
+              "clips": [ { "kind": "title", "text": "Hi", "style": "titl", "position": [400, 225], "at": [0, 1] } ] }
+            """#
+
+        // When, Then
+        let error = #expect(throws: ThemeError.self) { try plan(document) }
+        #expect(error?.description == #"clips[0].style (title): style "titl" is not in styles, "#
+            + #"which hold "subtitle", "title". Did you mean "title"?"#)
+    }
+
     @Test("a run naming a style the theme does not hold stops at the run's style")
     func refusesUnknownRunStyle() throws {
         // Given
@@ -438,7 +452,7 @@ struct SequencePlannerTests {
     }
 
     @Test(
-        "a title naming a style the base theme no longer holds stops",
+        "a title naming a style the base theme does not hold stops",
         arguments: ["banner", "bannerHead", "heading", "headline"]
     )
     func refusesRemovedTitleStyle(_ style: String) throws {

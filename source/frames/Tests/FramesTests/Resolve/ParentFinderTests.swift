@@ -46,6 +46,13 @@ struct ParentFinderTests {
             ),
             (
                 #"""
+                { "id": "logo_bg", "kind": "rect", "stroke": { "width": 8 }, "area": [0, 0, 10, 10], "at": [0, 1] },
+                { "kind": "rect", "stroke": { "width": 8 }, "area": [0, 0, 10, 10], "at": [0, 1], "parent": "logo-bg" }
+                """#,
+                #"clips[1].parent (rect): no clip in the document has the id "logo-bg". Did you mean "logo_bg"?"#
+            ),
+            (
+                #"""
                 { "id": "sound", "kind": "audio", "media": "/abs/bgm.m4a", "at": [0, 1] },
                 { "kind": "rect", "stroke": { "width": 8 }, "area": [0, 0, 10, 10], "at": [0, 1], "parent": "sound" }
                 """#,

@@ -88,12 +88,17 @@ package struct PresetLibrary: PresetProvider {
         try names(of: kind, in: pack).compactMap { try entry(named: $0, kind: kind) }
     }
 
-    // A preset's file as it is written, found by the name a document gives it.
+    // A preset's file as it is written, found by the name a document gives it, once it is read and checked as a choice
+    // that names it reads it, so a preset that would stop where it is used stops here.
     package func text(
         named name: String,
         kind: PresetKind
     ) throws -> String? {
-        guard let file = try file(named: name, kind: kind.rawValue), let data = try packs.contents(of: file) else {
+        guard
+            try entry(named: name, kind: kind) != nil,
+            let file = try file(named: name, kind: kind.rawValue),
+            let data = try packs.contents(of: file)
+        else {
             return nil
         }
 

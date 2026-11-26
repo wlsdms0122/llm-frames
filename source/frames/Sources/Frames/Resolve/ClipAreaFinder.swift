@@ -102,7 +102,12 @@ struct ClipAreaFinder: Sendable {
             return nil
         }
         guard let named = links.firstIndex(where: { $0.id == reference.clip }) else {
-            throw ResolveError.unknownClipArea(place: reference.place, kind: link.kind, id: reference.clip)
+            throw ResolveError.unknownClipArea(
+                place: reference.place,
+                kind: link.kind,
+                id: reference.clip,
+                ids: storylineLinks.compactMap(\.id) + links.compactMap(\.id)
+            )
         }
         if let refusal = links[named].areaRefusal {
             throw ResolveError.clipAreaKind(place: reference.place, kind: link.kind, id: reference.clip, named: refusal)

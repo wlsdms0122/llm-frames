@@ -21,7 +21,7 @@ An area is given in one of these forms, in the coordinate space of the clip that
 | `[x, y, w, h]` | that rectangle: its top left corner at `(x, y)`, `w` wide and `h` tall. `w` and `h` are above 0, and 0 or more where two keyframes or more write it ([FRAMES-4](../FRAMES-4/SPEC.md)) |
 | `{"clip": "<id>", "padding": p}` | the box of the clip with that `id` at the same instant, grown by `padding` ([Clip areas](#clip-areas)) |
 
-- A clip area's `padding` is optional, a number 0 or more, and defaults to 0. An area object holds `clip` and may hold `padding`, and any other key in it stops, as an unknown key does.
+- A clip area's `padding` is optional, a number 0 or more, and defaults to 0. An area object holds `clip` and may hold `padding`, and any other key in it stops, as an unknown key does, and so does an area object without `clip`, each saying what an area takes: `clips[0].area (clip area): unknown key "text". Allowed: clip, padding. An area is a rectangle [x, y, w, h], a clip area {clip, padding}, or a request {"tool": "<pack>/<name>", ...} for a tool that fills it`.
 - An area keeps what is written, also where it reaches past the picture's edges. A shape, a mask and a point drawn from it are where it says, and the part of a crop beyond the picture is transparent ([FRAMES-9](../FRAMES-9/SPEC.md)).
 
 ### Clip areas

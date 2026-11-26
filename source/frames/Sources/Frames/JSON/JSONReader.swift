@@ -9,7 +9,8 @@ import Foundation
 
 package struct JSONReader: Sendable {
     // MARK: - Property
-    // The file other than the document that is read, as it was referred to, so its errors name it.
+    // The file that is read, as it was referred to, so its errors name it, and nil for text that comes from no file a
+    // message names.
     private let file: String?
 
     // MARK: - Initializer

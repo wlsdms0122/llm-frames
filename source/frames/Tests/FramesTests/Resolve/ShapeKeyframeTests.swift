@@ -176,7 +176,7 @@ struct ShapeKeyframeTests {
             ),
             (
                 ##"{ "at": 0, "fill": "ink" }, { "at": 1, "fill": "#FFFFFF" }"##,
-                #"clips[0].keyframes[0].fill (rect): colour "ink" is not in colors"#
+                #"clips[0].keyframes[0].fill (rect): colour "ink" is not in colors, which hold "accent", "background", "brand", "shadow", "text""#
             )
         ]
     )
