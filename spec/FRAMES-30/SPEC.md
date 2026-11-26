@@ -1,6 +1,6 @@
 # FRAMES-30: Memory limit
 
-Status: draft
+Status: accepted
 
 ## Summary
 
