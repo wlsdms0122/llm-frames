@@ -141,6 +141,23 @@ struct PlayReaderTests {
         #expect(!budget.take(1, for: .readAhead))
     }
 
+    @Test("a turn after frames shown from pictures another play read reads by the step from the frame shown last")
+    func holdsTurnFramesByShownStep() async throws {
+        // Given
+        let directory = try TemporaryDirectory()
+        let movie = try await Self.movie(in: directory)
+        let sut = PlayReader(video: try #require(try VideoReader(path: movie)))
+        _ = try sut.buffer(atFrame: 0, path: movie, turn: 1, room: 0) { true }
+        sut.shown(frame: 4)
+        sut.close()
+
+        // When
+        _ = try sut.buffer(atFrame: 5, path: movie, turn: 4, room: 0) { true }
+
+        // Then
+        #expect((0..<12).filter { sut.holds(frame: $0) } == [6, 7, 8])
+    }
+
     @Test("an ended play lets go of its reader and gives back the frames its turn holds, so its next frame is decoded")
     func endsPlay() async throws {
         // Given
