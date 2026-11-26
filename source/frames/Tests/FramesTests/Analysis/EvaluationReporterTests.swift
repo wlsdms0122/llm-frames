@@ -1333,7 +1333,7 @@ struct EvaluationReporterTests {
 
     // A picture of the first frame of a file evaluation opens nothing of.
     private var frame: MediaFrame {
-        MediaFrame(media: PinnedMedia(source: .file(PinnedFile(path: "/abs/page.png", sha256: ""), frameTimes: nil)), index: 0)
+        MediaFrame(media: PinnedMedia(source: .file(PinnedFile(path: "/abs/page.png", sha256: ""), frameTimes: nil)), index: 0, play: .file)
     }
 
     // A run of one glyph at the pen (10, 30) of the item's own coordinates.

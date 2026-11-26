@@ -197,7 +197,7 @@ struct EvaluatorTests {
         // Then
         // Progress 0.25: the stinger at 0.5 of its 2 seconds, the wipe at 0.25 of its 1, and 0.25 eased in is 0.25^3.
         let pictureMatte = PictureMatte(
-            frame: MediaFrame(media: wipe, index: 2, reading: .analysis(colorSpace: nil)),
+            frame: MediaFrame(media: wipe, index: 2, play: .place("storyline.transition.matte"), reading: .analysis(colorSpace: nil)),
             progress: 0.015625,
             softness: 0.1,
             isInverted: true
@@ -206,6 +206,7 @@ struct EvaluatorTests {
             source: .media(MediaFrame(
                 media: stinger,
                 index: 1,
+                play: .place("storyline.transition.cover"),
                 reading: .working(colorSpace: nil, targetPeak: 203)
             )),
             rectangle: nil,
@@ -305,7 +306,7 @@ struct EvaluatorTests {
         let frames = [0.2, 0.9, 3].map { time in clipPicture(of: sut.displayList(of: sequence, at: time))?.source }
 
         // Then
-        #expect(frames == [4, 4, 19].map { .media(MediaFrame(media: second, index: $0)) })
+        #expect(frames == [4, 4, 19].map { .media(MediaFrame(media: second, index: $0, play: .place("clips[0]"))) })
     }
 
     @Test("a still shows its one frame at any time")
@@ -777,7 +778,7 @@ struct EvaluatorTests {
         // Then
         // At 2 the clip is one second past its origin, on the second media's frame at 1.
         #expect(early.items.count == 1)
-        #expect(clipPicture(of: late)?.source == .media(MediaFrame(media: second, index: 4)))
+        #expect(clipPicture(of: late)?.source == .media(MediaFrame(media: second, index: 4, play: .place("clips[0]"))))
     }
 
     @Test(
@@ -799,7 +800,7 @@ struct EvaluatorTests {
         let list = sut.displayList(of: sequence, at: 1)
 
         // Then
-        #expect(clipPicture(of: list)?.source == .media(MediaFrame(media: second, index: frame)))
+        #expect(clipPicture(of: list)?.source == .media(MediaFrame(media: second, index: frame, play: .place("clips[0]"))))
     }
 
     @Test("a media clip draws its conformed crop into its box, with its filter, radius, border, shadow and blend")
@@ -824,7 +825,7 @@ struct EvaluatorTests {
             transform: AffineTransform(translation: Point(x: 10, y: 20)),
             blend: "screen",
             content: .picture(PictureItem(
-                source: .media(MediaFrame(media: second, index: 0)),
+                source: .media(MediaFrame(media: second, index: 0, play: .place("clips[0]"))),
                 rectangle: Rectangle(x: 0, y: 0, width: 400, height: 200),
                 destination: Rectangle(x: 0, y: 0, width: 80, height: 40),
                 filter: [FilterEntry(operations: [.blur(radius: 2)])],
@@ -858,7 +859,7 @@ struct EvaluatorTests {
         // Half size about the centre of the frame, which is its anchor. The border width and the shadow radius are
         // in output pixels at that scale; the radius and the shadow offset are carried by the transform.
         let picture = PictureItem(
-            source: .media(MediaFrame(media: first, index: 4)),
+            source: .media(MediaFrame(media: first, index: 4, play: .place("storyline"))),
             rectangle: whole,
             destination: frame,
             radius: 8,
@@ -921,7 +922,7 @@ struct EvaluatorTests {
         let list = sut.displayList(of: sequence, at: 1.75)
 
         // Then
-        let picture = PictureItem(source: .media(MediaFrame(media: second, index: 3)), rectangle: whole, destination: frame)
+        let picture = PictureItem(source: .media(MediaFrame(media: second, index: 3, play: .place("storyline"))), rectangle: whole, destination: frame)
         let inner = DisplayItem(
             transform: AffineTransform(a: 0.5, b: 0, c: 0, d: 0.5, tx: 50, ty: 25),
             content: .picture(picture),
@@ -1612,7 +1613,7 @@ struct EvaluatorTests {
         origin: ItemOrigin? = nil
     ) -> DisplayItem {
         let picture = PictureItem(
-            source: .media(MediaFrame(media: media, index: frame)),
+            source: .media(MediaFrame(media: media, index: frame, play: .place("storyline"))),
             rectangle: whole,
             destination: destination ?? self.frame,
             filter: filter.isEmpty ? [] : [FilterEntry(operations: filter)]

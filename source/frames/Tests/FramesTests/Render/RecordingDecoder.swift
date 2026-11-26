@@ -39,6 +39,7 @@ struct RecordingDecoder: MediaDecoder {
     func picture(
         of file: MediaFile,
         atFrame index: Int,
+        play: MediaPlay,
         reading: PictureReading
     ) throws -> Pixels {
         if reading != .tagged {

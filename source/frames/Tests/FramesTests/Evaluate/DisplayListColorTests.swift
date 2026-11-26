@@ -142,7 +142,7 @@ struct DisplayListColorTests {
         let written = try #require(try JSONReader().read(writer.write(list)).objectValue)
         let items = written["items"]?.arrayValue?.compactMap(\.objectValue) ?? []
         let matteKeys = items.compactMap { $0["matte"]?.objectValue?.keys }.first
-        #expect(matteKeys == ["source", "frame", "colorSpace", "progress", "softness", "invert"])
+        #expect(matteKeys == ["source", "frame", "play", "colorSpace", "progress", "softness", "invert"])
         // A list with no grain reads back with seed 0, so it is compared by the bytes it writes.
         #expect(try writer.write(reader.read(writer.write(list))) == writer.write(list))
     }
@@ -166,7 +166,7 @@ struct DisplayListColorTests {
         let nested = try #require(written["items"]?.arrayValue?.first?.objectValue?["source"]?.objectValue?["list"]?.objectValue)
         #expect(nested.keys == ["size", "background", "compositing", "items"])
         let source = try #require(nested["items"]?.arrayValue?.first?.objectValue?["source"]?.objectValue)
-        #expect(source.keys == ["kind", "media", "frame", "colorSpace", "targetPeak"])
+        #expect(source.keys == ["kind", "media", "frame", "play", "colorSpace", "targetPeak"])
         #expect(source["colorSpace"] == .string("rec709"))
         #expect(source["targetPeak"] == .null)
         // A list with no grain reads back with seed 0, so it is compared by the bytes it writes.

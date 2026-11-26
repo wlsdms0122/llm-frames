@@ -97,7 +97,7 @@ struct ClipEvaluatorTests {
         )
 
         // When
-        let items = sut.items(of: clip, in: frame, picture: .media(MediaFrame(media: media, index: 0)), trackMatte: nil, compositing: .encoded, seed: 0, at: SampleTime(0.5))
+        let items = sut.items(of: clip, in: frame, picture: .media(MediaFrame(media: media, index: 0, play: .file)), trackMatte: nil, compositing: .encoded, seed: 0, at: SampleTime(0.5))
 
         // Then
         // The shadow is the 80 x 40 box moved by (4, 6) and grown by three times its radius, (-2, 0) to (90, 52), and
@@ -142,7 +142,7 @@ struct ClipEvaluatorTests {
         )
 
         // When
-        let items = sut.items(of: clip, in: frame, picture: .media(MediaFrame(media: media, index: 0)), trackMatte: nil, compositing: .encoded, seed: 0, at: SampleTime(0.5))
+        let items = sut.items(of: clip, in: frame, picture: .media(MediaFrame(media: media, index: 0, play: .file)), trackMatte: nil, compositing: .encoded, seed: 0, at: SampleTime(0.5))
 
         // Then
         // The border's width 4 is a length scaled with the clip, 8 output pixels under its scale of 2 and 4 of the box's
@@ -289,7 +289,7 @@ struct ClipEvaluatorTests {
         }
 
         // When
-        let items = sut.items(of: clip, in: parent, picture: .media(MediaFrame(media: media, index: 0)), trackMatte: nil, compositing: .encoded, seed: 0, at: SampleTime(1))
+        let items = sut.items(of: clip, in: parent, picture: .media(MediaFrame(media: media, index: 0, play: .file)), trackMatte: nil, compositing: .encoded, seed: 0, at: SampleTime(1))
 
         // Then
         let item = try #require(items.first)

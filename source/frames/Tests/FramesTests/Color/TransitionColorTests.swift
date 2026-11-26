@@ -111,7 +111,7 @@ struct TransitionColorTests {
         let items = written["items"]?.arrayValue?.compactMap(\.objectValue) ?? []
         let mattes = items.compactMap { $0["matte"]?.objectValue }
         let writtenMatte = try #require(mattes.first)
-        #expect(writtenMatte.keys == ["source", "frame", "colorSpace", "progress", "softness", "invert"])
+        #expect(writtenMatte.keys == ["source", "frame", "play", "colorSpace", "progress", "softness", "invert"])
         #expect(writtenMatte["colorSpace"] == .string("display-p3"))
         // A list with no grain reads back with seed 0, so it is compared by the bytes it writes.
         #expect(try listWriter.write(listReader.read(listWriter.write(list))) == listWriter.write(list))

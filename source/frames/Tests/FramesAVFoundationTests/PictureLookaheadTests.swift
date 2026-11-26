@@ -25,7 +25,7 @@ struct PictureLookaheadTests {
     func boundsReadsAhead() throws {
         // Given
         let sut = PictureLookahead(budget: MemoryBudget(limit: .unlimited))
-        let files = (0..<70).map { "/lookahead/\($0).mov" }
+        let files = (0..<70).map { VideoPlay(path: "/lookahead/\($0).mov", play: .file) }
         let gate = DispatchSemaphore(value: 0)
         let reads = OSAllocatedUnfairLock(initialState: (running: 0, most: 0))
         let read: @Sendable (Int, Bool) throws -> Pixels = { index, isAhead in
@@ -61,6 +61,38 @@ struct PictureLookaheadTests {
         #expect(pictures.allSatisfy { $0 == Self.picture(2) })
     }
 
+    @Test("two plays of one file read in turn are each read ahead by their own step")
+    func readsAheadByEachPlaysStep() throws {
+        // Given
+        let sut = PictureLookahead(budget: MemoryBudget(limit: .unlimited))
+        let first = VideoPlay(path: "/lookahead/tile.mov", play: .place("clips[0]"))
+        let second = VideoPlay(path: "/lookahead/tile.mov", play: .place("clips[1]"))
+        let aheads = OSAllocatedUnfairLock<[Int]>(initialState: [])
+        let read: @Sendable (Int, Bool) throws -> Pixels = { index, isAhead in
+            if isAhead { aheads.withLock { $0.append(index) } }
+
+            return .bitmap(Self.picture(index))
+        }
+
+        // When
+        var pictures: [Bitmap] = []
+        for step in 0..<3 {
+            pictures.append(try sut.picture(atFrame: step, of: first, count: 40, bytes: 8, reading: .tagged, read: read).bitmap)
+            pictures.append(
+                try sut.picture(atFrame: 20 + step, of: second, count: 40, bytes: 8, reading: .tagged, read: read).bitmap
+            )
+        }
+        _ = try sut.picture(atFrame: 3, of: first, count: 40, bytes: 8, reading: .tagged, read: read)
+        _ = try sut.picture(atFrame: 23, of: second, count: 40, bytes: 8, reading: .tagged, read: read)
+
+        // Then
+        #expect(pictures == [0, 20, 1, 21, 2, 22].map(Self.picture))
+        // The frames read ahead of the frames asked last, 4 and 24, may not have started.
+        let started = Set(aheads.withLock { $0 })
+        #expect(Set([2, 3, 22, 23]).isSubset(of: started))
+        #expect(started.isSubset(of: [2, 3, 4, 22, 23, 24]))
+    }
+
     @Test(
         "seventy videos read forward frame by frame together, as a render reads seventy clips shown at once, give every frame",
         .timeLimit(.minutes(2))
@@ -86,7 +118,7 @@ struct PictureLookaheadTests {
         // When
         let codes = try times.indices.map { index in
             try files.map { file in
-                code(in: try sut.picture(of: file, atFrame: index, reading: .tagged).bitmap)
+                code(in: try sut.picture(of: file, atFrame: index, play: .file, reading: .tagged).bitmap)
             }
         }
 

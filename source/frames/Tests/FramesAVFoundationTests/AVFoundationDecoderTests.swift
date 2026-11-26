@@ -160,11 +160,11 @@ struct AVFoundationDecoderTests {
         ]
 
         // When
-        let pictures = try reads.map { index, reading in try sut.picture(of: media, atFrame: index, reading: reading).bitmap }
+        let pictures = try reads.map { index, reading in try sut.picture(of: media, atFrame: index, play: .file, reading: reading).bitmap }
 
         // Then
         let alone = try reads.map { index, reading in
-            try AVFoundationDecoder().picture(of: media, atFrame: index, reading: reading).bitmap
+            try AVFoundationDecoder().picture(of: media, atFrame: index, play: .file, reading: reading).bitmap
         }
         #expect(pictures == alone)
         #expect(pictures.filter { $0.depth == .halfFloat }.map(code) == reads.filter { $0.1 == .tagged }.map(\.0))
@@ -752,7 +752,7 @@ struct AVFoundationDecoderTests {
         _ = try sut.picture(of: MediaFile.still(still), atFrame: 0).bitmap
         _ = try sut.picture(of: media, atFrame: 5).bitmap
         _ = try sut.picture(of: MediaFile.still(still), atFrame: 0).bitmap
-        _ = try sut.picture(of: MediaFile.still(still), atFrame: 0, reading: .platform(colorSpace: .srgb)).bitmap
+        _ = try sut.picture(of: MediaFile.still(still), atFrame: 0, play: .file, reading: .platform(colorSpace: .srgb)).bitmap
         let readings = sut.readings()
 
         // Then

@@ -64,12 +64,12 @@ struct DisplayListReaderTests {
             mask: masks,
             reveal: Rectangle(x: 0, y: 0, width: 540, height: 1920),
             content: .picture(PictureItem(
-                source: .media(MediaFrame(media: video, index: 2)),
+                source: .media(MediaFrame(media: video, index: 2, play: .file)),
                 rectangle: Rectangle(x: 45, y: 97.5, width: 990, height: 1760),
                 destination: Rectangle(x: 10, y: 20, width: 495, height: 880),
                 filter: [FilterEntry(operations: [.exposure(ev: 0.5), .blur(radius: 2)], mix: 0.5)],
                 matte: PictureMatte(
-                    frame: MediaFrame(media: still, index: 0, reading: .analysis(colorSpace: nil)),
+                    frame: MediaFrame(media: still, index: 0, play: .file, reading: .analysis(colorSpace: nil)),
                     progress: 0.25,
                     softness: 0.1,
                     isInverted: true
@@ -81,7 +81,7 @@ struct DisplayListReaderTests {
             origin: origin
         ),
         DisplayItem(content: .picture(PictureItem(
-            source: .media(MediaFrame(media: imageSequence, index: 1)),
+            source: .media(MediaFrame(media: imageSequence, index: 1, play: .file)),
             rectangle: nil,
             destination: Rectangle(x: 0, y: 0, width: 1080, height: 1920)
         ))),
@@ -248,11 +248,11 @@ struct DisplayListReaderTests {
             .displace(file: PinnedFile(path: "/abs/ripple.png", sha256: hash), amount: 16, offset: Point(x: -8, y: 2.5))
         ])]))),
         DisplayItem(content: .picture(PictureItem(
-            source: .media(MediaFrame(media: page, index: 0)),
+            source: .media(MediaFrame(media: page, index: 0, play: .file)),
             rectangle: Rectangle(x: 0, y: 0, width: 100, height: 50),
             destination: Rectangle(x: 0, y: 0, width: 400, height: 200),
             matte: PictureMatte(
-                frame: MediaFrame(media: page, index: 0, reading: .analysis(colorSpace: nil)),
+                frame: MediaFrame(media: page, index: 0, play: .file, reading: .analysis(colorSpace: nil)),
                 progress: 0.5,
                 softness: 0.1,
                 isInverted: false
@@ -414,7 +414,7 @@ struct DisplayListReaderTests {
             items: [
                 DisplayItem(content: .adjust(AdjustItem(filter: [FilterEntry(operations: filter)]))),
                 DisplayItem(content: .picture(PictureItem(
-                    source: .media(MediaFrame(media: Self.still, index: 0)),
+                    source: .media(MediaFrame(media: Self.still, index: 0, play: .file)),
                     rectangle: nil,
                     destination: Rectangle(x: 0, y: 0, width: 10, height: 10),
                     filter: [FilterEntry(operations: filter)]
@@ -550,13 +550,13 @@ struct DisplayListReaderTests {
     func writesPageSource() throws {
         // Given
         let matte = PictureMatte(
-            frame: MediaFrame(media: Self.page, index: 0, reading: .analysis(colorSpace: nil)),
+            frame: MediaFrame(media: Self.page, index: 0, play: .file, reading: .analysis(colorSpace: nil)),
             progress: 0.5,
             softness: 0.1,
             isInverted: false
         )
         let picture = PictureItem(
-            source: .media(MediaFrame(media: Self.page, index: 0, reading: .working(colorSpace: .srgb, targetPeak: 203))),
+            source: .media(MediaFrame(media: Self.page, index: 0, play: .file, reading: .working(colorSpace: .srgb, targetPeak: 203))),
             rectangle: nil,
             destination: Rectangle(x: 0, y: 0, width: 1080, height: 1920),
             matte: matte
@@ -579,7 +579,7 @@ struct DisplayListReaderTests {
     func refusesFrameOfPage() throws {
         // Given
         let picture = PictureItem(
-            source: .media(MediaFrame(media: Self.page, index: 0)),
+            source: .media(MediaFrame(media: Self.page, index: 0, play: .file)),
             rectangle: nil,
             destination: Rectangle(x: 0, y: 0, width: 1080, height: 1920)
         )
@@ -680,15 +680,15 @@ struct DisplayListReaderTests {
             (
                 #"{ "kind": "media", "list": \#(Self.emptyList) }"#,
                 "null",
-                #"items[0].source (picture): unknown key "list". Allowed: kind, media, frame, colorSpace, targetPeak"#
+                #"items[0].source (picture): unknown key "list". Allowed: kind, media, frame, play, colorSpace, targetPeak"#
             ),
             (
-                #"{ "kind": "media", "media": { "file": "/abs/a.png", "sha256": "\#(Self.hash)", "frames": null }, "frame": 0, "colorSpace": null, "targetPeak": null }"#,
+                #"{ "kind": "media", "media": { "file": "/abs/a.png", "sha256": "\#(Self.hash)", "frames": null }, "frame": 0, "play": null, "colorSpace": null, "targetPeak": null }"#,
                 "null",
                 #"items[0].source.media (picture): missing key "kind""#
             ),
             (
-                #"{ "kind": "media", "media": { "kind": "file", "files": [], "frames": null }, "frame": 0, "colorSpace": null, "targetPeak": null }"#,
+                #"{ "kind": "media", "media": { "kind": "file", "files": [], "frames": null }, "frame": 0, "play": null, "colorSpace": null, "targetPeak": null }"#,
                 "null",
                 #"items[0].source.media (picture): unknown key "files". Allowed: kind, file, sha256, frames"#
             ),
@@ -724,7 +724,7 @@ struct DisplayListReaderTests {
     func refusesMediaCornerPin() throws {
         // Given
         let media = PictureItem(
-            source: .media(MediaFrame(media: Self.still, index: 0)),
+            source: .media(MediaFrame(media: Self.still, index: 0, play: .file)),
             rectangle: nil,
             destination: Rectangle(x: 0, y: 0, width: 100, height: 60),
             cornerPin: Quad(Rectangle(x: 10, y: 10, width: 100, height: 60))
@@ -1154,7 +1154,7 @@ struct DisplayListReaderTests {
         // Given
         let list = list(items: [
             DisplayItem(content: .picture(PictureItem(
-                source: .media(MediaFrame(media: Self.still, index: 0)),
+                source: .media(MediaFrame(media: Self.still, index: 0, play: .file)),
                 rectangle: nil,
                 destination: Rectangle(x: 10, y: 20, width: 200, height: 100),
                 border: MediaBorder(width: 4, color: Color(written: "#FFFFFF"), align: align)

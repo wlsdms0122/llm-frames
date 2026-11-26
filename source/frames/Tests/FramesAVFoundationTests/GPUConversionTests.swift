@@ -48,8 +48,8 @@ struct GPUConversionTests {
 
         for frame in 0..<3 {
             // When
-            let converted = try sut.picture(of: media, atFrame: frame, reading: .tagged)
-            let expected = try reference.picture(of: media, atFrame: frame, reading: .tagged)
+            let converted = try sut.picture(of: media, atFrame: frame, play: .file, reading: .tagged)
+            let expected = try reference.picture(of: media, atFrame: frame, play: .file, reading: .tagged)
 
             // Then
             guard case .surface = converted else {
@@ -72,8 +72,8 @@ struct GPUConversionTests {
         let media = MediaFile.video(file, frameTimes: Self.gradientFrameTimes)
 
         // When
-        let first = try AVFoundationDecoder(conversion: .gpu).picture(of: media, atFrame: 1, reading: .tagged)
-        let second = try AVFoundationDecoder(conversion: .gpu).picture(of: media, atFrame: 1, reading: .tagged)
+        let first = try AVFoundationDecoder(conversion: .gpu).picture(of: media, atFrame: 1, play: .file, reading: .tagged)
+        let second = try AVFoundationDecoder(conversion: .gpu).picture(of: media, atFrame: 1, play: .file, reading: .tagged)
 
         // Then
         #expect(first.bitmap.pixels == second.bitmap.pixels)
@@ -89,8 +89,8 @@ struct GPUConversionTests {
         let sut = AVFoundationDecoder(conversion: .gpu)
 
         // When
-        let converted = try sut.picture(of: media, atFrame: 3, reading: .tagged)
-        let expected = try AVFoundationDecoder(conversion: .cpu).picture(of: media, atFrame: 3, reading: .tagged)
+        let converted = try sut.picture(of: media, atFrame: 3, play: .file, reading: .tagged)
+        let expected = try AVFoundationDecoder(conversion: .cpu).picture(of: media, atFrame: 3, play: .file, reading: .tagged)
 
         // Then
         guard case .surface = converted else {
@@ -117,8 +117,8 @@ struct GPUConversionTests {
 
         // When
         let media = MediaFile.video(file, frameTimes: Self.gradientFrameTimes)
-        _ = try sut.picture(of: media, atFrame: 0, reading: .tagged)
-        _ = try sut.picture(of: media, atFrame: 0, reading: .analysis(colorSpace: nil))
+        _ = try sut.picture(of: media, atFrame: 0, play: .file, reading: .tagged)
+        _ = try sut.picture(of: media, atFrame: 0, play: .file, reading: .analysis(colorSpace: nil))
 
         // Then
         let devices = sut.readings().media.map { "\($0.conversion.name) \($0.device.name)" }

@@ -18,7 +18,7 @@ struct ReaderBoundTests {
     @Test("a video read after others are shown no more closes the reader read longest ago, and takes no turn")
     func closesStaleReader() throws {
         // Given
-        let sut = ReaderBound(count: 2, budget: MemoryBudget(limit: .unlimited))
+        let sut = ReaderBound<String>(count: 2, budget: MemoryBudget(limit: .unlimited))
 
         // When
         _ = try sut.admit("a", cost: 1, turnRoom: 0) { _ in false }
@@ -34,7 +34,7 @@ struct ReaderBoundTests {
     @Test("videos read in turn past the count close at most one reader more than the videos past it each round, each a turn")
     func keepsReadersInCycle() throws {
         // Given
-        let sut = ReaderBound(count: 4, budget: MemoryBudget(limit: .unlimited))
+        let sut = ReaderBound<String>(count: 4, budget: MemoryBudget(limit: .unlimited))
         let videos = ["a", "b", "c", "d", "e", "f"]
         var closed: [[String]] = []
         var turns: [[String]] = []
@@ -60,7 +60,7 @@ struct ReaderBoundTests {
     @Test("a reader holding frames read in a turn is closed first")
     func closesHolderFirst() throws {
         // Given
-        let sut = ReaderBound(count: 2, budget: MemoryBudget(limit: .unlimited))
+        let sut = ReaderBound<String>(count: 2, budget: MemoryBudget(limit: .unlimited))
         _ = try sut.admit("a", cost: 1, turnRoom: 0) { _ in false }
         _ = try sut.admit("b", cost: 1, turnRoom: 0) { _ in false }
 
@@ -75,7 +75,7 @@ struct ReaderBoundTests {
     func boundsMemory() throws {
         // Given
         let budget = MemoryBudget(limit: try #require(MemorySize("10MB")))
-        let sut = ReaderBound(count: 48, budget: budget)
+        let sut = ReaderBound<String>(count: 48, budget: budget)
 
         // When
         let first = try sut.admit("a", cost: 6 * megabyte, turnRoom: 0) { _ in false }
@@ -94,7 +94,7 @@ struct ReaderBoundTests {
     func makesRoomForTurn() throws {
         // Given
         let budget = MemoryBudget(limit: try #require(MemorySize("10MB")))
-        let sut = ReaderBound(count: 48, budget: budget)
+        let sut = ReaderBound<String>(count: 48, budget: budget)
         _ = try sut.admit("a", cost: 4 * megabyte, turnRoom: 3 * megabyte) { _ in false }
         _ = try sut.admit("b", cost: 4 * megabyte, turnRoom: 3 * megabyte) { _ in false }
 
@@ -115,7 +115,7 @@ struct ReaderBoundTests {
     func grantsNoRoomPastFloor() throws {
         // Given
         let budget = MemoryBudget(limit: try #require(MemorySize("5MB")))
-        let sut = ReaderBound(count: 48, budget: budget)
+        let sut = ReaderBound<String>(count: 48, budget: budget)
         _ = try sut.admit("a", cost: 4 * megabyte, turnRoom: 2 * megabyte) { _ in false }
         _ = try sut.admit("b", cost: 4 * megabyte, turnRoom: 2 * megabyte) { _ in false }
 
@@ -131,7 +131,7 @@ struct ReaderBoundTests {
     @Test("a reader that raises the floor of readers above the limit is refused, naming the limit")
     func refusesUnderFloor() throws {
         // Given
-        let sut = ReaderBound(count: 48, budget: MemoryBudget(limit: try #require(MemorySize("10MB"))))
+        let sut = ReaderBound<String>(count: 48, budget: MemoryBudget(limit: try #require(MemorySize("10MB"))))
 
         // When, Then
         #expect(throws: MemoryError.self) { try sut.admit("a", cost: 11 * megabyte, turnRoom: 0) { _ in false } }
@@ -140,7 +140,7 @@ struct ReaderBoundTests {
     @Test("a video is open from its admission until the bound closes its reader for another")
     func tellsOpenReaders() throws {
         // Given
-        let sut = ReaderBound(count: 1, budget: MemoryBudget(limit: .unlimited))
+        let sut = ReaderBound<String>(count: 1, budget: MemoryBudget(limit: .unlimited))
 
         // When
         _ = try sut.admit("a", cost: 1, turnRoom: 0) { _ in false }

@@ -28,9 +28,10 @@ struct EmptySoundDecoder: MediaDecoder {
     func picture(
         of file: MediaFile,
         atFrame index: Int,
+        play: MediaPlay,
         reading: PictureReading
     ) throws -> Pixels {
-        try decoder.picture(of: file, atFrame: index, reading: reading)
+        try decoder.picture(of: file, atFrame: index, play: play, reading: reading)
     }
 
     func picture(

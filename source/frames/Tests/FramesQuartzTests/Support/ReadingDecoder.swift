@@ -34,6 +34,7 @@ final class ReadingDecoder: MediaDecoder {
     func picture(
         of file: MediaFile,
         atFrame index: Int,
+        play: MediaPlay,
         reading: PictureReading
     ) throws -> Pixels {
         pictureReadings.withLock { $0[file.path, default: []].append(reading) }

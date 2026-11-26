@@ -164,7 +164,8 @@ struct CornerPinDrawingTests {
         let page = DisplayItem(content: .picture(PictureItem(
             source: .media(MediaFrame(
                 media: PinnedMedia(source: .page(PinnedFile(path: "/abs/deck.pdf", sha256: ""), page: 1)),
-                index: 0
+                index: 0,
+                play: .file
             )),
             rectangle: nil,
             destination: Rectangle(x: 0, y: 0, width: 8, height: 8)
