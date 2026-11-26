@@ -243,7 +243,7 @@ Numbers: the same 64 pictures summed in another order differed in a few values i
 
 ### A ladder of limits
 
-Supports: the Note on the default of three eighths of the machine's memory in [The option](../spec/FRAMES-30/SPEC.md#the-option), and the model's error in [What it counts](../spec/FRAMES-30/SPEC.md#what-it-counts).
+Supports: the Note on why a reader's cost is charged in [What it counts](../spec/FRAMES-30/SPEC.md#what-it-counts), and the render at 8 GB in the Note on the default of three eighths of the machine's memory in [The option](../spec/FRAMES-30/SPEC.md#the-option).
 
 On: the reference machine (10 processors, 16 GB of memory, macOS 27.2) with the programs of a working day open, `render` built for release, a render of N videos at once at a 1280 by 720 sequence, 6 seconds at 30 fps, each video ProRes 4444 of 1206 by 2622 pixels read as `16-bit float RGBA` from a file of its own. A step started only while `memory_pressure` gave at least 60 % free. The decoding service's and the process's footprints are the largest of a sample every 2 seconds, and a render was stopped where the system began to swap. The budget then granted the renderer's pictures whatever the total.
 
@@ -264,7 +264,7 @@ The decoding service and the process held together 1.2 to 1.4 times the budget's
 
 ### The process's footprint in the budget
 
-Supports: the service's estimate in [What it measures](../spec/FRAMES-30/SPEC.md#what-it-measures), and the alternative of measuring the decoding service in [Alternatives considered](../spec/FRAMES-30/SPEC.md#alternatives-considered).
+Supports: the service's 1.23 times in the Note of [What it counts](../spec/FRAMES-30/SPEC.md#what-it-counts), and the alternative of correcting the budget by the process's measured memory in [Alternatives considered](../spec/FRAMES-30/SPEC.md#alternatives-considered).
 
 On: the reference machine with the programs of a working day open, `render` built for release, the renders of the ladder above at limits of 2, 4 and 6 GB, without the correction and with it. A step started only while `memory_pressure` gave at least 60 % free. The process's and the decoding service's footprints are the largest of a sample every 250 ms, the service being the instance launchd runs in the render's own domain, and the real total is the largest sum of the two at one sample. With the correction, the process's peak is the report's `process`.
 
@@ -289,11 +289,26 @@ The largest uncounted memory a reading gave was 0.57 to 1.18 GB, most of it the 
 
 ### Where the process's and the service's memory are counted
 
-Supports: the footprint the budget reads in [What it measures](../spec/FRAMES-30/SPEC.md#what-it-measures), and the alternative of measuring the decoding service.
+Supports: the alternatives of a limit that bounds what a run really uses and of correcting the budget by the process's measured memory in [Alternatives considered](../spec/FRAMES-30/SPEC.md#alternatives-considered).
 
 On: the reference machine, a program of its own that reads `task_info` with `TASK_VM_INFO` and `proc_pid_rusage`, and holds IOSurfaces or the frames of an AVAssetReader of one of the ladder's videos read as half floats.
 
 Numbers: a reading of the process's footprint took 718 ns, and gave 140.1 MB where `footprint` gave 140 MB. 20 IOSurfaces of 24.1 MB written by the process raised its footprint from 2.5 MB to 489.3 MB, and their release lowered it to 2.5 MB at once. 30 decoded frames of 24.3 MB held by the program left its footprint at 140 MB, 134 MB of it the reader's "CoreMedia Memory Pool", while its decoding service held 1261 MB, 1170 MB of it IOSurfaces; the reader cancelled, the service held 28 MB. Two such programs and QuickTime Player had an instance of the service each, each in its client's launchd domain, and the system held the terminal responsible for both programs' instances.
+
+### Renders of 16 videos by the budget's count alone
+
+Supports: the Note on the default of three eighths of the machine's memory in [The option](../spec/FRAMES-30/SPEC.md#the-option), and a lower limit holding a run to less in the [Summary](../spec/FRAMES-30/SPEC.md#summary).
+
+On: the reference machine with the programs of a working day open, `render` built for release at commit 691fe2fd, whose budget counts sizes and the readers' cost and measures nothing, the render of 16 videos of the ladder above at 4 GB and at the default, 6 GB. Each step started at 66 and 64 % free by `memory_pressure`. The process's and the decoding service's footprints are the largest of a sample every 250 ms, the real total the largest sum of the two at one sample, and wired memory and the lowest free share are read every 2 seconds.
+
+Numbers:
+
+| Limit | Budget's peak | Process | Decoding service | Real total | Most wired | Lowest free | Swapped out | Readers closed | Seconds |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 4 GB | 4.00 GB | 1.93 GB | 4.06 GB | 5.06 GB | 6.48 GB | 34 % | 0 | 2061 | 48.4 |
+| 6 GB | 5.98 GB | 2.17 GB | 4.69 GB | 6.73 GB | 7.82 GB | 23 % | 0 | 1705 | 40.8 |
+
+The same renders under the build that corrected the budget by the process's footprint, in the table above, took 27.7 and 21.0 s and had a real total of 4.54 and 6.18 GB, and another render at 4 GB under that build took 23.5 s. Under the build before the correction they took 76.0 and 37.7 s, with a real total of 5.20 and 7.02 GB and 46 and 35 % free at the lowest.
 
 ### A decoded frame read through a texture cache
 
