@@ -59,6 +59,15 @@ package protocol MediaDecoder: Sendable {
         reading: PictureReading?
     ) throws
 
+    // Ends the frame being rendered, which showed `frames`: the media frames the renderer read for it, in the order it
+    // read them, those it drew from a picture it kept from another play's read among them. frames renders the frames of
+    // a document one after another, so a play none of `frames` is in is over: the decoder closes what it opened to read
+    // it, gives back to the run's budget what it holds for it and keeps no record of it, so a frame asked in it later
+    // starts it as a new play does. In a play of them, the frame shown last in a reading is the frame the play asked
+    // last in it, whoever read it (FRAMES-21 Rules). A file read with no frame rendered is one play until the command
+    // ends.
+    func frameRendered(showing frames: [MediaFrame])
+
     // What the decoder has read since it was made, how it read each medium's pictures and its time reading
     // (FRAMES-23 Runs).
     func readings() -> MediaReadings

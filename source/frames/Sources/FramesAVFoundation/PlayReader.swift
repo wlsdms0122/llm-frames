@@ -14,7 +14,7 @@ import os
 // the last frame the play read, until it is closed, so the play's frames in order decode forward from it instead of
 // from the previous sync sample each time, and a frame of another play of the video never moves it. The buffers a turn
 // holds for later asks are the run's budget's `turns`, each held only where the budget grants it (FRAMES-30 The
-// budget).
+// budget), until the play asks it or ends.
 final class PlayReader: Sendable {
     // MARK: - Property
     // A later frame further ahead than this, in seconds, restarts the reader at it rather than decoding up to it.
@@ -124,6 +124,17 @@ final class PlayReader: Sendable {
     // buffers held. A read in progress ends first.
     func close() {
         state.withLockUnchecked { $0.reader = nil }
+    }
+
+    // Ends the play: lets go of the reader open for it and of the buffers held for it, whose bytes it gives back to the
+    // budget's `turns` (FRAMES-21 Rules). A read in progress ends first.
+    func end() {
+        state.withLockUnchecked { state in
+            state.reader = nil
+            letGo(of: state.held)
+            state.held = []
+            heldFrames.withLock { $0 = [] }
+        }
     }
 
     // MARK: - Private

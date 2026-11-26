@@ -19,7 +19,8 @@ import os
 // PDF is checked and drawn by `PageReader`. A video, a sound track and a PDF are loaded once and kept, a video's frames
 // are read by a `PlayReader` for each play of it, and a play read forward has its next frame read ahead by
 // `PictureLookahead`. It keeps readers open within the count `ReaderBound` holds them to and the room the run's budget
-// grants them, and a play past either takes turns (FRAMES-30). Made to
+// grants them, and a play past either takes turns (FRAMES-30). Once a frame is rendered, a play it did not show is over,
+// and the decoder keeps nothing of it: its reader, the frames held for it and its records go (FRAMES-21 Rules). Made to
 // convert on the GPU, on a machine with a Metal device, it takes a video's frames read as working values to a surface
 // by `MetalPictureConverter` wherever the conversion's steps and the frame's placement allow, and every other picture
 // on the CPU (FRAMES-21 Pictures). A frame those allow that Metal does not convert stops the read. The largest picture
@@ -778,6 +779,31 @@ extension AVFoundationDecoder: MediaDecoder {
         guard let sound = try soundTrack(at: file.path) else { throw DecoderError.noSound(file: file.path) }
 
         return try clock.measure(.decode) { try sound.sound(from: start, to: end, path: file.path) }
+    }
+
+    // The plays of videos none of `frames` is in end once the frames being read ahead for them are read: their readers
+    // close, the frames their turns hold and their frames read ahead are given back to the budget, and the decoder,
+    // the bound and the lookahead keep no record of them.
+    package func frameRendered(showing frames: [MediaFrame]) {
+        let shown = frames.compactMap { frame -> (play: VideoPlay, reading: PictureReading, index: Int)? in
+            let file = MediaFile(picture: frame.media)
+            guard case .video = file.kind, case let .frame(index) = frame.picture else { return nil }
+
+            return (VideoPlay(path: file.path, play: frame.play), frame.reading, index)
+        }
+        lookahead.frameRendered(showing: shown)
+
+        let shownPlays = Set(shown.map(\.play))
+        let over = plays.withLock { plays in
+            let over = plays.filter { !shownPlays.contains($0.key) }
+            plays = plays.filter { shownPlays.contains($0.key) }
+
+            return over
+        }
+        readers.end(Set(over.keys))
+        for reader in over.values {
+            reader.end()
+        }
     }
 
     package func readings() -> MediaReadings {

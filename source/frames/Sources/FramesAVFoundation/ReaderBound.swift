@@ -87,6 +87,19 @@ final class ReaderBound<Play: Hashable & Sendable>: Sendable {
         }
     }
 
+    // Ends `plays`: the reader of each that is open is no longer, its cost given back to the budget's `readers`, and the
+    // bound keeps no record of any of them, so a read in one later is admitted as a play's first read is (FRAMES-21
+    // Rules).
+    func end(_ plays: Set<Play>) {
+        state.withLockUnchecked { [budget] state in
+            for play in plays {
+                if let cost = state.open.removeValue(forKey: play) { budget.give(cost, for: .readers) }
+                state.lastRead[play] = nil
+                state.closed.remove(play)
+            }
+        }
+    }
+
     // Whether the reader of `play` is open, admitted by the bound and not closed since.
     func isOpen(_ play: Play) -> Bool {
         state.withLock { $0.open[play] != nil }

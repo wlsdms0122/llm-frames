@@ -16,6 +16,7 @@ package protocol Renderer: Sendable {
     func pictureBytes(of list: DisplayList) throws -> Int
 
     // A list given as sample lists is the mean of their pictures (FRAMES-29). The frame is a bitmap or a surface
-    // (FRAMES-21 Pictures).
+    // (FRAMES-21 Pictures). Once it is drawn, the renderer gives the decoder it reads through the media frames it
+    // showed, `MediaDecoder.frameRendered(showing:)`, so the decoder ends the plays it did not show (FRAMES-21 Rules).
     func frame(of list: DisplayList) throws -> Pixels
 }

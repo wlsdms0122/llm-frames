@@ -55,7 +55,7 @@ struct TranscoderTests {
         }
         #expect(log.calls == [
             .checkMedia(path: input),
-            .readPicture(path: input, frame: 0, reading: .working(colorSpace: nil, targetPeak: 203)),
+            .readPicture(path: input, frame: 0, play: .file, reading: .working(colorSpace: nil, targetPeak: 203)),
             .checkImageTarget(target),
             .writeImageTarget(target, frame: 0)
         ])
@@ -266,7 +266,7 @@ struct TranscoderTests {
             .videoWriter(target, size: Size(width: 40, height: 30), fps: 10, sound: silence)
         ] + [0, 0, 0, 1, 1].flatMap { frame -> [RoleCall] in
             [
-                .readPicture(path: input, frame: frame, reading: .working(colorSpace: nil, targetPeak: 203)),
+                .readPicture(path: input, frame: frame, play: .file, reading: .working(colorSpace: nil, targetPeak: 203)),
                 .append(path: output, frame: frame)
             ]
         } + [
@@ -306,7 +306,7 @@ struct TranscoderTests {
         let target = ImageTarget.png(path: output, size: Size(width: 40, height: 30), depth: depth, output: conversion)
         #expect(log.calls == [
             .checkMedia(path: input),
-            .readPicture(path: input, frame: 0, reading: .working(colorSpace: nil, targetPeak: conversion.peak)),
+            .readPicture(path: input, frame: 0, play: .file, reading: .working(colorSpace: nil, targetPeak: conversion.peak)),
             .checkImageTarget(target),
             .writeImageTarget(target, frame: 0)
         ])
@@ -358,7 +358,7 @@ struct TranscoderTests {
         // Then
         let reads = log.calls.filter { if case .readPicture = $0 { true } else { false } }
         #expect(reads == [0, 0, 0, 1, 1].map {
-            .readPicture(path: input, frame: $0, reading: .platform(colorSpace: .rec2100HLG))
+            .readPicture(path: input, frame: $0, play: .file, reading: .platform(colorSpace: .rec2100HLG))
         })
     }
 

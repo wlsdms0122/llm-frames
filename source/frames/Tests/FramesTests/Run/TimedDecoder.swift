@@ -86,6 +86,10 @@ final class TimedDecoder: MediaDecoder, @unchecked Sendable {
         try decoder.sound(of: file, from: start, to: end)
     }
 
+    func frameRendered(showing frames: [MediaFrame]) {
+        decoder.frameRendered(showing: frames)
+    }
+
     func readings() -> MediaReadings {
         lock.withLock {
             let media = reads == 0 ? [] : [

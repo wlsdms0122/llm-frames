@@ -8,8 +8,8 @@
 @testable import Frames
 
 // Gives each file the colour reading `colorReading` names and every picture as the bitmap of its frame index, a region
-// of a page as that of frame 0, and every page a size of `pageSize`. A picture read other than tagged and every region
-// of a page read are recorded. A check of pictures read in no colour space refuses a `platform` reading, as a decoder
+// of a page as that of frame 0, and every page a size of `pageSize`. A picture read other than tagged, with its play,
+// every region of a page read and the media frames each frame rendered showed are recorded. A check of pictures read in no colour space refuses a `platform` reading, as a decoder
 // refuses a picture no fixed formula converts.
 struct RecordingDecoder: MediaDecoder {
     // MARK: - Property
@@ -43,7 +43,7 @@ struct RecordingDecoder: MediaDecoder {
         reading: PictureReading
     ) throws -> Pixels {
         if reading != .tagged {
-            log.record(.readPicture(path: file.path, frame: index, reading: reading))
+            log.record(.readPicture(path: file.path, frame: index, play: play, reading: reading))
         }
 
         return .bitmap(Bitmap(frame: index))
@@ -89,6 +89,10 @@ struct RecordingDecoder: MediaDecoder {
         log.record(.readSound(path: file.path, from: start, to: end))
 
         return SoundBuffer(sampleRate: 48_000, channels: 2, samples: [])
+    }
+
+    func frameRendered(showing frames: [MediaFrame]) {
+        log.record(.renderFrame(showing: frames))
     }
 
     // Reports no medium and no time, as a run's report of it would be empty.

@@ -22,8 +22,11 @@ import os
 // as that pool has threads, hold every thread that work needs (FRAMES-21 Rules). The threads made here are of neither
 // pool. A frame asked for that is not the one read ahead is read where it is asked, once every frame of the same play
 // being read ahead is read, so the play's reader is where those reads left it. A read ahead that fails is dropped, so
-// its frame is read again where it is asked and fails there. `read` is told whether it reads ahead, and the time
-// callers wait on a frame being read ahead is kept as `waitingSeconds` (FRAMES-23 Runs).
+// its frame is read again where it is asked and fails there. Once a frame is rendered, the plays it did not show are
+// over and their entries dropped, and a play whose last frame shown came from the renderer's kept pictures takes that
+// frame as the one read last, so the step followed is the one between the frames the play shows (FRAMES-21 Rules).
+// `read` is told whether it reads ahead, and the time callers wait on a frame being read ahead is kept as
+// `waitingSeconds` (FRAMES-23 Runs).
 final class PictureLookahead: Sendable {
     // MARK: - Property
     // As many as the machine has processors, and at most 32 whatever their number, so reads ahead never hold more
@@ -104,6 +107,41 @@ final class PictureLookahead: Sendable {
         return picture
     }
 
+    // Ends the frame being rendered, which showed `frames` in the order they were asked, each a frame `index` of a play
+    // and reading, whether it was read here or the renderer drew it from a picture it kept. The entries of a play none
+    // of them is of are dropped once its frames being read ahead are read, so no read of the play goes on after, their
+    // bytes given back. A play and reading whose last frame shown is not the one read last in it takes that frame as
+    // the one read last, and lets go of a frame being read ahead that is not after it.
+    func frameRendered(showing frames: [(play: VideoPlay, reading: PictureReading, index: Int)]) {
+        let plays = Set(frames.map(\.play))
+        let shown = frames.reduce(into: [(play: VideoPlay, reading: PictureReading, index: Int)]()) { shown, frame in
+            shown.removeAll { $0.play == frame.play && $0.reading == frame.reading }
+            shown.append(frame)
+        }
+        let (over, replaced) = entries.withLock { entries -> ([ReadAhead], [ReadAhead]) in
+            let over = entries.filter { !plays.contains($0.play) }.compactMap(\.ahead)
+            entries.removeAll { !plays.contains($0.play) }
+            var replaced: [ReadAhead] = []
+            for frame in shown {
+                let entry = entries.first { $0.play == frame.play && $0.reading == frame.reading }
+                guard entry?.index != frame.index else { continue }
+
+                let ahead = entry?.ahead.flatMap { $0.index > frame.index ? $0 : nil }
+                if ahead == nil, let dropped = entry?.ahead { replaced.append(dropped) }
+                entries.removeAll { $0.play == frame.play && $0.reading == frame.reading }
+                entries.append(Entry(play: frame.play, reading: frame.reading, index: frame.index, ahead: ahead))
+            }
+
+            return (over, replaced)
+        }
+        for ahead in over {
+            _ = wait(for: ahead)
+        }
+        for ahead in replaced where ahead.letGo() {
+            budget.give(ahead.bytes, for: .readAhead)
+        }
+    }
+
     // MARK: - Private
     // The picture of a frame being read ahead once its read ends, the time waited for it kept, and its bytes given
     // back to the budget, since the picture is the caller's once it is given.
@@ -122,9 +160,10 @@ final class PictureLookahead: Sendable {
 }
 
 extension PictureLookahead {
-    // The frame read last of a play of a file and reading, and the frame being read ahead of it, which is none when the step
-    // from the frame before it is not forward or leads past the last frame, when as many frames as are read ahead at
-    // once were being read ahead, or when the budget granted no room for it.
+    // The frame read last of a play of a file and reading, or shown last from a picture the renderer kept, and the frame
+    // being read ahead of it, which is none when the step from the frame before it is not forward or leads past the last
+    // frame, when as many frames as are read ahead at once were being read ahead, when the budget granted no room for it,
+    // and when a frame shown last from a picture the renderer kept was not before it.
     private struct Entry: Sendable {
         let play: VideoPlay
         let reading: PictureReading
