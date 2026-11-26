@@ -262,6 +262,39 @@ Numbers:
 
 The decoding service and the process held together 1.2 to 1.4 times the budget's peak. The service alone held 0.6 to 1.1 times it, below it where many readers took turns. The budget's peak passed the limit by up to 0.2 GB, the renderer's pictures, granted whatever the total. At 6 GB, three eighths of the machine, 16 videos left a third of the memory free at its lowest, and at 8 GB, half of it, the system began to swap 6 seconds in.
 
+### The process's footprint in the budget
+
+Supports: the service's estimate in [What it measures](../spec/FRAMES-30/SPEC.md#what-it-measures), and the alternative of measuring the decoding service in [Alternatives considered](../spec/FRAMES-30/SPEC.md#alternatives-considered).
+
+On: the reference machine with the programs of a working day open, `render` built for release, the renders of the ladder above at limits of 2, 4 and 6 GB, without the correction and with it. A step started only while `memory_pressure` gave at least 60 % free. The process's and the decoding service's footprints are the largest of a sample every 250 ms, the service being the instance launchd runs in the render's own domain, and the real total is the largest sum of the two at one sample. With the correction, the process's peak is the report's `process`.
+
+Numbers:
+
+| Limit | Videos | Correction | Budget's peak | Process | Decoding service | Real total | Real over the limit | Seconds |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 2 GB | 8 | without | 2.00 GB | 1.16 GB | 2.51 GB | 3.11 GB | 1.55 | 18.3 |
+| 2 GB | 8 | with | 1.83 GB | 0.97 GB | 2.12 GB | 2.61 GB | 1.31 | 14.9 |
+| 2 GB | 16 | without | 2.00 GB | 1.43 GB | 1.47 GB | 2.65 GB | 1.33 | 70.6 |
+| 2 GB | 16 | with | 2.00 GB | 1.57 GB | 1.22 GB | 2.63 GB | 1.31 | 65.1 |
+| 4 GB | 8 | without | 4.00 GB | 1.07 GB | 4.30 GB | 5.37 GB | 1.34 | 13.5 |
+| 4 GB | 8 | with | 3.65 GB | 1.25 GB | 3.20 GB | 4.32 GB | 1.08 | 13.7 |
+| 4 GB | 16 | without | 4.00 GB | 1.60 GB | 3.73 GB | 5.20 GB | 1.30 | 76.0 |
+| 4 GB | 16 | with | 3.90 GB | 1.82 GB | 3.61 GB | 4.54 GB | 1.13 | 27.7 |
+| 6 GB | 8 | without | 4.16 GB | 1.40 GB | 4.40 GB | 5.79 GB | 0.96 | 9.4 |
+| 6 GB | 8 | with | 4.16 GB | 1.33 GB | 4.39 GB | 5.68 GB | 0.95 | 9.6 |
+| 6 GB | 16 | without | 5.98 GB | 2.07 GB | 5.34 GB | 7.02 GB | 1.17 | 37.7 |
+| 6 GB | 16 | with | 5.69 GB | 1.97 GB | 4.32 GB | 6.18 GB | 1.03 | 21.0 |
+
+The largest uncounted memory a reading gave was 0.57 to 1.18 GB, most of it the readers' share in the process ("CoreMedia Memory Pool", 568 MB for 8 readers at 4 GB) and the IOSurfaces of the process (644 MB there). At 6 GB with 8 videos every reader stayed open, and the service held 4.39 GB where the budget counted 3.58 GB of readers and no turns, 1.23 times. At 2 GB the floors, 0.84 GB for 8 videos and 1.22 GB for 16, and the uncounted memory together came near the limit, so the render held its floors. No step swapped.
+
+### Where the process's and the service's memory are counted
+
+Supports: the footprint the budget reads in [What it measures](../spec/FRAMES-30/SPEC.md#what-it-measures), and the alternative of measuring the decoding service.
+
+On: the reference machine, a program of its own that reads `task_info` with `TASK_VM_INFO` and `proc_pid_rusage`, and holds IOSurfaces or the frames of an AVAssetReader of one of the ladder's videos read as half floats.
+
+Numbers: a reading of the process's footprint took 718 ns, and gave 140.1 MB where `footprint` gave 140 MB. 20 IOSurfaces of 24.1 MB written by the process raised its footprint from 2.5 MB to 489.3 MB, and their release lowered it to 2.5 MB at once. 30 decoded frames of 24.3 MB held by the program left its footprint at 140 MB, 134 MB of it the reader's "CoreMedia Memory Pool", while its decoding service held 1261 MB, 1170 MB of it IOSurfaces; the reader cancelled, the service held 28 MB. Two such programs and QuickTime Player had an instance of the service each, each in its client's launchd domain, and the system held the terminal responsible for both programs' instances.
+
 ### A decoded frame read through a texture cache
 
 Supports: [Pictures](../spec/FRAMES-21/SPEC.md#pictures), the decoder reading a decoded frame through textures made on its own surface, and the alternative of a Core Video texture cache in [Alternatives considered](../spec/FRAMES-30/SPEC.md#alternatives-considered).
