@@ -14,7 +14,8 @@ import Testing
 
 // A run's memory limit, which the decoder's readers and reading ahead, the renderer's pictures and the pipeline's
 // frames and sound draw from, changes how a render reads its videos and never its frames, what the budget counts stays
-// within it, and a limit under the run's floor is refused before the first frame (FRAMES-30).
+// within it, the process's measured footprint is reported, and a limit under the run's floor is refused before the
+// first frame (FRAMES-30).
 @Suite("MemoryLimitRender Tests", .ownThread)
 struct MemoryLimitRenderTests {
     // MARK: - Property
@@ -44,6 +45,7 @@ struct MemoryLimitRenderTests {
         let pictures = try #require(limited.usage.holders.first { $0.holder == .pictures })
         #expect(pictures.peak == 8 * 153_600)
         #expect(limited.usage.peak <= limited.limit.bytes)
+        #expect(limited.usage.uncounted > 0)
         #expect(unlimited.usage.holders.first { $0.holder == .readers }?.refused == 0)
         #expect(limitedFrames.count == 12)
         #expect(limitedFrames == unlimitedFrames)
@@ -63,6 +65,22 @@ struct MemoryLimitRenderTests {
         let floors = sut.usage.holders.map(\.floor)
         #expect(floors == [806_400, 0, 0, 1_228_800, 307_200, 153_600])
         #expect(sut.usage.floor == 2_496_000)
+    }
+
+    @Test("a render reports the process's largest footprint, which holds the pictures the budget counted in the process")
+    func reportsProcessFootprint() async throws {
+        // Given
+        let directory = try TemporaryDirectory()
+        let document = try await document(in: directory)
+        let sut = MemoryBudget(limit: .unlimited)
+
+        // When
+        _ = try render(document, budget: sut, to: directory.file("out.mov"))
+
+        // Then
+        let pictures = try #require(sut.usage.holders.first { $0.holder == .pictures })
+        #expect(pictures.peak == 8 * 153_600)
+        #expect(sut.usage.process >= pictures.peak)
     }
 
     @Test("a limit under the run's floor is refused before the first frame, naming the limit, the floor and its holders")

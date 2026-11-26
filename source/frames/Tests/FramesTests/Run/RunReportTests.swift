@@ -146,6 +146,8 @@ struct RunReportTests {
                 limit: 8_589_934_592,
                 floor: 1_000,
                 peak: 1_500,
+                process: 2_000,
+                uncounted: 700,
                 holders: [
                     MemoryHolderUsage(holder: .readers, floor: 600, peak: 900, refused: 2),
                     MemoryHolderUsage(holder: .readAhead, floor: 0, peak: 200, refused: 1),
@@ -173,7 +175,7 @@ struct RunReportTests {
             "device": "cpu", "pixelFormat": "16-bit float RGBA", "framesRead": 1, "framesDecoded": 1, "reopened": 0}], \#
             "files": [{"path": "/abs/out.mov", "codec": "ProRes 422 HQ", "hardware": true, "device": "cpu"}, \#
             {"path": "/abs/out.mp4", "codec": "H.264", "hardware": true, "device": "gpu"}], \#
-            "memory": {"limit": 8589934592, "floor": 1000, "peak": 1500, "holders": \#
+            "memory": {"limit": 8589934592, "floor": 1000, "peak": 1500, "process": 2000, "uncounted": 700, "holders": \#
             {"readers": {"floor": 600, "peak": 900, "refused": 2}, "readAhead": {"floor": 0, "peak": 200, "refused": 1}, \#
             "turns": {"floor": 0, "peak": 0, "refused": 0}, "pictures": {"floor": 0, "peak": 400, "refused": 0}, \#
             "frames": {"floor": 300, "peak": 300, "refused": 0}, \#

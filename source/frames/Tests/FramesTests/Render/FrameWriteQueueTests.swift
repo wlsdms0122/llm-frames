@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import FramesTestMedia
 import Testing
 
 @testable import Frames
@@ -77,7 +78,7 @@ struct FrameWriteQueueTests {
     ) throws {
         // Given
         let megabyte = MemorySize.megabyte
-        let budget = MemoryBudget(limit: try #require(MemorySize(limit)))
+        let budget = MemoryBudget(limit: try #require(MemorySize(limit)), meter: SettableMemoryMeter())
         budget.require(2 * megabyte, for: .frames)
         budget.hold(megabyte, for: .frames)
         let gate = DispatchSemaphore(value: 0)
