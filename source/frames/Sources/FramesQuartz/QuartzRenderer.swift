@@ -43,12 +43,18 @@ extension QuartzRenderer: Renderer {
         try pictures.bytes(of: list)
     }
 
-    // Once the frame is drawn, the media pictures it did not use are let go of.
-    package func frame(of list: DisplayList) throws -> Pixels {
+    // The list's media pictures are read before it is drawn, and once the frame is drawn, the media pictures it did not
+    // use are let go of.
+    package func frame(
+        of list: DisplayList,
+        next: DisplayList?
+    ) throws -> Pixels {
         defer { pictures.frameDrawn() }
 
         return try autoreleasepool {
-            .bitmap(try FrameDrawer(pictures: pictures, tables: tables, fonts: fonts).draw(list).bitmap())
+            try pictures.read(list, before: next)
+
+            return .bitmap(try FrameDrawer(pictures: pictures, tables: tables, fonts: fonts).draw(list).bitmap())
         }
     }
 }

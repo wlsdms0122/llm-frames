@@ -59,13 +59,25 @@ package protocol MediaDecoder: Sendable {
         reading: PictureReading?
     ) throws
 
+    // Tells the decoder that frames `indices` of `file` are asked next in `play`, read as `reading`, in that order, by
+    // a caller that has read every frame it asks before them, so the decoder reads them ahead of the asks, from the
+    // play's reader, which so moves only forward. A file that is no video, and a frame its video does not have, are
+    // read where they are asked (FRAMES-21 Rules).
+    func readAhead(
+        of file: MediaFile,
+        atFrames indices: [Int],
+        play: MediaPlay,
+        reading: PictureReading
+    )
+
     // Ends the frame being rendered, which showed `frames`: the media frames the renderer read for it, in the order it
     // read them, those it drew from a picture it kept from another play's read among them. frames renders the frames of
-    // a document one after another, so a play none of `frames` is in is over: the decoder closes what it opened to read
-    // it, gives back to the run's budget what it holds for it and keeps no record of it, so a frame asked in it later
-    // starts it as a new play does. In a play of them, the frame shown last in a reading is the frame the play asked
-    // last in it, whoever read it (FRAMES-21 Rules). A file read with no frame rendered is one play until the command
-    // ends.
+    // a document one after another, so a play none of `frames` is in, and none of the frames told by
+    // `readAhead(of:atFrames:play:reading:)` since the frame before was rendered is in, is over: the decoder closes
+    // what it opened to read it, gives back to the run's budget what it holds for it and keeps no record of it, so a
+    // frame asked in it later starts it as a new play does. In a play of them, the frame shown last in a reading is the
+    // frame the play asked last in it, whoever read it (FRAMES-21 Rules). A file read with no frame rendered is one
+    // play until the command ends.
     func frameRendered(showing frames: [MediaFrame])
 
     // What the decoder has read since it was made, how it read each medium's pictures and its time reading
@@ -105,6 +117,32 @@ extension MediaDecoder {
 
         case .page:
             return .bitmap(try providerPicture(ofPage: file, reading: frame.reading).picture)
+        }
+    }
+
+    // Tells the decoder the display list's media frames `frames` are asked next, in that order: each file's frames in
+    // each play and reading, a page's picture left out, as it reads a page whole where it is asked.
+    package func readAhead(of frames: [MediaFrame]) {
+        var tellings: [(frame: MediaFrame, indices: [Int])] = []
+        for frame in frames {
+            guard case let .frame(index) = frame.picture else { continue }
+
+            let told = tellings.firstIndex {
+                $0.frame.media == frame.media && $0.frame.play == frame.play && $0.frame.reading == frame.reading
+            }
+            if let told {
+                tellings[told].indices.append(index)
+            } else {
+                tellings.append((frame, [index]))
+            }
+        }
+        for (frame, indices) in tellings {
+            readAhead(
+                of: MediaFile(picture: frame.media),
+                atFrames: indices,
+                play: frame.play,
+                reading: frame.reading
+            )
         }
     }
 

@@ -44,14 +44,16 @@ package struct PointTracker: Sendable {
         over indices: [Int]
     ) throws -> [TrackedFrame] {
         let facing = TargetFacing(target)
-        guard let points = trackPoints(of: facing, on: try image(of: file, atFrame: start, reading: reading)) else { return [] }
+        let first = try image(of: file, atFrame: start, reading: reading, next: indices.first)
+        guard let points = trackPoints(of: facing, on: first) else { return [] }
         let starts = points.map(\.point)
 
         var last = TrackEstimate(points: starts, correlation: 1)
         var beforeLast: TrackEstimate?
         var frames: [TrackedFrame] = []
-        for index in indices {
-            let image = try image(of: file, atFrame: index, reading: reading)
+        for (place, index) in indices.enumerated() {
+            let next = indices.dropFirst(place + 1).first
+            let image = try image(of: file, atFrame: index, reading: reading, next: next)
             let moved = beforeLast.map { before in
                 zip(last.points, before.points).map { point, earlier in
                     CGPoint(x: 2 * point.x - earlier.x, y: 2 * point.y - earlier.y)
@@ -142,12 +144,18 @@ package struct PointTracker: Sendable {
         TrackMotion(from: starts.map { Point(x: $0.x, y: $0.y) }, to: ends.map { Point(x: $0.x, y: $0.y) })
     }
 
+    // Frame `index` of the file, once read telling the decoder `next`, the frame read after it, nil where none is, so
+    // the decoder reads it while this one is tracked on.
     private func image(
         of file: MediaFile,
         atFrame index: Int,
-        reading: PictureReading
+        reading: PictureReading,
+        next: Int?
     ) throws -> GreyImage {
-        GreyImage(picture: try decoder.picture(of: file, atFrame: index, play: .file, reading: reading).bitmap)
+        let picture = try decoder.picture(of: file, atFrame: index, play: .file, reading: reading)
+        if let next { decoder.readAhead(of: file, atFrames: [next], play: .file, reading: reading) }
+
+        return GreyImage(picture: picture.bitmap)
     }
 }
 

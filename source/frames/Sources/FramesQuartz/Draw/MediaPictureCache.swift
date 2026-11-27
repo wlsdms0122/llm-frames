@@ -15,9 +15,12 @@ import os
 // clips show in one frame, or in two frames one after the other, is read once and the play that asks it second asks
 // the decoder nothing, while two clips that show it further apart read it each (FRAMES-21 Rules), and a page's picture
 // for each region, scale and reading, so a picture is reused only for the very request a frame makes (FRAMES-20
-// Pictures). Once a frame is drawn, `frameDrawn()` lets go of every picture it did not use, so the pictures kept are
-// those of the frame drawn last and those the frame being drawn has read, and gives the decoder the media frames the
-// frame asked for, those it took from the pictures kept among them, so the decoder ends the plays it did not show. The run's budget counts every picture of pixels kept, a frame's
+// Pictures). `read(_:before:)` reads a frame's pictures of pixels before it is drawn and tells the decoder the media
+// frames the frame after it will ask it for, those of the next list that the frame does not read, since what a frame
+// reads is kept for the frame after it. Once a frame is drawn, `frameDrawn()` lets go of every picture it did not use,
+// so the pictures kept are those of the frame drawn last and those the frame being drawn has read, and gives the
+// decoder the media frames the frame asked for, those it took from the pictures kept among them, so the decoder ends
+// the plays neither it nor the frame after it shows. The run's budget counts every picture of pixels kept, a frame's
 // picture of its displayed size at 8 bytes a pixel as working values and 4 as an analysis picture, as its `pictures`
 // hold, which is never refused and stays within the floor `reserve(for:)` gives for every list checked before it is
 // drawn. A page's pictures are not counted (FRAMES-30 The budget).
@@ -60,6 +63,25 @@ final class MediaPictureCache: Sendable {
 
             return total + Self.bytes(width: Int(size.width), height: Int(size.height), reading: frame.reading)
         }
+    }
+
+    // Reads every picture of pixels `list` reads, each once, and, where `next` is the list drawn after it, tells the
+    // decoder the media frames of pixels `next` reads that `list` does not, in the order `next` reads them, which the
+    // frame after asks the decoder for. The frame being drawn then asks the decoder for no picture of pixels, so the
+    // decoder reads those frames ahead from where the frame's reads left each play's reader.
+    func read(
+        _ list: DisplayList,
+        before next: DisplayList?
+    ) throws {
+        let finder = MediaPictureFinder()
+        let frames = finder.frames(of: list)
+        for frame in frames {
+            _ = try keptPicture(of: frame)
+        }
+        guard let next else { return }
+
+        let requests = frames.map(Self.request(of:))
+        decoder.readAhead(of: finder.frames(of: next).filter { !requests.contains(Self.request(of: $0)) })
     }
 
     // The frame's picture as the decoder gives it for the frame, read as the frame says: working values, or an analysis
@@ -118,10 +140,16 @@ final class MediaPictureCache: Sendable {
     }
 
     // MARK: - Private
+    // The frame's picture, counted among the media frames the frame being drawn showed.
     private func picture(of frame: MediaFrame) throws -> (pixels: Pixels, image: CGImage) {
         shown.withLock { $0.append(frame) }
-        let file = MediaFile(picture: frame.media)
-        let request = PictureRequest(path: file.path, picture: frame.picture, reading: frame.reading)
+
+        return try keptPicture(of: frame)
+    }
+
+    // The frame's picture kept, read through the decoder and kept where none is, counted used by the frame being drawn.
+    private func keptPicture(of frame: MediaFrame) throws -> (pixels: Pixels, image: CGImage) {
+        let request = Self.request(of: frame)
         if let kept = Self.use(request, in: pictures) { return kept }
 
         let pixels = try decoder.picture(of: frame)
@@ -131,6 +159,11 @@ final class MediaPictureCache: Sendable {
         budget.hold(bytes, for: .pictures)
 
         return picture
+    }
+
+    // The request a frame's picture is kept for, whichever play asks it.
+    private static func request(of frame: MediaFrame) -> PictureRequest {
+        PictureRequest(path: MediaFile(picture: frame.media).path, picture: frame.picture, reading: frame.reading)
     }
 
     // The displayed size of the pictures of `file`, asked of the decoder once.
