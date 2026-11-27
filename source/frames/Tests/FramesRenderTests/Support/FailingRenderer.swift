@@ -34,7 +34,10 @@ final class FailingRenderer: Renderer, @unchecked Sendable {
         try renderer.pictureBytes(of: list)
     }
 
-    func frame(of list: DisplayList) throws -> Pixels {
+    func frame(
+        of list: DisplayList,
+        next: DisplayList?
+    ) throws -> Pixels {
         let index = lock.withLock {
             defer { frameCount += 1 }
 
@@ -42,7 +45,7 @@ final class FailingRenderer: Renderer, @unchecked Sendable {
         }
         guard index != failingFrame else { throw InjectedFailure.frame(index) }
 
-        return try renderer.frame(of: list)
+        return try renderer.frame(of: list, next: next)
     }
 
     // MARK: - Public

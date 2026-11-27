@@ -160,15 +160,42 @@ struct MediaPictureCacheTests {
         #expect(decoder.frames.map { Set($0.map(\.play)) } == [[.place("clips[0]")], []])
     }
 
+    @Test(
+        "a frame drawn before another tells the decoder, once it has read its own pictures, the next list's frames it does not read",
+        arguments: [false, true]
+    )
+    func tellsNextFrames(isMetal: Bool) throws {
+        // Given
+        let decoder = ReadingDecoder()
+        let sut: any Renderer = isMetal ? MetalRenderer(decoder: decoder) : QuartzRenderer(decoder: decoder)
+        let first = MediaPlay.place("clips[0]")
+        let second = MediaPlay.place("clips[1]")
+        let current = list(of: [item(showing: "/cache/a.mov", play: first), item(showing: "/cache/b.mov", play: second)])
+        let next = list(of: [
+            item(showing: "/cache/a.mov", play: first, index: 2),
+            item(showing: "/cache/b.mov", play: second),
+            item(showing: "/cache/a.mov", play: first, index: 3)
+        ])
+
+        // When
+        _ = try sut.frame(of: current, next: next)
+        _ = try sut.frame(of: next, next: nil)
+
+        // Then
+        #expect(decoder.told == [ReadingDecoder.Telling(path: "/cache/a.mov", indices: [2, 3], play: first, asked: 2)])
+        #expect(decoder.plays == [first, second, first, first])
+    }
+
     // MARK: - Private
-    // A picture item of frame 0 of the video at `path` in `play`, filling a 2 by 2 list.
+    // A picture item of frame `index` of the video at `path` in `play`, filling a 2 by 2 list.
     private func item(
         showing path: String,
-        play: MediaPlay = .file
+        play: MediaPlay = .file,
+        index: Int = 0
     ) -> DisplayItem {
         let frame = MediaFrame(
-            media: PinnedMedia(source: .file(PinnedFile(path: path, sha256: ""), frameTimes: [0])),
-            index: 0,
+            media: PinnedMedia(source: .file(PinnedFile(path: path, sha256: ""), frameTimes: [0, 1, 2, 3])),
+            index: index,
             play: play
         )
         let picture = PictureItem(

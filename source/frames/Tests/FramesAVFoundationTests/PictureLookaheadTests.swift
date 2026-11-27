@@ -12,8 +12,8 @@ import os
 import Testing
 @testable import FramesAVFoundation
 
-// Reading ahead on threads of its own, and no more frames at once than the machine has processors, so reads at once
-// stay well under the 64 at which AVFoundation's reads stop finishing (FRAMES-21 Notes).
+// Reading ahead the frames a caller tells, on threads of their own, and no more frames at once than the machine has
+// processors, so reads at once stay well under the 64 at which AVFoundation's reads stop finishing (FRAMES-21 Notes).
 @Suite("PictureLookahead Tests", .ownThread)
 struct PictureLookaheadTests {
     // MARK: - Property
@@ -21,29 +21,25 @@ struct PictureLookaheadTests {
 
     // MARK: - Initializer
     // MARK: - Test
-    @Test("seventy files read forward together are read ahead no more at once than the machine has processors")
+    @Test("seventy files each told a frame together are read ahead no more at once than the machine has processors")
     func boundsReadsAhead() throws {
         // Given
         let sut = PictureLookahead(budget: MemoryBudget(limit: .unlimited))
         let files = (0..<70).map { VideoPlay(path: "/lookahead/\($0).mov", play: .file) }
         let gate = DispatchSemaphore(value: 0)
         let reads = OSAllocatedUnfairLock(initialState: (running: 0, most: 0))
-        let read: @Sendable (Int, Bool) throws -> Pixels = { index, isAhead in
-            if isAhead {
-                reads.withLock { $0 = (running: $0.running + 1, most: max($0.most, $0.running + 1)) }
-                gate.wait()
-                gate.signal()
-                reads.withLock { $0.running -= 1 }
-            }
+        let readAhead: @Sendable (Int) throws -> Pixels = { index in
+            reads.withLock { $0 = (running: $0.running + 1, most: max($0.most, $0.running + 1)) }
+            gate.wait()
+            gate.signal()
+            reads.withLock { $0.running -= 1 }
 
             return .bitmap(Self.picture(index))
         }
 
         // When
         for file in files {
-            for index in 0..<2 {
-                _ = try sut.picture(atFrame: index, of: file, count: 3, bytes: 8, reading: .tagged, read: read)
-            }
+            sut.readAhead(atFrames: [2], of: file, reading: .tagged, bytes: 8, read: readAhead)
         }
         let start = ContinuousClock.now
         while reads.withLock({ $0.running }) < processors, ContinuousClock.now - start < .seconds(10) {
@@ -53,7 +49,7 @@ struct PictureLookaheadTests {
         let most = reads.withLock { $0.most }
         gate.signal()
         let pictures = try files.map { file in
-            try sut.picture(atFrame: 2, of: file, count: 3, bytes: 8, reading: .tagged, read: read).bitmap
+            try sut.picture(atFrame: 2, of: file, reading: .tagged) { .bitmap(Self.picture($0)) }.bitmap
         }
 
         // Then
@@ -61,36 +57,66 @@ struct PictureLookaheadTests {
         #expect(pictures.allSatisfy { $0 == Self.picture(2) })
     }
 
-    @Test("two plays of one file read in turn are each read ahead by their own step")
-    func readsAheadByEachPlaysStep() throws {
+    @Test("two plays of one file each read ahead the frames told for them, in the order told, and no others")
+    func readsAheadFramesTold() throws {
         // Given
         let sut = PictureLookahead(budget: MemoryBudget(limit: .unlimited))
         let first = VideoPlay(path: "/lookahead/tile.mov", play: .place("clips[0]"))
         let second = VideoPlay(path: "/lookahead/tile.mov", play: .place("clips[1]"))
-        let aheads = OSAllocatedUnfairLock<[Int]>(initialState: [])
-        let read: @Sendable (Int, Bool) throws -> Pixels = { index, isAhead in
-            if isAhead { aheads.withLock { $0.append(index) } }
+        let reads = OSAllocatedUnfairLock<[(play: VideoPlay, index: Int, isAhead: Bool)]>(initialState: [])
+        let read = { (play: VideoPlay, isAhead: Bool) -> @Sendable (Int) throws -> Pixels in
+            { index in
+                reads.withLock { $0.append((play, index, isAhead)) }
+
+                return .bitmap(Self.picture(index))
+            }
+        }
+
+        // When
+        var pictures: [Bitmap] = []
+        for (play, indices) in [(first, [0, 2, 3, 6]), (second, [20, 21, 25, 26])] {
+            pictures.append(try sut.picture(atFrame: indices[0], of: play, reading: .tagged, read: read(play, false)).bitmap)
+            sut.readAhead(atFrames: Array(indices.dropFirst()), of: play, reading: .tagged, bytes: 8, read: read(play, true))
+        }
+        for (play, indices) in [(first, [2, 3, 6]), (second, [21, 25, 26])] {
+            for index in indices {
+                pictures.append(try sut.picture(atFrame: index, of: play, reading: .tagged, read: read(play, false)).bitmap)
+            }
+        }
+
+        // Then
+        #expect(pictures == [0, 20, 2, 3, 6, 21, 25, 26].map(Self.picture))
+        let ahead = reads.withLock { $0 }.filter(\.isAhead)
+        #expect(ahead.filter { $0.play == first }.map(\.index) == [2, 3, 6])
+        #expect(ahead.filter { $0.play == second }.map(\.index) == [21, 25, 26])
+        #expect(reads.withLock { $0 }.filter { !$0.isAhead }.map(\.index) == [0, 20])
+    }
+
+    @Test("a frame asked that was not told is read where it is asked once the play's frames being read ahead are read")
+    func readsFrameNotToldAfterReadsAhead() throws {
+        // Given
+        let sut = PictureLookahead(budget: MemoryBudget(limit: .unlimited))
+        let play = VideoPlay(path: "/lookahead/tile.mov", play: .place("clips[0]"))
+        let gate = DispatchSemaphore(value: 0)
+        let reads = OSAllocatedUnfairLock<[Int]>(initialState: [])
+        sut.readAhead(atFrames: [4], of: play, reading: .tagged, bytes: 8) { index in
+            gate.wait()
+            reads.withLock { $0.append(index) }
 
             return .bitmap(Self.picture(index))
         }
 
         // When
-        var pictures: [Bitmap] = []
-        for step in 0..<3 {
-            pictures.append(try sut.picture(atFrame: step, of: first, count: 40, bytes: 8, reading: .tagged, read: read).bitmap)
-            pictures.append(
-                try sut.picture(atFrame: 20 + step, of: second, count: 40, bytes: 8, reading: .tagged, read: read).bitmap
-            )
+        DispatchQueue.global().asyncAfter(deadline: .now() + 0.1) { gate.signal() }
+        let picture = try sut.picture(atFrame: 3, of: play, reading: .tagged) { index in
+            reads.withLock { $0.append(index) }
+
+            return .bitmap(Self.picture(index))
         }
-        _ = try sut.picture(atFrame: 3, of: first, count: 40, bytes: 8, reading: .tagged, read: read)
-        _ = try sut.picture(atFrame: 23, of: second, count: 40, bytes: 8, reading: .tagged, read: read)
 
         // Then
-        #expect(pictures == [0, 20, 1, 21, 2, 22].map(Self.picture))
-        // The frames read ahead of the frames asked last, 4 and 24, may not have started.
-        let started = Set(aheads.withLock { $0 })
-        #expect(Set([2, 3, 22, 23]).isSubset(of: started))
-        #expect(started.isSubset(of: [2, 3, 4, 22, 23, 24]))
+        #expect(picture.bitmap == Self.picture(3))
+        #expect(reads.withLock { $0 } == [4, 3])
     }
 
     @Test(
@@ -118,7 +144,10 @@ struct PictureLookaheadTests {
         // When
         let codes = try times.indices.map { index in
             try files.map { file in
-                code(in: try sut.picture(of: file, atFrame: index, play: .file, reading: .tagged).bitmap)
+                let picture = try sut.picture(of: file, atFrame: index, play: .file, reading: .tagged).bitmap
+                sut.readAhead(of: file, atFrames: [index + 1], play: .file, reading: .tagged)
+
+                return code(in: picture)
             }
         }
 
@@ -126,55 +155,93 @@ struct PictureLookaheadTests {
         #expect(codes == times.indices.map { Array(repeating: $0, count: files.count) })
     }
 
-    @Test("a play a rendered frame does not show is dropped, the frame read ahead for it given back")
-    func endsPlayNotShown() throws {
+    @Test("a play the decoder keeps no longer is dropped once a frame is rendered, the frames read ahead for it given back")
+    func endsPlayNotKept() throws {
         // Given
         let budget = MemoryBudget(limit: try #require(MemorySize("1MB")))
         let sut = PictureLookahead(budget: budget)
         let first = VideoPlay(path: "/lookahead/tile.mov", play: .place("clips[0]"))
         let second = VideoPlay(path: "/lookahead/tile.mov", play: .place("clips[1]"))
-        let read: @Sendable (Int, Bool) throws -> Pixels = { index, _ in .bitmap(Self.picture(index)) }
-        for index in 0..<2 {
-            _ = try sut.picture(atFrame: index, of: first, count: 40, bytes: 8, reading: .tagged, read: read)
-            _ = try sut.picture(atFrame: 20 + index, of: second, count: 40, bytes: 8, reading: .tagged, read: read)
-        }
+        let read: @Sendable (Int) throws -> Pixels = { index in .bitmap(Self.picture(index)) }
+        sut.readAhead(atFrames: [2, 3], of: first, reading: .tagged, bytes: 8, read: read)
+        sut.readAhead(atFrames: [22], of: second, reading: .tagged, bytes: 8, read: read)
         let heldBefore = budget.counted
 
         // When
-        sut.frameRendered(showing: [(play: second, reading: .tagged, index: 21)])
-        let heldShown = budget.counted
-        sut.frameRendered(showing: [])
+        sut.frameRendered(keeping: [second])
+        let heldKept = budget.counted
+        sut.frameRendered(keeping: [])
 
         // Then
-        #expect(heldBefore == 16)
-        #expect(heldShown == 8)
+        #expect(heldBefore == 24)
+        #expect(heldKept == 8)
         #expect(budget.counted == 0)
     }
 
-    @Test("a play the renderer gave from its kept pictures reads ahead by the step between the frames it showed")
-    func readsAheadAfterKeptPictures() throws {
+    @Test("a frame read ahead that the frame it was told for did not ask is let go of once that frame is rendered")
+    func letsGoOfFrameNotAsked() throws {
         // Given
-        let sut = PictureLookahead(budget: MemoryBudget(limit: .unlimited))
+        let budget = MemoryBudget(limit: try #require(MemorySize("1MB")))
+        let sut = PictureLookahead(budget: budget)
         let play = VideoPlay(path: "/lookahead/tile.mov", play: .place("clips[0]"))
+        let read: @Sendable (Int) throws -> Pixels = { index in .bitmap(Self.picture(index)) }
+        sut.readAhead(atFrames: [1, 2], of: play, reading: .tagged, bytes: 8, read: read)
+        sut.frameRendered(keeping: [play])
+        let heldTold = budget.counted
+
+        // When
+        let picture = try sut.picture(atFrame: 1, of: play, reading: .tagged) { _ in .bitmap(Self.picture(0)) }
+        let heldAsked = budget.counted
+        sut.frameRendered(keeping: [play])
+
+        // Then
+        #expect(picture.bitmap == Self.picture(1))
+        #expect(heldTold == 16)
+        #expect(heldAsked == 8)
+        #expect(budget.counted == 0)
+    }
+
+    @Test("a telling for a play and reading lets go of the frames read ahead for them that it does not name")
+    func letsGoOfFramesNotToldAgain() throws {
+        // Given
+        let budget = MemoryBudget(limit: try #require(MemorySize("1MB")))
+        let sut = PictureLookahead(budget: budget)
+        let play = VideoPlay(path: "/lookahead/tile.mov", play: .file)
+        let read: @Sendable (Int) throws -> Pixels = { index in .bitmap(Self.picture(index)) }
+        sut.readAhead(atFrames: [1, 2], of: play, reading: .tagged, bytes: 8, read: read)
+        sut.readAhead(atFrames: [1], of: play, reading: .analysis(colorSpace: nil), bytes: 4, read: read)
+
+        // When
+        sut.readAhead(atFrames: [2, 3], of: play, reading: .tagged, bytes: 8, read: read)
+
+        // Then
+        #expect(budget.counted == 20)
+    }
+
+    @Test("a told frame past the budget's room, and those told after it with it, are read where they are asked")
+    func readsFramesPastRoomWhereAsked() throws {
+        // Given
+        let budget = MemoryBudget(limit: try #require(MemorySize("1MB")))
+        budget.require(budget.limit.bytes - 16, for: .pictures)
+        budget.hold(budget.limit.bytes - 16, for: .pictures)
+        let sut = PictureLookahead(budget: budget)
+        let play = VideoPlay(path: "/lookahead/tile.mov", play: .file)
         let aheads = OSAllocatedUnfairLock<[Int]>(initialState: [])
-        let read: @Sendable (Int, Bool) throws -> Pixels = { index, isAhead in
-            if isAhead { aheads.withLock { $0.append(index) } }
+        let read: @Sendable (Int) throws -> Pixels = { index in
+            aheads.withLock { $0.append(index) }
 
             return .bitmap(Self.picture(index))
         }
-        _ = try sut.picture(atFrame: 0, of: play, count: 40, bytes: 8, reading: .tagged, read: read)
-        sut.frameRendered(showing: [(play: play, reading: .tagged, index: 0)])
-        for index in 1..<6 {
-            sut.frameRendered(showing: [(play: play, reading: .tagged, index: index)])
-        }
 
         // When
-        _ = try sut.picture(atFrame: 6, of: play, count: 40, bytes: 8, reading: .tagged, read: read)
-        let next = try sut.picture(atFrame: 7, of: play, count: 40, bytes: 8, reading: .tagged, read: read).bitmap
+        sut.readAhead(atFrames: [1, 2, 3], of: play, reading: .tagged, bytes: 8, read: read)
+        let pictures = try [1, 2, 3].map { index in
+            try sut.picture(atFrame: index, of: play, reading: .tagged) { .bitmap(Self.picture($0)) }.bitmap
+        }
 
         // Then
-        #expect(next == Self.picture(7))
-        #expect(aheads.withLock { $0.first } == 7)
+        #expect(pictures == [1, 2, 3].map(Self.picture))
+        #expect(aheads.withLock { $0 } == [1, 2])
     }
 
     // MARK: - Private

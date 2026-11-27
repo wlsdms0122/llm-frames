@@ -11,13 +11,15 @@ import os
 
 // Gives every picture, a frame or a region of a page, as a white 2 by 2 bitmap at depth `eight`, every page the size
 // `pageSize`, and records each reading it is asked for, and each region and scale of a page, by the path of the file
-// read, the play of each frame asked for, and the media frames each frame rendered showed.
+// read, the play of each frame asked for, the frames each telling names to read ahead, and the media frames each frame
+// rendered showed.
 final class ReadingDecoder: MediaDecoder {
     // MARK: - Property
     private let pictureReadings = OSAllocatedUnfairLock<[String: [PictureReading]]>(initialState: [:])
     private let regions = OSAllocatedUnfairLock<[String: [PageRegionRequest]]>(initialState: [:])
     private let askedPlays = OSAllocatedUnfairLock<[MediaPlay]>(initialState: [])
     private let renderedFrames = OSAllocatedUnfairLock<[[MediaFrame]]>(initialState: [])
+    private let tellings = OSAllocatedUnfairLock<[Telling]>(initialState: [])
     private let pageSize: Size
 
     let largestPictureSide: Int
@@ -82,6 +84,16 @@ final class ReadingDecoder: MediaDecoder {
         SoundBuffer(sampleRate: 48_000, channels: 2, samples: [])
     }
 
+    func readAhead(
+        of file: MediaFile,
+        atFrames indices: [Int],
+        play: MediaPlay,
+        reading: PictureReading
+    ) {
+        let asked = askedPlays.withLock(\.count)
+        tellings.withLock { $0.append(Telling(path: file.path, indices: indices, play: play, asked: asked)) }
+    }
+
     func frameRendered(showing frames: [MediaFrame]) {
         renderedFrames.withLock { $0.append(frames) }
     }
@@ -95,6 +107,11 @@ final class ReadingDecoder: MediaDecoder {
     // The play of each frame asked for, in the order they were asked for.
     var plays: [MediaPlay] {
         askedPlays.withLock { $0 }
+    }
+
+    // Each telling of frames to read ahead, in the order they came.
+    var told: [Telling] {
+        tellings.withLock { $0 }
     }
 
     // The media frames each frame rendered showed, a list for each frame in the order they were rendered.
@@ -113,4 +130,14 @@ final class ReadingDecoder: MediaDecoder {
     }
 
     // MARK: - Private
+}
+
+extension ReadingDecoder {
+    // Frames `indices` of the file at `path` told to be read ahead in `play`, once `asked` frames had been asked for.
+    struct Telling: Equatable, Sendable {
+        let path: String
+        let indices: [Int]
+        let play: MediaPlay
+        let asked: Int
+    }
 }
