@@ -45,7 +45,10 @@ struct RenderPipelineTests {
         ]
         let written = Array(log.calls.dropFirst(opened.count))
         #expect(Array(log.calls.prefix(opened.count)) == opened)
-        #expect(written.filter { $0 == .draw(frame: 0) || $0 == .draw(frame: 1) } == [.draw(frame: 0), .draw(frame: 1)])
+        #expect(written.filter { if case .draw = $0 { true } else { false } } == [
+            .draw(frame: 0, next: 1),
+            .draw(frame: 1, next: nil)
+        ])
         #expect(calls(of: master, in: written) == [
             .append(path: master, frame: 0),
             .append(path: master, frame: 1),
@@ -247,7 +250,7 @@ struct RenderPipelineTests {
 
         // Then
         let drawn = log.calls.compactMap { call in
-            if case let .draw(frame) = call { frame } else { nil }
+            if case let .draw(frame, _) = call { frame } else { nil }
         }
         #expect(drawn == Array(0..<count))
         #expect(Double(count - 1) / fps < duration)
@@ -334,7 +337,10 @@ struct RenderPipelineTests {
         ]
         let written = Array(log.calls.dropFirst(opened.count))
         #expect(Array(log.calls.prefix(opened.count)) == opened)
-        #expect(written.filter { $0 == .draw(frame: 0) || $0 == .draw(frame: 1) } == [.draw(frame: 0), .draw(frame: 1)])
+        #expect(written.filter { if case .draw = $0 { true } else { false } } == [
+            .draw(frame: 0, next: 1),
+            .draw(frame: 1, next: nil)
+        ])
         #expect(calls(of: delivery, in: written) == [
             .append(path: delivery, frame: 0),
             .append(path: delivery, frame: 1),
@@ -370,7 +376,7 @@ struct RenderPipelineTests {
             .checkMedia(path: "/abs/run.mp4"),
             .checkList(frame: frame),
             .checkImageTarget(target),
-            .draw(frame: frame),
+            .draw(frame: frame, next: nil),
             .writeImageTarget(target, frame: frame)
         ])
     }

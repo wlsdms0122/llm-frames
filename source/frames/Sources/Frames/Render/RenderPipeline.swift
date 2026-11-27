@@ -174,14 +174,26 @@ package struct RenderPipeline: Sendable {
         let queue = FrameWriteQueue(writers: writers, budget: budget, frameBytes: frameBytes(of: format))
         budget.hold(frameBytes(of: format), for: .frames)
         defer { budget.give(frameBytes(of: format), for: .frames) }
+        // Each frame's list is evaluated before the frame before it is drawn, so the renderer draws a frame knowing the
+        // list drawn after it.
+        let list = { (index: Int) -> DisplayList? in
+            guard times.indices.contains(index) else { return nil }
+
+            return recorder.measure(.evaluate, reading: decoder) {
+                evaluator.displayList(of: sequence, at: times[index])
+            }
+        }
         do {
-            for (index, time) in times.enumerated() {
-                let list = recorder.measure(.evaluate, reading: decoder) {
-                    evaluator.displayList(of: sequence, at: time)
+            var index = 0
+            var next = list(index)
+            while let current = next {
+                next = list(index + 1)
+                let frame = try recorder.measure(.draw, reading: decoder) {
+                    try renderer.frame(of: current, next: next)
                 }
-                let frame = try recorder.measure(.draw, reading: decoder) { try renderer.frame(of: list) }
                 try recorder.measureWaitingOnEncoder { try queue.append(frame) }
-                recorder.drew(frame: index + 1, of: times.count)
+                index += 1
+                recorder.drew(frame: index, of: times.count)
             }
             try recorder.measureWaitingOnEncoder { try queue.finish() }
         } catch {

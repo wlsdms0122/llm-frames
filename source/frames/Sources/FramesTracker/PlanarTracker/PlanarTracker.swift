@@ -43,15 +43,15 @@ package struct PlanarTracker: Sendable {
         from start: Int,
         over indices: [Int]
     ) throws -> [TrackedFrame] {
-        guard let aligner = TemplateAligner(target: target, on: try image(of: file, atFrame: start, reading: reading)) else {
-            return []
-        }
+        let first = try image(of: file, atFrame: start, reading: reading, next: indices.first)
+        guard let aligner = TemplateAligner(target: target, on: first) else { return [] }
 
         var last = matrix_identity_double3x3
         var beforeLast: simd_double3x3?
         var frames: [TrackedFrame] = []
-        for index in indices {
-            let pyramid = try image(of: file, atFrame: index, reading: reading).pyramid(levels: aligner.levels)
+        for (place, index) in indices.enumerated() {
+            let next = indices.dropFirst(place + 1).first
+            let pyramid = try image(of: file, atFrame: index, reading: reading, next: next).pyramid(levels: aligner.levels)
             let kept = beforeLast.map { before in last * before.inverse * last }
             let found = [kept, last].compactMap { $0 }.lazy
                 .compactMap { aligner.align(on: pyramid, from: $0) }
@@ -82,12 +82,18 @@ package struct PlanarTracker: Sendable {
         return Quad(topLeft: corners[0], topRight: corners[1], bottomRight: corners[2], bottomLeft: corners[3])
     }
 
+    // Frame `index` of the file, once read telling the decoder `next`, the frame read after it, nil where none is, so
+    // the decoder reads it while this one is tracked on.
     private func image(
         of file: MediaFile,
         atFrame index: Int,
-        reading: PictureReading
+        reading: PictureReading,
+        next: Int?
     ) throws -> GreyImage {
-        GreyImage(picture: try decoder.picture(of: file, atFrame: index, play: .file, reading: reading).bitmap)
+        let picture = try decoder.picture(of: file, atFrame: index, play: .file, reading: reading)
+        if let next { decoder.readAhead(of: file, atFrames: [next], play: .file, reading: reading) }
+
+        return GreyImage(picture: picture.bitmap)
     }
 }
 

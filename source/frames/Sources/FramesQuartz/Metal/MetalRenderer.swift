@@ -82,11 +82,16 @@ extension MetalRenderer: Renderer {
         try pictures.bytes(of: list)
     }
 
-    // Once the frame is drawn, the media pictures it did not use are let go of.
-    package func frame(of list: DisplayList) throws -> Pixels {
+    // The list's media pictures are read before it is drawn, and once the frame is drawn, the media pictures it did not
+    // use are let go of.
+    package func frame(
+        of list: DisplayList,
+        next: DisplayList?
+    ) throws -> Pixels {
         defer { pictures.frameDrawn() }
 
         return try autoreleasepool {
+            try pictures.read(list, before: next)
             let raster = Raster(holding: list.size)
             guard let (surface, _, picture) = surfaces.surface(width: raster.width, height: raster.height) else {
                 throw QuartzError.unmadeBitmap(width: raster.width, height: raster.height)

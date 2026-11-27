@@ -145,7 +145,8 @@ package struct FrameExporter: Sendable {
         let output = output(of: source)
         return try sampled.frames.enumerated().map { index, frame in
             let path = folder.appendingPathComponent(String(format: "%04d.png", index)).path
-            try encoder.writeAnalysisPicture(of: try bitmap(of: frame.picture), in: output, to: path)
+            let next = sampled.frames.indices.contains(index + 1) ? sampled.frames[index + 1].picture : nil
+            try encoder.writeAnalysisPicture(of: try bitmap(of: frame.picture, next: next), in: output, to: path)
 
             return path
         }
@@ -305,14 +306,23 @@ package struct FrameExporter: Sendable {
     }
 
     // A media frame as the decoder reads it, an analysis picture not resampled, and a display list as the renderer
-    // draws it.
-    private func bitmap(of picture: PictureItemSource) throws -> Bitmap {
+    // draws it. `next` is the picture read after it, nil where none is: once a media frame is read the decoder is told
+    // the media frame after it, and the renderer draws a list knowing the list after it.
+    private func bitmap(
+        of picture: PictureItemSource,
+        next: PictureItemSource?
+    ) throws -> Bitmap {
         switch picture {
         case let .media(frame):
-            try decoder.picture(of: frame).bitmap
+            let bitmap = try decoder.picture(of: frame).bitmap
+            if case let .media(next)? = next { decoder.readAhead(of: [next]) }
+
+            return bitmap
 
         case let .displayList(list):
-            try renderer.frame(of: list).bitmap
+            let nextList: DisplayList? = if case let .displayList(next)? = next { next } else { nil }
+
+            return try renderer.frame(of: list, next: nextList).bitmap
         }
     }
 

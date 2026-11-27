@@ -127,6 +127,23 @@ Numbers:
 
 With plays kept, `readers` grew by a reader of 9.7 MB with each cut until the bound's 48, and `readAhead` by a frame of 1.8 MB with each cut, to 50. With plays ended, `readers` peaked at two readers, the cut a frame shows and the cut the frame before it showed, and `readAhead` at one frame. The budget peaked at 597 MB against 62 MB, and the process's peak footprint was 407 MB against 285 MB, its most resident 340 MB against 294 MB. Each build decoded 50 frames more than it read, as many as the cuts. The 100 frames taken every 0.1 s of the two outputs gave the same bytes.
 
+### A video of uneven frame intervals
+
+Supports: [Rules](../spec/FRAMES-21/SPEC.md#rules), the decoder reading ahead only the frames it is told are asked next, and the alternative of reading ahead the frame as far on from the frame read as that frame is from the one before it in [Alternatives considered](../spec/FRAMES-21/SPEC.md#alternatives-considered).
+
+On: the reference machine with macOS 27.2, `render` built for release at commit 8b1d4350, whose decoder read ahead the frame a steady step would ask next, and at commit 6ec6c57f, whose decoder reads ahead the frames the renderer tells it the next frame asks, with the `metal` renderer at the default limit. The document is 297 frames at 30 fps of 1206 by 2622, one clip of one H.264 video of that size: a video of 431 frames in 10 s whose intervals lie between 8 ms and 30 ms with a pause of 0.1 s to 0.4 s after about one frame in fifty and a key frame every 0.5 s, and a video of 297 frames at a constant 30 fps. Each render ran three times, the builds in turn, one render at a time.
+
+Numbers:
+
+| Video | Build | Seconds | `decode` seconds | Frames read | Decoded | Opened again |
+| --- | --- | --- | --- | --- | --- | --- |
+| uneven intervals | step guessed | 2.39 to 2.50 | 1.42 to 1.43 | 251 | 597 | 76 |
+| uneven intervals | frames told | 2.23 to 2.35 | 0.11 to 0.12 | 251 | 431 | 0 |
+| constant 30 fps | step guessed | 2.29 to 2.31 | 0.16 to 0.17 | 297 | 297 | 0 |
+| constant 30 fps | frames told | 2.30 to 2.32 | 0.17 | 297 | 297 | 0 |
+
+With the step guessed, the frame read ahead was often past the frame asked next, since the frames a 30 fps output asks of the uneven video lie 1 to 4 frames apart, and the play's reader, moved past it, was opened again at the key frame before, 76 times in 297 frames. With the frames told, every frame of the video was decoded once. The frames taken every 0.1 s of each pair of outputs gave the same bytes. Two documents of the demonstration reel, sixteen videos on screen at once and an edit of ten cuts, took the same time with each build, 7.6 s and 7.5 s, and 91.4 s and 93.0 s.
+
 ### Alternatives considered
 
 Supports: the reasons [Alternatives considered](../spec/FRAMES-21/SPEC.md#alternatives-considered) gives.

@@ -86,6 +86,15 @@ struct PictureDecoder: MediaDecoder {
         try decoder.sound(of: file, from: start, to: end)
     }
 
+    func readAhead(
+        of file: MediaFile,
+        atFrames indices: [Int],
+        play: MediaPlay,
+        reading: PictureReading
+    ) {
+        decoder.readAhead(of: file, atFrames: indices, play: play, reading: reading)
+    }
+
     func frameRendered(showing frames: [MediaFrame]) {
         decoder.frameRendered(showing: frames)
     }

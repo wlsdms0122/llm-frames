@@ -263,9 +263,14 @@ package struct Transcoder: Sendable {
         // A writer let go before it finishes, as when a frame cannot be read, cancels and removes its file.
         let writer = try encoder.videoWriter(for: target, size: size, fps: fps, sound: sound)
         let pictureReading = pictureReading(of: reading, for: output)
-        for index in 0..<frameCount {
-            let frame = file.frameIndex(at: Double(index) / fps)
-            try writer.append(decoder.picture(of: file, atFrame: frame, play: .file, reading: pictureReading))
+        // Each frame read, the decoder is told the frame read after it, which it reads while the frame is written.
+        let frames = (0..<frameCount).map { file.frameIndex(at: Double($0) / fps) }
+        for (index, frame) in frames.enumerated() {
+            let picture = try decoder.picture(of: file, atFrame: frame, play: .file, reading: pictureReading)
+            if frames.indices.contains(index + 1) {
+                decoder.readAhead(of: file, atFrames: [frames[index + 1]], play: .file, reading: pictureReading)
+            }
+            try writer.append(picture)
         }
         try writer.finish()
 

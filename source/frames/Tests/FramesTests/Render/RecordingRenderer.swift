@@ -37,8 +37,11 @@ struct RecordingRenderer: Renderer {
         0
     }
 
-    func frame(of list: DisplayList) throws -> Pixels {
-        log.record(.draw(frame: list.seed))
+    func frame(
+        of list: DisplayList,
+        next: DisplayList?
+    ) throws -> Pixels {
+        log.record(.draw(frame: list.seed, next: next?.seed))
 
         return .bitmap(Bitmap(frame: list.seed))
     }

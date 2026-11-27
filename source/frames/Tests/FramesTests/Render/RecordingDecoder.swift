@@ -91,6 +91,15 @@ struct RecordingDecoder: MediaDecoder {
         return SoundBuffer(sampleRate: 48_000, channels: 2, samples: [])
     }
 
+    // Its pictures are made where they are asked, so it reads none ahead.
+    func readAhead(
+        of file: MediaFile,
+        atFrames indices: [Int],
+        play: MediaPlay,
+        reading: PictureReading
+    ) {
+    }
+
     func frameRendered(showing frames: [MediaFrame]) {
         log.record(.renderFrame(showing: frames))
     }

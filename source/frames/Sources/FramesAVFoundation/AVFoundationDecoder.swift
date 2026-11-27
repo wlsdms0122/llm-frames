@@ -17,17 +17,18 @@ import os
 // their colour by the fixed formulas of FRAMES-26: in the colour space a reading names, or the one its tags name. A
 // `platform` reading instead converts the picture from its file's colour by Core Image's colour management. A page of a
 // PDF is checked and drawn by `PageReader`. A video, a sound track and a PDF are loaded once and kept, a video's frames
-// are read by a `PlayReader` for each play of it, and a play read forward has its next frame read ahead by
+// are read by a `PlayReader` for each play of it, and the frames its caller tells it it asks next are read ahead by
 // `PictureLookahead`. It keeps readers open within the count `ReaderBound` holds them to and the room the run's budget
-// grants them, and a play past either takes turns (FRAMES-30). Once a frame is rendered, a play it did not show is over,
-// and the decoder keeps nothing of it: its reader, the frames held for it and its records go (FRAMES-21 Rules). Made to
-// convert on the GPU, on a machine with a Metal device, it takes a video's frames read as working values to a surface
-// by `MetalPictureConverter` wherever the conversion's steps and the frame's placement allow, and every other picture
-// on the CPU (FRAMES-21 Pictures). A frame those allow that Metal does not convert stops the read. The largest picture
-// it holds is 16384 pixels on a side. It times its reading of pictures and sound as `decode` and its conversion of them
-// as `workingConversion`, that of a frame read ahead apart as well, and tallies how it read each medium: a frame read
-// ahead is decoded where it is read, and read only when it is given (FRAMES-23 Runs). A page's draw is `decode` whole,
-// any colour conversion included, that of Core Graphics and that of a written `colorSpace` alike (FRAMES-21).
+// grants them, and a play past either takes turns (FRAMES-30). Once a frame is rendered, a play neither it nor the
+// frames told for the frame after it show is over, and the decoder keeps nothing of it: its reader, the frames held for
+// it and its records go (FRAMES-21 Rules). Made to convert on the GPU, on a machine with a Metal device, it takes a
+// video's frames read as working values to a surface by `MetalPictureConverter` wherever the conversion's steps and the
+// frame's placement allow, and every other picture on the CPU (FRAMES-21 Pictures). A frame those allow that Metal does
+// not convert stops the read. The largest picture it holds is 16384 pixels on a side. It times its reading of pictures
+// and sound as `decode` and its conversion of them as `workingConversion`, that of a frame read ahead apart as well,
+// and tallies how it read each medium: a frame read ahead is decoded where it is read, and read only when it is given
+// (FRAMES-23 Runs). A page's draw is `decode` whole, any colour conversion included, that of Core Graphics and that of
+// a written `colorSpace` alike (FRAMES-21).
 package final class AVFoundationDecoder: Sendable {
     // MARK: - Property
     // The most pixels on a side of a picture this decoder holds: a frame, a still or a region of a page.
@@ -47,6 +48,8 @@ package final class AVFoundationDecoder: Sendable {
 
     private let budget: MemoryBudget
     private let lookahead: PictureLookahead
+    // The plays of the frames told by `readAhead` since the frame before was rendered.
+    private let told = OSAllocatedUnfairLock<Set<VideoPlay>>(initialState: [])
     private let videos = OSAllocatedUnfairLock<[String: VideoReader]>(initialState: [:])
     private let plays = OSAllocatedUnfairLock<[VideoPlay: PlayReader]>(initialState: [:])
     private let readers: ReaderBound<VideoPlay>
@@ -170,6 +173,91 @@ package final class AVFoundationDecoder: Sendable {
         }
 
         return pixels * bytesPerPixel
+    }
+
+    // The video `file` names, of `frameTimes`, as a read of its frames checks it: its displayed size within
+    // `largestPictureSide` and its frames as many as `frameTimes`.
+    private func checkedVideo(
+        of file: MediaFile,
+        frameTimes: [Double]
+    ) throws -> VideoReader {
+        guard let video = try video(at: file.path) else { throw DecoderError.unreadable(file: file.path) }
+        try checkSize(video.displaySize, path: file.path)
+        let count = video.frames.count
+        guard frameTimes.count == count else {
+            throw DecoderError.frameCount(file: file.path, pinned: frameTimes.count, counted: count)
+        }
+
+        return video
+    }
+
+    // Frame `index` of `video`, the video `file` names, read in `play` as `reading` says, ahead of its ask where
+    // `isAhead` holds, its decoding and conversion timed on the clock of the thread that reads it and tallied.
+    private func framePicture(
+        atFrame index: Int,
+        of file: MediaFile,
+        in video: VideoReader,
+        play: VideoPlay,
+        reading: PictureReading,
+        isAhead: Bool
+    ) throws -> Pixels {
+        let path = file.path
+        let tagged = video.taggedColor
+        let clock = isAhead ? aheadClock : self.clock
+        let (buffer, decoded, reopened) = try clock.measure(.decode) {
+            try admittedBuffer(of: play, in: video, frame: index)
+        }
+        if case .platform = reading {
+            let image = video.taggedImage(of: buffer)
+            let (picture, _) = try picture(from: image, tagged: tagged, path: path, reading: reading, clock: clock)
+
+            return .bitmap(picture)
+        }
+
+        let surface = try surface(
+            of: buffer,
+            atFrame: index,
+            in: video,
+            tagged: tagged,
+            path: path,
+            reading: reading,
+            clock: clock
+        )
+        if let surface {
+            record(
+                file,
+                conversion: surface.conversion,
+                device: .gpu,
+                pixelFormat: video.decodedFormat.name,
+                read: 0,
+                decoded: decoded,
+                reopened: reopened,
+                readFile: nil
+            )
+
+            return .surface(surface.picture)
+        }
+
+        let image = clock.measure(.workingConversion) { video.image(of: buffer) }
+        let (picture, conversion) = try picture(
+            from: image,
+            tagged: tagged,
+            path: path,
+            reading: reading,
+            clock: clock
+        )
+        record(
+            file,
+            conversion: conversion,
+            device: .cpu,
+            pixelFormat: video.decodedFormat.name,
+            read: 0,
+            decoded: decoded,
+            reopened: reopened,
+            readFile: nil
+        )
+
+        return .bitmap(picture)
     }
 
     // Nil for a file that is no PDF.
@@ -537,14 +625,9 @@ extension AVFoundationDecoder: MediaDecoder {
             throw DecoderError.unreadable(file: file.path)
         }
 
-        guard let video = try video(at: file.path) else { throw DecoderError.unreadable(file: file.path) }
-        try checkSize(video.displaySize, path: file.path)
-        let count = video.frames.count
-        guard frameTimes.count == count else {
-            throw DecoderError.frameCount(file: file.path, pinned: frameTimes.count, counted: count)
-        }
+        let video = try checkedVideo(of: file, frameTimes: frameTimes)
         guard video.frames.indices.contains(index) else {
-            throw DecoderError.noFrame(file: file.path, index: index, count: count)
+            throw DecoderError.noFrame(file: file.path, index: index, count: video.frames.count)
         }
 
         try checkColor(video.taggedColor, in: reading.colorSpace, path: file.path)
@@ -552,68 +635,8 @@ extension AVFoundationDecoder: MediaDecoder {
         let path = file.path
         let tagged = video.taggedColor
         let videoPlay = VideoPlay(path: path, play: play)
-        let picture = try lookahead.picture(
-            atFrame: index,
-            of: videoPlay,
-            count: count,
-            bytes: Int(video.displaySize.width * video.displaySize.height) * 8,
-            reading: reading
-        ) { [self] index, isAhead in
-            let clock = isAhead ? self.aheadClock : self.clock
-            let (buffer, decoded, reopened) = try clock.measure(.decode) {
-                try admittedBuffer(of: videoPlay, in: video, frame: index)
-            }
-            if case .platform = reading {
-                let image = video.taggedImage(of: buffer)
-                let (picture, _) = try picture(from: image, tagged: tagged, path: path, reading: reading, clock: clock)
-
-                return .bitmap(picture)
-            }
-
-            let surface = try surface(
-                of: buffer,
-                atFrame: index,
-                in: video,
-                tagged: tagged,
-                path: path,
-                reading: reading,
-                clock: clock
-            )
-            if let surface {
-                record(
-                    file,
-                    conversion: surface.conversion,
-                    device: .gpu,
-                    pixelFormat: video.decodedFormat.name,
-                    read: 0,
-                    decoded: decoded,
-                    reopened: reopened,
-                    readFile: nil
-                )
-
-                return .surface(surface.picture)
-            }
-
-            let image = clock.measure(.workingConversion) { video.image(of: buffer) }
-            let (picture, conversion) = try picture(
-                from: image,
-                tagged: tagged,
-                path: path,
-                reading: reading,
-                clock: clock
-            )
-            record(
-                file,
-                conversion: conversion,
-                device: .cpu,
-                pixelFormat: video.decodedFormat.name,
-                read: 0,
-                decoded: decoded,
-                reopened: reopened,
-                readFile: nil
-            )
-
-            return .bitmap(picture)
+        let picture = try lookahead.picture(atFrame: index, of: videoPlay, reading: reading) { index in
+            try framePicture(atFrame: index, of: file, in: video, play: videoPlay, reading: reading, isAhead: false)
         }
         let device: ConversionDevice = switch picture {
         case .bitmap:
@@ -781,23 +804,56 @@ extension AVFoundationDecoder: MediaDecoder {
         return try clock.measure(.decode) { try sound.sound(from: start, to: end, path: file.path) }
     }
 
-    // The plays of videos none of `frames` is in end once the frames being read ahead for them are read: their readers
-    // close, the frames their turns hold and their frames read ahead are given back to the budget, and the decoder,
-    // the bound and the lookahead keep no record of them. Each play shown takes the frame of it shown last as the one
-    // its next turn steps from, where that is later than the frame it asked last.
+    // A frame told of a video whose frames the decoder cannot read, or one past its last frame, and the frames told
+    // after it, are read where they are asked, and so is a frame of a file that is no video.
+    package func readAhead(
+        of file: MediaFile,
+        atFrames indices: [Int],
+        play: MediaPlay,
+        reading: PictureReading
+    ) {
+        guard case let .video(frameTimes, _, _, _) = file.kind else { return }
+        guard
+            let video = try? checkedVideo(of: file, frameTimes: frameTimes),
+            (try? checkColor(video.taggedColor, in: reading.colorSpace, path: file.path)) != nil
+        else { return }
+
+        let videoPlay = VideoPlay(path: file.path, play: play)
+        told.withLock { _ = $0.insert(videoPlay) }
+        lookahead.readAhead(
+            atFrames: Array(indices.prefix { video.frames.indices.contains($0) }),
+            of: videoPlay,
+            reading: reading,
+            bytes: Int(video.displaySize.width * video.displaySize.height) * 8
+        ) { [self] index in
+            try framePicture(atFrame: index, of: file, in: video, play: videoPlay, reading: reading, isAhead: true)
+        }
+    }
+
+    // The plays of videos none of `frames` and none of the frames told since the frame before was rendered is in end
+    // once the frames being read ahead for them are read: their readers close, the frames their turns hold and their
+    // frames read ahead are given back to the budget, and the decoder, the bound and the lookahead keep no record of
+    // them. Each play shown takes the frame of it shown last as the one its next turn steps from, where that is later
+    // than the frame it asked last.
     package func frameRendered(showing frames: [MediaFrame]) {
-        let shown = frames.compactMap { frame -> (play: VideoPlay, reading: PictureReading, index: Int)? in
+        let shown = frames.compactMap { frame -> (play: VideoPlay, index: Int)? in
             let file = MediaFile(picture: frame.media)
             guard case .video = file.kind, case let .frame(index) = frame.picture else { return nil }
 
-            return (VideoPlay(path: file.path, play: frame.play), frame.reading, index)
+            return (VideoPlay(path: file.path, play: frame.play), index)
         }
-        lookahead.frameRendered(showing: shown)
-
         let shownLast = shown.reduce(into: [VideoPlay: Int]()) { $0[$1.play] = $1.index }
-        let (over, kept) = plays.withLock { plays in
-            let over = plays.filter { shownLast[$0.key] == nil }
-            plays = plays.filter { shownLast[$0.key] != nil }
+        let told = told.withLock { told in
+            defer { told = [] }
+
+            return told
+        }
+        let kept = told.union(shownLast.keys)
+        lookahead.frameRendered(keeping: kept)
+
+        let (over, shownReaders) = plays.withLock { plays in
+            let over = plays.filter { !kept.contains($0.key) }
+            plays = plays.filter { kept.contains($0.key) }
 
             return (over, plays.compactMap { play, reader in shownLast[play].map { (reader: reader, index: $0) } })
         }
@@ -805,7 +861,7 @@ extension AVFoundationDecoder: MediaDecoder {
         for reader in over.values {
             reader.end()
         }
-        for (reader, index) in kept {
+        for (reader, index) in shownReaders {
             reader.shown(frame: index)
         }
     }

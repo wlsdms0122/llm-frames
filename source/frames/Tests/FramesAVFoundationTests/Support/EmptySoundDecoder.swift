@@ -73,6 +73,15 @@ struct EmptySoundDecoder: MediaDecoder {
         return SoundBuffer(sampleRate: sound.sampleRate, channels: sound.channels, samples: [], layout: sound.layout)
     }
 
+    func readAhead(
+        of file: MediaFile,
+        atFrames indices: [Int],
+        play: MediaPlay,
+        reading: PictureReading
+    ) {
+        decoder.readAhead(of: file, atFrames: indices, play: play, reading: reading)
+    }
+
     func frameRendered(showing frames: [MediaFrame]) {
         decoder.frameRendered(showing: frames)
     }
