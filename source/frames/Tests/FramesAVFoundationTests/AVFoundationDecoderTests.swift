@@ -729,7 +729,7 @@ struct AVFoundationDecoderTests {
         #expect(pictures.map(code) == order.map { $0 % 64 })
     }
 
-    @Test("the decoder's readings give each medium in the order first read, its pictures given and decoded, its reopenings, frame 2 asked again after frame 3 was read ahead among them, how it is given its samples, and its time decoding and converting")
+    @Test("the decoder's readings give each medium in the order first read, its pictures given and decoded, its reopenings, how it is given its samples, and its time decoding and converting")
     func reportsReadings() async throws {
         // Given
         let directory = try TemporaryDirectory()
@@ -761,7 +761,7 @@ struct AVFoundationDecoderTests {
         #expect(first.page == nil && first.conversion == .identity && first.pixelFormat == "8-bit integer Y'CbCr 4:2:0")
         #expect(first.framesRead == 6)
         #expect(first.framesDecoded >= 22)
-        #expect(first.reopened == 2)
+        #expect(first.reopened == 1)
         #expect(readings.media.last == MediumReading(
             path: still,
             page: nil,
@@ -790,7 +790,9 @@ struct AVFoundationDecoderTests {
         let media = MediaFile.video(video, frameTimes: evenTimes)
 
         // When
-        let pictures = try [0, 1, 0].map { try sut.picture(of: media, atFrame: $0).bitmap }
+        let first = try sut.picture(of: media, atFrame: 0).bitmap
+        sut.readAhead(of: media, atFrames: [1, 2], play: .file, reading: .tagged)
+        let pictures = try [first] + [1, 0].map { try sut.picture(of: media, atFrame: $0).bitmap }
         let readings = sut.readings()
 
         // Then
